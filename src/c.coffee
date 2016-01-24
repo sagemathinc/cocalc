@@ -96,3 +96,22 @@ global.delete_account = (email) ->
                     else
                         done("SUCCESS!")
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
+
+
+global.close_unused_projects = (host) ->
+    require('smc-hub/compute-client').compute_server
+        db_hosts : db_hosts
+        cb       : (err, s)->
+            if err
+                done("FAIL -- #{err}")
+                return
+            s.close_open_unused_projects
+                dry_run      : false
+                min_age_days : 60
+                max_age_days : 300
+                threads      : 5
+                host         : host
+                cb           : done()
+
+console.log("close_unused_projects('hostname') -- close all projects on that host not used in the last 60 days")
+

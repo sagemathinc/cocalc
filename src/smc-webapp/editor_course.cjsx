@@ -1250,7 +1250,11 @@ Student = rclass
     render_hosting: ->
         student_project_id = @props.student.get('project_id')
         if student_project_id
-            if @props.redux.getStore('projects').get_total_project_quotas(student_project_id).member_host
+            upgrades = @props.redux.getStore('projects').get_total_project_quotas(student_project_id)
+            if not upgrades?
+                # user opening the course isn't a collaborator on this student project yet
+                return
+            if upgrades.member_host
                 <Tip placement='left' title={<span><Icon name='check'/> Members-only hosting</span>} tip='Projects is on a members-only server, which is much more robust and has priority support.'>
                     <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only</span>
                 </Tip>
@@ -2998,7 +3002,7 @@ Settings = rclass
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
-            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable network access, for four months.  Members-only computers are not randomly rebooted constantly and have far less users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable network access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
 
             {@render_students_pay_checkbox()}
             {@render_require_students_pay_when() if @state.students_pay}

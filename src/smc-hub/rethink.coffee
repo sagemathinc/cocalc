@@ -4052,6 +4052,9 @@ class SyncTable extends EventEmitter
                 @_feed = feed # save to use in @close
                 cb()
                 feed.each (err, change) =>
+                    if not @_value?
+                        # a changefeed might send a little more information after it was closed; ignore it.
+                        return
                     if err
                         feed.close()
                         delete @_feed

@@ -1011,13 +1011,20 @@ exports.parse_mathjax = (t) ->
             i += 2
             continue
         for d in mathjax_delim
+            contains_linebreak = false
             if t.slice(i,i+d[0].length) == d[0]
                 # a match -- find the close
                 j = i+1
                 while j < t.length and t.slice(j,j+d[1].length) != d[1]
+                    if t.slice(j, j+1) == "\n"
+                        contains_linebreak = true
+                        if d[0] == "$"
+                            break
                     j += 1
                 j += d[1].length
-                v.push([i,j])
+                # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
+                if !(d[0] == "$" and contains_linebreak)
+                    v.push([i,j])
                 i = j
                 break
         i += 1
@@ -1438,7 +1445,8 @@ exports.smiley = (opts) ->
     opts = exports.defaults opts,
         s           : exports.required
         wrap        : undefined
-    s = opts.s
+    # de-sanitize possible sanitized characters
+    s = opts.s.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
     for subs in smileys
         repl = subs[1]
         if opts.wrap
