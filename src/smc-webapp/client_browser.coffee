@@ -35,6 +35,7 @@ class Connection extends client.Connection
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
+        window.smc.done = window.smc.misc.done  # useful for debugging
         super(opts)
 
     _connect: (url, ondata) ->

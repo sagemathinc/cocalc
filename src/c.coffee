@@ -9,14 +9,7 @@ The functiosns below in some cases return things, and in some cases set global v
 
 db_hosts = [process.env.SMC_DB_HOSTS ? 'db0']
 
-global.done = () ->
-    start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+global.done = require('smc-util/misc').done
 
 db = undefined
 get_db = (cb) ->

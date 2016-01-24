@@ -1474,3 +1474,13 @@ exports.emoticons = exports.to_human_list(exports.smiley_strings())
 exports.history_path = (path) ->
     p = exports.path_split(path)
     return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
+
+# This is a convenience function to provide as a callback when working interactively.
+exports.done = () ->
+    start_time = new Date()
+    return (args...) ->
+        try
+            s = JSON.stringify(args)
+        catch
+            s = args
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
