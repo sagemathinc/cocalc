@@ -133,7 +133,7 @@ class JupyterNotebook
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
-            sync_interval   : 1000
+            sync_interval   : 2000
             cursor_interval : 2000
             read_only : false
         window.s = @
@@ -183,12 +183,8 @@ class JupyterNotebook
         @con      = @element.find(".smc-jupyter-notebook-connecting")
         @setup () =>
             # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
-            # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
+            # set_dirty, sometimes instead just directly setting the flag.  So there's no simple way to know exactly
             # when the notebook is dirty. (TODO: fix all this via upstream patches.)
-            # Also, note there are cases where IPython doesn't set the dirty flag
-            # even though the output has changed.   For example, if you type "123" in a cell, run, then
-            # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
-            # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
 
             @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
             @_cursor_interval   = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
@@ -249,6 +245,8 @@ class JupyterNotebook
                     @iframe.css(opacity:1)
                     @save_button.text('Readonly').addClass('disabled')
                     @show()
+                    for c in @nb.get_cells()
+                        c.code_mirror?.setOption('readOnly',true)
                     cb()
                 else
                     @_init_doc(cb)
@@ -308,7 +306,6 @@ class JupyterNotebook
         @status("Displaying Jupyter Notebook")
         if @doc.live() == ""
             # set the synchronized string from the visible notebook
-            ## TODO here
             @doc.live(@nb_to_string())
         else
             # set the visible notebook from the synchronized string
@@ -346,7 +343,7 @@ class JupyterNotebook
         @status()
 
     broadcast_cursor_pos: () =>
-        if not @nb? or @readonly
+        if not @nb? or @readonly or not @doc?
             # no point -- reloading or loading or read-only
             return
         # This is an ugly hack to ignore cursor movements resulting from remote changes.
@@ -518,7 +515,6 @@ class JupyterNotebook
                         if @opts.read_only
                             $(@frame.document).find("#menubar").remove()
                             $(@frame.document).find("#maintoolbar").remove()
-                            $(@frame.document).on('keydown', (e) -> e.preventDefault())  # helps a little.
 
                         a = @frame.$("#ipython_notebook").find("a")
                         if a.length == 0
@@ -547,7 +543,8 @@ class JupyterNotebook
                             for cmd in ['new', 'open', 'copy', 'rename']
                                 @frame.$("#" + cmd + "_notebook").remove()
 
-                            @frame.$("#save-notbook").remove()  # typo in ipython-3
+                            @frame.$("#save_checkpoint").remove()
+                            @frame.$("#restore_checkpoint").remove()
                             @frame.$("#save-notebook").remove()  # in case they fix the typo
 
                             @frame.$(".checkpoint_status").remove()
@@ -561,11 +558,6 @@ class JupyterNotebook
 
                             if not require('./feature').IS_MOBILE
                                 @frame.$("#site").css("padding-left", "20px")
-
-                            ### -- WARNING: this code below completely breaks everything on Firefox!
-                            @nb._save_checkpoint = @nb.save_checkpoint
-                            @nb.save_checkpoint = @save
-                            ###
 
                             # We have our own auto-save system
                             @nb.set_autosave_interval(0)
@@ -581,19 +573,21 @@ class JupyterNotebook
     autosync: () =>
         if @readonly or @_reloading
             return
-        if @nb?.dirty
+        if @nb?.dirty and @nb.dirty != 'clean'
             @dbg("autosync")
-            @nb.dirty = false
+            # nb.dirty is used internally by IPython so we shouldn't change it's truthiness.
+            # However, we still need a way in Sage to know that the notebook isn't dirty anymore.
+            @nb.dirty = 'clean'
             #console.log("causing sync")
             @save_button.removeClass('disabled')
             @sync()
 
     sync: (cb) =>
-        if @readonly
+        if @readonly or not @doc?
             cb?()
             return
         @editor.activity_indicator(@filename)
-        @save_button.icon_spin(start:true, delay:1500)
+        @save_button.icon_spin(start:true, delay:3000)
         @dbg("sync", "start")
         @doc.sync () =>
             @dbg("sync", "done")
@@ -604,7 +598,7 @@ class JupyterNotebook
         return not @save_button.hasClass('disabled')
 
     save: (cb) =>
-        if not @nb? or @readonly
+        if not @nb? or @readonly or not @doc?
             cb?(); return
         @save_button.icon_spin(start:true, delay:4000)
         @nb.save_notebook?(false)
@@ -616,7 +610,7 @@ class JupyterNotebook
     # Set the the visible notebook in the DOM from the synchronized string
     set_nb_from_doc: () =>
         current = @nb_to_string()
-        if not current?
+        if not current? or not @doc?
             return
         if @doc.live() != current
             @set_nb(@doc.live())
@@ -800,46 +794,38 @@ class JupyterNotebook
         @nb.delete_cell(index + 1)
 
         # TODO: If this cell was focused and our cursors were in this cell, we put them back:
-        
+
 
         #console.log("set_cell: done", misc.mswalltime(t))
 
     # Notebook Doc Format: line 0 is meta information in JSON.
-    # Rest of file has one line for each cell for rest of file, in the following format:
+    # Rest of file has one line for each cell for rest of file, in JSON format.
     #
-    #     cell input text (with newlines replaced) [special unicode character] json object for cell, without input
-    #
-    # We split the line as above so that if/when there are merge conflicts
-    # that result in json corruption, which we then reject, only the *output*
-    # is impacted. The odds of corruption in the output is much less.
-    #
+    remove_images: (cell) =>
+        return # for now
+        if cell.outputs?
+            for out in cell.outputs
+                if out.data?
+                    for k, v of out.data
+                        if k.slice(0,6) == 'image/'
+                            delete out.data[k]
+
+    restore_images: (cell) =>
+        return
+
     cell_to_line: (cell) =>
         cell = misc.copy(cell)
-        source = misc.to_json(cell.source)
-        delete cell['source']
-        line = source + diffsync.MARKERS.output + misc.to_json(cell)
-        #console.log("\n\ncell=", misc.to_json(cell))
-        #console.log("line=", line)
-        return line
+        @remove_images(cell)
+        return misc.to_json(cell)
 
     line_to_cell: (line) =>
-        v = line.split(diffsync.MARKERS.output)
         try
-            if v[0] == 'undefined'  # backwards incompatibility...
-                source = undefined
-            else
-                source = JSON.parse(v[0])
+            cell = misc.from_json(line)
+            @restore_images(cell)
+            return cell
         catch e
-            console.log("line_to_cell('#{line}') -- source ERROR=", e)
+            console.warn("line_to_cell('#{line}') -- source ERROR=", e)
             return
-        try
-            cell = JSON.parse(v[1])
-            cell.source = source
-        catch e
-            console.log("line_to_cell('#{line}') -- output ERROR=", e)
-        #console.log("\n\nlin=", line)
-        #console.log("cell=", misc.to_json(cell))
-        return cell
 
     # Convert the visible displayed notebook into a textual sync-friendly string
     nb_to_string: () =>
@@ -851,7 +837,7 @@ class JupyterNotebook
         doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
-        @nb.dirty = false
+        @nb.dirty = 'clean' # see comment in autosync
         #@dbg("nb_to_string", "time", misc.mswalltime(tm))
         return doc
 
@@ -947,24 +933,6 @@ class JupyterNotebook
         # console.log("top=#{top}; setting maxheight for iframe =", @iframe)
         @iframe?.attr('width', width).maxheight()
         setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
-
-# This isn't used really -- it is called if somehow somebody directly opens the .ipython.syncdoc
-# history file, rather than opening the history directly in an ipython notebook.
-exports.process_history_editor = (cm) ->
-    #console.log("process_history_editor")
-    if cm.findMarksAt({line:0,ch:0}).length == 0
-        # hide document-wide metadata line
-        cm.markText({line:0,ch:0},{line:1,ch:0},{collapsed:true})
-    for i in [1...cm.lineCount()]
-        v = cm.getLine(i)
-        j = v.indexOf(diffsync.MARKERS.output)
-        m = cm.findMarksAt({line:i, ch:j-1})
-        #console.log("existing marks=",m)
-        if m.length == 0
-            #console.log("putting a mark from", {line:i, ch:j}, " to ", {line:i,ch:v.length})
-            cm.markText({line:i, ch:j-1}, {line:i,ch:v.length}, {collapsed:true})
-            cm.markText({line:i, ch:0}, {line:i,ch:1}, {collapsed:true})
-
 
 
 
