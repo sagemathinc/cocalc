@@ -10,6 +10,7 @@ misc = require('smc-util/misc')
 
 sagews  = require('./sagews')
 jupyter = require('./editor_jupyter')
+tasks   = require('./tasks')
 
 templates = $("#salvus-editor-templates")
 
@@ -18,11 +19,12 @@ underscore = require('underscore')
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         window.h = @
-        @init_syncstring()
+        @init_paths()
         @init_view_doc(opts)
+        @init_syncstring()
         @init_slider()
 
-    init_syncstring: =>
+    init_paths: =>
         #   @filename = "path/to/.file.sage-history"
         s = misc.path_split(@filename)
         @_path = s.tail.slice(1, s.tail.length - ".sage-history".length)
@@ -35,6 +37,8 @@ class exports.HistoryEditor extends FileEditor
                 @_ipynb_path = s.head + '/' + @_ipynb_path
         if s.head
             @_path = s.head + '/' + @_path
+
+    init_syncstring: =>
         @syncstring = salvus_client.sync_string
             project_id : @editor.project_id
             path       : @_path
@@ -58,6 +62,8 @@ class exports.HistoryEditor extends FileEditor
         switch @ext
             when 'ipynb'
                 @view_doc = jupyter.jupyter_notebook(@editor, @_ipynb_path, opts).data("jupyter_notebook")
+            when 'tasks'
+                @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
             else
                 @view_doc = codemirror_session_editor(@editor, @filename, opts)
 
@@ -114,6 +120,8 @@ class exports.HistoryEditor extends FileEditor
                 @view_doc.codemirror.setValue(val)
             when 'ipynb'
                 @view_doc.set_nb(val)
+            when 'tasks'
+                @view_doc.set_value(val)
             else
                 @view_doc.codemirror.setValueNoJump(val)
         @process_view()

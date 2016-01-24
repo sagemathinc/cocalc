@@ -135,7 +135,8 @@ class JupyterNotebook
         opts = @opts = defaults opts,
             sync_interval   : 2000
             cursor_interval : 2000
-            read_only : false
+            read_only       : false
+            mode            : undefined   # ignored
         window.s = @
         @element = templates.find(".smc-jupyter-notebook").clone()
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
@@ -181,7 +182,9 @@ class JupyterNotebook
         # This is where we put the page itself
         @notebook = @element.find(".smc-jupyter-notebook-notebook")
         @con      = @element.find(".smc-jupyter-notebook-connecting")
-        @setup () =>
+        @setup (err) =>
+            if err
+                cb?(err)
             # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
             # set_dirty, sometimes instead just directly setting the flag.  So there's no simple way to know exactly
             # when the notebook is dirty. (TODO: fix all this via upstream patches.)
@@ -189,12 +192,32 @@ class JupyterNotebook
             @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
             @_cursor_interval   = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
+
     status: (text) =>
         if not text?
             text = ""
         else if false
             text += " (started at #{Math.round(misc.walltime(@_start_time))}s)"
         @status_element.html(text)
+
+    # Return the last modification time of the .ipynb file on disk.
+    # TODO: this has nothing to do with ipynb files -- refactor...
+    get_ipynb_file_timestamp: (cb) =>
+        salvus_client.exec
+            project_id : @editor.project_id
+            path       : @path
+            command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
+            args       : ['--printf', '%Z ', @file]
+            timeout    : 20
+            err_on_exit: false
+            cb         : (err, output) =>
+                if err
+                    cb(err)
+                else if output.stderr.indexOf('such file or directory') != -1
+                    # ipynb file doesn't exist
+                    cb(undefined, 0)
+                else
+                    cb(undefined, parseInt(output.stdout)*1000)
 
     setup: (cb) =>
         if @_setting_up
@@ -208,25 +231,10 @@ class JupyterNotebook
 
         async.series([
             (cb) =>
-                @status("Checking whether ipynb file has changed...")
-                salvus_client.exec
-                    project_id : @editor.project_id
-                    path       : @path
-                    command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
-                    args       : ['--printf', '%Z ', @file, @syncdb_filename]
-                    timeout    : 15
-                    err_on_exit: false
-                    cb         : (err, output) =>
-                        if err
-                            cb(err)
-                        else if output.stderr.indexOf('such file or directory') != -1
-                            # nothing to do -- the syncdoc file doesn't even exist.
-                            cb()
-                        else
-                            v = output.stdout.split(' ')
-                            if parseInt(v[0]) >= parseInt(v[1]) + 10
-                                @_use_disk_file = true
-                            cb()
+                @status("Getting last time that ipynb file was modified")
+                @get_ipynb_file_timestamp (err, x) =>
+                    @_ipynb_last_modified = x
+                    cb(err)
             (cb) =>
                 @status("Ensuring synchronization file exists")
                 @editor.project_page.ensure_file_exists
@@ -241,6 +249,7 @@ class JupyterNotebook
                 @initialize(cb)
             (cb) =>
                 if @readonly
+                    @dbg("setup", "readonly")
                     # TODO -- change UI to say *READONLY*
                     @iframe.css(opacity:1)
                     @save_button.text('Readonly').addClass('disabled')
@@ -249,6 +258,7 @@ class JupyterNotebook
                         c.code_mirror?.setOption('readOnly',true)
                     cb()
                 else
+                    @dbg("setup", "_init_doc")
                     @_init_doc(cb)
         ], (err) =>
             @con.show().icon_spin(false).hide()
@@ -292,8 +302,15 @@ class JupyterNotebook
                     cb?("Unable to connect to synchronized document server -- #{err}")
                 else
                     @doc = doc
-                    if @_use_disk_file
-                        @doc.live('')   # delete everything
+                    console.log(@_ipynb_last_modified, @doc._syncstring.last_changed() - 0)
+                    if @_ipynb_last_modified >= @doc._syncstring.last_changed() - 0
+                        console.log("set from visible")
+                        # set the syncstring from the visible notebook, just loaded from the file
+                        @doc.live(@nb_to_string())
+                    else
+                        console.log("set from syncstring")
+                        # set the visible notebook from the synchronized string
+                        @set_nb_from_doc()
                     @_config_doc()
                     cb?()
 
@@ -304,12 +321,6 @@ class JupyterNotebook
         @dbg("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         @status("Displaying Jupyter Notebook")
-        if @doc.live() == ""
-            # set the synchronized string from the visible notebook
-            @doc.live(@nb_to_string())
-        else
-            # set the visible notebook from the synchronized string
-            @set_nb_from_doc()
         @dbg("_config_doc", "DONE SETTING!")
 
         @iframe.css(opacity:1)
@@ -468,6 +479,7 @@ class JupyterNotebook
                     cb(err); return
 
                 @iframe_uuid = misc.uuid()
+                @dbg("initialize", "loading notebook...")
 
                 @status("Loading Jupyter notebook...")
                 @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
@@ -482,8 +494,8 @@ class JupyterNotebook
                 attempts = 0
                 delay = 200
                 iframe_time = start_time = misc.walltime()
-                # What f does below is purely inside the browser DOM -- not the network, so doing it frequently is not a serious
-                # problem for the server.
+                # What f does below is purely inside the browser DOM -- not the network, so doing it
+                # frequently is not a serious problem for the server.
                 f = () =>
                     #console.log("iframe_time = ", misc.walltime(iframe_time))
                     if misc.walltime(iframe_time) >= 15
@@ -528,7 +540,8 @@ class JupyterNotebook
                                 cb(msg)
                                 return
                             @nb = @ipython.notebook
-                            if @opts.read_only
+
+                            if @readonly
                                 @nb.kernel.stop_channels()  # ensure computations don't get sent to kernel
 
                             a.click () =>
@@ -566,6 +579,7 @@ class JupyterNotebook
                             #    @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a read only document.</b>"))
 
                             @status()
+                            @dbg("initialize", "DONE")
                             cb()
 
                 setTimeout(f, delay)
@@ -774,6 +788,7 @@ class JupyterNotebook
             new_cell.fromJSON(cell_data)
         catch e
             console.log("insert_cell fromJSON error -- #{e} -- cell_data=",cell_data)
+            window.cell_data = cell_data
 
     set_cell: (index, cell_data) =>
         #console.log("set_cell: start"); t = misc.mswalltime()
@@ -843,6 +858,7 @@ class JupyterNotebook
 
     # Transform the visible displayed notebook view into exactly what is described by the string doc.
     set_nb: (doc) =>
+        @dbg("set_nb")
         tm = misc.mswalltime()
         if not @nb?
             # The live notebook is not currently initialized -- there's nothing to be done for now.

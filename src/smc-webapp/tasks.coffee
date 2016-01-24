@@ -43,6 +43,7 @@ misc   = require('smc-util/misc')
 {dmp}             = require('diffsync')     # diff-match-patch library
 markdown          = require('./markdown')
 
+underscore = require('underscore')
 
 {IS_MOBILE} = require('./feature')
 
@@ -55,9 +56,9 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (project_id, filename, editor) ->
+exports.task_list = (editor, filename, opts) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(project_id, filename, element, editor)
+    new TaskList(editor, filename, element, opts)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
@@ -80,13 +81,15 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element, @editor) ->
+    constructor : (@editor, @filename, @element, @opts) ->
+        @project_id = @editor?.editor.project_id
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
         @save_button = @element.find("a[href=#save]")
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @readonly = true # at least until loaded
+        @init_history_button()
         @init_create_task()
         @init_delete_task()
         @init_move_task_to_top()
@@ -96,14 +99,27 @@ class TaskList
         @init_search()
         @init_sort()
         @init_info()
-        @init_syncdb()
-        #@element.find(".salvus-tasks-hashtags").resizable
-        #     handles  : "s"
+        if @opts.viewer
+            @init_viewer()
+        else
+            @init_syncdb()
 
     destroy: () =>
         delete @tasks
         @element.removeData()
         @db?.destroy()
+
+    init_history_button: =>
+        if not @opts.viewer
+            @element.find("a[href=#history]").show().click () =>
+                @editor?.editor.project_page.open_file
+                    path       : misc.history_path(@filename)
+                    foreground : true
+
+    init_viewer: () =>
+        @element.find(".salvus-tasks-loading").remove()
+        @element.find(".salvus-task-empty-trash").remove()
+        @element.find(".salvus-tasks-action-buttons").remove()
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -153,6 +169,21 @@ class TaskList
 
                     @init_save()
 
+    # Set the task list to what is defined by the given syncdb string.
+    # This is used for the history viewer
+    set_value: (value) =>
+        @tasks = {}
+        # We just completely clear and re-render everything.  Obviously this is not efficient.
+        # However, it will be really hard/tricky to do this properly, and this code will just
+        # get tossed when we rewrite tasks using React.js.
+        @render_task_list()
+        for x in value.split('\n')
+            try
+                task = JSON.parse(x)
+                @tasks[task.task_id] = task
+            catch e
+                console.warn("error parsing task #{e} '#{x}'")
+        @render_task_list()
 
     init_tasks: () =>
 
@@ -301,6 +332,8 @@ class TaskList
         @render_task_list()
 
     local_storage: (key, value) =>
+        if @opts.viewer
+            return
         {local_storage}   = require('./editor')
         return local_storage(@project_id, @filename, key, value)
 
@@ -351,6 +384,7 @@ class TaskList
         return v
 
     toggle_hashtag_button: (button) =>
+        console.log("toggle_hashtag_button", button)
         if not button?
             return
         tag = button.text()
@@ -541,7 +575,7 @@ class TaskList
             e.highlight(non_hashtag_search_terms)
 
         # show the "create a new task" link if no tasks.
-        if count == 0
+        if count == 0 and not @readonly
             @element.find(".salvus-tasks-list-none").show()
         else
             @element.find(".salvus-tasks-list-none").hide()
@@ -673,6 +707,8 @@ class TaskList
             return
 
     display_undelete: (task) =>
+        if @opts.viewer or @readonly
+            return
         if task.deleted
             task.element.find(".salvus-task-undelete").show()
         else
@@ -1284,7 +1320,10 @@ class TaskList
             @render_task_list()
 
     init_showing_done: () =>
-        @showing_done = @local_storage("showing_done")
+        if @opts.viewer
+            @showing_done = false
+        else
+            @showing_done = @local_storage("showing_done")
         if not @showing_done?
             @showing_done = true  # default to showing done
         @set_showing_done(@showing_done)
@@ -1305,7 +1344,10 @@ class TaskList
 
 
     init_showing_deleted: () =>
-        @showing_deleted = @local_storage("showing_deleted")
+        if @opts.viewer
+            @showing_deleted = false
+        else
+            @showing_deleted = @local_storage("showing_deleted")
         if not @showing_deleted?
             @showing_deleted = false
         @set_showing_deleted(@showing_deleted)

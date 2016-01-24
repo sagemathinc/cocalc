@@ -3574,7 +3574,7 @@ class TaskList extends FileEditorWrapper
         @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
         require.ensure [], () =>
             tasks = require('./tasks')
-            elt = tasks.task_list(@editor.project_id, @filename, @)
+            elt = tasks.task_list(@, @filename, {})
             @element.replaceWith(elt)
             @element = elt
             @wrapped = elt.data('task_list')
