@@ -903,7 +903,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb          : undefined
             data        : undefined
             preparse    : true
-            uuid        : misc.uuid()
+            id          : misc.uuid()
             output_uuid : opts.output_uuid
             timeout     : undefined
 
@@ -913,11 +913,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 code        : opts.code
                 data        : opts.data
                 preparse    : opts.preparse
-                uuid        : opts.uuid
+                id          : opts.id
                 output_uuid : opts.output_uuid
                 timeout     : opts.timeout
             cb   : opts.cb
-        return opts.uuid
+        return opts.id
 
     interact: (output, desc, mark) =>
         # Create and insert DOM objects corresponding to this interact
@@ -1206,7 +1206,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                             exec = (code) =>
                                 @execute_code
-                                    code     :code
+                                    code     : code
                                     preparse : true
                                     cb       : (mesg) =>
                                         delete mesg.done
@@ -1307,7 +1307,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         else
                             cell.remove_cell_flag(FLAGS.auto)
 
-        if mesg.done? and mesg.done
+        # NOTE: Right now the "state object" is a just a list of messages in the output of a cell. It's viewed as something that should get rendered in order, with no dependence between them. Instead alll thoose messages should get fed into one single state object, which then gets rendered each time it changes. React makes that approach easy and efficient. Without react (or something similar) it is basically impossible.  When sage worksheets are rewritten using react, this will change.
+        if mesg.clear
+            line = opts.mark.find()?.from.line
+            if line?
+                @cell(line)?.set_output()
+
+        if mesg.delete_last
+            line = opts.mark.find()?.from.line
+            if line?
+                # we pass in 2 to delete the delete_last message itself.
+                @cell(line)?.delete_last_output(2)
+
+        if mesg.done
             output.removeClass('sagews-output-running')
             output.addClass('sagews-output-done')
 
@@ -2004,21 +2016,45 @@ class SynchronizedWorksheetCell
     output: =>
         return (misc.from_json(x) for x in @raw_output().slice(38).split(MARKERS.output) when x)
 
-    # append an output message to this cell
-    append_output_message: (mesg) =>
+    _get_output: () =>
         mark = @get_output_mark()
         loc = mark?.find()
         if not loc?
             console.warn("unable to append output message since cell no longer exists")
             return
-        cm = @doc.focused_codemirror()
-        n  = loc.from.line
-        s  = cm.getLine(n)
+        else
+            cm = @doc.focused_codemirror()
+            n  = loc.from.line
+            s  = cm.getLine(n)
+            return {cm: cm, loc: loc, s: s, n: n}
+
+    # append an output message to this cell
+    append_output_message: (mesg) =>
+        x = @_get_output()
+        if not x?
+            return
+        {cm, loc, n} = x
         t  = MARKERS.output + misc.to_json(mesg)
         cm.replaceRange(t, loc.to, loc.to)
         @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.append_output_message")
 
-    # For a given list output of messages
+    # Delete the last num output messages in this cell
+    delete_last_output: (num) =>
+        x = @_get_output()
+        if not x?
+            return
+        {cm, loc, s, n} = x
+        for _ in misc.range(num)
+            i = s.lastIndexOf(MARKERS.output)
+            if i == -1
+                @set_output()  # delete it all
+                return
+            s = s.slice(0,i)
+        s = s.slice(37)
+        cm.replaceRange(s, {line:loc.from.line, ch:37}, loc.to)
+        @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.delete_last_output")
+
+    # For a given list output of messages, set the output of that cell to them.
     set_output: (output=[]) =>
         loc = @get_output_mark()?.find()
         if not loc?

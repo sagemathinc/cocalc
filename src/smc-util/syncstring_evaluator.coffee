@@ -47,20 +47,22 @@ class exports.Evaluator
         if @_closed
             opts.cb?("closed")
             return
-        time = @string._client.server_time()  # TODO: add time if same as last eval
+        time = @string._client.server_time()  # TODO: need to perturb time if same as last eval
         @_inputs.set
             id    : [@string._string_id, time, 0]
             input : misc.copy_without(opts, 'cb')
-        handle_output = (keys) =>
-            for key in keys
-                t = misc.from_json(key)
-                if t[1] - time == 0
-                    mesg = @_outputs.get(key)?.get('output')?.toJS()
-                    if mesg?
-                        if mesg.done
-                            @_outputs.removeListener('change', handle_output)
-                        opts.cb?(mesg)
-        @_outputs.on('change', handle_output)
+        if opts.cb?
+            # if we care about the output, listen for it until receving a mesg.done
+            handle_output = (keys) =>
+                for key in keys
+                    t = misc.from_json(key)
+                    if t[1] - time == 0  # we call opts.cb on all output with the given timestamp
+                        mesg = @_outputs.get(key)?.get('output')?.toJS()
+                        if mesg?
+                            if mesg.done
+                                @_outputs.removeListener('change', handle_output)
+                            opts.cb(mesg)
+            @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
         dbg = @string._client.dbg("_execute_code_hook('#{output_uuid}')")
@@ -147,7 +149,7 @@ class exports.Evaluator
         @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
         # TODO: input also may have -- uuid, output_uuid, timeout
         if input.event == 'execute_code'
-            input = misc.copy_with(input, ['code', 'data', 'preparse', 'event'])
+            input = misc.copy_with(input, ['code', 'data', 'preparse', 'event', 'id'])
         @_sage_session.call
             input : input
             cb    : cb

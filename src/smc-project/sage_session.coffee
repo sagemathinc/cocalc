@@ -196,12 +196,16 @@ class exports.SageSession
         opts = defaults opts,
             input : required
             cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
+        dbg = @dbg("call")
+        dbg("input='#{misc.to_json(opts.input)}'")
         switch opts.input.event
             when 'signal'
                 if @_socket?
+                    dbg("sending signal #{opts.input.signal} to process #{@_socket.pid}")
                     misc_node.process_kill(@_socket.pid, opts.input.signal)
                 opts.cb?({done:true})
             when 'restart'
+                dbg("restarting sage session")
                 if @_socket?
                     @close()
                 @_init_socket (err) =>
@@ -210,8 +214,8 @@ class exports.SageSession
                     else
                         opts.cb?({done:true})
             when 'raw_input'
+                dbg("sending sage_raw_input event")
                 @_socket?.write_mesg('json', {event:'sage_raw_input', value:opts.input.value})
-                # no callback
             else
                 # send message over socket and get responses
                 async.series([
@@ -223,6 +227,7 @@ class exports.SageSession
                     (cb) =>
                         if not opts.input.id?
                             opts.input.id = misc.uuid()
+                            dbg("generated new random uuid for input: '#{opts.input.id}' ")
                         @_socket.write_mesg('json', opts.input)
                         if opts.cb?
                             @_output_cb[opts.input.id] = opts.cb  # this is when opts.cb will get called...

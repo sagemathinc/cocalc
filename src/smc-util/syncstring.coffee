@@ -191,7 +191,7 @@ when document is initialized.
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
-            save_interval : 1000
+            save_interval : 1500
             string_id     : undefined
             project_id    : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
             path          : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)

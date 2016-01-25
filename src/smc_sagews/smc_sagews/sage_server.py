@@ -1137,7 +1137,7 @@ class Salvus(object):
                         value = type(str(value))
             return value
         else:
-            raise KeyboardInterrupt("raw_input interrupted by another action")
+            raise KeyboardInterrupt("raw_input interrupted by another action: event='%s' (expected 'sage_raw_input')"%mesg['event'])
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
