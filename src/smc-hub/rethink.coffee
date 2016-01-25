@@ -371,6 +371,23 @@ class RethinkDB
         new SyncTable(opts.query, opts.primary_key, @, opts.cb)
         return
 
+    # This is mainly for interactive debugging use. Any time a record changes in any of
+    # the given tables, calls the cb with the change.
+    watch: (opts) =>
+        opts = defaults opts,
+            tables : required   # array of strings (names of tables) -- or a single string
+            cb     : required
+        if typeof(opts.tables) == 'string'
+            opts.tables = [opts.tables]
+        if opts.tables.length == 0
+            # nothing ever changes
+            return
+        query = db.table(opts.tables[0])
+        for i in [1...opts.tables.length]
+            query = query.union(db.table(opts.tables[i]))
+        query.changes(includeInitial:false).run (err, feed) =>
+            feed.each(opts.cb)
+
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
     # This is not robust to connection to database ending, etc. --
