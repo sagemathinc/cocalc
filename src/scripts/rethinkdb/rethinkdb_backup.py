@@ -52,7 +52,7 @@ def dump_tables(tables, table_fields = None):
 
     table_fields is a dictionary, mapping from to table name to the list of fields to export (whitelist)
     """
-    export_cmd = "time rethinkdb export -a `cat /home/salvus/smc/src/data/secrets/rethinkdb` -d tmp -c %s " % DB_HOST
+    export_cmd = "time rethinkdb export --clients 1 -a `cat /home/salvus/smc/src/data/secrets/rethinkdb` -d tmp -c %s " % DB_HOST
     if isinstance(tables, basestring):
         tables = [tables]
     shutil.rmtree('tmp', ignore_errors=True)
