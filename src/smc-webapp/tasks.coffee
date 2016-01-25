@@ -120,6 +120,7 @@ class TaskList
         @element.find(".salvus-tasks-loading").remove()
         @element.find(".salvus-task-empty-trash").remove()
         @element.find(".salvus-tasks-action-buttons").remove()
+        @element.find(".salvus-tasks-hashtags-row").remove()  # TODO: only because they don't work in viewer mode; for later.
 
     init_syncdb: (cb) =>
         synchronized_db
