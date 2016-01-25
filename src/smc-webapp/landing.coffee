@@ -2,6 +2,8 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
+$("#smc-startup-banner").remove()
+
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
@@ -45,7 +47,7 @@ if true
     require('./tasks')
     require('./editor_course')
     require('./r_account.cjsx')
-    require('./file_use.cjsx')     
+    require('./file_use.cjsx')
 
 # TODO: temporary -- ensure that the help page is rendered: do this once only on load
 # WE will remove this when we have a proper router.
