@@ -72,9 +72,9 @@
             font-family: sans-serif;
             font-size: 26px;
             color: white;
-            animation: error-main ease-in 31s forwards;
+            animation: banner-error-main ease-in 31s forwards;
         }
-        @keyframes error-main {
+        @keyframes banner-error-main {
              95% {background-color: #1919bf; }
             100% {background-color: #bf1919; }
         }
@@ -82,16 +82,16 @@
             width: 80px;
             height: 80px;
         }
-        #smc-startup-banner .blink,
-        #smc-startup-banner .error {
+        #smc-startup-banner .banner-blink,
+        #smc-startup-banner .banner-error {
           position: absolute;
           width: 450px;
           padding: 0;
         }
-        #smc-startup-banner .blink {
-          animation: blink 31s forwards;
+        #smc-startup-banner .banner-blink {
+          animation: banner-blink 31s forwards;
         }
-        @keyframes blink {
+        @keyframes banner-blink {
              0% {opacity: 1.0; }
              5% {opacity:  .1; }
             10% {opacity: 1.0; }
@@ -112,11 +112,11 @@
             95% {opacity: 0.0; }
            100% {opacity: 0.0; }
         }
-        #smc-startup-banner .error {
-          animation: error ease-in 31s forwards;
+        #smc-startup-banner .banner-error {
+          animation: banner-error ease-in 31s forwards;
           opacity: 0.0;
         }
-        @keyframes error {
+        @keyframes banner-error {
          95% {opacity: 0.0;}
         100% {opacity: 1.0;}
         }
@@ -133,8 +133,8 @@
         <div id="smc-startup-banner">
             <img src="https://cloud.sagemath.com/static/salvus-icon.svg">
             <div>
-                <div class="blink">Loading<br>SageMathCloud ...</div>
-                <div class="error">Loading Error!
+                <div class="banner-blink">Loading<br>SageMathCloud ...</div>
+                <div class="banner-error">Loading Error!
                     <div class="message">
                         Something bad must have happened.<br>
                         Try
