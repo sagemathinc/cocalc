@@ -1052,10 +1052,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 input.attr('readonly', true)
                 for cm in @codemirrors()
                     cm.setOption('readOnly',@readonly)
-                @call
-                    message : message.codemirror_sage_raw_input
-                        value        : input.val()
-                        session_uuid : @session_uuid
+                @sage_call
+                    input :
+                        event : 'raw_input'
+                        value : input.val()
 
             input.keyup (evt) =>
                 # if return, submit result

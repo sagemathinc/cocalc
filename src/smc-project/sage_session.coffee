@@ -195,7 +195,7 @@ class exports.SageSession
     call: (opts) =>
         opts = defaults opts,
             input : required
-            cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called mutiple times when message is execute
+            cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
         switch opts.input.event
             when 'signal'
                 if @_socket?
@@ -209,6 +209,9 @@ class exports.SageSession
                         opts.cb?({done:true, error:err})
                     else
                         opts.cb?({done:true})
+            when 'raw_input'
+                @_socket?.write_mesg('json', {event:'sage_raw_input', value:opts.input.value})
+                # no callback
             else
                 # send message over socket and get responses
                 async.series([

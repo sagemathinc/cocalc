@@ -43,9 +43,9 @@ class exports.Evaluator
         opts = defaults opts,
             program : required    # 'sage', 'bash'
             input   : required    # object whose meaning depends on the program
-            cb      : required
+            cb      : undefined
         if @_closed
-            opts.cb("closed")
+            opts.cb?("closed")
             return
         time = @string._client.server_time()  # TODO: add time if same as last eval
         @_inputs.set
@@ -59,7 +59,7 @@ class exports.Evaluator
                     if mesg?
                         if mesg.done
                             @_outputs.removeListener('change', handle_output)
-                        opts.cb(mesg)
+                        opts.cb?(mesg)
         @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
