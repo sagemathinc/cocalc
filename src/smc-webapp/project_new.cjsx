@@ -204,7 +204,8 @@ ProjectNew = (name) -> rclass
             return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
-        @props.actions.create_folder(@state.filename, @props.current_path)
+        on_error = (a) => @setState(error: a)
+        @props.actions.create_folder(@state.filename, @props.current_path, on_error)
 
     render : ->
         <div>

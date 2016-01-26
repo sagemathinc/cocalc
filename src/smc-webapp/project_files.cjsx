@@ -1332,7 +1332,7 @@ ProjectFilesNew = rclass
         @props.actions.setState(file_search : '', page_number: 0)
 
     create_folder : ->
-        @props.actions.create_folder(@props.file_search, @props.current_path)
+        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => @setState(error: a))
 
     render : ->
         # This div prevents the split button from line-breaking when the page is small
