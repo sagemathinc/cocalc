@@ -9,6 +9,12 @@
         <meta name="description" content="SageMathCloud">
         <meta name="author" content="William Stein">
 
+        <!-- initiating early download of large high priority assets -->
+        <link rel="subresource" href="static/salvus-icon.svg">
+        <link rel="subresource" href="static/webpack/2/vendors.js">
+        <link rel="subresource" href="static/webpack/2/client.js">
+        <link rel="subresource" href="static/webpack/2/landing.js">
+
         <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
         <link href="static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
@@ -75,7 +81,7 @@
             animation: banner-error-main ease-in 31s forwards;
         }
         @keyframes banner-error-main {
-             95% {background-color: #1919bf; }
+             95% {background-color: #428BCA; }
             100% {background-color: #bf1919; }
         }
         #smc-startup-banner img {
@@ -131,7 +137,7 @@
         </style>
 
         <div id="smc-startup-banner">
-            <img src="https://cloud.sagemath.com/static/salvus-icon.svg">
+            <img src="static/salvus-icon.svg">
             <div>
                 <div class="banner-blink">Loading<br>SageMathCloud ...</div>
                 <div class="banner-error">Loading Error!
