@@ -394,7 +394,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         title   = s.getIn(['settings', 'title'])
                         subject = "SageMathCloud Invitation to Course #{title}"
                         name    = redux.getStore('account').get_fullname()
-                        body    = body.replace(/{title}/g,title).replace(/{name}/g, name)
+                        body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                         body    = require('./markdown').markdown_to_html(body).s
                         redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
                 else
@@ -1440,12 +1440,13 @@ Students = rclass
         assignments : rtypes.object.isRequired
 
     getInitialState : ->
-        err           : undefined
-        search        : ''
-        add_search    : ''
-        add_searching : false
-        add_select    : undefined
-        show_deleted  : false
+        err              : undefined
+        search           : ''
+        add_search       : ''
+        add_searching    : false
+        add_select       : undefined
+        selected_entries : undefined
+        show_deleted     : false
 
     do_add_search : (e) ->
         # Search for people to add to the course
@@ -1456,9 +1457,9 @@ Students = rclass
             return
         search = @state.add_search.trim()
         if search.length == 0
-            @setState(err:undefined, add_select:undefined)
+            @setState(err:undefined, add_select:undefined, selected_entries:undefined)
             return
-        @setState(add_searching:true, add_select:undefined)
+        @setState(add_searching:true, add_select:undefined, selected_entries:undefined)
         add_search = @state.add_search
         salvus_client.user_search
             query : add_search
@@ -1491,13 +1492,27 @@ Students = rclass
             {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
         </Button>
 
+    add_selector_clicked : ->
+        @setState(selected_entries: @refs.add_select.getSelectedOptions())
+
     add_selected_students : ->
         emails = {}
         for x in @state.add_select
             if x.account_id?
                 emails[x.account_id] = x.email_address
         students = []
-        for y in @refs.add_select.getSelectedOptions()
+
+        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
+        selected_names = @refs.add_select.getSelectedOptions()
+        selections = []
+        if selected_names.length == 0
+            all_names = @refs.add_select.getInputDOMNode().getElementsByTagName('option')
+            if all_names?.length == 1
+                selections = [all_names[0].getAttribute('value')]
+        else
+            selections = selected_names
+
+        for y in selections
             if misc.is_valid_uuid_string(y)
                 students.push
                     account_id    : y
@@ -1505,9 +1520,9 @@ Students = rclass
             else
                 students.push({email_address:y})
         @props.redux.getActions(@props.name).add_students(students)
-        @setState(err:undefined, add_select:undefined, add_search:'')
+        @setState(err:undefined, add_select:undefined, selected_entries:undefined, add_search:'')
 
-    render_add_selector_options : ->
+    get_add_selector_options : ->
         v = []
         seen = {}
         for x in @state.add_select
@@ -1520,12 +1535,23 @@ Students = rclass
     render_add_selector : ->
         if not @state.add_select?
             return
+        options = @get_add_selector_options()
         <div>
-            <Input type='select' multiple ref="add_select" rows=10>
-                {@render_add_selector_options()}
-            </Input>
-            <Button onClick={@add_selected_students}><Icon name="plus" /> Add selected</Button>
+            <Input type='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>{options}</Input>
+            {@render_add_selector_button(options)}
         </div>
+
+    render_add_selector_button : (options) ->
+        nb_selected = @state.selected_entries?.length ? 0
+        btn_text = switch options.length
+            when 0 then "No student found"
+            when 1 then "Add student"
+            else switch nb_selected
+                when 0 then "Select student above"
+                when 1 then "Add selected student"
+                else "Add #{nb_selected} students"
+        disabled = options.length == 0 or (options.length >= 2 and nb_selected == 0)
+        <Button onClick={@add_selected_students} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
     render_error : ->
         if @state.err
