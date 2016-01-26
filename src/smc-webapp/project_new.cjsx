@@ -176,7 +176,10 @@ ProjectNew = (name) -> rclass
 
     submit : (e) ->
         e.preventDefault()
-        @create_file()
+        if @state.filename[@state.filename.length - 1] == '/'
+            @create_folder()
+        else
+            @create_file()
 
     render_header: ->
         if @props.current_path?

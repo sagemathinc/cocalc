@@ -564,6 +564,8 @@ class ProjectActions extends Actions
         return s
 
     create_folder : (name, current_path) =>
+        if name[name.length - 1] == '/'
+            name = name.slice(0, -1)
         p = @path(name, current_path)
         if p.length == 0
             return
