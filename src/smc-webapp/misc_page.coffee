@@ -1500,3 +1500,4 @@ exports.idle_notification = (show) ->
             $idle.slideDown("slow")
     else
         $idle.slideUp("slow")
+    return $idle

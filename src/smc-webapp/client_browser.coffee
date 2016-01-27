@@ -67,16 +67,22 @@ class Connection extends client.Connection
                 clear_hidden_timer()
             awayTimeout : @_idle_timeout
         @_idle = new Idle(opts)
+        click_handler = undefined
         @on 'idle', (state) ->
             switch state
                 when "away"
                     misc_page.idle_notification(true)
+                    if not click_handler?
+                        click_handler = $("#smc-idle-notification").click () =>
+                            misc_page.idle_notification(false)
+                            @_conn?.open()
                     if @_connected
                         @_conn?.end()
                 when "back", "visible"
                     misc_page.idle_notification(false)
                     @_conn?.open()
         @_idle.start()
+
 
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
