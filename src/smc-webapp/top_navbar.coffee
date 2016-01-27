@@ -394,7 +394,16 @@ $("a[href=#salvus-connection-reconnect]").click () ->
 
 last_ping_time = ''
 
+salvus_client.on "disconnected", () ->
+    $(".salvus-connection-status-connected").hide()
+    $(".salvus-connection-status-connecting").hide()
+    $(".salvus-connection-status-disconnected").show()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-connection-status-ping-time").html('')
+    last_ping_time = ''
+
 salvus_client.on "connecting", () ->
+    $(".salvus-connection-status-disconnected").hide()
     $(".salvus-connection-status-connected").hide()
     $(".salvus-connection-status-connecting").show()
     $(".salvus-fullscreen-activate").hide()
@@ -403,6 +412,7 @@ salvus_client.on "connecting", () ->
     $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
 
 salvus_client.on "connected", () ->
+    $(".salvus-connection-status-disconnected").hide()
     $(".salvus-connection-status-connecting").hide()
     $(".salvus-connection-status-connected").show()
     if not salvus_client.in_fullscreen_mode()

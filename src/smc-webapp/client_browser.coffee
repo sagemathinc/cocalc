@@ -22,6 +22,9 @@
 
 client = require('smc-util/client')
 
+{Idle} = require('./external/idle')
+misc_page = require("./misc_page")
+
 class Connection extends client.Connection
     constructor: (opts) ->
         # Security note: not easily exposing this to the global scope would make it harder
@@ -35,7 +38,50 @@ class Connection extends client.Connection
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
+        @_init_idle()
         super(opts)
+
+    _init_idle: () =>
+        # 15 min default in case it isn't set (it will get set when user account settings are loaded)
+        @_idle_timeout ?= 15 * 60 * 1000
+        away_if_not_visible = =>
+            delete hidden_timer
+            @emit('idle', 'away')
+        clear_hidden_timer = =>
+            if hidden_timer?
+                clearTimeout(hidden_timer)
+                delete hidden_timer
+        opts =
+            onHidden    : =>
+                @emit('idle', 'hidden')
+                if not hidden_timer? and @_connected
+                    hidden_timer = setTimeout(away_if_not_visible, @_idle_timeout)
+            onVisible   : =>
+                @emit('idle', 'visible')
+                clear_hidden_timer()
+            onAway      : =>
+                @emit('idle', 'away')
+                clear_hidden_timer()
+            onAwayBack  : =>
+                @emit('idle', 'back')
+                clear_hidden_timer()
+            awayTimeout : @_idle_timeout
+        @_idle = new Idle(opts)
+        @on 'idle', (state) ->
+            switch state
+                when "away"
+                    misc_page.idle_notification(true)
+                    if @_connected
+                        @_conn?.end()
+                when "back", "visible"
+                    misc_page.idle_notification(false)
+                    @_conn?.open()
+        @_idle.start()
+
+    set_standby_timeout_m: (time_m) =>
+        @_idle_timeout = time_m * 60 * 1000
+        @_idle.setAwayTimeout(@_idle_timeout)
+        @_idle.start()
 
     _connect: (url, ondata) ->
         @url = url
@@ -64,6 +110,7 @@ class Connection extends client.Connection
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
             @_connected = true
+            misc_page.idle_notification(false)
             if window.WebSocket?
                 protocol = 'websocket'
             else
@@ -93,9 +140,10 @@ class Connection extends client.Connection
             console.log("websocket -- closed")
             @_connected = false
             conn.removeAllListeners('data')
-            @emit("connecting")
+            @emit("disconnected")
 
         conn.on 'reconnect scheduled', (opts) =>
+            @emit("connecting")
             conn.removeAllListeners('data')
             console.log('websocket -- reconnecting in %d ms', opts.scheduled)
             console.log('websocket -- this is attempt %d out of %d', opts.attempt, opts.retries)
