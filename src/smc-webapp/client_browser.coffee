@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 client = require('smc-util/client')
 
 {Idle} = require('./external/idle')
@@ -38,7 +37,8 @@ class Connection extends client.Connection
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
-        @_init_idle()
+        # Disable for now -- too many issues.  Need this soon though!
+        #@_init_idle()
         super(opts)
 
     _init_idle: () =>
@@ -83,11 +83,15 @@ class Connection extends client.Connection
                     @_conn?.open()
         @_idle.start()
 
+    reset_idle: =>
+        console.log("idle: reset_idle got called")
+        @_idle?.stop()
+        @_idle?.start()
 
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
-        @_idle.setAwayTimeout(@_idle_timeout)
-        @_idle.start()
+        @_idle?.setAwayTimeout(@_idle_timeout)
+        @_idle?.start()
 
     _connect: (url, ondata) ->
         @url = url
