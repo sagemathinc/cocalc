@@ -42,7 +42,6 @@ When we are told to sync with upstream, we set
 
 ###
 
-
 async                = require('async')
 
 misc                 = require('smc-util/misc')
@@ -78,6 +77,7 @@ class JupyterNBViewer
             #      @iframe.contents().find('html').html(@content)
             # messes up the parent html page, e.g., foo.modal() is gone.
             @iframe.contents().find('body')[0].innerHTML = @content
+            @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.reset_idle)
 
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)

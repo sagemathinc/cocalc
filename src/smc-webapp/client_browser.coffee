@@ -19,9 +19,10 @@
 #
 ###############################################################################
 
+_ = require('underscore')
+
 client = require('smc-util/client')
 
-{Idle} = require('./external/idle')
 misc_page = require("./misc_page")
 
 class Connection extends client.Connection
@@ -37,61 +38,59 @@ class Connection extends client.Connection
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
-        # Disable for now -- too many issues.  Need this soon though!
-        #@_init_idle()
+
+        @_init_idle()
         super(opts)
 
     _init_idle: () =>
+        ###
+        The @_init_time is a timestamp in the future.
+        It is pushed forward each time @_init_reset is called.
+        The setInterval timer checks every minute, if the current time is past this @_init_time.
+        If so, the user is 'idle'.
+        To keep 'active', call smc.client.reset_idle as often as you like:
+        A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
+        ###
+
         # 15 min default in case it isn't set (it will get set when user account settings are loaded)
         @_idle_timeout ?= 15 * 60 * 1000
-        away_if_not_visible = =>
-            delete hidden_timer
-            @emit('idle', 'away')
-        clear_hidden_timer = =>
-            if hidden_timer?
-                clearTimeout(hidden_timer)
-                delete hidden_timer
-        opts =
-            onHidden    : =>
-                @emit('idle', 'hidden')
-                if not hidden_timer? and @_connected
-                    hidden_timer = setTimeout(away_if_not_visible, @_idle_timeout)
-            onVisible   : =>
-                @emit('idle', 'visible')
-                clear_hidden_timer()
-            onAway      : =>
-                @emit('idle', 'away')
-                clear_hidden_timer()
-            onAwayBack  : =>
-                @emit('idle', 'back')
-                clear_hidden_timer()
-            awayTimeout : @_idle_timeout
-        @_idle = new Idle(opts)
-        click_handler = undefined
+        @_reset_idle()
+        setInterval(@_idle_check, 60 * 1000)
+
+        # call this reset_idle like a function
+        # will reset timer on *first* call and then every 10secs while being called
+        @reset_idle = _.throttle smc.client._reset_idle, 10000
+
+        # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
+        $(document).on("click mousemove keydown focusin", "body", smc.client.reset_idle)
+
         @on 'idle', (state) ->
+            #console.log("idle state: #{state}")
             switch state
                 when "away"
                     misc_page.idle_notification(true)
-                    if not click_handler?
-                        click_handler = $("#smc-idle-notification").click () =>
-                            misc_page.idle_notification(false)
-                            @_conn?.open()
                     if @_connected
                         @_conn?.end()
-                when "back", "visible"
+                when "active"
                     misc_page.idle_notification(false)
                     @_conn?.open()
-        @_idle.start()
 
-    reset_idle: =>
-        console.log("idle: reset_idle got called")
-        @_idle?.stop()
-        @_idle?.start()
+    # periodically check if the user hasn't been active
+    _idle_check: =>
+        # console.log("idle: checking idle #{@_idle_time}")
+        if @_idle_time < new Date()
+            @emit('idle', 'away')
 
+    # ATTN use @reset_idle, not this one here (defined in constructor)
+    _reset_idle: =>
+        # console.log("idle: reset_idle got called")
+        @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
+        @emit('idle', 'active')
+
+    # called when the user configuration settings are set
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
-        @_idle?.setAwayTimeout(@_idle_timeout)
-        @_idle?.start()
+        @_reset_idle()
 
     _connect: (url, ondata) ->
         @url = url
