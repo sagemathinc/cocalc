@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--target",
                         dest="target",
-                        default="admin0-0",
+                        default="admin0-1",
                         help="The name of the default target directory on GCS in the bucket.")
 
     parser.add_argument("--exclude",
