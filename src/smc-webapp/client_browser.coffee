@@ -33,7 +33,7 @@ idle_notification_html = ->
     <div>
     <img src="/static/salvus-icon.svg">
     <h1>#{site_name}<br> is on standby</h1>
-    (Click to resume.)
+    &mdash; click to resume &mdash;
     </div>
     """
 
@@ -72,63 +72,76 @@ class Connection extends client.Connection
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
 
-        @_init_idle()
+        setTimeout(@_init_idle, 15 * 1000)
         super(opts)
 
     _init_idle: () =>
         ###
         The @_init_time is a timestamp in the future.
-        It is pushed forward each time @_init_reset is called.
+        It is pushed forward each time @_idle_reset is called.
         The setInterval timer checks every minute, if the current time is past this @_init_time.
         If so, the user is 'idle'.
-        To keep 'active', call smc.client.reset_idle as often as you like:
+        To keep 'active', call smc.client.idle_reset as often as you like:
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
         # 15 min default in case it isn't set (it will get set when user account settings are loaded)
         @_idle_timeout ?= 15 * 60 * 1000
-        @_reset_idle()
+        @_idle_reset()
         setInterval(@_idle_check, 60 * 1000)
 
-        # call this reset_idle like a function
+        # call this idle_reset like a function
         # will reset timer on *first* call and then every 10secs while being called
-        @reset_idle = _.throttle smc.client._reset_idle, 10000
+        @idle_reset = _.throttle smc.client._idle_reset, 15 * 1000
 
         # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
-        $(document).on("click mousemove keydown focusin", "body", smc.client.reset_idle)
+        $(document).on("click mousemove keydown focusin", "body", smc.client.idle_reset)
+
+        delayed_disconnect = undefined
+
+        recconn = (=> if not @_connected then @_conn?.open())
+        disconn = (=> if @_connected then @_conn?.end())
 
         @on 'idle', (state) ->
             #console.log("idle state: #{state}")
             switch state
+
                 when "away"
                     idle_notification(true)
-                    if @_connected
-                        @_conn?.end()
+                    delayed_disconnect ?= setTimeout(disconn, 15 * 1000)
+
                 when "active"
                     idle_notification(false)
-                    if not @_connected
-                        @_conn?.open()
+                    if delayed_disconnect?
+                        clearTimeout(delayed_disconnect)
+                        delayed_disconnect = undefined
+                    recconn()
+                    setTimeout(recconn, 2000) # avoid race condition???
 
     # periodically check if the user hasn't been active
     _idle_check: =>
         # console.log("idle: checking idle #{@_idle_time}")
         if @_idle_time < new Date()
             @emit('idle', 'away')
+            true
+        else
+            false
 
     # ATTN use @reset_idle, not this one here (defined in constructor)
-    _reset_idle: =>
-        # console.log("idle: reset_idle got called")
+    _idle_reset: =>
+        # console.log("idle: idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
         @emit('idle', 'active')
 
     # called when the user configuration settings are set
     set_standby_timeout_m: (time_m) =>
         @_idle_timeout = time_m * 60 * 1000
-        @_reset_idle()
+        @_idle_reset()
 
     _connect: (url, ondata) ->
+        console.log("client_browser -- _connect")
+
         @url = url
-        console.log("websocket -- connecting...")
         if @ondata?
             # handlers already setup
             return
@@ -153,14 +166,10 @@ class Connection extends client.Connection
             else
                 conn.write("XXXXXXXXXXXXXXXXXXXX")
             @_connected = true
-            idle_notification(false)
-            if window.WebSocket?
-                protocol = 'websocket'
-            else
-                protocol = 'polling'
-            console.log("#{protocol} -- connected")
 
+            protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
+            console.log("websocket -- connected #{protocol}")
 
             #console.log("installing ondata handler")
             conn.removeAllListeners('data')
@@ -170,6 +179,16 @@ class Connection extends client.Connection
                 conn.on('data', ondata)
             conn.on("data", f)
 
+        conn.on 'outgoing::open', (evt) =>
+            console.log("websocket -- connecting")
+            @emit("connecting")
+
+        conn.on 'offline', (evt) =>
+            console.log("websocket -- offline (no internet connection)")
+            @emit("disconnected", "offline")
+
+        conn.on 'online', (evt) =>
+            console.log("websocket -- online (regaining internet connection)")
 
         conn.on 'message', (evt) =>
             #console.log("websocket -- message: ", evt)
@@ -183,7 +202,7 @@ class Connection extends client.Connection
             console.log("websocket -- closed")
             @_connected = false
             conn.removeAllListeners('data')
-            @emit("disconnected")
+            @emit("disconnected", "disconnected")
 
         conn.on 'reconnect scheduled', (opts) =>
             @emit("connecting")
@@ -204,7 +223,11 @@ class Connection extends client.Connection
             conn.write(data)
 
 
-    _fix_connection: () =>
+    _fix_connection: (delete_cookies) =>
+        if delete_cookies?
+            console.log("websocket -- deleting cookies")
+            document.cookie = 'SMCSERVERID2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         console.log("websocket --_fix_connection... ")
         @_conn.end()
         @_conn.open()
