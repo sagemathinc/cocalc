@@ -888,7 +888,12 @@ class ProjectClient extends EventEmitter
                     @_stale = false
                     @_synctable = x
                     update = () =>
-                        new_val = @_synctable.get(@project_id).toJS()
+                        new_val       = @_synctable.get(@project_id)?.toJS()
+                        if not new_val?
+                            # The project hasn't been created/written to the database yet, in which
+                            # case there is nothing to do.  It should get added in a moment and
+                            # trigger another update.
+                            return
                         old_host      = @host
                         @host         = new_val.host?.host
                         @assigned     = new_val.host?.assigned
