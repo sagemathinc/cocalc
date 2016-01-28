@@ -92,7 +92,7 @@ class Connection extends client.Connection
 
         # call this idle_reset like a function
         # will reset timer on *first* call and then every 10secs while being called
-        @idle_reset = _.throttle smc.client._idle_reset, 15 * 1000
+        @idle_reset = _.throttle(smc.client._idle_reset, 15 * 1000)
 
         # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
         $(document).on("click mousemove keydown focusin", "body", smc.client.idle_reset)
@@ -120,8 +120,9 @@ class Connection extends client.Connection
 
     # periodically check if the user hasn't been active
     _idle_check: =>
-        # console.log("idle: checking idle #{@_idle_time}")
-        if @_idle_time < new Date()
+        now = (new Date()).getTime()
+        #console.log("idle: checking idle #{@_idle_time} < #{now}")
+        if @_idle_time < now
             @emit('idle', 'away')
             true
         else
