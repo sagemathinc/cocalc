@@ -1473,36 +1473,3 @@ return _sanitize_html_lib html,
         allowedTags: _sanitize_html_allowedTags
         allowedAttributes: _sanitize_html_allowedAttributes
 ###
-
-
-
-idle_notification_html = ->
-    {redux}   = require('./smc-react')
-    customize = redux.getStore('customize')
-    site_name = customize?.get('site_name') ? "SageMathCloud"
-    """
-    <div>
-    <img src="/static/salvus-icon.svg">
-    <h1>#{site_name}<br> is on standby</h1>
-    (Click to resume.)
-    </div>
-    """
-idle_notification_state = undefined
-
-exports.idle_notification = (show) ->
-    if idle_notification_state? and idle_notification_state == show
-        return
-    $idle = $("#smc-idle-notification")
-    if show
-        if $idle.length == 0
-            box = $("<div/>", id: "smc-idle-notification" ).html(idle_notification_html())
-            $("body").append(box)
-            # quick slide up, just to properly slide down on the fist time
-            box.slideUp 0, ->
-                box.slideDown "slow"
-        else
-            $idle.slideDown "slow"
-    else
-        $idle.slideUp "slow"
-    idle_notification_state = show
-    #return $idle
