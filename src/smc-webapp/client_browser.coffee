@@ -208,8 +208,8 @@ class Connection extends client.Connection
         conn.on 'reconnect scheduled', (opts) =>
             @emit("connecting")
             conn.removeAllListeners('data')
-            console.log('websocket -- reconnecting in %d ms', opts.scheduled)
-            console.log('websocket -- this is attempt %d out of %d', opts.attempt, opts.retries)
+            console.log('websocket -- reconnecting in #{opts.scheduled} ms')
+            console.log('websocket -- this is attempt #{opts.attempt} out of #{opts.retries}')
 
         conn.on 'incoming::pong', (time) =>
             #console.log("pong latency=#{conn.latency}")
@@ -225,7 +225,7 @@ class Connection extends client.Connection
 
 
     _fix_connection: (delete_cookies) =>
-        if delete_cookies?
+        if delete_cookies
             console.log("websocket -- deleting cookies")
             document.cookie = 'SMCSERVERID2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
