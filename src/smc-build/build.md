@@ -150,7 +150,7 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
 # KWANT
 
-    apt-add-repository ppa:kwant-project/ppa && apt-get update && apt-get install python-kwant python-kwant-doc
+    apt-add-repository ppa:kwant-project/ppa && apt-get update && apt-get install python-kwant python-kwant-doc python3-kwant
 
 
 # Octave: needed by octave for plotting:

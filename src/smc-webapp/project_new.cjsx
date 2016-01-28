@@ -176,7 +176,10 @@ ProjectNew = (name) -> rclass
 
     submit : (e) ->
         e.preventDefault()
-        @create_file()
+        if @state.filename[@state.filename.length - 1] == '/'
+            @create_folder()
+        else
+            @create_file()
 
     render_header: ->
         if @props.current_path?
@@ -201,7 +204,8 @@ ProjectNew = (name) -> rclass
             return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
-        @props.actions.create_folder(@state.filename, @props.current_path)
+        on_error = (a) => @setState(error: a)
+        @props.actions.create_folder(@state.filename, @props.current_path, on_error)
 
     render : ->
         <div>
