@@ -106,7 +106,8 @@ class Connection extends client.Connection
                         @_conn?.end()
                 when "active"
                     idle_notification(false)
-                    @_conn?.open()
+                    if not @_connected
+                        @_conn?.open()
 
     # periodically check if the user hasn't been active
     _idle_check: =>
