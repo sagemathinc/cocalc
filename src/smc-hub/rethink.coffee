@@ -576,13 +576,48 @@ class RethinkDB
 
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
-    ## TOO dangerous!
-    ##delete_expired: (opts) =>
-    ##    opts = defaults opts,
-    ##        cb  : required
-    ##    f = (table, cb) =>
-    ##        @table(table).between(new Date(0),new Date(), index:'expire').delete().run(cb)
-    ##    async.map((k for k, v of SCHEMA when v.indexes?.expire?), f, opts.cb)
+    #
+    # db._error_thresh=100000; db.delete_expired(limit:200, cb:done(), repeat_until_done : true)
+    #
+    delete_expired: (opts) =>
+        opts = defaults opts,
+            count_only : true              # if true, only count the number of blobs that would be deleted
+            limit : undefined  # only this many
+            table : undefined  # only this table
+            repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
+            cb    : required
+        dbg = @dbg("delete_expired(...)")
+        dbg()
+        f = (table, cb) =>
+            dbg("table='#{table}'")
+            query = @table(table).between(new Date(0),new Date(), index:'expire')
+            if opts.limit?
+                query = query.limit(opts.limit)
+            start = new Date()
+            if opts.count_only
+                opts.repeat_until_done = false
+                query = query.count()
+                dbg("doing count: #{query}")
+            else
+                query = query.delete()
+                dbg("doing delete: #{query}")
+            query.run (err, x) =>
+                dbg("query done (time=#{new Date() - start}ms): err=#{err}, x=#{misc.to_json(x)}")
+                if err
+                    cb(err)
+                else if x.deleted == 0
+                    cb()
+                else
+                    if opts.limit and opts.repeat_until_done
+                        f(table, cb)
+                    else
+                        cb()
+
+        if opts.table
+            tables = [opts.table]
+        else
+            tables = (k for k, v of SCHEMA when v.indexes?.expire?)
+        async.map(tables, f, opts.cb)
 
     ###
     # Tables for loging things that happen
@@ -2535,6 +2570,56 @@ class RethinkDB
                 @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
         ], (err) => opts.cb(err))
 
+    # Copied all blobs that will never expire to a google cloud storage bucket.
+    #
+    #     errors={}; db.copy_all_blobs_to_gcloud(limit:1000,map_limit:25,cb:done(), repeat_until_done:true, errors:errors)
+    #
+    copy_all_blobs_to_gcloud: (opts) =>
+        opts = defaults opts,
+            bucket    : BLOB_GCLOUD_BUCKET # name of bucket
+            limit     : undefined          # only copy this many to gcloud
+            map_limit : 25                 # do this many in parallel
+            repeat_until_done : false      # if true and limit set, keeps re-calling delete until nothing gets uploaded.
+            errors    : {}                 # used to accumulate errors
+            cb        : required
+        dbg = @dbg("copy_all_blobs_to_gcloud()")
+        dbg()
+        # This query selects the blobs that will never expire, but have not yet
+        # been copied to Google cloud storage.  It is a linear search through the
+        # entire blobs table, unfortunately.
+        query = @table('blobs').filter(db.r.row.hasFields('expire').not())
+        query = query.filter(db.r.row.hasFields('gcloud').not()).pluck('id', 'size')
+        if opts.limit
+            query = query.limit(opts.limit)
+        dbg("getting blob id's...")
+        query.run (err, v) =>
+            if err
+                dbg("fail: #{err}")
+                opts.cb(err)
+            else
+                n = v.length; m = 0
+                dbg("got #{n} blob id's")
+                f = (x, cb) =>
+                    m += 1
+                    k = m; start = new Date()
+                    dbg("**** #{k}/#{n}: uploading #{x.id} of size #{x.size/1000}KB")
+                    @copy_blob_to_gcloud
+                        uuid   : x.id
+                        bucket : opts.bucket
+                        cb     : (err) =>
+                            dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
+                            if err
+                                opts.errors[x.id] = err
+                            cb()
+                async.mapLimit v, opts.map_limit, f, () =>
+                    dbg("finished this round")
+                    if opts.repeat_until_done and v.length > 0
+                        dbg("repeat_until_done triggering another round")
+                        @copy_all_blobs_to_gcloud(opts)
+                    else
+                        dbg("totally done : #{misc.to_json(errors)}")
+                        opts.cb(if misc.len(errors) > 0 then errors)
+
     touch_blob: (opts) =>
         opts = defaults opts,
             uuid : required
@@ -2550,44 +2635,6 @@ class RethinkDB
             cb    : required   # cb(err)
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
-
-    ###
-    I’m deleting blobs from the database that (1) haven’t been accessed in the last month,
-    (2) are set to have been deleted anyways (by the expire field) by periodically doing
-
-        db._error_thresh=100000; db.delete_expired_blobs(count_only:false, dry_run:false, cb:done(), limit:10000)
-
-    then waiting maybe 10 m for the result, then checking the count via
-
-        db.table('blobs').count().run(console.log).
-
-    I’m checking the total disk usage in the web interface.  The actual
-    ###
-    delete_expired_blobs: (opts) =>
-        opts = defaults opts,
-            max_count   : 1                 # only delete blobs accessed at most this many times
-            last_active : misc.days_ago(30) # only delete blobs that were last touched at this time or older
-            limit       : undefined         # if given, only delete this many blobs
-            count_only  : true              # if true, only count the number of blobs that would be deleted
-            dry_run     : false             # if true, instead return uuid's of blobs that will be deleted
-            cb          : required          # cb(err)
-        dbg = @dbg("delete_expired_blobs(...)")
-        dbg()
-        query = @table('blobs').between(new Date(0), new Date(), index:'expire')
-        query = query.filter(@r.row("count").le(opts.max_count))
-        query = query.filter(@r.row("last_active").le(opts.last_active))
-        if opts.limit?
-            query = query.limit(opts.limit)
-        if opts.count_only
-            dbg("count_only")
-            query.count().run(opts.cb)
-        else if opts.dry_run
-            dbg("dry_run")
-            query.pluck('id').run (err, x) =>
-                opts.cb(err, if x then (a.id for a in x))
-        else
-            dbg("delete!")
-            query.delete().run(opts.cb)
 
     ###
     # User queries
