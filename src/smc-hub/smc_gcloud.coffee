@@ -5,7 +5,7 @@ g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:
 This uses the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
 
-https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.25.1/compute/
+https://googlecloudplatform.github.io/gcloud-node/#/
 https://github.com/GoogleCloudPlatform/gcloud-node
 
 npm install --save gcloud
@@ -46,7 +46,7 @@ PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'
 
 exports.gcloud = (opts) ->
-    new GoogleCloud(opts)
+    return new GoogleCloud(opts)
 
 # how long ago a time was, in hours
 age_h = (time) -> (new Date() - time)/(3600*1000)
@@ -981,6 +981,54 @@ class GoogleCloud
             throw "database not defined!"
         opts.gcloud = @
         return new VM_Manager(opts)
+
+    ###
+    Storage
+    ###
+    bucket: (opts) =>
+        opts = defaults opts,
+            name : required
+        return new Bucket(@, opts.name)
+
+class Bucket
+    constructor: (@gcloud, @name) ->
+        @_bucket = @gcloud._gcloud.storage().bucket(@name)
+
+    dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
+
+    write: (opts) =>
+        opts = defaults opts,
+            name    : required
+            content : required
+            cb      : undefined
+        dbg = @dbg("write(name='#{opts.name}')")
+        dbg()
+        stream = @_bucket.file(opts.name).createWriteStream()
+        stream.write(opts.content)
+        stream.end()
+        stream.on 'finish', =>
+            dbg('finish')
+            opts.cb?()
+            delete opts.cb
+        stream.on 'error', (err) =>
+            dbg("err = '#{err}'")
+            opts.cb?(err)
+            delete opts.cb
+        return
+
+    read: (opts) =>
+        opts = defaults opts,
+            name    : required
+            cb      : required
+        dbg = @dbg("read(name='#{opts.name}')")
+        dbg()
+        stream = @_bucket.file(opts.name).download (err, content) =>
+            if err
+                dbg("error = '#{err}")
+            else
+                dbg('done')
+            opts.cb(err, content)
+        return
 
 class VM_Manager
     constructor: (opts) ->

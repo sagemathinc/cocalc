@@ -36,6 +36,12 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+
+# Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
+# NOTE: We should add this to site configuration, and have it get read once when first
+# needed and cached.  Also it would be editable in admin account settings.
+BLOB_GCLOUD_BUCKET = 'smc-blobs'
+
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, site_settings_conf} = require('smc-util/schema')
 
 to_json = (s) ->
@@ -2483,6 +2489,52 @@ class RethinkDB
                     # don't block on opts.cb above to do this.
                     @touch_blob(uuid : opts.uuid)
 
+    # Return gcloud API interface
+    gcloud: () =>
+        return @_gcloud ?= require('./smc_gcloud').gcloud()
+
+    # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
+    # been uploaded there.
+    copy_blob_to_gcloud: (opts) =>
+        opts = defaults opts,
+            uuid   : required  # uuid=sha1-based uuid coming from blob
+            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            force  : false     # if true, upload even if already uploaded
+            cb     : required  # cb(err)
+        x = undefined
+        async.series([
+            (cb) =>
+                @table('blobs').get(opts.uuid).run (err, _x) =>
+                    x = _x
+                    if err
+                        cb(err)
+                    else if not x?
+                        cb('no such blob')
+                    else if not x.blob and not x.gcloud
+                        cb('blob not available -- this should not be possible')
+                    else if not x.blob and x.force
+                        cb("blob can't be reploaded since it was already deleted")
+                    else
+                        cb()
+            (cb) =>
+                if x.gcloud and not x.force
+                    # already uploaded -- don't need to do anything
+                    cb(); return
+                if not x.blob
+                    # blob already deleted locally
+                    cb(); return
+                # upload to Google cloud storage
+                @gcloud().bucket(name:opts.bucket).write
+                    name    : opts.uuid
+                    content : x.blob
+                    cb      : cb
+            (cb) =>
+                if not x.blob or x.gcloud == opts.bucket
+                    cb(); return
+                # successful upload to gcloud -- set x.gcloud
+                @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
+        ], (err) => opts.cb(err))
+
     touch_blob: (opts) =>
         opts = defaults opts,
             uuid : required
@@ -2536,6 +2588,10 @@ class RethinkDB
         else
             dbg("delete!")
             query.delete().run(opts.cb)
+
+    ###
+    # User queries
+    ###
 
     user_query_cancel_changefeed: (opts) =>
         winston.debug("user_query_cancel_changefeed: opts=#{to_json(opts)}")
