@@ -276,6 +276,12 @@ schema.blobs =
         size :
             type : 'number'
             desc : 'The size in bytes of the blob.'
+        gcloud :
+            type : 'string'
+            desc : 'name of a bucket that contains the actual blob, if available.'
+        backed_up :
+            type : 'timestamp'
+            desc : 'if true, then this blob was saved to an offsite backup at the given time'
     indexes:
         expire : []
 
