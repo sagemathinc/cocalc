@@ -68,6 +68,8 @@ if process?.env?.SMC_TEST
     # in test mode we *do* want exception to get thrown below when type checks fails
     TEST_MODE = true
 
+exports.RUNNING_IN_NODE = process?.title == 'node'
+
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
     if typeof(x) == "string"
@@ -1293,6 +1295,7 @@ exports.days_before         = (d, tm)  -> exports.hours_before(24*d, tm)
 exports.weeks_before        = (d, tm)  -> exports.days_before(7*d, tm)
 exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 
+
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
     Math.round(num * 10) / 10
@@ -1301,6 +1304,17 @@ exports.round1 = round1 = (num) ->
 exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
+
+exports.seconds2hms = seconds2hms = (secs) ->
+    s = round2(secs % 60)
+    m = Math.floor(secs / 60) % 60
+    h = Math.floor(secs / 60 / 60)
+    if h == 0 and m == 0
+        return "#{s}s"
+    if h > 0
+        return "#{h}h#{m}m#{s}s"
+    if m > 0
+        return "#{m}m#{s}s"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -1456,3 +1470,17 @@ exports.to_human_list = (arr) ->
         return ""
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings())
+# END ~
+
+smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
+
+exports.log = (msg) ->
+    smc_logger_timestamp = new Date().getTime() / 1000.0
+    t  = seconds2hms(smc_logger_timestamp - smc_start_time)
+    dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last)
+    console.log_original("[#{t} Δ #{dt}] #{msg}")
+    smc_logger_timestamp_last = smc_logger_timestamp
+
+if not exports.RUNNING_IN_NODE and window?
+    window.console.log_original = window.console.log
+    window.console.log = exports.log

@@ -387,14 +387,38 @@ $(".salvus-connection-status").click () ->
     show_connection_information()
     return false
 
+last_reconnect_clicks = []
+
 $("a[href=#salvus-connection-reconnect]").click () ->
-    salvus_client._fix_connection()
+    now = new Date().getTime()
+    # clear cookie, if trying more than 5 times in the last minute
+    c = last_reconnect_clicks
+    del_cookie = (c.length >= 5) and (c[c.length - 5] > (now - 60 * 1000))
+    console.log("delcookie: #{del_cookie}")
+    salvus_client._fix_connection(del_cookie)
+    last_reconnect_clicks.push(now)
+    if del_cookie
+        last_reconnect_clicks = []
+    # simulate a bounded stack
+    while last_reconnect_clicks.length > 10
+        last_reconnect_clicks.shift()
     return false
 
 
 last_ping_time = ''
 
+salvus_client.on "disconnected", (state) ->
+    state ?= "disconnected"
+    $(".salvus-connection-status-connected").hide()
+    $(".salvus-connection-status-connecting").hide()
+    $(".salvus-connection-status-disconnected").html(state)
+    $(".salvus-connection-status-disconnected").show()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-connection-status-ping-time").html('')
+    last_ping_time = ''
+
 salvus_client.on "connecting", () ->
+    $(".salvus-connection-status-disconnected").hide()
     $(".salvus-connection-status-connected").hide()
     $(".salvus-connection-status-connecting").show()
     $(".salvus-fullscreen-activate").hide()
@@ -403,6 +427,7 @@ salvus_client.on "connecting", () ->
     $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
 
 salvus_client.on "connected", () ->
+    $(".salvus-connection-status-disconnected").hide()
     $(".salvus-connection-status-connecting").hide()
     $(".salvus-connection-status-connected").show()
     if not salvus_client.in_fullscreen_mode()
