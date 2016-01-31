@@ -2775,9 +2775,13 @@ class RethinkDB
 
     # Free space in database used by blobs that have already been uploaded to gcloud. Once done,
     # these blobs get served from gcloud.
+    #
+    #   db._error_thresh = 1e6; db.free_uploaded_blobs(repeat_until_done:true, cb:done())
+    #
     free_uploaded_blobs: (opts) =>
         opts = defaults opts,
-            limit : required  # do this many of them
+            limit : 10000  # do this many of them
+            repeat_until_done : false
             cb    : required
         dbg = @dbg("free_uploaded_blobs()")
         dbg()
@@ -2794,7 +2798,15 @@ class RethinkDB
                 dbg("now deleting blob field on #{v.length} blobs")
                 v = (x.id for x in v)
                 @table('blobs').getAll(v...).replace(@r.row.without('blob')).run(cb)
-        ], opts.cb)
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if opts.repeat_until_done and v?.length < opts.limit
+                @free_uploaded_blobs(opts)
+            else
+                opts.cb?()
+
+        )
 
     ###
     # User queries
