@@ -2598,34 +2598,70 @@ class RethinkDB
                 @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
         ], (err) => opts.cb?(err))
 
-    # Write the give blob to the file [path]/[sha1]; if write successful, sets
-    # the backup field in the database to true.
-    backup_blob: (opts) =>
+    # Backup limit blobs that previously haven't been dumped to blobs, and put them in
+    # a tarball in the given path.  The tarball's name is the time when the backup starts.
+    # The tarball is compressed using gzip compression.
+    backup_blobs_to_tarball: (opts) =>
         opts = defaults opts,
-            uuid  : required  # uuid=sha1-based uuid of blob
-            path  : required  # target path
-            cb    : undefined # cb(err)
-        blob = undefined
+            limit : 10000     # number of blobs to backup
+            path  : required  # path where [timestamp].tar file is placed
+            cb    : undefined # cb(err, '[timestamp].tar')
+        dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
+        join    = require('path').join
+        dir     = misc.date_to_snapshot_format(new Date())
+        target  = join(opts.path, dir)
+        tarball = target + '.tar.gz'
+        v       = undefined
+        to_remove = []
         async.series([
             (cb) =>
-                @get_blob
-                    uuid  : opts.uuid
-                    touch : false
-                    cb    : (err, x) =>
-                        blob = x
-                        cb(err)
+                dbg("make target='#{target}'")
+                fs.mkdir(target, cb)
             (cb) =>
-                if blob?
-                    fs.writeFile(require('path').join(opts.path, opts.uuid), blob, cb)
-                else
-                    cb()
+                dbg("get blobs that we need to back up")
+                @table('blobs').filter(@r.row.hasFields('backup').not()).filter(@r.row.hasFields('expire').not()).limit(opts.limit).pluck('id').run (err, x) =>
+                    v = x; cb(err)
             (cb) =>
-                if blob?
-                    # successful write to file
-                    @table('blobs').get(opts.uuid).update(backup:true).run(cb)
-                else
-                    cb()
-        ], (err) => opts.cb?(err))
+                dbg("backup #{v.length} blobs")
+                f = (x, cb) =>
+                    @get_blob
+                        uuid  : x.id
+                        touch : false
+                        cb    : (err, blob) =>
+                            if err
+                                dbg("ERROR! #{err}")
+                                cb(err)
+                            else if blob?
+                                dbg("got blob from db -- now write to disk")
+                                to_remove.push(x.id)
+                                fs.writeFile(join(target, x.id), blob, cb)
+                            else
+                                dbg("blob is expired, so nothing to be done, ever.")
+                                cb()
+                async.mapLimit(v, 3, f, cb)
+            (cb) =>
+                dbg("successfully wrote all blobs to files; now make tarball")
+                misc_node.execute_code
+                    command : 'tar'
+                    args    : ['zcvf', tarball, dir]
+                    path    : opts.path
+                    timeout : 3600
+                    cb      : cb
+            (cb) =>
+                dbg("remove temporary blobs")
+                f = (x, cb) =>
+                    fs.unlink(join(target, x), cb)
+                async.mapLimit(to_remove, 10, f, cb)
+            (cb) =>
+                dbg("remove temporary directory")
+                fs.rmdir(target, cb)
+            (cb) =>
+                dbg("backup succeeded completely -- mark all blobs as backed up")
+                @table('blobs').getAll((x.id for x in v)...).update(backup:true).run(cb)
+        ], (err) =>
+            dbg("done -- #{err}")
+            opts.cb?(err, if not err then tarball)
+        )
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
     #
@@ -2636,7 +2672,7 @@ class RethinkDB
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : undefined          # only copy this many to gcloud
             map_limit : 10                 # do this many in parallel
-            repeat_until_done_s : 0        # if nonzero, waits this many seconds keeps re-calling this function until nothing gets uploaded.
+            repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             cb        : required
         dbg = @dbg("copy_all_blobs_to_gcloud()")
