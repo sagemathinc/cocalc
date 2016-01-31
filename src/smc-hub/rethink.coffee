@@ -2509,6 +2509,7 @@ class RethinkDB
         opts = defaults opts,
             uuid       : required
             save_in_db : false  # if true and blob isn't in db and is only in gcloud, copies to local db (for faster access e.g., 20ms versus 5ms -- i.e., not much faster; gcloud is FAST too.)
+            touch      : true
             cb         : required   # cb(err) or cb(undefined, blob_value) or cb(undefined, undefined) in case no such blob
         x = undefined
         blob = undefined
@@ -2546,7 +2547,7 @@ class RethinkDB
                     cb()
         ], (err) =>
             opts.cb(err, blob)
-            if blob?
+            if blob? and opts.touch
                 # blob was pulled from db or gcloud, so note that it was accessed (updates a counter)
                 @touch_blob(uuid : opts.uuid)
         )
@@ -2595,6 +2596,35 @@ class RethinkDB
                     cb(); return
                 # successful upload to gcloud -- set x.gcloud
                 @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
+        ], (err) => opts.cb?(err))
+
+    # Write the give blob to the file [path]/[sha1]; if write successful, sets
+    # the backup field in the database to true.
+    backup_blob: (opts) =>
+        opts = defaults opts,
+            uuid  : required  # uuid=sha1-based uuid of blob
+            path  : required  # target path
+            cb    : undefined # cb(err)
+        blob = undefined
+        async.series([
+            (cb) =>
+                @get_blob
+                    uuid  : opts.uuid
+                    touch : false
+                    cb    : (err, x) =>
+                        blob = x
+                        cb(err)
+            (cb) =>
+                if blob?
+                    fs.writeFile(require('path').join(opts.path, opts.uuid), blob, cb)
+                else
+                    cb()
+            (cb) =>
+                if blob?
+                    # successful write to file
+                    @table('blobs').get(opts.uuid).update(backup:true).run(cb)
+                else
+                    cb()
         ], (err) => opts.cb?(err))
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
