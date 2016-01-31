@@ -2653,6 +2653,9 @@ class RethinkDB
             if err
                 dbg("fail: #{err}")
                 opts.cb(err)
+            else if not v?
+                dbg("no results -- v undefined")
+                opts.cb('no results')
             else
                 n = v.length; m = 0
                 dbg("got #{n} blob id's")
