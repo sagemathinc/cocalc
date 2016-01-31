@@ -2601,10 +2601,16 @@ class RethinkDB
     # Backup limit blobs that previously haven't been dumped to blobs, and put them in
     # a tarball in the given path.  The tarball's name is the time when the backup starts.
     # The tarball is compressed using gzip compression.
+    #    db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:true, cb:done())
+    # I have not written code to restore from these tarballs.  Assuming the database has been restore,
+    # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
+    # then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
+    # If we didn't have the blobs table in the db, make dummy entries from the blob names in the tarballs.
     backup_blobs_to_tarball: (opts) =>
         opts = defaults opts,
             limit : 10000     # number of blobs to backup
             path  : required  # path where [timestamp].tar file is placed
+            repeat_until_done : false  # if true, keeps re-call'ing this function until no more results to backup
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
         join    = require('path').join
@@ -2659,8 +2665,15 @@ class RethinkDB
                 dbg("backup succeeded completely -- mark all blobs as backed up")
                 @table('blobs').getAll((x.id for x in v)...).update(backup:true).run(cb)
         ], (err) =>
-            dbg("done -- #{err}")
-            opts.cb?(err, if not err then tarball)
+            if err
+                dbg("ERROR: #{err}")
+                opts.cb?(err)
+            else
+                dbg("done")
+                if opts.repeat_until_done and to_remove.length > 0
+                    @backup_blobs_to_tarball(opts)
+                else
+                    opts.cb?(undefined, tarball)
         )
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
