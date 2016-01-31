@@ -2507,22 +2507,49 @@ class RethinkDB
 
     get_blob: (opts) =>
         opts = defaults opts,
-            uuid : required
-            cb   : required
-        @table('blobs').get(opts.uuid).run (err, x) =>
-            if err
-                opts.cb(err)
-            else
+            uuid       : required
+            save_in_db : false  # if true and blob isn't in db and is only in gcloud, copies to local db (for faster access e.g., 20ms versus 5ms -- i.e., not much faster; gcloud is FAST too.)
+            cb         : required   # cb(err) or cb(undefined, blob_value) or cb(undefined, undefined) in case no such blob
+        x = undefined
+        blob = undefined
+        async.series([
+            (cb) =>
+                @table('blobs').get(opts.uuid).run (err, _x) =>
+                    x = _x; cb(err)
+            (cb) =>
                 if not x
-                    opts.cb(undefined, undefined)
+                    # nothing to do -- blob not in db (probably expired)
+                    cb()
                 else if x.expire and x.expire <= new Date()
-                    opts.cb(undefined, undefined)   # no such blob anymore
-                    @table('blobs').get(opts.uuid).delete().run()   # delete it
+                    # the blob already expired -- background delete it
+                    @table('blobs').get(opts.uuid).delete().run()   # delete it (but don't wait for this to finish)
+                    cb()
+                else if x.blob?
+                    # blob not expired and is in database
+                    blob = x.blob
+                    cb()
+                else if x.gcloud
+                    # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
+                    @gcloud().bucket(name: x.gcloud).read
+                        name : opts.uuid
+                        cb   : (err, _blob) =>
+                            if err
+                                cb(err)
+                            else
+                                blob = _blob
+                                cb()
+                                if opts.save_in_db
+                                    # also save in database so will be faster next time (again, don't wait on this)
+                                    @table('blobs').get(opts.uuid).update(blob : blob).run()
                 else
-                    opts.cb(undefined, x.blob)
-                    # We now also update the access counter/times for the blob, but of course
-                    # don't block on opts.cb above to do this.
-                    @touch_blob(uuid : opts.uuid)
+                    # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
+                    cb()
+        ], (err) =>
+            opts.cb(err, blob)
+            if blob?
+                # blob was pulled from db or gcloud, so note that it was accessed (updates a counter)
+                @touch_blob(uuid : opts.uuid)
+        )
 
     # Return gcloud API interface
     gcloud: () =>
@@ -2535,7 +2562,7 @@ class RethinkDB
             uuid   : required  # uuid=sha1-based uuid coming from blob
             bucket : BLOB_GCLOUD_BUCKET # name of bucket
             force  : false     # if true, upload even if already uploaded
-            cb     : required  # cb(err)
+            cb     : undefined  # cb(err)
         x = undefined
         async.series([
             (cb) =>
@@ -2568,11 +2595,11 @@ class RethinkDB
                     cb(); return
                 # successful upload to gcloud -- set x.gcloud
                 @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
     #
-    #     errors={}; db.copy_all_blobs_to_gcloud(limit:1000,map_limit:25,cb:done(), repeat_until_done:true, errors:errors)
+    #     errors={}; db.copy_all_blobs_to_gcloud(limit:10000, map_limit:25,cb:done(), repeat_until_done:true, errors:errors)
     #
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
@@ -2635,6 +2662,13 @@ class RethinkDB
             cb    : required   # cb(err)
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
+
+    # If blob has been backed up offsite
+    #close_blob: (opts) =>
+    #    opts = defaults opts,
+    #        uuid : required   # uuid=sha1-based from blob
+    #        cb   : required   # cb(err)
+    #        @r.row.without(expire:true)).run(opts.cb)
 
     ###
     # User queries
