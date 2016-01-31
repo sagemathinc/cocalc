@@ -2629,14 +2629,14 @@ class RethinkDB
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
     #
-    #     errors={}; db.copy_all_blobs_to_gcloud(limit:10000, map_limit:25,cb:done(), repeat_until_done:true, errors:errors)
+    #    db._error_thresh=100000; errors={}; db.copy_all_blobs_to_gcloud(limit:500, map_limit:5, cb:done(), repeat_until_done_s:30, errors:errors)
     #
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : undefined          # only copy this many to gcloud
-            map_limit : 25                 # do this many in parallel
-            repeat_until_done : false      # if true and limit set, keeps re-calling delete until nothing gets uploaded.
+            map_limit : 10                 # do this many in parallel
+            repeat_until_done_s : 0        # if nonzero, waits this many seconds keeps re-calling this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             cb        : required
         dbg = @dbg("copy_all_blobs_to_gcloud()")
@@ -2644,8 +2644,8 @@ class RethinkDB
         # This query selects the blobs that will never expire, but have not yet
         # been copied to Google cloud storage.  It is a linear search through the
         # entire blobs table, unfortunately.
-        query = @table('blobs').filter(db.r.row.hasFields('expire').not())
-        query = query.filter(db.r.row.hasFields('gcloud').not()).pluck('id', 'size')
+        query = @table('blobs').filter(@r.row.hasFields('gcloud').not())
+        query = query.filter(@r.row.hasFields('expire').not()).pluck('id', 'size')
         if opts.limit
             query = query.limit(opts.limit)
         dbg("getting blob id's...")
@@ -2673,9 +2673,9 @@ class RethinkDB
                             cb()
                 async.mapLimit v, opts.map_limit, f, () =>
                     dbg("finished this round")
-                    if opts.repeat_until_done and v.length > 0
+                    if opts.repeat_until_done_s and v.length > 0
                         dbg("repeat_until_done triggering another round")
-                        @copy_all_blobs_to_gcloud(opts)
+                        setInterval((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
                     else
                         dbg("totally done : #{misc.to_json(errors)}")
                         opts.cb(if misc.len(errors) > 0 then errors)
@@ -2696,12 +2696,56 @@ class RethinkDB
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
 
-    # If blob has been backed up offsite
-    #close_blob: (opts) =>
-    #    opts = defaults opts,
-    #        uuid : required   # uuid=sha1-based from blob
-    #        cb   : required   # cb(err)
-    #        @r.row.without(expire:true)).run(opts.cb)
+    # If blob has been copied to gcloud, remove the BLOB part of the data
+    # from the database (to save space).
+    close_blob: (opts) =>
+        opts = defaults opts,
+            uuid   : required   # uuid=sha1-based from blob
+            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            cb     : undefined   # cb(err)
+        query = @table('blobs').get(opts.uuid)
+        async.series([
+            (cb) =>
+                # ensure blob is in gcloud
+                query.pluck('gcloud').run (err, x) =>
+                    if err
+                        cb(err)
+                    else if not x.gcloud
+                        # not yet copied to gcloud storage
+                        @copy_blob_to_gcloud
+                            uuid   : opts.uuid
+                            bucket : opts.bucket
+                            cb     : cb
+                    else
+                        # copied already
+                        cb()
+            (cb) =>
+                # now blob is in gcloud -- delete in database
+                query.replace(@r.row.without('blob')).run(cb)
+        ], (err) => opts.cb?(err))
+
+    # Free space in database used by blobs that have already been uploaded to gcloud. Once done,
+    # these blobs get served from gcloud.
+    free_uploaded_blobs: (opts) =>
+        opts = defaults opts,
+            limit : required  # do this many of them
+            cb    : required
+        dbg = @dbg("free_uploaded_blobs()")
+        dbg()
+        v = undefined
+        async.series([
+            (cb) =>
+                dbg("querying db for the ids of uploaded blobs that haven't been freed (still have blob field)")
+                query = @table('blobs').hasFields('gcloud').filter(db.r.row.hasFields('blob')).pluck('id')
+                if opts.limit
+                    query = query.limit(opts.limit)
+                query.run (err, _v) =>
+                    v = _v; cb(err)
+            (cb) =>
+                dbg("now deleting blob field on #{v.length} blobs")
+                v = (x.id for x in v)
+                @table('blobs').getAll(v...).replace(@r.row.without('blob')).run(cb)
+        ], opts.cb)
 
     ###
     # User queries
