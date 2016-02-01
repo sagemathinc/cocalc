@@ -2911,7 +2911,7 @@ class Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= misc.days_ago(7) # successfully sent < one week ago -- don't again
+                                    else if when_sent - 0 >= misc.days_ago(7) - 0 # successfully sent < one week ago -- don't again
                                         done = true
                                         cb()
                                     else
@@ -2937,7 +2937,7 @@ class Client extends EventEmitter
                             if mesg.link2proj? # make sure invitees know where to go
                                 base_url = mesg.link2proj.split("/")
                                 base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then goto <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
+                                direct_link = "Then go to <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
                             else # fallback for outdated clients
                                 base_url = 'https://cloud.sagemath.com/'
                                 direct_link = ''
