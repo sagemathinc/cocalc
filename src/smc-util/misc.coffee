@@ -1474,11 +1474,13 @@ exports.emoticons = exports.to_human_list(exports.smiley_strings())
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
-exports.log = (msg) ->
+exports.log = () ->
     smc_logger_timestamp = new Date().getTime() / 1000.0
     t  = seconds2hms(smc_logger_timestamp - smc_start_time)
     dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last)
-    console.log_original("[#{t} Δ #{dt}] #{msg}")
+    # support for string interpolation for the actual console.log
+    [msg, args...] = Array.prototype.slice.call(arguments)
+    console.log_original("[#{t} Δ #{dt}] #{msg}", args...)
     smc_logger_timestamp_last = smc_logger_timestamp
 
 if not exports.RUNNING_IN_NODE and window?

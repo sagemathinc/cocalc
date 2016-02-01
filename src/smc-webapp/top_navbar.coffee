@@ -394,7 +394,7 @@ $("a[href=#salvus-connection-reconnect]").click () ->
     # clear cookie, if trying more than 5 times in the last minute
     c = last_reconnect_clicks
     del_cookie = (c.length >= 5) and (c[c.length - 5] > (now - 60 * 1000))
-    console.log("delcookie: #{del_cookie}")
+    console.log("delcookie: %s", del_cookie)
     salvus_client._fix_connection(del_cookie)
     last_reconnect_clicks.push(now)
     if del_cookie
