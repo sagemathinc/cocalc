@@ -2911,7 +2911,7 @@ class Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= new Date() - 60*60*24*14  # successfully sent < 2 weeks ago -- don't again
+                                    else if when_sent - 0 >= misc.days_ago(7) # successfully sent < one week ago -- don't again
                                         done = true
                                         cb()
                                     else
