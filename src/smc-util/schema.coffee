@@ -284,7 +284,9 @@ schema.blobs =
             type : 'timestamp'
             desc : 'if true, then this blob was saved to an offsite backup at the given time'
     indexes:
-        expire : []
+        expire : []   # when expired
+        needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')
+        needs_backup : [(x) -> x.hasFields('expire').not().and(x.hasFields('backup').not())]  # never-expiring blobs that haven't been backed up offsite -- find via .getAll(true, index:'needs_backup')
 
 schema.central_log =
     desc : 'Table for logging system stuff that happens.  Meant to help in running and understanding the system better.'
