@@ -2610,14 +2610,21 @@ Settings = rclass
                 <ul>
                     <li>
                         <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
-                            <Icon name='external-link'/> Grading in SageMathCloud</a>
+                            Grading Courses <Icon name='external-link'/></a> (by Rob Beezer)
+                    </li>
+                    <li>
+                        <a href="http://www.beezers.org/blog/bb/2016/01/pennies-a-day-for-sagemathcloud/" target="_blank">
+                            Course Plans and teaching experiences <Icon name='external-link'/></a> (by Rob Beezer)
                     </li>
                     <li>
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
-                            <Icon name='external-link'/> Course Management and Collaborative Jupyter Notebooks via SageMathCloud</a>
+                            Course Management and collaborative Jupyter Notebooks <Icon name='external-link'/></a> (by Tony Hirst)
                     </li>
                     <li>
-                        <Icon name='external-link'/> How H. Ulfarsson creates and grades homework: <a href="https://www.youtube.com/watch?v=dgTi11ZS3fQ" target="_blank">part 1</a>, <a href="https://www.youtube.com/watch?v=nkSdOVE2W0A" target="_blank">part 2</a>, <a href="https://www.youtube.com/watch?v=0qrhZQ4rjjg" target="_blank">part 3</a>
+                        How H. Ulfarsson creates and grades homework:{' '}
+                        <a href="https://www.youtube.com/watch?v=dgTi11ZS3fQ" target="_blank">part 1 <Icon name='external-link'/></a>,{' '}
+                        <a href="https://www.youtube.com/watch?v=nkSdOVE2W0A" target="_blank">part 2 <Icon name='external-link'/></a>,{' '}
+                        <a href="https://www.youtube.com/watch?v=0qrhZQ4rjjg" target="_blank">part 3 <Icon name='external-link'/></a>
                     </li>
                 </ul>
             </span>
