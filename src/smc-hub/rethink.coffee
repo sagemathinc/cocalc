@@ -2563,6 +2563,7 @@ class RethinkDB
             uuid   : required  # uuid=sha1-based uuid coming from blob
             bucket : BLOB_GCLOUD_BUCKET # name of bucket
             force  : false     # if true, upload even if already uploaded
+            remove : true      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
         x = undefined
         async.series([
@@ -2583,7 +2584,7 @@ class RethinkDB
                 if x.gcloud and not x.force
                     # already uploaded -- don't need to do anything
                     cb(); return
-                if not x.blob
+                if not x.blob?
                     # blob already deleted locally
                     cb(); return
                 # upload to Google cloud storage
@@ -2592,16 +2593,24 @@ class RethinkDB
                     content : x.blob
                     cb      : cb
             (cb) =>
-                if not x.blob or x.gcloud == opts.bucket
+                if not x.blob? or x.gcloud == opts.bucket
                     cb(); return
                 # successful upload to gcloud -- set x.gcloud
                 @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
+            (cb) =>
+                if x.blob? and opts.remove
+                    # blob definitely defined in database, so delete it.
+                    @table('blobs').get(opts.uuid).replace(@r.row.without('blob')).run(cb)
+                else
+                    cb()
         ], (err) => opts.cb?(err))
 
     # Backup limit blobs that previously haven't been dumped to blobs, and put them in
     # a tarball in the given path.  The tarball's name is the time when the backup starts.
     # The tarball is compressed using gzip compression.
-    #    db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:true, cb:done())
+    #
+    #    db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
+    #
     # I have not written code to restore from these tarballs.  Assuming the database has been restore,
     # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
     # then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
@@ -2625,7 +2634,8 @@ class RethinkDB
                 fs.mkdir(target, cb)
             (cb) =>
                 dbg("get blobs that we need to back up")
-                @table('blobs').filter(@r.row.hasFields('backup').not()).filter(@r.row.hasFields('expire').not()).limit(opts.limit).pluck('id').run (err, x) =>
+                query = @table('blobs').getAll(true, index:'needs_backup')
+                query.pluck('id', 'size').limit(opts.limit).pluck('id').run (err, x) =>
                     v = x; cb(err)
             (cb) =>
                 dbg("backup #{v.length} blobs")
@@ -2684,17 +2694,14 @@ class RethinkDB
         opts = defaults opts,
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : undefined          # only copy this many to gcloud
-            map_limit : 10                 # do this many in parallel
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             cb        : required
         dbg = @dbg("copy_all_blobs_to_gcloud()")
         dbg()
         # This query selects the blobs that will never expire, but have not yet
-        # been copied to Google cloud storage.  It is a linear search through the
-        # entire blobs table, unfortunately.
-        query = @table('blobs').filter(@r.row.hasFields('gcloud').not())
-        query = query.filter(@r.row.hasFields('expire').not()).pluck('id', 'size')
+        # been copied to Google cloud storage.
+        query = @table('blobs').getAll(true, index:'needs_gcloud').pluck('id', 'size')
         if opts.limit
             query = query.limit(opts.limit)
         dbg("getting blob id's...")
@@ -2720,14 +2727,14 @@ class RethinkDB
                             if err
                                 opts.errors[x.id] = err
                             cb()
-                async.mapLimit v, opts.map_limit, f, () =>
+                async.mapSeries v, f, () =>
                     dbg("finished this round")
                     if opts.repeat_until_done_s and v.length > 0
                         dbg("repeat_until_done triggering another round")
                         setInterval((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
                     else
-                        dbg("totally done : #{misc.to_json(errors)}")
-                        opts.cb(if misc.len(errors) > 0 then errors)
+                        dbg("done : #{misc.to_json(opts.errors)}")
+                        opts.cb(if misc.len(opts.errors) > 0 then opts.errors)
 
     touch_blob: (opts) =>
         opts = defaults opts,
@@ -2778,6 +2785,7 @@ class RethinkDB
     #
     #   db._error_thresh = 1e6; db.free_uploaded_blobs(repeat_until_done:true, cb:done())
     #
+    # TODO: delete this once we have freed all of them...
     free_uploaded_blobs: (opts) =>
         opts = defaults opts,
             limit : 10000  # do this many of them
@@ -2801,7 +2809,7 @@ class RethinkDB
         ], (err) =>
             if err
                 opts.cb?(err)
-            else if opts.repeat_until_done and v?.length < opts.limit
+            else if opts.repeat_until_done and v?.length == opts.limit
                 @free_uploaded_blobs(opts)
             else
                 opts.cb?()
