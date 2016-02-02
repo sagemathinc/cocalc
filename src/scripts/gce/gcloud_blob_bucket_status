@@ -1,0 +1,1 @@
+date; time gsutil ls -l gs://smc-blobs |wc -l ; time gsutil du -sch gs://smc-blobs

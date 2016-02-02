@@ -36,6 +36,12 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+
+# Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
+# NOTE: We should add this to site configuration, and have it get read once when first
+# needed and cached.  Also it would be editable in admin account settings.
+BLOB_GCLOUD_BUCKET = 'smc-blobs'
+
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, site_settings_conf} = require('smc-util/schema')
 
 to_json = (s) ->
@@ -570,13 +576,48 @@ class RethinkDB
 
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
-    ## TOO dangerous!
-    ##delete_expired: (opts) =>
-    ##    opts = defaults opts,
-    ##        cb  : required
-    ##    f = (table, cb) =>
-    ##        @table(table).between(new Date(0),new Date(), index:'expire').delete().run(cb)
-    ##    async.map((k for k, v of SCHEMA when v.indexes?.expire?), f, opts.cb)
+    #
+    # db._error_thresh=100000; db.delete_expired(limit:200, cb:done(), repeat_until_done : true)
+    #
+    delete_expired: (opts) =>
+        opts = defaults opts,
+            count_only : true              # if true, only count the number of blobs that would be deleted
+            limit : undefined  # only this many
+            table : undefined  # only this table
+            repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
+            cb    : required
+        dbg = @dbg("delete_expired(...)")
+        dbg()
+        f = (table, cb) =>
+            dbg("table='#{table}'")
+            query = @table(table).between(new Date(0),new Date(), index:'expire')
+            if opts.limit?
+                query = query.limit(opts.limit)
+            start = new Date()
+            if opts.count_only
+                opts.repeat_until_done = false
+                query = query.count()
+                dbg("doing count: #{query}")
+            else
+                query = query.delete()
+                dbg("doing delete: #{query}")
+            query.run (err, x) =>
+                dbg("query done (time=#{new Date() - start}ms): err=#{err}, x=#{misc.to_json(x)}")
+                if err
+                    cb(err)
+                else if x.deleted == 0
+                    cb()
+                else
+                    if opts.limit and opts.repeat_until_done
+                        f(table, cb)
+                    else
+                        cb()
+
+        if opts.table
+            tables = [opts.table]
+        else
+            tables = (k for k, v of SCHEMA when v.indexes?.expire?)
+        async.map(tables, f, opts.cb)
 
     ###
     # Tables for loging things that happen
@@ -2466,22 +2507,236 @@ class RethinkDB
 
     get_blob: (opts) =>
         opts = defaults opts,
-            uuid : required
-            cb   : required
-        @table('blobs').get(opts.uuid).run (err, x) =>
-            if err
-                opts.cb(err)
-            else
+            uuid       : required
+            save_in_db : false  # if true and blob isn't in db and is only in gcloud, copies to local db (for faster access e.g., 20ms versus 5ms -- i.e., not much faster; gcloud is FAST too.)
+            touch      : true
+            cb         : required   # cb(err) or cb(undefined, blob_value) or cb(undefined, undefined) in case no such blob
+        x = undefined
+        blob = undefined
+        async.series([
+            (cb) =>
+                @table('blobs').get(opts.uuid).run (err, _x) =>
+                    x = _x; cb(err)
+            (cb) =>
                 if not x
-                    opts.cb(undefined, undefined)
+                    # nothing to do -- blob not in db (probably expired)
+                    cb()
                 else if x.expire and x.expire <= new Date()
-                    opts.cb(undefined, undefined)   # no such blob anymore
-                    @table('blobs').get(opts.uuid).delete().run()   # delete it
+                    # the blob already expired -- background delete it
+                    @table('blobs').get(opts.uuid).delete().run()   # delete it (but don't wait for this to finish)
+                    cb()
+                else if x.blob?
+                    # blob not expired and is in database
+                    blob = x.blob
+                    cb()
+                else if x.gcloud
+                    # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
+                    @gcloud().bucket(name: x.gcloud).read
+                        name : opts.uuid
+                        cb   : (err, _blob) =>
+                            if err
+                                cb(err)
+                            else
+                                blob = _blob
+                                cb()
+                                if opts.save_in_db
+                                    # also save in database so will be faster next time (again, don't wait on this)
+                                    @table('blobs').get(opts.uuid).update(blob : blob).run()
                 else
-                    opts.cb(undefined, x.blob)
-                    # We now also update the access counter/times for the blob, but of course
-                    # don't block on opts.cb above to do this.
-                    @touch_blob(uuid : opts.uuid)
+                    # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
+                    cb()
+        ], (err) =>
+            opts.cb(err, blob)
+            if blob? and opts.touch
+                # blob was pulled from db or gcloud, so note that it was accessed (updates a counter)
+                @touch_blob(uuid : opts.uuid)
+        )
+
+    # Return gcloud API interface
+    gcloud: () =>
+        return @_gcloud ?= require('./smc_gcloud').gcloud()
+
+    # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
+    # been uploaded there.
+    copy_blob_to_gcloud: (opts) =>
+        opts = defaults opts,
+            uuid   : required  # uuid=sha1-based uuid coming from blob
+            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            force  : false      # if true, upload even if already uploaded
+            remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
+            cb     : undefined  # cb(err)
+        x = undefined
+        async.series([
+            (cb) =>
+                @table('blobs').get(opts.uuid).run (err, _x) =>
+                    x = _x
+                    if err
+                        cb(err)
+                    else if not x?
+                        cb('no such blob')
+                    else if not x.blob and not x.gcloud
+                        cb('blob not available -- this should not be possible')
+                    else if not x.blob and x.force
+                        cb("blob can't be reploaded since it was already deleted")
+                    else
+                        cb()
+            (cb) =>
+                if x.gcloud? and not opts.force
+                    # already uploaded -- don't need to do anything
+                    cb(); return
+                if not x.blob?
+                    # blob already deleted locally
+                    cb(); return
+                # upload to Google cloud storage
+                @gcloud().bucket(name:opts.bucket).write
+                    name    : opts.uuid
+                    content : x.blob
+                    cb      : cb
+            (cb) =>
+                if not x.blob? or x.gcloud == opts.bucket
+                    cb(); return
+                # successful upload to gcloud -- set x.gcloud
+                @table('blobs').get(opts.uuid).update(gcloud:opts.bucket).run(cb)
+            (cb) =>
+                if x.blob? and opts.remove
+                    # blob definitely defined in database, so delete it.
+                    @table('blobs').get(opts.uuid).replace(@r.row.without('blob')).run(cb)
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
+
+    # Backup limit blobs that previously haven't been dumped to blobs, and put them in
+    # a tarball in the given path.  The tarball's name is the time when the backup starts.
+    # The tarball is compressed using gzip compression.
+    #
+    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
+    #
+    # I have not written code to restore from these tarballs.  Assuming the database has been restore,
+    # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
+    # then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
+    # If we didn't have the blobs table in the db, make dummy entries from the blob names in the tarballs.
+    backup_blobs_to_tarball: (opts) =>
+        opts = defaults opts,
+            limit : 10000     # number of blobs to backup
+            path  : required  # path where [timestamp].tar file is placed
+            repeat_until_done : false  # if true, keeps re-call'ing this function until no more results to backup
+            cb    : undefined # cb(err, '[timestamp].tar')
+        dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
+        join    = require('path').join
+        dir     = misc.date_to_snapshot_format(new Date())
+        target  = join(opts.path, dir)
+        tarball = target + '.tar.gz'
+        v       = undefined
+        to_remove = []
+        async.series([
+            (cb) =>
+                dbg("make target='#{target}'")
+                fs.mkdir(target, cb)
+            (cb) =>
+                dbg("get blobs that we need to back up")
+                query = @table('blobs').getAll(true, index:'needs_backup')
+                query.pluck('id', 'size').limit(opts.limit).pluck('id').run (err, x) =>
+                    v = x; cb(err)
+            (cb) =>
+                dbg("backup #{v.length} blobs")
+                f = (x, cb) =>
+                    @get_blob
+                        uuid  : x.id
+                        touch : false
+                        cb    : (err, blob) =>
+                            if err
+                                dbg("ERROR! #{err}")
+                                cb(err)
+                            else if blob?
+                                dbg("got blob from db -- now write to disk")
+                                to_remove.push(x.id)
+                                fs.writeFile(join(target, x.id), blob, cb)
+                            else
+                                dbg("blob is expired, so nothing to be done, ever.")
+                                cb()
+                async.mapLimit(v, 3, f, cb)
+            (cb) =>
+                dbg("successfully wrote all blobs to files; now make tarball")
+                misc_node.execute_code
+                    command : 'tar'
+                    args    : ['zcvf', tarball, dir]
+                    path    : opts.path
+                    timeout : 3600
+                    cb      : cb
+            (cb) =>
+                dbg("remove temporary blobs")
+                f = (x, cb) =>
+                    fs.unlink(join(target, x), cb)
+                async.mapLimit(to_remove, 10, f, cb)
+            (cb) =>
+                dbg("remove temporary directory")
+                fs.rmdir(target, cb)
+            (cb) =>
+                dbg("backup succeeded completely -- mark all blobs as backed up")
+                @table('blobs').getAll((x.id for x in v)...).update(backup:true).run(cb)
+        ], (err) =>
+            if err
+                dbg("ERROR: #{err}")
+                opts.cb?(err)
+            else
+                dbg("done")
+                if opts.repeat_until_done and to_remove.length > 0
+                    @backup_blobs_to_tarball(opts)
+                else
+                    opts.cb?(undefined, tarball)
+        )
+
+    # Copied all blobs that will never expire to a google cloud storage bucket.
+    #
+    #    db._error_thresh=1e6; errors={}; db.copy_all_blobs_to_gcloud(limit:500, cb:done(), remove:true, repeat_until_done_s:10, errors:errors)
+    #
+    copy_all_blobs_to_gcloud: (opts) =>
+        opts = defaults opts,
+            bucket    : BLOB_GCLOUD_BUCKET # name of bucket
+            limit     : undefined          # only copy this many to gcloud
+            repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
+            errors    : {}                 # used to accumulate errors
+            remove    : false
+            cb        : required
+        dbg = @dbg("copy_all_blobs_to_gcloud()")
+        dbg()
+        # This query selects the blobs that will never expire, but have not yet
+        # been copied to Google cloud storage.
+        query = @table('blobs').getAll(true, index:'needs_gcloud').pluck('id', 'size')
+        if opts.limit
+            query = query.limit(opts.limit)
+        dbg("getting blob id's...")
+        query.run (err, v) =>
+            if err
+                dbg("fail: #{err}")
+                opts.cb(err)
+            else if not v?
+                dbg("no results -- v undefined")
+                opts.cb('no results')
+            else
+                n = v.length; m = 0
+                dbg("got #{n} blob id's")
+                f = (x, cb) =>
+                    m += 1
+                    k = m; start = new Date()
+                    dbg("**** #{k}/#{n}: uploading #{x.id} of size #{x.size/1000}KB")
+                    @copy_blob_to_gcloud
+                        uuid   : x.id
+                        bucket : opts.bucket
+                        remove : opts.remove
+                        cb     : (err) =>
+                            dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
+                            if err
+                                opts.errors[x.id] = err
+                            cb()
+                async.mapSeries v, f, () =>
+                    dbg("finished this round")
+                    if opts.repeat_until_done_s and v.length > 0
+                        dbg("repeat_until_done triggering another round")
+                        setInterval((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
+                    else
+                        dbg("done : #{misc.to_json(opts.errors)}")
+                        opts.cb(if misc.len(opts.errors) > 0 then opts.errors)
 
     touch_blob: (opts) =>
         opts = defaults opts,
@@ -2499,43 +2754,73 @@ class RethinkDB
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
 
-    ###
-    I’m deleting blobs from the database that (1) haven’t been accessed in the last month,
-    (2) are set to have been deleted anyways (by the expire field) by periodically doing
-
-        db._error_thresh=100000; db.delete_expired_blobs(count_only:false, dry_run:false, cb:done(), limit:10000)
-
-    then waiting maybe 10 m for the result, then checking the count via
-
-        db.table('blobs').count().run(console.log).
-
-    I’m checking the total disk usage in the web interface.  The actual
-    ###
-    delete_expired_blobs: (opts) =>
+    # If blob has been copied to gcloud, remove the BLOB part of the data
+    # from the database (to save space).
+    close_blob: (opts) =>
         opts = defaults opts,
-            max_count   : 1                 # only delete blobs accessed at most this many times
-            last_active : misc.days_ago(30) # only delete blobs that were last touched at this time or older
-            limit       : undefined         # if given, only delete this many blobs
-            count_only  : true              # if true, only count the number of blobs that would be deleted
-            dry_run     : false             # if true, instead return uuid's of blobs that will be deleted
-            cb          : required          # cb(err)
-        dbg = @dbg("delete_expired_blobs(...)")
+            uuid   : required   # uuid=sha1-based from blob
+            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            cb     : undefined   # cb(err)
+        query = @table('blobs').get(opts.uuid)
+        async.series([
+            (cb) =>
+                # ensure blob is in gcloud
+                query.pluck('gcloud').run (err, x) =>
+                    if err
+                        cb(err)
+                    else if not x.gcloud
+                        # not yet copied to gcloud storage
+                        @copy_blob_to_gcloud
+                            uuid   : opts.uuid
+                            bucket : opts.bucket
+                            cb     : cb
+                    else
+                        # copied already
+                        cb()
+            (cb) =>
+                # now blob is in gcloud -- delete in database
+                query.replace(@r.row.without('blob')).run(cb)
+        ], (err) => opts.cb?(err))
+
+    # Free space in database used by blobs that have already been uploaded to gcloud. Once done,
+    # these blobs get served from gcloud.
+    #
+    #   db._error_thresh = 1e6; db.free_uploaded_blobs(repeat_until_done:true, cb:done())
+    #
+    # TODO: delete this once we have freed all of them...
+    free_uploaded_blobs: (opts) =>
+        opts = defaults opts,
+            limit : 10000  # do this many of them
+            repeat_until_done : false
+            cb    : required
+        dbg = @dbg("free_uploaded_blobs()")
         dbg()
-        query = @table('blobs').between(new Date(0), new Date(), index:'expire')
-        query = query.filter(@r.row("count").le(opts.max_count))
-        query = query.filter(@r.row("last_active").le(opts.last_active))
-        if opts.limit?
-            query = query.limit(opts.limit)
-        if opts.count_only
-            dbg("count_only")
-            query.count().run(opts.cb)
-        else if opts.dry_run
-            dbg("dry_run")
-            query.pluck('id').run (err, x) =>
-                opts.cb(err, if x then (a.id for a in x))
-        else
-            dbg("delete!")
-            query.delete().run(opts.cb)
+        v = undefined
+        async.series([
+            (cb) =>
+                dbg("querying db for the ids of uploaded blobs that haven't been freed (still have blob field)")
+                query = @table('blobs').hasFields('gcloud').filter(db.r.row.hasFields('blob')).pluck('id')
+                if opts.limit
+                    query = query.limit(opts.limit)
+                query.run (err, _v) =>
+                    v = _v; cb(err)
+            (cb) =>
+                dbg("now deleting blob field on #{v.length} blobs")
+                v = (x.id for x in v)
+                @table('blobs').getAll(v...).replace(@r.row.without('blob')).run(cb)
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if opts.repeat_until_done and v?.length == opts.limit
+                @free_uploaded_blobs(opts)
+            else
+                opts.cb?()
+
+        )
+
+    ###
+    # User queries
+    ###
 
     user_query_cancel_changefeed: (opts) =>
         winston.debug("user_query_cancel_changefeed: opts=#{to_json(opts)}")

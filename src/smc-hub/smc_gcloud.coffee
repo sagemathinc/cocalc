@@ -5,7 +5,7 @@ g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:
 This uses the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
 
-https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.25.1/compute/
+https://googlecloudplatform.github.io/gcloud-node/#/
 https://github.com/GoogleCloudPlatform/gcloud-node
 
 npm install --save gcloud
@@ -35,6 +35,8 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 async = require('async')
 
+temp = require('temp')
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -46,7 +48,7 @@ PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'
 
 exports.gcloud = (opts) ->
-    new GoogleCloud(opts)
+    return new GoogleCloud(opts)
 
 # how long ago a time was, in hours
 age_h = (time) -> (new Date() - time)/(3600*1000)
@@ -366,11 +368,16 @@ class VM
             (cb) =>
                 if no_change
                     cb(); return
+                if changes.zone
+                    # Disks are in new zone, so mutate zone in metadata.
+                    # WARNING: this has *never* been tested (I'm only using one zone for SMC right now)!
+                    for d in data.disks
+                        @_mutate_disk_zone(d, changes.zone)
                 dbg("Create machine with new params, disks, starting if it was running initially (but not otherwise).")
                 @gcloud.create_vm
                     name        : @name
                     zone        : changes.zone ? @zone
-                    disks       : (filename(x.source) for x in data.disks)
+                    disks       : data.disks
                     type        : changes.type ? filename(data.machineType)
                     tags        : data.tags.items
                     preemptible : changes.preemptible ? data.scheduling.preemptible
@@ -397,6 +404,12 @@ class VM
                 if p.name == 'devstorage'
                     return p.ext.slice(1)
         return undefined  # not currently set
+
+    _mutate_disk_zone: (meta, zone) =>
+        i = meta.source.indexOf('/zones/')
+        j = meta.source.indexOf('/', i+7)
+        meta.source = meta.source.slice(0,i+7) + zone + meta.source.slice(j)
+        return
 
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
@@ -982,6 +995,94 @@ class GoogleCloud
         opts.gcloud = @
         return new VM_Manager(opts)
 
+    ###
+    Storage
+    ###
+    bucket: (opts) =>
+        opts = defaults opts,
+            name : required
+        return new Bucket(@, opts.name)
+
+class Bucket
+    constructor: (@gcloud, @name) ->
+        @_bucket = @gcloud._gcloud.storage().bucket(@name)
+
+    dbg: (f) -> @gcloud.dbg("Bucket.#{f}")
+
+    write: (opts) =>
+        opts = defaults opts,
+            name    : required
+            content : required
+            cb      : undefined
+        dbg = @dbg("write(name='#{opts.name}')")
+        dbg()
+        stream = @_bucket.file(opts.name).createWriteStream()
+        stream.write(opts.content)
+        stream.end()
+        stream.on 'finish', =>
+            dbg('finish')
+            opts.cb?()
+            delete opts.cb
+        stream.on 'error', (err) =>
+            dbg("err = '#{err}'")
+            if err
+                @_write_using_gsutil(opts)
+        return
+
+    # The write above **should** always work.  However, there is a bizarre bug in the gcloud api, so
+    # some filenames don't work, e.g., '0283f8a0-5b6d-4b44-93ec-92df20615e99'.
+    _write_using_gsutil: (opts) =>
+        opts = defaults opts,
+            name    : required
+            content : required
+            cb      : undefined
+        dbg = @dbg("_write_using_gsutil(name='#{opts.name}')")
+        dbg()
+        info = undefined
+        async.series([
+            (cb) =>
+                dbg("write content to a file")
+                temp.open '', (err, _info) ->
+                    if err
+                        cb(err)
+                    else
+                        info = _info
+                        dbg("temp file = '#{info.path}'")
+                        fs.writeFile(info.fd, opts.content, cb)
+            (cb) =>
+                dbg("close")
+                fs.close(info.fd, cb)
+            (cb) =>
+                dbg("call gsutil via shell")
+                misc_node.execute_code
+                    command : 'gsutil'
+                    args    : ['cp', info.path, "gs://#{@name}/#{opts.name}"]
+                    timeout : 30
+                    cb      : cb
+        ], (err) =>
+            if info?
+                try
+                    fs.unlink(info.path)
+                catch e
+                    dbg("error unlinking")
+            opts.cb?(err)
+        )
+
+
+    read: (opts) =>
+        opts = defaults opts,
+            name    : required
+            cb      : required
+        dbg = @dbg("read(name='#{opts.name}')")
+        dbg()
+        stream = @_bucket.file(opts.name).download (err, content) =>
+            if err
+                dbg("error = '#{err}")
+            else
+                dbg('done')
+            opts.cb(err, content)
+        return
+
 class VM_Manager
     constructor: (opts) ->
         opts = defaults opts,
@@ -1069,6 +1170,14 @@ class VM_Manager
                     for x in log
                         console.log "#{pad(x.name)}  #{pad(x.action?.type)}  #{pad(x.action?.action)}  #{x.action?.started?.toLocaleString()}  #{x.action?.finished?.toLocaleString()}  #{pad(misc.round1((x.action?.finished - x.action?.started)/1000/60))} minutes  '#{misc.to_json(x.action?.error ?  '')}'"
                 opts.cb?(err)
+
+    # periodically display the log for the last 24 hours
+    monitor: () =>
+        f = () =>
+            console.log("\n\n-----------------------------\n\n\n")
+            @show_log(age_m : 60*24)
+        f()
+        setInterval(f, 60*1000)
 
     _init_timers: (opts) =>
         @_dbg("_init_timers")()
@@ -1189,12 +1298,25 @@ class VM_Manager
         data = @_data(vm)
         dbg(misc.to_json(data))
 
+        # Enable this in case something goes wrong with changing properties of VM's; this
+        # will make it so we only attempt restart, rather than anything more subtle.
+        #if @_rule0(data)
+        #    return
+        #return
+
         if @_rule1(data)
             return
         if @_rule2(data)
             return
         if @_rule3(data)
             return
+
+    _rule0: (data) =>
+        if data.gce_status == 'TERMINATED' and data.requested_status == 'RUNNING'
+            # Just start the VM
+            @_action(data, 'start', 'rule1')
+            return true
+
 
     _rule1: (data) =>
         if data.gce_status == 'TERMINATED' and data.requested_status == 'RUNNING'
