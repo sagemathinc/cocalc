@@ -794,11 +794,8 @@ kill_idle_projects = (cb) ->
                                 cb(err)
                             else
                                 project.command
-                                    action : 'save'
-                                    after_command_cb : (err) =>
-                                        project.command
-                                            action : 'stop'
-                                            cb     : cb
+                                    action : 'stop'
+                                    cb     : cb
                 async.map(v, f, cb)
             else
                 dbg("nothing idle to kill")
