@@ -2562,8 +2562,8 @@ class RethinkDB
         opts = defaults opts,
             uuid   : required  # uuid=sha1-based uuid coming from blob
             bucket : BLOB_GCLOUD_BUCKET # name of bucket
-            force  : false     # if true, upload even if already uploaded
-            remove : true      # if true, deletes blob from database after successful upload to gcloud (to free space)
+            force  : false      # if true, upload even if already uploaded
+            remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
         x = undefined
         async.series([
@@ -2581,7 +2581,7 @@ class RethinkDB
                     else
                         cb()
             (cb) =>
-                if x.gcloud and not x.force
+                if x.gcloud? and not opts.force
                     # already uploaded -- don't need to do anything
                     cb(); return
                 if not x.blob?
@@ -2609,7 +2609,7 @@ class RethinkDB
     # a tarball in the given path.  The tarball's name is the time when the backup starts.
     # The tarball is compressed using gzip compression.
     #
-    #    db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
+    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
     #
     # I have not written code to restore from these tarballs.  Assuming the database has been restore,
     # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
@@ -2688,7 +2688,7 @@ class RethinkDB
 
     # Copied all blobs that will never expire to a google cloud storage bucket.
     #
-    #    db._error_thresh=100000; errors={}; db.copy_all_blobs_to_gcloud(limit:500, map_limit:5, cb:done(), repeat_until_done_s:30, errors:errors)
+    #    db._error_thresh=1e6; errors={}; db.copy_all_blobs_to_gcloud(limit:500, cb:done(), remove:true, repeat_until_done_s:10, errors:errors)
     #
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
@@ -2696,6 +2696,7 @@ class RethinkDB
             limit     : undefined          # only copy this many to gcloud
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
+            remove    : false
             cb        : required
         dbg = @dbg("copy_all_blobs_to_gcloud()")
         dbg()
@@ -2722,6 +2723,7 @@ class RethinkDB
                     @copy_blob_to_gcloud
                         uuid   : x.id
                         bucket : opts.bucket
+                        remove : opts.remove
                         cb     : (err) =>
                             dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                             if err

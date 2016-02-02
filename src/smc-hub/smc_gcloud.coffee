@@ -35,6 +35,8 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 async = require('async')
 
+temp = require('temp')
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -1023,9 +1025,49 @@ class Bucket
             delete opts.cb
         stream.on 'error', (err) =>
             dbg("err = '#{err}'")
-            opts.cb?(err)
-            delete opts.cb
+            if err
+                @_write_using_gsutil(opts)
         return
+
+    # The write above **should** always work.  However, there is a bizarre bug in the gcloud api, so
+    # some filenames don't work, e.g., '0283f8a0-5b6d-4b44-93ec-92df20615e99'.
+    _write_using_gsutil: (opts) =>
+        opts = defaults opts,
+            name    : required
+            content : required
+            cb      : undefined
+        dbg = @dbg("_write_using_gsutil(name='#{opts.name}')")
+        dbg()
+        info = undefined
+        async.series([
+            (cb) =>
+                dbg("write content to a file")
+                temp.open '', (err, _info) ->
+                    if err
+                        cb(err)
+                    else
+                        info = _info
+                        dbg("temp file = '#{info.path}'")
+                        fs.writeFile(info.fd, opts.content, cb)
+            (cb) =>
+                dbg("close")
+                fs.close(info.fd, cb)
+            (cb) =>
+                dbg("call gsutil via shell")
+                misc_node.execute_code
+                    command : 'gsutil'
+                    args    : ['cp', info.path, "gs://#{@name}/#{opts.name}"]
+                    timeout : 30
+                    cb      : cb
+        ], (err) =>
+            if info?
+                try
+                    fs.unlink(info.path)
+                catch e
+                    dbg("error unlinking")
+            opts.cb?(err)
+        )
+
 
     read: (opts) =>
         opts = defaults opts,

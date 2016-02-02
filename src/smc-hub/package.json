@@ -40,6 +40,7 @@
     "sendgrid": "^1.9.2",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
+    "temp": "^0.8.3",
     "underscore": "^1.7.0",
     "winston": "^1.1.1"
   },
