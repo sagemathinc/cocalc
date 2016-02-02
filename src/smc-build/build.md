@@ -384,7 +384,7 @@ In /etc/sysctl.conf, put:
     umask 022
     pip install twitter ctop
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
-    pip3 install --upgrade numba
+    pip3 install --upgrade numba holoviews
 
 # The netcd4 system-wide python package requires some crazy environment variables to work:
 
