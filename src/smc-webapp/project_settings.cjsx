@@ -955,19 +955,20 @@ CollaboratorsSearch = rclass
         redux   : rtypes.object.isRequired
 
     getInitialState : ->
-        search     : ''          # search that user has typed in so far
-        select     : undefined   # list of results for doing the search -- turned into a selector
-        searching  : false       # currently carrying out a search
-        err        : ''          # display an error in case something went wrong doing a search
-        email_to   : ''          # if set, adding user via email to this address
-        email_body : ''          # with this body.
+        search           : ''          # search that user has typed in so far
+        select           : undefined   # list of results for doing the search -- turned into a selector
+        selected_entries : undefined   # list of actually selected entries in the selector list
+        searching        : false       # currently carrying out a search
+        err              : ''          # display an error in case something went wrong doing a search
+        email_to         : ''          # if set, adding user via email to this address
+        email_body       : ''          # with this body.
 
     reset : ->
         @setState(@getInitialState())
 
     do_search : (search) ->
         search = search.trim()
-        @setState(search: search)  # this gets used in write_email_invite, and whether to render the selection list.
+        @setState(search: search, selected_entries : undefined)  # this gets used in write_email_invite, and whether to render the selection list.
         if @state.searching
              # already searching
              return
@@ -990,9 +991,20 @@ CollaboratorsSearch = rclass
         @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected : ->
-        @reset()
-        for account_id in @refs.select.getSelectedOptions()
-            @invite_collaborator(account_id)
+        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
+        selected_names = @refs.select.getSelectedOptions()
+        if selected_names.length == 0
+            @reset()
+            all_names = selected_names.getInputDOMNode().getElementsByTagName('option')
+            if all_names?.length == 1
+                @invite_collaborator(all_names[0].getAttribute('value'))
+        else
+            @reset()
+            for account_id in selected_names
+                @invite_collaborator(account_id)
+
+    select_list_clicked : ->
+        @setState(selected_entries: @refs.select.getSelectedOptions())
 
     write_email_invite : ->
         name = @props.redux.getStore('account').get_fullname()
@@ -1058,12 +1070,26 @@ CollaboratorsSearch = rclass
                 <Icon name='envelope' /> No matches. Send email invitation...
             </Button>
         else
-            <div>
-                <Input type='select' multiple ref='select'>
+            <div style={marginBottom:'10px'}>
+                <Input type='select' multiple ref='select' onClick={@select_list_clicked}>
                     {@render_options(select)}
                 </Input>
-                <Button onClick={@add_selected}><Icon name='user-plus' /> Add selected</Button>
+                {@render_select_list_button(select)}
             </div>
+
+
+    render_select_list_button : (select) ->
+        nb_selected = @state.selected_entries?.length ? 0
+        btn_text = switch select.length
+            when 0 then "No user found"
+            when 1 then "Invite user"
+            else switch nb_selected
+                when 0 then "Select a name above"
+                when 1 then "Invite selected user"
+                else "Invite #{nb_selected} users"
+        disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
+        <Button onClick={@add_selected} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+
 
     render : ->
         <div>

@@ -220,15 +220,20 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
+        title = @redux.getStore('projects').get_title(project_id)
         if not body?
-            title = @redux.getStore('projects').get_title(project_id)
             name  = @redux.getStore('account').get_fullname()
             body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
 
+        link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
+
         # convert body from markdown to html, which is what the backend expects
         body = markdown.markdown_to_html(body).s
+
         salvus_client.invite_noncloud_collaborators
             project_id : project_id
+            title      : title
+            link2proj  : link2proj
             to         : to
             email      : body
             subject    : subject

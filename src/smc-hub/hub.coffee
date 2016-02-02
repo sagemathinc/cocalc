@@ -2911,7 +2911,7 @@ class Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= new Date() - 60*60*24*14  # successfully sent < 2 weeks ago -- don't again
+                                    else if when_sent - 0 >= misc.days_ago(7) - 0 # successfully sent < one week ago -- don't again
                                         done = true
                                         cb()
                                     else
@@ -2933,6 +2933,15 @@ class Client extends EventEmitter
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
+
+                            if mesg.link2proj? # make sure invitees know where to go
+                                base_url = mesg.link2proj.split("/")
+                                base_url = "#{base_url[0]}//#{base_url[2]}"
+                                direct_link = "Then go to <a href='#{mesg.link2proj}'>project '#{mesg.title}'</a>."
+                            else # fallback for outdated clients
+                                base_url = 'https://cloud.sagemath.com/'
+                                direct_link = ''
+
                             # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to       : email_address
@@ -2945,8 +2954,9 @@ class Client extends EventEmitter
                                 asm_group: 699
                                 body     : email + """<br/><br/>
                                            <b>To accept the invitation, please sign up at
-                                           <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>
-                                           using exactly the email address #{email_address}.</b><br/>"""
+                                           <a href='#{base_url}'>#{base_url}</a>
+                                           using exactly the email address '#{email_address}'.
+                                           #{direct_link}</b><br/>"""
                                 cb       : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
