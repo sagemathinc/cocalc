@@ -68,6 +68,8 @@ if process?.env?.SMC_TEST
     # in test mode we *do* want exception to get thrown below when type checks fails
     TEST_MODE = true
 
+exports.RUNNING_IN_NODE = process?.title == 'node'
+
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
     if typeof(x) == "string"
@@ -1307,6 +1309,17 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
+exports.seconds2hms = seconds2hms = (secs) ->
+    s = round2(secs % 60)
+    m = Math.floor(secs / 60) % 60
+    h = Math.floor(secs / 60 / 60)
+    if h == 0 and m == 0
+        return "#{s}s"
+    if h > 0
+        return "#{h}h#{m}m#{s}s"
+    if m > 0
+        return "#{m}m#{s}s"
+
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
 # allows negative numbers if allow_negative is true (default : false)
@@ -1484,3 +1497,19 @@ exports.done = () ->
         catch
             s = args
         console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+# END ~
+
+smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
+
+exports.log = () ->
+    smc_logger_timestamp = new Date().getTime() / 1000.0
+    t  = seconds2hms(smc_logger_timestamp - smc_start_time)
+    dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last)
+    # support for string interpolation for the actual console.log
+    [msg, args...] = Array.prototype.slice.call(arguments)
+    console.log_original("[#{t} Δ #{dt}] #{msg}", args...)
+    smc_logger_timestamp_last = smc_logger_timestamp
+
+if not exports.RUNNING_IN_NODE and window?
+    window.console.log_original = window.console.log
+    window.console.log = exports.log

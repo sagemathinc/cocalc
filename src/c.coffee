@@ -7,7 +7,7 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
-db_hosts = [process.env.SMC_DB_HOSTS ? 'db0']
+db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
 
 global.done = require('smc-util/misc').done
 

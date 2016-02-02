@@ -191,3 +191,12 @@ salvus_client.on 'signed_out', ->
 salvus_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
+# Standby timeout
+account_store = redux.getStore('account')
+last_set_standby_timeout_m = undefined
+account_store.on 'change', ->
+    # NOTE: we call this on any change to account settings, which is maybe too extreme.
+    x = account_store.getIn(['other_settings', 'standby_timeout_m'])
+    if last_set_standby_timeout_m != x
+        last_set_standby_timeout_m = x
+        salvus_client.set_standby_timeout_m(x)

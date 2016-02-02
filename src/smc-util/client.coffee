@@ -856,6 +856,8 @@ class exports.Connection extends EventEmitter
     invite_noncloud_collaborators: (opts) =>
         opts = defaults opts,
             project_id : required
+            title      : required
+            link2proj  : required
             to         : required
             email      : required   # body in HTML format
             subject    : undefined
@@ -864,6 +866,8 @@ class exports.Connection extends EventEmitter
         @call
             message: message.invite_noncloud_collaborators
                 project_id : opts.project_id
+                title      : opts.title
+                link2proj  : opts.link2proj
                 email      : opts.email
                 to         : opts.to
                 subject    : opts.subject

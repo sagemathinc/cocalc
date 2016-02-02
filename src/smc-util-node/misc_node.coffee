@@ -411,8 +411,8 @@ exports.execute_code = execute_code = (opts) ->
     if opts.uid?
         env.HOME = opts.home
 
-    tmpfilename = undefined
     ran_code = false
+    info = undefined
 
     async.series([
         (c) ->
@@ -430,19 +430,22 @@ exports.execute_code = execute_code = (opts) ->
 
             if opts.verbose
                 winston.debug("execute_code: writing temporary file that contains bash program.")
-            temp.open '', (err, info) ->
+            temp.open '', (err, _info) ->
                 if err
                     c(err)
                 else
+                    info = _info
                     opts.command = 'bash'
                     opts.args    = [info.path]
-                    tmpfilename  = info.path
-                    fs.write(info.fd, cmd)
-                    fs.close(info.fd, c)
-
+                    fs.writeFile(info.fd, cmd, c)
         (c) ->
-            if tmpfilename?
-                fs.chmod(tmpfilename, 0o777, c)
+            if info?
+                fs.close(info.fd, c)
+            else
+                c()
+        (c) ->
+            if info?
+                fs.chmod(info.path, 0o777, c)
             else
                 c()
 

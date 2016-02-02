@@ -850,11 +850,18 @@ OtherSettings = rclass
                 />
             </LabeledRow>
             <LabeledRow label='Number of files per page'>
-            <NumberInput
-                    on_change = {(n)=>@on_change('page_size',n)}
+                <NumberInput
+                        on_change = {(n)=>@on_change('page_size',n)}
+                        min       = 1
+                        max       = 1000000
+                        number    = {@props.other_settings.page_size} />
+            </LabeledRow>
+            <LabeledRow label='Standby timeout (minutes)'>
+                <NumberInput
+                    on_change = {(n)=>@on_change('standby_timeout_m',n)}
                     min       = 1
-                    max       = 1000000
-                    number    = {@props.other_settings.page_size} />
+                    max       = 180
+                    number    = {@props.other_settings.standby_timeout_m} />
             </LabeledRow>
             {@render_page_size_warning()}
         </Panel>

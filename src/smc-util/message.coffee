@@ -780,6 +780,8 @@ message
     to         : required
     subject    : undefined
     email      : required    # spam vector
+    title      : required
+    link2proj  : required
 
 message
     event      : 'invite_noncloud_collaborators_resp'

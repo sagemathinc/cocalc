@@ -891,7 +891,12 @@ class ProjectClient extends EventEmitter
                     @_stale = false
                     @_synctable = x
                     update = () =>
-                        new_val = @_synctable.get(@project_id).toJS()
+                        new_val       = @_synctable.get(@project_id)?.toJS()
+                        if not new_val?
+                            # The project hasn't been created/written to the database yet, in which
+                            # case there is nothing to do.  It should get added in a moment and
+                            # trigger another update.
+                            return
                         old_host      = @host
                         @host         = new_val.host?.host
                         @assigned     = new_val.host?.assigned
@@ -1665,6 +1670,14 @@ class ProjectClient extends EventEmitter
         @_storage_request
             action : 'save'
             cb     : opts.cb
+
+        # do this but don't block on returning.
+        dbg("send message to storage server that project is being saved")
+        # it will be marked as active  as a result (so it doesn't idle timeout)
+        @_action
+            action : "save"
+            cb     : (err) =>
+                dbg("finished save message to backend: #{err}")
 
     address: (opts) =>
         opts = defaults opts,

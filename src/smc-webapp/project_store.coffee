@@ -548,7 +548,11 @@ class ProjectActions extends Actions
             files  : opts.path
         @_project().download_file(opts)
 
-    path : (name, current_path, ext, on_empty) =>
+    # This is the absolute path to the file with given name but with the
+    # given extension added to the file (e.g., "md") if the file doesn't have
+    # that extension.  If the file contains invalid characters this function
+    # will call on_error (if given) and return ''.
+    path : (name, current_path, ext, on_empty, on_error) =>
         if name.length == 0
             if on_empty?
                 on_empty()
@@ -556,15 +560,20 @@ class ProjectActions extends Actions
             name = require('./account').default_filename()
         for bad_char in BAD_FILENAME_CHARACTERS
             if name.indexOf(bad_char) != -1
-                on_error("Cannot use '#{bad_char}' in a filename")
+                err = "Cannot use '#{bad_char}' in a filename"
+                on_error?(err)
+                if not on_error?
+                    console.warn(err)
                 return ''
         s = misc.path_to_file(current_path, name)
         if ext? and misc.filename_extension(s) != ext
             s = "#{s}.#{ext}"
         return s
 
-    create_folder : (name, current_path) =>
-        p = @path(name, current_path)
+    create_folder : (name, current_path, on_error) =>
+        if name[name.length - 1] == '/'
+            name = name.slice(0, -1)
+        p = @path(name, current_path, undefined, undefined, on_error)
         if p.length == 0
             return
         @ensure_directory_exists
@@ -591,13 +600,9 @@ class ProjectActions extends Actions
                 opts.on_download?(false)
             return
         if name[name.length - 1] == '/'
-            for bad_char in BAD_FILENAME_CHARACTERS
-                if name.slice(0, -1).indexOf(bad_char) != -1
-                    opts.on_error?("Cannot use '#{bad_char}' in a folder name")
-                    return
-            @create_folder(name, opts.current_path)
+            @create_folder(name, opts.current_path, opts.on_error)
             return
-        p = @path(name, opts.current_path, opts.ext, opts.on_empty)
+        p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
         if not p
             return
         ext = misc.filename_extension(p)
