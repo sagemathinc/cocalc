@@ -276,6 +276,15 @@ class Project
                             state = s.state
                             cb()
             (cb) =>
+                if opts.action == 'save'
+                    # The actual save is done completely from the outside by the storage servers.
+                    # However, we update the state change time (e.g., from running --> saving --> running)
+                    # so that the kill when idle code can use it!
+                    @_state_time = new Date()
+                    @_update_state_db()
+                    cb()
+                    return
+
                 if opts.action == 'start'
                     if not opts.args?
                         opts.args = []

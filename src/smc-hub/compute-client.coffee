@@ -1664,6 +1664,9 @@ class ProjectClient extends EventEmitter
         @_storage_request
             action : 'save'
             cb     : opts.cb
+        dbg("send message to storage server that project is being saved")
+        # it will be marked as active  as a result (so it doesn't idle timeout)
+        @_action(action: "save",  cb: cb)
 
     address: (opts) =>
         opts = defaults opts,
