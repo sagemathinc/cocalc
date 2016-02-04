@@ -855,12 +855,10 @@ class ProjectClient extends EventEmitter
             dbg("initialized ProjectClient")
             opts.cb(err, @)
 
-    # free -- stop listening for status updates from the database.
-    # It's critical to call this when you're done using ProjectClient, since
-    # otherwise the database would eventually get overwhelmed.
-    # Do not use the ProjectClient after calling this function.
-    # It would be more natural to call this function "close",
-    # but that is already taken.
+    # free -- stop listening for status updates from the database and broadcasting
+    # updates about this project.
+    # NOTE: as of writing this line, this free is never called by hub, and idle_timeout_s
+    # is used instead below (of course, free could be used by maintenance operations).
     free: () =>
         # Ensure that next time this project gets requested, a fresh one is created, rather than
         # this cached one, which has been free'd up, and will no longer work.
@@ -877,7 +875,11 @@ class ProjectClient extends EventEmitter
         @host = @assigned = @_state = @_state_time =  @_state_error = undefined
         @_stale = true
         db = @compute_server.database
+        # It's *critical* that idle_timeout_s be used below, since I haven't come up with any
+        # good way to "garbage collect" ProjectClient objects, due to the async complexity of
+        # everything.
         db.synctable
+            idle_timeout_s : 60*5    # 5 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
             query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
@@ -912,23 +914,28 @@ class ProjectClient extends EventEmitter
     # ensure project has a storage server assigned to it (if there are any)
     _init_storage_server: (cb) =>
         dbg = @dbg('_init_storage_server')
-        if @_synctable.getIn([@project_id, 'storage', 'host'])
-            dbg('already done')
-            cb()
-            return
-        # assign a storage server, if there are any
-        hosts = @compute_server.storage_servers.get().keySeq().toJS()
-        if hosts.length == 0
-            dbg('no storage servers')
-            cb()
-            return
-        # TODO: use some size-balancing algorithm here!
-        host = misc.random_choice(hosts)
-        dbg("assigning storage server '#{host}'")
-        @compute_server.database.set_project_storage
-            project_id : @project_id
-            host       : host
-            cb         : cb
+        @_synctable.connect
+            cb : (err) =>
+                if err
+                    cb(err)
+                    return
+                if @_synctable.getIn([@project_id, 'storage', 'host'])
+                    dbg('already done')
+                    cb()
+                    return
+                # assign a storage server, if there are any
+                hosts = @compute_server.storage_servers.get().keySeq().toJS()
+                if hosts.length == 0
+                    dbg('no storage servers')
+                    cb()
+                    return
+                # TODO: use some size-balancing algorithm here!
+                host = misc.random_choice(hosts)
+                dbg("assigning storage server '#{host}'")
+                @compute_server.database.set_project_storage
+                    project_id : @project_id
+                    host       : host
+                    cb         : cb
 
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
@@ -1589,9 +1596,11 @@ class ProjectClient extends EventEmitter
             return
 
         final_state = fail_state = undefined
-        state = @_synctable.getIn([@project_id, 'state', 'state'])
         async.series([
             (cb) =>
+                @_synctable.connect(cb:cb)
+            (cb) =>
+                state = @_synctable.getIn([@project_id, 'state', 'state'])
                 switch opts.action
                     when 'open'
                         action_state = 'opening'
@@ -1648,30 +1657,34 @@ class ProjectClient extends EventEmitter
             cb            : required
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
+        @_synctable.connect
+            cb : (err) =>
+                if err
+                    opts.cb(err)
+                    return
+                # update @_last_save with value from database (could have been saved by another compute server)
+                s = @_synctable.getIn([@project_id, 'storage', 'saved'])
+                if not @_last_save? or s > @_last_save
+                    @_last_save = s
 
-        # update @_last_save with value from database (could have been saved by another compute server)
-        s = @_synctable.getIn([@project_id, 'storage', 'saved'])
-        if not @_last_save? or s > @_last_save
-            @_last_save = s
+                # Do a client-side test to see if we have saved too recently
+                if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
+                    dbg("already saved")
+                    opts.cb("already saved within min_interval")
+                    return
+                @_last_save = new Date()
+                dbg('doing actual save')
+                @_storage_request
+                    action : 'save'
+                    cb     : opts.cb
 
-        # Do a client-side test to see if we have saved too recently
-        if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
-            dbg("already saved")
-            opts.cb("already saved within min_interval")
-            return
-        @_last_save = new Date()
-        dbg('doing actual save')
-        @_storage_request
-            action : 'save'
-            cb     : opts.cb
-
-        # do this but don't block on returning.
-        dbg("send message to storage server that project is being saved")
-        # it will be marked as active  as a result (so it doesn't idle timeout)
-        @_action
-            action : "save"
-            cb     : (err) =>
-                dbg("finished save message to backend: #{err}")
+                # do this but don't block on returning.
+                dbg("send message to storage server that project is being saved")
+                # it will be marked as active  as a result (so it doesn't idle timeout)
+                @_action
+                    action : "save"
+                    cb     : (err) =>
+                        dbg("finished save message to backend: #{err}")
 
     address: (opts) =>
         opts = defaults opts,
