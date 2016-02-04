@@ -282,6 +282,7 @@ class Project
                     # so that the kill when idle code can use it!
                     @_state_time = new Date()
                     @_update_state_db()
+                    resp = {}
                     cb()
                     return
 
