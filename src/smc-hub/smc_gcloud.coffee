@@ -773,7 +773,7 @@ class GoogleCloud
             os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
             tags        : undefined      # array of strings
             preemptible : false
-            storage     : undefined      # string: e.g., 'read_write' provides read/write access to Google cloud storage; '' for no access
+            storage     : undefined      # string: e.g., 'read_write' provides read/write access to Google cloud storage; 'read_only' for read only; '' for no access
             external    : true           # true for ephemeral external address; name for a specific named external address (which must already exist for now) or actual reserved ip
             cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")

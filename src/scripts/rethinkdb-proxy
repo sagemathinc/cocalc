@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+cd
+mkdir -p logs
+mkdir -p pids
+
+case "$1" in
+  stop)
+    kill -s SIGTERM $(cat ~/pids/rethinkdb-proxy.pid)
+  ;;
+  start|*)
+    rethinkdb proxy --join db0 --join db1 --no-http-admin --daemon --pid-file ~/pids/rethinkdb-proxy.pid --log-file ~/logs/rethinkdb-proxy.log
+  ;;
+esac
