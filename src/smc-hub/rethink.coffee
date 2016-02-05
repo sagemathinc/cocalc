@@ -371,10 +371,11 @@ class RethinkDB
     # on error, etc.  See SyncTable docs where the class is defined.
     synctable: (opts) =>
         opts = defaults opts,
-            query : required
-            primary_key : undefined  # if not given, will use one for whole table -- value *must* be a string
-            cb    : required
-        new SyncTable(opts.query, opts.primary_key, @, opts.cb)
+            query          : required
+            primary_key    : undefined  # if not given, will use one for whole table -- value *must* be a string
+            idle_timeout_s : undefined  # if given, synctable will disconnect from remote database if nothing happens for this long; this mean on 'change' events won't get fired on change.  Any function calls on the SyncTable will reset this timeout and reconnect.  Also, call .connect () => to ensure that everything is current before using synctable.
+            cb             : required
+        new SyncTable(opts.query, opts.primary_key, @, opts.idle_timeout_s, opts.cb)
         return
 
     # Wait until the query results in at least one result obj, and
@@ -4152,53 +4153,102 @@ query_table = (query) ->
         return
     return s.slice(0,i)
 
+synctable_changefeed_count = 0
+
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_primary_key, @_db, cb) ->
+    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
         @_id = misc.uuid().slice(0,8) # purely to make logging easier
         @_table = query_table(@_query)   # undefined if can't determine
         dbg = @_dbg('constructor')
         dbg("query=#{@_query}")
-        @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
         dbg("initializing changefeed")
-        @_value = immutable.Map({})
-        @_reconnect (err) =>
-            cb(err, @)
-        @on('disconnect', @_reconnect)
+        @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
+        @_closed = true
+        @connect(cb : cb)
+
+    _init_idle_timeout: =>
+        if not @_idle_timeout_s?
+            return
+        @_activity = () =>
+            @_last_activity = new Date()
+        @_activity()
+        @_idle_timeout_interval = setInterval(@_disconnect_if_idle, 15000)
+
+    _disconnect_if_idle: =>
+        if new Date() - @_last_activity > 1000*@_idle_timeout_s
+            @close()
 
     _reconnect: (cb) =>
-        if @_closed  # nothing further to do
-            cb("closed")
-            return
         misc.retry_until_success
             start_delay : 3000
-            max_time    : 1000*60*60*2  # give up after 2 hours
+            max_time    : 1000*60*30   # give up after 30m
             f           : @_init_db
             cb          : cb
 
+    # connect -- ensure that sync table is connected and ready to use; if you set
+    # idle_timeout_interval, you should call connect immediately before
+    # using any non-async get method below, and to start firing change
+    # events again.
+    connect: (opts) =>
+        opts = defaults opts,
+            cb : undefined   # cb(err, @)
+        #dbg = @_dbg('connect')
+        if @_connecting?
+            #dbg("already connecting")
+            @_connecting.push(opts.cb)
+            return
+        if @_closed
+            #dbg("closed so connecting")
+            @_connecting = [opts.cb]
+            @_init_idle_timeout()
+            @_value = immutable.Map({})
+            @on('disconnect', @_reconnect)
+            @_reconnect (err) =>
+                if not err
+                    @_closed = false
+                    synctable_changefeed_count += 1
+                    @_dbg('connect')("connected [#{synctable_changefeed_count} synctable-changefeeds]")
+                v = @_connecting
+                delete @_connecting
+                #dbg("got connection (err=#{err}), len(v)=#{v.length}")
+                for cb in v
+                    #dbg("calling a callback (#{cb?})")
+                    cb?(err, @)
+        else
+            #dbg("already connected")
+            opts.cb?(undefined, @)
+
     get: (key) =>
+        @_activity?()
         if not key?
             return @_value
         else
-            return @_value.get(key)
+            return @_value?.get(key)
 
     getIn: (x) =>
-        return @_value.getIn(x)
+        @_activity?()
+        return @_value?.getIn(x)
 
     has: (key) =>
-        return @_value.has(key)
+        @_activity?()
+        return @_value?.has(key)
 
     close: () =>
-        @_dbg('close')()
+        dbg = @_dbg('close')
         if @_closed  # nothing further to do
+            dbg("already closed")
             return
         @removeAllListeners()
         @_closed = true
         @_feed?.close()
+        clearInterval(@_idle_timeout_interval)
+        delete @_idle_timeout_interval
+        delete @_feed
         delete @_value
-        delete @_primary_key
-        delete @_table
-        delete @_query
-        delete @_db
+        delete @_last_activity
+        delete @_activity
+        synctable_changefeed_count -= 1
+        dbg("closed [#{synctable_changefeed_count} synctable-changefeeds]")
 
     # wait until some function of this synctable is truthy
     wait: (opts) =>
@@ -4206,24 +4256,30 @@ class SyncTable extends EventEmitter
             until   : required     # waits until "until(@)" evaluates to something truthy
             timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
             cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
-        x = opts.until(@)
-        if x
-            opts.cb(undefined, x)  # already true
-            return
-        fail_timer = undefined
-        f = =>
-            x = opts.until(@)
-            if x
-                @removeListener('change', f)
-                if fail_timer? then clearTimeout(fail_timer)
-                opts.cb(undefined, x)
-        @on('change', f)
-        if opts.timeout
-            fail = =>
-                @removeListener('change', f)
-                opts.cb('timeout')
-            fail_timer = setTimeout(fail, 1000*opts.timeout)
-        return
+        @_activity?()
+        @connect
+            cb : (err) =>
+                if err
+                    opts.cb(err)
+                    return
+                x = opts.until(@)
+                if x
+                    opts.cb(undefined, x)  # already true
+                    return
+                fail_timer = undefined
+                f = =>
+                    x = opts.until(@)
+                    if x
+                        @removeListener('change', f)
+                        if fail_timer? then clearTimeout(fail_timer)
+                        opts.cb(undefined, x)
+                @on('change', f)
+                if opts.timeout
+                    fail = =>
+                        @removeListener('change', f)
+                        opts.cb('timeout')
+                    fail_timer = setTimeout(fail, 1000*opts.timeout)
+                return
 
     _dbg: (f) =>
         return (m) => winston.debug("SyncTable(table='#{@_table}',id='#{@_id}').#{f}: #{m}")
