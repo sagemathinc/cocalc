@@ -64,6 +64,15 @@ schema = require('smc-util/schema')
 
 PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
+UPGRADE_ERROR_STYLE =
+    color        : 'white'
+    background   : 'red'
+    padding      : '1ex'
+    borderRadius : '3px'
+    fontWeight   : 'bold'
+    marginBottom : '1em'
+
+
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
 
@@ -2740,13 +2749,13 @@ Settings = rclass
             </Col>
             {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
             <Col md=7>
-                <b style={fontSize:'11pt'}>Distribute your quotas equally between {num_projects} student {misc.plural(num_projects, 'project')} (quotas can be fractions)</b>
+                <b style={fontSize:'11pt'}>Distribute your quotas equally between {num_projects} student {misc.plural(num_projects, 'project')} (amounts may be fractional)</b>
             </Col>
         </Row>
 
     is_upgrade_input_valid: (val, limit) ->
         parsed_val = misc.parse_number_input(val, round_number=false)
-        if not parsed_val? or parsed_val > limit
+        if not parsed_val? or parsed_val > Math.max(0, limit)  # val=0 is always valid
             return false
         else
             return true
@@ -2762,6 +2771,12 @@ Settings = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
+                if misc.parse_number_input(val)?
+                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                else
+                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+            else
+                label = <span></span>
             <span>
                 <Input
                     type       = 'text'
@@ -2770,13 +2785,14 @@ Settings = rclass
                     bsStyle    = {bs_style}
                     onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
                 />
+                {label}
             </span>
         else if input_type == 'checkbox'
             val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
             is_valid = @is_upgrade_input_valid(val, limit)
             if not is_valid
                 @_upgrade_is_invalid = true
-                label = "Can't enable -- not enough upgrades"
+                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
             <form>
