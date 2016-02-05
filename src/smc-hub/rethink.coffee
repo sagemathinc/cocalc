@@ -2693,7 +2693,8 @@ class RethinkDB
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
-            limit     : undefined          # only copy this many to gcloud
+            limit     : 1000               # copy this many in each batch
+            map_limit : 1                  # copy this many at once.
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false
@@ -2729,7 +2730,7 @@ class RethinkDB
                             if err
                                 opts.errors[x.id] = err
                             cb()
-                async.mapSeries v, f, () =>
+                async.mapLimit v, opts.map_limit, f, () =>
                     dbg("finished this round")
                     if opts.repeat_until_done_s and v.length > 0
                         dbg("repeat_until_done triggering another round")
