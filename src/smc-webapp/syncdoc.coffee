@@ -44,8 +44,6 @@ their 900 clients in parallel.
 
 ###
 
-CLICK_TO_EDIT = "Edit text..."
-
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.

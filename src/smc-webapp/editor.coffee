@@ -1242,11 +1242,6 @@ class exports.Editor
             cb?()
             return
 
-        if not tab.editor().has_unsaved_changes()
-            # nothing to save
-            cb?()
-            return
-
         tab.editor().save(cb)
 
     change_tab_filename: (old_filename, new_filename) =>
