@@ -56,22 +56,13 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, Calendar, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip} = require('./r_misc')
+    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
 
 {User} = require('./users')
 
 {NoUpgrades} = require('./project_settings')
 
 PARALLEL_LIMIT = 3  # number of async things to do in parallel
-
-UPGRADE_ERROR_STYLE =
-    color        : 'white'
-    background   : 'red'
-    padding      : '1ex'
-    borderRadius : '3px'
-    fontWeight   : 'bold'
-    marginBottom : '1em'
-
 
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
