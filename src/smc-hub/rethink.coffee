@@ -2168,7 +2168,7 @@ class RethinkDB
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 30         # how long cached version lives (in seconds)
+            ttl : 60         # how long cached version lives (in seconds)
             cb  : undefined
         stats = undefined
         dbg = @dbg('get_stats')
