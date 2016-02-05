@@ -1013,7 +1013,7 @@ CollaboratorsSearch = rclass
         selected_names = @refs.select.getSelectedOptions()
         if selected_names.length == 0
             @reset()
-            all_names = selected_names.getInputDOMNode().getElementsByTagName('option')
+            all_names = @refs.select.getInputDOMNode().getElementsByTagName('option')
             if all_names?.length == 1
                 @invite_collaborator(all_names[0].getAttribute('value'))
         else
