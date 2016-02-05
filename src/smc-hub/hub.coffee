@@ -157,13 +157,47 @@ uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
-
 winston = require('winston')            # logging -- https://github.com/flatiron/winston
 
 # Set the log level
 winston.remove(winston.transports.Console)
+winston_config = {level: 'debug', timestamp:true, colorize:true}
 if not process.env.SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+    winston.add(winston.transports.Console, winston_config)
+
+
+configure_winston = (logFile) ->
+    if process.env.SMC_TEST
+        return
+
+    if not logFile?
+        # fallback: make console loggers
+        if not process.env.SMC_TEST
+            log_metrics = winston
+
+    else # we have a logFile name
+        cfg =
+            level:      winston_config.level
+            timestamp:  winston_config.timestamp
+            filename:   logFile
+            maxsize:    10 * 1024 * 1024
+            maxFiles:   10
+            tailable:   true
+            zippedArchive: true
+
+        # derive metrics filename from logFilename
+        x = misc.path_split(logFile)
+        fn = x.tail.split(".")
+        if fn.length == 1
+            fn.push("log")
+        fn = fn[0...-1].join(".") + "-metrics." + fn[-1...]
+        metricsFile = x.head + "/" + fn
+        cfg["filename"] = metricsFile
+        winston.loggers.add('metrics', file: cfg)
+    # replace instances to be compatible with prior use of winston
+    log_metrics = winston.loggers.get('metrics')
+    log_metrics.info("metrics logger initialized: %s", Date())
+
 
 # module scope variables:
 database           = null
@@ -6370,6 +6404,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
 
+    configure_winston(program.logfile)
+
     #if program.rawArgs[1] in ['start', 'restart']
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
@@ -6403,4 +6439,4 @@ if program._name.slice(0,3) == 'hub'
                 if err and program.dev
                     process.exit(1)
         else
-            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+            daemon({pidFile:program.pidfile, outFile:'/dev/null', errFile:'/dev/null', logFile:'/dev/null', max:30}, start_server)
