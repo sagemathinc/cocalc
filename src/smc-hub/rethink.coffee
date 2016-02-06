@@ -2168,7 +2168,7 @@ class RethinkDB
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 30         # how long cached version lives (in seconds)
+            ttl : 60         # how long cached version lives (in seconds)
             cb  : undefined
         stats = undefined
         dbg = @dbg('get_stats')
@@ -2610,7 +2610,7 @@ class RethinkDB
     # a tarball in the given path.  The tarball's name is the time when the backup starts.
     # The tarball is compressed using gzip compression.
     #
-    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
+    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp-blobs',repeat_until_done:60, cb:done())
     #
     # I have not written code to restore from these tarballs.  Assuming the database has been restore,
     # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
@@ -2620,7 +2620,7 @@ class RethinkDB
         opts = defaults opts,
             limit : 10000     # number of blobs to backup
             path  : required  # path where [timestamp].tar file is placed
-            repeat_until_done : false  # if true, keeps re-call'ing this function until no more results to backup
+            repeat_until_done : 0 # if positive keeps re-call'ing this function until no more results to backup (pauses this many seconds between)
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
         join    = require('path').join
@@ -2655,7 +2655,7 @@ class RethinkDB
                             else
                                 dbg("blob is expired, so nothing to be done, ever.")
                                 cb()
-                async.mapLimit(v, 3, f, cb)
+                async.mapLimit(v, 2, f, cb)
             (cb) =>
                 dbg("successfully wrote all blobs to files; now make tarball")
                 misc_node.execute_code
@@ -2682,7 +2682,9 @@ class RethinkDB
             else
                 dbg("done")
                 if opts.repeat_until_done and to_remove.length > 0
-                    @backup_blobs_to_tarball(opts)
+                    f = () =>
+                        @backup_blobs_to_tarball(opts)
+                    setTimeout(f, opts.repeat_until_done*1000)
                 else
                     opts.cb?(undefined, tarball)
         )
@@ -4176,7 +4178,7 @@ class SyncTable extends EventEmitter
 
     _disconnect_if_idle: =>
         if new Date() - @_last_activity > 1000*@_idle_timeout_s
-            @close()
+            @close(true) # true = keep listeners
 
     _reconnect: (cb) =>
         misc.retry_until_success
@@ -4233,12 +4235,13 @@ class SyncTable extends EventEmitter
         @_activity?()
         return @_value?.has(key)
 
-    close: () =>
+    close: (keep_listeners) =>
         dbg = @_dbg('close')
         if @_closed  # nothing further to do
             dbg("already closed")
             return
-        @removeAllListeners()
+        if not keep_listeners
+            @removeAllListeners()
         @_closed = true
         @_feed?.close()
         clearInterval(@_idle_timeout_interval)

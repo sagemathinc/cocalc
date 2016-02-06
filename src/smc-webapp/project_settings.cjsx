@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -154,12 +154,12 @@ UpgradeAdjustor = rclass
 
         @setState(state)
 
-
-    # returns 'error' if the input is invalid or higher than max
-    upgrade_input_validation_state : (input, max) ->
-        val = misc.parse_number_input(input)
-        if not val? or val > max
-            return 'error'
+    is_upgrade_input_valid : (input, max) ->
+        val = misc.parse_number_input(input, round_number=false)
+        if not val? or val > Math.max(0, max)
+            return false
+        else
+            return true
 
     # the max button will set the upgrade input box to the number given as max
     render_max_button : (name, max) ->
@@ -183,6 +183,13 @@ UpgradeAdjustor = rclass
             show_remaining = remaining + current - @state["upgrade_#{name}"]
             show_remaining = Math.max(show_remaining, 0)
 
+            val = @state["upgrade_#{name}"]
+
+            if not @is_upgrade_input_valid(val, limit)
+                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+            else
+                label = if val == 0 then 'Enable' else 'Enabled'
+
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
@@ -195,8 +202,8 @@ UpgradeAdjustor = rclass
                         <Input
                             ref      = {"upgrade_#{name}"}
                             type     = 'checkbox'
-                            checked  = {@state["upgrade_#{name}"] > 0}
-                            style    = {marginLeft : 0, position : 'inherit'}
+                            checked  = {val > 0}
+                            label    = {label}
                             onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
                             />
                     </form>
@@ -218,6 +225,16 @@ UpgradeAdjustor = rclass
             # the amount displayed remaining subtracts off the amount you type in
             show_remaining = misc.round2(remaining + current - current_input)
 
+            val = @state["upgrade_#{name}"]
+            if not @is_upgrade_input_valid(val, limit)
+                bs_style = 'error'
+                if misc.parse_number_input(val)?
+                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                else
+                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+            else
+                label = <span></span>
+
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
@@ -229,11 +246,12 @@ UpgradeAdjustor = rclass
                     <Input
                         ref        = {"upgrade_#{name}"}
                         type       = 'text'
-                        value      = {@state["upgrade_#{name}"]}
-                        bsStyle    = {@upgrade_input_validation_state(@state["upgrade_#{name}"], limit)}
+                        value      = {val}
+                        bsStyle    = {bs_style}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
                         addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
                     />
+                    {label}
                 </Col>
             </Row>
         else
@@ -272,17 +290,17 @@ UpgradeAdjustor = rclass
         @setState(new_upgrade_state)
         @setState(upgrading : false)
 
-    # Returns true if the inputs are valid, i.e.
+    # Returns true if the inputs are valid and different:
     #    - at least one has changed
     #    - none are negative
     #    - none are empty
     #    - none are higher than their limit
-    valid_upgrade_inputs : (current, limits) ->
+    valid_changed_upgrade_inputs : (current, limits) ->
         for name, data of @props.quota_params
             factor = data.display_factor
 
             # the highest number the user is allowed to type
-            limit = misc.round2((limits[name] ? 0) * factor)
+            limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
 
             # the current amount applied to the project
             cur_val = misc.round2((current[name] ? 0) * factor)
@@ -335,7 +353,7 @@ UpgradeAdjustor = rclass
                     <Button
                         bsStyle  = 'primary'
                         onClick  = {=>@save_upgrade_quotas(remaining)}
-                        disabled = {not @valid_upgrade_inputs(current, limits)}
+                        disabled = {not @valid_changed_upgrade_inputs(current, limits)}
                     >
                         <Icon name='arrow-circle-up' /> Submit changes
                     </Button>
@@ -995,7 +1013,7 @@ CollaboratorsSearch = rclass
         selected_names = @refs.select.getSelectedOptions()
         if selected_names.length == 0
             @reset()
-            all_names = selected_names.getInputDOMNode().getElementsByTagName('option')
+            all_names = @refs.select.getInputDOMNode().getElementsByTagName('option')
             if all_names?.length == 1
                 @invite_collaborator(all_names[0].getAttribute('value'))
         else
