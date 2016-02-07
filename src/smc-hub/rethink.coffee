@@ -2652,7 +2652,11 @@ class RethinkDB
                             else if blob?
                                 dbg("got blob from db -- now write to disk")
                                 to_remove.push(x.id)
-                                fs.writeFile(join(target, x.id), blob, cb)
+                                fs.writeFile join(target, x.id), blob, (err) =>
+                                    if opts.throttle
+                                        setTimeout(cb, opts.throttle*1000)
+                                    else
+                                        cb()
                             else
                                 dbg("blob is expired, so nothing to be done, ever.")
                                 cb()
