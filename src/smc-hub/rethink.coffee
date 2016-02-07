@@ -578,7 +578,7 @@ class RethinkDB
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
-    # db._error_thresh=100000; db.delete_expired(limit:200, cb:done(), repeat_until_done : true)
+    # db._error_thresh=100000; db.delete_expired(cb:done())
     #
     delete_expired: (opts) =>
         opts = defaults opts,
@@ -2618,8 +2618,9 @@ class RethinkDB
     # If we didn't have the blobs table in the db, make dummy entries from the blob names in the tarballs.
     backup_blobs_to_tarball: (opts) =>
         opts = defaults opts,
-            limit : 10000     # number of blobs to backup
-            path  : required  # path where [timestamp].tar file is placed
+            limit    : 10000     # number of blobs to backup
+            path     : required  # path where [timestamp].tar file is placed
+            throttle : 1         # wait this many seconds between pulling blobs from database
             repeat_until_done : 0 # if positive keeps re-call'ing this function until no more results to backup (pauses this many seconds between)
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
@@ -2698,6 +2699,7 @@ class RethinkDB
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
+            throttle  : 1                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false
@@ -2732,7 +2734,10 @@ class RethinkDB
                             dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                             if err
                                 opts.errors[x.id] = err
-                            cb()
+                            if opts.throttle
+                                setTimeout(cb, 1000*opts.throttle)
+                            else
+                                cb()
                 async.mapLimit v, opts.map_limit, f, () =>
                     dbg("finished this round")
                     if opts.repeat_until_done_s and v.length > 0
