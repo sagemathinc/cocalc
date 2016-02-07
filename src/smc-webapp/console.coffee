@@ -310,6 +310,7 @@ class Console extends EventEmitter
                 @append_to_value(@session.init_history)
 
             @terminal.showCursor()
+            setTimeout((=> @resize()), 1)  # trigger resizing, after history did load
             @_ignore_mesg = false
 
     render: (data) =>
