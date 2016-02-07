@@ -149,6 +149,11 @@ class Project
         @_command_cbs = {}
         @_state_listeners = {}
         @_last = {}  # last time a giving action was initiated
+        @_reapply_compute_quota_timer = undefined
+        setTimeout((=>
+            @_reapply_compute_quota_timer=
+                setInterval(@reapply_compute_quota, 5*60*1000)),
+            1 * 60 * 1000)
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
@@ -294,6 +299,10 @@ class Project
                         if v?
                             opts.args.push("--#{k}")
                             opts.args.push(v)
+
+                if opts.action == 'stop'
+                    if @_reapply_compute_quota_timer?
+                        clearInterval(@_reapply_compute_quota_timer)
 
                 state_info = STATES[state]
                 if not state_info?
@@ -528,6 +537,8 @@ class Project
         opts = defaults opts,
             args : required
             cb   : required
+        if @_state == 'closing'
+            return
         dbg = @dbg("set_compute_quota")
         i = 0
         quotas = {}
@@ -546,6 +557,58 @@ class Project
             action     : 'compute_quota'
             args       : opts.args
             cb         : opts.cb
+
+    # periodically call this command to re-apply the quotas
+    # helps cgroups, which sometimes overlooks some bad apples
+    reapply_compute_quota: (opts) =>
+        opts = defaults opts,
+            cb   : undefined
+        dbg = @dbg("reapply_compute_quota")
+        # TODO also do this for network -- that part about it needs be refactored, though
+        quota_names = ['cores', 'memory', 'cpu_shares']
+        quotas = undefined
+        async.series([
+            (cb) =>
+                # defined in the instance?
+                if @["_#{quota_names[0]}"]?
+                    quotas = {}
+                    for k in quota_names
+                        quotas["--#{k}"] = @["_#{k}"]
+
+            (cb) =>
+                if quotas?
+                    cb()
+                # if not defined, in the local db?
+                sqlite_db.select
+                    table   : 'projects'
+                    columns : quota_names
+                    where   : {project_id : @project_id}
+                    cb      : (err, results) =>
+                        if err
+                            dbg("error -- #{err}")
+                            opts.cb(err); return
+                        if results.length == 0
+                            dbg("warning -- project #{@project_id} not in DB")
+                            cb()
+                        result = results[0]
+                        quotas = {}
+                        for k in quota_names
+                            quotas["--#{k}"] = result[k]
+                        cb()
+
+            (cb) =>
+                if quotas?
+                    dbg("re-applying quotas: #{misc.to_safe_str(quotas)}")
+                    @command
+                        action     : 'compute_quota'
+                        args       : quotas
+                        cb         : cb
+                else
+                    msg = "wasn't able to determine quotas"
+                    dbg("warning -- #{msg}")
+                    cb("reapply_compute_quota: #{msg}")
+
+        ], (err) => opts.cb?(err))
 
 secret_token = undefined
 read_secret_token = (cb) ->
