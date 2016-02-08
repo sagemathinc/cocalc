@@ -45,12 +45,14 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
                 opts.cb(undefined, socket)
 
 _local_hub_cache = {}
-exports.new_local_hub = (project_id, database, compute_server) ->    # cb(err, hub)
-    H    = _local_hub_cache[project_id]
+exports.new_local_hub = (project_id, database, compute_server) ->
+    if not project_id?
+        throw "project_id must be specified (it is undefined)"
+    H  = _local_hub_cache[project_id]
     if H?
-        winston.debug("new_local_hub (#{project_id}) -- using cached version")
+        winston.debug("new_local_hub('#{project_id}') -- using cached version")
     else
-        winston.debug("new_local_hub (#{project_id}) -- creating new one")
+        winston.debug("new_local_hub('#{project_id}') -- creating new one")
         H = new LocalHub(project_id, database, compute_server)
         _local_hub_cache[project_id] = H
     return H
@@ -180,7 +182,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Project query support code
     #
     mesg_query: (mesg, write_mesg) =>
-        dbg = (m)-> winston.debug("mesg_query(project_id='#{@project_id}'): #{m}")
+        dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{m}")
         dbg(misc.to_json(mesg))
         query = mesg.query
         if not query?
