@@ -2742,11 +2742,11 @@ class RethinkDB
                                 setTimeout(cb, 1000*opts.throttle)
                             else
                                 cb()
-                async.mapLimit v, opts.map_limit, f, () =>
-                    dbg("finished this round")
+                async.mapLimit v, opts.map_limit, f, (err) =>
+                    dbg("finished this round -- #{err}")
                     if opts.repeat_until_done_s and v.length > 0
                         dbg("repeat_until_done triggering another round")
-                        setInterval((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
+                        setTimeout((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
                     else
                         dbg("done : #{misc.to_json(opts.errors)}")
                         opts.cb(if misc.len(opts.errors) > 0 then opts.errors)
