@@ -208,8 +208,8 @@ class Connection extends client.Connection
         conn.on 'reconnect scheduled', (opts) =>
             @emit("connecting")
             conn.removeAllListeners('data')
-            console.log('websocket -- reconnecting in #{opts.scheduled} ms')
-            console.log('websocket -- this is attempt #{opts.attempt} out of #{opts.retries}')
+            console.log("websocket -- reconnecting in #{opts.scheduled} ms")
+            console.log("websocket -- this is attempt #{opts.attempt} out of #{opts.retries}")
 
         conn.on 'incoming::pong', (time) =>
             #console.log("pong latency=#{conn.latency}")
