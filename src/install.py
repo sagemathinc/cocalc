@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, time
+import argparse, os, psutil, sys, time
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
+
+def nice():
+    os.nice(10)
+    psutil.Process(os.getpid()).ionice(ioclass=psutil.IOPRIO_CLASS_IDLE)
 
 def cmd(s):
     t0 = time.time()
@@ -10,7 +14,7 @@ def cmd(s):
     s = "umask 022; " + s
     print s
     if os.system(s):
-       sys.exit(1)
+        sys.exit(1)
     print "TOTAL TIME: %.1f seconds"%(time.time() - t0)
 
 def pull():
@@ -34,6 +38,7 @@ def install_hub():
         cmd("cd %s; npm install"%path)
 
 def install_webapp():
+    nice()
     cmd("cd wizard && make")
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)

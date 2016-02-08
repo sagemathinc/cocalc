@@ -595,7 +595,7 @@ class RethinkDB
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
-    # db._error_thresh=100000; db.delete_expired(limit:200, cb:done(), repeat_until_done : true)
+    # db._error_thresh=100000; db.delete_expired(cb:done())
     #
     delete_expired: (opts) =>
         opts = defaults opts,
@@ -2185,7 +2185,7 @@ class RethinkDB
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 30         # how long cached version lives (in seconds)
+            ttl : 60         # how long cached version lives (in seconds)
             cb  : undefined
         stats = undefined
         dbg = @dbg('get_stats')
@@ -2627,7 +2627,7 @@ class RethinkDB
     # a tarball in the given path.  The tarball's name is the time when the backup starts.
     # The tarball is compressed using gzip compression.
     #
-    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp/blobs',repeat_until_done:false, cb:done())
+    #    db._error_thresh=1e6; db.backup_blobs_to_tarball(limit:10000,path:'/backup/tmp-blobs',repeat_until_done:60, cb:done())
     #
     # I have not written code to restore from these tarballs.  Assuming the database has been restore,
     # so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
@@ -2635,9 +2635,10 @@ class RethinkDB
     # If we didn't have the blobs table in the db, make dummy entries from the blob names in the tarballs.
     backup_blobs_to_tarball: (opts) =>
         opts = defaults opts,
-            limit : 10000     # number of blobs to backup
-            path  : required  # path where [timestamp].tar file is placed
-            repeat_until_done : false  # if true, keeps re-call'ing this function until no more results to backup
+            limit    : 10000     # number of blobs to backup
+            path     : required  # path where [timestamp].tar file is placed
+            throttle : 1         # wait this many seconds between pulling blobs from database
+            repeat_until_done : 0 # if positive keeps re-call'ing this function until no more results to backup (pauses this many seconds between)
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
         join    = require('path').join
@@ -2668,11 +2669,15 @@ class RethinkDB
                             else if blob?
                                 dbg("got blob from db -- now write to disk")
                                 to_remove.push(x.id)
-                                fs.writeFile(join(target, x.id), blob, cb)
+                                fs.writeFile join(target, x.id), blob, (err) =>
+                                    if opts.throttle
+                                        setTimeout(cb, opts.throttle*1000)
+                                    else
+                                        cb()
                             else
                                 dbg("blob is expired, so nothing to be done, ever.")
                                 cb()
-                async.mapLimit(v, 3, f, cb)
+                async.mapLimit(v, 2, f, cb)
             (cb) =>
                 dbg("successfully wrote all blobs to files; now make tarball")
                 misc_node.execute_code
@@ -2699,7 +2704,9 @@ class RethinkDB
             else
                 dbg("done")
                 if opts.repeat_until_done and to_remove.length > 0
-                    @backup_blobs_to_tarball(opts)
+                    f = () =>
+                        @backup_blobs_to_tarball(opts)
+                    setTimeout(f, opts.repeat_until_done*1000)
                 else
                     opts.cb?(undefined, tarball)
         )
@@ -2713,6 +2720,7 @@ class RethinkDB
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
+            throttle  : 1                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false
@@ -2747,12 +2755,15 @@ class RethinkDB
                             dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                             if err
                                 opts.errors[x.id] = err
-                            cb()
-                async.mapLimit v, opts.map_limit, f, () =>
-                    dbg("finished this round")
+                            if opts.throttle
+                                setTimeout(cb, 1000*opts.throttle)
+                            else
+                                cb()
+                async.mapLimit v, opts.map_limit, f, (err) =>
+                    dbg("finished this round -- #{err}")
                     if opts.repeat_until_done_s and v.length > 0
                         dbg("repeat_until_done triggering another round")
-                        setInterval((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
+                        setTimeout((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
                     else
                         dbg("done : #{misc.to_json(opts.errors)}")
                         opts.cb(if misc.len(opts.errors) > 0 then opts.errors)
@@ -4250,7 +4261,7 @@ class SyncTable extends EventEmitter
 
     _disconnect_if_idle: =>
         if new Date() - @_last_activity > 1000*@_idle_timeout_s
-            @close()
+            @close(true) # true = keep listeners
 
     _reconnect: (cb) =>
         misc.retry_until_success
@@ -4307,12 +4318,13 @@ class SyncTable extends EventEmitter
         @_activity?()
         return @_value?.has(key)
 
-    close: () =>
+    close: (keep_listeners) =>
         dbg = @_dbg('close')
         if @_closed  # nothing further to do
             dbg("already closed")
             return
-        @removeAllListeners()
+        if not keep_listeners
+            @removeAllListeners()
         @_closed = true
         @_feed?.close()
         clearInterval(@_idle_timeout_interval)

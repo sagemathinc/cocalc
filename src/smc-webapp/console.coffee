@@ -281,6 +281,7 @@ class Console extends EventEmitter
                 @_ignore_mesg = true
                 @value = ""
                 @reset()
+                @resize()
                 if @session.init_history?
                     #console.log("writing history")
                     try
@@ -309,6 +310,7 @@ class Console extends EventEmitter
                 @append_to_value(@session.init_history)
 
             @terminal.showCursor()
+            setTimeout((=> @resize()), 1)  # trigger resizing, after history did load
             @_ignore_mesg = false
 
     render: (data) =>
@@ -624,7 +626,6 @@ class Console extends EventEmitter
         @element.find("a[href=#refresh]").click () =>
             if @session?
                 @session.reconnect()
-            @resize()
             @opts.reconnect?()
             return false
 
