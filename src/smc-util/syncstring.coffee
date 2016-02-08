@@ -19,6 +19,7 @@ TOUCH_INTERVAL_M = 10
 
 {EventEmitter} = require('events')
 immutable = require('immutable')
+underscore = require('underscore')
 
 node_uuid = require('node-uuid')
 async     = require('async')
@@ -185,18 +186,24 @@ class SortedPatchList
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
 
-Fires a 'change' event whenever the document is changed *remotely* (NOT locally), and also once
-when document is initialized.
+EVENTS:
+
+ - 'change' event whenever the document is changed *remotely* (NOT locally), and also once
+   when document is initialized.
+
+ - 'user_change' when the string is definitely changed locally (so a new patch is recorded)
 ###
+
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
-            save_interval : 1500
-            string_id     : undefined
-            project_id    : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
-            path          : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)
-            client        : required
-            doc           : required   # String-based document that we're editing.  This must have methods:
+            save_interval     : 1500
+            file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
+            string_id         : undefined
+            project_id        : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
+            path              : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)
+            client            : required
+            doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
 
@@ -219,6 +226,23 @@ class SyncDoc extends EventEmitter
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
+
+        if opts.file_use_interval and @_client.is_user()
+            is_chat = misc.filename_extension(@_path) == 'sage-chat'
+            if opts.file_use_interval == 'default'
+                if is_chat
+                    opts.file_use_interval = 10000
+                else
+                    opts.file_use_interval = 60000
+            if is_chat
+                path = @_path.slice(1, @_path.length-10)
+                action = 'chat'
+            else
+                path = @_path
+                action = 'edit'
+            file_use = () =>
+                @_client.mark_file(project_id:@_project_id, path:path, action:action)
+            @on('user_change', underscore.throttle(file_use, opts.file_use_interval))
 
     # Used for internal debug logging
     dbg: (f) ->
@@ -514,6 +538,8 @@ class SyncDoc extends EventEmitter
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
         @snapshot_if_necessary()
+        # Emit event since this syncstring was definitely changed locally.
+        @emit('user_change')
         return value
 
     # Save current live string to backend.  It's safe to call this frequently,
