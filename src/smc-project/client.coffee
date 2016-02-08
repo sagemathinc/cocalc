@@ -1,4 +1,3 @@
-
 fs     = require('fs')
 {join} = require('path')
 
@@ -333,10 +332,24 @@ class exports.Client extends EventEmitter
     # Read file as a string from disk.
     path_read: (opts) =>
         opts = defaults opts,
-            path : required
-            cb   : required
-        fs.readFile join(process.env.HOME, opts.path), (err, data) =>
-            opts.cb(err, data?.toString())
+            path       : required
+            maxsize_MB : undefined   # in megabytes; if given and file would be larger than this, then cb(err)
+            cb         : required
+        content = undefined
+        path    = join(process.env.HOME, opts.path)
+        async.series([
+            (cb) =>
+                if opts.maxsize_MB?
+                    # todo
+                else
+                    cb()
+            (cb) =>
+                fs.readFile path, (err, data) =>
+                    content = data?.toString()
+                    cb(err)
+        ], (err) => 
+           opts.cb(err, content)
+        )
 
     path_access: (opts) =>
         opts = defaults opts,
