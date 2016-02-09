@@ -189,14 +189,14 @@ class Firewall(object):
             self.configure_tc(bandwidth_Kbps)
 
         return {'status':'success'}
- 
+
     def configure_tc(self, bandwidth_Kbps):
         try:
             cmd("tc qdisc  del dev eth0 root".split())
         except:
             pass # will fail if not already configured
         cmd("tc qdisc add dev eth0 root handle 1:0 htb default 99".split())
-        cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split()) 
+        cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split())
         cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".split())
         cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".split())
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
     parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
-    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=250)
+    parser_outgoing.add_argument('--bandwidth_Kbps', help="throttle user bandwidth", default=1000)
     f(parser_outgoing)
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')
