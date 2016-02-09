@@ -11,6 +11,7 @@ umask 022
 cd /projects/anaconda3
 . bin/activate root
 conda update --all --yes
+conda clean --tarballs --source-cache --yes
 . deactivate
 
 push .
