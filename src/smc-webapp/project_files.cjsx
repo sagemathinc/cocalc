@@ -569,7 +569,15 @@ ProjectFilesButtons = rclass
         if @props.public_view
             return
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
-            <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span> </a>
+            <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
+        </a>
+
+    render_collaborators : ->
+        if @props.public_view
+            return
+        <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_focused_page('project-settings')} style={marginLeft:'7px'}>
+            <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Collaborators</span>
+        </a>
 
     render : ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
@@ -578,6 +586,7 @@ ProjectFilesButtons = rclass
             {@render_hidden_toggle()}
             {@render_trash()}
             {@render_backup()}
+            {@render_collaborators()}
         </div>
 
 ProjectFilesActions = rclass
