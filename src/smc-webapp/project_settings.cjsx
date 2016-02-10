@@ -84,7 +84,7 @@ TitleDescriptionPanel = rclass
             <LabeledRow label='Description'>
                 <TextInput
                     type      = 'textarea'
-                    rows      = 4
+                    rows      = 2
                     text      = {@props.description}
                     on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
                 />
@@ -1281,8 +1281,8 @@ ProjectSettings = rclass
                     <HideDeletePanel       key='hidedelete'    project={@props.project} redux={@props.redux} />
                 </Col>
                 <Col sm=6>
-                    <ProjectControlPanel   key='control'       project={@props.project} redux={@props.redux} />
                     <CollaboratorsPanel  project={@props.project} redux={@props.redux} user_map={@props.user_map} />
+                    <ProjectControlPanel   key='control'       project={@props.project} redux={@props.redux} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} redux={@props.redux} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }

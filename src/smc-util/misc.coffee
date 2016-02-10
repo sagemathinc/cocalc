@@ -1254,9 +1254,10 @@ exports.to_money = (n) ->
 exports.stripe_amount = (units, currency) ->  # input is in pennies
     if currency != 'usd'
         throw Error("not-implemented currency #{currency}")
-    return "$#{exports.to_money(units/100)}"
-
-
+    s = "$#{exports.to_money(units/100)}"
+    if s.slice(s.length-3) == '.00'
+        s = s.slice(0, s.length-3)
+    return s
 
 exports.capitalize = (s) ->
     if s?
