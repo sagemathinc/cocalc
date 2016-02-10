@@ -575,9 +575,11 @@ ProjectFilesButtons = rclass
     render_collaborators : ->
         if @props.public_view
             return
-        <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_focused_page('project-settings')} style={marginLeft:'7px'}>
-            <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Collaborators</span>
-        </a>
+        <div>
+            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_focused_page('project-settings')} style={marginLeft:'7px'}>
+                <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Add Collaborators</span>
+            </a>
+        </div>
 
     render : ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
