@@ -654,10 +654,10 @@ class SyncDoc extends EventEmitter
         @_patch_list.show_history(opts)
 
     get_path: =>
-        return @_syncstring_table.get_one().get('path')
+        return @_syncstring_table.get_one()?.get('path')
 
     get_project_id: =>
-        return @_syncstring_table.get_one().get('project_id')
+        return @_syncstring_table.get_one()?.get('project_id')
 
     set_path: (path) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('path',path))
@@ -827,6 +827,9 @@ class SyncDoc extends EventEmitter
     _save_to_disk: () =>
         path = @get_path()
         dbg = @dbg("_save_to_disk('#{path}')")
+        if not path?
+            # not yet initialized
+            return
         if not path
             @_set_save(state:'done', error:'cannot save without path')
             return
@@ -898,13 +901,15 @@ class exports.SyncString extends SyncDoc
             project_id : undefined
             path       : undefined
             save_interval : undefined
+            file_use_interval : undefined
             default    : ''
         super
             string_id  : opts.id
             client     : opts.client
             project_id : opts.project_id
             path       : opts.path
-            save_interval : opts.save_interval
+            save_interval     : opts.save_interval
+            file_use_interval : opts.file_use_interval
             doc        : new StringDocument(opts.default)
 
 
