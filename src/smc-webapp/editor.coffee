@@ -1173,6 +1173,8 @@ class exports.Editor
             @_active_tab_filename = filename
             @push_state('files/' + opts.path)
             @show_editor_content()
+            # record that file placed in the foreground by this client
+            window?.smc.redux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
 
         prev_active_tab = @active_tab
         for name, tab of @tabs
