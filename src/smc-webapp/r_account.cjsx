@@ -881,11 +881,12 @@ OtherSettings = rclass
                         max       = 1000000
                         number    = {@props.other_settings.page_size} />
             </LabeledRow>
-            <LabeledRow label='Standby timeout (minutes)'>
+            <LabeledRow label='Standby timeout'>
                 <NumberInput
                     on_change = {(n)=>@on_change('standby_timeout_m',n)}
                     min       = 1
                     max       = 180
+                    unit      = "minutes"
                     number    = {@props.other_settings.standby_timeout_m} />
             </LabeledRow>
             {@render_page_size_warning()}

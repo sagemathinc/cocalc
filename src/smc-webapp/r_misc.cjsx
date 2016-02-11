@@ -350,9 +350,7 @@ exports.NumberInput = NumberInput = rclass
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render : ->
-        unit = ''
-        if @props.unit?
-            unit = '(' + @props.unit + ')'
+        unit = if @props.unit? then "#{@props.unit}" else ''
         <Row>
             <Col xs=6>
                 <form onSubmit={@saveChange}>
