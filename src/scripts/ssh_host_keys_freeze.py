@@ -61,7 +61,7 @@ def main():
         priv = open(key_fn).read()
         publ = open(key_fn + ".pub").read()
         keys[key_type + '_private'] = literal(priv)
-        keys[key_type + '_public'] = publ
+        keys[key_type + '_public'] = literal(publ)
 
     out = yaml.dump({"ssh_keys" : keys}, default_flow_style = False)
     # print(out)
