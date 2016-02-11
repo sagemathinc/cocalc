@@ -827,25 +827,27 @@ class JupyterNotebook
         if @frame.$(".smc-override").length == 0
             @frame.$('<style type="text/css" class="smc-override"></style>').appendTo(@frame.$("body"))
 
-            font_size = null # TODO @editor.local_storage("font_size")
+            font_size = @editor.local_storage("font_size")
             if font_size?
                 @font_size_set(font_size)
             else if @opts.default_font_size?
                 @font_size_set(@opts.default_font_size)
 
     font_size_set: (font_size) =>
+        # notebook: main part, "pre" the code blocks, and pager the "help" window at the bottom
         @frame?.$(".smc-override").html("""
-        #notebook { font-size: #{font_size}px !important; }
+        #notebook       { font-size: #{font_size}px !important; }
         .CodeMirror pre { font-size: #{font_size}px !important; }
+        div#pager       { font-size: #{font_size}px !important; }
         """)
         @element.data("font_size", font_size)
 
     font_size_change: (delta) =>
         font_size = @element.data("font_size")
         if font_size?
-            @font_size_set(font_size + delta)
-            # only store to local storage, if there is an explicit wish
-            # TODO @editor.local_storage("font_size", font_size)
+            font_size += delta
+            @font_size_set(font_size)
+            @editor.local_storage("font_size", font_size)
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{show: 500, hide: 100})
