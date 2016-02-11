@@ -1514,3 +1514,18 @@ exports.log = () ->
 if not exports.RUNNING_IN_NODE and window?
     window.console.log_original = window.console.log
     window.console.log = exports.log
+
+
+# Fast, efficient UTF-16 string compression and decompression.  Can be used
+# on the frontend, backend, stored in the database, sent safely around, used
+# for local storage, etc.
+
+lz_string  = require('lz-string')
+exports.compress_string = (patch) ->
+    return lz_string.compressToUTF16(patch)
+
+exports.decompress_string = (patch) ->
+    return lz_string.decompressFromUTF16(patch)
+
+
+

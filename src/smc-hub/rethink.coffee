@@ -3875,9 +3875,13 @@ class RethinkDB
             if err
                 opts.cb?(err)
                 return
-            {compress_patch} = require('smc-util/syncstring')
             f = (p, cb) =>
-                @table('patches').get(p.id).update(patch: compress_patch(p.patch), lz:true).run(cb)
+                obj =
+                    patch : misc.compress_string(p.patch)
+                    lz    : true
+                if p.snapshot?
+                    obj.snapshot = misc.compress_string(p.snapshot)
+                @table('patches').get(p.id).update(obj).run(cb)
             async.mapLimit(x, opts.map_limit, f, (err) => opts.cb?(err))
 
     # One-off code

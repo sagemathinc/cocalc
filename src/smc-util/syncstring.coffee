@@ -596,15 +596,16 @@ class SyncDoc extends EventEmitter
             return
         if time1? and time > time1
             return
-        patch = x.get('patch')
+        patch    = x.get('patch')
+        snapshot = x.get('snapshot')
         if x.get('lz')
-            patch = decompress_patch(patch)
+            patch    = misc.decompress_string(patch)
+            snapshot = misc.decompress_string(snapshot)
         patch = JSON.parse(patch)
         obj =
             time  : time
             user  : user
             patch : patch
-        snapshot = x.get('snapshot')
         if snapshot?
             obj.snapshot = snapshot
         return obj
@@ -942,10 +943,3 @@ class exports.SyncObject extends SyncDoc
         @_doc._value = obj
     get: =>
         @_doc.obj()
-
-lz_string  = require('lz-string')
-exports.compress_patch = compress_patch = (patch) ->
-    return lz_string.compressToUTF16(patch)
-
-exports.decompress_patch = decompress_patch = (patch) ->
-    return lz_string.decompressFromUTF16(patch)
