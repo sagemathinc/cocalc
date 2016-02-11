@@ -149,11 +149,6 @@ class Project
         @_command_cbs = {}
         @_state_listeners = {}
         @_last = {}  # last time a giving action was initiated
-        @_reapply_compute_quota_timer = undefined
-        setTimeout((=>
-            @_reapply_compute_quota_timer=
-                setInterval(@reapply_compute_quota, 5*60*1000)),
-            1 * 60 * 1000)
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
@@ -299,10 +294,6 @@ class Project
                         if v?
                             opts.args.push("--#{k}")
                             opts.args.push(v)
-
-                if opts.action == 'stop'
-                    if @_reapply_compute_quota_timer?
-                        clearInterval(@_reapply_compute_quota_timer)
 
                 state_info = STATES[state]
                 if not state_info?
@@ -569,16 +560,17 @@ class Project
         quotas = undefined
         async.series([
             (cb) =>
-                # defined in the instance?
+                # It should be defined in the instance.
                 if @["_#{quota_names[0]}"]?
                     quotas = {}
                     for k in quota_names
                         quotas["--#{k}"] = @["_#{k}"]
-
+                cb()
             (cb) =>
                 if quotas?
                     cb()
                 # if not defined, in the local db?
+                dbc("quotas aren't stored in the instance of project #{@project_id}")
                 sqlite_db.select
                     table   : 'projects'
                     columns : quota_names
@@ -883,6 +875,54 @@ init_mintime = (cb) ->
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
+reapply_quotas = (cb) ->
+    dbg = (m) -> winston.debug("reapply_quotas: #{m}")
+    all_projects = undefined
+    async.series([
+        (cb) ->
+            dbg("query database for all projects")
+            sqlite_db.select
+                table : 'projects'
+                columns : ['project_id']
+                where   :
+                    state : 'running'
+                cb      : (err, r) ->
+                    all_projects = r; cb(err)
+        (cb) ->
+            for p in all_projects
+                proj_ids = []
+                dbg("plan to reapply quotas to project #{p.project_id}")
+                v.push(p.project_id)
+            if v.length > 0
+                f = (project_id, cb) ->
+                    dbg("reapplying quotas to #{project_id}")
+                    get_project
+                        project_id : project_id
+                        cb         : (err, project) ->
+                            if err
+                                cb(err)
+                            else
+                                project.reapply_compute_quota()
+                                # TODO also write reapply commands for disk and network
+                async.mapSeries(v, f, cb)
+    ], (err) ->
+        if err
+            dbg("error reapplying quotas -- #{err}")
+        cb?()
+    )
+
+init_reapply_quotas = (cb) ->
+    if DEV
+        REAPPLY_QUOTAS_FREQ_S = 10
+        REAPPLY_QUOTAS_INIT_DELAY_S = 10
+    else
+        REAPPLY_QUOTAS_FREQ_S = 3 * 60
+        REAPPLY_QUOTAS_INIT_DELAY_S = 30
+
+    setInterval(reapply_quotas, 1000 * REAPPLY_QUOTAS_FREQ_S)
+    setTimeout(reapply_quotas,  1000 * REAPPLY_QUOTAS_INIT_DELAY_S)
+    cb()
+
 start_tcp_server = (cb) ->
     dbg = (m) -> winston.debug("tcp_server: #{m}")
     dbg("start")
@@ -1167,7 +1207,7 @@ update_states = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server, update_states], (err) ->
+    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server, update_states, init_reapply_quotas], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
@@ -1182,7 +1222,7 @@ start_fake_server = (cb) ->
     # change global CONF path for local dev purposes
     DEV = true
     SQLITE_FILE = require('path').join(process.env.SALVUS_ROOT, 'data', 'compute.sqlite3')
-    async.series [init_sqlite_db, init_mintime], (err) ->
+    async.series [init_sqlite_db, init_mintime, init_reapply_quotas], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
