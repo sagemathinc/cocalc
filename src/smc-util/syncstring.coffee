@@ -443,12 +443,13 @@ class SyncDoc extends EventEmitter
         query =
             id       : [@_string_id, cutoff ? 0]
             patch    : null
+            lz       : null
             snapshot : null
         return query
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList()
-        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 250)
+        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 200)
         @_patches_table.once 'change', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
@@ -531,10 +532,10 @@ class SyncDoc extends EventEmitter
         @_last = value
         # now save the resulting patch
         time = @_client.server_time()
-        obj =
+        obj =  # version for database
             id    : [@_string_id, time, @_user_id]
-            patch : patch
-        dbg("attempting to save patch #{time}, #{JSON.stringify(obj)}")
+            patch : JSON.stringify(patch)
+        dbg("attempting to save patch #{time}")
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
         @snapshot_if_necessary()
@@ -595,10 +596,14 @@ class SyncDoc extends EventEmitter
             return
         if time1? and time > time1
             return
+        patch = x.get('patch')
+        if x.get('lz')
+            patch = decompress_patch(patch)
+        patch = JSON.parse(patch)
         obj =
             time  : time
             user  : user
-            patch : x.get('patch').toJS()
+            patch : patch
         snapshot = x.get('snapshot')
         if snapshot?
             obj.snapshot = snapshot
@@ -938,3 +943,9 @@ class exports.SyncObject extends SyncDoc
     get: =>
         @_doc.obj()
 
+lz_string  = require('lz-string')
+exports.compress_patch = compress_patch = (patch) ->
+    return lz_string.compressToUTF16(patch)
+
+exports.decompress_patch = decompress_patch = (patch) ->
+    return lz_string.decompressFromUTF16(patch)

@@ -3864,6 +3864,22 @@ class RethinkDB
             opts.cb(err, result)
         )
 
+    ###
+    Synchronized strings
+    ###
+    compress_patches: (opts) =>
+        opts = defaults opts,
+            map_limit : 10
+            cb : undefined
+        @table('patches').getAll(true, index:'needs_lz').run (err, x) =>
+            if err
+                opts.cb?(err)
+                return
+            {compress_patch} = require('smc-util/syncstring')
+            f = (p, cb) =>
+                @table('patches').get(p.id).update(patch: compress_patch(p.patch), lz:true).run(cb)
+            async.mapLimit(x, opts.map_limit, f, (err) => opts.cb?(err))
+
     # One-off code
     ###
     # Compute a map from email addresses to list of corresponding account id's

@@ -17,6 +17,7 @@
     "coffee-script": "^1.10.0",
     "coffeelint": "^1.13.0",
     "immutable": "^3.7.5",
+    "lz-string": "^1.4.4",
     "node-uuid": "^1.4.3",
     "sha1": "^1.1.1",
     "underscore": "^1.8.3"

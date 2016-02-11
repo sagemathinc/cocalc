@@ -109,11 +109,14 @@ schema.patches =
             type : 'compound key [string_id, time, user_id]'
             desc : 'Primary key'
         patch    :
-            type : 'object'
-            desc : 'A patch, which goes from the previous of the syncstring to this version'
+            type : 'string'
+            desc : 'JSON string the parses to a patch, which goes from the previous of the syncstring to this version'
         snapshot :
             type : 'string'
             desc : 'Optionally gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
+        lz :
+            type : 'boolean'
+            desc : "Set or true if the patch string is compressed using the lz algorithm; false if it isn't."
     user_query:
         get :
             all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
@@ -123,14 +126,18 @@ schema.patches =
                 id       : 'null'   # 'null' = field gets used for args above then set to null
                 patch    : null
                 snapshot : null
+                lz       : null
         set :
             fields :
                 id       : true
                 patch    : true
                 snapshot : true
+                lz       : true
             required_fields :
                 id       : true
                 patch    : true
+    indexes:
+        needs_lz : [(x) -> x.hasFields('lz').not()]  # things that need to be compressed -- find via .getAll(true, index:'needs_lz')
 
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
 
