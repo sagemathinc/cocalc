@@ -108,3 +108,4 @@
 {"desc":"#0 #v1 (0:45?) (0:45)\nwhen compressing patches, compress both the patch *and* the snapshot.\n\nAlso, when decompressing, decompress both.","position":-1.3134439250711585,"last_edited":1455220502858,"task_id":"aa0f7413-02ad-4ad6-801f-326dd1ac4654","done":1455220502449}
 {"desc":"#0 (0:30?) (0:21) \nmake it only *try* to query db after it has signed in (rather than before!); this resolves a bunch of issues.","position":-1.313443925071158,"last_edited":1455222350977,"task_id":"cb4fe164-19bc-4fed-93b6-f5e7bcb934b3","done":1455222350568}
 {"desc":"#3 #v2\n- synctable query errors: retry a few times with exponential backoff","position":-1.3134439250711578,"last_edited":1455222338414,"task_id":"f91c0780-2067-405f-9ed3-1b19c51070d8"}
+{"desc":"#0 (0:20?)\ncursors -- don't use underscore.debounce -- instead use underscore.throttle.","position":-1.3134439563873457,"last_edited":1455232158929,"task_id":"8356f20d-e99a-4ba3-a441-20f5dc6b4415","deleted":true}
