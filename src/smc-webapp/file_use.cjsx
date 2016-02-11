@@ -591,6 +591,7 @@ $(".salvus-notification-indicator").click () ->
     else
         hide_notification_list()
     notification_list_is_hidden = not notification_list_is_hidden
+    $(this).parent().toggleClass('active', not notification_list_is_hidden)
     return false
 
 require('./browser').set_notify_count_function(-> _global_notify_count)
