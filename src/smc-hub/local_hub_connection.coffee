@@ -262,7 +262,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     # handle incoming JSON messages from the local_hub
     handle_mesg: (mesg, socket) =>
-        @dbg("local_hub --> hub: received mesg: #{misc.to_json(mesg)}")
+        @dbg("local_hub --> hub: received mesg: #{misc.trunc(misc.to_json(mesg), 250)}")
         if mesg.client_id?
             # Should we worry about ensuring that message from this local hub are allowed to
             # send messages to this client?  NO.  For them to send a message, they would have to

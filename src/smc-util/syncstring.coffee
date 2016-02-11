@@ -571,7 +571,7 @@ class SyncDoc extends EventEmitter
         # save the snapshot itself in the patches table.
         obj =
             id       : [@_string_id, time, x.user]
-            patch    : x.patch
+            patch    : JSON.stringify(x.patch)
             snapshot : @_patch_list.value(time)
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set(obj, 'none')

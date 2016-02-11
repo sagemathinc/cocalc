@@ -1521,11 +1521,11 @@ if not exports.RUNNING_IN_NODE and window?
 # for local storage, etc.
 
 lz_string  = require('lz-string')
-exports.compress_string = (patch) ->
-    return lz_string.compressToUTF16(patch)
+exports.compress_string = (s) ->
+    return lz_string.compressToUTF16(s)
 
-exports.decompress_string = (patch) ->
-    return lz_string.decompressFromUTF16(patch)
+exports.decompress_string = (s) ->
+    return lz_string.decompressFromUTF16(s)
 
 
 
