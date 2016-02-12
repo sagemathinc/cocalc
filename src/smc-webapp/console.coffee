@@ -28,6 +28,7 @@
 
 {EventEmitter} = require('events')
 {alert_message} = require('./alerts')
+misc = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
 {redux} = require('./smc-react')
 
@@ -636,6 +637,10 @@ class Console extends EventEmitter
             elt = $("##{id}")
             elt.val(@value).scrollTop(elt[0].scrollHeight)
             return false
+
+        @element.find("a[href=#initfile]").click () =>
+            initfn = misc.console_init_filename(@opts.filename)
+            @opts.editor?.editor.project_page.open_file(path:initfn)
 
     _init_input_line: () =>
         #if not IS_MOBILE
