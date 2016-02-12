@@ -534,7 +534,8 @@ unmount = (dom_node) ->
 # WARNING: temporary jquery spaghetti below
 # For now hook in this way -- obviously this breaks isomorphic encapsulation, etc...
 $('body').append($('<div class="salvus-notification-list hide"></div>'))
-$(".salvus-notification-indicator").show()
+notification_indicator = $(".salvus-notification-indicator")
+notification_indicator.show()
 notification_list = $(".salvus-notification-list")
 notification_list_is_hidden = true
 notification_count = $(".salvus-notification-unseen-count")
@@ -564,6 +565,7 @@ unbind_handlers = () ->
     $(window).unbind('resize', resize_notification_list)
 
 hide_notification_list = ->
+    notification_indicator.parent().removeClass('active')
     notification_list.hide()
     unbind_handlers()
     unmount(notification_list[0])
@@ -576,6 +578,7 @@ unset_key_handlers = ->  # horrible temporary hack used by tasks list for now --
 exports.add_unset_key_handler = (f) -> key_handlers.push(f)
 
 show_notification_list = ->
+    notification_indicator.parent().addClass('active')
     render_file_use(redux, notification_list[0])
     setTimeout((()=>redux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
@@ -585,13 +588,12 @@ show_notification_list = ->
     notification_list.find("input").focus()
     setTimeout(resize_notification_list, 1)
 
-$(".salvus-notification-indicator").click () ->
+notification_indicator.click () ->
     if notification_list_is_hidden
         show_notification_list()
     else
         hide_notification_list()
     notification_list_is_hidden = not notification_list_is_hidden
-    $(this).parent().toggleClass('active', not notification_list_is_hidden)
     return false
 
 require('./browser').set_notify_count_function(-> _global_notify_count)
