@@ -36,10 +36,14 @@ process.on 'message', (opts, socket) ->
         path     : undefined
         filename : undefined
 
+    fn = misc.path_split(opts.filename).tail
+    env = misc.merge({SMC_FILENAME: fn}, process.env)
+
     term_opts =
         name : 'xterm'
         rows : opts.rows
         cols : opts.cols
+        env  : env
 
     if opts.path?
         term_opts.cwd = opts.path
