@@ -3888,27 +3888,13 @@ class RethinkDB
     _user_set_query_syncstring_change_after: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_syncstring_change_after")
         cb() # immediately -- stuff below can happen as side effect in the background.
+        #dbg("new_val='#{misc.to_json(new_val)}")
 
         # Now do the following reactions to this syncstring change in the background:
         project_id = old_val.project_id
-        if project_id? and new_val.save?.state == 'requested'
-            dbg("getting #{project_id}")
-            @compute_server.project
-                project_id : project_id
-                cb         : (err, project) =>
-                    if err
-                        dbg("err = #{err}")
-                    else
-                        dbg("requesting whole-project save of #{project_id}")
-                        project.save()  # this causes saves of all files to storage machines to happen periodically
-                        project.ensure_running
-                            cb : (err) =>
-                                if err
-                                    dbg("failed to ensure running of #{project_id}")
-                                else
-                                    dbg("also make sure there is a connection from hub to project")
-                                    # This is so the project can find out that the user wants to save a file (etc.)
-                                    @ensure_connection_to_project?(project_id)
+        if project_id? and (new_val.save?.state == 'requested' or (new_val.last_active? and new_val.last_active != old_val.last_active))
+            dbg("awakening project #{project_id}")
+            awaken_project(@, project_id)
 
     # One-off code
     ###
@@ -4564,4 +4550,29 @@ class SyncTable extends EventEmitter
                                 process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
     ####
 
+_last_awaken_time = {}
+awaken_project = (db, project_id) ->
+    # throttle so that this gets called *for a given project* at most once every 30s.
+    now = new Date()
+    if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
+        return
+    _last_awaken_time[project_id] = now
+    dbg = (m) -> winston.debug("_awaken_project: #{m}")
+    dbg("getting #{project_id}")
+    db.compute_server.project
+        project_id : project_id
+        cb         : (err, project) =>
+            if err
+                dbg("err = #{err}")
+            else
+                dbg("requesting whole-project save of #{project_id}")
+                project.save()  # this causes saves of all files to storage machines to happen periodically
+                project.ensure_running
+                    cb : (err) =>
+                        if err
+                            dbg("failed to ensure running of #{project_id}")
+                        else
+                            dbg("also make sure there is a connection from hub to project")
+                            # This is so the project can find out that the user wants to save a file (etc.)
+                            db.ensure_connection_to_project?(project_id)
 
