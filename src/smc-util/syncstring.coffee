@@ -13,6 +13,9 @@ RethinkDB-backed time-log database-based synchronized editing
 [Describe algorithm here]
 ###
 
+# How big of files can be opened
+MAX_FILE_SIZE_MB = 10
+
 # Touch syncstring every so often so that it stays opened in the local hub,
 # when the local hub is running.
 TOUCH_INTERVAL_M = 10
@@ -778,8 +781,9 @@ class SyncDoc extends EventEmitter
         dbg()
         @_update_if_file_is_read_only()
         @_client.path_read
-            path : path
-            cb   : (err, data) =>
+            path       : path
+            maxsize_MB : MAX_FILE_SIZE_MB
+            cb         : (err, data) =>
                 if err
                     #dbg("failed -- #{err}")
                     cb?(err)

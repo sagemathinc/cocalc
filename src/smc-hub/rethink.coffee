@@ -3577,7 +3577,7 @@ class RethinkDB
                     args = (x for x in args) # important to copy!
                 v = []
                 f = (x, cb) =>
-                    dbg("f('#{x}')")
+                    #dbg("f('#{x}')")
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
@@ -3733,7 +3733,7 @@ class RethinkDB
                                     # We want to interpret them as the empty result.
                                     # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                     v = ['this-is-not-a-valid-project-id']
-                                dbg("v=#{misc.to_json(v)}")
+                                #dbg("v=#{misc.to_json(v)}")
                                 db_query = db_query[cmd](v...)
                                 cb()
             (cb) =>
@@ -3891,7 +3891,7 @@ class RethinkDB
         #dbg("new_val='#{misc.to_json(new_val)}")
 
         # Now do the following reactions to this syncstring change in the background:
-        project_id = old_val.project_id
+        project_id = old_val?.project_id ? new_val?.project_id
         if project_id? and (new_val.save?.state == 'requested' or (new_val.last_active? and new_val.last_active != old_val.last_active))
             dbg("awakening project #{project_id}")
             awaken_project(@, project_id)

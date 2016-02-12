@@ -337,17 +337,38 @@ class exports.Client extends EventEmitter
             cb         : required
         content = undefined
         path    = join(process.env.HOME, opts.path)
+        dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
+        dbg()
         async.series([
             (cb) =>
                 if opts.maxsize_MB?
+                    dbg("check if file too big")
+                    @file_size
+                        filename : opts.path
+                        cb   : (err, size) =>
+                            if err
+                                dbg("error checking -- #{err}")
+                                cb(err)
+                            else if size > opts.maxsize_MB * 1000000
+                                dbg("file is too big!")
+                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB)")
+                            else
+                                dbg("file is fine")
+                                cb()
+
                     # todo
                 else
                     cb()
             (cb) =>
                 fs.readFile path, (err, data) =>
-                    content = data?.toString()
-                    cb(err)
-        ], (err) => 
+                    if err
+                        dbg("error reading file -- #{err}")
+                        cb(err)
+                    else
+                        dbg('read file')
+                        content = data.toString()
+                        cb()
+        ], (err) =>
            opts.cb(err, content)
         )
 
@@ -373,6 +394,16 @@ class exports.Client extends EventEmitter
             path : required
             cb   : required
         fs.stat(opts.path, opts.cb)
+
+    # Size of file in bytes (divide by 1000 for K, by 10^6 for MB.)
+    file_size: (opts) =>
+        opts = defaults opts,
+            filename : required
+            cb       : required
+        @path_stat
+            path : opts.filename
+            cb   : (err, stat) =>
+                opts.cb(err, stat?.size)
 
     # execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
     shell: (opts) =>
