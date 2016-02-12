@@ -195,8 +195,8 @@ class SyncTable extends EventEmitter
             @_init()
             return
         #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
-        dbg = =>
         #dbg()
+        dbg = =>
         if not @_client._connected
             # nothing to do -- not connected to server; when reconnect to server, will do proper reconnect
             dbg("not connected to server")
@@ -318,6 +318,8 @@ class SyncTable extends EventEmitter
             query   : query
             options : [{set:true}]  # force it to be a set query
             cb      : (err) =>
+                if err
+                    console.warn("_save error: #{err}")
                 if not err and at_start != @_value_local
                     # keep saving until table doesn't change *during* the save
                     @_save(cb)
@@ -326,11 +328,12 @@ class SyncTable extends EventEmitter
 
     _save0 : (cb) =>
         misc.retry_until_success
-            f         : @_save
-            max_tries : 100
+            f           : @_save
+            max_tries   : 20
+            start_delay : 3000
             #warn      : (m) -> console.warn(m)
             #log       : (m) -> console.log(m)
-            cb        : cb
+            cb          : cb
 
     save: (cb) =>
         @_save_debounce ?= {}
