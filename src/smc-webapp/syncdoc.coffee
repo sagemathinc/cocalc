@@ -1111,7 +1111,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 update_unsaved_changes()
 
             @emit('connect')   # successful connection
-            cb?()  # done initializaing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+            cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
         synchronized_string
             project_id    : @project_id

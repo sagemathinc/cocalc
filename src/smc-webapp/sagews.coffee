@@ -91,16 +91,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
             cm.sage_update_queue = []
             cm.on 'change', (instance, changeObj) =>
+                #console.log('changeObj=', changeObj)
                 if changeObj.origin == 'undo' or changeObj.origin == 'redo'
                     return
-                if changeObj.origin != '+input' and (instance.name == '0' or @editor._split_view)
-                    start = changeObj.from.line
-                    stop  = changeObj.to.line + changeObj.text.length
-                    if not @_update_queue_start? or start < @_update_queue_start
-                        @_update_queue_start = start
-                    if not @_update_queue_stop? or stop > @_update_queue_stop
-                        @_update_queue_stop = stop
-
+                start = changeObj.from.line
+                stop  = changeObj.to.line + changeObj.text.length  # changeObj.text is an array of lines`
+                if not @_update_queue_start? or start < @_update_queue_start
+                    @_update_queue_start = start
+                if not @_update_queue_stop? or stop > @_update_queue_stop
+                    @_update_queue_stop = stop
+                @process_sage_update_queue()
                 #if @editor._split_view
                     # TODO: make faster by using change object to determine line range to consider!
                 #    @process_sage_updates
@@ -142,6 +142,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         return cells.reverse()
 
     process_sage_update_queue: () =>
+        #console.log("process, start=#{@_update_queue_start}, stop=#{@_update_queue_stop}")
         if @_update_queue_start?
             @process_sage_updates
                 start  : @_update_queue_start
@@ -652,6 +653,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
         ##tm = misc.mswalltime()
+        before = @editor.codemirror.getValue()
         if opts.pad_bottom
             @pad_bottom_with_newlines(opts.pad_bottom)
         try
@@ -664,6 +666,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         catch e
             console.log("Error rendering worksheet", e)
         ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
+        after = @editor.codemirror.getValue()
+        if before != after
+            @_syncstring.set(after)
 
     _process_sage_updates: (cm, start, stop) =>
         #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
