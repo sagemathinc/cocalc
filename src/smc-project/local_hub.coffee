@@ -193,6 +193,10 @@ handle_mesg = (socket, mesg, handler) ->
             blobs.handle_save_blob_message(mesg)
         when 'error'
             winston.debug("ERROR from hub: #{mesg.error}")
+        when 'hello'
+            # No action -- this is used by the hub to send an initial control message that has no effect, so that
+            # we know this socket will be used for control messages.
+            winston.debug("hello from hub")
         else
             if mesg.id?
                 err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")

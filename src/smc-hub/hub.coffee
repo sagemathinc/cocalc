@@ -208,7 +208,6 @@ class Client extends EventEmitter
         database.touch(opts)
         setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
 
-
     install_conn_handlers: () =>
         #winston.debug("install_conn_handlers")
         if @_destroy_timer?
@@ -242,7 +241,7 @@ class Client extends EventEmitter
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
         @closed = true
-        @emit 'close'
+        @emit('close')
         @compute_session_uuids = []
         c = clients[@conn.id]
         delete clients[@conn.id]
@@ -3156,6 +3155,12 @@ init_compute_server = (cb) ->
                 winston.debug("FATAL ERROR creating compute server -- #{err}")
             compute_server = x
             database.compute_server = compute_server
+            # This is used by the database when handling certain writes to make sure
+            # that the there is a connection to the corresponding project, so that
+            # the project can respond.
+            database.ensure_connection_to_project = (project_id) ->
+                local_hub_connection.connect_to_project(project_id, database, compute_server)
+
             cb?(err)
 
 

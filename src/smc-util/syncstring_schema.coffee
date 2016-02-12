@@ -75,6 +75,10 @@ schema.syncstrings =
                 init              : true
                 read_only         : true
 
+            on_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
+
+
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
 
 # TODO -- currently no security/auth

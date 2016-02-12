@@ -1023,9 +1023,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
     save: (cb) =>
         misc.retry_until_success
             f           : @_save
-            start_delay : 500
-            max_time    : 10000
-            max_delay   : 3000
+            start_delay : 3000
+            max_time    : 30000
+            max_delay   : 10000
             cb          : cb
 
     #TODO: replace disconnect_from_session by close in our API
@@ -1163,9 +1163,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm.delete_trailing_whitespace(omit_lines:omit_lines)
         misc.retry_until_success
             f           : @_save
-            start_delay : 500
-            max_time    : 10000
-            max_delay   : 3000
+            start_delay : 3000
+            max_time    : 30000
+            max_delay   : 10000
             cb          : cb
 
     _init_cursor_activity: () =>

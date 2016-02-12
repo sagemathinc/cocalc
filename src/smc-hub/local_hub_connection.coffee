@@ -57,6 +57,10 @@ exports.new_local_hub = (project_id, database, compute_server) ->
         _local_hub_cache[project_id] = H
     return H
 
+exports.connect_to_project = (project_id, database, compute_server) ->
+    hub = exports.new_local_hub(project_id, database, compute_server)
+    hub.local_hub_socket(()->)
+
 exports.all_local_hubs = () ->
     v = []
     for k, h of _local_hub_cache
@@ -363,6 +367,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 socket.on('end', @free_resources)
                 socket.on('close', @free_resources)
                 socket.on('error', @free_resources)
+
+                # Send a hello message to the local hub, so it knows this is the control connection,
+                # and not something else (e.g., a console).
+                socket.write_mesg('json', {event:'hello'})
 
                 for c in @_local_hub_socket_queue
                     c(undefined, socket)

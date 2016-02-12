@@ -1361,7 +1361,7 @@ class ProjectClient extends EventEmitter
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
-            cb : required   # cb(err, state='opened' or 'running')
+            cb : undefined  # cb(err, state='opened' or 'running')
         state = undefined
         dbg = @dbg("ensure_opened_or_running")
         async.series([
@@ -1385,11 +1385,11 @@ class ProjectClient extends EventEmitter
                                 cb()
                 else
                     cb("bug -- state='#{state}' should be stable but isn't known")
-        ], (err) => opts.cb(err, state))
+        ], (err) => opts.cb?(err, state))
 
     ensure_running: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         state = undefined
         dbg = @dbg("ensure_running")
         async.series([
@@ -1416,11 +1416,11 @@ class ProjectClient extends EventEmitter
                                 f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     ensure_closed: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb     : undefined
         dbg = @dbg("ensure_closed()")
         state = undefined
         async.series([
@@ -1446,7 +1446,7 @@ class ProjectClient extends EventEmitter
                                 f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     # Determine whether or not a storage request is currently running for this project
     is_storage_request_running: () =>
@@ -1588,17 +1588,17 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             action : required
             target : undefined
-            cb     : required
+            cb     : undefined
         m = "_storage_request(action='#{opts.action}'"
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
         if @compute_server.storage_servers.get().size == 0
             dbg('no storage servers -- so all _storage_requests trivially done')
-            opts.cb()
+            opts.cb?()
             return
         if @is_storage_request_running()
-            opts.cb("already doing a storage request")
+            opts.cb?("already doing a storage request")
             return
 
         final_state = fail_state = undefined
@@ -1654,19 +1654,19 @@ class ProjectClient extends EventEmitter
                     state      : final_state
                     cb         : cb
         ], (err) =>
-            opts.cb(err)
+            opts.cb?(err)
         )
 
     save: (opts) =>
         opts = defaults opts,
             min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
-            cb            : required
+            cb            : undefined
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
         @_synctable.connect
             cb : (err) =>
                 if err
-                    opts.cb(err)
+                    opts.cb?(err)
                     return
                 # update @_last_save with value from database (could have been saved by another compute server)
                 s = @_synctable.getIn([@project_id, 'storage', 'saved'])
@@ -1676,7 +1676,7 @@ class ProjectClient extends EventEmitter
                 # Do a client-side test to see if we have saved too recently
                 if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
                     dbg("already saved")
-                    opts.cb("already saved within min_interval")
+                    opts.cb?("already saved within min_interval")
                     return
                 @_last_save = new Date()
                 dbg('doing actual save')

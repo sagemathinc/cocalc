@@ -3885,6 +3885,31 @@ class RethinkDB
                 @table('patches').get(p.id).update(obj).run(cb)
             async.mapLimit(x, opts.map_limit, f, (err) => opts.cb?(err))
 
+    _user_set_query_syncstring_change_after: (old_val, new_val, account_id, cb) =>
+        dbg = @dbg("_user_set_query_syncstring_change_after")
+        cb() # immediately -- stuff below can happen as side effect in the background.
+
+        # Now do the following reactions to this syncstring change in the background:
+        project_id = old_val.project_id
+        if project_id? and new_val.save?.state == 'requested'
+            dbg("getting #{project_id}")
+            @compute_server.project
+                project_id : project_id
+                cb         : (err, project) =>
+                    if err
+                        dbg("err = #{err}")
+                    else
+                        dbg("requesting whole-project save of #{project_id}")
+                        project.save()  # this causes saves of all files to storage machines to happen periodically
+                        project.ensure_running
+                            cb : (err) =>
+                                if err
+                                    dbg("failed to ensure running of #{project_id}")
+                                else
+                                    dbg("also make sure there is a connection from hub to project")
+                                    # This is so the project can find out that the user wants to save a file (etc.)
+                                    @ensure_connection_to_project?(project_id)
+
     # One-off code
     ###
     # Compute a map from email addresses to list of corresponding account id's
@@ -4222,3 +4247,321 @@ obj_key_subs = (obj, subs) ->
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
+
+
+###
+SyncTable
+
+Methods:
+  - get():     Current value of the query, as an immutable.js Map from
+               the primary key to the records, which are also immutable.js Maps.
+  - get(key):  The record with given key, as an immutable Map; if key=undefined, returns full immutable.js map
+  - getIn([key1,key2,...]):  as with immutable.js
+  - has(key):  Whether or not record with this primary key exists.
+  - close():   Frees up resources, stops syncing, don't use object further
+  - wait(...): Until a condition is satisfied
+
+Events:
+  - 'change', primary_key : fired any time the value of the query result
+        *changes* after initialization; where change includes deleting a record.
+
+###
+
+immutable = require('immutable')
+EventEmitter = require('events')
+
+# hackishly try to determine the most likely table of  query
+# (some queries span tables, e.g., joins, so not always possible, right).
+query_table = (query) ->
+    s = query.toString()
+    tbl = '.table("'
+    i = s.indexOf(tbl)
+    if i == -1
+        return
+    s = s.slice(i+tbl.length)
+    i = s.indexOf('"')
+    if i == -1
+        return
+    return s.slice(0,i)
+
+synctable_changefeed_count = 0
+
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
+        @_id = misc.uuid().slice(0,8) # purely to make logging easier
+        @_table = query_table(@_query)   # undefined if can't determine
+        dbg = @_dbg('constructor')
+        dbg("query=#{@_query}")
+        dbg("initializing changefeed")
+        @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
+        @_closed = true
+        @connect(cb : cb)
+
+    _init_idle_timeout: =>
+        if not @_idle_timeout_s?
+            return
+        @_activity = () =>
+            @_last_activity = new Date()
+        @_activity()
+        @_idle_timeout_interval = setInterval(@_disconnect_if_idle, 15000)
+
+    _disconnect_if_idle: =>
+        if new Date() - @_last_activity > 1000*@_idle_timeout_s
+            @close(true) # true = keep listeners
+
+    _reconnect: (cb) =>
+        misc.retry_until_success
+            start_delay : 3000
+            max_time    : 1000*60*30   # give up after 30m
+            f           : @_init_db
+            cb          : cb
+
+    # connect -- ensure that sync table is connected and ready to use; if you set
+    # idle_timeout_interval, you should call connect immediately before
+    # using any non-async get method below, and to start firing change
+    # events again.
+    connect: (opts) =>
+        opts = defaults opts,
+            cb : undefined   # cb(err, @)
+        #dbg = @_dbg('connect')
+        if @_connecting?
+            #dbg("already connecting")
+            @_connecting.push(opts.cb)
+            return
+        if @_closed
+            #dbg("closed so connecting")
+            @_connecting = [opts.cb]
+            @_init_idle_timeout()
+            @_value = immutable.Map({})
+            @on('disconnect', @_reconnect)
+            @_reconnect (err) =>
+                if not err
+                    @_closed = false
+                    synctable_changefeed_count += 1
+                    @_dbg('connect')("connected [#{synctable_changefeed_count} synctable-changefeeds]")
+                v = @_connecting
+                delete @_connecting
+                #dbg("got connection (err=#{err}), len(v)=#{v.length}")
+                for cb in v
+                    #dbg("calling a callback (#{cb?})")
+                    cb?(err, @)
+        else
+            #dbg("already connected")
+            opts.cb?(undefined, @)
+
+    get: (key) =>
+        @_activity?()
+        if not key?
+            return @_value
+        else
+            return @_value?.get(key)
+
+    getIn: (x) =>
+        @_activity?()
+        return @_value?.getIn(x)
+
+    has: (key) =>
+        @_activity?()
+        return @_value?.has(key)
+
+    close: (keep_listeners) =>
+        dbg = @_dbg('close')
+        if @_closed  # nothing further to do
+            dbg("already closed")
+            return
+        if not keep_listeners
+            @removeAllListeners()
+        @_closed = true
+        @_feed?.close()
+        clearInterval(@_idle_timeout_interval)
+        delete @_idle_timeout_interval
+        delete @_feed
+        delete @_value
+        delete @_last_activity
+        delete @_activity
+        synctable_changefeed_count -= 1
+        dbg("closed [#{synctable_changefeed_count} synctable-changefeeds]")
+
+    # wait until some function of this synctable is truthy
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(@)" evaluates to something truthy
+            timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+        @_activity?()
+        @connect
+            cb : (err) =>
+                if err
+                    opts.cb(err)
+                    return
+                x = opts.until(@)
+                if x
+                    opts.cb(undefined, x)  # already true
+                    return
+                fail_timer = undefined
+                f = =>
+                    x = opts.until(@)
+                    if x
+                        @removeListener('change', f)
+                        if fail_timer? then clearTimeout(fail_timer)
+                        opts.cb(undefined, x)
+                @on('change', f)
+                if opts.timeout
+                    fail = =>
+                        @removeListener('change', f)
+                        opts.cb('timeout')
+                    fail_timer = setTimeout(fail, 1000*opts.timeout)
+                return
+
+    _dbg: (f) =>
+        return (m) => winston.debug("SyncTable(table='#{@_table}',id='#{@_id}').#{f}: #{m}")
+
+    _init_db: (cb) =>
+        dbg = @_dbg("_init_db")
+        dbg()
+        async.series([
+            (cb) =>
+                # make it so @_value starts getting updated
+                dbg('create the changefeed')
+                @_init_changefeed(cb)
+            (cb) =>
+                dbg('doing the query')
+                @_get_value (err, value) =>
+                    if err
+                        cb(err)
+                    else
+                        dbg("merge in value")  # potential for race condition; have to wait for newer rethinkdb -- they have serious bugs
+                        @_value = value.merge(@_value)
+                        cb()
+        ], cb)
+
+    # cb(err, immutable js map with value of query from the db)
+    _get_value: (cb) =>
+        dbg = @_dbg("_get_value")
+        dbg()
+        @_query.run (err, results) =>
+            if err
+                dbg("fail: #{err}")
+                cb(err)
+            else
+                dbg("init_value: got #{results.length} init values")
+                t = {}
+                if results
+                    for x in results
+                        t[x[@_primary_key]] = x
+                cb(undefined, immutable.fromJS(t))
+
+    # Creates a changefeed that updates @_value on changes and emits a 'disconnect' event
+    # on db failure;
+    # calls cb once the feed is running; cb(err) if can't setup changfeed.
+    _init_changefeed: (cb) =>
+        dbg = @_dbg("_init_changefeed")
+        dbg()
+        delete @_state
+        dbg("trying to initialize changefeed")
+        @_feed?.close()
+        @_query.changes(includeInitial:false, includeStates:false).run (err, feed) =>
+            if err
+                dbg("failed to start changefeed -- changes query failed: #{err}")
+                cb(err)
+            else
+                dbg("successful initialization of feed; now start getting changes...")
+                @_feed = feed # save to use in @close
+                cb()
+                feed.each (err, change) =>
+                    if not @_value?
+                        # a changefeed might send a little more information after it was closed; ignore it.
+                        return
+                    if err
+                        feed.close()
+                        delete @_feed
+                        @emit('disconnect')
+                    else
+                        if change.new_val?
+                            # change or new
+                            k = change.new_val[@_primary_key]
+                            y = immutable.fromJS(change.new_val)
+                            if not y.equals(@_value.get(k))
+                                @_value = @_value.set(k, y)
+                                process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
+                        if change.old_val? and (not change.new_val? or change.new_val[@_primary_key] != change.old_val[@_primary_key])
+                            # delete change.old_val
+                            k = change.old_val[@_primary_key]
+                            if @_value.get(k)?
+                                # delete key
+                                @_value = @_value.delete(k)
+                                process.nextTick(=>@emit('change', k))
+
+
+    # the correct official way to do this, which is randomly broken: https://github.com/rethinkdb/rethinkdb/issues/5210
+    # Use the includeInitial:true, includeStates:true
+    ###
+    **NOT** USED RIGHT NOW -- should be completely rewritten.
+    _init_changefeed_0: (cb) =>
+        if @_closed
+            return
+        dbg = @_dbg("_init_changefeed_0")
+        dbg("doing the query")
+        wait = 0
+        @_query.changes(includeInitial:true, includeStates:true).run (err, feed) =>
+            if err
+                dbg("failed to start changefeed: #{err}")
+                if err.name == 'ReqlQueryLogicError'
+                    dbg('terminating')
+                    cb?(err)
+                    cb = undefined
+                else
+                    wait = Math.random()*1000 + Math.min(15000, 1.3*wait)
+                    dbg("will try again in #{wait/1000} seconds")
+                    setTimeout(@_init_changefeed, wait)
+            else
+                dbg("did the initial query; now waiting for the ready state")
+                wait = 0
+                value = immutable.Map()
+                @_feed = feed
+                feed.each (err, change) =>
+                    if err
+                        feed.close()
+                        wait = Math.random()*1000 + Math.min(15000, 1.3*wait)
+                        dbg("error -- will try to recreate changefeed in #{wait/1000} seconds: #{err}")
+                        setTimeout(@_init_changefeed, wait)
+                    else
+                        if change.state?
+                            dbg("state change: state='#{change.state}'")
+                            @_state = change.state
+                            if @_state == 'ready'
+                                if @_value?
+                                    dbg("reconnect")
+                                    # this is a reconnect so fire change event for all records that changed
+                                    # keys that were there before and have changed:
+                                    @_value.map (v, k) =>
+                                        if not immutable.is(v, value.get(k))
+                                            @emit('change', k)
+                                    # new keys - not there before
+                                    value.map (v, k) =>
+                                        if not @_value.has(k)
+                                            @emit('change', k)
+                                @_value = value
+                                if cb?
+                                    dbg("calling cb()")
+                                    cb()  # initialized!
+                                    cb = undefined  # never again
+                        if change.old_val? and not change.new_val?
+                            k = change.old_val[@_primary_key]
+                            value = value.delete(k)
+                            if @_state == 'ready'
+                                @_value = value
+                                # WARNING!!!!! This process.nextTick is necessary; if you don't put it here
+                                # the feed just stops after the first thing is emitted!!!!!  This would, of
+                                # course, lead to very subtle bugs.  I don't understand this, but it is probably
+                                # some subtle bug/issue involving bluebird promises and node's eventemitter...
+                                process.nextTick(=>@emit('change', k))
+                        if change.new_val?
+                            k = change.new_val[@_primary_key]
+                            value = value.set(k, immutable.fromJS(change.new_val))
+                            if @_state == 'ready'
+                                @_value = value
+                                process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
+    ####
+
+
