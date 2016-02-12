@@ -1515,22 +1515,3 @@ if not exports.RUNNING_IN_NODE and window?
     window.console.log_original = window.console.log
     window.console.log = exports.log
 
-
-# Fast, efficient UTF-16 string compression and decompression.  Can be used
-# on the frontend, backend, stored in the database, sent safely around, used
-# for local storage, etc. *IMPORTANT:* compress and decompress below both
-# return undefined if their input is undefined.  This is by design and
-# assumed elsewhere in client code!!!!
-
-lz_string  = require('lz-string')
-exports.compress_string = (s, verbose) ->
-    if s?
-        t = lz_string.compressToUTF16(s)
-        if verbose
-            console.log("compress to #{round1(t.length / Math.max(1, s.length) * 100)}% of original size (from #{s.length} to #{t.length})")
-        return t
-
-exports.decompress_string = (s) ->
-    if s?
-        # IMPORTANT - return something only if s defined!
-        return lz_string.decompressFromUTF16(s)

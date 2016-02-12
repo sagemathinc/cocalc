@@ -446,7 +446,6 @@ class SyncDoc extends EventEmitter
         query =
             id       : [@_string_id, cutoff ? 0]
             patch    : null
-            lz       : null
             snapshot : null
         return query
 
@@ -601,9 +600,6 @@ class SyncDoc extends EventEmitter
             return
         patch    = x.get('patch')
         snapshot = x.get('snapshot')
-        if x.get('lz')
-            patch    = misc.decompress_string(patch)
-            snapshot = misc.decompress_string(snapshot)
         patch = JSON.parse(patch)
         obj =
             time  : time

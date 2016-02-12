@@ -3867,24 +3867,6 @@ class RethinkDB
     ###
     Synchronized strings
     ###
-    compress_patches: (opts) =>
-        opts = defaults opts,
-            map_limit : 10
-            verbose   : false
-            cb : undefined
-        @table('patches').getAll(true, index:'needs_lz').run (err, x) =>
-            if err
-                opts.cb?(err)
-                return
-            f = (p, cb) =>
-                obj =
-                    patch : misc.compress_string(p.patch, opts.verbose)
-                    lz    : true
-                if p.snapshot?
-                    obj.snapshot = misc.compress_string(p.snapshot, opts.verbose)
-                @table('patches').get(p.id).update(obj).run(cb)
-            async.mapLimit(x, opts.map_limit, f, (err) => opts.cb?(err))
-
     _user_set_query_syncstring_change_after: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_syncstring_change_after")
         cb() # immediately -- stuff below can happen as side effect in the background.
