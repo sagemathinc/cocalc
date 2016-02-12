@@ -37,7 +37,7 @@ process.on 'message', (opts, socket) ->
         filename : undefined
 
     fn = misc.path_split(opts.filename).tail
-    env = misc.merge({SMC_TERM_FILENAME: fn}, process.env)
+    env = misc.merge({SMC_FILENAME: fn}, process.env)
 
     term_opts =
         name : 'xterm'
