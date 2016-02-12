@@ -43,6 +43,24 @@ IS_MOBILE = feature.IS_MOBILE
 
 CSI = String.fromCharCode(0x9b)
 
+initfile_content = (fn) ->
+    """# This initialization file is associated with your terminal in #{fn}.
+# It is automatically run whenever it starts up -- restart it via Ctrl-d and Return-key.
+
+# Usually, your ~/.bashrc is executed and this behavior is emulated for completeness:
+source ~/.bashrc
+
+# You can export environment variables, e.g. to set custom GIT_* variables
+#export GIT_AUTHOR_NAME="Your Name"
+#export GIT_AUTHOR_EMAIL="your@email.address"
+
+# It is also possible to start a program ...
+#top
+
+# ... or even define a terminal specific function.
+#hello () { echo "hello world"; }
+"""
+
 codemirror_renderer = (start, end) ->
     terminal = @
     if terminal.editor?
@@ -640,7 +658,18 @@ class Console extends EventEmitter
 
         @element.find("a[href=#initfile]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
-            @opts.editor?.editor.project_page.open_file(path:initfn)
+            content = initfile_content(initfn)
+            {salvus_client} = require('./salvus_client')
+            salvus_client.exec
+                    project_id  : @opts.editor?.editor.project_id
+                    command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
+                    bash        : true
+                    err_on_exit : false
+                    cb          : (err, output) =>
+                        if err
+                            console.log("ERROR creating initfile:", err)
+                        else
+                            @opts.editor?.editor.project_page.open_file(path:initfn)
 
     _init_input_line: () =>
         #if not IS_MOBILE
