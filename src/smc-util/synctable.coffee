@@ -94,8 +94,13 @@ class SyncTable extends EventEmitter
         # Whether or not currently successfully connected.
         @_connected = false
 
-        # Reconnect on connect.
-        @_client.on 'connected', =>
+        # Reconnect on event: either connected
+        if @_schema.anonymous
+            event = 'connected'
+        else
+            # query will completely fail anyways without being fully signed in -- so we wait for that.
+            event = 'signed_in'
+        @_client.on event, =>
             @_connected = false
             # We delete @_reconnecting to ensure that it immediately reconnects.
             # This is safe, since if we just connected, the only possibility for
