@@ -55,7 +55,10 @@ source ~/.bashrc
 #export GIT_AUTHOR_NAME="Your Name"
 #export GIT_AUTHOR_EMAIL="your@email.address"
 
-# It is also possible to start a program ...
+# It is also possible to automatically start a program ...
+
+#sage
+#sage -ipython
 #top
 
 # ... or even define a terminal specific function.

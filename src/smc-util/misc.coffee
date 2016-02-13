@@ -1492,6 +1492,7 @@ if not exports.RUNNING_IN_NODE and window?
 # used in webapp and console_server_child
 exports.console_init_filename = (fn) ->
     x = exports.path_split(fn)
+    x.tail = ".#{x.tail}.init"
     if x.head == ''
-        return ".#{x.tail}.init"
-    return [x.head, ".#{x.tail}.init"].join("/")
+        return x.tail
+    return [x.head, x.tail].join("/")
