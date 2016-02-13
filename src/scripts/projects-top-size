@@ -5,4 +5,4 @@ N=${1:-50}
 
 echo "Calculating disk usage of all projects and then reporting the top $N:"
 
-sudo find /projects -maxdepth 1 -type d -print0 | sudo parallel --eta -q0 -j6 du -sh  | sort -h | tail -$N
+sudo find /projects -maxdepth 1 -type d -print0 | sudo ionice -c 3 parallel --eta -q0 -j4 du -sh  | sort -h | tail -$N
