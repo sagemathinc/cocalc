@@ -31,6 +31,7 @@
 misc = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
 {redux} = require('./smc-react')
+{alert_message} = require('./alerts')
 
 misc_page = require('./misc_page')
 
@@ -667,7 +668,7 @@ class Console extends EventEmitter
                     err_on_exit : false
                     cb          : (err, output) =>
                         if err
-                            console.log("ERROR creating initfile:", err)
+                            alert_message(type:'error', message:"problem creating initfile: #{err}")
                         else
                             @opts.editor?.editor.project_page.open_file(path:initfn)
 
