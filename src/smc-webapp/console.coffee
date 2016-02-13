@@ -662,7 +662,7 @@ class Console extends EventEmitter
 
         @element.find("a[href=#initfile]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
-            content = initfile_content(initfn)
+            content = initfile_content(@opts.filename)
             {salvus_client} = require('./salvus_client')
             salvus_client.exec
                     project_id  : @opts.editor?.editor.project_id
