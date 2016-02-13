@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# this script tabulates the top N projects by their disk usage
+
+N=${1:-50}
+
+echo "Calculating disk usage of all projects and then reporting the top $N:"
+
+find /projects -maxdepth 1 -type d -print0 | parallel --eta -q0 -j6 du -sh  | sort -h | tail -$N
