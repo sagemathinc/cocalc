@@ -385,7 +385,6 @@ class TaskList
         return v
 
     toggle_hashtag_button: (button) =>
-        console.log("toggle_hashtag_button", button)
         if not button?
             return
         tag = button.text()
