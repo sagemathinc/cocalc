@@ -1471,7 +1471,7 @@ exports.to_human_list = (arr) ->
         return ""
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings())
-# END ~
+# END smileys
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
@@ -1487,3 +1487,12 @@ exports.log = () ->
 if not exports.RUNNING_IN_NODE and window?
     window.console.log_original = window.console.log
     window.console.log = exports.log
+
+# derive the console initialization filename from the console's filename
+# used in webapp and console_server_child
+exports.console_init_filename = (fn) ->
+    x = exports.path_split(fn)
+    x.tail = ".#{x.tail}.init"
+    if x.head == ''
+        return x.tail
+    return [x.head, x.tail].join("/")
