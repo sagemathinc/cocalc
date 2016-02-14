@@ -1045,8 +1045,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval   : 1000  # ignored below right now
             sync_interval     : 1000     # never send sync messages upstream more often than this
 
-        window.s = @
-
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -1059,7 +1057,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
-        @editor._set("Loading...")
+        @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
@@ -1076,8 +1074,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         dbg("waiting for first change")
         @_syncstring.once 'init', (err) =>
             if err
-                @editor._set(err)
+                @editor.show_startup_message(err, 'danger')
                 return
+            @editor.show_content()
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)

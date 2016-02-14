@@ -879,6 +879,7 @@ class exports.Editor
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
 
+                delete window.smc.editors?[filename]          # FOR DEBUGGING ONLY!
 
         link.data('tab', @tabs[filename])
         @nav_tabs.append(link)
@@ -965,6 +966,10 @@ class exports.Editor
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
+
+        # FOR DEBUGGING!
+        window.smc.editors ?= {}
+        window.smc.editors[filename] = editor
 
         return editor
 
@@ -1129,6 +1134,7 @@ class exports.Editor
         tab.close_tab?()
         delete @tabs[filename]
         @update_counter()
+
 
     show_chat_window: (path) =>
         @tabs[path]?.editor()?.show_chat_window()
@@ -1674,6 +1680,27 @@ class CodeMirrorEditor extends FileEditor
                 layout2_bar.css(left:left + width*p)
                 # redraw, which uses split info
                 @show()
+
+    hide_content: () =>
+        @element.find(".salvus-editor-codemirror-content").hide()
+
+    show_content: () =>
+        @hide_startup_message()
+        @element.find(".salvus-editor-codemirror-content").show()
+        for cm in @codemirrors()
+            cm.refresh()
+
+    hide_startup_message: () =>
+        @element.find(".salvus-editor-codemirror-startup-message").hide()
+
+    show_startup_message: (mesg, type='info') =>
+        @hide_content()
+        if typeof(mesg) != 'string'
+            mesg = JSON.stringify(mesg)
+        e = @element.find(".salvus-editor-codemirror-startup-message").show().text(mesg)
+        for t in ['success', 'info', 'warning', 'danger']
+            e.removeClass("alert-#{t}")
+        e.addClass("alert-#{type}")
 
     is_active: () =>
         return @codemirror? and @editor? and @editor._active_tab_filename == @filename
