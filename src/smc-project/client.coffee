@@ -144,6 +144,9 @@ class exports.Client extends EventEmitter
     is_signed_in: () =>
         return true
 
+    is_connected: =>
+        @_connected
+
     # We trust the time on our own compute servers (unlike random user's browser).
     server_time: () =>
         return new Date()

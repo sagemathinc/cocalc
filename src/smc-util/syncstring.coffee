@@ -791,7 +791,7 @@ class SyncDoc extends EventEmitter
                     @_save(cb)
 
     _set_save: (x) =>
-        @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
+        @_syncstring_table.set(@_syncstring_table.get_one().set('save', immutable.fromJS(x)))
         return
 
     _set_read_only: (read_only) =>
@@ -810,23 +810,37 @@ class SyncDoc extends EventEmitter
     hash_of_saved_version: =>
         return @_syncstring_table.get_one()?.getIn(['save', 'hash'])
 
+    # Initiates a save of file to disk, then if cb is set, waits for the state to
+    # change to done before calling cb.
     save_to_disk: (cb) =>
+        #dbg = @dbg("save_to_disk(cb)")
+        #dbg("initiating the save")
         @_save_to_disk()
         if cb?
+            console.log(@_syncstring_table.get_one().getIn(['save','state']))
+            #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             @_syncstring_table.wait
                 until   : (table) -> table.get_one().getIn(['save','state']) == 'done'
                 timeout : 30
                 cb      : (err) =>
-                    if not err
+                    #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")
+                    if err
+                        #dbg("got err waiting: #{err}")
+                    else
                         err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                        if err
+                            #dbg("got result but there was an error: #{err}")
                     cb(err)
+        #else
+            #dbg("not waiting for save state to change")
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
-    # The project sets the state to saving, does the save to disk, then sets the state to done.
+    # The project sets the state to saving, does the save to disk, then sets
+    # the state to done.
     _save_to_disk: () =>
         path = @get_path()
-        dbg = @dbg("_save_to_disk('#{path}')")
+        #dbg = @dbg("_save_to_disk('#{path}')")
         if not path?
             # not yet initialized
             return
@@ -834,7 +848,7 @@ class SyncDoc extends EventEmitter
             @_set_save(state:'done', error:'cannot save without path')
             return
         if @_client.is_project()
-            dbg("project - write to disk file")
+            #dbg("project - write to disk file")
             data = @version()
             @_save_to_disk_just_happened = true
             @_client.write_file
@@ -847,11 +861,11 @@ class SyncDoc extends EventEmitter
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
         else if @_client.is_user()
-            dbg("user - request to write to disk file")
+            #dbg("user - request to write to disk file")
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
             else
-                dbg("send request to save")
+                #dbg("send request to save")
                 @_set_save(state:'requested', error:false)
 
     # update of remote version -- update live as a result.
