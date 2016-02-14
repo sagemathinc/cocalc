@@ -951,7 +951,7 @@ Subscription = rclass
         cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
         <Row style={paddingBottom: '5px', paddingTop:'5px'}>
             <Col md=4>
-                {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)}/{sub.plan.interval})
+                {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)} for {plan_interval(sub.plan)})
             </Col>
             <Col md=2>
                 {misc.capitalize(sub.status)}
@@ -1486,3 +1486,10 @@ exports.BillingPageLink = (opts) ->
     if not text
         text = "billing page"
     return <a onClick={exports.visit_billing_page} style={cursor:'pointer'}>{text}</a>
+
+plan_interval = (plan) ->
+    n = plan.interval_count
+    return "#{plan.interval_count} #{misc.plural(n, plan.interval)}"
+
+
+

@@ -94,8 +94,7 @@ class SyncTable extends EventEmitter
         # Whether or not currently successfully connected.
         @_connected = false
 
-        # Reconnect on connect.
-        @_client.on 'connected', =>
+        reconnect = () =>
             @_connected = false
             # We delete @_reconnecting to ensure that it immediately reconnects.
             # This is safe, since if we just connected, the only possibility for
@@ -103,8 +102,16 @@ class SyncTable extends EventEmitter
             delete @_reconnecting
             @_reconnect()
 
-        # Connect to the server the first time.
-        @_reconnect()
+        if @_schema.anonymous
+            # just need to be connected
+            if @_client.is_connected()
+                reconnect() # first time
+            @_client.on('connected', reconnect)
+        else
+            # need to be signed in
+            if @_client.is_signed_in()
+                reconnect() # first time
+            @_client.on('signed_in', reconnect)
 
     _unclose: (which) =>
         console.warn("_unclosing #{@_table} -- #{which}")

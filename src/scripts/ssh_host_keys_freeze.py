@@ -63,7 +63,7 @@ def main():
         keys[key_type + '_private'] = literal(priv)
         keys[key_type + '_public'] = publ
 
-    out = yaml.dump({"ssh_keys" : keys}, default_flow_style = False)
+    out = yaml.dump({"ssh_keys" : keys}, default_flow_style = False, width=10000)
     # print(out)
 
     if not exists(dirname(out_fn)):

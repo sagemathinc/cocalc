@@ -1609,15 +1609,17 @@ class Client extends EventEmitter
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
-            # even temporarily, since messages could be dropped otherwise
-            @query_cancel_all_changefeeds()
-            # Actually destroy Client in a few minutes, unless user reconnects
-            # to this session.  Often the user may have a temporary network drop,
-            # and we keep everything waiting for them for short time
-            # in case this happens.
-            @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
+            winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+            @destroy()
+            #winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
+            ## CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
+            ## even temporarily, since messages could be dropped otherwise
+            #@query_cancel_all_changefeeds()
+            ## Actually destroy Client in a few minutes, unless user reconnects
+            ## to this session.  Often the user may have a temporary network drop,
+            ## and we keep everything waiting for them for short time
+            ## in case this happens.
+            #@_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
