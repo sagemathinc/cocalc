@@ -382,7 +382,7 @@ class SyncDoc extends EventEmitter
             ], (err) =>
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
-                    cb    : (err, init) => @emit('init', err ? init.get('error'))
+                    cb    : (err, init) => @emit('init', err ? init.get('error')?.toJS?())
                 if err
                     cb(err)
                 else
@@ -416,6 +416,7 @@ class SyncDoc extends EventEmitter
                             cb()
             (cb) =>
                 if not exists
+                    dbg("file does NOT exist")
                     cb()
                     return
                 if tm?

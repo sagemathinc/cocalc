@@ -54,6 +54,9 @@ class exports.Evaluator
         if opts.cb?
             # if we care about the output, listen for it until receving a mesg.done
             handle_output = (keys) =>
+                if @_closed
+                    opts.cb?("closed")
+                    return
                 for key in keys
                     t = misc.from_json(key)
                     if t[1] - time == 0  # we call opts.cb on all output with the given timestamp
@@ -61,7 +64,7 @@ class exports.Evaluator
                         if mesg?
                             if mesg.done
                                 @_outputs.removeListener('change', handle_output)
-                            opts.cb(mesg)
+                            opts.cb?(mesg)
             @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
@@ -126,6 +129,8 @@ class exports.Evaluator
                     if x.input.event == 'execute_code' and x.input.output_uuid?
                         hook = @_execute_code_hook(x.input.output_uuid)
                     f x.input, (output) =>
+                        if @_closed
+                            return
                         #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
                         hook?(output)
                         @_outputs.set({id:id, output:output})

@@ -428,5 +428,7 @@ class exports.Client extends EventEmitter
             debounce : 750
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
-        new Gaze(path, {debounceDelay:opts.debounce}, opts.cb)
+        g = new Gaze(path, {debounceDelay:opts.debounce})
+        g.on('error', opts.cb)
+        g.on('ready', () => opts.cb(undefined, g))
 

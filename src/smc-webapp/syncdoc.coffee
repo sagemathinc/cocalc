@@ -1074,6 +1074,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         dbg("waiting for first change")
         @_syncstring.once 'init', (err) =>
             if err
+                window.err = err
+                if err.code == 'EACCES'
+                    err = "You do not have permission to read '#{@filename}'."
                 @editor.show_startup_message(err, 'danger')
                 return
             @editor.show_content()
@@ -1143,6 +1146,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
 
     _save: (cb) =>
+        if not @codemirror?
+            cb() # nothing to do -- not initialized yet...
+            return
         @_syncstring.set(@codemirror.getValue())
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
             if err
