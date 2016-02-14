@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Restart up servers in a delay, based on host name.
+# Assumes a naming scheme of webN where N is 0, 1, 2, ..., 10, 11, ...
+# Arguments: SHIFT, for the cascading (0 disables it) (seconds)
+#            GAP between hub restarts on a node (seconds)
+#            ID: the numbered list of hubs to restart, usually "0,1" now
+
+SHIFT=${1:-60}
+GAP=${2:-20}
+ID=${3:-"0,1"}
+
+H=`hostname`
+
+echo $ID
+
+if [[ ! $H == web* ]]; then
+   echo "THIS SCRIPT IS ONLY FOR webX NODES!"
+   exit 1
+fi
+
+N=$(echo $H | cut -c 4-)
+DELAY=$(( $SHIFT * $N ))
+
+echo "Restarting hubs inside web $N in $DELAY seconds with a gap of $GAP"
+sleep $DELAY
+
+service_hub.py --id=$ID --gap=$GAP --db=localhost restart
+
