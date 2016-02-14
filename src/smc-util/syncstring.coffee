@@ -828,8 +828,8 @@ class SyncDoc extends EventEmitter
                         #dbg("got err waiting: #{err}")
                     else
                         err = @_syncstring_table.get_one().getIn(['save', 'error'])
-                        if err
-                            #dbg("got result but there was an error: #{err}")
+                        #if err
+                        #dbg("got result but there was an error: #{err}")
                     cb(err)
         #else
             #dbg("not waiting for save state to change")
