@@ -382,7 +382,6 @@ In /etc/sysctl.conf, put:
 
     sudo su
     umask 022
-    pip install twitter ctop
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
     pip3 install --upgrade numba holoviews
 
@@ -393,7 +392,9 @@ In /etc/sysctl.conf, put:
 
 # And for normal python2:
 
-    pip install datasift bokeh
+    sudo su
+    umask 022
+    pip install datasift bokeh twitter ctop macs2
 
 # System-wide git trac
 
