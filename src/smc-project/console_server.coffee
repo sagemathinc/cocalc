@@ -45,8 +45,8 @@ misc_node      = require('smc-util-node/misc_node')
 {secret_token_filename} = require('./common.coffee')
 
 port_manager = require('./port_manager')
-
-{to_json, from_json, defaults, required} = require('smc-util/misc')
+misc = require('smc-util/misc')
+{to_json, from_json, defaults, required} = misc
 
 abspath = (path) ->
     if path.length == 0
@@ -96,6 +96,7 @@ start_session = (socket, mesg) ->
 
     if not mesg.params?  # for connecting to an existing session.
         mesg.params = {}
+
     opts = defaults mesg.params,
         rows     : 24
         cols     : 80
@@ -106,6 +107,10 @@ start_session = (socket, mesg) ->
 
     opts.path = abspath(opts.path)  # important since console server is started in some random location
     opts.filename = abspath(opts.filename)
+
+    init_fn = misc.console_init_filename(opts.filename)
+    if fs.existsSync(init_fn) and opts.command == 'bash'
+        opts.args = ['--init-file', "#{init_fn}"]
 
     if process.env['USER'] == 'root'
         if not mesg.project_id? or mesg.project_id.length != 36
