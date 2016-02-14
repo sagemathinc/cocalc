@@ -186,7 +186,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Project query support code
     #
     mesg_query: (mesg, write_mesg) =>
-        dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{m}")
+        dbg = (m) => winston.debug("mesg_query(project_id='#{@project_id}'): #{misc.trunc(m,200)}")
         dbg(misc.to_json(mesg))
         query = mesg.query
         if not query?
