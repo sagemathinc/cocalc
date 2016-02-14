@@ -94,13 +94,7 @@ class SyncTable extends EventEmitter
         # Whether or not currently successfully connected.
         @_connected = false
 
-        # Reconnect on event: either connected
-        if @_schema.anonymous
-            event = 'connected'
-        else
-            # query will completely fail anyways without being fully signed in -- so we wait for that.
-            event = 'signed_in'
-        @_client.on event, =>
+        reconnect = () =>
             @_connected = false
             # We delete @_reconnecting to ensure that it immediately reconnects.
             # This is safe, since if we just connected, the only possibility for
@@ -108,8 +102,16 @@ class SyncTable extends EventEmitter
             delete @_reconnecting
             @_reconnect()
 
-        # Connect to the server the first time.
-        @_reconnect()
+        if @_schema.anonymous
+            # just need to be connected
+            if @_client.is_connected()
+                reconnect() # first time
+            @_client.on('connected', reconnect)
+        else
+            # need to be signed in
+            if @_client.is_signed_in()
+                reconnect() # first time
+            @_client.on('signed_in', reconnect)
 
     _unclose: (which) =>
         console.warn("_unclosing #{@_table} -- #{which}")

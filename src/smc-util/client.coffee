@@ -395,6 +395,8 @@ class exports.Connection extends EventEmitter
 
     is_signed_in: => !!@_signed_in
 
+    is_connected: => !!@_connected
+
     remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
 
     handle_json_data: (data) =>
