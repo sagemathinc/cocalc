@@ -47,8 +47,14 @@ def datetime_serialize(obj):
 
 ### Rethinkdb Setup ###
 SMC_ROOT = os.environ.get("SMC_ROOT", '.')
-AUTH = open(join(SMC_ROOT, 'data/secrets/rethinkdb')).read().strip()
-r.connect(host="db1", db = "smc", auth_key=AUTH, timeout=20).repl()
+if os.environ.get("DEVEL", False):
+    # DEV mode
+    import dev.project.util
+    port = dev.project.util.get_ports()["rethinkdb"]
+    r.connect(host="localhost", db = "smc", port=port, timeout=20).repl()
+else:
+    AUTH = open(join(SMC_ROOT, 'data/secrets/rethinkdb')).read().strip()
+    r.connect(host="db1", db = "smc", auth_key=AUTH, timeout=20).repl()
 # or proxy on localhost:
 # r.connect(db = "smc", auth_key=AUTH, timeout=20).repl()
 
