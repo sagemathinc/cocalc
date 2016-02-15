@@ -2134,12 +2134,25 @@ class RethinkDB
     # STATS
     ###
 
-    num_recent_projects: (opts) =>
+    count_timespan: (opts) =>
         opts = defaults opts,
-            age_m : required
-            cb    : required
-        @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
-                                      {index:'last_edited'}).count().run(opts.cb)
+            table    : required
+            age_m    : required
+            upper_m  : undefined  # defaults to zero minutes (i.e. "now")
+            index    : required
+            cb       : required
+        lower = misc.minutes_ago(opts.age_m)
+        upper = if opts.upper_m? then misc.minutes_ago(opts.upper_m) else misc.minutes_ago(0)
+        @table(opts.table).between(lower, upper, {index:opts.index}).count().run(opts.cb)
+
+    num_projects: (opts) =>
+        opts.table = 'projects'
+        @count_timespan(opts)
+
+    num_accounts_created: (opts) =>
+        opts.table = 'accounts'
+        opts.index = 'created'
+        @count_timespan(opts)
 
     recent_projects: (opts) =>
         opts = defaults opts,
@@ -2205,22 +2218,38 @@ class RethinkDB
                 if stats?
                     cb(); return
                 dbg("compute all stats from scratch")
-                stats = {time : new Date()}
+                stats = {time : new Date(), projects_created : {}, accounts_created : {}}
                 async.parallel([
                     (cb) =>
                         @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
                     (cb) =>
                         @table('projects').count().run((err, x) => stats.projects = x; cb(err))
                     (cb) =>
-                        @num_recent_projects(age_m : 5, cb : (err, x) => stats.active_projects = x; cb(err))
+                        @num_projects(index: 'last_edited', age_m :        5, cb : (err, x) => stats.active_projects = x; cb(err))
                     (cb) =>
-                        @num_recent_projects(age_m : 60, cb : (err, x) => stats.last_hour_projects = x; cb(err))
+                        @num_projects(index: 'last_edited', age_m :       60, cb : (err, x) => stats.last_hour_projects = x; cb(err))
                     (cb) =>
-                        @num_recent_projects(age_m : 60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
+                        @num_projects(index: 'last_edited', age_m :    60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
                     (cb) =>
-                        @num_recent_projects(age_m : 60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
+                        @num_projects(index: 'last_edited', age_m :  60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
                     (cb) =>
-                        @num_recent_projects(age_m : 60*24*30, cb : (err, x) => stats.last_month_projects = x; cb(err))
+                        @num_projects(index: 'last_edited', age_m : 60*24*30, cb : (err, x) => stats.last_month_projects = x; cb(err))
+                    (cb) =>
+                        @num_projects(index: 'created',     age_m:        60, cb : (err, x) => stats.projects_created['1h'] = x; cb(err))
+                    (cb) =>
+                        @num_projects(index: 'created',     age_m:     24*60, cb : (err, x) => stats.projects_created['1d'] = x; cb(err))
+                    (cb) =>
+                        @num_projects(index: 'created',     age_m:   7*24*60, cb : (err, x) => stats.projects_created['7d'] = x; cb(err))
+                    (cb) =>
+                        @num_projects(index: 'created',     age_m:  30*24*60, cb : (err, x) => stats.projects_created['30d'] = x; cb(err))
+                    (cb) =>
+                        @num_accounts_created(age_m:        60, cb : (err, x) => stats.accounts_created['1h'] = x; cb(err))
+                    (cb) =>
+                        @num_accounts_created(age_m:     24*60, cb : (err, x) => stats.accounts_created['1d'] = x; cb(err))
+                    (cb) =>
+                        @num_accounts_created(age_m:   7*24*60, cb : (err, x) => stats.accounts_created['7d'] = x; cb(err))
+                    (cb) =>
+                        @num_accounts_created(age_m:  30*24*60, cb : (err, x) => stats.accounts_created['30d'] = x; cb(err))
                     (cb) =>
                         @table("hub_servers").run (err, hub_servers) =>
                             if err
