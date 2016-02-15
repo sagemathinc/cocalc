@@ -222,10 +222,10 @@ class SyncDoc extends EventEmitter
         @_doc           = opts.doc
         @_save_interval = opts.save_interval
 
-        dbg = @dbg("constructor(path='#{@_path}')")
-        dbg('connecting...')
+        #dbg = @dbg("constructor(path='#{@_path}')")
+        #dbg('connecting...')
         @connect (err) =>
-            dbg('connected')
+            #dbg('connected')
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
@@ -513,16 +513,15 @@ class SyncDoc extends EventEmitter
     # save any changes we have as a new patch; returns value
     # of live document at time of save
     _save: (cb) =>
-        dbg = @dbg('_save'); dbg('saving changes to db')
-        #dbg = =>
+        #dbg = @dbg('_save'); dbg('saving changes to db')
         if @_closed
-            dbg("string closed -- can't save")
+            #dbg("string closed -- can't save")
             cb?("string closed")
             return
         @emit("before-save")
         value = @_doc.get()
         if not value?
-            dbg("string not initialized -- can't save")
+            #dbg("string not initialized -- can't save")
             cb?("string not initialized")
             return
         #dbg("saving at ", new Date())
@@ -538,7 +537,7 @@ class SyncDoc extends EventEmitter
         obj =  # version for database
             id    : [@_string_id, time, @_user_id]
             patch : JSON.stringify(patch)
-        dbg("attempting to save patch #{time}")
+        #dbg("attempting to save patch #{time}")
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
         @snapshot_if_necessary()
@@ -740,7 +739,7 @@ class SyncDoc extends EventEmitter
                                 data : @version()
                                 cb   : cb
             (cb) =>
-                # now setup watcher (which wouldn't work if there was no file)
+                # Setup watcher (which wouldn't work if there was no file)
                 DEBOUNCE_MS = 500
                 @_client.watch_file
                     path     : path

@@ -1070,8 +1070,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 700)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
-        dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
-        dbg("waiting for first change")
+        #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
+        #dbg("waiting for first change")
         @_syncstring.once 'init', (err) =>
             if err
                 window.err = err

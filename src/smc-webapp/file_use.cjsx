@@ -140,10 +140,13 @@ class FileUseActions extends Actions
         @mark((x.id for x in v), action)
 
     mark_file: (project_id, path, action) =>
-        table      = @redux.getTable('file_use')
         account_id = @redux.getStore('account').get_account_id()
-        now        = new Date()
-        obj        =
+        if not account_id?
+            # nothing to do -- non-logged in users shouldn't be marking files
+            return
+        table = @redux.getTable('file_use')
+        now   = new Date()
+        obj   =
             project_id : project_id
             path       : path
             users      : {"#{account_id}":{"#{action}":now}}

@@ -390,8 +390,8 @@ class exports.Connection extends EventEmitter
                 @_signed_in = true
                 if localStorage?
                     localStorage[@remember_me_key()] = true
-                @emit("signed_in", mesg)
                 @_sign_in_mesg = mesg
+                @emit("signed_in", mesg)
 
             when "remember_me_failed"
                 if localStorage?

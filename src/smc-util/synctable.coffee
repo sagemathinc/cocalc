@@ -98,6 +98,7 @@ class SyncTable extends EventEmitter
         @_connected = false
 
         reconnect = () =>
+            #console.log("connect '#{@_table}'")
             @_connected = false
             # We delete @_reconnecting to ensure that it immediately reconnects.
             # This is safe, since if we just connected, the only possibility for
@@ -225,6 +226,9 @@ class SyncTable extends EventEmitter
                 dbg("didn't work -- try again in 30 seconds")
                 @_waiting_to_reconnect = true
                 setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), 30*1000 )
+            else
+                for cb in @_connected_save_cbs ? []
+                    @save(cb)
 
     _run: (cb) =>
         if @_closed
@@ -328,17 +332,14 @@ class SyncTable extends EventEmitter
                 else
                     cb?(err)
 
-    _save0 : (cb) =>
-        misc.retry_until_success
-            f           : @_save
-            max_tries   : 20
-            start_delay : 3000
-            #warn      : (m) -> console.warn(m)
-            #log       : (m) -> console.log(m)
-            cb          : cb
-
     save: (cb) =>
         @_save_debounce ?= {}
+
+        if not @_value_server? or not @_value_local?
+            @_connected_save_cbs ?= []
+            @_connected_save_cbs.push(cb)
+            return
+
         misc.async_debounce
             f        : @_save
             interval : @_debounce_interval
@@ -597,7 +598,6 @@ class SyncTable extends EventEmitter
                 opts.cb('timeout')
             fail_timer = setTimeout(fail, 1000*opts.timeout)
         return
-
 
 exports.SyncTable = SyncTable
 
