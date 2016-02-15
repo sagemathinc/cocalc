@@ -539,7 +539,7 @@ class SyncDoc extends EventEmitter
             patch : JSON.stringify(patch)
         #dbg("attempting to save patch #{time}")
         x = @_patches_table.set(obj, 'none', cb)
-        @_patch_list.add([@_process_patch(x)])
+        @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
@@ -589,7 +589,10 @@ class SyncDoc extends EventEmitter
         if time?
             return @snapshot(time)
 
-    _process_patch: (x, time0, time1) =>
+    # x - patch object
+    # time0, time1: optional range of times; return undefined if patch not in this range
+    # patch -- if given will be used as an actual patch instead of x.patch, which is a JSON string.
+    _process_patch: (x, time0, time1, patch) =>
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
         key = x.get('id').toJS()
@@ -598,9 +601,9 @@ class SyncDoc extends EventEmitter
             return
         if time1? and time > time1
             return
-        patch    = x.get('patch')
+        if not patch?
+            patch = JSON.parse(x.get('patch'))
         snapshot = x.get('snapshot')
-        patch = JSON.parse(patch)
         obj =
             time  : time
             user  : user
@@ -817,7 +820,6 @@ class SyncDoc extends EventEmitter
         #dbg("initiating the save")
         @_save_to_disk()
         if cb?
-            console.log(@_syncstring_table.get_one().getIn(['save','state']))
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             @_syncstring_table.wait
                 until   : (table) -> table.get_one().getIn(['save','state']) == 'done'
@@ -831,8 +833,6 @@ class SyncDoc extends EventEmitter
                         #if err
                         #dbg("got result but there was an error: #{err}")
                     cb(err)
-        #else
-            #dbg("not waiting for save state to change")
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
