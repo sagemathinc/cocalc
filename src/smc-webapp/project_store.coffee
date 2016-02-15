@@ -110,6 +110,10 @@ class ProjectActions extends Actions
         window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
+    # 'warms' up the project to be ready for use immediately
+    start : =>
+        @set_directory_files('.', true, false)
+
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
 

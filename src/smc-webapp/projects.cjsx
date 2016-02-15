@@ -136,6 +136,9 @@ class ProjectsActions extends Actions
                 _create_project_tokens[token] = {err:err, project_id:project_id}
         salvus_client.create_project(opts)
 
+    start_project : (project_id) =>
+        @redux.getProjectActions(project_id).start()
+
     # Open the given project
     open_project : (opts) =>
         opts = defaults opts,

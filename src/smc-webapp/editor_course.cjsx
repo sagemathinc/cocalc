@@ -432,6 +432,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             title = "#{store.get_student_name(student_id)} - #{store.getIn(['settings', 'title'])}"
             redux.getActions('projects').set_project_title(student_project_id, title)
 
+        start_all_student_projects: () =>
+            get_store()?.get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                if student_project_id?
+                    redux.getActions('projects').start_project(student_project_id)
+
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
             get_store()?.get_students().map (student, student_id) =>
