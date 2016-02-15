@@ -1101,7 +1101,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_udpate_read_only()
 
             save_state = () => @_sync()
-            @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+            @save_state_debounce = underscore.throttle(save_state, @opts.sync_interval)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")

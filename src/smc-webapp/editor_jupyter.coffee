@@ -130,6 +130,7 @@ exports.jupyter_notebook = (editor, filename, opts) ->
 
 class JupyterNotebook
     dbg: (f, m...) =>
+        #console.log("JupyterNotebook.#{f}:#{misc.to_json(m)}")
         return salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
 
     constructor: (@editor, @filename, opts={}) ->
@@ -189,10 +190,9 @@ class JupyterNotebook
             # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
             # set_dirty, sometimes instead just directly setting the flag.  So there's no simple way to know exactly
             # when the notebook is dirty. (TODO: fix all this via upstream patches.)
-
-            @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
-            @_cursor_interval   = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
-
+            if not @readonly
+                @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
+                @_cursor_interval   = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
     status: (text) =>
         if not text?
@@ -229,6 +229,7 @@ class JupyterNotebook
         delete @_cursors   # Delete all the cached cursors in the DOM
         delete @nb
         delete @frame
+        @_initialized = false
 
         async.series([
             (cb) =>
@@ -269,6 +270,7 @@ class JupyterNotebook
                 @status("Failed to start -- #{err}")
                 cb?("Unable to start Jupyter notebook server -- #{err}")
             else
+                @_initialized = true
                 cb?()
         )
 
@@ -493,7 +495,7 @@ class JupyterNotebook
                 # Monkey patch the IPython html so clicking on the IPython logo pops up a new tab with the dashboard,
                 # instead of messing up our embedded view.
                 attempts = 0
-                delay = 200
+                delay = 300
                 iframe_time = start_time = misc.walltime()
                 # What f does below is purely inside the browser DOM -- not the network, so doing it
                 # frequently is not a serious problem for the server.
@@ -506,15 +508,15 @@ class JupyterNotebook
                         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server_url}#{@filename}")
                         @notebook.html('').append(@iframe)
                         iframe_time = misc.walltime()
-                        setTimeout(f, 300)
+                        setTimeout(f,500)
                         return
-                    #console.log("(attempt #{attempts}, time #{misc.walltime(start_time)}): @frame.ipython=#{@frame?.IPython?}, notebook = #{@frame?.IPython?.notebook?}, kernel= #{@frame?.IPython?.notebook?.kernel?}")
+                    console.log("(attempt #{attempts}, time #{misc.walltime(start_time)}): @frame.ipython=#{@frame?.IPython?}, notebook = #{@frame?.IPython?.notebook?}, kernel= #{@frame?.IPython?.notebook?.kernel?}")
                     if @_dead?
                         cb("dead"); return
                     attempts += 1
                     if delay <= 1000  # exponential backoff up to a bound
                         delay *= 1.4
-                    if attempts >= 80
+                    if attempts >= 70
                         # give up after this much time.
                         msg = "Failed to load Jupyter notebook"
                         @status(msg)
@@ -522,7 +524,9 @@ class JupyterNotebook
                         cb(msg)
                         return
                     @frame = window.frames[@iframe_uuid]
-                    if not @frame? or not @frame?.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
+                    # IT is ***abso-fucking-critical*** to wait until the kernel is connected
+                    # before doing anything else!!!!
+                    if not @frame?.IPython?.notebook?.kernel?.is_connected()
                         setTimeout(f, delay)
                     else
                         if @opts.read_only
@@ -543,7 +547,7 @@ class JupyterNotebook
                             @nb = @ipython.notebook
 
                             if @readonly
-                                @nb.kernel.stop_channels()  # ensure computations don't get sent to kernel
+                                @nb.kernel.stop_channels()
 
                             a.click () =>
                                 @info()
@@ -559,6 +563,7 @@ class JupyterNotebook
 
                             @frame.$("#save_checkpoint").remove()
                             @frame.$("#restore_checkpoint").remove()
+                            @frame.$("#save-notbook").remove()  # in case they fix the typo
                             @frame.$("#save-notebook").remove()  # in case they fix the typo
 
                             @frame.$(".checkpoint_status").remove()
@@ -624,6 +629,8 @@ class JupyterNotebook
 
     # Set the the visible notebook in the DOM from the synchronized string
     set_nb_from_doc: () =>
+        if not @_initialized
+            return
         current = @nb_to_string()
         if not current? or not @doc?
             return
@@ -861,7 +868,7 @@ class JupyterNotebook
     set_nb: (doc) =>
         @dbg("set_nb")
         tm = misc.mswalltime()
-        if not @nb?
+        if not @_initialized
             # The live notebook is not currently initialized -- there's nothing to be done for now.
             # This can happen if reconnect (to hub) happens at the same time that user is reloading
             # the ipython notebook frame itself.   The doc will get set properly at the end of the
