@@ -256,7 +256,7 @@ class SyncTable extends EventEmitter
                 #if @_table == 'patches'
                 #    console.log("#{this_id} -- @_id=#{@_id}; query #{@_table}: -- got result of doing query", resp)
                 #    console.log("#{this_id} -- query='#{misc.to_json(@_query)}'")
-                if first_resp
+                if first_resp and resp?.event != 'query_cancel'
                     first_resp = false
                     if @_closed
                         @_connected = false
