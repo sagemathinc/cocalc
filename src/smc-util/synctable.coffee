@@ -100,6 +100,9 @@ class SyncTable extends EventEmitter
         reconnect = () =>
             #console.log("connect '#{@_table}'")
             @_connected = false
+            if @_id?
+                @_client.query_cancel(id:@_id)
+                @_id = undefined
             # We delete @_reconnecting to ensure that it immediately reconnects.
             # This is safe, since if we just connected, the only possibility for
             # outstanding attempts is failure.
@@ -223,10 +226,15 @@ class SyncTable extends EventEmitter
             @_reconnecting = false
             dbg("running query returned -- #{err}")
             if not @_connected
-                dbg("didn't work -- try again in 30 seconds")
+                if not @_reconnect_timeout?
+                    @_reconnect_timeout = 3
+                else
+                    @_reconnect_timeout = Math.max(3, Math.min(20+Math.random(), 1.4*@_reconnect_timeout))
+                dbg("didn't work -- try again in #{@_reconnect_timeout} seconds")
                 @_waiting_to_reconnect = true
-                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), 30*1000 )
+                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), @_reconnect_timeout*1000 )
             else
+                delete @_reconnect_timeout
                 for cb in @_connected_save_cbs ? []
                     @save(cb)
 
@@ -236,7 +244,8 @@ class SyncTable extends EventEmitter
             cb?("closed")
             return
         first_resp = true
-        #console.log("query #{@_table}: _run")
+        #this_id = misc.uuid().slice(0,8)
+        #console.log("#{this_id} -- query #{@_table}: _run")
         @_client.query
             query   : @_query
             changes : true
@@ -244,7 +253,9 @@ class SyncTable extends EventEmitter
             options : @_options
             cb      : (err, resp) =>
                 @_last_err = err
-                #console.log("query #{@_table}: -- got result of doing query", resp)
+                #if @_table == 'patches'
+                #    console.log("#{this_id} -- @_id=#{@_id}; query #{@_table}: -- got result of doing query", resp)
+                #    console.log("#{this_id} -- query='#{misc.to_json(@_query)}'")
                 if first_resp
                     first_resp = false
                     if @_closed
@@ -253,11 +264,11 @@ class SyncTable extends EventEmitter
                         cb?("closed")
                     else if err
                         @_connected = false
-                        console.warn("query #{@_table}: _run: first error ", err)
+                        console.warn("query '#{@_table}': _run: first error ", err)
                         cb?(err)
                     else if not resp?.query?[@_table]?
                         @_connected = false
-                        console.warn("query on #{@_table} returned undefined")
+                        console.warn("query on '#{@_table}' returned undefined")
                         cb?("got no data")
                     else
                         @_id = resp.id
@@ -266,7 +277,7 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         cb?()
                 else
-                    #console.log("changefeed #{@_table} produced: #{err}, ", resp)
+                    #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
                     # changefeed
                     if err
                         @_connected = false
@@ -276,6 +287,8 @@ class SyncTable extends EventEmitter
                     else
                         if resp?.event != 'query_cancel'
                             @_update_change(resp)
+                        #else
+                        #    console.log("#{this_id} -- query_cancel")
 
     # Return map from keys that have changed along with how they changed, or undefined
     # if the value of local or the server hasn't been initialized
@@ -564,10 +577,13 @@ class SyncTable extends EventEmitter
         return new_val
 
     close: =>
+        if @_closed
+            return
         @removeAllListeners()
         @_connected = false
         if @_id?
             @_client.query_cancel(id:@_id)
+            delete @_id
         delete @_value_local
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
