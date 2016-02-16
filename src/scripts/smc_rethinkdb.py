@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+from __future__ import print_function
+
 # run me via $ ipython3 -i path/to/me.py
 
 ###############################################################################
@@ -28,7 +30,6 @@
 # Harald Schilly <hsy@sagemath.com>
 
 import rethinkdb as r
-from functools import lru_cache
 from datetime import datetime, timedelta
 from pytz import utc
 import os
@@ -151,115 +152,121 @@ def export_accounts(outfn):
 ### This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
 
-class Backup(object):
-    """
-    This reads directly the dumped files from disk.
-    """
-    def __init__(self, root = "/backup/data/smc/"):
-        self.root = root
+try:
+    from functools import lru_cache
 
-    def fn(self, db):
-        from os.path import join
-        return join(self.root, db + ".json")
-
-    @lru_cache(maxsize=32)
-    def get(self, db):
-        from json import load
-        data = load(open(self.fn(db), "r"))
-        return data
-
-    @lru_cache(maxsize=32)
-    def get_accounts(self):
-        data = {}
-        for account in self.get("accounts"):
-            account_id = account["account_id"]
-            data[account_id] = account
-        return data
-
-    @lru_cache(maxsize=32)
-    def get_account(self, account_id):
-        return self.get_accounts().get(account_id, None)
-
-    def projects_search(self, search_string):
-        from os.path import join
-        from json import loads
-        import os
-        fn = self.fn("projects")
-        cmd = "grep '%s' '%s'" % (search_string, fn)
-        # print(cmd)
-        results = os.popen(cmd).read()
-        return [loads(line[:-1]) for line in results.split("\n") if len(line) > 0]
-
-    def projects_of_owner(self, account_id):
-        projects = []
-        for project in self.projects_search(account_id):
-            for user_id, config in project["users"].items():
-                if config.get("group", None) == "owner":
-                    projects.append(project)
-        return projects
-
-    def sort_projects(self, projects, key = "time"):
-        if key == "time":
-            return sorted(projects, key = lambda p : p['last_edited']['epoch_time'])
-        else:
-            raise ValueError("key %s unkown" % key)
-
-    def pprint_account(self, account):
-        account["first_name"]    = account.get("first_name", "")
-        account["last_name"]     = account.get("last_name", "")
-        account["email_address"] = account.get("email_address", "???@???.??")
-        estr = u'"{first_name} {last_name} <{email_address}>"'.format(**account)
-        aid = account["account_id"]
-        return u'%-60s  %s' % (estr, aid)
-
-    def pprint_projects(self, projects, width = 111):
+    class Backup(object):
         """
-        pretty print one or more projects
+        This reads directly the dumped files from disk.
         """
-        from datetime import datetime
-        from textwrap import wrap
+        def __init__(self, root = "/backup/data/smc/"):
+            self.root = root
 
-        for p in projects:
-            ts = p['last_edited']['epoch_time']
-            last_edited = datetime.utcfromtimestamp(ts).isoformat()
-            accounts = [self.get_account(aid) for aid in p["users"].keys()]
-            title = p['title']
-            description = '\n'.join(wrap(p["description"], width))
-            deleted = p.get("deleted", False)
-            project_id = p["project_id"]
+        def fn(self, db):
+            from os.path import join
+            return join(self.root, db + ".json")
 
-            print()
-            print('{title} ({project_id})'.format(**locals()).center(width, "-"))
-            print(description)
-            print()
-            print("last edited: {last_edited}   deleted: {deleted}".format(**locals()))
-            print()
-            for account in accounts:
-                if account is None:
-                    print("unknown")
-                    continue
+        @lru_cache(maxsize=32)
+        def get(self, db):
+            from json import load
+            data = load(open(self.fn(db), "r"))
+            return data
 
-                print(self.pprint_account(account), end=" -- ")
-                print(p["users"][account["account_id"]]["group"])
+        @lru_cache(maxsize=32)
+        def get_accounts(self):
+            data = {}
+            for account in self.get("accounts"):
+                account_id = account["account_id"]
+                data[account_id] = account
+            return data
 
-    def search_email(self, email = None, domain = None, regex = None, limit = 20):
-        import re
-        accounts = self.get("accounts")
+        @lru_cache(maxsize=32)
+        def get_account(self, account_id):
+            return self.get_accounts().get(account_id, None)
 
-        email = email or r".*"
-        if regex is None:
-            if domain:
-                regex = r'^%s.*@%s$' % (email, domain)
+        def projects_search(self, search_string):
+            from os.path import join
+            from json import loads
+            import os
+            fn = self.fn("projects")
+            cmd = "grep '%s' '%s'" % (search_string, fn)
+            # print(cmd)
+            results = os.popen(cmd).read()
+            return [loads(line[:-1]) for line in results.split("\n") if len(line) > 0]
+
+        def projects_of_owner(self, account_id):
+            projects = []
+            for project in self.projects_search(account_id):
+                for user_id, config in project["users"].items():
+                    if config.get("group", None) == "owner":
+                        projects.append(project)
+            return projects
+
+        def sort_projects(self, projects, key = "time"):
+            if key == "time":
+                return sorted(projects, key = lambda p : p['last_edited']['epoch_time'])
             else:
-                regex = r'^%s$' % email
-        regex = re.compile(regex)
+                raise ValueError("key %s unkown" % key)
 
-        for idx, account in enumerate(accounts):
-            if "email_address" not in account:
-                continue
-            if regex.search(account["email_address"]):
-                print(self.pprint_account(account))
-                if idx == limit - 1:
-                    print("\n--- limit of %d entries reached ---" % limit)
+        def pprint_account(self, account):
+            account["first_name"]    = account.get("first_name", "")
+            account["last_name"]     = account.get("last_name", "")
+            account["email_address"] = account.get("email_address", "???@???.??")
+            estr = u'"{first_name} {last_name} <{email_address}>"'.format(**account)
+            aid = account["account_id"]
+            return u'%-60s  %s' % (estr, aid)
 
-backup = Backup()
+        def pprint_projects(self, projects, width = 111):
+            """
+            pretty print one or more projects
+            """
+            from datetime import datetime
+            from textwrap import wrap
+
+            for p in projects:
+                ts = p['last_edited']['epoch_time']
+                last_edited = datetime.utcfromtimestamp(ts).isoformat()
+                accounts = [self.get_account(aid) for aid in p["users"].keys()]
+                title = p['title']
+                description = '\n'.join(wrap(p["description"], width))
+                deleted = p.get("deleted", False)
+                project_id = p["project_id"]
+
+                print()
+                print('{title} ({project_id})'.format(**locals()).center(width, "-"))
+                print(description)
+                print()
+                print("last edited: {last_edited}   deleted: {deleted}".format(**locals()))
+                print()
+                for account in accounts:
+                    if account is None:
+                        print("unknown")
+                        continue
+
+                    print(self.pprint_account(account), end=" -- ")
+                    print(p["users"][account["account_id"]]["group"])
+
+        def search_email(self, email = None, domain = None, regex = None, limit = 20):
+            import re
+            accounts = self.get("accounts")
+
+            email = email or r".*"
+            if regex is None:
+                if domain:
+                    regex = r'^%s.*@%s$' % (email, domain)
+                else:
+                    regex = r'^%s$' % email
+            regex = re.compile(regex)
+
+            for idx, account in enumerate(accounts):
+                if "email_address" not in account:
+                    continue
+                if regex.search(account["email_address"]):
+                    print(self.pprint_account(account))
+                    if idx == limit - 1:
+                        print("\n--- limit of %d entries reached ---" % limit)
+
+    backup = Backup()
+
+except:
+    print("warning: running under python 2. lru_cache doesn't exist and 'Backup' is disabled...")
