@@ -1851,6 +1851,8 @@ StudentAssignmentInfo = rclass
         </Tip>
 
     render_error : (name, error) ->
+        if typeof(error) != 'string'
+            error = misc.to_json(error)
         if error.indexOf('No such file or directory') != -1
             error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
         else
