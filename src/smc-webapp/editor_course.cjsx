@@ -1538,6 +1538,9 @@ Students = rclass
             v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
+    start_all_student_projects : ->
+        @props.redux.getActions(@props.name).start_all_student_projects()
+
     render_add_selector : ->
         if not @state.add_select?
             return
@@ -1573,8 +1576,11 @@ Students = rclass
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=4>
+                <Col md=1>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
+                </Col>
+                <Col md=3>
+                    <Button onClick={@start_all_student_projects()} bsStyle='success'>Start all Projects</Button>
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
