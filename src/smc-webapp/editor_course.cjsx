@@ -1576,10 +1576,10 @@ Students = rclass
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=1>
+                <Col md=2>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
-                <Col md=3>
+                <Col md=2>
                     <Button onClick={@start_all_student_projects} bsStyle='success'>Start all Projects</Button>
                 </Col>
                 <Col md=5>
