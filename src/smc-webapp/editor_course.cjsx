@@ -1538,7 +1538,7 @@ Students = rclass
             v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
-    start_all_student_projects : ->
+    start_all_student_projects : (e) ->
         @props.redux.getActions(@props.name).start_all_student_projects()
 
     render_add_selector : ->
@@ -1580,7 +1580,7 @@ Students = rclass
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
                 <Col md=3>
-                    <Button onClick={@start_all_student_projects()} bsStyle='success'>Start all Projects</Button>
+                    <Button onClick={@start_all_student_projects} bsStyle='success'>Start all Projects</Button>
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
