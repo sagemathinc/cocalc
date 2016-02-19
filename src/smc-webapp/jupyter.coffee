@@ -68,6 +68,7 @@ class JupyterNBViewer
     constructor: (@editor, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
+        @ipynb_html_src = "/#{@editor.project_id}/raw/#{@filename}"
         @init_buttons()
 
     show: () =>
@@ -76,8 +77,13 @@ class JupyterNBViewer
             # We do this, since otherwise just loading the iframe using
             #      @iframe.contents().find('html').html(@content)
             # messes up the parent html page, e.g., foo.modal() is gone.
-            @iframe.contents().find('body')[0].innerHTML = @content
-            @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.reset_idle)
+            # setting the content this way, works in Chrome, but not FF
+            #@iframe.contents().find('body').first().html(@content)
+            # FIXME although really bad overhead, this is a quick fix for FF
+            # callback, run after "load" event below this line
+            @iframe.load ->
+                @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.reset_idle)
+            @iframe.attr('src', @ipynb_html_src)
 
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
@@ -104,7 +110,7 @@ class JupyterNBViewer
         open = @element.find('a[href=#open]')
         open.css("margin-right", "10px")
         open.attr("target", "_blank")
-        open.attr("href", "/#{@editor.project_id}/raw/#{@filename}")
+        open.attr("href", @ipynb_html_src)
 
 ipython_notebook_server = (opts) ->
     console.log("ipython_notebook_server")
