@@ -278,7 +278,17 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
   ## From http://www.polymake.org/doku.php/howto/install
   ## Get latest from http://www.polymake.org/doku.php/download/start and build:
 
-      apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc && cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.14r1.tar.bz2&& tar xvf polymake-2.14r1.tar.bz2 && cd polymake-2.14 && ./configure && make && make install && rm -rf /tmp/polymake*
+* polymake 3:
+
+    sudo apt-get install ant ant-optional default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+    cd ~/tmp/
+    wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
+    tar xf polymake-3.0r1.tar.bz2
+    cd polymake-3.0/
+    ./configure
+    nice make -j4
+
+Then files were installed into `/usr/local` and pushing that out for everyone.
 
 # Make ROOT data analysis ipython notebook support system-wide work.
 
