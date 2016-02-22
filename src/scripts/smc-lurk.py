@@ -11,15 +11,18 @@ sys.path.insert(0, d)
 
 from smc_rethinkdb import *
 from pprint import pprint
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import utc
 from Queue import Queue
 from threading import Thread
+import socket
+import numpy as np
 
 try:
     from geoip import geolite2
+    print("don't forget ot periodically update the geolite2 db via pip install --user -U python-geoip-geolite2")
 except:
-    print("do $ pip install python-geoip-geolite2 ... or something like that")
+    print("do $ pip install --user python-geoip-geolite2 ... or something like that")
     sys.exit(1)
 
 try:
@@ -27,16 +30,27 @@ try:
     geolocator = Nominatim()
 except:
     print("do $ pip install --user geopy")
+    sys.exit(1)
 
 get_acc_id = r.row["new_val"]["value"]["account_id"]
 
 q = Queue()
+
+recent = dict()
 
 def print_data():
     # doing this async because of Nominatim
     while True:
         try:
             left, right = q.get()
+
+            # first, a bit of rate limiting
+            account_id = right["account_id"]
+            if account_id in recent:
+                if datetime.utcnow() - timedelta(minutes = 10) > recent[account_id]:
+                    continue
+            recent[account_id] = datetime.utcnow()
+
             c = left["new_val"]
             event = c["event"]
             value = c["value"]
@@ -47,6 +61,7 @@ def print_data():
                 last_active = str(last_active)[:16]
                 right.pop("last_active")
             else:
+                ago = np.nan
                 last_active = "NaN"
 
             ip = value["ip_address"]
@@ -55,14 +70,19 @@ def print_data():
             print("{name:<60s}\n    last seen: {last_active} ({ago:.2f} days ago)"\
                   .format(ago=ago, name = name, ip = ip, last_active = last_active, **right))
 
+            try:
+                dns = socket.gethostbyaddr(ip)[0]
+                print("    IP: {ip:<15s} → DNS: {dns}".format(**locals()))
+            except Exception as ex:
+                pass
+
             geo = geolite2.lookup(ip)
             if geo is not None:
                 loc = geolocator.reverse("{0}, {1}".format(*geo.location))
                 addr = loc.address.split(",")
-                addr = ", ".join(addr[2:])
-            else:
-                addr = "NaN"
-            print(u"    location: {}".format(addr))
+                addr = ", ".join(reversed(addr[min(len(addr), 2):]))
+                print(u"    location: {}".format(addr))
+
             print("")
         except Exception as ex:
             print("Error: %s" % ex)
