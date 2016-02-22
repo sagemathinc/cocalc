@@ -17,6 +17,7 @@ from Queue import Queue
 from threading import Thread
 import socket
 import numpy as np
+from collections import Counter
 
 try:
     from geoip import geolite2
@@ -37,6 +38,7 @@ get_acc_id = r.row["new_val"]["value"]["account_id"]
 q = Queue()
 
 recent = dict()
+countries = Counter()
 
 def print_data():
     # doing this async because of Nominatim
@@ -47,7 +49,7 @@ def print_data():
             # first, a bit of rate limiting
             account_id = right["account_id"]
             if account_id in recent:
-                if datetime.utcnow() - timedelta(minutes = 10) > recent[account_id]:
+                if datetime.utcnow() - timedelta(minutes = 10) < recent[account_id]:
                     continue
             recent[account_id] = datetime.utcnow()
 
@@ -80,20 +82,28 @@ def print_data():
             if geo is not None:
                 loc = geolocator.reverse("{0}, {1}".format(*geo.location))
                 addr = loc.address.split(",")
+                country = addr[-1]
+                countries[country] += 1
                 addr = ", ".join(reversed(addr[min(len(addr), 2):]))
                 print(u"    location: {}".format(addr))
 
-            print("")
         except Exception as ex:
             print("Error: %s" % ex)
         finally:
+            print("")
             q.task_done()
 
 t = Thread(target = print_data)
 t.daemon = True
 t.start()
 
-for c in central_log.changes().eq_join(get_acc_id, accounts).run():
-    q.put((c["left"], c["right"]))
+try:
+    for c in central_log.changes().eq_join(get_acc_id, accounts).run():
+        q.put((c["left"], c["right"]))
+except KeyboardInterrupt:
+    q.join()
 
-q.join()
+    print("")
+    print("Countries:")
+    for c, n in countries.most_common(20):
+        print("{:<3d}x {}".format(n, c))
