@@ -8,8 +8,9 @@ print("WARNING: don't share the generated data publicly. It is solely used to im
 import sys, os
 d = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, d)
+SMC_ROOT = os.environ.get("SMC_ROOT", '.')
 
-from smc_rethinkdb import *
+from smc_rethinkdb import r, central_log, accounts
 from pprint import pprint
 from datetime import datetime, timedelta
 from pytz import utc
@@ -27,9 +28,23 @@ except:
     sys.exit(1)
 
 try:
+    # Open Street Map
     from geopy.geocoders import Nominatim
     geolocator = Nominatim()
-except:
+    def loc2addr(loc):
+        addr = loc.address.split(",")
+        country = addr[-1]
+        return addr, country
+
+    # Google
+    #AUTH = open(os.path.join(SMC_ROOT, 'data/secrets/geocode-api')).read().strip()
+    #from geopy import GoogleV3
+    #geolocator = GoogleV3(api_key=AUTH)
+    #def loc2addr(loc):
+    #    return loc, None
+
+except Exception as ex:
+    #raise ex
     print("do $ pip install --user geopy")
     sys.exit(1)
 
@@ -81,8 +96,8 @@ def print_data():
             geo = geolite2.lookup(ip)
             if geo is not None:
                 loc = geolocator.reverse("{0}, {1}".format(*geo.location))
-                addr = loc.address.split(",")
-                country = addr[-1]
+                addr, country = loc2addr(loc)
+                # print(str(addr))
                 countries[country] += 1
                 addr = ", ".join(reversed(addr[min(len(addr), 2):]))
                 print(u"    location: {}".format(addr))
