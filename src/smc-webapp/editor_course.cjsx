@@ -432,6 +432,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             title = "#{store.get_student_name(student_id)} - #{store.getIn(['settings', 'title'])}"
             redux.getActions('projects').set_project_title(student_project_id, title)
 
+        start_all_student_projects: () =>
+            get_store()?.get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                if student_project_id?
+                    redux.getActions('projects').start_project(student_project_id)
+
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
             get_store()?.get_students().map (student, student_id) =>
@@ -1532,6 +1538,9 @@ Students = rclass
             v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
+    start_all_student_projects : (e) ->
+        @props.redux.getActions(@props.name).start_all_student_projects()
+
     render_add_selector : ->
         if not @state.add_select?
             return
@@ -1567,8 +1576,11 @@ Students = rclass
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=4>
+                <Col md=2>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
+                </Col>
+                <Col md=2>
+                    <Button onClick={@start_all_student_projects} bsStyle='success'>Start all Projects</Button>
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
