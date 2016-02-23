@@ -174,6 +174,18 @@ def export_accounts(outfn):
                 #email = account.pop("email_address")
                 #data[email] = account
 
+def active_teachers():
+    q = projects.has_fields('course').pluck('project_id','course', "last_edited").filter(r.row["last_edited"] > time_past(14*24))
+    cs = set(p["course"]["project_id"] for p in q.run())
+    pids = [p for p in cs if projects.get(p)["host"]["host"].run() >= "compute4-us"]
+    for pid in pids:
+        u = projects.get(pid)["users"].run()
+        for k, v in u.items():
+            if v["group"] == "owner":
+                t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
+                addr = "{first_name} {last_name} <{email_address}>".format(**t)
+                print("{addr:<50s} teaching {pid}".format(addr = addr, pid = pid))
+
 ### This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
 

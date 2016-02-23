@@ -3,7 +3,7 @@
 # this script should be python3, but geolite2 requires 2 :-\
 from __future__ import print_function, unicode_literals
 
-print("WARNING: don't share the generated data publicly. It is solely used to improve the service!")
+print("WARNING: CONFIDENTIAL -- don't share the generated data publicly. It is solely used to improve the service!")
 
 import sys, os
 d = os.path.abspath(os.path.dirname(__file__))
@@ -22,7 +22,7 @@ from collections import Counter
 
 try:
     from geoip import geolite2
-    print("don't forget ot periodically update the geolite2 db via pip install --user -U python-geoip-geolite2")
+    print("don't forget to periodically update the geolite2 db via pip install --user -U python-geoip-geolite2")
 except:
     print("do $ pip install --user python-geoip-geolite2 ... or something like that")
     sys.exit(1)
