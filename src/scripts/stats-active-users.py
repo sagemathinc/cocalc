@@ -21,7 +21,7 @@ ago = datetime(2015, 1, 1).replace(tzinfo = utc)
 # now = datetime(2016, 3, 1).replace(tzinfo = utc)
 
 # round down to midnight
-aga = ago.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+ago = ago.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
 
 # ATTN: central_log doesn't record all sign_in events, probably due to some missing case for passports. hence that's incomplete
 # q = central_log.between(ago, now, index='time')#.filter({'event' : 'successful_sign_in', 'value' : {'email_address' : "harald.schilly@gmail.com"}})

@@ -36,6 +36,31 @@ import os
 from os.path import join
 import json
 
+
+def secs2hms(secs, as_string=True):
+    '''
+    Convert seconds into hours, minutes, seconds or a human readable string.
+    '''
+    h = int(secs // 60**2)
+    m = int((secs // 60) % 60)
+    s = secs % 60
+    if as_string:
+        if h > 0:
+            # rounding
+            if s > 30:
+                m += 1
+                if m == 60:
+                    h += 1
+            hms = "{h:d}h{m:02d}m"
+        elif m > 0:
+            hms = "{m:d}m{s:02.0f}s"
+        else:
+            hms = "{s:5.2f}s"
+        return hms.format(**locals())
+    else:
+        return h, m, s
+
+
 def datetime_serialize(obj):
     """
     To help json.dump to deal with datetime.datetime objects.
