@@ -5,7 +5,7 @@
 # it bin-counts the active projects or active users by 10 minutes sized bins.
 # that's much more accurate than just counting activities in bulk and allows to discretely sum up the event bins.
 
-print("WARNING: don't share the generated data publicly. It is solely used to improve the service!")
+print("CONFIDENTIAL: don't share the generated data publicly. It is solely used to improve the service!")
 
 import sys, os
 d = os.path.abspath(os.path.dirname(__file__))
@@ -28,7 +28,7 @@ import itertools as it
 #aid_count = it.count()
 #anon_aid = defaultdict(lambda : next(aid_count))
 
-DAYS_AGO = 7
+DAYS_AGO = int(sys.argv[1]) if len(sys.argv) >= 2 else 7
 now = datetime.utcnow().replace(tzinfo = utc)
 ago = now - timedelta(days = DAYS_AGO)
 
@@ -85,9 +85,9 @@ print("Top Users")
 for (aid, nb) in users_tot.most_common(30):
     # nb: number of 10min intervals
     x = 60 * 10 * nb
-    print("{:>9}s {}".format(secs2hms(x), users[aid]))
+    print("{:>9}s {} ({})".format(secs2hms(x), users[aid], aid))
     sum_user_total += x
 
 print()
 ratio = (sum_user_total / 60.) / (DAYS_AGO * 24 * 60)
-print("Sum of user activity: {} (radio: 1:{:.2f})".format(secs2hms(sum_user_total), ratio))
+print("Sum of all {} user's activity: {} (radio: 1:{:.2f})".format(len(users_tot), secs2hms(sum_user_total), ratio))
