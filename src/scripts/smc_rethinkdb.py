@@ -35,6 +35,7 @@ from pytz import utc
 import os
 from os.path import join
 import json
+import numpy as np
 
 
 def secs2hms(secs, as_string=True):
@@ -92,7 +93,7 @@ for t in r.table_list().run():
 ### Library Functions ###
 _print = print
 
-def print(x):
+def print(x = ""):
     if isinstance(x, dict):
         import json
         _print(json.dumps(x, indent=2, default = lambda t : t.isoformat()))
@@ -174,17 +175,35 @@ def export_accounts(outfn):
                 #email = account.pop("email_address")
                 #data[email] = account
 
-def active_teachers():
-    q = projects.has_fields('course').pluck('project_id','course', "last_edited").filter(r.row["last_edited"] > time_past(14*24))
-    cs = set(p["course"]["project_id"] for p in q.run())
-    pids = [p for p in cs if projects.get(p)["host"]["host"].run() >= "compute4-us"]
-    for pid in pids:
-        u = projects.get(pid)["users"].run()
-        for k, v in u.items():
-            if v["group"] == "owner":
-                t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
-                addr = "{first_name} {last_name} <{email_address}>".format(**t)
-                print("{addr:<50s} teaching {pid}".format(addr = addr, pid = pid))
+def active_courses(days = 14):
+    courses = projects.has_fields('course')\
+            .filter(r.row["last_edited"] > time_past(days*24))\
+            .pluck('course')["course"]["project_id"].distinct().run()
+
+    main_courses = projects.get_all(*courses)\
+            .filter(r.row["host"]["host"] >= "compute4-us")\
+            .pluck("project_id", "title", "last_edited", "users", "host").run()
+
+    # e is a (account_id, account_data) pair
+    group_order = {"owner": 0, "collaborator": 1}
+    sort_collabs =  lambda e : (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
+
+    print("<DOCTYPE html>")
+    print("<html><body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
+    for p in sorted(main_courses, key = lambda course : course["title"]):
+        h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
+        edited = p["last_edited"].isoformat()[:16]
+        course = "<h3>{h3}</h3><div>last edit: {edited}, host: {host[host]}".format(edited = edited, h3=h3, **p)
+        print(course)
+        print("<ul>")
+        u = p["users"]
+        for k, v in sorted(u.items(), key = sort_collabs):
+            t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
+            t["email_address"] = t.get("email_address", "None")
+            addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
+            print("<li>{addr} ({group})</li>".format(addr = addr, **v))
+        print("</ul></div>")
+    print("</body></html>")
 
 ### This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
@@ -307,3 +326,8 @@ try:
 
 except:
     print("warning: running under python 2. lru_cache doesn't exist and 'Backup' is disabled...")
+
+if __name__ == "__main__":
+    import sys
+    if sys.argv[1] == "courses":
+        active_courses()
