@@ -316,8 +316,9 @@ LANDING_PAGE_CONTENT =
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
-    <iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
-    </iframe>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/AEKOjac9obk" frameBorder="0" allowFullScreen></iframe>
+    #<iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
+    #</iframe>
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
@@ -486,7 +487,7 @@ exports.LandingPage = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs" style=marginTop:'60px'>
+                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
                         <SMC_Commercial />
                     </Col>
                     <Col sm=5>

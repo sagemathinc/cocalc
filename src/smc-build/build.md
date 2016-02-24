@@ -11,7 +11,7 @@ put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
 # Compute VM's
 
 ```
-apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev python3-psutil python-simplegeneric
+apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev python-psutil python3-psutil python-simplegeneric
 ```
 
 # Critical to get rid of certain packages that just cause trouble:
@@ -278,7 +278,17 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
   ## From http://www.polymake.org/doku.php/howto/install
   ## Get latest from http://www.polymake.org/doku.php/download/start and build:
 
-      apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc && cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.14r1.tar.bz2&& tar xvf polymake-2.14r1.tar.bz2 && cd polymake-2.14 && ./configure && make && make install && rm -rf /tmp/polymake*
+* polymake 3:
+
+    sudo apt-get install ant ant-optional default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+    cd ~/tmp/
+    wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
+    tar xf polymake-3.0r1.tar.bz2
+    cd polymake-3.0/
+    ./configure
+    nice make -j4
+
+Then files were installed into `/usr/local` and pushing that out for everyone.
 
 # Make ROOT data analysis ipython notebook support system-wide work.
 
@@ -382,7 +392,6 @@ In /etc/sysctl.conf, put:
 
     sudo su
     umask 022
-    pip install twitter ctop
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
     pip3 install --upgrade numba holoviews
 
@@ -393,7 +402,9 @@ In /etc/sysctl.conf, put:
 
 # And for normal python2:
 
-    pip install datasift bokeh
+    sudo su
+    umask 022
+    pip install datasift bokeh twitter ctop macs2
 
 # System-wide git trac
 

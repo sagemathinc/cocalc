@@ -432,6 +432,15 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             title = "#{store.get_student_name(student_id)} - #{store.getIn(['settings', 'title'])}"
             redux.getActions('projects').set_project_title(student_project_id, title)
 
+        # start projects of all (non-deleted) students running
+        start_all_student_projects: () =>
+            get_store()?.get_students().map (student, student_id) =>
+                if not student.get('deleted')
+                    # really only start non-deleted students' projects
+                    student_project_id = student.get('project_id')
+                    if student_project_id?
+                        redux.getActions('projects').start_project(student_project_id)
+
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
             get_store()?.get_students().map (student, student_id) =>
@@ -1060,6 +1069,15 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         # number of non-deleted students
         num_students: => @_num_nondeleted(@get_students())
 
+        # number of student projects that are currently running
+        num_running_projects: (project_map) =>
+            n = 0
+            get_store()?.get_students().map (student, student_id) =>
+                if not student.get('deleted')
+                    if project_map.getIn([student.get('project_id'), 'state', 'state']) == 'running'
+                        n += 1
+            return n
+
         # number of non-deleted assignments
         num_assignments: => @_num_nondeleted(@get_assignments())
 
@@ -1530,7 +1548,7 @@ Students = rclass
             if seen[key] then continue else seen[key]=true
             student_name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
             v.push <option key={key} value={key} label={student_name}>{student_name}</option>
-        return v
+        return
 
     render_add_selector : ->
         if not @state.add_select?
@@ -1851,6 +1869,8 @@ StudentAssignmentInfo = rclass
         </Tip>
 
     render_error : (name, error) ->
+        if typeof(error) != 'string'
+            error = misc.to_json(error)
         if error.indexOf('No such file or directory') != -1
             error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
         else
@@ -2506,6 +2526,7 @@ Settings = rclass
         path        : rtypes.string.isRequired
         settings    : rtypes.object.isRequired  # immutable js
         project_id  : rtypes.string.isRequired
+        project_map : rtypes.object.isRequired  # immutable js
 
     getInitialState : ->
         delete_student_projects_confirm : false
@@ -2694,9 +2715,32 @@ Settings = rclass
             </ButtonToolbar>
         </Well>
 
+    render_start_all_projects: ->
+        r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
+        n = @props.redux.getStore(@props.name).num_students()
+
+        <Panel header={<h4><Icon name='flash'/> Start all student projects</h4>}>
+            <Row>
+                <Col md=6>
+                    <Button bsStyle='primary' onClick={@start_all_student_projects} disabled={n==r or n==0}><Icon name="flash"/> Start all student projects</Button>
+                </Col>
+                <Col md=6>
+                    <div style={paddingTop: '10px'}>
+                        {r} of {n} student projects are running.
+                    </div>
+                </Col>
+            </Row>
+            <hr/>
+            <span style={color:'#666'}>
+                <p>You may start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.
+                </p>
+            </span>
+        </Panel>
+
+
     render_delete_all_projects: ->
         <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
-            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}>Delete all Student Projects...</Button>
+            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}><Icon name="trash"/> Delete all Student Projects...</Button>
             {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
             <hr/>
             <span style={color:'#666'}>
@@ -2732,6 +2776,9 @@ Settings = rclass
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
+
+    start_all_student_projects : (e) ->
+        @props.redux.getActions(@props.name).start_all_student_projects()
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -3075,6 +3122,7 @@ Settings = rclass
                     {@render_require_students_pay()}
                     {@render_upgrade_student_projects()}
                     {@render_save_grades()}
+                    {@render_start_all_projects()}
                     {@render_delete_all_projects()}
                 </Col>
                 <Col md=6>
@@ -3138,7 +3186,8 @@ CourseEditor = (name) -> rclass
         if @props.redux? and @props.settings?
             <Settings redux={@props.redux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
-                      path={@props.path} />
+                      path={@props.path}
+                      project_map={@props.project_map} />
         else
             return <Loading />
 

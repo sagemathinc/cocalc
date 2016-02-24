@@ -1437,12 +1437,14 @@ exports.escapeRegExp = escapeRegExp = (str) ->
 smileys_definition = [
     [':-)',          "😁"],
     [':-(',          "😞"],
-    ['<3',           "♡"],
+    ['<3',           "♡",             null, '\\b'],
     [':shrug:',      "¯\\\\_(ツ)_/¯"],
-    ['o_o',          "סּ_\סּ"],
-    [':-p',          "😛"],
+    ['o_o',          "סּ_\סּ",         '\\b', '\\b'],
+    [':-p',          "😛",            null, '\\b'],
     ['>_<',          "😆"],
-    ['^^',           "😄"],
+    ['^^',           "😄",            '^',   '\S'],
+    ['^^ ',          "😄 "],
+    [' ^^',          " 😄"],
     [';-)',          "😉"],
     ['-_-',          "😔"],
     [':-\\',         "😏"],
@@ -1453,7 +1455,12 @@ smileys_definition = [
 smileys = []
 
 for smiley in smileys_definition
-    smileys.push([RegExp(escapeRegExp(smiley[0]), 'g'), smiley[1]])
+    s = escapeRegExp(smiley[0])
+    if smiley[2]?
+        s = smiley[2] + s
+    if smiley[3]?
+        s = s + smiley[3]
+    smileys.push([RegExp(s, 'g'), smiley[1]])
 
 exports.smiley = (opts) ->
     opts = exports.defaults opts,
@@ -1471,7 +1478,7 @@ exports.smiley = (opts) ->
 _ = underscore
 
 exports.smiley_strings = () ->
-    return _.map(smileys_definition, _.first)
+    return _.filter(_.map(smileys_definition, _.first), (x) -> ! _.contains(['^^ ', ' ^^'], x))
 
 # converts an array to a "human readable" array
 exports.to_human_list = (arr) ->
