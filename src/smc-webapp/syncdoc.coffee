@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2015, 2016 William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,30 +19,6 @@
 #
 ###############################################################################
 
-###
-Synchronized Documents
-
-A merge map, with the arrows pointing upstream:
-
-        else
-            @editor._set("Loading...")
-
-     [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client] <--- YOU ARE HERE
-                      /|\             |
-     [client]-----------             \|/
-                              [a file on disk]
-
-The Global Architecture of Synchronized Documents:
-
-Imagine say 1000 clients divided evenly amongst 10 hubs (so 100 clients per hub).
-There is only 1 local hub, since it is directly linked to an on-disk file.
-
-The global hubs manage their 100 clients each, merging together sync's, and sending them
-(as a batch) to the local hub.  Broadcast messages go from a client, to its hub, then back
-to the other 99 clients, then on to the local hub, out to 9 other global hubs, and off to
-their 900 clients in parallel.
-
-###
 
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
@@ -51,10 +27,6 @@ CONNECT_TIMEOUT_S = 45  # Sage (hence sage worksheets) can take a long time to s
 DEFAULT_TIMEOUT   = 45
 
 log = (s) -> console.log(s)
-
-diffsync = require('diffsync')
-
-MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
 misc     = require('smc-util/misc')
 {defaults, required} = misc
@@ -82,91 +54,6 @@ account = require('./account')
 # connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
     return $(".salvus-editor-codemirror-not-synced:visible").length > 0
-
-class DiffSyncDoc
-    # Define exactly one of cm or string.
-    #     cm     = a live codemirror editor
-    #     string = a string
-    constructor: (opts) ->
-        @opts = defaults opts,
-            cm       : undefined
-            string   : undefined
-            readonly : false   # only impacts the editor
-        if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
-            console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
-
-    copy: () =>
-        # always degrades to a string
-        if @opts.cm?
-            return new DiffSyncDoc(string:@opts.cm.getValue())
-        else
-            return new DiffSyncDoc(string:@opts.string)
-
-    string: () =>
-        if @opts.string?
-            return @opts.string
-        else
-            return @opts.cm.getValue()  # WARNING: this is *not* cached.
-
-    diff: (v1) =>
-        # TODO: when either is a codemirror object, can use knowledge of where/if
-        # there were edits as an optimization
-        return diffsync.dmp.patch_make(@string(), v1.string())
-
-    patch: (p) =>
-        return new DiffSyncDoc(string: diffsync.dmp.patch_apply(p, @string())[0])
-
-    checksum: () =>
-        return @string().length
-
-    patch_in_place: (p) =>
-        if @opts.string
-            console.log("patching string in place -- should never happen")
-            @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
-        else
-            cm = @opts.cm
-            cm.patchApply(p)
-
-# DiffSyncDoc is useful outside, e.g., for task list.
-exports.DiffSyncDoc = DiffSyncDoc
-
-codemirror_diffsync_client = (cm_session, content) ->
-    # This happens on initialization and reconnect.  On reconnect, we could be more
-    # clever regarding restoring the cursor and the scroll location.
-    cm_session.codemirror._cm_session_cursor_before_reset = cm_session.codemirror.getCursor()
-    cm_session.codemirror.setValueNoJump(content)
-
-    return new diffsync.CustomDiffSync
-        doc            : new DiffSyncDoc(cm:cm_session.codemirror, readonly: cm_session.readonly)
-        copy           : (s) -> s.copy()
-        diff           : (v0,v1) -> v0.diff(v1)
-        patch          : (d, v0) -> v0.patch(d)
-        checksum       : (s) -> s.checksum()
-        patch_in_place : (p, v0) -> v0.patch_in_place(p)
-
-# The DiffSyncHub class represents a global hub viewed as a
-# remote server for this client.
-class DiffSyncHub
-    constructor: (@cm_session) ->
-
-    connect: (remote) =>
-        @remote = remote
-
-    recv_edits: (edit_stack, last_version_ack, cb) =>
-        @cm_session.call
-            message : message.codemirror_diffsync(edit_stack:edit_stack, last_version_ack:last_version_ack)
-            timeout : DEFAULT_TIMEOUT
-            cb      : (err, mesg) =>
-                if err
-                    cb(err)
-                else if mesg.event != 'codemirror_diffsync'
-                    # various error conditions, e.g., reconnect, etc.
-                    if mesg.error?
-                        cb(mesg.error)
-                    else
-                        cb(true)
-                else
-                    @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
 
 {EventEmitter} = require('events')
@@ -1265,6 +1152,4 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @_closed = true
 
 
-################################
-exports.SynchronizedDocument  = SynchronizedDocument
 exports.SynchronizedDocument2 = SynchronizedDocument2
