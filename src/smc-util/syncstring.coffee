@@ -27,7 +27,6 @@ underscore = require('underscore')
 node_uuid = require('node-uuid')
 async     = require('async')
 
-diffsync  = require('./diffsync')
 misc      = require('./misc')
 {sagews}  = require('./sagews')
 

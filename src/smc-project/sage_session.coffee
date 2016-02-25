@@ -8,7 +8,6 @@ winston   = require('winston')
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
-diffsync  = require('smc-util/diffsync')
 
 port_manager = require('./port_manager')
 

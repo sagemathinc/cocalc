@@ -28,10 +28,9 @@ Synchronized document-oriented database -- browser client.
 ###
 
 
-syncdoc  = require('./syncdoc')
-diffsync = require('diffsync')
-misc     = require('smc-util/misc')
-
+syncdoc              = require('./syncdoc')
+misc                 = require('smc-util/misc')
+{SynchronizedDB}     = require('smc-util/syncdb')
 {defaults, required} = misc
 
 to_json = (s) ->
@@ -57,5 +56,5 @@ exports.synchronized_db = (opts) ->
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, new diffsync.SynchronizedDB(doc, to_json, undefined, opts.max_len))
+                opts.cb(undefined, new SynchronizedDB(doc, to_json, undefined, opts.max_len))
     return

@@ -1545,10 +1545,12 @@ Students = rclass
         seen = {}
         for x in @state.add_select
             key = x.account_id ? x.email_address
-            if seen[key] then continue else seen[key]=true
+            if seen[key]
+                continue
+            seen[key] = true
             student_name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
-            v.push <option key={key} value={key} label={student_name}>{student_name}</option>
-        return
+            v.push(<option key={key} value={key} label={student_name}>{student_name}</option>)
+        return v
 
     render_add_selector : ->
         if not @state.add_select?
