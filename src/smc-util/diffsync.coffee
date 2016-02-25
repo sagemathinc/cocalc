@@ -596,55 +596,6 @@ exports.test7 = (n=1) ->
 
 exports.DiffSync = DiffSync
 
-#---------------------------------------------------------------------------------------------------------
-# Support for using synchronized docs to represent Sage Worksheets (i.e., live compute documents)
-#---------------------------------------------------------------------------------------------------------
-
-# WARNING: in Codemirror, to avoid issues with parsing I also set the output marker to be a comment character
-# by modifying the python mode as follows:     if (ch == "#"  || ch == "\uFE21") {
-
-exports.MARKERS =
-    cell   : "\uFE20"
-    output : "\uFE21"
-
-exports.FLAGS = FLAGS =
-    execute      : "x"   # request that cell be executed
-    waiting      : "w"   # request to execute received, but still not running (because of another cell running)
-    running      : "r"   # cell currently running
-    interrupt    : "c"   # request execution of cell be interrupted
-    this_session : "s"   # if set, cell was executed during the current sage session.
-    hide_input   : "i"   # hide input part of cell
-    hide_output  : "o"   # hide output part of cell
-    auto         : "a"   # if set, run the cell when the sage session first starts
-
-exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt, FLAGS.this_session]
-
-# Return a list of the uuids of files that are displayed in the given document,
-# where doc is the string representation of a worksheet.
-# At present, this function finds all output messages of the form
-#   {"file":{"uuid":"806f4f54-96c8-47f0-9af3-74b5d48d0a70",...}}
-# but it could do more at some point in the future.
-
-exports.uuids_of_linked_files = (doc) ->
-    uuids = []
-    i = 0
-    while true
-        i = doc.indexOf(exports.MARKERS.output, i)
-        if i == -1
-            return uuids
-        j = doc.indexOf('\n', i)
-        if j == -1
-            j = doc.length
-        line = doc.slice(i, j)
-        for m in line.split(exports.MARKERS.output).slice(1)
-            # Only bother to run the possibly slow JSON.parse on file messages; since
-            # this function would block the global hub server, this is important.
-            if m.slice(0,8) == '{"file":'
-                mesg = JSON.parse(m)
-                uuid = mesg.file?.uuid
-                if uuid?
-                    uuids.push(uuid)
-        i = j
 
 
 #---------------------------------------------------------------------------------------------------------
@@ -991,46 +942,6 @@ class exports.SynchronizedDB extends EventEmitter
 
     count: () =>
         return misc.len(@_data)
-
-#---------------------------------------------------------------------------------------------------------
-# Support for editing history of a differential synchronized file
-#---------------------------------------------------------------------------------------------------------
-
-
-# Here's what a patch looks like
-#
-# [{"diffs":[[1,"{\"x\":5,\"y\":3}"]],"start1":0,"start2":0,"length1":0,"length2":13},...]
-#
-exports.compress_patch = (patch) ->
-    ([p.diffs, p.start1, p.start2, p.length1, p.length2] for p in patch)
-
-exports.decompress_patch = decompress_patch = (patch) ->
-    ({diffs:p[0], start1:p[1], start2:p[2], length1:p[3], length2:p[4]} for p in patch)
-
-# this work on non-compressed patches as well.
-exports.decompress_patch_compat = (patch) ->
-    if patch[0]?.diffs?
-        patch
-    else
-        decompress_patch(patch)
-
-
-exports.invert_patch_in_place = (patch) ->
-    # Beware of potential bugs in the following code -- I have only tried
-    # it, not proved it correct.
-    # I conjecture that this correctly computes the "inverse" of
-    # a DMP patch, assuming the patch applies cleanly.  -- Jonathan Lee
-    if patch.length == 0
-        return patch
-    for i in [0..patch.length-1]
-        temp = patch[i].length1
-        patch[i].length1 = patch[i].length2
-        patch[i].length2 = temp
-        for j in [0..patch[i].diffs.length-1]
-            patch[i].diffs[j][0] = -patch[i].diffs[j][0]
-    patch = patch.reverse()
-
-
 
 
 

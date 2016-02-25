@@ -2,14 +2,63 @@
 Some functions for working with Sage worksheets (sagews files) --
 ###
 
-diffsync  = require('./diffsync')
+#---------------------------------------------------------------------------------------------------------
+# Support for using synchronized docs to represent Sage Worksheets (i.e., live compute documents)
+#---------------------------------------------------------------------------------------------------------
+
+# WARNING: in Codemirror, to avoid issues with parsing I also set the output marker to be a comment character
+# by modifying the python mode as follows:     if (ch == "#"  || ch == "\uFE21") {
+
+exports.MARKERS =
+    cell   : "\uFE20"
+    output : "\uFE21"
+
+exports.FLAGS = FLAGS =
+    execute      : "x"   # request that cell be executed
+    waiting      : "w"   # request to execute received, but still not running (because of another cell running)
+    running      : "r"   # cell currently running
+    interrupt    : "c"   # request execution of cell be interrupted
+    this_session : "s"   # if set, cell was executed during the current sage session.
+    hide_input   : "i"   # hide input part of cell
+    hide_output  : "o"   # hide output part of cell
+    auto         : "a"   # if set, run the cell when the sage session first starts
+
+exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt, FLAGS.this_session]
+
+# Return a list of the uuids of files that are displayed in the given document,
+# where doc is the string representation of a worksheet.
+# At present, this function finds all output messages of the form
+#   {"file":{"uuid":"806f4f54-96c8-47f0-9af3-74b5d48d0a70",...}}
+# but it could do more at some point in the future.
+
+exports.uuids_of_linked_files = (doc) ->
+    uuids = []
+    i = 0
+    while true
+        i = doc.indexOf(exports.MARKERS.output, i)
+        if i == -1
+            return uuids
+        j = doc.indexOf('\n', i)
+        if j == -1
+            j = doc.length
+        line = doc.slice(i, j)
+        for m in line.split(exports.MARKERS.output).slice(1)
+            # Only bother to run the possibly slow JSON.parse on file messages; since
+            # this function would block the global hub server, this is important.
+            if m.slice(0,8) == '{"file":'
+                mesg = JSON.parse(m)
+                uuid = mesg.file?.uuid
+                if uuid?
+                    uuids.push(uuid)
+        i = j
+
 
 class SageWS
     constructor: (@content) ->
 
     find_cell_meta: (id, start) =>
-        i = @content.indexOf(diffsync.MARKERS.cell + id, start)
-        j = @content.indexOf(diffsync.MARKERS.cell, i+1)
+        i = @content.indexOf(exports.MARKERS.cell + id, start)
+        j = @content.indexOf(exports.MARKERS.cell, i+1)
         if j == -1
             return undefined
         return {start:i, end:j}

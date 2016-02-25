@@ -307,8 +307,7 @@ exports.public_access_supported = (filename) ->
 
 # Multiplex'd worksheet mode
 
-diffsync = require('diffsync')
-MARKERS  = diffsync.MARKERS
+{MARKERS} = require('smc-util/sagews')
 
 sagews_decorator_modes = [
     ['cjsx'        , 'text/cjsx'],
@@ -878,7 +877,6 @@ class exports.Editor
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
-
                 delete window.smc.editors?[filename]          # FOR DEBUGGING ONLY!
 
         link.data('tab', @tabs[filename])

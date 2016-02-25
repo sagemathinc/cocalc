@@ -22,7 +22,7 @@
 
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
-{dmp}       = require('diffsync')
+{dmp}       = require('smc-util/syncstring')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 

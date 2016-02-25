@@ -5,8 +5,8 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 ###
 
-diffsync = require('./diffsync')
-misc     = require('./misc')
+sagews = require('./sagews')
+misc   = require('./misc')
 
 {defaults, required} = misc
 
@@ -74,11 +74,11 @@ class exports.Evaluator
             dbg("closed")
             return
 
-        output_line = diffsync.MARKERS.output
+        output_line = sagews.MARKERS.output
         process = (mesg) =>
             dbg("processing mesg '#{misc.to_json(mesg)}'")
             content = @string.get()
-            i = content.indexOf(diffsync.MARKERS.output + output_uuid)
+            i = content.indexOf(sagews.MARKERS.output + output_uuid)
             if i == -1
                 # no cell anymore -- do nothing further
                 process = undefined
@@ -87,20 +87,20 @@ class exports.Evaluator
             n = content.indexOf('\n', i)
             if n == -1   # corrupted
                 return
-            output_line += misc.to_json(misc.copy_without(mesg, ['event'])) + diffsync.MARKERS.output
+            output_line += misc.to_json(misc.copy_without(mesg, ['event'])) + sagews.MARKERS.output
             #winston.debug("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
             if output_line.length > n - i
                 #winston.debug("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
                 x = content.slice(0, i)
                 content = x + output_line + content.slice(n)
                 if mesg.done
-                    j = x.lastIndexOf(diffsync.MARKERS.cell)
+                    j = x.lastIndexOf(sagews.MARKERS.cell)
                     if j != -1
                         j = x.lastIndexOf('\n', j)
                         cell_id = x.slice(j+2, j+38)
                         #dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
                         S = sagews(content)
-                        S.remove_cell_flag(cell_id, diffsync.FLAGS.running)
+                        S.remove_cell_flag(cell_id, sagews.FLAGS.running)
                         content = S.content
                         #dbg("removing a cell flag: after='#{content}'")
                 @string.set(content)

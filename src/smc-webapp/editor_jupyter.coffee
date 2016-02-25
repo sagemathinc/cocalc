@@ -25,21 +25,15 @@ I didn't know about React.js at the time).
 ###
 
 async                = require('async')
-
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
-
+{dmp}                = require('smc-util/syncstring')
 {salvus_client}      = require('./salvus_client')
-
 {redux}              = require('./smc-react')
-
-diffsync             = require('diffsync')
 syncdoc              = require('./syncdoc')
-
-{synchronized_db} = require('./syncdb')
+{synchronized_db}    = require('./syncdb')
 
 templates            = $(".smc-jupyter-templates")
-
 editor_templates     = $("#salvus-editor-templates")
 
 exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".jupyter-sync"
@@ -899,7 +893,7 @@ class JupyterNotebook
         string_mapping = new misc.StringCharMapping()
         v0_string  = string_mapping.to_string(v0)
         v1_string  = string_mapping.to_string(v1)
-        diff = diffsync.dmp.diff_main(v0_string, v1_string)
+        diff = dmp.diff_main(v0_string, v1_string)
 
         index = 0
         i = 0

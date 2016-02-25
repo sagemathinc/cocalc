@@ -53,9 +53,6 @@ secret_token = require('./secret_token')
 console_session_manager = require('./console_session_manager')
 console_sessions = new console_session_manager.ConsoleSessions()
 
-# File editing sessions
-file_session_manager = require('./file_session_manager')
-
 # Ports for the various servers
 port_manager = require('./port_manager')
 
@@ -149,20 +146,12 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-# File editing sessions
-file_sessions = file_session_manager.file_sessions()
-
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
     dbg("mesg=#{json(mesg)}")
 
     if hub_client.handle_mesg(mesg, socket)
-        return
-
-    if mesg.event?.split('_')[0] == 'codemirror'
-        dbg("codemirror")
-        file_sessions.handle_mesg(socket, mesg)
         return
 
     switch mesg.event

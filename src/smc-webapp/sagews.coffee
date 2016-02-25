@@ -1,6 +1,6 @@
 async = require('async')
 
-{MARKERS, FLAGS, ACTION_FLAGS} = require('diffsync')
+{MARKERS, FLAGS, ACTION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
@@ -1827,8 +1827,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     remove_cell_flags_from_changeObj: (changeObj, flags) =>
         # Remove cell flags from *contiguous* text in the changeObj.
-        # This is useful for cut/copy/paste, but useless for
-        # diffsync (where we would not use it anyways).
+        # This is useful for cut/copy/paste.
         # This function modifies changeObj in place.
         @remove_cell_flags_from_text(changeObj.text, flags)
         if changeObj.next?
