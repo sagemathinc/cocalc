@@ -108,6 +108,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 #        ignore_output : true
                 #        caller: "change"
 
+    _apply_changeObj: (changeObj) =>
+        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
+        if changeObj.next?
+            @_apply_changeObj(changeObj.next)
+
+
     cell: (line) ->
         return new SynchronizedWorksheetCell(@, line)
         # NOTE: We do **NOT** cache cells.  The reason is that client code should create
@@ -443,23 +449,20 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             try
                 cm.undo()
             catch e
-                console.log("skipping undo: ",e)
+                console.warn("skipping undo: ",e)
 
     on_redo: (cm, changeObj) =>
         u = cm.getHistory().done
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             try
                 cm.redo()
-
                 # TODO: having to do this is potentially very bad/slow if document has large number
                 # of outputs.  However, codemirror throws away all the line classes on redo.  So have
                 # to do this.  This is temporary anyways, since we plan to get rid of using codemirror
                 # undo entirely.
                 @set_all_output_line_classes()
             catch e
-                console.log("skipping redo: ",e)
-        else
-
+                console.warn("skipping redo: ",e)
 
     interrupt: (opts={}) =>
         opts = defaults opts,
@@ -1884,6 +1887,35 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return undefined
 
         return data
+
+    refresh_soon: (wait) =>
+        if not wait?
+            wait = 1000
+        if @_refresh_soon?
+            # We have already set a timer to do a refresh soon.
+            #console.log("not refresh_soon since -- We have already set a timer to do a refresh soon.")
+            return
+        do_refresh = () =>
+            delete @_refresh_soon
+            for cm in [@codemirror, @codemirror1]
+                cm?.refresh()
+        @_refresh_soon = setTimeout(do_refresh, wait)
+
+    interrupt: () =>
+        @close_on_action()
+
+    close_on_action: (element) =>
+        # Close popups (e.g., introspection) that are set to be closed when an
+        # action, such as "execute", occurs.
+        if element?
+            if not @_close_on_action_elements?
+                @_close_on_action_elements = [element]
+            else
+                @_close_on_action_elements.push(element)
+        else if @_close_on_action_elements?
+            for e in @_close_on_action_elements
+                e.remove()
+            @_close_on_action_elements = []
 
 class SynchronizedWorksheetCell
     constructor: (@doc, line) ->

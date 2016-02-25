@@ -70,33 +70,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     focused_codemirror: () =>
         @editor.focused_codemirror()
 
-    ui_loading: () =>
-        @element.find(".salvus-editor-codemirror-loading").show()
-
-    ui_loaded: () =>
-        @element.find(".salvus-editor-codemirror-loading").hide()
-
-    on_undo: (instance, changeObj) =>
-        # do nothing in base class
-
-    on_redo: (instance, changeObj) =>
-        # do nothing in base class
-
-    ui_synced: (synced) =>
-        if synced
-            if @_ui_synced_timer?
-                clearTimeout(@_ui_synced_timer)
-                delete @_ui_synced_timer
-            @element.find(".salvus-editor-codemirror-not-synced").hide()
-            #@element.find(".salvus-editor-codemirror-synced").show()
-        else
-            if @_ui_synced_timer?
-                return
-            show_spinner = () =>
-                @element.find(".salvus-editor-codemirror-not-synced").show()
-                #@element.find(".salvus-editor-codemirror-synced").hide()
-            @_ui_synced_timer = setTimeout(show_spinner, 8*@opts.sync_interval)
-
+    ###
+    The rest of this class is chat functionality.  This will, of course, be factored out.
+    ###
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
@@ -125,7 +101,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     # clients through the render_chat_log() method, which listens to the 'sync'
     # event emitted by the chat_session object.
     write_chat_message: (opts={}) =>
-
         opts = defaults opts,
             event_type : required  # "chat", "start_video", "stop_video"
             payload    : required  # event-dependent dictionary
@@ -297,7 +272,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                         @stop_video()
 
     handle_old_chat_text_message: (mesg, last_mesg) =>
-
         entry = templates.find(".salvus-chat-entry").clone()
 
         header = entry.find(".salvus-chat-header")
@@ -333,7 +307,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         chat_output.append(entry)
 
     handle_chat_text_message: (mesg, last_mesg) =>
-
         entry = templates.find(".salvus-chat-entry").clone()
         header = entry.find(".salvus-chat-header")
 
@@ -367,7 +340,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         chat_output.append(entry)
 
     handle_chat_start_video: (mesg) =>
-
         #console.log("Start video message detected: " + mesg.payload.room_id)
 
         entry = templates.find(".salvus-chat-activity-entry").clone()
@@ -407,7 +379,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-chat-video-is-on").show()
 
     handle_chat_stop_video: (mesg) =>
-
         #console.log("Stop video message detected: " + mesg.payload.room_id)
 
         entry = templates.find(".salvus-chat-activity-entry").clone()
@@ -469,7 +440,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.emit 'show-chat'
 
     init_video_toggle: () =>
-
         video_button = @element.find(".salvus-editor-chat-title-video")
         video_button.click () =>
             if not @editor._video_is_on
@@ -489,40 +459,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @write_chat_message
             "event_type" : "stop_video"
             "payload"    : {room_id: @_video_chat_room_id}
-
-    _apply_changeObj: (changeObj) =>
-        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
-        if changeObj.next?
-            @_apply_changeObj(changeObj.next)
-
-    refresh_soon: (wait) =>
-        if not wait?
-            wait = 1000
-        if @_refresh_soon?
-            # We have already set a timer to do a refresh soon.
-            #console.log("not refresh_soon since -- We have already set a timer to do a refresh soon.")
-            return
-        do_refresh = () =>
-            delete @_refresh_soon
-            for cm in [@codemirror, @codemirror1]
-                cm?.refresh()
-        @_refresh_soon = setTimeout(do_refresh, wait)
-
-    interrupt: () =>
-        @close_on_action()
-
-    close_on_action: (element) =>
-        # Close popups (e.g., introspection) that are set to be closed when an
-        # action, such as "execute", occurs.
-        if element?
-            if not @_close_on_action_elements?
-                @_close_on_action_elements = [element]
-            else
-                @_close_on_action_elements.push(element)
-        else if @_close_on_action_elements?
-            for e in @_close_on_action_elements
-                e.remove()
-            @_close_on_action_elements = []
 
 underscore = require('underscore')
 
@@ -655,8 +591,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
-                if changeObj.origin? and changeObj.origin != 'setValue'
-                    @save_state_debounce()
+                if changeObj.origin?
+                    if changeObj.origin == 'undo'
+                        @on_undo?(instance, changeObj)
+                    if changeObj.origin == 'redo'
+                        @on_redo?(instance, changeObj)
+                    if changeObj.origin != 'setValue'
+                        @save_state_debounce()
                 else
                     # hack to ignore cursor movements resulting from remote changes
                     @_last_remote_change = new Date()
