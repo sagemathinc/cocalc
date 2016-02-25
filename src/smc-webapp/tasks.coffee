@@ -39,8 +39,6 @@ misc   = require('smc-util/misc')
 {salvus_client}   = require('./salvus_client')
 {alert_message}   = require('./alerts')
 {synchronized_db} = require('./syncdb')
-{DiffSyncDoc}     = require('./syncdoc')
-{dmp}             = require('diffsync')     # diff-match-patch library
 markdown          = require('./markdown')
 
 underscore = require('underscore')
@@ -687,9 +685,7 @@ class TaskList
                 if task.changed
                     # if the description changed
                     if task.desc != task.last_desc
-                        # compute patch and apply diff to live content
-                        p = dmp.patch_make(task.last_desc, task.desc)
-                        t.data('diff_sync').patch_in_place(p)
+                        cm.setValueNoJump(task.desc)
 
         if not task.changed
             # nothing changed, so nothing to update
@@ -964,8 +960,7 @@ class TaskList
             cm.focus()
             e.addClass('salvus-task-editing-desc')
             # apply any changes
-            p = dmp.patch_make(cm.getValue(), task.desc)
-            e.data('diff_sync').patch_in_place(p)
+            cm.setValueNoJump(task.desc)
             return
 
         elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
@@ -1023,7 +1018,6 @@ class TaskList
         if not task.desc?
             task.desc = ''
         cm.setValue(task.desc)
-        e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
 
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').css(height:'auto')  # setting height via salvus-new-task-cm-editor doesn't work.
