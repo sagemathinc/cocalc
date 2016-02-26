@@ -36,6 +36,8 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+# limit for async.map or async.paralleLimit
+MAP_LIMIT = 4
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
 # NOTE: We should add this to site configuration, and have it get read once when first
@@ -47,12 +49,12 @@ BLOB_GCLOUD_BUCKET = 'smc-blobs'
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 250)
 
-RECENT_PROJECT_TIMES =
-    active_projects     : 5
-    last_hour_projects  : 60
-    last_day_projects   : 60*24
-    last_week_projects  : 60*24*7
-    last_month_projects : 60*24*30
+RECENT_TIMES =
+    active     : 5
+    last_hour  : 60
+    last_day   : 60*24
+    last_week  : 60*24*7
+    last_month : 60*24*30
 
 ###
 NOTES:
@@ -521,7 +523,7 @@ class RethinkDB
                                     # delete some indexes
                                     async.map(to_delete, delete_index, cb)
 
-                async.map(misc.keys(SCHEMA), f, cb)
+                async.mapLimit(misc.keys(SCHEMA), MAP_LIMIT, f, cb)
             (cb) =>
                 if not opts.replication
                     cb(); return
@@ -2188,11 +2190,14 @@ class RethinkDB
         async.series([
             (cb) =>
                 dbg()
-                @table('stats').between(new Date(new Date() - 1000*opts.ttl), new Date(),
-                                           {index:'time'}).orderBy('time').run (err, x) =>
-                    if x?.length then stats=x[x.length - 1]
-                    cb(err)
+                @table('stats')
+                    .between(new Date(new Date() - 1000*opts.ttl), new Date(), {index:'time'})
+                    .orderBy('time').run (err, x) =>
+                        if x?.length then stats=x[x.length - 1]
+                        cb(err)
             (cb) =>
+                cb()
+                ###
                 if stats?
                     dbg("using recent stats from database")
                     cb(); return
@@ -2214,42 +2219,29 @@ class RethinkDB
                 else
                     # will compute from scratch
                     cb()
+                ###
             (cb) =>
                 if stats?
                     cb(); return
                 dbg("compute all stats from scratch")
                 stats = {time : new Date(), projects_created : {}, accounts_created : {}}
-                async.parallel([
-                    (cb) =>
-                        @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
-                    (cb) =>
-                        @table('projects').count().run((err, x) => stats.projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'last_edited', age_m :        5, cb : (err, x) => stats.active_projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'last_edited', age_m :       60, cb : (err, x) => stats.last_hour_projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'last_edited', age_m :    60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'last_edited', age_m :  60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'last_edited', age_m : 60*24*30, cb : (err, x) => stats.last_month_projects = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'created',     age_m:        60, cb : (err, x) => stats.projects_created['1h'] = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'created',     age_m:     24*60, cb : (err, x) => stats.projects_created['1d'] = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'created',     age_m:   7*24*60, cb : (err, x) => stats.projects_created['7d'] = x; cb(err))
-                    (cb) =>
-                        @num_projects(index: 'created',     age_m:  30*24*60, cb : (err, x) => stats.projects_created['30d'] = x; cb(err))
-                    (cb) =>
-                        @num_accounts_created(age_m:        60, cb : (err, x) => stats.accounts_created['1h'] = x; cb(err))
-                    (cb) =>
-                        @num_accounts_created(age_m:     24*60, cb : (err, x) => stats.accounts_created['1d'] = x; cb(err))
-                    (cb) =>
-                        @num_accounts_created(age_m:   7*24*60, cb : (err, x) => stats.accounts_created['7d'] = x; cb(err))
-                    (cb) =>
-                        @num_accounts_created(age_m:  30*24*60, cb : (err, x) => stats.accounts_created['30d'] = x; cb(err))
+                R = RECENT_TIMES
+                async.parallelLimit([
+                    (cb) =>  @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
+                    (cb) =>  @table('projects').count().run((err, x) => stats.projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'last_edited', age_m: R.active,     cb: (err, x) => stats.active_projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'last_edited', age_m: R.last_hour,  cb: (err, x) => stats.last_hour_projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'last_edited', age_m: R.last_day,   cb: (err, x) => stats.last_day_projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'last_edited', age_m: R.last_week,  cb: (err, x) => stats.last_week_projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'last_edited', age_m: R.last_month, cb: (err, x) => stats.last_month_projects = x; cb(err))
+                    (cb) =>  @num_projects(index: 'created',     age_m: R.last_hour,  cb: (err, x) => stats.projects_created['1h'] = x; cb(err))
+                    (cb) =>  @num_projects(index: 'created',     age_m: R.last_day,   cb: (err, x) => stats.projects_created['1d'] = x; cb(err))
+                    (cb) =>  @num_projects(index: 'created',     age_m: R.last_week,  cb: (err, x) => stats.projects_created['7d'] = x; cb(err))
+                    (cb) =>  @num_projects(index: 'created',     age_m: R.last_month, cb: (err, x) => stats.projects_created['30d'] = x; cb(err))
+                    (cb) =>  @num_accounts_created(age_m: R.last_hour, cb: (err, x) => stats.accounts_created['1h'] = x; cb(err))
+                    (cb) =>  @num_accounts_created(age_m: R.last_day,  cb: (err, x) => stats.accounts_created['1d'] = x; cb(err))
+                    (cb) =>  @num_accounts_created(age_m: R.last_week, cb: (err, x) => stats.accounts_created['7d'] = x; cb(err))
+                    (cb) =>  @num_accounts_created(age_m: R.last_month,cb: (err, x) => stats.accounts_created['30d'] = x; cb(err))
                     (cb) =>
                         @table("hub_servers").run (err, hub_servers) =>
                             if err
@@ -2261,7 +2253,7 @@ class RethinkDB
                                     if x.expire > now
                                         stats.hub_servers.push(x)
                                 cb()
-                ], (err) =>
+                ], MAP_LIMIT, (err) =>
                     if not err
                         dbg("everything succeeded in parallel above -- now insert result")
                         stats0 = misc.deep_copy(stats)  # may be used in setting up changefeed below
@@ -2272,11 +2264,14 @@ class RethinkDB
                             if err
                                 cb(err)
                             else
+                                cb()
+                                ###
                                 if not @_stats
                                     # also setup changefeed so that we can keep our stats up to date
                                     @_init_stats_changefeeds(stats0, cb)
                                 else
                                     cb()
+                                ###
                     else
                         cb(err)
                 )
@@ -2302,7 +2297,7 @@ class RethinkDB
                     @_stats_hub_servers_feed = feed
                     cb(err)
             (cb) =>
-                age_m = misc.max( (x for label,x of RECENT_PROJECT_TIMES) )
+                age_m = misc.max( (x for label, x of RECENT_TIMES) )
                 @table('projects').between(new Date(new Date() - age_m*60*1000), new Date(),
                                            {index:'last_edited'}).pluck('project_id', 'last_edited').run (err, v) =>
                     if err
@@ -2364,13 +2359,15 @@ class RethinkDB
             projects : @_stats_project_count
         # reset stats
         cutoff = {}
-        for label, age_m of RECENT_PROJECT_TIMES
+        for label, age_m of RECENT_TIMES
+            label = label + "_projects"
             stats[label] = 0
             cutoff[label] = new Date() - age_m*60*1000
         # iterate once over all known projects, incrementing stats counters
         # (this isn't an optimal complexity algorithm in terms of constants... but we don't need optimal)
         for project_id, time of @_stats_project_map
-            for label, age_m of RECENT_PROJECT_TIMES
+            for label, age_m of RECENT_TIMES
+                label = label + "_projects"
                 if time >= cutoff[label]
                     stats[label] += 1
 

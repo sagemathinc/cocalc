@@ -87,6 +87,7 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 # number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
+
 # node.js -- builtin libraries
 net     = require('net')
 assert  = require('assert')
