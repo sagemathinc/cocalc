@@ -634,7 +634,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         #winston.debug("got message: #{data}")
-        if mesg.message?.event not in ['codemirror_bcast'] and mesg.event != 'ping'
+        if mesg.event != 'ping'
             winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
 
         # check for message that is coming back in response to a request from the hub
@@ -1098,31 +1098,6 @@ class Client extends EventEmitter
             # being proxied through the same hub.
             mesg.message.client_id = @id
 
-            if mesg.message.event == 'codemirror_write_to_disk'
-                # Record that a client is actively doing something with this session, but
-                # use a timeout to give local hub a chance to actually do the above save...
-                f = () =>
-                    # record that project is active in the database
-                    database.touch_project(project_id : project.project_id)
-                    # snapshot/save project if enough time has passed.
-                    project.local_hub.save () => # don't care
-                setTimeout(f, 10000)  # 10 seconds later, possibly replicate.
-
-            # Record eaching opening of a file in the database log
-            if mesg.message.event == 'codemirror_get_session' and mesg.message.path? and mesg.message.path != '.sagemathcloud.log' and @account_id? and mesg.message.project_id?
-                database.log_file_access
-                    project_id : mesg.message.project_id
-                    account_id : @account_id
-                    filename   : mesg.message.path
-
-            # Scan message for activity -- used to update file_use table
-            if @account_id?
-                scan_local_hub_message_for_activity
-                    account_id : @account_id
-                    project_id : mesg.project_id
-                    message    : mesg.message
-                    client     : @
-
             # Make the actual call
             project.call
                 mesg           : mesg.message
@@ -1136,14 +1111,6 @@ class Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
-
-                        if resp.event == 'codemirror_session' and typeof(resp.path) == 'string'
-                            # track this so it can be used by
-                            # scan_local_hub_message_for_activity
-                            key = "#{mesg.project_id}-#{resp.session_uuid}"
-                            if resp.path.slice(0,2) == './'
-                                path = resp.path.slice(2)
-                            codemirror_sessions[key] = {path:path, readonly:resp.readonly}
 
     ## -- user search
     mesg_user_search: (mesg) =>
@@ -2226,31 +2193,6 @@ path_activity = (opts) ->
         action     : action
         force      : action == 'chat'
         cb         : opts.cb
-
-codemirror_sessions = {} # this is updated in mesg_local_hub
-
-scan_local_hub_message_for_activity = (opts) ->
-    opts = defaults opts,
-        account_id    : required
-        project_id    : required
-        message       : required
-        client        : required
-        cb            : undefined
-    #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
-    #dbg(misc.to_json(codemirror_sessions))
-    if opts.message.event == 'codemirror_diffsync' and opts.message.edit_stack?
-        if opts.message.edit_stack.length > 0 and opts.message.session_uuid?
-            key = "#{opts.project_id}-#{opts.message.session_uuid}"
-            path = codemirror_sessions[key]?.path
-            if path?
-                path_activity
-                    account_id : opts.account_id
-                    project_id : opts.project_id
-                    client     : opts.client
-                    path       : path
-                    cb         : opts.cb
-                return
-    opts.cb?()
 
 ##############################
 # Create the Primus realtime socket server

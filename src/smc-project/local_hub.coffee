@@ -1,23 +1,16 @@
 ###
 
- SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
- Copyright 2015, SageMath, Inc., GPL v3.
+SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+Copyright 2015, SageMath, Inc., GPL v3.
 
- local_hub -- a node.js program that runs as a regular user, and
-              coordinates and maintains the connections between
-              the global hubs and *all* projects running as
-              this particular user.
+local_hub -- a node.js program that runs as a regular user, and
+             coordinates and maintains the connections between
+             the global hubs and *all* projects running as
+             this particular user.
 
- The local_hub is a bit like the "screen" program for Unix, except
- that it simultaneously manages numerous sessions, since simultaneously
- doing a lot of IO-based things is what Node.JS is good at.
-
-
- NOTE: For local debugging, run this way, since it gives better stack
- traces.CodeMirrorSession: _connect to file
-
-         make_coffee && echo "require('local_hub').start_server()" | coffee
-
+The local_hub is a bit like the "screen" program for Unix, except
+that it simultaneously manages numerous sessions, since simultaneously
+doing a lot of IO-based things is what Node.JS is good at.
 ###
 
 path    = require('path')
@@ -297,6 +290,6 @@ process.addListener "uncaughtException", (err) ->
         console.trace()
 
 start_server (err) ->
-        if err
-            process.exit(1)
+    if err
+        process.exit(1)
 

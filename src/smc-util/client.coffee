@@ -400,10 +400,6 @@ class exports.Connection extends EventEmitter
 
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
-            when "codemirror_diffsync_ready"
-                @emit(mesg.event, mesg)
-            when "codemirror_bcast"
-                @emit(mesg.event, mesg)
             when 'version'
                 @emit('new_version', mesg.version)
             when "error"
