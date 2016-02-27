@@ -850,6 +850,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         else if ncols >= 7
             ncols = 12
         <div>
+            <h2>TEST</h2>
             {@render_rows(live_subscriptions, ncols)}
         </div>
 
@@ -862,7 +863,7 @@ exports.ExplainResources = ExplainResources = rclass
         <div>
             <h4>Shared Resources</h4>
             <Row>
-                <Col sm=6>
+                <Col md=6 sm=12>
 
                     <p>
                     You may create many completely separate SageMathCloud projects.
@@ -875,7 +876,8 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <br/>
 
-                    <p>When you purchase a subscription, you can upgrade the quotas on any projects
+                    <p>
+                    When you purchase a subscription, you can upgrade the quotas on any projects
                     you use up to the amounts given by your subscription.  Multiple people can contribute
                     to increase the quotas on the same project, and may also remove their contributions
                     at any time.  You may also subscribe
@@ -884,18 +886,19 @@ exports.ExplainResources = ExplainResources = rclass
                     </p>
 
                     <br/>
+
                     <p>
                     Immediately email us at <HelpEmailLink/> if anything is unclear to you.
                     </p>
 
 
                 </Col>
-                <Col sm=6>
+                <Col md=6 sm=12>
                     <Row>
-                        <Col xs=6>
+                        <Col sm=6 xs=6>
                             <ProjectQuotaFreeTable/>
                         </Col>
-                        <Col xs=6>
+                        <Col sm=6 xs=6>
                             <ProjectQuotaBoundsTable/>
                         </Col>
                     </Row>
@@ -923,6 +926,28 @@ exports.ExplainResources = ExplainResources = rclass
             else
                 throw Error("unknown type #{@props.type}")
 
+FAQS =
+    course120:
+        q: "I have a course of 120 students. Which plan should I purchase?",
+        a: "You can combine courses! Take two times the 'medium course plan' and you will end up with 140 upgrades, covering all your students."
+    test:
+        q: "q2"
+        a: "a2"
+
+FAQ = rclass
+    displayName : 'FAQ'
+
+    faq: ->
+        for qid, qa of FAQS
+            <li key={qid}><b>{qa.q}</b> {qa.a}</li>
+
+    render: ->
+        <div>
+            <h2>Frequently asked questions</h2>,
+            <ul>
+                {@faq()}
+            </ul>
+        </div>
 
 Subscription = rclass
     displayName : 'Subscription'
@@ -1465,17 +1490,10 @@ set_selected_plan = (plan, period) ->
 exports.render_static_pricing_page = () ->
     <div>
         <ExplainResources type='shared'/>
-
-        <br/> <br/>
         <SubscriptionGrid period='month'  is_static={true}/>
-
-        <br/> <br/>
         <SubscriptionGrid period='year'  is_static={true}/>
-
-        <br/> <br/>
-
         <SubscriptionGrid period='month4'  is_static={true}/>
-
+        <FAQ is_static={true}/>
     </div>
 
 exports.visit_billing_page = ->
