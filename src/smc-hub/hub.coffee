@@ -87,7 +87,6 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 # number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-
 # node.js -- builtin libraries
 net     = require('net')
 assert  = require('assert')
@@ -6304,9 +6303,11 @@ exports.start_server = start_server = (cb) ->
 
             # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently.
+            # Randomized start to balance between all hubs.
             # It's important that we call this periodically, or stats will only get stored to the
             # database when somebody happens to visit /stats
-            database.get_stats(); setInterval(database.get_stats, 120*1000)
+            d = 5000 + 60 * 1000 * Math.random()
+            setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
 
             # Register periodically with the hub.
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)

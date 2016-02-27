@@ -36,7 +36,7 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-# limit for async.map or async.paralleLimit
+# limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
 
 # Bucket used for cheaper longterm storage of blobs (outside of rethinkdb).
@@ -125,6 +125,7 @@ class RethinkDB
         @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
+        @_stats_cached     = undefined
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -2189,15 +2190,20 @@ class RethinkDB
         dbg = @dbg('get_stats')
         async.series([
             (cb) =>
-                dbg()
-                @table('stats')
-                    .between(new Date(new Date() - 1000*opts.ttl), new Date(), {index:'time'})
-                    .orderBy('time').run (err, x) =>
-                        if x?.length then stats=x[x.length - 1]
-                        cb(err)
-            (cb) =>
-                cb()
+                dbg("using cached stats?")
+                if @_stats_cached? and @_stats_cached.time > misc.seconds_ago(opts.ttl)
+                    stats = @_stats_cached
+                    dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
+                    cb(); return
+                @table('stats').orderBy(index: @r.desc('time')).limit(1).run (err, x) =>
+                    if x?.length and x[0].time > misc.seconds_ago(opts.ttl)
+                        dbg("using db cached stats from #{(new Date() - x[0].time) / 1000} secs ago.")
+                        stats=x[0]
+                        # storing still valid result in local cache
+                        @_stats_cached = misc.deep_copy(stats)
+                    cb(err)
                 ###
+            (cb) =>
                 if stats?
                     dbg("using recent stats from database")
                     cb(); return
@@ -2223,7 +2229,7 @@ class RethinkDB
             (cb) =>
                 if stats?
                     cb(); return
-                dbg("compute all stats from scratch")
+                dbg("querying all stats from the DB")
                 stats = {time : new Date(), projects_created : {}, accounts_created : {}}
                 R = RECENT_TIMES
                 async.parallelLimit([
@@ -2254,13 +2260,17 @@ class RethinkDB
                                         stats.hub_servers.push(x)
                                 cb()
                 ], MAP_LIMIT, (err) =>
-                    if not err
-                        dbg("everything succeeded in parallel above -- now insert result")
+                    if err
+                        cb(err)
+                    else
+                        dbg("everything succeeded in parallel above -- now insert stats")
                         stats0 = misc.deep_copy(stats)  # may be used in setting up changefeed below
                         # delete x.expire from stats; no point in including it in result
                         for x in stats.hub_servers
                             delete x.expire
-                        @table('stats').insert(stats).run (err) =>
+                        # storing in local and db cache
+                        @_stats_cached = misc.deep_copy(stats)
+                        @table('stats').insert(stats).run durability:'soft', (err) =>
                             if err
                                 cb(err)
                             else
@@ -2272,13 +2282,12 @@ class RethinkDB
                                 else
                                     cb()
                                 ###
-                    else
-                        cb(err)
                 )
         ], (err) =>
             opts.cb?(err, stats)
         )
 
+    ###
     # initial the stats changefeeds from the given stats output
     _init_stats_changefeeds: (stats, cb) =>
         if @_stats
@@ -2349,7 +2358,6 @@ class RethinkDB
         @_stats_hub_servers_feed?.close()
         @_stats = false
 
-
     # compute and return the stats using data stored while listening to changefeeds
     _stats_from_changefeed: () =>
         if not @_stats
@@ -2380,6 +2388,7 @@ class RethinkDB
 
         stats.time = new Date()
         return stats
+    ###
 
     ###
     # Hub servers

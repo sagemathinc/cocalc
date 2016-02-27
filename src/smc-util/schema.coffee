@@ -179,7 +179,7 @@ schema.accounts =
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
-        created       : []
+        created       : [] # to compute stats efficiently
         email_address : []
     user_query :
         get :
