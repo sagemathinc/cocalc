@@ -1311,7 +1311,10 @@ class FileEditor extends EventEmitter
                     # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
                     clearInterval(@_autosave_interval)
                     return
-                if @has_unsaved_changes()
+                if @has_unsaved_changes() and (new Date()  -  (@_when_had_no_unsaved_changes ? 0)) >= @_autosave_interval
+                    # Both has some unsaved changes *and* has had those changes for at least @_autosave_interval ms.
+                    # NOTE: the second condition won't really work for documents that don't yet
+                    # synchronize the "unsaved changes" state with the backend; this is temporary.
                     if @click_save_button?
                         # nice gui feedback
                         @click_save_button()
@@ -1336,6 +1339,7 @@ class FileEditor extends EventEmitter
         else
             if not @_has_unsaved_changes? or @_has_unsaved_changes != val
                 if val
+                    @_when_had_no_unsaved_changes = new Date()  # when we last knew for a fact there are no unsaved changes
                     @save_button.removeClass('disabled')
                 else
                     @save_button.addClass('disabled')
