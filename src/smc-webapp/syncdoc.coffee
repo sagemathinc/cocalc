@@ -552,9 +552,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             project_id : @project_id
             path       : @filename
 
-        #important to debounce since above hash/getValue grows linearly in size of document
-
-        update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 700)
+        # This is important to debounce since above hash/getValue grows linearly in size of
+        # document; also, we debounce instead of throttle, since we don't want to have this
+        # slow down the user while they are typing.
+        update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 1000)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
@@ -587,7 +588,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_udpate_read_only()
 
             save_state = () => @_sync()
-            @save_state_debounce = underscore.throttle(save_state, @opts.sync_interval)
+            # We debounce instead of throttle, because we want a single "diff/commit" to correspond
+            # a burst of activity, not a bunch of little pieces of that burst.  This is more
+            # consistent with how undo stacks work.
+            @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
