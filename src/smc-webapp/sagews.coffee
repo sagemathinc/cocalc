@@ -1702,23 +1702,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             opts.cb?()
 
         t0 = new Date()
-        cleared_input = false
-        clear_input = =>
-            if not cleared_input
-                cleared_input = true
+        cleared_output = false
+        clear_output = =>
+            if not cleared_output
+                cleared_output = true
                 cell.set_output([])
 
-        # Give the cell 1s to get output from backend.  If not, then we clear input.
+        # Give the cell one second to get output from backend.  If not, then we clear output.
         # These reduces "flicker", which makes things seem slow.
-        setTimeout(clear_input, 1000)
-
+        setTimeout(clear_output, 1000)
+        first_output = true
         @execute_code
             code         : input
             output_uuid  : output_uuid
             cb           : (mesg) =>
-                if not cleared_input
-                    clear_input()
-                #dbg("got mesg ", mesg, new Date() - t0); t0 = new Date()
+                if first_output  # we *always* clear the first time, even if we cleared above via the setTimeout.
+                    first_output = false
+                    clear_output()
+                #console.log("got mesg ", mesg, new Date() - t0); t0 = new Date()
                 cell.append_output_message(mesg)
                 if mesg.done
                     done()
@@ -2166,6 +2167,9 @@ class SynchronizedWorksheetCell
             if FLAGS.hide_output in flags
                 # output is currently hidden
                 @remove_cell_flag(FLAGS.hide_output)
+            if FLAGS.execute in flags or FLAGS.running in flags
+                # already running or queued up for execution.
+                return
             x = @client_side()
             if x
                 x.cell = @
