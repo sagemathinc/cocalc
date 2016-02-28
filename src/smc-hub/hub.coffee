@@ -3352,10 +3352,11 @@ exports.start_server = start_server = (cb) ->
 
             # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently.
+            # Randomized start to balance between all hubs.
             # It's important that we call this periodically, or stats will only get stored to the
             # database when somebody happens to visit /stats
-            database.get_stats()
-            setInterval(database.get_stats, 120*1000)
+            d = 5000 + 60 * 1000 * Math.random()
+            setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
 
             # Register periodically with the hub.
             hub_register.start

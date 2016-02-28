@@ -179,6 +179,7 @@ schema.accounts =
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
+        created       : [] # to compute stats efficiently
         email_address : []
     user_query :
         get :
@@ -535,6 +536,7 @@ schema.projects =
         users                     : ["that.r.row('users').keys()", {multi:true}]
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
+        created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
         storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
         # see code below for some additional indexes
