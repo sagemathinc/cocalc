@@ -1901,8 +1901,27 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cm?.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
-    interrupt: () =>
+    interrupt: (opts) =>
+        opts = defaults opts,
+            maxtime : 15
+            cb      : undefined
+        if @readonly
+            opts.cb?()
+            return
         @close_on_action()
+        t = misc.walltime()
+        async.series([
+            (cb) =>
+                @send_signal
+                    signal : 2
+                    cb     : cb
+            (cb) =>
+                @start
+                    maxtime : opts.maxtime - misc.walltime(t)
+                    cb      : cb
+        ], (err) =>
+            opts.cb?(err)
+        )
 
     close_on_action: (element) =>
         # Close popups (e.g., introspection) that are set to be closed when an
