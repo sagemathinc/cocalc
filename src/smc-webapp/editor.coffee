@@ -971,6 +971,7 @@ class exports.Editor
         window.smc.editors ?= {}
         window.smc.editors[filename] = editor
 
+        editor.init_autosave()
         return editor
 
     create_opened_file_tab: (filename) =>
@@ -1127,8 +1128,10 @@ class exports.Editor
 
         if tab.editor_open()
             # Disconnect from remote session (if relevant), clean up, etc.
-            tab.editor().disconnect_from_session?()
-            tab.editor().remove?()
+            e = tab.editor()
+            e.save?()
+            e.disconnect_from_session?()
+            e.remove?()
 
         tab.link.remove()
         tab.close_tab?()
@@ -1297,7 +1300,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = redux.getStore('account').get('autosave') #TODO
+        autosave = redux.getStore('account').get('autosave')
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -3539,14 +3542,16 @@ class StaticHTML extends FileEditor
 class FileEditorWrapper extends FileEditor
     constructor: (@editor, @filename, @content, @opts) ->
         @init_wrapped(@editor, @filename, @content, @opts)
-        @init_autosave()
 
     init_wrapped: () =>
         # Define @element and @wrapped in derived class
         throw Error('must define in derived class')
 
-    save: () =>
-        @wrapped?.save?()
+    save: (cb) =>
+        if @wrapped?.save?
+            @wrapped.save(cb)
+        else
+            cb?()
 
     has_unsaved_changes: (val) =>
         return @wrapped?.has_unsaved_changes?(val)
