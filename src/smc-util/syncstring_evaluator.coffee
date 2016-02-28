@@ -52,19 +52,38 @@ class exports.Evaluator
             id    : [@string._string_id, time, 0]
             input : misc.copy_without(opts, 'cb')
         if opts.cb?
-            # if we care about the output, listen for it until receving a mesg.done
+            # Listen for output until we receive a message with mesg.done true.
+            messages = {}
+            mesg_number = 0
             handle_output = (keys) =>
+                #console.log("handle_output #{misc.to_json(keys)}")
                 if @_closed
                     opts.cb?("closed")
                     return
                 for key in keys
                     t = misc.from_json(key)
-                    if t[1] - time == 0  # we call opts.cb on all output with the given timestamp
+                    if t[1] - time == 0  # we called opts.cb on output with the given timestamp; ignore any other output
                         mesg = @_outputs.get(key)?.get('output')?.toJS()
                         if mesg?
                             if mesg.done
                                 @_outputs.removeListener('change', handle_output)
-                            opts.cb?(mesg)
+                            # Message may arrive in somewhat random order -- RethinkDB doesn't guarantee
+                            # anything about the order of writes versus when changes get pushed out!  E.g. this
+                            # in a Sage worksheet:
+                            #    for i in range(20): print i; sys.stdout.flush()
+                            if t[2] == mesg_number     # t[2] is the sequence number of the message
+                                # Inform caller of result
+                                opts.cb(mesg)
+                                # Push out any messages that arrived earlier that are ready to send.
+                                mesg_number += 1
+                                while messages[mesg_number]?
+                                    opts.cb(messages[mesg_number])
+                                    delete messages[mesg_number]
+                                    mesg_number += 1
+                            else
+                                # Put message in the queue of messages that arrived too early
+                                messages[t[2]] = mesg
+
             @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
