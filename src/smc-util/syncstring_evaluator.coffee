@@ -14,13 +14,13 @@ class exports.Evaluator
     constructor: (@string, cb) ->
         query =
             eval_inputs :
-                id    : [@string._string_id, misc.seconds_ago(30)]
+                id    : [@string._string_id, misc.server_seconds_ago(30)]
                 input : null
         @_inputs = @string._client.sync_table(query, {}, 1)
 
         query =
             eval_outputs :
-                id    : [@string._string_id, misc.seconds_ago(30)]
+                id    : [@string._string_id, misc.server_seconds_ago(30)]
                 output : null
         @_outputs = @string._client.sync_table(query, {}, 1)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
@@ -47,7 +47,15 @@ class exports.Evaluator
         if @_closed
             opts.cb?("closed")
             return
-        time = @string._client.server_time()  # TODO: need to perturb time if same as last eval
+        time = @string._client.server_time()
+        # Perturb time if it is <= last time when this client did an evaluation.
+        # We do this so that the time below is different than anything else.
+        # TODO: This is NOT 100% yet, due to multiple clients possibly starting
+        # different evaluations simultaneously.
+        if @_last_time? and time <= @_last_time
+            time = @_last_time + 1
+        @_last_time = time
+
         @_inputs.set
             id    : [@string._string_id, time, 0]
             input : misc.copy_without(opts, 'cb')
