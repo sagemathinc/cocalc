@@ -219,7 +219,6 @@ class SyncDoc extends EventEmitter
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
-
         if not opts.string_id?
             if not opts.project_id? or not opts.path?
                 throw "if string_id is not given, then project_id and path must both be given"
@@ -286,18 +285,18 @@ class SyncDoc extends EventEmitter
         if @_client.is_project()
             return
         last_active = @_syncstring_table?.get_one().get('last_active')
-        if not last_active? or last_active <= misc.minutes_ago(min_age_m)
+        if not last_active? or last_active <= misc.server_minutes_ago(min_age_m)
             @_client.query
                 query :
                     syncstrings :
                         string_id   : @_string_id
-                        last_active : new Date()
+                        last_active : misc.server_time()
 
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
     _set_initialized: (error, cb) =>
-        init = {time:new Date()}
+        init = {time:misc.server_time()}
         if error
             init.error = error
         else

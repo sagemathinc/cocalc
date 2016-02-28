@@ -258,6 +258,7 @@ class exports.Connection extends EventEmitter
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
+    # Returns (approximate) time in ms since epoch on the server.
     server_time: =>
         # Add _clock_skew to our local time to get a better estimate of the actual time on the server.
         # This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,

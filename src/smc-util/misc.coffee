@@ -1302,7 +1302,7 @@ else
     # we assume that the server clocks are sufficiently accurate.  Providing
     # these functions makes it simpler to write code that runs on both the
     # frontend and the backend.
-    exports.server_time_ms          = -> new Date()
+    exports.server_time             = -> new Date()
     exports.server_milliseconds_ago = exports.milliseconds_ago
     exports.server_seconds_ago      = exports.seconds_ago
     exports.server_minutes_ago      = exports.minutes_ago
