@@ -219,6 +219,8 @@ class SyncDoc extends EventEmitter
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
+        #if window? and not misc.endswith(opts.path ? '', 'chat')
+        #    window.ss = @ # DEBUGING
         if not opts.string_id?
             if not opts.project_id? or not opts.path?
                 throw "if string_id is not given, then project_id and path must both be given"
@@ -831,7 +833,7 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             @_syncstring_table.wait
-                until   : (table) -> table.get_one().getIn(['save','state']) == 'done'
+                until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
                 timeout : 30
                 cb      : (err) =>
                     #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")

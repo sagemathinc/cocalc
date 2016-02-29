@@ -37,8 +37,43 @@ SYNCHRONIZED TABLE -- defined by an object query
                  Also, called with empty list on first connection if there happens
                  to be nothing in this table.   If the primary key is not a string it is
                  converted to a JSON string.
-###
 
+STATES:
+
+A SyncTable is a finite state machine as follows:
+
+                          -------------------<------------------
+                         \|/                                   |
+    [connecting] --> [connected]  -->  [disconnected]  --> [reconnecting]
+
+Also, there is a final state called 'closed', that the SyncTable moves to when
+it will not be used further; this frees up all connections and used memory.
+The table can't be used after it is closed.
+
+    (anything)  --> [closed]
+
+
+
+- connecting   -- connecting to the backend, and have never connected before.
+
+- connected    -- successfully connected to the backend, initialized, and receiving updates.
+
+- disconnected -- table was successfully initialized, but the network connection
+                  died. Can still takes writes, but they will never try to save to
+                  the backend.  Waiting to reconnect when user connects back to the backend.
+
+- reconnecting -- client just reconnected to the backend, so this table is now trying
+                  to get the full current state of the table and initialize a changefeed.
+
+- closed       -- table is closed, and memory/connections used by the table is freed.
+
+
+WORRY: what if the user does a set and connecting (or reconnecting) takes a long time, e.g., suspend
+a laptop, then resume?  The changes may get saved... a month later.  For some things, e.g., logs,
+this could be fine.  However, on reconnect, the first thing is that complete upstream state of
+table is set on server version of table, so reconnecting user only sends its changes if upstream
+hasn't changed anything in that same record.
+###
 
 {EventEmitter} = require('events')
 
@@ -81,8 +116,9 @@ class SyncTable extends EventEmitter
         @_init_query()
         @_init()
 
-    _init: ->
-        delete @_closed
+    _init: () =>
+        # Any listeners on the client that we should remove when closing this table.
+        @_client_listeners = {}
 
         # The value of this query locally.
         @_value_local = undefined
@@ -94,35 +130,49 @@ class SyncTable extends EventEmitter
         # The changefeed id, when set by doing a change-feed aware query.
         @_id = undefined
 
-        # Whether or not currently successfully connected.
-        @_connected = false
+        # Not connected yet
+        @_state = 'disconnected'
 
-        reconnect = () =>
-            #console.log("connect '#{@_table}'")
-            @_connected = false
+        #dbg = @_client.dbg("_init('#{@_table}')")
+        #dbg()
+        dbg = ->
+
+        connect = () =>
+            if @_state != 'disconnected'
+                # only try to connect if currently 'disconnected'
+                return
+            dbg("connect #{misc.to_json(@_query)}")
             if @_id?
                 @_client.query_cancel(id:@_id)
                 @_id = undefined
-            # We delete @_reconnecting to ensure that it immediately reconnects.
-            # This is safe, since if we just connected, the only possibility for
-            # outstanding attempts is failure.
-            delete @_reconnecting
-            @_reconnect()
+            # First save, in case we have any local unsaved changes, then sync with upstream.
+            @_save () =>
+                @_reconnect()
 
-        if @_schema.anonymous
+        if @_schema.anonymous or @_client.is_project()
             # just need to be connected
             if @_client.is_connected()
-                reconnect() # first time
-            @_client.on('connected', reconnect)
+                connect() # first time
+            else
+                @_client.once('connected', connect)
+                @_client_listeners.connected = connect
         else
             # need to be signed in
             if @_client.is_signed_in()
-                reconnect() # first time
-            @_client.on('signed_in', reconnect)
+                connect() # first time
+            else
+                @_client.once('signed_in', connect)
+                @_client_listeners.signed_in = connect
 
-    _unclose: (which) =>
-        console.warn("_unclosing #{@_table} -- #{which}")
-        @_init()
+        disconnected = =>
+            dbg("disconnected -- #{misc.to_json(@_query)}")
+            @_state = 'disconnected'
+            @_client.once 'connected', connect
+            @_client_listeners.connected = connect
+
+        @_client.on('disconnected', disconnected)
+        @_client_listeners.disconnected = disconnected
+        return
 
     get: (arg) =>
         if arg?
@@ -197,9 +247,6 @@ class SyncTable extends EventEmitter
         @_anonymous = !!@_schema.anonymous
 
     _reconnect: =>
-        if @_closed
-            @_init()
-            return
         #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
         #dbg()
         dbg = =>
@@ -207,25 +254,27 @@ class SyncTable extends EventEmitter
             # nothing to do -- not connected to server; when reconnect to server, will do proper reconnect
             dbg("not connected to server")
             return
-        if @_connected
-            dbg("already connected to feed")
+        if @_state == 'connected'
+            dbg("already connected")
             return
-        if @_reconnecting
+        if @_state == 'reconnecting'
             dbg("_reconnecting right now already")
             return
         if not @_anonymous and not @_client.is_signed_in()
             dbg("waiting for sign in before connecting")
-            @_client.once 'signed_in', =>
+            @_state = 'reconnecting'
+            f = =>
                 dbg("sign in triggered connecting")
+                @_state = 'disconnected'
                 @_reconnect()
+            @_client.once('signed_in', f)
+            @_client_listeners.signed_in = f
             return
-        @_reconnecting = true
-        setTimeout( (() => delete @_reconnecting), 30000 )
+        @_state = 'reconnecting'
         dbg("running query...")
         @_run (err) =>
-            @_reconnecting = false
             dbg("running query returned -- #{err}")
-            if not @_connected
+            if @_state != 'connected'
                 if not @_reconnect_timeout?
                     @_reconnect_timeout = 3
                 else
@@ -239,8 +288,8 @@ class SyncTable extends EventEmitter
                     @save(cb)
 
     _run: (cb) =>
-        if @_closed
-            #@_unclose('_run')
+        if @_state == 'closed'
+            # closed so don't do anything ever again
             cb?("closed")
             return
         first_resp = true
@@ -253,26 +302,22 @@ class SyncTable extends EventEmitter
             options : @_options
             cb      : (err, resp) =>
                 @_last_err = err
-                #if @_table == 'patches'
-                #    console.log("#{this_id} -- @_id=#{@_id}; query #{@_table}: -- got result of doing query", resp)
-                #    console.log("#{this_id} -- query='#{misc.to_json(@_query)}'")
                 if first_resp and resp?.event != 'query_cancel'
                     first_resp = false
-                    if @_closed
-                        @_connected = false
-                        #@_unclose('first response output from query')
+                    if @_state == 'closed'
                         cb?("closed")
                     else if err
-                        @_connected = false
                         console.warn("query '#{@_table}': _run: first error ", err)
+                        @_state = 'closed'
                         cb?(err)
                     else if not resp?.query?[@_table]?
-                        @_connected = false
                         console.warn("query on '#{@_table}' returned undefined")
+                        @_state = 'closed'
                         cb?("got no data")
                     else
+                        # Successfully completed a query
                         @_id = resp.id
-                        @_connected = true
+                        @_state = 'connected'
                         #console.log("query #{@_table}: query resp = ", resp)
                         @_update_all(resp.query[@_table])
                         cb?()
@@ -280,9 +325,11 @@ class SyncTable extends EventEmitter
                     #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
                     # changefeed
                     if err
-                        @_connected = false
+                        # were connected, but got an error, e.g., disconnect from server, so switch
+                        # to reconnect state.
                         if err != 'killfeed' and err?.msg != 'Connection is closed.'   # killfeed is expected and happens regularly (right now)
                             console.warn("query #{@_table}: _run: not first error -- ", err)
+                        delete @_state  # undefined until @_reconnect sets it (in same tick)
                         @_reconnect()
                     else
                         if resp?.event != 'query_cancel'
@@ -303,7 +350,10 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
-        #console.log("_save('#{@_table}')")
+        if @_state == 'closed'
+            cb?("closed")
+            return
+        # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
         if not @_value_server?
             cb?("don't know server yet")
@@ -346,6 +396,14 @@ class SyncTable extends EventEmitter
                     cb?(err)
 
     save: (cb) =>
+        if @_state == 'closed'
+            cb?("closed")
+            return
+
+        if @_state != 'connected'
+            cb?("not connected")
+            return
+
         @_save_debounce ?= {}
 
         if not @_value_server? or not @_value_local?
@@ -365,9 +423,10 @@ class SyncTable extends EventEmitter
         #dbg = (m) => console.log("_update_all(table='#{@_table}'): #{m}")
         dbg = =>
 
-        if @_closed
-            #@_unclose('_update_all')
+        if @_state == 'closed'
+            # nothing to do -- just ignore updates from db
             return
+
         if not v?
             console.warn("_update_all(#{@_table}) called with v=undefined")
             return
@@ -430,8 +489,9 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         #console.log("_update_change", change)
-        if @_closed
-            #@_unclose("_update_change(#{@_table})")
+        if @_state == 'closed'
+            # We might get a few more updates even after
+            # canceling the changefeed, so we just ignore them.
             return
         if not @_value_local?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
@@ -506,6 +566,13 @@ class SyncTable extends EventEmitter
     # The cb is called with cb(err) if something goes wrong.
     # Returns the updated value.
     set: (changes, merge, cb) =>
+        if @_state == 'closed'
+            # Attempting to set on a closed table is dangerous since any data set *will* be
+            # silently lost.  So spit out a visible warning.
+            console.warn("WARNING: attempt to do a set on a closed table: '#{@_table}', #{misc.to_json(@_query)}")
+            cb?("closed")
+            return
+
         if not immutable.Map.isMap(changes)
             changes = immutable.fromJS(changes)
         if not @_value_local?
@@ -516,11 +583,6 @@ class SyncTable extends EventEmitter
         else if typeof(merge) == 'function'
             cb = merge
             merge = 'deep'
-
-        if @_closed
-            #@_unclose('set')
-            cb?("closed")
-            return
 
         if not immutable.Map.isMap(changes)
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
@@ -577,17 +639,20 @@ class SyncTable extends EventEmitter
         return new_val
 
     close: =>
-        if @_closed
+        if @_state == 'closed'
             return
-        @removeAllListeners()
-        @_connected = false
-        if @_id?
-            @_client.query_cancel(id:@_id)
-            delete @_id
-        delete @_value_local
-        delete @_value_server
-        @_client.removeListener('connected', @_reconnect)
-        @_closed = true
+        # do a last attempt at a save (so we don't lose data), then really close.
+        @_save () =>
+            @removeAllListeners()
+            if @_id?
+                @_client.query_cancel(id:@_id)
+                delete @_id
+            delete @_value_local
+            delete @_value_server
+            for e, f of @_client_listeners
+                @_client.removeListener(e, f)
+            @_client_listeners = {}
+            @_state = 'closed'
 
     # wait until some function of this synctable is truthy
     # (this is exactly the same code as in the rethink.coffee SyncTable!)
@@ -595,7 +660,11 @@ class SyncTable extends EventEmitter
         opts = defaults opts,
             until   : required     # waits until "until(@)" evaluates to something truthy
             timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
-            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout; cb('closed') if closed
+        if @_state == 'closed'
+            # instantly fail -- table is closed so can't wait for anything
+            opts.cb("closed")
+            return
         x = opts.until(@)
         if x
             opts.cb(undefined, x)  # already true

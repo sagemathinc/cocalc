@@ -151,7 +151,7 @@ class exports.Client extends EventEmitter
     server_time: () =>
         return new Date()
 
-    # declare that this socket is active right now and can be used for communication with some hub
+    # declare that the given socket is active right now and can be used for communication with some hub
     active_socket: (socket) =>
         dbg = @dbg("active_socket(id=#{socket.id})")
         dbg()
@@ -163,11 +163,13 @@ class exports.Client extends EventEmitter
                 for id, cb of x.callbacks
                     cb('socket closed')
                 delete @_hub_client_sockets[socket.id]
-            if  misc.len(@_hub_client_sockets) == 1
+                if misc.len(@_hub_client_sockets) == 0
+                    @_connected = false
+                    @emit('disconnected')
+            if misc.len(@_hub_client_sockets) == 1
                 dbg("CONNECTED!")
                 @_connected = true
                 @emit('connected')
-                @emit('signed_in')  # of course
         else
             x.activity = new Date()
 
