@@ -1,5 +1,5 @@
 {React, rclass, rtypes}  = require('./smc-react')
-{Loading, r_join} = require('./r_misc')
+{Loading, r_join, Space} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {ProjectTitle} = require('./projects')
@@ -17,18 +17,26 @@ exports.UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources} = require('./billing')
+        {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
         <div>
             <h3>Sign up for a subscription in the billing tab</h3>
 
             <ExplainResources type='shared'/>
 
-            <br/> <br/>
-
+            <Space/>
+            <ExplainPlan type='personal' />
             <SubscriptionGrid period='month year' is_static={true}/>
 
+            <Space/>
+
+            <ExplainPlan type='course' />
+            <SubscriptionGrid period='month4' is_static={true}/>
+
+            <Space/>
             <ExplainResources type='dedicated'/>
-            <br/>
+
+            <hr/>
+            <FAQ/>
         </div>
 
     render_have_upgrades: ->
