@@ -896,7 +896,7 @@ exports.ExplainResources = ExplainResources = rclass
                     <h4>Quota upgrades</h4>
                     <div>
                     By purchasing one or more of our subscriptions,
-                    you are reciving a certain amount of <em>quota upgrades</em>.
+                    you are receiving a certain amount of <em>quota upgrades</em>.
                     <ul style={paddingLeft:"20px"}>
                     <li>You can upgrade the quotas on any of your projects up to the total amount given by your subscription(s)
                         and the upper limits per project.
@@ -1009,10 +1009,11 @@ FAQS =
             You can start a computation, shut down your computer, go somewhere else, turn on and sign in
             on another computer, and continue working where you have left off.<br/>
             The only reasons why a project or process shuts down is,
-            that it is past its <em>idle time</em>, has used too much memory, crashed due to an exception, or the sever had to reboot.
+            that it is past its <em>idle time</em>, has used too much memory,
+            crashed due to an exception, or the server had to reboot.
            </span>
     network_access:
-        q: <span>What exactly is meant by <b>"interet access"</b>?</span>
+        q: <span>What exactly is meant by <b>"internet access"</b>?</span>
         a: <span>
             Despite the fact that you are accessing <SiteName/> through the internet,
             you are actually working in a highly restricted environment.
@@ -1073,7 +1074,7 @@ FAQS =
             From our experience we know, that for the type of computations used in courses,
             the free quotas for memory and disk space are plenty.
             Rather, we strongly suggest to upgrade hosting to "members",
-            since this gives better machines and higher availiability.
+            since this gives better machines and higher availability.
            </span>
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
