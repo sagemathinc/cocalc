@@ -176,6 +176,9 @@ schema.accounts =
         profile :
             type : 'map'
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
+        groups :
+            type : 'array'
+            desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]

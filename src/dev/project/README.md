@@ -54,3 +54,17 @@ Then use it (from `~/smc/src`):
     \$ coffee
     coffee> require('smc-hub/compute-client').compute_server(db_hosts:['localhost:51974'], dev:true, cb:(e,s)->console.log(e);global.s=s)
     coffee> s.[tab
+
+## Creating an admin user
+
+Add this to your ~/.bashrc, where you get the port as above:
+
+    export SMC_DB_HOSTS=localhost:51974
+
+You can get your account id by typing ./info.py in dev/project and loging in to your own SMC server, then typing `smc.client.account_id` in the Javascript console.  You might see something like "86b29017-644e-481d-aac2-c14ea52b930c" as output.  Then, to make your user and admin, do this from the root of your install:
+
+    ~/smc/src$ coffee
+    coffee> require 'c'; db()
+    coffee> db.table('accounts').get('86b29017-644e-481d-aac2-c14ea52b930c').update(groups:['admin']).run(done())
+
+Now refresh your browser, and in account settings some new admin configuration options will appear in the lower right.  Also, you can open any project (though some things will look messed up).
