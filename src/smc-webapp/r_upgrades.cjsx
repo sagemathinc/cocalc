@@ -28,7 +28,6 @@ exports.UpgradesPage = rclass
             <SubscriptionGrid period='month year' is_static={true}/>
 
             <Space/>
-
             <ExplainPlan type='course' />
             <SubscriptionGrid period='month4' is_static={true}/>
 
