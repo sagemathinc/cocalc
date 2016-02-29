@@ -307,7 +307,9 @@ R_PACKAGES = [
     'agricolae',
     'nortest',
     'forecast',
-    'gplots'
+    'gplots',
+    'Hmisc',
+    'survey'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
