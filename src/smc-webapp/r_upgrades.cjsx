@@ -1,8 +1,9 @@
 {React, rclass, rtypes}  = require('./smc-react')
-{Loading, r_join, Space} = require('./r_misc')
+{Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {ProjectTitle} = require('./projects')
+{HelpEmailLink, SiteName} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -36,6 +37,8 @@ exports.UpgradesPage = rclass
 
             <hr/>
             <FAQ/>
+
+            <Footer/>
         </div>
 
     render_have_upgrades: ->
@@ -176,4 +179,5 @@ exports.UpgradesPage = rclass
                 {@render_have_upgrades()}
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
+                <Footer/>
             </div>

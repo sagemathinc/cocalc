@@ -21,8 +21,8 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
-
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
+{HelpEmailLink, SiteName, CompanyName} = require('./customize')
 
 Combobox = require('react-widgets/lib/Combobox')
 
@@ -198,6 +198,15 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {error}
         </Alert>
 
+exports.Footer = Footer = rclass
+    displayName: 'Footer'
+    render :->
+        <footer>
+            <Space/>
+            <hr/>
+            <div style={fontSize:"small",color:"gray",textAlign:"center"}><CompanyName/> &mdash; &copy; {misc.YEAR}</div>
+            <Space/>
+        </footer>
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'

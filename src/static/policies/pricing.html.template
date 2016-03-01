@@ -56,10 +56,6 @@
             <!-- start:SubscriptionGrid -->
             <!-- end:SubscriptionGrid -->
 
-            <br/><hr/>
-            <footer>
-                <p>&copy; SageMath, Inc. 2016</p>
-            </footer>
         </div>
     </body>
 </html>

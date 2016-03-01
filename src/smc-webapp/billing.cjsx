@@ -26,7 +26,7 @@ _         = require('underscore')
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip} = require('./r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -576,10 +576,15 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
 exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render_project_quota: (name, value) ->
         data = PROJECT_UPGRADES.params[name]
+        amount = value * data.pricing_factor
+        unit = data.pricing_unit
+        if unit == "day"
+            amount = 24 * amount
+            unit = "hour"
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
-                    {misc.round1(value * data.pricing_factor)} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                    {misc.round1(amount)} {misc.plural(amount, unit)}
                 </span> <Space/>
                 <span style={color:'#999'}>
                     {data.display}
@@ -592,6 +597,18 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
         <Panel
             header = 'Projects start with these quotas for free'
         >
+            <div style={marginBottom:'5px', marginLeft:'10px'}>
+                <Tip title="Free servers" tip="Many free projects are cramped together inside weaker compute machines, competing for CPU, RAM and I/O.">
+                    <span style={fontWeight:'bold',color:'#666'}>low-grade</span><Space/>
+                    <span style={color:'#999'}>Server hosting</span>
+                </Tip>
+            </div>
+            <div style={marginBottom:'5px', marginLeft:'10px'}>
+                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not able to access the internet due to security/abuse reasons.">
+                    <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
+                    <span style={color:'#999'}>Internet access</span>
+                </Tip>
+            </div>
             {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
         </Panel>
 
@@ -1663,6 +1680,7 @@ exports.render_static_pricing_page = () ->
         <SubscriptionGrid period='month4' is_static={true}/>
         <hr/>
         <FAQ/>
+        <Footer/>
     </div>
 
 exports.visit_billing_page = ->

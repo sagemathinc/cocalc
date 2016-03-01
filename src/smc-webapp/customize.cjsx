@@ -80,6 +80,12 @@ exports.SiteDescription = rclass
             <SiteDescription />
         </Redux>
 
+# TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
+exports.CompanyName = rclass
+    displayName : 'CompanyName'
+    render :->
+        <span>SageMath, Inc.</span>
+
 TermsOfService = rclass
     displayName : 'TermsOfService'
 
