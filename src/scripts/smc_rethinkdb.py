@@ -37,6 +37,7 @@ from os.path import join
 import json
 import numpy as np
 from pprint import pprint
+from collections import defaultdict
 
 
 def secs2hms(secs, as_string=True):
@@ -185,33 +186,44 @@ def export_accounts(outfn):
 
 
 def active_courses(days=14):
-    courses = projects.has_fields('course')\
+    # teacher's course IDs of all active student course projects
+    teacher_course_ids = projects.has_fields('course')\
         .filter(r.row["last_edited"] > time_past(days * 24))\
             .pluck('course')["course"]["project_id"].distinct().run()
 
-    main_courses = projects.get_all(*courses)\
-        .filter(r.row["host"]["host"] >= "compute4-us")\
-        .pluck("project_id", "title", "last_edited", "users", "host").run()
+    courses = defaultdict(list)
+    for tc in projects.get_all(*teacher_course_ids)\
+        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", {"host":"host"}).run():
+        t = 'member' if tc["host"]["host"] >= 'compute4-us' else 'free'
+        # some courses do not have a created timestamp :-(
+        tc["created"] = tc.get("created", datetime.fromtimestamp(0).replace(tzinfo=utc))
+        courses[t].append(tc)
 
     # e is a (account_id, account_data) pair
     group_order = {"owner": 0, "collaborator": 1}
     sort_collabs = lambda e: (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
 
     print("<DOCTYPE html>")
-    print("<html><body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
-    for p in sorted(main_courses, key=lambda course: course["title"]):
-        h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
-        edited = p["last_edited"].isoformat()[:16]
-        course = "<h3>{h3}</h3><div>last edit: {edited}, host: {host[host]}".format(edited=edited, h3=h3, **p)
-        print(course)
-        print("<ul>")
-        u = p["users"]
-        for k, v in sorted(u.items(), key=sort_collabs):
-            t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
-            t["email_address"] = t.get("email_address", "None")
-            addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-            print("<li>{addr} ({group})</li>".format(addr=addr, **v))
-        print("</ul></div>")
+    print("<html><head><style>body {font-family: sans-serif;}</style></head>")
+    print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
+    for hosting, projs in courses.items():
+        print("<h2>{} Hosting</h2>".format(hosting.title()))
+        for p in sorted(projs, key=lambda course: course["created"]):
+            h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
+            edited = p["last_edited"].isoformat()[:16]
+            started = p["created"].isoformat()[:16]
+            course = "<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {host[host]}"\
+                        .format(started=started, edited=edited, h3=h3, **p)
+            print(course)
+            print("<div><i>{description}</i></div>".format(**p))
+            print("<ul>")
+            u = p["users"]
+            for k, v in sorted(u.items(), key=sort_collabs):
+                t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
+                t["email_address"] = t.get("email_address", "None")
+                addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
+                print("<li>{addr} ({group})</li>".format(addr=addr, **v))
+            print("</ul></div>")
     print("</body></html>")
 
 
@@ -221,7 +233,6 @@ def rewrite_stats():
     'last_week_projects': 3533, 'last_day_projects': 1202, and  'last_month_projects': 10443
     are transformed into 'projects_edited' : {'1d' : ..., '1h':, ... }
     """
-    # stats.config().update({'durability': 'soft'}).run()
     from time import sleep
     dt = timedelta(days=1)
 
@@ -269,8 +280,8 @@ def rewrite_stats():
             #return
         elif res["replaced"] > 0:
             # top speed is above 10k/sec, but we want to keep this throttled
-            # therefore, for every 1k replacements, sleep 10 secs (1 sec isn't enough)
-            sleep(10. * res["replaced"] / 1000.)
+            # therefore, for every 1k replacements, sleep 15 secs (1 sec isn't enough)
+            sleep(15. * res["replaced"] / 1000.)
         else:
             sleep(.1)
 
