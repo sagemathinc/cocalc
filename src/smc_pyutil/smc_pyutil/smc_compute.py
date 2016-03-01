@@ -715,7 +715,11 @@ class Project(object):
                             raise
                     if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
                         return
-                os.mkdir(name, 0700)
+                try:
+                    os.mkdir(name, 0700)
+                except OSError, e:
+                    if e.errno != errno.EEXIST:
+                        raise
                 if not self._dev:
                     os.chown(name, self.uid, self.uid)
             makedirs(path)
