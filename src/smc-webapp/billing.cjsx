@@ -765,10 +765,8 @@ AddSubscription = rclass
         </div>
 
     render_create_subscription_options : ->
+        # <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
         <div>
-            <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
-            <ExplainResources type='shared'/>
-            <hr/>
             <div style={textAlign:'center'}>
                 {@render_period_selection_buttons()}
             </div>
@@ -817,6 +815,7 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
                 </Well>
+                <ExplainResources type='shared'/>
             </Col>
         </Row>
 
@@ -1029,15 +1028,19 @@ FAQS =
            You are encouraged to make an account and explore our product under free quotas.
            You can even start teaching a course under a free quota and upgrade later!
            </span>
-    close_browser:
-        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
+    member_hosting:
+        q: <span>What does <b>"member hosting"</b> mean?</span>
         a: <span>
-            <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
-            You can start a computation, shut down your computer, go somewhere else, turn on and sign in
-            on another computer, and continue working where you have left off.<br/>
-            The only reasons why a project or process shuts down are
-            that it is past its <em>idle time</em>, has used too much memory,
-            crashed due to an exception, or the server had to reboot.
+            There are two types of projects: "free projects" and "member projects".
+            Free projects run on heavily loaded computers.
+            Quite often, these computers will house over 150 simultaneously running projects!
+            Member hosting means, that the upgraded project moves to a less loaded machine,
+            which is reserved for paying customers.<br/>
+            This implies, that working feels much smoother, because commands execute quicker with lower latency,
+            and CPU, memory and I/O heavy operations run faster (e.g. compiling source code, etc.).
+            Additionally, members only projects are always "ready to start".
+            Free projects move to "cold storage" after some time,
+            and it takes a while to move them back onto a free machine.
            </span>
     network_access:
         q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
@@ -1057,17 +1060,6 @@ FAQS =
             e.g., searching for special prime numbers &mdash; impossible.
             With an increased idle timeout, projects run longer and therefore all running processes.
             They might still stop, if they use too much memory, crash due to an exception, or the server has to reboot.
-           </span>
-    member_hosting:
-        q: <span>What does <b>"member hosting"</b> mean?</span>
-        a: <span>
-            There are two types of projects: "free projects" and "member projects".
-            Free projects run on heavily loaded computers.
-            Quite often, these computers will house over 150 simultaneously running projects!
-            Member hosting means, that the upgraded project moves to a less loaded machine,
-            which is reserved for paying customers.<br/>
-            This implies, that working feels much smoother, because commands execute quicker with lower latency,
-            and CPU, memory and I/O heavy operations run faster (e.g. compiling source code, etc.)
            </span>
     cpu_shares:
         q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
@@ -1104,6 +1096,16 @@ FAQS =
             the free quotas for memory and disk space are plenty .
             Rather, we strongly suggest to upgrade hosting to "members",
             since this gives better machines and higher availability.
+           </span>
+    close_browser:
+        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
+        a: <span>
+            <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
+            You can start a computation, shut down your computer, go somewhere else, turn on and sign in
+            on another computer, and continue working where you have left off.<br/>
+            The only reasons why a project or process shuts down are
+            that it is past its <em>idle time</em>, has used too much memory,
+            crashed due to an exception, or the server had to reboot.
            </span>
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
@@ -1649,10 +1651,10 @@ BillingPage = rclass
         if not Stripe?
             return <div>Stripe is not available...</div>
         <div>
+            {@render_info_link()}
             {@render_action()}
             {@render_error()}
             {@render_course_payment_instructions()}
-            {@render_info_link()}
             {@render_page()}
         </div>
 
