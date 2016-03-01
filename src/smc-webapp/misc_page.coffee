@@ -616,8 +616,10 @@ exports.define_codemirror_extensions = () ->
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value) ->
+        @_setValueNoJump = true
         cur_value = @getValue()
-        @.diffApply(dmp.diff_main(@getValue(), value))
+        @diffApply(dmp.diff_main(@getValue(), value))
+        delete @_setValueNoJump
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## TODO: this is a very stupid/inefficient way to turn
@@ -626,7 +628,7 @@ exports.define_codemirror_extensions = () ->
         cur_value = @getValue()
         new_value = dmp.patch_apply(patch, cur_value)[0]
         diff = dmp.diff_main(cur_value, new_value)
-        @.diffApply(diff)
+        @diffApply(diff)
 
     CodeMirror.defineExtension 'diffApply', (diff) ->
         next_pos = (val, pos) ->

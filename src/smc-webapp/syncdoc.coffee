@@ -602,9 +602,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
                         @on_redo?(instance, changeObj)
                     if changeObj.origin != 'setValue'
                         @save_state_debounce()
-                else
-                    # hack to ignore cursor movements resulting from remote changes
-                    @_last_remote_change = new Date()
                 update_unsaved_changes()
 
             @emit('connect')   # successful connection
@@ -671,8 +668,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
     _init_cursor_activity: () =>
         for i, cm of [@codemirror, @codemirror1]
             cm.on 'cursorActivity', (cm) =>
-                # This is an ugly hack to ignore cursor movements resulting from remote changes.
-                caused = not @_last_remote_change? or @_last_remote_change - new Date() != 0
+                if cm.name != @focused_codemirror().name
+                    # ignore non-focused editor
+                    return
+                caused = not cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
                 # broadcast cursor positions
                 locs = ({x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
                 @_syncstring.set_cursor_locs(locs, caused)
@@ -699,6 +698,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     # Move the cursor with given color to the given pos.
     draw_other_cursors: (account_id, locs, caused) =>
         # ensure @_cursors is defined; this is map from key to ...?
+        #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
         x = @_cursors[account_id]
         if not x?
@@ -719,7 +719,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 data.name = name
             if color != data.color
                 data.cursor.find(".smc-editor-codemirror-cursor-inside").css('border-left': "1px solid #{color}")
-                data.cursor.find(".smc-editor-codemirror-cursor-label" ).css(color: color)
+                data.cursor.find(".smc-editor-codemirror-cursor-label" ).css(background: color)
                 data.color = color
 
             # Place cursor in the editor in the right spot
@@ -727,10 +727,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
             if caused  # if not user caused will have been fading already from when created
                 # Update cursor fade-out
-                # LABEL: first fade the label out over 8s
-                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:8000)
-                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 15s.
-                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:15000)
+                # LABEL: first fade the label out over 6s
+                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
+                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
