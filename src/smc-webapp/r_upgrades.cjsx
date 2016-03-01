@@ -43,7 +43,7 @@ exports.UpgradesPage = rclass
 
     render_have_upgrades: ->
         <div>
-            <h3>Thank you for supporting SageMathCloud</h3>
+            <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
                 We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.

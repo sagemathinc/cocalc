@@ -554,10 +554,15 @@ PaymentMethods = rclass
 exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render_project_quota: (name, value) ->
         data = PROJECT_UPGRADES.params[name]
+        amount = value * data.pricing_factor
+        unit = data.pricing_unit
+        if unit == "day" and amount < 2
+            amount = 24 * amount
+            unit = "hour"
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
-                    {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                    {misc.round1(amount)} {misc.plural(amount, unit)}
                 </span><Space/>
                 <span style={color:'#999'}>
                     {data.display}
@@ -575,10 +580,11 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
 
 exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render_project_quota: (name, value) ->
+        # TODO is this a code dup from above?
         data = PROJECT_UPGRADES.params[name]
         amount = value * data.pricing_factor
         unit = data.pricing_unit
-        if unit == "day"
+        if unit == "day" and amount < 2
             amount = 24 * amount
             unit = "hour"
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
@@ -604,7 +610,7 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
                 </Tip>
             </div>
             <div style={marginBottom:'5px', marginLeft:'10px'}>
-                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not able to access the internet due to security/abuse reasons.">
+                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
                     <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
                     <span style={color:'#999'}>Internet access</span>
                 </Tip>
@@ -648,10 +654,10 @@ PlanInfo = rclass
     render_price : (prices, periods) ->
         #sep = <span style={fontSize:"small", margin:"15px"}>or</span>
         if @props.on_click?
-            # note: in practice, there is always just *one* price (not on the "static" pages)
+            # note: in non-static, there is always just *one* price (several only on "static" pages)
             for i in [0...prices.length]
                 <Button key={i} bsStyle={if @props.selected then 'primary'}>
-                    @render_cost(prices[i], periods[i])
+                    {@render_cost(prices[i], periods[i])}
                 </Button>
         else
             <h3 style={textAlign:'center'}>
@@ -659,11 +665,6 @@ PlanInfo = rclass
             </h3>
 
     render_plan_name : (plan_data) ->
-        #if @props.on_click?
-        #    <Button bsStyle={if @props.selected then 'primary'}>
-        #        <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan).replace(/_/g,' ')} plan..."}
-        #    </Button>
-        #else
         <div style={paddingLeft:"10px"}>
             <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
         </div>
@@ -689,8 +690,8 @@ PlanInfo = rclass
             onClick   = {=>@props.on_click?()}
         >
             <Space/>
-
             {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order when benefits[name]}
+            <Space/>
 
             <div style={textAlign : 'center', marginTop:'10px'}>
                 {@render_price(prices, periods)}
@@ -743,7 +744,6 @@ AddSubscription = rclass
                     Course package (4-months)
                 </Button>
             </ButtonGroup>
-            {@render_renewal_info()}
         </div>
 
     render_renewal_info: ->
@@ -751,10 +751,10 @@ AddSubscription = rclass
         if @props.selected_plan
             renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
-            <div style={marginBottom:'2em', marginTop:'1ex', color:'#666'}>
+            <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged one once</b> for the course package, which lasts {length}.  It does not <b>automatically renew</b>.</span> if not renews}
-            </div>
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+            </p>
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -785,6 +785,7 @@ AddSubscription = rclass
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
             <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            {@render_renewal_info()}
             <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
@@ -883,6 +884,10 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
 exports.ExplainResources = ExplainResources = rclass
     propTypes :
         type : rtypes.string.isRequired    # 'shared', 'dedicated'
+        is_static : rtypes.bool
+
+    getDefaultProps : ->
+        is_static : false
 
     render_shared: ->
         <div>
@@ -890,23 +895,23 @@ exports.ExplainResources = ExplainResources = rclass
                 <Col md=8 sm=12>
                     <h4>Projects</h4>
                     <div>
-                    All work on <SiteName/> happens inside <em>projects</em>.
+                    Your work on <SiteName/> happens inside <em>projects</em>.
+                    You may create several completely independent projects.
                     They form your personal workspace,
                     where you privately store your files, computational worksheets, and data.
                     All computations are issued through the web-interface:
-                    either inside a worksheet or by executing a program in a terminal.
-                    Besides that, you can invite collaborators to work inside the same project
+                    either via a worksheet or by executing a program in a terminal.
+                    Besides that, you can also invite collaborators to work with you inside the same project
                     or publish files to be publicly available on the internet.
                     </div>
                     <Space/>
 
                     <h4>Shared Resources</h4>
                     <div>
-                    You may create several completely independent <SiteName/> projects.
                     Every project runs on one of our servers, where it shares disk space, CPU, and RAM with other projects.
                     Initially, projects run with free quotas on rather heavily used machines.
                     These quotas can be upgraded and "member" projects move to larger <em>member machines</em> &mdash;
-                    with much less competition for resources.
+                    where there is much less competition for resources.
                     </div>
                     <Space/>
 
@@ -915,30 +920,33 @@ exports.ExplainResources = ExplainResources = rclass
                     By purchasing one or more of our subscriptions,
                     you are receiving a certain amount of <em>quota upgrades</em>.
                     <ul style={paddingLeft:"20px"}>
-                    <li>You can upgrade the quotas on any of your projects up to the total amount given by your subscription(s)
+                    <li>You can upgrade the quotas on any of your projects
+                        up to the total amount given by your subscription(s)
                         and the upper limits per project.
                     </li>
-                    <li>Project collaborators can collectively contribute to the same project
-                        in order to increase the quotas their common project
+                    <li>Project collaborators can collectively contribute to the same project,
+                        in order to increase the quotas of their common project
                         &mdash; these contributions benefit all project collaborators.</li>
                     <li>You can remove your contributions to any project (owner or collaborator) at any time.</li>
                     <li>You may also subscribe to the same subscription more than once,
-                    in order to increase your total amount of quota upgrades.</li>
+                        in order to increase your total amount of quota upgrades.</li>
                     </ul>
                     </div>
                     <Space/>
 
                     <div style={fontWeight:"bold"}>
-                        Please immediately email us at <HelpEmailLink/> if anything is unclear to you.
+                        Please immediately email us at <HelpEmailLink/> {" "}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href='/policies/pricing.html#faq'>pricing FAQ</a> </span>}
+                        if anything is unclear to you.
                     </div>
                     <Space/>
                 </Col>
                 <Col md=4 sm=12>
                     <Row>
-                        <Col md=12 sm=6 xs=6>
+                        <Col md=12 sm=6>
                             <ProjectQuotaFreeTable/>
                         </Col>
-                        <Col md=12 sm=6 xs=6>
+                        <Col md=12 sm=6>
                             <ProjectQuotaBoundsTable/>
                         </Col>
                     </Row>
@@ -950,7 +958,7 @@ exports.ExplainResources = ExplainResources = rclass
         <div>
             <h4>Dedicated Resources</h4>
             You may also rent dedicated computers.
-            Projects of your choice get full use of the disk, CPU and RAM of those computers,
+            Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
             and do <em>not</em> have to compete with other users for resources.
             We have not fully automated purchase of dedicated computers yet,
             so please contact us at <HelpEmailLink/> if you need a dedicated machine.
@@ -966,7 +974,6 @@ exports.ExplainResources = ExplainResources = rclass
                 throw Error("unknown type #{@props.type}")
 
 exports.ExplainPlan = ExplainPlan = rclass
-
     propTypes :
         type : rtypes.string.isRequired    # 'personal', 'course'
 
@@ -974,11 +981,11 @@ exports.ExplainPlan = ExplainPlan = rclass
         <div style={marginBottom:"10px"}>
             <h3>Personal subscriptions</h3>
             <div>
-                In order to be able to increase the default free quotas, we offer several subscriptions to purchase upgrades.
-                You can distribute these upgrades to your own projects or those projects where you are a collaborator &mdash;
-                everyone participating in the project benefits!
+                In order to be able to increase the default free quotas, we offer several subscriptions.
+                You can distribute these upgrades to your own projects or projects where you are a collaborator &mdash;
+                everyone participating in such a collective project benefits!
                 Besides higher-quality hosting on "member" machines and direct access to the internet,
-                increased quotas for CPU and RAM mean, that you can work on larger problems and do more computations simultaneously in a project.
+                increased quotas for CPU and RAM mean, that you can work on larger problems and do more computations simultaneously.
             </div>
         </div>
 
@@ -987,10 +994,12 @@ exports.ExplainPlan = ExplainPlan = rclass
             <h3>Course plans</h3>
             <div>
                 We offer course plans for teaching a class in <SiteName/>.
-                This plan starts right when you purchase it and lasts for the full indicated period without auto-renewal.
-                Through the interface of <SiteName/> you start teaching by adding your students and implicitly creating their projects.
-                After upgrading your student{"'"}s projects, you can create and distribute assignments.
-                Then, students work inside their own projects, where you can check their progress, and later collect and grade the assignments.
+                Such plans start right after purchase and last for the full indicated period without auto-renewal.
+                Through the interface of <SiteName/>, you start teaching by creating a course.
+                When you add your students, you are creating their student projects.
+                After upgrading your student{"'"}s projects, you can create and distribute assignments,
+                students work inside their own projects (where you can check their progress)
+                and later collect and grade their assignments.
             </div>
         </div>
 
@@ -1010,60 +1019,63 @@ faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_h
 faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
 faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
 faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
 
 # the structured react.js FAQ text
 FAQS =
     differences:
         q: <span>What differences are between <b>free and paid plans</b>?</span>
-        a: <span>Essentially, the only differences are the quotas and the quality of the hosting.
+        a: <span>Essentially, the only differences are the increased quotas and the quality of the hosting.
            You are encouraged to make an account and explore our product under free quotas.
            You can even start teaching a course under a free quota and upgrade later!
            </span>
     close_browser:
-        q: <span>Can I <b>close my web-browser</b>?</span>
+        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
         a: <span>
             <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
             You can start a computation, shut down your computer, go somewhere else, turn on and sign in
             on another computer, and continue working where you have left off.<br/>
-            The only reasons why a project or process shuts down is,
+            The only reasons why a project or process shuts down are
             that it is past its <em>idle time</em>, has used too much memory,
             crashed due to an exception, or the server had to reboot.
            </span>
     network_access:
-        q: <span>What exactly is meant by <b>"internet access"</b>?</span>
+        q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
         a: <span>
             Despite the fact that you are accessing <SiteName/> through the internet,
             you are actually working in a highly restricted environment.
-            Processes running <em>inside</em> your project, are not allowed to access the internet,
-            when they are running under the free quota &mdash; otherwise, malicious users could launch
-            attacks on other hosts, etc.
+            When they are running under the free quota,
+            all processes running <em>inside</em> your project are not allowed to directly access the internet
+            &mdash; otherwise, malicious users could launch attacks on other hosts, etc.
             You have to enable internet access by adding the "internet access" quota.
            </span>
     idle_timeout:
-        q: <span>What exactly does the quota <b>idle timeout</b> mean?</span>
+        q: <span>What exactly does the quota <b>"idle timeout"</b> mean?</span>
         a: <span>
-                By default free projects stop running after 1 hour of idle time.
-                This makes doing an overnight research computation &mdash;
-                e.g., searching for special prime numbers &mdash; impossible.
+            By default, free projects stop running after {faq_idle_time_free_h} hour of idle time.
+            This makes doing an overnight research computation &mdash;
+            e.g., searching for special prime numbers &mdash; impossible.
+            With an increased idle timeout, projects run longer and therefore all running processes.
+            They might still stop, if they use too much memory, crash due to an exception, or the server has to reboot.
            </span>
     member_hosting:
         q: <span>What does <b>"member hosting"</b> mean?</span>
         a: <span>
             There are two types of projects: "free projects" and "member projects".
-            Free projects run on a specific pool of very heavily loaded computers.
-            Quite often, these computers will house over 150 simultaneously running projects on them.
-            Member hosting means, that these projects run on much less heavily loaded machines,
-            which are reserved for paying customers.<br/>
-            This implies, that commands run faster with a lower latency and
-            disk, cpu and memory heavy operations run better (e.g. compiling source code, etc.)
+            Free projects run on heavily loaded computers.
+            Quite often, these computers will house over 150 simultaneously running projects!
+            Member hosting means, that the upgraded project moves to a less loaded machine,
+            which is reserved for paying customers.<br/>
+            This implies, that working feels much smoother, because commands execute quicker with lower latency,
+            and CPU, memory and I/O heavy operations run faster (e.g. compiling source code, etc.)
            </span>
     cpu_shares:
         q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
         a: <span>
             All projects on a single server share the underlying resources.
-            This quota determines, how CPU resources are shared between projects.
-            Increasing this, increases the priority or magnitude of a project over others on the same host computer.<br/>
-            In particular, "shares" is determining the amount of relative CPU time
+            These quotas determine how CPU resources are shared between projects.
+            Increasing them increases the priority of a project compared to others on the same host computer.<br/>
+            In particular, "shares" determines the amount of relative CPU time
             you are getting on a maximum number of "cores" CPU execution threads.
            </span>
     course120:
@@ -1072,30 +1084,30 @@ FAQS =
             Which plan should I purchase?
            </span>
         a: <span>
-                You can combine and add up course subscriptions!
-                By ordering two times the 'medium course plan',
-                you will get {faq_course_120} upgrades covering all your students.
+            You can combine and add up course subscriptions!
+            By ordering two times the 'medium course plan',
+            you will get {faq_course_120} upgrades covering all your students.
             </span>
     academic:
         q: <span>Do you offer <b>academic discounts</b>?</span>
         a: <span>
-                Our course subscriptions for academic usage and teaching are already discounted.
-                Please compare our monthly plans with the 4 month course plans.
-                For example: giving {faq_academic_students} students better member hosting and internet access,
-                would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months,
-                amounting to ${faq_academic_full}.
+            Our course subscriptions for academic usage and teaching are already discounted.
+            Please compare our monthly plans with the 4 month course plans.
+            For example: giving {faq_academic_students} students better member hosting and internet access,
+            would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months
+            amounting to ${faq_academic_full}.
             </span>
     academic_quotas:
-        q: <span>There are no upgrades for courses. Is this enough?</span>
+        q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
         a: <span>
-            From our experience we know, that for the type of computations used in courses,
-            the free quotas for memory and disk space are plenty.
+            From our experience we know, that for the type of computations used in courses
+            the free quotas for memory and disk space are plenty .
             Rather, we strongly suggest to upgrade hosting to "members",
             since this gives better machines and higher availability.
            </span>
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
-        a: <span>All our plans (free and paid) host your files in a private place.
+        a: <span>All our plans (free and paid) host your files privately.
             Please read our <a target="_blank" href="/policies/privacy.html">Privacy Policy</a> and {" "}
             <a target="_blank" href="/policies/copyright.html">Copyright Notice</a>.
            </span>
@@ -1104,7 +1116,7 @@ FAQS =
         a: <span>
             Git and various other source control tools are installed and ready to use via the "Terminal".
             But, in order to also interoperate with sites hosting Git repositories,
-            you have to purchase a plan giving you "internet upgrades" and applying this upgrade to your project.
+            you have to purchase a plan giving you "internet upgrades" and then applying this upgrade to your project.
            </span>
 
 FAQ = exports.FAQ = rclass
@@ -1120,6 +1132,7 @@ FAQ = exports.FAQ = rclass
 
     render: ->
         <div>
+            <a name="faq"></a>
             <h2>Frequently asked questions</h2>
             <ul>
                 {@faq()}
@@ -1617,6 +1630,7 @@ BillingPage = rclass
             # user not initialized yet -- only thing to do is add a card.
             <div>
                 <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+                <Footer/>
             </div>
         else
             # data loaded and customer exists
@@ -1628,6 +1642,7 @@ BillingPage = rclass
                     selected_plan = {@props.selected_plan}
                     redux         = {@props.redux} />
                 <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
+                <Footer/>
             </div>
 
     render : ->
@@ -1669,7 +1684,7 @@ set_selected_plan = (plan, period) ->
 
 exports.render_static_pricing_page = () ->
     <div>
-        <ExplainResources type='shared'/>
+        <ExplainResources type='shared' is_static={true}/>
         <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
