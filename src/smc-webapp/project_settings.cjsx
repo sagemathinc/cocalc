@@ -886,7 +886,7 @@ ProjectControlPanel = rclass
                     {# WARNING: previous use of <Input> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
                     <a href="https://github.com/sagemathinc/smc/wiki/SSH-Instructions" target="_blank">
-                    How to create SSH keys</a>
+                    <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
             else
                 <Row>
