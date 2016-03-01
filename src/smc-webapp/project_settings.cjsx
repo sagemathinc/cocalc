@@ -885,6 +885,8 @@ ProjectControlPanel = rclass
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <Input> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+                    <a href="https://support.rackspace.com/how-to/generating-rsa-keys-with-ssh-puttygen/">
+                    Instructions for generating a key with Putty</a>
                 </div>
             else
                 <Row>
