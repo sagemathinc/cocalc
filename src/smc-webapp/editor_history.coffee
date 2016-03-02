@@ -48,6 +48,8 @@ class exports.HistoryEditor extends FileEditor
                 @resize_slider()
             if @syncstring.has_full_history()
                 @load_all.hide()
+            else
+                @load_all.show()
 
     close: () =>
         @syncstring.close()
@@ -141,11 +143,13 @@ class exports.HistoryEditor extends FileEditor
             return
         @slider.slider("option", "value", @revision_num)
         @update_buttons()
-        @element.find(".salvus-editor-history-revision-number").text("Revision #{num+1} (of #{@length}), ")
-        @element.find(".salvus-editor-history-revision-time").text(time.toLocaleString())
+        #@element.find(".salvus-editor-history-revision-time").text(time.toLocaleString())
+        t = time.toLocaleString()
+        @element.find(".salvus-editor-history-revision-time").text($.timeago(t)).attr('title', t)
+        @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         name = smc.redux.getStore('users').get_name(@syncstring.account_id(time))
         if name?
-            username = " (#{misc.trunc_middle(name,100)})"
+            username = ", #{misc.trunc_middle(name,100)}"
         else
             username = ''  # don't know user or maybe no recorded user (e.g., initial version)
         @element.find(".salvus-editor-history-revision-user").text(username)
