@@ -631,8 +631,8 @@ NewProjectCreator = rclass
     start_editing : ->
         @setState
             state           : 'edit'
-            title_text      : "Project #{@props.nb_projects + 1}"
-            description_text: "created #{new Date().toISOString()[...16].replace("T", " at ")}"
+            title_text      : ''
+            description_text: ''
 
     cancel_editing : ->
         @setState
@@ -667,14 +667,14 @@ NewProjectCreator = rclass
             @create_project()
 
     render_input_section : ->
-        <Well style={backgroundColor: '#DCEFDC'}>
+        <Well style={backgroundColor: '#FFF', color:'#666'}>
             <Row>
-                <Col sm=5 style={color: '#444'}>
-                    <h4>Title:</h4>
+                <Col sm=5>
+                    <h4>Title</h4>
                     <Input
                         ref         = 'new_project_title'
                         type        = 'text'
-                        placeholder = 'The title ...'
+                        placeholder = 'Title'
                         disabled    = {@state.state == 'saving'}
                         value       = {@state.title_text}
                         onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
@@ -682,8 +682,8 @@ NewProjectCreator = rclass
                         autoFocus   />
                 </Col>
 
-                <Col sm=7 style={color: '#444'}>
-                    <h4>Description:</h4>
+                <Col sm=7>
+                    <h4>Description</h4>
                     <Input
                         ref         = 'new_project_description'
                         type        = 'text'
@@ -717,26 +717,15 @@ NewProjectCreator = rclass
                     {@render_error()}
                 </Col>
                 <Col sm=7>
-                    <div style={color:'#666', marginBottom: '12px'}>(You can change the title and description at any time later.)</div>
+                    <div style={marginBottom: '12px'}>You can <b>very easily</b> change the title and description at any time later.</div>
                 </Col>
             </Row>
             <Space/>
-            <hr/>
             <Row>
                 <Col sm=12 style={color:'#555'}>
                     <div>
-                        A "project" in <SiteName/> is your very own <em>private workspace</em>.
-                        All your computations and programs run inside it.
-                        After opening your newly created project, go ahead and create your SageMath worksheets,
-                        Jupyter notebooks, textfiles, LaTeX documents or even upload your very own data files.
-                    </div>
-                    <Space/>
-                    <div>
-                        You can access your projects around the clock and work without restrictions on time.
-                        Free projects start with a certain basic quota of allowed resource usage.
-                        These quotas and the quality of hosting can be greatly increased
-                        by <a target="_blank" href="/policies/pricing.html">subscribing to a plan</a> and
-                        upgrading your projects.
+                        A <b>project</b> is your own private computational workspace that you can
+                        share with others and <a target="_blank" href="/policies/pricing.html">upgrade</a>.
                     </div>
                 </Col>
             </Row>
@@ -749,11 +738,12 @@ NewProjectCreator = rclass
     render : ->
         new_proj_btn =  <Col sm=4>
                             <Button
-                                bsStyle = {if @state.state == 'view' then 'success' else 'default'}
-                                active  = {@state.state != 'view'}
+                                bsStyle  = 'success'
+                                active   = {@state.state != 'view'}
+                                disabled = {@state.state != 'view'}
                                 block
-                                type    = 'submit'
-                                onClick = {@toggle_editing}>
+                                type     = 'submit'
+                                onClick  = {@toggle_editing}>
                                 <Icon name='plus-circle' /> Create new project...
                             </Button>
                         </Col>
@@ -995,7 +985,6 @@ ProjectList = rclass
     displayName : 'Projects-ProjectList'
 
     propTypes :
-        nb_projects : rtypes.number.isRequired
         projects    : rtypes.array.isRequired
         show_all    : rtypes.bool.isRequired
         redux       : rtypes.object
@@ -1294,7 +1283,6 @@ ProjectSelector = rclass
                 <Row>
                     <Col sm=12>
                         <ProjectList
-                            nb_projects = {@project_list().length}
                             projects    = {visible_projects}
                             show_all    = {@props.show_all}
                             user_map    = {@props.user_map}
