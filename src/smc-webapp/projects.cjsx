@@ -619,6 +619,9 @@ exports.load_target = load_target = (target, switch_to) ->
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
+    propTypes :
+        nb_projects : rtypes.number.isRequired
+
     getInitialState : ->
         state            : 'view'    # view --> edit --> saving --> view
         title_text       : ''
@@ -627,7 +630,9 @@ NewProjectCreator = rclass
 
     start_editing : ->
         @setState
-            state : 'edit'
+            state           : 'edit'
+            title_text      : "Project #{@props.nb_projects + 1}"
+            description_text: "created #{new Date().toISOString()[...16].replace("T", " at ")}"
 
     cancel_editing : ->
         @setState
@@ -655,22 +660,13 @@ NewProjectCreator = rclass
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
-                @setState
-                    state            : 'view'
-                    title_text       : ''
-                    description_text : ''
-                    error            : ''
+                @cancel_editing()
 
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
     render_input_section : ->
-        #<Row>
-        #    <Col sm=12 style={color: '#666', fontWeight: 'bold', fontSize: '15pt'}>
-        #        <Icon name='plus-circle' /> Create a new project
-        #    </Col>
-        #</Row>
         <Well style={backgroundColor: '#DCEFDC'}>
             <Row>
                 <Col sm=5 style={color: '#444'}>
@@ -678,8 +674,9 @@ NewProjectCreator = rclass
                     <Input
                         ref         = 'new_project_title'
                         type        = 'text'
-                        placeholder = 'Title (you can easily change this later)'
+                        placeholder = 'The title ...'
                         disabled    = {@state.state == 'saving'}
+                        value       = {@state.title_text}
                         onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
                         onKeyDown   = {@handle_keypress}
                         autoFocus   />
@@ -690,8 +687,9 @@ NewProjectCreator = rclass
                     <Input
                         ref         = 'new_project_description'
                         type        = 'text'
-                        placeholder = 'No description'
+                        placeholder = 'Project description'
                         disabled    = {@state.state == 'saving'}
+                        value       = {@state.description_text}
                         onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())}
                         onKeyDown   = {@handle_keypress} />
                 </Col>
@@ -756,7 +754,7 @@ NewProjectCreator = rclass
                                 block
                                 type    = 'submit'
                                 onClick = {@toggle_editing}>
-                                <Icon name='plus-circle' /> Create a new project...
+                                <Icon name='plus-circle' /> Create new project...
                             </Button>
                         </Col>
 
@@ -875,8 +873,8 @@ ProjectsListingDescription = rclass
         hidden              : rtypes.bool
         selected_hashtags   : rtypes.object
         search              : rtypes.string
-        nb_projects         : rtypes.number
-        nb_projects_visible : rtypes.number
+        nb_projects         : rtypes.number.isRequired
+        nb_projects_visible : rtypes.number.isRequired
 
     getDefaultProps : ->
         deleted           : false
@@ -997,7 +995,7 @@ ProjectList = rclass
     displayName : 'Projects-ProjectList'
 
     propTypes :
-        nb_projects : rtypes.number
+        nb_projects : rtypes.number.isRequired
         projects    : rtypes.array.isRequired
         show_all    : rtypes.bool.isRequired
         redux       : rtypes.object
@@ -1278,7 +1276,8 @@ ProjectSelector = rclass
                 </Row>
                 <Row>
                     <Col sm=12 style={marginTop:'1ex'}>
-                        <NewProjectCreator />
+                        <NewProjectCreator
+                            nb_projects = {@project_list().length} />
                     </Col>
                 </Row>
                 <Row>
