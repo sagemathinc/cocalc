@@ -29,6 +29,7 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
+{SiteName} = require('./customize')
 
 markdown = require('./markdown')
 
@@ -635,6 +636,12 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
+    toggle_editing: ->
+        if @state.state == 'view'
+            @start_editing()
+        else
+            @cancel_editing()
+
     create_project : ->
         token = misc.uuid()
         @setState(state:'saving')
@@ -659,14 +666,14 @@ NewProjectCreator = rclass
             @create_project()
 
     render_input_section : ->
-        <Well style={backgroundColor: '#ffffff'}>
+        #<Row>
+        #    <Col sm=12 style={color: '#666', fontWeight: 'bold', fontSize: '15pt'}>
+        #        <Icon name='plus-circle' /> Create a new project
+        #    </Col>
+        #</Row>
+        <Well style={backgroundColor: '#DCEFDC'}>
             <Row>
-                <Col sm=12 style={color: '#666', fontWeight: 'bold', fontSize: '15pt'}>
-                    <Icon name='plus-circle' /> Create a New Project
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=5 style={color: '#666'}>
+                <Col sm=5 style={color: '#444'}>
                     <h4>Title:</h4>
                     <Input
                         ref         = 'new_project_title'
@@ -678,7 +685,7 @@ NewProjectCreator = rclass
                         autoFocus   />
                 </Col>
 
-                <Col sm=5 style={color: '#666'}>
+                <Col sm=7 style={color: '#444'}>
                     <h4>Description:</h4>
                     <Input
                         ref         = 'new_project_description'
@@ -695,17 +702,11 @@ NewProjectCreator = rclass
             </Row>
 
             <Row>
-                <Col sm=12>
-                    <div style={color:'#666', marginBottom: '6px'}> You can change the title and description at any time later. </div>
-                </Col>
-            </Row>
-
-            <Row>
-                <Col sm=12>
+                <Col sm=5>
                     <ButtonToolbar>
                         <Button
                             disabled = {@state.title_text == '' or @state.state == 'saving'}
-                            bsStyle  = 'primary'
+                            bsStyle  = 'success'
                             onClick  = {@create_project} >
                             Create project
                         </Button>
@@ -717,6 +718,29 @@ NewProjectCreator = rclass
                     </ButtonToolbar>
                     {@render_error()}
                 </Col>
+                <Col sm=7>
+                    <div style={color:'#666', marginBottom: '12px'}>(You can change the title and description at any time later.)</div>
+                </Col>
+            </Row>
+            <Space/>
+            <hr/>
+            <Row>
+                <Col sm=12 style={color:'#555'}>
+                    <div>
+                        A "project" in <SiteName/> is your very own <em>private workspace</em>.
+                        All your computations and programs run inside it.
+                        After opening your newly created project, go ahead and create your SageMath worksheets,
+                        Jupyter notebooks, textfiles, LaTeX documents or even upload your very own data files.
+                    </div>
+                    <Space/>
+                    <div>
+                        You can access your projects around the clock and work without restrictions on time.
+                        Free projects start with a certain basic quota of allowed resource usage.
+                        These quotas and the quality of hosting can be greatly increased
+                        by <a target="_blank" href="/policies/pricing.html">subscribing to a plan</a> and
+                        upgrading your projects.
+                    </div>
+                </Col>
             </Row>
         </Well>
 
@@ -725,25 +749,26 @@ NewProjectCreator = rclass
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
     render : ->
-        switch @state.state
-            when 'view'
-                <Row>
-                    <Col sm=3>
-                        <Button
-                            bsStyle = 'primary'
-                            block
-                            type    = 'submit'
-                            onClick = {@start_editing}>
-                            <Icon name='plus-circle' /> New Project...
-                        </Button>
-                    </Col>
-                </Row>
-            when 'edit', 'saving'
-                <Row>
-                    <Col sm=12>
-                        {@render_input_section()}
-                    </Col>
-                </Row>
+        new_proj_btn =  <Col sm=4>
+                            <Button
+                                bsStyle = {if @state.state == 'view' then 'success' else 'default'}
+                                active  = {@state.state != 'view'}
+                                block
+                                type    = 'submit'
+                                onClick = {@toggle_editing}>
+                                <Icon name='plus-circle' /> Create a new project...
+                            </Button>
+                        </Col>
+
+        new_proj_dialog = <Col sm=12>
+                            <Space/>
+                            {@render_input_section()}
+                          </Col>
+
+        <Row>
+            {new_proj_btn}
+            {if @state.state != 'view' then new_proj_dialog}
+        </Row>
 
 ProjectsFilterButtons = rclass
     displayName : 'ProjectsFilterButtons'
@@ -761,16 +786,18 @@ ProjectsFilterButtons = rclass
         show_deleted_button : false
 
     render_deleted_button : ->
+        style = if @props.deleted then 'warning' else "default"
         if @props.show_deleted_button
-            <Button onClick = {=>redux.getActions('projects').setState(deleted: not @props.deleted)}>
+            <Button onClick={=>redux.getActions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
                 <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
         else
             return null
 
     render_hidden_button : ->
+        style = if @props.hidden then 'warning' else "default"
         if @props.show_hidden_button
-            <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)}>
+            <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
 
@@ -844,10 +871,12 @@ ProjectsListingDescription = rclass
     displayName : 'Projects-ProjectsListingDescription'
 
     propTypes :
-        deleted           : rtypes.bool
-        hidden            : rtypes.bool
-        selected_hashtags : rtypes.object
-        search            : rtypes.string
+        deleted             : rtypes.bool
+        hidden              : rtypes.bool
+        selected_hashtags   : rtypes.object
+        search              : rtypes.string
+        nb_projects         : rtypes.number
+        nb_projects_visible : rtypes.number
 
     getDefaultProps : ->
         deleted           : false
@@ -856,8 +885,13 @@ ProjectsListingDescription = rclass
         search            : ''
 
     render_header : ->
-        desc = "Showing #{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}projects"
-        <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
+        if @props.nb_projects > 0 and (@props.hidden or @props.deleted)
+            d = if @props.deleted then 'deleted ' else ''
+            h = if @props.hidden then 'hidden ' else ''
+            a = if @props.hidden and @props.deleted then ' and ' else ''
+            n = @props.nb_projects_visible
+            desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
+            <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
     render_alert_message : ->
         query = @props.search.toLowerCase()
@@ -875,6 +909,7 @@ ProjectsListingDescription = rclass
 
     render : ->
         <div>
+            <Space/>
             {@render_header()}
             {@render_alert_message()}
         </div>
@@ -962,9 +997,10 @@ ProjectList = rclass
     displayName : 'Projects-ProjectList'
 
     propTypes :
-        projects : rtypes.array.isRequired
-        show_all : rtypes.bool.isRequired
-        redux    : rtypes.object
+        nb_projects : rtypes.number
+        projects    : rtypes.array.isRequired
+        show_all    : rtypes.bool.isRequired
+        redux       : rtypes.object
 
     getDefaultProps : ->
         projects : []
@@ -1001,10 +1037,16 @@ ProjectList = rclass
         return listing
 
     render : ->
-        <div>
-            {@render_list()}
-            {@render_show_all()}
-        </div>
+        if @props.nb_projects == 0
+            <Alert bsStyle='info'>
+                You have not created any projects yet.
+                Click on "Create a new project" above to start working with <SiteName/>!
+            </Alert>
+        else
+            <div>
+                {@render_list()}
+                {@render_show_all()}
+            </div>
 
 parse_project_tags = (project) ->
     project_information = (project.title + ' ' + project.description).toLowerCase()
@@ -1207,7 +1249,9 @@ ProjectSelector = rclass
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
-        <Grid fluid className='constrained'>
+
+        visible_projects = @visible_projects()
+        <Grid fluid className='constrained' style={minHeight:"80vh"}>
             <Well style={marginTop:'1em',overflow:'hidden'}>
                 <Row>
                     <Col sm=4>
@@ -1240,19 +1284,22 @@ ProjectSelector = rclass
                 <Row>
                     <Col sm=12>
                         <ProjectsListingDescription
-                            hidden            = {@props.hidden}
-                            deleted           = {@props.deleted}
-                            search            = {@props.search}
-                            selected_hashtags = {@props.selected_hashtags[@filter()]} />
+                            nb_projects         = {@project_list().length}
+                            nb_projects_visible = {visible_projects.length}
+                            hidden              = {@props.hidden}
+                            deleted             = {@props.deleted}
+                            search              = {@props.search}
+                            selected_hashtags   = {@props.selected_hashtags[@filter()]} />
                     </Col>
                 </Row>
                 <Row>
                     <Col sm=12>
                         <ProjectList
-                            projects = {@visible_projects()}
-                            show_all = {@props.show_all}
-                            user_map = {@props.user_map}
-                            redux    = {@props.redux} />
+                            nb_projects = {@project_list().length}
+                            projects    = {visible_projects}
+                            show_all    = {@props.show_all}
+                            user_map    = {@props.user_map}
+                            redux       = {@props.redux} />
                     </Col>
                 </Row>
             </Well>
