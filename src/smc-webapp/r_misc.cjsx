@@ -362,7 +362,7 @@ exports.NumberInput = NumberInput = rclass
                         disabled = {@props.disabled} />
                 </form>
             </Col>
-            <Col xs=2 class="lighten">
+            <Col xs=2 className="lighten">
                 {unit}
             </Col>
             <Col xs=4>
