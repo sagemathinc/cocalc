@@ -1071,14 +1071,14 @@ upgrades.params =
         input_type     : 'number'
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
-        display        : 'Network access'
+        display        : 'Internet access'
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
+        desc           : 'Full internet access enables a project to connect to the computers outside of SageMathCloud, download software packages, etc.'
     member_host :
         display        : 'Member hosting'
         unit           : 'upgrade'

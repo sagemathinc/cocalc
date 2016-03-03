@@ -59,9 +59,9 @@ Then use it (from `~/smc/src`):
 
 Add this to your ~/.bashrc, where you get the port as above:
 
-    export SMC_DB_HOSTS=localhost:51974
+    export SMC_DB_HOSTS=localhost:`cat ~/smc/src/dev/project/ports/rethinkdb`
 
-You can get your account id by typing ./info.py in dev/project and loging in to your own SMC server, then typing `smc.client.account_id` in the Javascript console.  You might see something like "86b29017-644e-481d-aac2-c14ea52b930c" as output.  Then, to make your user and admin, do this from the root of your install:
+You can get your account id by typing `./info.py` in `dev/project` and logging in to your own SMC server, then typing `smc.client.account_id` in the JavaScript console.  You might see something like "86b29017-644e-481d-aac2-c14ea52b930c" as output.  Then, to make your user and admin, do this from the root of your install:
 
     ~/smc/src$ coffee
     coffee> require 'c'; db()

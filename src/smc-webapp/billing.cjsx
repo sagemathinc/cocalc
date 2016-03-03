@@ -21,12 +21,13 @@
 
 async     = require('async')
 misc      = require('smc-util/misc')
+_         = require('underscore')
 
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip} = require('./r_misc')
-{HelpEmailLink} = require('./customize')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
+{HelpEmailLink, SiteName} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -107,7 +108,7 @@ class BillingActions extends Actions
                         response = _response
                         cb()
             (cb) =>
-                @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
+                @_action('create_source', 'Creating a new payment method (sending token to <SiteName/>)', {token:response.id, cb:cb})
         ], (err) =>
             @setState(action:'', error:err)
             cb?(err)
@@ -553,10 +554,15 @@ PaymentMethods = rclass
 exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render_project_quota: (name, value) ->
         data = PROJECT_UPGRADES.params[name]
+        amount = value * data.pricing_factor
+        unit = data.pricing_unit
+        if unit == "day" and amount < 2
+            amount = 24 * amount
+            unit = "hour"
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
-                    {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                    {misc.round1(amount)} {misc.plural(amount, unit)}
                 </span><Space/>
                 <span style={color:'#999'}>
                     {data.display}
@@ -567,18 +573,24 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render : ->
         max = PROJECT_UPGRADES.max_per_project
         <Panel
-            header = 'Maximum possible quota per project'
+            header = 'Maximum possible quotas per project'
         >
             {@render_project_quota(name, max[name]) for name in PROJECT_UPGRADES.field_order when max[name]}
         </Panel>
 
 exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render_project_quota: (name, value) ->
+        # TODO is this a code dup from above?
         data = PROJECT_UPGRADES.params[name]
+        amount = value * data.pricing_factor
+        unit = data.pricing_unit
+        if unit == "day" and amount < 2
+            amount = 24 * amount
+            unit = "hour"
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
-                    {misc.round1(value * data.pricing_factor)} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                    {misc.round1(amount)} {misc.plural(amount, unit)}
                 </span> <Space/>
                 <span style={color:'#999'}>
                     {data.display}
@@ -589,8 +601,20 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render : ->
         free = require('smc-util/schema').DEFAULT_QUOTAS
         <Panel
-            header = 'Projects start with these quotas for free (shared with other users)'
+            header = 'Projects start with these quotas for free'
         >
+            <div style={marginBottom:'5px', marginLeft:'10px'}>
+                <Tip title="Free servers" tip="Many free projects are cramped together inside weaker compute machines, competing for CPU, RAM and I/O.">
+                    <span style={fontWeight:'bold',color:'#666'}>low-grade</span><Space/>
+                    <span style={color:'#999'}>Server hosting</span>
+                </Tip>
+            </div>
+            <div style={marginBottom:'5px', marginLeft:'10px'}>
+                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
+                    <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
+                    <span style={color:'#999'}>Internet access</span>
+                </Tip>
+            </div>
             {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
         </Panel>
 
@@ -621,27 +645,29 @@ PlanInfo = rclass
 
     render_cost: (price, period) ->
         period = PROJECT_UPGRADES.period_names[period] ? period
-        <span key={period}>
+        <span key={period} style={whiteSpace:'nowrap'}>
             <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
             <span style={fontSize:'30px'}>{price}</span>
             <span style={fontSize:'14px'}> / {period}</span>
         </span>
 
-    render_header : (prices, periods) ->
-        sep = <span style={marginLeft:'10px', marginRight:'10px'}>or</span>
-        <h3 style={textAlign:'center'}>
-            {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), sep)}
-        </h3>
+    render_price : (prices, periods) ->
+        #sep = <span style={fontSize:"small", margin:"15px"}>or</span>
+        if @props.on_click?
+            # note: in non-static, there is always just *one* price (several only on "static" pages)
+            for i in [0...prices.length]
+                <Button key={i} bsStyle={if @props.selected then 'primary'}>
+                    {@render_cost(prices[i], periods[i])}
+                </Button>
+        else
+            <h3 style={textAlign:'center'}>
+                {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), <br/>)}
+            </h3>
 
     render_plan_name : (plan_data) ->
-        if @props.on_click?
-            <Button bsStyle={if @props.selected then 'primary'}>
-                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan).replace(/_/g,' ')} plan..."}
-            </Button>
-        else
-            <div>
-                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
-            </div>
+        <div style={paddingLeft:"10px"}>
+            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
+        </div>
 
     render : ->
         plan_data = PROJECT_UPGRADES.membership[@props.plan]
@@ -651,7 +677,6 @@ PlanInfo = rclass
         params   = PROJECT_UPGRADES.params
         periods  = misc.split(@props.period)
         prices   = (plan_data.price[period] for period in periods)
-
         benefits = plan_data.benefits
 
         style =
@@ -660,16 +685,16 @@ PlanInfo = rclass
         <Panel
             style     = {style}
             className = 'smc-grow'
-            header    = {@render_header(prices, periods)}
+            header    = {@render_plan_name(plan_data)}
             bsStyle   = {if @props.selected then 'primary' else 'info'}
             onClick   = {=>@props.on_click?()}
         >
-            Upgrades that you may distribute to your projects<br/><br/>
-
+            <Space/>
             {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order when benefits[name]}
+            <Space/>
 
             <div style={textAlign : 'center', marginTop:'10px'}>
-                {@render_plan_name(plan_data)}
+                {@render_price(prices, periods)}
             </div>
 
         </Panel>
@@ -719,7 +744,6 @@ AddSubscription = rclass
                     Course package (4-months)
                 </Button>
             </ButtonGroup>
-            {@render_renewal_info()}
         </div>
 
     render_renewal_info: ->
@@ -727,10 +751,10 @@ AddSubscription = rclass
         if @props.selected_plan
             renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
-            <div style={marginBottom:'2em', marginTop:'1ex', color:'#666'}>
+            <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged one once</b> for the course package, which lasts {length}.  It does not <b>automatically renew</b>.</span> if not renews}
-            </div>
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+            </p>
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -741,10 +765,8 @@ AddSubscription = rclass
         </div>
 
     render_create_subscription_options : ->
+        # <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
         <div>
-            <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
-            <ExplainResources type='shared'/>
-            <hr/>
             <div style={textAlign:'center'}>
                 {@render_period_selection_buttons()}
             </div>
@@ -761,6 +783,7 @@ AddSubscription = rclass
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
             <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            {@render_renewal_info()}
             <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
@@ -792,6 +815,7 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
                 </Well>
+                <ExplainResources type='shared'/>
             </Col>
         </Row>
 
@@ -835,10 +859,12 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
 
     render : ->
         live_subscriptions = []
+        periods = misc.split(@props.period)
         for row in PROJECT_UPGRADES.live_subscriptions
             v = []
             for x in row
-                if PROJECT_UPGRADES.membership[x].price[@props.period]
+                price_keys = _.keys(PROJECT_UPGRADES.membership[x].price)
+                if _.intersection(periods, price_keys).length > 0
                     v.push(x)
             if v.length > 0
                 live_subscriptions.push(v)
@@ -857,45 +883,75 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
 exports.ExplainResources = ExplainResources = rclass
     propTypes :
         type : rtypes.string.isRequired    # 'shared', 'dedicated'
+        is_static : rtypes.bool
+
+    getDefaultProps : ->
+        is_static : false
 
     render_shared: ->
         <div>
-            <h4>Shared Resources</h4>
             <Row>
-                <Col sm=6>
+                <Col md=8 sm=12>
+                    <h4>Projects</h4>
+                    <div>
+                    Your work on <SiteName/> happens inside <em>projects</em>.
+                    You may create any number of independent projects.
+                    They form your personal workspaces,
+                    where you privately store your files, computational worksheets, and data.
+                    You typically run computations through the web-interface,
+                    either via a worksheet, notebook, or by executing a program in a terminal
+                    (you can also ssh into any project).
+                    You can also invite collaborators to work with you inside a project,
+                    and you can explicitly make files or directories publicly available
+                    to everybody.
+                    </div>
+                    <Space/>
 
-                    <p>
-                    You may create many completely separate SageMathCloud projects.
-                    The projects that run on
-                    the general and members only servers
-                    all share common disk space, CPU, and RAM.
-                    They start with the free quotas below, and can be upgraded
-                    up to the indicated bounds on the right.
-                    </p>
+                    <h4>Shared Resources</h4>
+                    <div>
+                    Each projects runs on a server, where it shares disk space, CPU, and RAM with other projects.
+                    Initially, projects run with default free quotas on heavily used free machines that are rebooted frequently.
+                    You can upgrade any quota on any project on which you collaborate, and you can move projects
+                    to faster very stable <em>members-only computers</em>,
+                    where there is much less competition for resources.
+                    If a project on a free computer is not used for a few weeks, it gets moved to secondary storage, and
+                    starting it up will take longer; in contrast, projects on members-only computers always start
+                    up very quickly.
+                    </div>
+                    <Space/>
 
-                    <br/>
+                    <h4>Quota upgrades</h4>
+                    <div>
+                    By purchasing one or more of our subscriptions,
+                    you receive a certain amount of <em>quota upgrades</em>.
+                    <ul style={paddingLeft:"20px"}>
+                    <li>You can upgrade the quotas on any of your projects
+                        up to the total amount given by your subscription(s)
+                        and the upper limits per project.
+                    </li>
+                    <li>Project collaborators can collectively contribute to the same project,
+                        in order to increase the quotas of their common project
+                        &mdash; these contributions benefit all project collaborators.</li>
+                    <li>You can remove your contributions to any project (owner or collaborator) at any time.</li>
+                    <li>You may also subscribe to the same subscription more than once,
+                        in order to increase your total amount of quota upgrades.</li>
+                    </ul>
+                    </div>
+                    <Space/>
 
-                    <p>When you purchase a subscription, you can upgrade the quotas on any projects
-                    you use up to the amounts given by your subscription.  Multiple people can contribute
-                    to increase the quotas on the same project, and may also remove their contributions
-                    at any time.  You may also subscribe
-                    more than once to increase the amount that you have available to
-                    contribute to your projects.
-                    </p>
-
-                    <br/>
-                    <p>
-                    Immediately email us at <HelpEmailLink/> if anything is unclear to you.
-                    </p>
-
-
+                    <div style={fontWeight:"bold"}>
+                        Please immediately email us at <HelpEmailLink/> {" "}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href='/policies/pricing.html#faq'>pricing FAQ</a> </span>}
+                        if anything is unclear to you.
+                    </div>
+                    <Space/>
                 </Col>
-                <Col sm=6>
+                <Col md=4 sm=12>
                     <Row>
-                        <Col xs=6>
+                        <Col md=12 sm=6>
                             <ProjectQuotaFreeTable/>
                         </Col>
-                        <Col xs=6>
+                        <Col md=12 sm=6>
                             <ProjectQuotaBoundsTable/>
                         </Col>
                     </Row>
@@ -906,12 +962,11 @@ exports.ExplainResources = ExplainResources = rclass
     render_dedicated: ->
         <div>
             <h4>Dedicated Resources</h4>
-            You may also rent dedicated computers.  Projects of your choice get full use of the
-            disk, CPU and RAM of those computers, and these projects do not have to compete with
-            other users for resources.   We have not fully automated
-            purchase of dedicated computers yet, so please contact
-            us at <HelpEmailLink/> if you need
-            a dedicated computer.
+            You may also rent dedicated computers.
+            Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
+            and do <em>not</em> have to compete with other users for resources.
+            We have not fully automated purchase of dedicated computers yet,
+            so please contact us at <HelpEmailLink/> if you need a dedicated machine.
         </div>
 
     render: ->
@@ -922,6 +977,203 @@ exports.ExplainResources = ExplainResources = rclass
                 return @render_dedicated()
             else
                 throw Error("unknown type #{@props.type}")
+
+exports.ExplainPlan = ExplainPlan = rclass
+    propTypes :
+        type : rtypes.string.isRequired    # 'personal', 'course'
+
+    render_personal: ->
+        <div style={marginBottom:"10px"}>
+            <h3>Personal subscriptions</h3>
+            <div>
+                We offer several subscriptions that let you upgrade the default free quotas on projects.
+                You can distribute these upgrades to your own projects or any projects where you are a collaborator &mdash;
+                everyone participating in such a collective project benefits and can easily change their allocations at any time!
+                You can get higher-quality hosting on members-only machines and enable access to the internet from projects.
+                You can also increas quotas for CPU and RAM, so that you can work on larger problems and
+                do more computations simultaneously.
+            </div>
+        </div>
+
+    render_course: ->
+        <div style={marginBottom:"10px"}>
+            <h3>Course plans</h3>
+            <div>
+                We offer course plans for teaching a class in <SiteName/>.
+                Such plans start right after purchase and last for the full indicated period without auto-renewal.
+                Through the interface of <SiteName/>, you start teaching by creating a course.
+                Each time you add a student, a project will be automatically created for that student.
+                After upgrading your student{"'"}s projects, you can create and distribute assignments,
+                students work on assignments inside their project (where you can see their progress
+                in realtime and answer their questions),
+                and you later collect and grade their assignments, then return them.
+            </div>
+        </div>
+
+    render: ->
+        switch @props.type
+            when 'personal'
+                return @render_personal()
+            when 'course'
+                return @render_course()
+            else
+                throw Error("unknown plan type #{@props.type}")
+
+# ~~~ FAQ START
+
+# some variables used in the text below
+faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_host
+faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
+faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
+faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
+
+# the structured react.js FAQ text
+FAQS =
+    differences:
+        q: <span>What is the difference between <b>free and paid plans</b>?</span>
+        a: <span>The main differences are increased quotas and the quality of hosting; we also
+           prioritize supporting paying users.
+           We very strongly encourage you to make an account and explore our product for free!
+           There is no difference in functionality between the free and for-pay versions of
+           SageMathCloud; everything is still private by default for free users, and you can
+           make as many projects as you want.  You can even fully start teaching a course
+           in SMC completely for free, then upgrade at any point later so that your students
+           have a <b>much</b> better quality experience (for a small fraction of the cost of
+           their textbook).
+           </span>
+    member_hosting:
+        q: <span>What does <b>"member hosting"</b> mean?</span>
+        a: <span>
+            There are two types of projects: "free projects" and "member projects".
+            Free projects run on heavily loaded computers.
+            Quite often, these computers will house over 150 simultaneously running projects!
+            Member-hosted projects are moved to much less loaded machine,
+            which are reserved only for paying customers.<br/>
+            Working in member-hosted projects feels much smoother because commands execute
+            more quickly with lower latency,
+            and CPU, memory and I/O heavy operations run more quickly.
+            Additionally, members only projects are always "ready to start".
+            Free projects that are not used for a few weeks are moved to "cold storage",
+            and it can take a while to move them back onto a free machine when you
+            later start them.
+           </span>
+    network_access:
+        q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
+        a: <span>
+            Despite the fact that you are accessing <SiteName/> through the internet,
+            you are actually working in a highly restricted environment.
+            Processes running <em>inside</em> a free project are not allowed to directly
+            access the internet.  (We do not allow such access for free users, since when we did,
+            malicious users launched attacks on other computers from SageMathCloud.)
+            Enable internet access by adding the "internet access" quota.
+           </span>
+    idle_timeout:
+        q: <span>What exactly does the quota <b>"idle timeout"</b> mean?</span>
+        a: <span>
+            By default, free projects stop running after {faq_idle_time_free_h} hour of idle time.
+            This makes doing an overnight research computation &mdash;
+            e.g., searching for special prime numbers &mdash; impossible.
+            With an increased idle timeout, projects are allowed to run longer unattended.
+            Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
+            running on is rebooted.
+            (NOTE: Projects do not normally stop if you are continuously using them, and there are no
+            daily or monthly caps on how much you may use a SageMathCloud project, even a free one.)
+           </span>
+    cpu_shares:
+        q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
+        a: <span>
+            All projects on a single server share the underlying resources.
+            These quotas determine how CPU resources are shared between projects.
+            Increasing them increases the priority of a project compared to others on the same host computer.<br/>
+            In particular, "shares" determines the amount of relative CPU time you get.
+           </span>
+    course120:
+        q: <span>
+            I have a <b>course of {faq_course_120 - 20} students</b>.
+            Which plan should I purchase?
+           </span>
+        a: <span>
+            You can combine and add up course subscriptions!
+            By ordering two times the 'medium course plan',
+            you will get {faq_course_120} upgrades covering all your students.
+            </span>
+    academic:
+        q: <span>Do you offer <b>academic discounts</b>?</span>
+        a: <span>
+            Our course subscriptions are for academic use, and are already significantly discounted from the standard plans.
+            Please compare our monthly plans with the 4 month course plans.
+            For example, giving {faq_academic_students} students better member hosting and internet access
+            would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months
+            amounting to ${faq_academic_full}.
+            </span>
+    academic_quotas:
+        q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
+        a: <span>
+            From our experience, we have found that for the type of computations used in most courses,
+            the free quotas for memory and disk space are plenty.
+            We do strongly suggest the classes upgrade all projects to "members-only" hosting,
+            since this provides much better computers with higher availability.
+           </span>
+    close_browser:
+        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
+        a: <span>
+            <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
+            You can start a computation, shut down your computer, go somewhere else,  sign in
+            on another computer, and continue working where you left off.
+            (Note that output from Jupyter notebook computations will be lost, though Sage worksheet output is
+            properly captured.)
+            <br/>
+            The only reasons why a project or process stopstopstops are
+            that it hits its <em>idle timeout</em>, has used too much memory,
+            crashed due to an exception, or the server had to reboot.
+           </span>
+    private:
+        q: <span>Which plan offers <b>"private" file storage</b>?</span>
+        a: <span>All our plans (free and paid) host your files privately by default.
+            Please read our <a target="_blank" href="/policies/privacy.html">Privacy Policy</a> and {" "}
+            <a target="_blank" href="/policies/copyright.html">Copyright Notice</a>.
+           </span>
+    git:
+        q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
+        a: <span>
+            Git and various other source control tools are installed and ready to use via the "Terminal".
+            But, in order to also interoperate with sites hosting Git repositories,
+            you have to purchase a plan giving you "internet upgrades" and then applying this upgrade to your project.
+           </span>
+    backups:
+        q: <span>Are my files backed up?</span>
+        a: <span>
+            All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
+            clicking the "Backups" link to the right of the file listing.   Also, SageMathCloud records
+            the history of all edits you or your collaborators make to most files, and you can browse
+            that history with a slider by clicking on the "History" button (next to save) in files.
+            We care about your data, and also make offsite backups periodically to encrypted USB 
+            drives that are not physically connected to the internet.
+           </span>
+
+
+FAQ = exports.FAQ = rclass
+    displayName : 'FAQ'
+
+    faq: ->
+        for qid, qa of FAQS
+            <li key={qid} style={marginBottom:"10px"}>
+                <em style={fontSize:"120%"}>{qa.q}</em>
+                <br/>
+                <span>{qa.a}</span>
+            </li>
+
+    render: ->
+        <div>
+            <a name="faq"></a>
+            <h2>Frequently asked questions</h2>
+            <ul>
+                {@faq()}
+            </ul>
+        </div>
+
+# ~~~ FAQ END
 
 
 Subscription = rclass
@@ -1206,10 +1458,10 @@ PayCourseFee = rclass
     render_confirm_button: ->
         if @state.confirm
             if @props.redux.getStore('account').get_total_upgrades().network > 0
-                network = " and full network access enabled"
+                network = " and full internet access enabled"
             <Well style={marginTop:'1em'}>
                 You will be charged a one-time $9 fee to move your project to a
-                members-only server and enable full network access.
+                members-only server and enable full internet access.
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
@@ -1249,7 +1501,7 @@ MoveCourse = rclass
     render_confirm_button: ->
         if @state.confirm
             if @props.redux.getStore('account').get_total_upgrades().network > 0
-                network = " and full network access enabled"
+                network = " and full internet access enabled"
             <Well style={marginTop:'1em'}>
                 Your project will be moved to a members only server{network} using
                 upgrades included in your current subscription (no additional charge).
@@ -1412,6 +1664,7 @@ BillingPage = rclass
             # user not initialized yet -- only thing to do is add a card.
             <div>
                 <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+                <Footer/>
             </div>
         else
             # data loaded and customer exists
@@ -1423,16 +1676,17 @@ BillingPage = rclass
                     selected_plan = {@props.selected_plan}
                     redux         = {@props.redux} />
                 <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
+                <Footer/>
             </div>
 
     render : ->
         if not Stripe?
             return <div>Stripe is not available...</div>
         <div>
+            {@render_info_link()}
             {@render_action()}
             {@render_error()}
             {@render_course_payment_instructions()}
-            {@render_info_link()}
             {@render_page()}
         </div>
 
@@ -1464,18 +1718,17 @@ set_selected_plan = (plan, period) ->
 
 exports.render_static_pricing_page = () ->
     <div>
-        <ExplainResources type='shared'/>
-
-        <br/> <br/>
-        <SubscriptionGrid period='month'  is_static={true}/>
-
-        <br/> <br/>
-        <SubscriptionGrid period='year'  is_static={true}/>
-
-        <br/> <br/>
-
-        <SubscriptionGrid period='month4'  is_static={true}/>
-
+        <ExplainResources type='shared' is_static={true}/>
+        <hr/>
+        <ExplainPlan type='personal'/>
+        <SubscriptionGrid period='month year' is_static={true}/>
+        {# <Space/><ExplainResources type='dedicated'/> }
+        <hr/>
+        <ExplainPlan type='course'/>
+        <SubscriptionGrid period='month4' is_static={true}/>
+        <hr/>
+        <FAQ/>
+        <Footer/>
     </div>
 
 exports.visit_billing_page = ->

@@ -2328,7 +2328,7 @@ project_exec = (socket, mesg) ->
 
                 error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 if error.indexOf("Connection refused") != -1
-                    error += "-- Email help@sagemath.com if you need external network access, which is disabled by default."
+                    error += "-- Email help@sagemath.com if you need full internet access, which is disabled by default."
                 if error.indexOf("=") != -1
                     error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
                 err_mesg = message.error

@@ -21,8 +21,8 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
-
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
+{HelpEmailLink, SiteName, CompanyName} = require('./customize')
 
 Combobox = require('react-widgets/lib/Combobox')
 
@@ -198,6 +198,15 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {error}
         </Alert>
 
+exports.Footer = Footer = rclass
+    displayName: 'Footer'
+    render :->
+        <footer>
+            <Space/>
+            <hr/>
+            <div style={fontSize:"small",color:"gray",textAlign:"center"}><CompanyName/> &mdash; &copy; {misc.YEAR}</div>
+            <Space/>
+        </footer>
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'
@@ -956,14 +965,14 @@ exports.NoNetworkProjectWarning = (opts) ->
     else if avail <= 0
         url = window.smc_base_url + '/policies/pricing.html'
         if total > 0
-            suggestion = <span>Your {total} network {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable a network upgrade for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
-        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have network access</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
         <p>
-            Projects without network access cannot connect to external websites.
+            Projects without internet access enabled, cannot connect to external websites or download software packages.
             {suggestion}
         </p>
     </Alert>
