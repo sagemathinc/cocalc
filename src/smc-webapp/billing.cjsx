@@ -895,29 +895,35 @@ exports.ExplainResources = ExplainResources = rclass
                     <h4>Projects</h4>
                     <div>
                     Your work on <SiteName/> happens inside <em>projects</em>.
-                    You may create several completely independent projects.
-                    They form your personal workspace,
+                    You may create any number of independent projects.
+                    They form your personal workspaces,
                     where you privately store your files, computational worksheets, and data.
-                    All computations are issued through the web-interface:
-                    either via a worksheet or by executing a program in a terminal.
-                    Besides that, you can also invite collaborators to work with you inside the same project
-                    or publish files to be publicly available on the internet.
+                    You typically run computations through the web-interface,
+                    either via a worksheet, notebook, or by executing a program in a terminal
+                    (you can also ssh into any project).
+                    You can also invite collaborators to work with you inside a project,
+                    and you can explicitly make files or directories publicly available
+                    to everybody.
                     </div>
                     <Space/>
 
                     <h4>Shared Resources</h4>
                     <div>
-                    Every project runs on one of our servers, where it shares disk space, CPU, and RAM with other projects.
-                    Initially, projects run with free quotas on rather heavily used machines.
-                    These quotas can be upgraded and "member" projects move to larger <em>member machines</em> &mdash;
+                    Each projects runs on a server, where it shares disk space, CPU, and RAM with other projects.
+                    Initially, projects run with default free quotas on heavily used free machines that are rebooted frequently.
+                    You can upgrade any quota on any project on which you collaborate, and you can move projects
+                    to faster very stable <em>members-only computers</em>,
                     where there is much less competition for resources.
+                    If a project on a free computer is not used for a few weeks, it gets moved to secondary storage, and
+                    starting it up will take longer; in contrast, projects on members-only computers always start
+                    up very quickly.
                     </div>
                     <Space/>
 
                     <h4>Quota upgrades</h4>
                     <div>
                     By purchasing one or more of our subscriptions,
-                    you are receiving a certain amount of <em>quota upgrades</em>.
+                    you receive a certain amount of <em>quota upgrades</em>.
                     <ul style={paddingLeft:"20px"}>
                     <li>You can upgrade the quotas on any of your projects
                         up to the total amount given by your subscription(s)
@@ -980,11 +986,12 @@ exports.ExplainPlan = ExplainPlan = rclass
         <div style={marginBottom:"10px"}>
             <h3>Personal subscriptions</h3>
             <div>
-                In order to be able to increase the default free quotas, we offer several subscriptions.
-                You can distribute these upgrades to your own projects or projects where you are a collaborator &mdash;
-                everyone participating in such a collective project benefits!
-                Besides higher-quality hosting on "member" machines and direct access to the internet,
-                increased quotas for CPU and RAM mean, that you can work on larger problems and do more computations simultaneously.
+                We offer several subscriptions that let you upgrade the default free quotas on projects.
+                You can distribute these upgrades to your own projects or any projects where you are a collaborator &mdash;
+                everyone participating in such a collective project benefits and can easily change their allocations at any time!
+                You can get higher-quality hosting on members-only machines and enable access to the internet from projects.
+                You can also increas quotas for CPU and RAM, so that you can work on larger problems and
+                do more computations simultaneously.
             </div>
         </div>
 
@@ -995,10 +1002,11 @@ exports.ExplainPlan = ExplainPlan = rclass
                 We offer course plans for teaching a class in <SiteName/>.
                 Such plans start right after purchase and last for the full indicated period without auto-renewal.
                 Through the interface of <SiteName/>, you start teaching by creating a course.
-                When you add your students, you are creating their student projects.
+                Each time you add a student, a project will be automatically created for that student.
                 After upgrading your student{"'"}s projects, you can create and distribute assignments,
-                students work inside their own projects (where you can check their progress)
-                and later collect and grade their assignments.
+                students work on assignments inside their project (where you can see their progress
+                in realtime and answer their questions),
+                and you later collect and grade their assignments, then return them.
             </div>
         </div>
 
@@ -1023,10 +1031,16 @@ faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 
 # the structured react.js FAQ text
 FAQS =
     differences:
-        q: <span>What differences are between <b>free and paid plans</b>?</span>
-        a: <span>Essentially, the only differences are the increased quotas and the quality of the hosting.
-           You are encouraged to make an account and explore our product under free quotas.
-           You can even start teaching a course under a free quota and upgrade later!
+        q: <span>What is the difference between <b>free and paid plans</b>?</span>
+        a: <span>The main differences are increased quotas and the quality of hosting; we also
+           prioritize supporting paying users.
+           We very strongly encourage you to make an account and explore our product for free!
+           There is no difference in functionality between the free and for-pay versions of
+           SageMathCloud; everything is still private by default for free users, and you can
+           make as many projects as you want.  You can even fully start teaching a course
+           in SMC completely for free, then upgrade at any point later so that your students
+           have a <b>much</b> better quality experience (for a small fraction of the cost of
+           their textbook).
            </span>
     member_hosting:
         q: <span>What does <b>"member hosting"</b> mean?</span>
@@ -1034,23 +1048,25 @@ FAQS =
             There are two types of projects: "free projects" and "member projects".
             Free projects run on heavily loaded computers.
             Quite often, these computers will house over 150 simultaneously running projects!
-            Member hosting means, that the upgraded project moves to a less loaded machine,
-            which is reserved for paying customers.<br/>
-            This implies, that working feels much smoother, because commands execute quicker with lower latency,
-            and CPU, memory and I/O heavy operations run faster (e.g. compiling source code, etc.).
+            Member-hosted projects are moved to much less loaded machine,
+            which are reserved only for paying customers.<br/>
+            Working in member-hosted projects feels much smoother because commands execute
+            more quickly with lower latency,
+            and CPU, memory and I/O heavy operations run more quickly.
             Additionally, members only projects are always "ready to start".
-            Free projects move to "cold storage" after some time,
-            and it takes a while to move them back onto a free machine.
+            Free projects that are not used for a few weeks are moved to "cold storage",
+            and it can take a while to move them back onto a free machine when you
+            later start them.
            </span>
     network_access:
         q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
         a: <span>
             Despite the fact that you are accessing <SiteName/> through the internet,
             you are actually working in a highly restricted environment.
-            When they are running under the free quota,
-            all processes running <em>inside</em> your project are not allowed to directly access the internet
-            &mdash; otherwise, malicious users could launch attacks on other hosts, etc.
-            You have to enable internet access by adding the "internet access" quota.
+            Processes running <em>inside</em> a free project are not allowed to directly
+            access the internet.  (We do not allow such access for free users, since when we did,
+            malicious users launched attacks on other computers from SageMathCloud.)
+            Enable internet access by adding the "internet access" quota.
            </span>
     idle_timeout:
         q: <span>What exactly does the quota <b>"idle timeout"</b> mean?</span>
@@ -1058,8 +1074,11 @@ FAQS =
             By default, free projects stop running after {faq_idle_time_free_h} hour of idle time.
             This makes doing an overnight research computation &mdash;
             e.g., searching for special prime numbers &mdash; impossible.
-            With an increased idle timeout, projects run longer and therefore all running processes.
-            They might still stop, if they use too much memory, crash due to an exception, or the server has to reboot.
+            With an increased idle timeout, projects are allowed to run longer unattended.
+            Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
+            running on is rebooted.
+            (NOTE: Projects do not normally stop if you are continuously using them, and there are no
+            daily or monthly caps on how much you may use a SageMathCloud project, even a free one.)
            </span>
     cpu_shares:
         q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
@@ -1067,8 +1086,7 @@ FAQS =
             All projects on a single server share the underlying resources.
             These quotas determine how CPU resources are shared between projects.
             Increasing them increases the priority of a project compared to others on the same host computer.<br/>
-            In particular, "shares" determines the amount of relative CPU time
-            you are getting on a maximum number of "cores" CPU execution threads.
+            In particular, "shares" determines the amount of relative CPU time you get.
            </span>
     course120:
         q: <span>
@@ -1083,33 +1101,36 @@ FAQS =
     academic:
         q: <span>Do you offer <b>academic discounts</b>?</span>
         a: <span>
-            Our course subscriptions for academic usage and teaching are already discounted.
+            Our course subscriptions are for academic use, and are already significantly discounted from the standard plans.
             Please compare our monthly plans with the 4 month course plans.
-            For example: giving {faq_academic_students} students better member hosting and internet access,
+            For example, giving {faq_academic_students} students better member hosting and internet access
             would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months
             amounting to ${faq_academic_full}.
             </span>
     academic_quotas:
         q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
         a: <span>
-            From our experience we know, that for the type of computations used in courses
-            the free quotas for memory and disk space are plenty .
-            Rather, we strongly suggest to upgrade hosting to "members",
-            since this gives better machines and higher availability.
+            From our experience, we have found that for the type of computations used in most courses,
+            the free quotas for memory and disk space are plenty.
+            We do strongly suggest the classes upgrade all projects to "members-only" hosting,
+            since this provides much better computers with higher availability.
            </span>
     close_browser:
         q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
         a: <span>
             <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
-            You can start a computation, shut down your computer, go somewhere else, turn on and sign in
-            on another computer, and continue working where you have left off.<br/>
-            The only reasons why a project or process shuts down are
-            that it is past its <em>idle time</em>, has used too much memory,
+            You can start a computation, shut down your computer, go somewhere else,  sign in
+            on another computer, and continue working where you left off.
+            (Note that output from Jupyter notebook computations will be lost, though Sage worksheet output is
+            properly captured.)
+            <br/>
+            The only reasons why a project or process stopstopstops are
+            that it hits its <em>idle timeout</em>, has used too much memory,
             crashed due to an exception, or the server had to reboot.
            </span>
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
-        a: <span>All our plans (free and paid) host your files privately.
+        a: <span>All our plans (free and paid) host your files privately by default.
             Please read our <a target="_blank" href="/policies/privacy.html">Privacy Policy</a> and {" "}
             <a target="_blank" href="/policies/copyright.html">Copyright Notice</a>.
            </span>
@@ -1120,6 +1141,17 @@ FAQS =
             But, in order to also interoperate with sites hosting Git repositories,
             you have to purchase a plan giving you "internet upgrades" and then applying this upgrade to your project.
            </span>
+    backups:
+        q: <span>Are my files backed up?</span>
+        a: <span>
+            All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
+            clicking the "Backups" link to the right of the file listing.   Also, SageMathCloud records
+            the history of all edits you or your collaborators make to most files, and you can browse
+            that history with a slider by clicking on the "History" button (next to save) in files.
+            We care about your data, and also make offsite backups periodically to encrypted USB 
+            drives that are not physically connected to the internet.
+           </span>
+
 
 FAQ = exports.FAQ = rclass
     displayName : 'FAQ'
@@ -1690,8 +1722,7 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
-        <Space/>
-        <ExplainResources type='dedicated'/>
+        {# <Space/><ExplainResources type='dedicated'/> }
         <hr/>
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4' is_static={true}/>
