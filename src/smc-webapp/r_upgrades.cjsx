@@ -3,7 +3,7 @@
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {ProjectTitle} = require('./projects')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -45,13 +45,13 @@ exports.UpgradesPage = rclass
         <div>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing
+                We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
                 the settings page in any project.
             </span>
-            <br/><br/>
+            <Space/>
         </div>
 
     render_upgrade: (param, amount, used, darker) ->

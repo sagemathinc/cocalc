@@ -27,7 +27,7 @@ _         = require('underscore')
 
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -941,7 +941,7 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <div style={fontWeight:"bold"}>
                         Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href='/policies/pricing.html#faq'>pricing FAQ</a> </span>}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq">pricing FAQ</a> </span>}
                         if anything is unclear to you.
                     </div>
                     <Space/>
@@ -1124,15 +1124,15 @@ FAQS =
             (Note that output from Jupyter notebook computations will be lost, though Sage worksheet output is
             properly captured.)
             <br/>
-            The only reasons why a project or process stopstopstops are
+            The only reasons why a project or process stops are
             that it hits its <em>idle timeout</em>, has used too much memory,
             crashed due to an exception, or the server had to reboot.
            </span>
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
         a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href="/policies/privacy.html">Privacy Policy</a> and {" "}
-            <a target="_blank" href="/policies/copyright.html">Copyright Notice</a>.
+            Please read our <a target="_blank" href=PolicyPrivacyPageUrl>Privacy Policy</a> and {" "}
+            <a target="_blank" href=PolicyCopyrightPageUrl>Copyright Notice</a>.
            </span>
     git:
         q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
@@ -1145,10 +1145,10 @@ FAQS =
         q: <span>Are my files backed up?</span>
         a: <span>
             All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
-            clicking the "Backups" link to the right of the file listing.   Also, SageMathCloud records
+            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, SageMathCloud records
             the history of all edits you or your collaborators make to most files, and you can browse
             that history with a slider by clicking on the "History" button (next to save) in files.
-            We care about your data, and also make offsite backups periodically to encrypted USB 
+            We care about your data, and also make offsite backups periodically to encrypted USB
             drives that are not physically connected to the internet.
            </span>
 
@@ -1605,7 +1605,7 @@ BillingPage = rclass
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing and subscription options</a>.
+            We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>
@@ -1664,7 +1664,6 @@ BillingPage = rclass
             # user not initialized yet -- only thing to do is add a card.
             <div>
                 <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
-                <Footer/>
             </div>
         else
             # data loaded and customer exists
@@ -1676,18 +1675,20 @@ BillingPage = rclass
                     selected_plan = {@props.selected_plan}
                     redux         = {@props.redux} />
                 <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
-                <Footer/>
             </div>
 
     render : ->
         if not Stripe?
             return <div>Stripe is not available...</div>
         <div>
-            {@render_info_link()}
-            {@render_action()}
-            {@render_error()}
-            {@render_course_payment_instructions()}
-            {@render_page()}
+            <div style={minHeight:"75vh"}>
+                {@render_info_link()}
+                {@render_action()}
+                {@render_error()}
+                {@render_course_payment_instructions()}
+                {@render_page()}
+            </div>
+            <Footer/>
         </div>
 
 exports.BillingPageRedux = rclass

@@ -28,9 +28,9 @@
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR} = require('./r_misc')
+{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR, Footer} = require('./r_misc')
 
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
@@ -128,7 +128,7 @@ HelpPageUsageSection = rclass
 SUPPORT_LINKS =
     pricing :
         icon : 'money'
-        href : window.smc_base_url + '/policies/pricing.html'
+        href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
     # commented out since link doesn't work
     #getting_started :
@@ -522,6 +522,7 @@ HelpPage = rclass
                     <HelpPageGettingStartedSection />
                 </Well>
             </Col>
+            <Footer/>
         </Row>
 
 exports.render_help_page = () ->

@@ -29,12 +29,12 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
-{SiteName} = require('./customize')
+{SiteName, PolicyPricingPageUrl} = require('./customize')
 
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, r_join} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -725,7 +725,7 @@ NewProjectCreator = rclass
                 <Col sm=12 style={color:'#555'}>
                     <div>
                         A <b>project</b> is your own private computational workspace that you can
-                        share with others and <a target="_blank" href="/policies/pricing.html">upgrade</a>.
+                        share with others and <a target="_blank" href=PolicyPricingPageUrl>upgrade</a>.
                     </div>
                 </Col>
             </Row>
@@ -1238,7 +1238,8 @@ ProjectSelector = rclass
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
 
         visible_projects = @visible_projects()
-        <Grid fluid className='constrained' style={minHeight:"80vh"}>
+        <div>
+        <Grid fluid className='constrained' style={minHeight:"75vh"}>
             <Well style={marginTop:'1em',overflow:'hidden'}>
                 <Row>
                     <Col sm=4>
@@ -1291,6 +1292,8 @@ ProjectSelector = rclass
                 </Row>
             </Well>
         </Grid>
+        <Footer/>
+        </div>
 
 ProjectsPage = rclass
     displayName : 'Projects-ProjectsPage'
@@ -1351,6 +1354,5 @@ top_navbar.on 'switch_to_page-projects', () ->
     mount()
 
 top_navbar.on 'switch_from_page-projects', () ->
-    window.history.pushState('', '', window.smc_base_url + '/projects')
     setTimeout(unmount,50)
 

@@ -130,3 +130,12 @@ exports.AccountCreationEmailInstructions = rclass
             <AccountCreationEmailInstructions />
         </Redux>
 
+# first step of centralizing these URLs in one place → collecting all such pages into one
+# react-class with a 'type' prop is the next step (TODO)
+# then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
+smc_base_url = window?.smc_base_url ? ''  # fallback for react-static
+exports.PolicyIndexPageUrl     = smc_base_url + '/policies/index.html'
+exports.PolicyPricingPageUrl   = smc_base_url + '/policies/pricing.html'
+exports.PolicyPrivacyPageUrl   = smc_base_url + '/policies/privacy.html'
+exports.PolicyCopyrightPageUrl = smc_base_url + '/policies/copyright.html'
+exports.PolicyTOSPageUrl       = smc_base_url + '/policies/terms.html'
