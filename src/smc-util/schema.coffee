@@ -292,6 +292,14 @@ schema.blobs =
         needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')
         needs_backup : [(x) -> x.hasFields('expire').not().and(x.hasFields('backup').not())]  # never-expiring blobs that haven't been backed up offsite -- find via .getAll(true, index:'needs_backup')
     user_query :
+        get :
+            instead_of_query : (database, obj, account_id, cb) ->
+                database.get_blob
+                    uuid : obj.id
+                    cb   : cb
+            fields :
+                id          : null
+                blob        : null
         set :
             fields :
                 id          : (obj, db) -> db.sha1(obj.blob)

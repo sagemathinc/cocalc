@@ -3583,6 +3583,11 @@ class RethinkDB
                 opts.cb("user get query not allowed for #{opts.table}.#{field}")
                 return
 
+        if client_query.get.instead_of_query?
+            # custom version: instead of doing a full query, we instead call a function and that's it.
+            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
+            return
+
         # Make sure there is the query that gets only things in this table that this user
         # is allowed to see.
         if not client_query.get.all?.args?
