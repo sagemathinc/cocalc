@@ -1115,6 +1115,14 @@ FAQS =
             We do strongly suggest the classes upgrade all projects to "members-only" hosting,
             since this provides much better computers with higher availability.
            </span>
+    invoice:
+        q: <span>How do I get an <b>invoice</b> with a specific information?</span>
+        a: <span>
+            After purchasing, please email us at <HelpEmailLink />, reference what you bought,
+            and tell us the payer{"'"}s name, contact information and any other specific
+            instructions.   We will then respond with a custom invoice for your purchase that
+            satisfies your unique requirements.
+           </span>
     close_browser:
         q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
         a: <span>
