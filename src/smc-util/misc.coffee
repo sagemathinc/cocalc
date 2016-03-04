@@ -1555,3 +1555,10 @@ exports.console_init_filename = (fn) ->
     if x.head == ''
         return x.tail
     return [x.head, x.tail].join("/")
+
+
+exports.has_null_leaf = has_null_leaf = (obj) ->
+    for k, v of obj
+        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
+            return true
+    return false

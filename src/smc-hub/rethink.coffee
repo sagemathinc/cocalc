@@ -437,8 +437,8 @@ class RethinkDB
     # wouldn't be the end of the world.  There is a similar client-only slower version
     # of this function (in schema.coffee), so don't change it willy nilly.
     sha1: (args...) ->
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
-        return misc_node.sha1(args.join(''))
+        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args).join('')
+        return misc_node.sha1(v)
 
     # This will change the database so that a random password is required.  It will
     # then write the random password to the given file.
@@ -2964,7 +2964,7 @@ class RethinkDB
             query = misc.deep_copy(query)
             obj_key_subs(query, subs)
             if not is_set_query?
-                is_set_query = not has_null_leaf(query)
+                is_set_query = not misc.has_null_leaf(query)
             if is_set_query
                 # do a set query
                 if changes
@@ -3253,10 +3253,30 @@ class RethinkDB
             opts.cb("changing #{table}.#{k} not allowed")
             return
 
-        # If set, the on_change_hook is called with (database, old_val, new_val, account_id, cb) after
-        # everything else is done.
+        # HOOKS which allow for running arbitrary code in response to
+        # user set queries.  In each case, new_val below is only the part
+        # of the object that the user requested to change.
+
+        # 1. BEFORE: If before_change is set, it is called with input
+        #   (database, old_val, new_val, account_id, cb)
+        # before the actual change to the database is made.
         before_change_hook = client_query.set.before_change
+
+        # 2. INSTEAD OF: If instead_of_change is set, then instead_of_change_hook
+        # is called with input
+        #      (database, old_val, new_val, account_id, cb)
+        # *instead* of actually doing the update/insert to
+        # the database.  This makes it possible to run arbitrary
+        # code whenever the user does a certain type of set query.
+        # Obviously, if that code doesn't set the new_val in the
+        # database, then new_val won't be the new val.
+        instead_of_change_hook = client_query.set.instead_of_change
+
+        # 3. AFTER:  If set, the on_change_hook is called with
+        #   (database, old_val, new_val, account_id, cb)
+        # after everything the database has been modified.
         on_change_hook = client_query.set.on_change
+
         old_val = undefined
         #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
 
@@ -3290,7 +3310,7 @@ class RethinkDB
                             cb()
                 ], cb)
             (cb) =>
-                if on_change_hook? or before_change_hook?
+                if on_change_hook? or before_change_hook? or instead_of_change_hook?
                     # get the old value before changing it
                     @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
@@ -3302,7 +3322,10 @@ class RethinkDB
                 else
                     cb()
             (cb) =>
-                @table(db_table).insert(query, conflict:'update').run(cb)
+                if instead_of_change_hook?
+                    instead_of_change_hook(@, old_val, query, account_id, cb)
+                else
+                    @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
                 if on_change_hook?
                     #dbg("calling on_change_hook")
@@ -4227,12 +4250,6 @@ class RethinkDB
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
     ###
-
-has_null_leaf = (obj) ->
-    for k, v of obj
-        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
-            return true
-    return false
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->

@@ -291,6 +291,24 @@ schema.blobs =
         expire : []   # when expired
         needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')
         needs_backup : [(x) -> x.hasFields('expire').not().and(x.hasFields('backup').not())]  # never-expiring blobs that haven't been backed up offsite -- find via .getAll(true, index:'needs_backup')
+    user_query :
+        set :
+            fields :
+                id          : (obj, db) -> db.sha1(obj.blob)
+                blob        : true
+                project_id  : 'project_write'
+                ttl         : 0
+            required_fields :
+                id          : true
+                blob        : true
+                project_id  : true
+            instead_of_change : (database, old_val, new_val, account_id, cb) ->
+                database.save_blob
+                    uuid       : new_val.id
+                    blob       : new_val.blob
+                    ttl        : new_val.ttl
+                    project_id : new_val.project_id
+                    cb         : cb
 
 schema.central_log =
     desc : 'Table for logging system stuff that happens.  Meant to help in running and understanding the system better.'
@@ -835,8 +853,8 @@ class ClientDB
         @r = {}
 
     sha1 : (args...) =>
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
-        return sha1(args.join(''))
+        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args).join('')
+        return sha1(v)
 
     _user_set_query_project_users: (obj) =>
         # client allows anything; server may be more stringent
@@ -848,8 +866,6 @@ class ClientDB
         cb()
 
 exports.client_db = new ClientDB()
-
-
 
 ###
 Compute related schema stuff (see compute.coffee)

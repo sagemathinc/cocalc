@@ -33,6 +33,8 @@ smc_version = require('./smc-version')
 message = require("./message")
 misc    = require("./misc")
 
+{validate_client_query} = require('./schema-validate')
+
 defaults = misc.defaults
 required = defaults.required
 
@@ -1539,6 +1541,11 @@ class exports.Connection extends EventEmitter
             options : undefined
             timeout : 30
             cb      : undefined
+
+        err = validate_client_query(opts.query, @account_id)
+        if err
+            opts.cb?(err)
+            return
         mesg = message.query
             query          : opts.query
             options        : opts.options
