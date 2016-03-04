@@ -21,8 +21,8 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
-
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
+{HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
 Combobox = require('react-widgets/lib/Combobox')
 
@@ -33,7 +33,7 @@ underscore = require('underscore')
 markdown = require('./markdown')
 
 # base unit in pixel for margin/size/padding
-exports.UNIT = 15
+exports.UNIT = UNIT = 15
 
 # bootstrap blue background
 exports.BS_BLUE_BGRND = "rgb(66, 139, 202)"
@@ -197,6 +197,26 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {@render_title() if @props.title}
             {error}
         </Alert>
+
+exports.Footer = rclass
+    displayName : "Footer"
+
+    mixins: [ImmutablePureRenderMixin]
+
+    render: ->
+        <footer style={fontSize:"small",color:"gray",textAlign:"center",padding: "#{2*UNIT}px 0" }>
+            <hr/>
+            <Space/>
+            <SiteName/> by <CompanyName/>
+            {' '} &middot; {' '}
+            <a target="_blank" href=PolicyIndexPageUrl>Policies</a>
+            {' '} &middot; {' '}
+            <a target="_blank" href=PolicyTOSPageUrl>Terms of Service</a>
+            {' '} &middot; {' '}
+            <HelpEmailLink />
+            {' '} &middot; {' '}
+            &copy; {misc.YEAR}
+        </footer>
 
 
 exports.MessageDisplay = MessageDisplay = rclass
@@ -930,11 +950,11 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
     else if avail <= 0
-        url = window.smc_base_url + '/policies/pricing.html'
+        url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} members-only {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
@@ -952,18 +972,18 @@ exports.NoNetworkProjectWarning = (opts) ->
     {total, used, avail} = project_warning_opts(opts)
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused network {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
     else if avail <= 0
-        url = window.smc_base_url + '/policies/pricing.html'
+        url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} network {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable a network upgrade for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
-        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have network access</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
         <p>
-            Projects without network access cannot connect to external websites.
+            Projects without internet access enabled, cannot connect to external websites or download software packages.
             {suggestion}
         </p>
     </Alert>

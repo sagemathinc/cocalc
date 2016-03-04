@@ -1296,6 +1296,7 @@ exports.days_before         = (d, tm)  -> exports.hours_before(24*d, tm)
 exports.weeks_before        = (d, tm)  -> exports.days_before(7*d, tm)
 exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 
+exports.YEAR = new Date().getFullYear()
 
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
