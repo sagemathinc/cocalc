@@ -2,6 +2,8 @@
 
 November 2015
 
+For a video discussion of installing SMC watch https://www.youtube.com/watch?v=GOuy07Kift4 at minute 12.
+
 Our SMC cluster consists of the following:
 
 - db0, db1, db2           -- hostnames of database nodes
