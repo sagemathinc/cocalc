@@ -107,9 +107,9 @@ global.close_unused_projects = (host) ->
                 return
             s.close_open_unused_projects
                 dry_run      : false
-                min_age_days : 60
-                max_age_days : 300
-                threads      : 5
+                min_age_days : 50
+                max_age_days : 1000
+                threads      : 2
                 host         : host
                 cb           : done()
 
