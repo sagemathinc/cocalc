@@ -1489,7 +1489,12 @@ exports.log = () ->
     dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last)
     # support for string interpolation for the actual console.log
     [msg, args...] = Array.prototype.slice.call(arguments)
-    console.log_original("[#{t} Δ #{dt}] #{msg}", args...)
+    prompt = "[#{t} Δ #{dt}]"
+    if _.isString(msg)
+        prompt = "#{prompt} #{msg}"
+        console.log_original(prompt, args...)
+    else
+        console.log_original(prompt, msg, args...)
     smc_logger_timestamp_last = smc_logger_timestamp
 
 if not exports.RUNNING_IN_NODE and window?
