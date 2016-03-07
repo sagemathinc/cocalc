@@ -32,6 +32,7 @@ misc                 = require('smc-util/misc')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
 {synchronized_db}    = require('./syncdb')
+sha1                 = require('sha1')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#salvus-editor-templates")
@@ -335,8 +336,11 @@ class JupyterNotebook
                 return
             #@dbg("about to sync with upstream")
             # We ensure that before we sync with upstream, the live
-            # syncstring equals what is in the DOM.
-            @before_sync = @nb_to_string()
+            # syncstring equals what is in the DOM.  We pass true
+            # into nb_to_string, so any changes to the DOM that result
+            # in new images (e.g., output of computations) will get saved
+            # to the database, so that other users can eventually see them.
+            @before_sync = @nb_to_string(true)
             @doc.live(@before_sync)
 
         @doc._syncstring.on 'before-change', () =>
@@ -584,6 +588,12 @@ class JupyterNotebook
                             #if @readonly
                             #    @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a read only document.</b>"))
 
+                            # Convert notebook to a string once, since this
+                            # also extracts all the image blobs from the DOM,
+                            # so that we don't have to pull all of them from
+                            # the backend.
+                            @nb_to_string(false)
+
                             @status()
                             @dbg("initialize", "DONE")
                             cb()
@@ -812,10 +822,9 @@ class JupyterNotebook
             new_cell.fromJSON(cell_data)
             if @readonly
                 new_cell.code_mirror.setOption('readOnly',true)
+            @nb.delete_cell(index + 1)
         catch e
             console.log("set_cell fromJSON error -- #{e} -- cell_data=",cell_data)
-        @nb.delete_cell(index + 1)
-
         # TODO: If this cell was focused and our cursors were in this cell, we put them back:
 
 
@@ -823,35 +832,100 @@ class JupyterNotebook
 
     # Notebook Doc Format: line 0 is meta information in JSON.
     # Rest of file has one line for each cell for rest of file, in JSON format.
-    #
-    remove_images: (cell) =>
-        return # for now
+
+    id_to_blob : (id) =>
+        @_blobs ?= {}
+        blob = @_blobs[id]
+        if blob?
+            return blob
+        else
+            # Async fetch it from the database.
+            salvus_client.query
+                query :
+                    blobs :
+                        id   : id
+                        blob : null
+                cb: (err, resp) =>
+                    if err
+                        console.warn("unable to get blob with id #{id}")
+                    else
+                        blob = resp.query?.blobs?.blob
+                        if blob?
+                            @_blobs[id] = blob
+                        else
+                            console.warn("no blob available with id #{id}")
+                        # TODO: at this point maybe just force
+                        # update...?  though do some debouncing/throttling in
+                        # case a lot of images are being loaded.
+
+    blob_to_id: (blob, save_new_blobs) =>
+        @_blobs ?= {}
+        id = sha1(blob)
+        if not @_blobs[id]?
+            @_blobs[id] = blob
+            if save_new_blobs
+                console.log("saving a new blob with id '#{id}' and value blob='#{misc.trunc(blob,100)}'")
+                query =
+                    blobs :
+                        id         : id
+                        blob       : blob
+                        project_id : @editor.project_id
+                console.log(query)
+                window.query = query
+                salvus_client.query
+                    query : query
+                    cb : (err, resp) =>
+                        console.log("response from saving: #{err}", resp)
+                        # TODO -- cb that on fail will retry the query...
+                        # TODO -- maybe only make permanent on save (?)
+        return id
+
+    remove_images: (cell, save_new_blobs) =>
+        console.log("remove_images: save_new_blobs=#{save_new_blobs}")
         if cell.outputs?
             for out in cell.outputs
                 if out.data?
                     for k, v of out.data
-                        if k.slice(0,6) == 'image/'
-                            delete out.data[k]
+                        if k.slice(0,6) == 'image/' and v
+                            key = 'smc/' + k
+                            if not out.data[key]?
+                                out.data[key] = @blob_to_id(v, save_new_blobs)
+                                delete out.data[k]
 
     restore_images: (cell) =>
-        return
+        if cell.outputs?
+            for out in cell.outputs
+                if out.data?
+                    for k, v of out.data
+                        if k.slice(0,4) == 'smc/'
+                            blob = @id_to_blob(v)
+                            if not blob?
+                                return # unable to do it yet
+                            out.data[k.slice(4)] = blob
+                            # TODO: if blob not defined, we are fetching it
+                            # from the database and need to wait or re-render
+                            # this cell again.
+                            delete out.data[k]
+        return true
 
-    cell_to_line: (cell) =>
-        cell = misc.copy(cell)
-        @remove_images(cell)
+    cell_to_line: (cell, save_new_blobs) =>
+        cell = misc.deep_copy(cell)
+        @remove_images(cell, save_new_blobs)
         return misc.to_json(cell)
 
     line_to_cell: (line) =>
         try
             cell = misc.from_json(line)
-            @restore_images(cell)
-            return cell
         catch e
             console.warn("line_to_cell('#{line}') -- source ERROR=", e)
             return
+        if @restore_images(cell)
+            return cell
+        else
+            return  # undefined means not ready
 
     # Convert the visible displayed notebook into a textual sync-friendly string
-    nb_to_string: () =>
+    nb_to_string: (save_new_blobs) =>
         tm = misc.mswalltime()
         #@dbg("nb_to_string", "computing")
         obj = @to_obj()
@@ -859,7 +933,7 @@ class JupyterNotebook
             return
         doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.cells
-            doc += '\n' + @cell_to_line(cell)
+            doc += '\n' + @cell_to_line(cell, save_new_blobs)
         @nb.dirty = 'clean' # see comment in autosync
         #@dbg("nb_to_string", "time", misc.mswalltime(tm))
         return doc

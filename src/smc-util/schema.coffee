@@ -294,9 +294,17 @@ schema.blobs =
     user_query :
         get :
             instead_of_query : (database, obj, account_id, cb) ->
+                console.log("INSTEAD_OF_QUERY obj=#{misc.to_json(obj)}")
+                if not obj.id?
+                    cb("id must be specified")
+                    return
                 database.get_blob
                     uuid : obj.id
-                    cb   : cb
+                    cb   : (err, blob) ->
+                        if err
+                            cb(err)
+                        else
+                            cb(undefined, {id:obj.id, blob:blob})
             fields :
                 id          : null
                 blob        : null
@@ -861,7 +869,7 @@ class ClientDB
         @r = {}
 
     sha1 : (args...) =>
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args).join('')
+        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
         return sha1(v)
 
     _user_set_query_project_users: (obj) =>

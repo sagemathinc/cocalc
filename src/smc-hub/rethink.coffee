@@ -437,7 +437,7 @@ class RethinkDB
     # wouldn't be the end of the world.  There is a similar client-only slower version
     # of this function (in schema.coffee), so don't change it willy nilly.
     sha1: (args...) ->
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args).join('')
+        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
         return misc_node.sha1(v)
 
     # This will change the database so that a random password is required.  It will
