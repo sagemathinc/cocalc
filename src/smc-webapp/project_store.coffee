@@ -232,6 +232,7 @@ class ProjectActions extends Actions
             page_number            : 0
             file_action            : undefined
             most_recent_file_click : undefined
+            create_file_alert      : false
 
     # Update the directory listing cache for the given path
     set_directory_files : (path, sort_by_time, show_hidden) =>

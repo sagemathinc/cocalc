@@ -336,15 +336,59 @@ NoFiles = rclass
     propTypes :
         actions     : rtypes.object.isRequired
         public_view : rtypes.bool
+        file_search : rtypes.string
+        current_path: rtypes.string
 
     displayName : 'ProjectFiles-NoFiles'
 
+    create_file : ->
+        @props.actions.create_file
+            name         : @props.file_search
+            ext          : @extension()
+            current_path : @props.current_path
+            on_download  : ((a) => @setState(download: a))
+            # TODO: Render error in useful location
+            on_error     : ((a) => @setState(error: a))
+        if not @state.error?
+            @props.actions.setState(file_search : '', page_number: 0)
+
+    # Default to sagews if none is given.
+    extension : ->
+        if @props.file_search?.indexOf('.') == -1
+          "sagews"
+
+    handle_click : ->
+        if @props.file_search?.length == 0
+            @props.actions.set_focused_page('project-new-file')
+        else
+            @create_file()
+
+    button_text : ->
+        ext = @extension()
+        if ext and @props.file_search?.length > 0
+            "Create #{@props.file_search}.#{ext}"
+        else if not @props.file_search? or @props.file_search.length == 0
+            "Create or upload files..."
+        else
+            "Create #{@props.file_search}"
+
+    tip_text : ->
+        ext = @extension()
+        if ext == "sagews"
+            "Defaults to sagews. Add an extension to create something else."
+        else if not ext and @props.file_search?.length > 0
+            "Click here to create your file."
+        else
+            "Input a file name above or click the new files page."
+
     render_new_button : ->
-        <Button
-            style   = {fontSize:'40px', color:'#888'}
-            onClick = {=>@props.actions.set_focused_page('project-new-file')}>
-            <Icon name='plus-circle' /> Create or upload files...
-        </Button>
+        <Tip title="Create Button" tip={@tip_text()} placement="left">
+            <Button
+                style   = {fontSize:'40px', color:'#888'}
+                onClick = {=>@props.actions.set_focused_page('project-new-file')}>
+                <Icon name='plus-circle' /> {@button_text()}
+            </Button>
+        </Tip>
 
     render : ->
         <div style={textAlign:'center', color:'#888', marginTop:'20px'} >
@@ -365,6 +409,7 @@ FileListing = rclass
     propTypes :
         listing       : rtypes.array.isRequired
         file_map      : rtypes.object.isRequired
+        file_search   : rtypes.string
         checked_files : rtypes.object
         current_path  : rtypes.string
         page_number   : rtypes.number
@@ -446,7 +491,7 @@ FileListing = rclass
 
     render_no_files : ->
         if @props.listing.length is 0
-            <NoFiles current_path={@props.current_path} actions={@props.actions} public_view={@props.public_view}/>
+            <NoFiles current_path={@props.current_path} actions={@props.actions} public_view={@props.public_view} file_search={@props.file_search} current_path={@props.current_path}/>
 
     render : ->
         <Col sm=12>
@@ -1272,21 +1317,43 @@ ProjectFilesSearch = rclass
         current_path  : rtypes.string
         actions       : rtypes.object.isRequired
         selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
+        create_file_alert : rtypes.bool
+        files_displayed: rtypes.bool # True if there are any files displayed
 
     getDefaultProps : ->
         file_search : ''
 
     render_warning : ->
         if @props.file_search?.length > 0
-            <Alert style={wordWrap:'break-word'} bsStyle='warning'>
+            <Alert style={wordWrap:'break-word'} bsStyle='info'>
                 Showing only files matching "{@props.file_search}"
             </Alert>
 
-    open_selected_file: ->
-        if not @props.selected_file?
-            return
-        new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
+    render_create_file_warning : ->
+        if @props.create_file_alert
+            <Alert style={wordWrap:'break-word'} bsStyle='warning'>
+                You must enter file name above to create it
+            </Alert>
+
+# Consider consolodating to parent component. Siblings of this component have this same function
+    create_file : (ext) ->
+        if not ext and @props.file_search?.indexOf('.') == -1
+            ext = "sagews"
+        @props.actions.create_file
+            name         : @props.file_search
+            ext          : ext
+            current_path : @props.current_path
+            on_download  : ((a) => @setState(download: a))
+            on_error     : ((a) => @setState(error: a))
+        @props.actions.setState(file_search : '', page_number: 0)
+
+    search_submit: ->
+        if not @props.selected_file? and not @props.files_displayed and @props.file_search?.length > 0
+            @create_file()
+
+        # TODO: Add visual indication that a file is selected at all.
         if @props.selected_file
+            new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path)
             else
@@ -1300,8 +1367,9 @@ ProjectFilesSearch = rclass
                 placeholder   = 'Filename'
                 default_value = {@props.file_search}
                 on_change     = {@props.actions.set_file_search}
-                on_submit     = {@open_selected_file}
+                on_submit     = {@search_submit}
             />
+            {@render_create_file_warning()}
             {@render_warning()}
         </span>
 
@@ -1319,14 +1387,22 @@ ProjectFilesNew = rclass
     new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
 
     file_dropdown_icon : ->
-        <span><Icon name='plus-circle' /> New</span>
+        <span><Icon name='plus-circle' /> Create</span>
 
     file_dropdown_item : (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onSelect={=>@create_file(ext)}>
+        <MenuItem eventKey=i key={i} onClick={=>@handle_menu_click(ext)}>
             <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
+    handle_menu_click : (ext) ->
+        if @props.file_search.length == 0
+            # Tell state to render an error in file search
+            @props.actions.setState(create_file_alert : true)
+        else
+            @create_file(ext)
+
+    # Go to new file tab if no file is specified
     handle_file_click : ->
         if @props.file_search.length == 0
             @props.actions.set_focused_page('project-new-file')
@@ -1334,6 +1410,8 @@ ProjectFilesNew = rclass
             @create_file()
 
     create_file : (ext) ->
+        if not ext and @props.file_search?.indexOf('.') == -1
+            ext = "sagews"
         @props.actions.create_file
             name         : @props.file_search
             ext          : ext
@@ -1347,7 +1425,7 @@ ProjectFilesNew = rclass
 
     render : ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={width:'97px'}>
+        <div style={width:'111px'}>
             <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@handle_file_click} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1375,15 +1453,17 @@ ProjectFiles = (name) -> rclass
         account :
             other_settings : rtypes.immutable
         "#{name}" :
-            current_path  : rtypes.string
-            activity      : rtypes.object
-            page_number   : rtypes.number
-            file_action   : rtypes.string
-            file_search   : rtypes.string
-            show_hidden   : rtypes.bool
-            sort_by_time  : rtypes.bool
-            error         : rtypes.string
-            checked_files : rtypes.immutable
+            current_path      : rtypes.string
+            activity          : rtypes.object
+            page_number       : rtypes.number
+            file_action       : rtypes.string
+            file_search       : rtypes.string
+            show_hidden       : rtypes.bool
+            sort_by_time      : rtypes.bool
+            error             : rtypes.string
+            checked_files     : rtypes.immutable
+            # Tells the user to enter a file name for creation
+            create_file_alert : rtypes.bool
 
     propTypes :
         project_id    : rtypes.string
@@ -1391,7 +1471,7 @@ ProjectFiles = (name) -> rclass
         actions       : rtypes.object.isRequired
 
     getDefaultProps : ->
-        page_number : 0
+        page_number       : 0
 
     previous_page : ->
         if @props.page_number > 0
@@ -1519,6 +1599,7 @@ ProjectFiles = (name) -> rclass
                 page_size     = {@file_listing_page_size()}
                 page_number   = {@props.page_number}
                 file_map      = {file_map}
+                file_search   = {@props.file_search}
                 checked_files = {@props.checked_files}
                 current_path  = {@props.current_path}
                 public_view   = {public_view}
@@ -1585,7 +1666,9 @@ ProjectFiles = (name) -> rclass
                         file_search   = {@props.file_search}
                         actions       = {@props.actions}
                         current_path  = {@props.current_path}
-                        selected_file = {visible_listing?[0]} />
+                        selected_file = {visible_listing?[0]}
+                        create_file_alert = {@props.create_file_alert}
+                        files_displayed = {listing?.length > 0}/>
                 </Col>
                 {@render_new_file() if not public_view}
                 <Col sm={if public_view then 6 else 4}>
