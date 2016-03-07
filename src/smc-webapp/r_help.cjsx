@@ -28,9 +28,11 @@
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR} = require('./r_misc')
+{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR, Footer} = require('./r_misc')
 
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
+
+{RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
 
 # CSS
@@ -46,11 +48,14 @@ HelpPageUsageSection = rclass
             time                : rtypes.object
             accounts            : rtypes.number
             projects            : rtypes.number
-            active_projects     : rtypes.number
-            last_hour_projects  : rtypes.number
-            last_day_projects   : rtypes.number
-            last_week_projects  : rtypes.number
-            last_month_projects : rtypes.number
+            accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
+            projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
+            projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
+            active_projects     : rtypes.number # deprecated
+            last_hour_projects  : rtypes.number # deprecated
+            last_day_projects   : rtypes.number # deprecated
+            last_week_projects  : rtypes.number # deprecated
+            last_month_projects : rtypes.number # deprecated
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -71,17 +76,17 @@ HelpPageUsageSection = rclass
             <ProgressBar now={Math.max(n / 6 , 45 / 8) } label={"#{n} connected users"} />
 
     render_active_projects_stats: ->
-        n = @props.active_projects
+        n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats : ->
         if not @props.loading
             <li style={li_style}>
                 Users modified
-                <strong> {@props.last_hour_projects} projects</strong> in the last hour,
-                <strong> {@props.last_day_projects} projects</strong> in the last day,
-                <strong> {@props.last_week_projects} projects</strong> in the last week and
-                <strong> {@props.last_month_projects} projects</strong> in the last month.
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_hour]  ? @props.last_hour_projects} projects</strong> in the last hour,
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_day]   ? @props.last_day_projects} projects</strong> in the last day,
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_week]  ? @props.last_week_projects} projects</strong> in the last week and
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month.
             </li>
 
     render_historical_usage : ->
@@ -123,7 +128,7 @@ HelpPageUsageSection = rclass
 SUPPORT_LINKS =
     pricing :
         icon : 'money'
-        href : window.smc_base_url + '/policies/pricing.html'
+        href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
     # commented out since link doesn't work
     #getting_started :
@@ -517,6 +522,7 @@ HelpPage = rclass
                     <HelpPageGettingStartedSection />
                 </Well>
             </Col>
+            <Footer/>
         </Row>
 
 exports.render_help_page = () ->

@@ -9,7 +9,8 @@ The functiosns below in some cases return things, and in some cases set global v
 
 db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
 
-global.done = require('smc-util/misc').done
+misc = require('smc-util/misc')
+global.done = misc.done
 
 db = undefined
 get_db = (cb) ->
@@ -100,11 +101,60 @@ global.close_unused_projects = (host) ->
                 return
             s.close_open_unused_projects
                 dry_run      : false
-                min_age_days : 60
-                max_age_days : 300
-                threads      : 5
+                min_age_days : 50
+                max_age_days : 1000
+                threads      : 2
                 host         : host
                 cb           : done()
 
 console.log("close_unused_projects('hostname') -- close all projects on that host not used in the last 60 days")
+
+global.active_students = (cb) ->
+    cb ?= done()
+    require('./smc-hub/rethink').rethinkdb
+        hosts:db_hosts
+        pool:1
+        cb: (err, db) ->
+            if err
+                cb("FAIL -- #{err}")
+                return
+            q = db.table('projects').hasFields('course')
+            # only consider courses that have been touched in the last month
+            q = q.filter(db.r.row("last_edited").gt(misc.days_ago(30)))
+            q.pluck('project_id', 'course', 'last_edited', 'settings', 'users').run (err, t) ->
+                if err
+                    cb(err)
+                    return
+                days14 = misc.days_ago(14)
+                days7  = misc.days_ago(7)
+                days1  = misc.days_ago(1)
+                # student pay means that the student is required to pay
+                num_student_pay = (x for x in t when x.course.pay).length
+                # prof pay means that student isn't required to pay but nonetheless project is on members only host
+                num_prof_pay    = 0
+                for x in t
+                    if not x.course.pay  # student isn't paying
+                        if x.settings?.member_host
+                            num_prof_pay += 1
+                            continue
+                        for _, d of x.users
+                            if d.upgrades?.member_host
+                                num_prof_pay += 1
+                                continue
+                # free - neither student pays and project not on members only server
+                num_free        = t.length - num_prof_pay - num_student_pay
+                conversion_rate = 100*(num_student_pay + num_prof_pay) / t.length
+                data =
+                    conversion_rate : conversion_rate
+                    num_student_pay : num_student_pay
+                    num_prof_pay    : num_prof_pay
+                    num_free        : num_free
+                    num_1days       : (x for x in t when x.last_edited >= days1).length
+                    num_7days       : (x for x in t when x.last_edited >= days7).length
+                    num_14days      : (x for x in t when x.last_edited >= days14).length
+                    num_30days      : t.length
+                console.log(data)
+                cb(undefined, data)
+
+console.log("active_students() -- stats about student course projects during the last 30 days")
 

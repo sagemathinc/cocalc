@@ -21,6 +21,22 @@
 
 misc = require('./misc')
 
+# these times in minutes are used for active/recently edited projects and accounts in rethink.coffee's get_stats
+exports.RECENT_TIMES =
+    active     : 5
+    last_hour  : 60
+    last_day   : 60*24
+    last_week  : 60*24*7
+    last_month : 60*24*30
+
+# this translates the semantic meanings to the keys used in the DB, also prevents typos!
+exports.RECENT_TIMES_KEY =
+    active     : "5min"
+    last_hour  : "1h"
+    last_day   : "1d"
+    last_week  : "7d"
+    last_month : "30d"
+
 # these are the base quotas
 exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
     disk_quota  : 3000
@@ -786,12 +802,15 @@ schema.stats =
         id                  : true
         time                : true
         accounts            : true
+        accounts_created    : true
         projects            : true
-        active_projects     : true
-        last_hour_projects  : true
-        last_day_projects   : true
-        last_week_projects  : true
-        last_month_projects : true
+        projects_created    : true
+        projects_edited     : true
+        active_projects     : true # deprecated → projects_edited[RECENT_TIMES-key]
+        last_hour_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
+        last_day_projects   : true # deprecated → projects_edited[RECENT_TIMES-key]
+        last_week_projects  : true # deprecated → projects_edited[RECENT_TIMES-key]
+        last_month_projects : true # deprecated → projects_edited[RECENT_TIMES-key]
         hub_servers         : true
     indexes:
         time : []
@@ -804,12 +823,15 @@ schema.stats =
                 id                  : null
                 time                : null
                 accounts            : 0
+                accounts_created    : null
                 projects            : 0
-                active_projects     : 0
-                last_hour_projects  : 0
-                last_day_projects   : 0
-                last_week_projects  : 0
-                last_month_projects : 0
+                projects_created    : null
+                projects_edited     : null
+                active_projects     : 0 # deprecated → projects_edited[RECENT_TIMES-key]
+                last_hour_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
+                last_day_projects   : 0 # deprecated → projects_edited[RECENT_TIMES-key]
+                last_week_projects  : 0 # deprecated → projects_edited[RECENT_TIMES-key]
+                last_month_projects : 0 # deprecated → projects_edited[RECENT_TIMES-key]
                 hub_servers         : []
 
 schema.storage_servers =
@@ -1038,14 +1060,14 @@ upgrades.params =
         input_type     : 'number'
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
-        display        : 'Network access'
+        display        : 'Internet access'
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
+        desc           : 'Full internet access enables a project to connect to the computers outside of SageMathCloud, download software packages, etc.'
     member_host :
         display        : 'Member hosting'
         unit           : 'upgrade'

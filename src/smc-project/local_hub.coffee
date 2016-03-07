@@ -139,7 +139,338 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
+<<<<<<< HEAD
 # Handle a message from the client (=hub)
+=======
+###############################################
+# Read and write individual files
+###############################################
+
+# Read a file located in the given project.  This will result in an
+# error if the readFile function fails, e.g., if the file doesn't
+# exist or the project is not open.  We then send the resulting file
+# over the socket as a blob message.
+#
+# Directories get sent as a ".tar.bz2" file.
+# TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
+#
+read_file_from_project = (socket, mesg) ->
+    data    = undefined
+    path    = abspath(mesg.path)
+    is_dir  = undefined
+    id      = undefined
+    archive = undefined
+    stats   = undefined
+    async.series([
+        (cb) ->
+            #winston.debug("Determine whether the path '#{path}' is a directory or file.")
+            fs.stat path, (err, _stats) ->
+                if err
+                    cb(err)
+                else
+                    stats = _stats
+                    is_dir = stats.isDirectory()
+                    cb()
+        (cb) ->
+            # make sure the file isn't too large
+            cb(check_file_size(stats.size))
+        (cb) ->
+            if is_dir
+                if mesg.archive != 'tar.bz2'
+                    cb("The only supported directory archive format is tar.bz2")
+                    return
+                target  = temp.path(suffix:'.' + mesg.archive)
+                #winston.debug("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
+                archive = mesg.archive
+                if path[path.length-1] == '/'  # common nuisance with paths to directories
+                    path = path.slice(0,path.length-1)
+                split = misc.path_split(path)
+                path = target
+                # same patterns also in project.coffee (TODO)
+                args = ["--exclude=.sagemathcloud*", '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
+                #winston.debug("tar #{args.join(' ')}")
+                child_process.execFile 'tar', args, {cwd:split.head}, (err, stdout, stderr) ->
+                    if err
+                        winston.debug("Issue creating tarball: #{err}, #{stdout}, #{stderr}")
+                        cb(err)
+                    else
+                        cb()
+            else
+                #winston.debug("It is a file.")
+                cb()
+
+        (cb) ->
+            #winston.debug("Read the file into memory.")
+            fs.readFile path, (err, _data) ->
+                data = _data
+                cb(err)
+
+        (cb) ->
+            #winston.debug("Compute hash of file.")
+            id = misc_node.uuidsha1(data)
+            winston.debug("Hash = #{id}")
+            cb()
+
+        # TODO
+        # (cb) ->
+        #     winston.debug("Send hash of file to hub to see whether or not we really need to send the file itself; it might already be known.")
+        #     cb()
+
+        # (cb) ->
+        #     winston.debug("Get message back from hub -- do we send file or not?")
+        #     cb()
+
+        (cb) ->
+            #winston.debug("Finally, we send the file as a blob back to the hub.")
+            socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
+            socket.write_mesg 'blob', {uuid:id, blob:data}
+            cb()
+    ], (err) ->
+        if err and err != 'file already known'
+            socket.write_mesg 'json', message.error(id:mesg.id, error:err)
+        if is_dir
+            fs.exists path, (exists) ->
+                if exists
+                    winston.debug("It was a directory, so remove the temporary archive '#{path}'.")
+                    fs.unlink(path)
+    )
+
+write_file_to_project = (socket, mesg) ->
+    data_uuid = mesg.data_uuid
+    path = abspath(mesg.path)
+
+    # Listen for the blob containing the actual content that we will write.
+    write_file = (type, value) ->
+        if type == 'blob' and value.uuid == data_uuid
+            socket.removeListener 'mesg', write_file
+            async.series([
+                (cb) ->
+                    ensure_containing_directory_exists(path, cb)
+                (cb) ->
+                    #winston.debug('writing the file')
+                    fs.writeFile(path, value.blob, cb)
+            ], (err) ->
+                if err
+                    #winston.debug("error writing file -- #{err}")
+                    socket.write_mesg 'json', message.error(id:mesg.id, error:err)
+                else
+                    #winston.debug("wrote file '#{path}' fine")
+                    socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
+            )
+    socket.on 'mesg', write_file
+
+###############################################
+# Printing an individual file to pdf
+###############################################
+print_sagews = (opts) ->
+    opts = defaults opts,
+        path       : required
+        outfile    : required
+        title      : required
+        author     : required
+        date       : required
+        contents   : required
+        extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
+        timeout    : 90
+        cb         : required
+
+    extra_data_file = undefined
+    args = [opts.path, '--outfile', opts.outfile, '--title', opts.title, '--author', opts.author,'--date', opts.date, '--contents', opts.contents]
+    async.series([
+        (cb) ->
+            if not opts.extra_data?
+                cb(); return
+            extra_data_file = temp.path() + '.json'
+            args.push('--extra_data_file')
+            args.push(extra_data_file)
+            # NOTE: extra_data is a string that is *already* in JSON format.
+            fs.writeFile(extra_data_file, opts.extra_data, cb)
+        (cb) ->
+            # run the converter script
+            misc_node.execute_code
+                command     : "smc-sagews2pdf"
+                args        : args
+                err_on_exit : false
+                bash        : false
+                timeout     : opts.timeout
+                cb          : cb
+
+        ], (err) =>
+            if extra_data_file?
+                fs.unlink(extra_data_file)  # no need to wait for completion before calling opts.cb
+            opts.cb(err)
+        )
+
+print_to_pdf = (socket, mesg) ->
+    ext  = misc.filename_extension(mesg.path)
+    if ext
+        pdf = "#{mesg.path.slice(0,mesg.path.length-ext.length)}pdf"
+    else
+        pdf = mesg.path + '.pdf'
+
+    async.series([
+        (cb) ->
+            switch ext
+                when 'sagews'
+                    print_sagews
+                        path       : mesg.path
+                        outfile    : pdf
+                        title      : mesg.options.title
+                        author     : mesg.options.author
+                        date       : mesg.options.date
+                        contents   : mesg.options.contents
+                        extra_data : mesg.options.extra_data
+                        timeout    : mesg.options.timeout
+                        cb         : cb
+                else
+                    cb("unable to print file of type '#{ext}'")
+    ], (err) ->
+        if err
+            socket.write_mesg('json', message.error(id:mesg.id, error:err))
+        else
+            socket.write_mesg('json', message.printed_to_pdf(id:mesg.id, path:pdf))
+    )
+
+###############################################
+# Info
+###############################################
+session_info = (project_id) ->
+    return {
+        'sage_sessions'     : sage_sessions.info(project_id)
+        'console_sessions'  : console_sessions.info(project_id)
+        'file_sessions'     : codemirror_sessions.info(project_id)
+    }
+
+
+###############################################
+# Manage Jupyter server
+###############################################
+jupyter_port_queue = []
+jupyter_port = (socket, mesg) ->
+    winston.debug("jupyter_port")
+    jupyter_port_queue.push({socket:socket, mesg:mesg})
+    if jupyter_port_queue.length > 1
+        return
+    misc_node.execute_code
+        command     : "smc-jupyter"
+        args        : ['start']
+        err_on_exit : true
+        bash        : false
+        timeout     : 60
+        ulimit_timeout : false   # very important -- so doesn't kill consoles after 60 seconds cputime!
+        cb          : (err, out) ->
+            if not err
+                try
+                    info = misc.from_json(out.stdout)
+                    port = info?.port
+                    if not port?
+                        err = "unable to start -- no port; info=#{misc.to_json(out)}"
+                    else
+                catch e
+                    err = "error parsing smc-jupyter startup output -- #{e}, {misc.to_json(out)}"
+            if err
+                error = "error starting Jupyter -- #{err}"
+                for x in jupyter_port_queue
+                    err_mesg = message.error
+                        id    : x.mesg.id
+                        error : error
+                    x.socket.write_mesg('json', err_mesg)
+            else
+                for x in jupyter_port_queue
+                    resp = message.jupyter_port
+                        port : port
+                        id   : x.mesg.id
+                    x.socket.write_mesg('json', resp)
+            jupyter_port_queue = []
+
+
+###############################################
+# Execute a command line or block of BASH
+###############################################
+project_exec = (socket, mesg) ->
+    winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
+    if mesg.command == "smc-jupyter"
+        socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
+        return
+    misc_node.execute_code
+        command     : mesg.command
+        args        : mesg.args
+        path        : abspath(mesg.path)
+        timeout     : mesg.timeout
+        err_on_exit : mesg.err_on_exit
+        max_output  : mesg.max_output
+        bash        : mesg.bash
+        cb          : (err, out) ->
+            if err
+
+                error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                if error.indexOf("Connection refused") != -1
+                    error += "-- Email help@sagemath.com if you need full internet access, which is disabled by default."
+                if error.indexOf("=") != -1
+                    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
+                err_mesg = message.error
+                    id    : mesg.id
+                    error : error
+                socket.write_mesg('json', err_mesg)
+            else
+                #winston.debug(json(out))
+                socket.write_mesg 'json', message.project_exec_output
+                    id        : mesg.id
+                    stdout    : out.stdout
+                    stderr    : out.stderr
+                    exit_code : out.exit_code
+
+_save_blob_callbacks = {}
+receive_save_blob_message = (opts) ->
+    opts = defaults opts,
+        sha1    : required
+        cb      : required
+        timeout : 30  # maximum time in seconds to wait for response message
+
+    sha1 = opts.sha1
+    id = misc.uuid()
+    if not _save_blob_callbacks[sha1]?
+        _save_blob_callbacks[sha1] = [[opts.cb, id]]
+    else
+        _save_blob_callbacks[sha1].push([opts.cb, id])
+
+    # Timeout functionality -- send a response after opts.timeout seconds,
+    # in case no hub responded.
+    f = () ->
+        v = _save_blob_callbacks[sha1]
+        if v?
+            mesg = message.save_blob
+                sha1  : sha1
+                error : "timed out after local hub waited for #{opts.timeout} seconds"
+
+            w = []
+            for x in v   # this is O(n) instead of O(1), but who cares since n is usually 1.
+                if x[1] == id
+                    x[0](mesg)
+                else
+                    w.push(x)
+
+            if w.length == 0
+                delete _save_blob_callbacks[sha1]
+            else
+                _save_blob_callbacks[sha1] = w
+
+    if opts.timeout
+        setTimeout(f, opts.timeout*1000)
+
+
+handle_save_blob_message = (mesg) ->
+    v = _save_blob_callbacks[mesg.sha1]
+    if v?
+        for x in v
+            x[0](mesg)
+        delete _save_blob_callbacks[mesg.sha1]
+
+###############################################
+# Handle a message from the client
+###############################################
+
+>>>>>>> master
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
     dbg("mesg=#{json(mesg)}")

@@ -1,8 +1,9 @@
 {React, rclass, rtypes}  = require('./smc-react')
-{Loading, r_join} = require('./r_misc')
+{Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {ProjectTitle} = require('./projects')
+{HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -17,31 +18,40 @@ exports.UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources} = require('./billing')
+        {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
         <div>
             <h3>Sign up for a subscription in the billing tab</h3>
 
             <ExplainResources type='shared'/>
 
-            <br/> <br/>
-
+            <Space/>
+            <ExplainPlan type='personal' />
             <SubscriptionGrid period='month year' is_static={true}/>
 
+            <Space/>
+            <ExplainPlan type='course' />
+            <SubscriptionGrid period='month4' is_static={true}/>
+
+            <Space/>
             <ExplainResources type='dedicated'/>
-            <br/>
+
+            <hr/>
+            <FAQ/>
+
+            <Footer/>
         </div>
 
     render_have_upgrades: ->
         <div>
-            <h3>Thank you for supporting SageMathCloud</h3>
+            <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing
+                We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
                 the settings page in any project.
             </span>
-            <br/><br/>
+            <Space/>
         </div>
 
     render_upgrade: (param, amount, used, darker) ->
@@ -169,4 +179,5 @@ exports.UpgradesPage = rclass
                 {@render_have_upgrades()}
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
+                <Footer/>
             </div>

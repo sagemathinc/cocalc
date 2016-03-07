@@ -1,6 +1,6 @@
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 #DESC_FONT = "'Roboto Mono','monospace'"
@@ -431,16 +431,6 @@ RememberMe = () ->
     </div>
 
 
-LandingPageFooter = rclass
-    displayName : "LandingPageFooter"
-
-    mixins: [ImmutablePureRenderMixin]
-
-    render: ->
-        <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
-        SageMath, Inc. &middot; <a target="_blank" href="/policies/index.html">Policies</a> &middot; <a target="_blank" href="/policies/terms.html">Terms of Service</a> &middot; <HelpEmailLink />
-        </div>
-
 exports.LandingPage = rclass
     propTypes:
         actions : rtypes.object.isRequired
@@ -505,7 +495,7 @@ exports.LandingPage = rclass
                     </Col>
                 </Row>
                 <SagePreview />
-                <LandingPageFooter />
+                <Footer/>
             </div>
         else
             <RememberMe />

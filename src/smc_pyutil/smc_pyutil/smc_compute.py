@@ -582,6 +582,23 @@ class Project(object):
         if not hidden:
             listdir = [x for x in listdir if not x.startswith('.')]
 
+        # Just as in git_ls.py, we make sure that all filenames can be encoded via JSON.
+        # Users sometimes make some really crazy filenames that can't be so encoded.
+        # It's better to just not show them, than to show a horendous error.
+        try:
+            json.dumps(listdir)
+        except:
+            # Throw away filenames that can't be json'd, since they can't be JSON'd below,
+            # which would totally lock user out of their listings.
+            listdir = []
+            for x in os.listdir('.'):
+                try:
+                    json.dumps(x)
+                    listdir.append(x)
+                except:
+                    pass
+
+
         # Get list of (name, timestamp) pairs
         all = [(name, get_file_mtime(name)) for name in listdir]
 
@@ -842,7 +859,7 @@ def main():
         return Project(**kwds)
 
     # This is a generic parser for all subcommands that operate on a collection of projects.
-    # It's ugly, but it massively reduces t`he amount of code.
+    # It's ugly, but it massively reduces the amount of code.
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):

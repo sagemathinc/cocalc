@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
- SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink} = require('./r_misc')
+ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -1572,7 +1572,7 @@ ProjectFiles = (name) -> rclass
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
-        <div>
+        <div style={minHeight:"80vh"}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
             {@render_error()}

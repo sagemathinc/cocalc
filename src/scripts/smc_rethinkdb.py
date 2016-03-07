@@ -185,7 +185,7 @@ def export_accounts(outfn):
                 # data[email] = account
 
 
-def active_courses(days=14):
+def active_courses(days=30):
     # teacher's course IDs of all active student course projects
     teacher_course_ids = projects.has_fields('course')\
         .filter(r.row["last_edited"] > time_past(days * 24))\
@@ -204,17 +204,16 @@ def active_courses(days=14):
     sort_collabs = lambda e: (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
 
     print("<DOCTYPE html>")
-    print("<html><head><style>body {font-family: sans-serif;}</style></head>")
+    print("<html><head><style>body {font-family: sans-serif; font-size: 85%;}</style></head>")
     print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
-    for hosting, projs in courses.items():
+    for hosting, projs in sorted(courses.items()):
         print("<h2>{} Hosting</h2>".format(hosting.title()))
         for p in sorted(projs, key=lambda course: course["created"]):
             h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
             edited = p["last_edited"].isoformat()[:16]
             started = p["created"].isoformat()[:16]
-            course = "<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {host[host]}"\
-                        .format(started=started, edited=edited, h3=h3, **p)
-            print(course)
+            print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {host[host]}"\
+                .format(started=started, edited=edited, h3=h3, **p))
             print("<div><i>{description}</i></div>".format(**p))
             print("<ul>")
             u = p["users"]
@@ -222,8 +221,10 @@ def active_courses(days=14):
                 t = accounts.get(k).pluck("first_name", "last_name", "email_address").run()
                 t["email_address"] = t.get("email_address", "None")
                 addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-                print("<li>{addr} ({group})</li>".format(addr=addr, **v))
+                bg = 'yellow' if v['group'] == 'owner' else ''
+                print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr, **v))
             print("</ul></div>")
+        print("<hr/>")
     print("</body></html>")
 
 

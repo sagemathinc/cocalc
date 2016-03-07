@@ -1327,6 +1327,8 @@ exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 exports.expire_time = (s) ->
     if s then new Date((new Date() - 0) + s*1000)
 
+exports.YEAR = new Date().getFullYear()
+
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
     Math.round(num * 10) / 10
