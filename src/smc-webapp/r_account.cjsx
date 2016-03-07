@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('./r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
 
 {SiteName} = require('./customize')
 
@@ -1210,6 +1210,7 @@ exports.AccountSettingsTop = rclass
                     <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
+            <Footer/>
         </div>
 
 STRATEGIES = ['email']

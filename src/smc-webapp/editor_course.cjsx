@@ -3091,7 +3091,7 @@ Settings = rclass
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
-            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable network access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
 
             {@render_students_pay_checkbox()}
             {@render_require_students_pay_when() if @state.students_pay}
@@ -3102,7 +3102,7 @@ Settings = rclass
         if @state.students_pay
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc(@state.students_pay_when)}</span>
         else
-            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable network access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
+            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
 
 
     render_require_students_pay: ->

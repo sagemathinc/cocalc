@@ -18,7 +18,7 @@
     "immutable": "^3.7.4",
     "jquery.payment": "git://github.com/stripe/jquery.payment.git",
     "marked": "^0.3.3",
-    "mathjax": "^2.5.1",
+    "mathjax": "^2.6.1",
     "md5": "^2.0.0",
     "nodeunit": "^0.9.0",
     "react": "^0.14.0",
