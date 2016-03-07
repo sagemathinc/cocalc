@@ -358,7 +358,7 @@ NoFiles = rclass
           "sagews"
 
     handle_click : ->
-        if @props.file_search?.length == 0
+        if not @props.file_search?.length > 0
             @props.actions.set_focused_page('project-new-file')
         else
             @create_file()
@@ -367,7 +367,7 @@ NoFiles = rclass
         ext = @extension()
         if ext and @props.file_search?.length > 0
             "Create #{@props.file_search}.#{ext}"
-        else if not @props.file_search? or @props.file_search.length == 0
+        else if not @props.file_search?.length > 0
             "Create or upload files..."
         else
             "Create #{@props.file_search}"
@@ -385,7 +385,7 @@ NoFiles = rclass
         <Tip title="Create Button" tip={@tip_text()} placement="left">
             <Button
                 style   = {fontSize:'40px', color:'#888'}
-                onClick = {=>@props.actions.set_focused_page('project-new-file')}>
+                onClick = {=>@handle_click()}>
                 <Icon name='plus-circle' /> {@button_text()}
             </Button>
         </Tip>
