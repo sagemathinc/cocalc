@@ -24,6 +24,8 @@ trying a lot of ideas, though in hindsite it's exactly the same as what React.js
 I didn't know about React.js at the time).
 ###
 
+{EventEmitter}       = require('events')
+
 async                = require('async')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -126,8 +128,7 @@ get_with_retry = (opts) ->
 # overall cloud look.
 
 exports.jupyter_notebook = (editor, filename, opts) ->
-    J = new JupyterNotebook(editor, filename, opts)
-    return J.element
+    return (new JupyterNotebook2(editor, filename, opts)).element
 
 class JupyterNotebook
     dbg: (f, m...) =>
@@ -1033,9 +1034,262 @@ class JupyterNotebook
         setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
 
 
+###
+Attempt a more generic well defined approach to sync
+
+- Make an object with this API:
+
+    - set
+    - get
+    - event: 'change', 'ready', 'cursor', 'error'
+    - set_cursors
+
+States:
+
+  - 'loading'
+  - 'ready'
+  - 'error'
+  - 'closed'
+
+The states of the editor :
+
+  - 'init'   : started initializing
+  - 'loading': is loading initial page
+  - 'ready'  : page loaded and working
+  - 'error'  : tried to load but failed
+  - 'closed' : all resources freed
+
+            [failed]  --> [closed]
+               /|\           /|\
+                |             |
+               \|/            |
+ [init] --> [loading] --> [ready]
+
+
+Then something that takes in an object with the above API, and makes it sync.
+
+###
+
+class JupyterWrapper extends EventEmitter
+    constructor: (@element, url, cb) ->
+        @state = 'loading'
+        @iframe_uuid = misc.uuid()
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
+            .attr('src', "#{url}")
+            .attr('frameborder', '0')
+            .attr('scrolling', 'no')
+        @element.html('').append(@iframe)
+        # wait until connected -- iT is ***critical*** to wait until
+        # the kernel is connected before doing anything else!
+        start = new Date()
+        max_time_ms = 30*1000 # try for up to 30s
+        f = () =>
+            @frame ?= window.frames[@iframe_uuid]
+            if not @frame
+                setTimeout(f, 250)
+                return
+            if new Date() - start >= max_time_ms
+                @state = 'error'
+                @error = 'timeout loading'
+                @emit('error')
+                cb(@error)
+            else
+                if @frame?.IPython?.notebook?.kernel?.is_connected()
+                    # kernel is connected; now patch the Jupyter notebook page (synchronous)
+                    @nb = @frame.IPython.notebook
+                    @dirty_interval = setInterval(@check_dirty, 1000)
+                    @monkey_patch_iframe()
+                    @state = 'ready'
+                    @emit('ready')
+                    cb()
+                else
+                    # not yet connected, so try again shortly
+                    setTimeout(f, 250)
+        f()
+
+    close: () =>
+        if @state == 'closed'
+            return
+        if @dirty_interval?
+            clearInterval(@dirty_interval)
+            delete @dirty_interval
+        @element.html('')
+        @removeAllListeners()
+        @state = 'closed'
+
+    monkey_patch_iframe: () =>
+
+    check_dirty: () =>
+        if @nb.dirty and @nb.dirty != 'clean'
+            # nb.dirty is used internally by IPython so we shouldn't change it's truthiness.
+            # However, we still need a way in Sage to know that the notebook isn't dirty anymore.
+            @nb.dirty = 'clean'
+            @emit('change')
+
+    set: (obj) =>
+        obj =
+            content : obj
+            name    : @nb.notebook_name
+            path    : @nb.notebook_path
+        @nb.fromJSON(obj)
+
+    get: () =>
+        return @nb.toJSON()
+
+    show: (width) =>
+        @iframe?.attr('width', width).maxheight()
+        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
+
+class JupyterNotebook2
+    constructor: (@editor, @filename, opts={}) ->
+        opts = @opts = defaults opts,
+            read_only       : false
+            mode            : undefined   # ignored
+        window.s = @
+        @read_only = opts.read_only
+        @element = templates.find(".smc-jupyter-notebook").clone()
+        @element.data("jupyter_notebook", @)
+        @project_id = @editor.project_id
+
+        # Jupyter is proxied via the following canonical URL:
+        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
+
+        # special case/hack for developing SMC-in-SMC
+        if window.smc_base_url.indexOf('/port/') != -1
+            # Hack until we can figure out how to proxy websockets through a proxy
+            # (things just get too complicated)...
+            console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
+            i = window.smc_base_url.lastIndexOf('/')
+            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@editor.project_id}/"
+
+        s = misc.path_split(@filename)
+        @path = s.head
+        @file = s.tail
+
+        # filename for our sync-friendly representation of the Jupyter notebook
+        @syncdb_filename = (if @path then (@path+'/.') else '.') + @file + IPYTHON_SYNCFILE_EXTENSION
+
+        # where we will put the page itself
+        @notebook = @element.find(".smc-jupyter-notebook-notebook")
+
+        # Load the notebook and transition state to either 'ready' or 'failed'
+        @state = 'init'
+        @load()
+
+    close: () =>
+        if @state == 'closed'
+            return
+        @live_doc?.close()
+        delete @live_doc
+        @syncstring?.close()
+        delete @syncstring
+        @state = 'closed'
+
+    dbg: (f) =>
+        return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
+
+    load: (cb) =>
+        if @state != 'init' and @state != 'failed'
+            cb("load BUG: @state must be init or failed")
+            return
+
+        @state = 'loading'
+        connect = (cb) =>
+            async.parallel([@init_syncstring, @init_live_doc], cb)
+        async.series [connect, @init_conn], (err) =>
+            if err
+                @state = 'failed'
+            else
+                @state = 'ready'
+            cb?(err)
+
+    init_syncstring: (cb) =>
+        dbg = @dbg("init_syncstring")
+        if @state != 'loading'
+            cb("init_syncfile BUG: @state must be loading")
+            return
+        dbg("initializing synchronized string '#{@syncdb_filename}'")
+        syncdoc.synchronized_string
+            project_id : @project_id
+            filename   : @syncdb_filename
+            cb         : (err, s) =>
+                @syncstring = s
+                cb(err)
+
+    init_live_doc: (cb) =>
+        if @state != 'loading'
+            cb("init_live_doc BUG: @state must be loading")
+            return
+        @live_doc = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", cb)
+        @show()
+
+    # initialize the sync connection between the syncstring and the live document
+    init_conn: (cb) =>
+        dbg = @dbg("conn")
+
+        @live_doc.on 'change', =>
+            dbg("live_doc changed")
+            obj = @live_doc.get()
+            @syncstring.live(misc.to_json(obj))
+            @syncstring.save()
+
+        @_last_syncstring = @syncstring.live()
+        @syncstring.on 'sync', =>
+            live = @syncstring.live()
+            if @_last_syncstring != live
+                dbg("syncstring changed")
+                @_last_syncstring = live
+                @live_doc.set(misc.from_json(live))
+
+    ipynb_timestamp: (cb) =>
+        dbg = @dbg("ipynb_timestamp")
+        dbg("get when .ipynb file last modified")
+        get_timestamp
+            project_id : @project_id
+            path       : @filename
+            cb         : cb
+
+    syncstring_timestamp: () =>
+        dbg = @dbg("syncstring_timestamp")
+        dbg("get when .ipynb file last modified")
+        if @state != 'ready'
+            throw "BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')"
+            return
+        return @syncstring._syncstring.last_changed() - 0
+
+    show: (geometry={}) =>
+        @_last_top ?= @editor.editor_top_position()
+        {top, left, width, height} = defaults geometry,
+            left   : undefined  # not implemented
+            top    : @_last_top
+            width  : $(window).width()
+            height : undefined  # not implemented
+        @_last_top = top
+        @element.css(top:top)
+        if top == 0
+            @element.css('position':'fixed')
+        @live_doc.show(width)
 
 
 
-
+get_timestamp = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        cb         : required
+    salvus_client.exec
+        project_id : opts.project_id
+        command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
+        args       : ['--printf', '%Z ', opts.path]
+        timeout    : 20
+        err_on_exit: false
+        cb         : (err, output) =>
+            if err
+                opts.cb(err)
+            else if output.stderr.indexOf('such file or directory') != -1
+                # file doesn't exist
+                opts.cb(undefined, 0)
+            else
+                opts.cb(undefined, parseInt(output.stdout)*1000)
 
 
