@@ -345,6 +345,8 @@ from any admin/monitor machine to this account.
 
     apt-get install mpich mpich-doc libmpich-dev && update-alternatives --set mpi /usr/include/mpich
 
+Ansible: ansible-playbook all-install.yaml --tags=mpi
+
 # KVM HOSTS
 
 On the VM hosts, some things are critical:
