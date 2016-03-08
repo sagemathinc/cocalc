@@ -357,6 +357,7 @@ NoFiles = rclass
         if @props.file_search?.indexOf('.') == -1
           "sagews"
 
+    # Go to the new file tab if there is no file search
     handle_click : ->
         if not @props.file_search?.length > 0
             @props.actions.set_focused_page('project-new-file')
@@ -365,30 +366,19 @@ NoFiles = rclass
 
     button_text : ->
         ext = @extension()
-        if ext and @props.file_search?.length > 0
-            "Create #{@props.file_search}.#{ext}"
-        else if not @props.file_search?.length > 0
+        if not @props.file_search?.length > 0
             "Create or upload files..."
+        else if ext and @props.file_search.slice(-1) isnt '/'
+            "Create #{@props.file_search}.#{ext}"
         else
             "Create #{@props.file_search}"
 
-    tip_text : ->
-        ext = @extension()
-        if ext == "sagews"
-            "Defaults to sagews. Add an extension to create something else."
-        else if not ext and @props.file_search?.length > 0
-            "Click here to create your file."
-        else
-            "Input a file name above or click the new files page."
-
     render_new_button : ->
-        <Tip title="Create Button" tip={@tip_text()} placement="left">
-            <Button
-                style   = {fontSize:'40px', color:'#888'}
-                onClick = {=>@handle_click()}>
-                <Icon name='plus-circle' /> {@button_text()}
-            </Button>
-        </Tip>
+        <Button
+            style   = {fontSize:'40px', color:'#888'}
+            onClick = {=>@handle_click()}>
+            <Icon name='plus-circle' /> {@button_text()}
+        </Button>
 
     render : ->
         <div style={textAlign:'center', color:'#888', marginTop:'20px'} >
