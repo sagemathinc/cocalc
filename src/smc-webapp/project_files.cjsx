@@ -1667,7 +1667,7 @@ ProjectFiles = (name) -> rclass
                         current_path  = {@props.current_path}
                         selected_file = {visible_listing?[0]}
                         create_file_alert = {@props.create_file_alert}
-                        files_displayed = {listing?.length > 0}/>
+                        files_displayed = {visible_listing?.length > 0}/>
                 </Col>
                 {@render_new_file() if not public_view}
                 <Col sm={if public_view then 6 else 4}>
