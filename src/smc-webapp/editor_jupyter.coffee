@@ -1079,21 +1079,25 @@ pain and necessity in 2013 long before I heard of React.js).
 Here's what happens:
 
 First, assume that the syncstring and the DOM are equal.
-There are two events:
+There are two event-driven cases in which we handle
+that the DOM and syncstring are out of sync.  After each
+case, which is handled synchronously, the syncstring and
+DOM are equal again.
 
-Case 1: our DOM changes:
+Case 1: DOM change
  - we set the syncstring equal to the DOM.
- - now the syncstring equals the DOM
+ ==> now the syncstring equals the DOM, and syncstring is valid
 
-Case 2: the syncstring is about to change:
- - if the DOM actually changed but case 1 didn't fire (due to debouncing or just missing it,
-   since Jupyter doesn't have an "I changed event"), we do case 1 so that our local view of
-   the syncstring is consistent with the DOM.
- - we then get the updated syncstring
- - we verify consistency of the syncstring; possibly changing the syncstring to be consistent
- - we set the DOM equal to the syncstring
- - now the syncstring equals the DOM
+Case 2: syncstring change
+ - if DOM changed since last case 1 or 2, compute patch that transforms DOM from last state we read from
+   DOM to current DOM state, and apply that patch to current syncstring.
+ - modify syncstring to ensure that each line defines valid JSON.
+ - set DOM equal to syncstring
+ ==> now the syncstring equals the DOM, and the syncstring is valid
 
+The reason for the asymmetry is that (1) Jupyter doesn't give us a way
+to be notified the moment the DOM changes, and (2) even if it did, doing
+case 1 every keystroke would be inefficient.
 
 ###
 
@@ -1362,30 +1366,41 @@ class JupyterNotebook2
     # listen for and handle changes to the live document
     init_dom_change: () =>
         dbg = @dbg("dom_change")
+        @_last_dom = @dom.get()
         handle_dom_change = () =>
             dbg()
             new_ver = @dom.get()
+            @_last_dom = new_ver
             @syncstring.live(new_ver)
             @syncstring.save()
-
         @dom.on('change', handle_dom_change)
         # test this:
         # We debounce so that no matter what the live doc has to be still for 2s before
         # we handle any changes to it.  Since handling changes can be expensive this avoids
-        # slowing the user down.
+        # slowing the user down.  Making the debounce value large is also useful for
+        # testing edge cases of the sync algorithm.
         #@dom.on('change', underscore.debounce(handle_dom_change, 1000))
 
     # listen for changes to the syncstring
     init_syncstring_change: () =>
         dbg = @dbg("syncstring_change")
-        @_last_syncstring = @syncstring.live()
+        last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
             live = @syncstring.live()
-            if @_last_syncstring != live
+            if last_syncstring != live
+                # it really did change
                 dbg()
-                @_last_syncstring = live
-                if @dom.get() != live
+                cur_dom = @dom.get()
+                if @_last_dom != cur_dom
+                    patch = dmp.patch_make(@_last_dom, cur_dom)
+                    live = dmp.patch_apply(patch, live)
+                    @_last_dom = cur_dom
+                    @syncstring.live(live)
+                last_syncstring = live
+                if cur_dom != live
                     @dom.set(live)
+                    @_last_dom = live
+                # Now DOM equals syncstring.
 
         @syncstring.on('sync', handle_syncstring_change)
 
