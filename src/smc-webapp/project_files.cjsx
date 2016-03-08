@@ -1460,7 +1460,7 @@ ProjectFiles = (name) -> rclass
         actions       : rtypes.object.isRequired
 
     getDefaultProps : ->
-        page_number       : 0
+        page_number : 0
 
     previous_page : ->
         if @props.page_number > 0
