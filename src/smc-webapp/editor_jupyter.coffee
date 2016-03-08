@@ -1175,6 +1175,10 @@ class JupyterWrapper extends EventEmitter
         @removeAllListeners()
         @state = 'closed'
 
+    # save notebook file from DOM to disk
+    save: (cb) =>
+        @nb.save_notebook(false).then(cb)
+
     disable_autosave: () =>
         # We have our own auto-save system
         @nb.set_autosave_interval(0)
@@ -1472,6 +1476,7 @@ class JupyterNotebook2
                 @init_dom_change()
                 @init_syncstring_change()
                 @init_dom_events()
+                @init_buttons()
                 @state = 'ready'
             cb?(err)
 
@@ -1503,6 +1508,16 @@ class JupyterNotebook2
         @dom = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", @read_only, done)
         @show()
 
+    init_buttons: () =>
+        @element.find("a[href=#info]").click(@info)
+        @element.find("a[href=#history]").click(@show_history_viewer)
+        if @read_only
+            @element.find("a[href=#save]").add_class('disabled')
+        else
+            @save_button = @element.find("a[href=#save]").click(@save)
+        @reload_button  = @element.find("a[href=#reload]").click(@reload)
+        @publish_button = @element.find("a[href=#publish]").click(@publish)
+
     init_dom_events: () =>
         @dom.on('info', @info)
 
@@ -1518,7 +1533,8 @@ class JupyterNotebook2
             new_ver = @dom.get()
             @_last_dom = new_ver
             @syncstring.live(new_ver)
-            @syncstring.save()
+            @syncstring.sync () =>
+                @update_save_state()
         #@dom.on('change', handle_dom_change)
         # test this:
         # We debounce so that no matter what the live doc has to be still for 2s before
@@ -1551,10 +1567,12 @@ class JupyterNotebook2
                         # and equal to what is in the DOM.
                         last_syncstring = live = result
                         @syncstring.live(result)
-                        @syncstring.sync()
+                        @syncstring.sync () =>
+                            @update_save_state()
                 # Now DOM equals syncstring.
 
         @syncstring.on('sync', handle_syncstring_change)
+        @syncstring._syncstring.on('metadata-change', @update_save_state)
 
     ipynb_timestamp: (cb) =>
         dbg = @dbg("ipynb_timestamp")
@@ -1602,6 +1620,29 @@ class JupyterNotebook2
         #t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
         return false
+
+    show_history_viewer: () =>
+        path = misc.history_path(@filename)
+        @dbg("show_history_viewer", path)
+        @editor.project_page.open_file
+            path       : path
+            foreground : true
+
+    update_save_state: () =>
+        if not @syncstring._syncstring.has_unsaved_changes()
+            @save_button.addClass('disabled')
+        else
+            @save_button.removeClass('disabled')
+
+    save: () =>
+        @save_button.icon_spin(start:true, delay:4000)
+        async.parallel [@dom.save, @syncstring.save], (err) =>
+            @save_button.icon_spin(false)
+            @update_save_state()
+
+    reload: () =>
+
+    publish: () =>
 
 get_timestamp = (opts) ->
     opts = defaults opts,
