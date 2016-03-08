@@ -617,7 +617,6 @@ exports.define_codemirror_extensions = () ->
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value) ->
         @_setValueNoJump = true
-        cur_value = @getValue()
         @diffApply(dmp.diff_main(@getValue(), value))
         delete @_setValueNoJump
 

@@ -912,7 +912,7 @@ class JupyterNotebook
     cell_to_line: (cell, save_new_blobs) =>
         cell = misc.deep_copy(cell)
         @remove_images(cell, save_new_blobs)
-        return misc.to_json(cell)
+        return JSON.stringify(cell)
 
     line_to_cell: (line) =>
         try
@@ -1132,7 +1132,7 @@ class JupyterWrapper extends EventEmitter
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
                     @dirty_interval = setInterval(@check_dirty, 250)
-                    @monkey_patch_iframe()
+                    @monkey_patch_frame()
                     @state = 'ready'
                     @emit('ready')
                     cb()
@@ -1154,7 +1154,40 @@ class JupyterWrapper extends EventEmitter
         @removeAllListeners()
         @state = 'closed'
 
-    monkey_patch_iframe: () =>
+    monkey_patch_frame: () =>
+        @frame.CodeMirror.defineExtension 'diffApply', (diff) ->
+            next_pos = (val, pos) ->
+                # This functions answers the question:
+                # If you were to insert the string val at the CodeMirror position pos
+                # in a codemirror document, at what position (in codemirror) would
+                # the inserted string end at?
+                number_of_newlines = (val.match(/\n/g)||[]).length
+                if number_of_newlines == 0
+                    return {line:pos.line, ch:pos.ch+val.length}
+                else
+                    return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
+
+            pos = {line:0, ch:0}  # start at the beginning
+            for chunk in diff
+                #console.log(chunk)
+                op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
+                val = chunk[1]  # the actual text to leave same, delete, or add
+                pos1 = next_pos(val, pos)
+                switch op
+                    when 0 # stay the same
+                        # Move our pos pointer to the next position
+                        pos = pos1
+                        #console.log("skipping to ", pos1)
+                    when -1 # delete
+                        # Delete until where val ends; don't change pos pointer.
+                        @replaceRange("", pos, pos1)
+                        #console.log("deleting from ", pos, " to ", pos1)
+                    when +1 # insert
+                        # Insert the new text right here.
+                        @replaceRange(val, pos)
+                        #console.log("inserted new text at ", pos)
+                        # Move our pointer to just beyond the text we just inserted.
+                        pos = pos1
 
     check_dirty: () =>
         if @nb.dirty and @nb.dirty != 'clean'
@@ -1240,26 +1273,24 @@ class JupyterWrapper extends EventEmitter
                 # skip over  cells
                 index += val.length
             else if op == -1
-                # Deleting cell
-                # A common special case arises when one is editing a single cell, which gets represented
-                # here as deleting then inserting.  Replacing is far more efficient than delete and add,
-                # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
-                # chance to maintain the cursor later.)
                 if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
-                    #console.log("replace")
+                    # Replace Cell:  insert and delete
+                    # A common special case arises when one is editing a single cell, which gets represented
+                    # here as deleting then inserting.  Replacing is far more efficient than delete and add,
+                    # due to the overhead of creating codemirror instances (presumably).  Also, we can
+                    # maintain the user cursors and local-to-that-cell undo history.
                     for x in diff[i+1][1]
                         obj = @line_to_cell(string_mapping._to_string[x])
                         if obj?
-                            @set_cell(index, obj)
+                            @mutate_cell(index, obj)
                         index += 1
                     i += 1 # skip over next chunk
                 else
-                    #console.log("delete")
+                    # Deleting cell
                     for j in [0...val.length]
                         @delete_cell(index)
             else if op == 1
-                # insert new cells
-                #console.log("insert")
+                # Create new cells
                 for x in val
                     obj = @line_to_cell(string_mapping._to_string[x])
                     if obj?
@@ -1280,11 +1311,34 @@ class JupyterWrapper extends EventEmitter
         dbg = @dbg("set_cell")
         dbg(index, obj)
         cell = @nb.get_cell(index)
+        cm = cell.code_mirror
+        cm_setValueNoJump(cm, obj.source) #
         # Add a new one then deleting existing -- correct order avoids flicker/jump
         new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
         new_cell.fromJSON(obj)
+        # Swap the codemirror, so we preserve cursors and local history.
+        cell.code_mirror = new_cell.code_mirror
+        new_cell.code_mirror = cm
         @nb.delete_cell(index + 1)
         # TODO: readonly
+
+    mutate_cell: (index, obj) =>
+        dbg = @dbg("mutate_cell")
+        dbg(index, obj)
+        cell = @nb.get_cell(index)
+        obj0 = cell.toJSON()
+        if obj0.source != obj.source
+            # only source differs
+            cm_setValueNoJump(cell.code_mirror, obj.source)
+            cell.auto_highlight()
+        # TODO: when code running the asterisk doesn't sync out
+        if obj0.execution_count != obj.execution_count
+            cell.set_input_prompt(obj.execution_count)
+        if not underscore.isEqual(obj0.outputs, obj.outputs) or not underscore.isEqual(obj0.metadata, obj.metadata)
+            cell.output_area.clear_output(false, true)
+            cell.output_area.trusted = !!obj.metadata.trusted
+            cell.output_area.fromJSON(obj.outputs, obj.metadata)
+
 
     delete_cell: (index) =>
         @dbg("delete_cell")(index)
@@ -1489,4 +1543,6 @@ get_timestamp = (opts) ->
             else
                 opts.cb(undefined, parseInt(output.stdout)*1000)
 
+cm_setValueNoJump = (cm, value) ->
+    cm.diffApply(dmp.diff_main(cm.getValue(), value))
 
