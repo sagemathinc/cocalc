@@ -1068,7 +1068,36 @@ The states of the editor :
 
 Then something that takes in an object with the above API, and makes it sync.
 
+Idea of how things work.  We view the Jupyter notebook as a block box that
+lives in the DOM, which will tell us when it changes, and from which we can
+get a JSON-able object representation, and we can set it from such a
+representation efficiently without breaking cursors.  Jupyter does *NOT* provide
+that functionality, so we implement something like that (you can think of
+our approach as "inspired by React.js", but I just came up with it out of
+pain and necessity in 2013 long before I heard of React.js).
+
+Here's what happens:
+
+First, assume that the syncstring and the DOM are equal.
+There are two events:
+
+Case 1: our DOM changes:
+ - we set the syncstring equal to the DOM.
+ - now the syncstring equals the DOM
+
+Case 2: the syncstring is about to change:
+ - if the DOM actually changed but case 1 didn't fire (due to debouncing or just missing it,
+   since Jupyter doesn't have an "I changed event"), we do case 1 so that our local view of
+   the syncstring is consistent with the DOM.
+ - we then get the updated syncstring
+ - we verify consistency of the syncstring; possibly changing the syncstring to be consistent
+ - we set the DOM equal to the syncstring
+ - now the syncstring equals the DOM
+
+
 ###
+
+underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
     constructor: (@element, url, cb) ->
@@ -1107,6 +1136,9 @@ class JupyterWrapper extends EventEmitter
                     setTimeout(f, 250)
         f()
 
+    dbg: (f) =>
+        return (m) -> salvus_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
+
     close: () =>
         if @state == 'closed'
             return
@@ -1126,15 +1158,118 @@ class JupyterWrapper extends EventEmitter
             @nb.dirty = 'clean'
             @emit('change')
 
-    set: (obj) =>
+    set0: (obj) =>
         obj =
             content : obj
             name    : @nb.notebook_name
             path    : @nb.notebook_path
         @nb.fromJSON(obj)
 
-    get: () =>
+    get0: () =>
         return @nb.toJSON()
+
+
+    # Transform the visible displayed notebook view into what is described by the string doc.
+    set: (doc) =>
+        dbg = @dbg("set")
+        dbg()
+        tm = misc.mswalltime()
+
+        # what we want visible document to look like
+        goal = doc.split('\n')
+
+        # what the actual visible document looks like
+        live = @get().split('\n')
+
+        # first line is metadata...
+        @nb.metadata.name = goal[0].notebook_name
+
+        v0    = live.slice(1)
+        v1    = goal.slice(1)
+        string_mapping = new misc.StringCharMapping()
+        v0_string  = string_mapping.to_string(v0)
+        v1_string  = string_mapping.to_string(v1)
+        diff = dmp.diff_main(v0_string, v1_string)
+
+        index = 0
+        i = 0
+
+        @dbg("diff", diff)
+        i = 0
+        while i < diff.length
+            chunk = diff[i]
+            op    = chunk[0]  # -1 = delete, 0 = leave unchanged, 1 = insert
+            val   = chunk[1]
+            if op == 0
+                # skip over  cells
+                index += val.length
+            else if op == -1
+                # Deleting cell
+                # A common special case arises when one is editing a single cell, which gets represented
+                # here as deleting then inserting.  Replacing is far more efficient than delete and add,
+                # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
+                # chance to maintain the cursor later.)
+                if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
+                    #console.log("replace")
+                    for x in diff[i+1][1]
+                        obj = @line_to_cell(string_mapping._to_string[x])
+                        if obj?
+                            @set_cell(index, obj)
+                        index += 1
+                    i += 1 # skip over next chunk
+                else
+                    #console.log("delete")
+                    for j in [0...val.length]
+                        @delete_cell(index)
+            else if op == 1
+                # insert new cells
+                #console.log("insert")
+                for x in val
+                    obj = @line_to_cell(string_mapping._to_string[x])
+                    if obj?
+                        @insert_cell(index, obj)
+                    index += 1
+            else
+                console.log("BUG -- invalid diff!", diff)
+            i += 1
+
+        @dbg("time=", misc.mswalltime(tm))
+
+    line_to_cell: (line) =>
+        # TODO: restore images from blob store.
+        # TODO: handle corrupt JSON
+        cell = misc.from_json(line)
+
+    cell_to_line: (cell) =>
+        # TODO: remove images and ensure stored in blob store.
+        return misc.to_json(cell)
+
+    set_cell: (index, obj) =>
+        dbg = @dbg("set_cell")
+        dbg(index, obj)
+        cell = @nb.get_cell(index)
+        # Add a new one then deleting existing -- correct order avoids flicker/jump
+        new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
+        new_cell.fromJSON(obj)
+        @nb.delete_cell(index + 1)
+        # TODO: readonly
+
+    delete_cell: (index) =>
+        @dbg("delete_cell")(index)
+        @nb.delete_cell(index)
+
+    insert_cell: (index, obj) =>
+        @dbg("insert_cell")(index, obj)
+        new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
+        new_cell.fromJSON(obj)
+
+    # Convert the visible displayed notebook into a textual sync-friendly string
+    get: () =>
+        obj = @nb.toJSON()
+        doc = misc.to_json({notebook_name: @nb.notebook_name})
+        for cell in obj.cells
+            doc += '\n' + @cell_to_line(cell)
+        return doc
 
     show: (width) =>
         @iframe?.attr('width', width).maxheight()
@@ -1179,8 +1314,8 @@ class JupyterNotebook2
     close: () =>
         if @state == 'closed'
             return
-        @live_doc?.close()
-        delete @live_doc
+        @dom?.close()
+        delete @dom
         @syncstring?.close()
         delete @syncstring
         @state = 'closed'
@@ -1195,11 +1330,12 @@ class JupyterNotebook2
 
         @state = 'loading'
         connect = (cb) =>
-            async.parallel([@init_syncstring, @init_live_doc], cb)
-        async.series [connect, @init_conn], (err) =>
+        async.parallel [@init_syncstring, @init_dom], (err) =>
             if err
                 @state = 'failed'
             else
+                @init_dom_change()
+                @init_syncstring_change()
                 @state = 'ready'
             cb?(err)
 
@@ -1216,30 +1352,42 @@ class JupyterNotebook2
                 @syncstring = s
                 cb(err)
 
-    init_live_doc: (cb) =>
+    init_dom: (cb) =>
         if @state != 'loading'
-            cb("init_live_doc BUG: @state must be loading")
+            cb("init_dom BUG: @state must be loading")
             return
-        @live_doc = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", cb)
+        @dom = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", cb)
         @show()
 
-    # initialize the sync connection between the syncstring and the live document
-    init_conn: (cb) =>
-        dbg = @dbg("conn")
-
-        @live_doc.on 'change', =>
-            dbg("live_doc changed")
-            obj = @live_doc.get()
-            @syncstring.live(misc.to_json(obj))
+    # listen for and handle changes to the live document
+    init_dom_change: () =>
+        dbg = @dbg("dom_change")
+        handle_dom_change = () =>
+            dbg()
+            new_ver = @dom.get()
+            @syncstring.live(new_ver)
             @syncstring.save()
 
+        @dom.on('change', handle_dom_change)
+        # test this:
+        # We debounce so that no matter what the live doc has to be still for 2s before
+        # we handle any changes to it.  Since handling changes can be expensive this avoids
+        # slowing the user down.
+        #@dom.on('change', underscore.debounce(handle_dom_change, 1000))
+
+    # listen for changes to the syncstring
+    init_syncstring_change: () =>
+        dbg = @dbg("syncstring_change")
         @_last_syncstring = @syncstring.live()
-        @syncstring.on 'sync', =>
+        handle_syncstring_change = () =>
             live = @syncstring.live()
             if @_last_syncstring != live
-                dbg("syncstring changed")
+                dbg()
                 @_last_syncstring = live
-                @live_doc.set(misc.from_json(live))
+                if @dom.get() != live
+                    @dom.set(live)
+
+        @syncstring.on('sync', handle_syncstring_change)
 
     ipynb_timestamp: (cb) =>
         dbg = @dbg("ipynb_timestamp")
@@ -1268,7 +1416,7 @@ class JupyterNotebook2
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
-        @live_doc.show(width)
+        @dom.show(width)
 
 
 
