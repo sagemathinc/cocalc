@@ -1096,8 +1096,9 @@ Case 2: syncstring change
  ==> now the syncstring equals the DOM, and the syncstring is valid
 
 The reason for the asymmetry is that (1) Jupyter doesn't give us a way
-to be notified the moment the DOM changes, and (2) even if it did, doing
-case 1 every keystroke would be inefficient.
+to be notified the moment the DOM changes, (2) even if it did, doing
+case 1 every keystroke would be inefficient, (3) under the hood
+syncstring also does the same sort of merging process.
 
 ###
 
@@ -1130,7 +1131,7 @@ class JupyterWrapper extends EventEmitter
                 if @frame?.IPython?.notebook?.kernel?.is_connected()
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
-                    @dirty_interval = setInterval(@check_dirty, 1000)
+                    @dirty_interval = setInterval(@check_dirty, 250)
                     @monkey_patch_iframe()
                     @state = 'ready'
                     @emit('ready')
@@ -1174,10 +1175,41 @@ class JupyterWrapper extends EventEmitter
 
 
     # Transform the visible displayed notebook view into what is described by the string doc.
+    # Returns string that actually got set, in case the doc string is partly invalid.
     set: (doc) =>
+        try
+            @_set_via_mutate(doc)
+            return doc  # if set_via_mutate works, it **should** work perfectly
+        catch err
+            console.warn("Setting Jupyter DOM via mutation failed; instead setting vi fromJSON")
+            v = doc.split('\n')
+            try
+                @nb.metadata.name = JSON.parse(v[0]).notebook_name
+            catch err
+                console.warn("Error parsing notebook_name JSON '#{v[0]}' -- #{err}")
+            obj = {cells:[]}
+            i = 0
+            for x in v.slice(1)
+                try
+                    obj.cells.push(JSON.parse(x))
+                catch err
+                    console.warn("Error parsing JSON '#{x}' -- #{err}")
+                    # Arbitrary strategy: take the ith cell from the DOM and use that. Often
+                    # this will be right, and there is no way to know in general.  User has
+                    # full history, so they can manually resolve anything.
+                    try
+                        obj.cells.push(@nb.get_cell(i))
+                    catch err
+                        # Maybe there is no ith cell...
+                        console.warn("Fallback to ith cell didn't work")
+                i += 1
+            return @get()
+
+    _set_via_mutate: (doc) =>
         dbg = @dbg("set")
         dbg()
-        tm = misc.mswalltime()
+        if typeof(doc) != 'string'
+            throw "BUG -- set: doc must be of type string"
 
         # what we want visible document to look like
         goal = doc.split('\n')
@@ -1237,16 +1269,12 @@ class JupyterWrapper extends EventEmitter
                 console.log("BUG -- invalid diff!", diff)
             i += 1
 
-        @dbg("time=", misc.mswalltime(tm))
-
     line_to_cell: (line) =>
-        # TODO: restore images from blob store.
-        # TODO: handle corrupt JSON
-        cell = misc.from_json(line)
+        cell = JSON.parse(line)
 
     cell_to_line: (cell) =>
         # TODO: remove images and ensure stored in blob store.
-        return misc.to_json(cell)
+        return JSON.stringify(cell)
 
     set_cell: (index, obj) =>
         dbg = @dbg("set_cell")
@@ -1270,7 +1298,7 @@ class JupyterWrapper extends EventEmitter
     # Convert the visible displayed notebook into a textual sync-friendly string
     get: () =>
         obj = @nb.toJSON()
-        doc = misc.to_json({notebook_name: @nb.notebook_name})
+        doc = JSON.stringify({notebook_name: @nb.notebook_name})
         for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
         return doc
@@ -1373,13 +1401,13 @@ class JupyterNotebook2
             @_last_dom = new_ver
             @syncstring.live(new_ver)
             @syncstring.save()
-        @dom.on('change', handle_dom_change)
+        #@dom.on('change', handle_dom_change)
         # test this:
         # We debounce so that no matter what the live doc has to be still for 2s before
         # we handle any changes to it.  Since handling changes can be expensive this avoids
         # slowing the user down.  Making the debounce value large is also useful for
         # testing edge cases of the sync algorithm.
-        #@dom.on('change', underscore.debounce(handle_dom_change, 1000))
+        @dom.on('change', underscore.debounce(handle_dom_change, 500))
 
     # listen for changes to the syncstring
     init_syncstring_change: () =>
@@ -1393,13 +1421,19 @@ class JupyterNotebook2
                 cur_dom = @dom.get()
                 if @_last_dom != cur_dom
                     patch = dmp.patch_make(@_last_dom, cur_dom)
-                    live = dmp.patch_apply(patch, live)
+                    live = dmp.patch_apply(patch, live)[0]
                     @_last_dom = cur_dom
                     @syncstring.live(live)
                 last_syncstring = live
                 if cur_dom != live
-                    @dom.set(live)
-                    @_last_dom = live
+                    @_last_dom = result = @dom.set(live)
+                    if result != live
+                        # Something went wrong during set, e.g., JSON parsing issue.
+                        # The following sets the syncstring to be definitely valid
+                        # and equal to what is in the DOM.
+                        last_syncstring = live = result
+                        @syncstring.live(result)
+                        @syncstring.sync()
                 # Now DOM equals syncstring.
 
         @syncstring.on('sync', handle_syncstring_change)
