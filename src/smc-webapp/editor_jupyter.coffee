@@ -35,6 +35,7 @@ misc                 = require('smc-util/misc')
 syncdoc              = require('./syncdoc')
 {synchronized_db}    = require('./syncdb')
 sha1                 = require('sha1')
+misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#salvus-editor-templates")
@@ -1040,9 +1041,14 @@ Attempt a more generic well defined approach to sync
 - Make an object with this API:
 
     - set
-    - get
-    - event: 'change', 'ready', 'cursor', 'error'
     - set_cursors
+    - get
+    - event:
+       - 'change'
+       - 'ready'
+       - 'cursor'
+       - 'error'
+       - 'info'   - user requests info (clicking on jupyter logo)
 
 States:
 
@@ -1105,7 +1111,7 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, url, cb) ->
+    constructor: (@element, url, @read_only, cb) ->
         @state = 'loading'
         @iframe_uuid = misc.uuid()
         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
@@ -1131,8 +1137,23 @@ class JupyterWrapper extends EventEmitter
                 if @frame?.IPython?.notebook?.kernel?.is_connected()
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
-                    @dirty_interval = setInterval(@check_dirty, 250)
+                    console.log("@nb.writable = ", @nb.writable)
+                    if not @read_only and not @nb.writable
+                        # read_only set to false, but in fact file is read only according to jupyter
+                        # server, so we switch to read_only being true.
+                        @read_only = true
+                    if @read_only
+                        # read only -- kill any channels to backend to make evaluation impossible.
+                        # Also, ignore any changes to the DOM (shouldn't happen)
+                        @nb.kernel.stop_channels()
+                        @set_all_cells_read_only()
+                    else
+                        # not read only -- check for changes to the dump periodically.
+                        # It would be dramatically better if Jupyter had an event it would
+                        # fire on all changes, but this is what we have.
+                        @dirty_interval = setInterval(@check_dirty, 250)
                     @monkey_patch_frame()
+                    @disable_autosave()
                     @state = 'ready'
                     @emit('ready')
                     cb()
@@ -1154,40 +1175,51 @@ class JupyterWrapper extends EventEmitter
         @removeAllListeners()
         @state = 'closed'
 
-    monkey_patch_frame: () =>
-        @frame.CodeMirror.defineExtension 'diffApply', (diff) ->
-            next_pos = (val, pos) ->
-                # This functions answers the question:
-                # If you were to insert the string val at the CodeMirror position pos
-                # in a codemirror document, at what position (in codemirror) would
-                # the inserted string end at?
-                number_of_newlines = (val.match(/\n/g)||[]).length
-                if number_of_newlines == 0
-                    return {line:pos.line, ch:pos.ch+val.length}
-                else
-                    return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
+    disable_autosave: () =>
+        # We have our own auto-save system
+        @nb.set_autosave_interval(0)
 
-            pos = {line:0, ch:0}  # start at the beginning
-            for chunk in diff
-                #console.log(chunk)
-                op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-                val = chunk[1]  # the actual text to leave same, delete, or add
-                pos1 = next_pos(val, pos)
-                switch op
-                    when 0 # stay the same
-                        # Move our pos pointer to the next position
-                        pos = pos1
-                        #console.log("skipping to ", pos1)
-                    when -1 # delete
-                        # Delete until where val ends; don't change pos pointer.
-                        @replaceRange("", pos, pos1)
-                        #console.log("deleting from ", pos, " to ", pos1)
-                    when +1 # insert
-                        # Insert the new text right here.
-                        @replaceRange(val, pos)
-                        #console.log("inserted new text at ", pos)
-                        # Move our pointer to just beyond the text we just inserted.
-                        pos = pos1
+    monkey_patch_frame: () =>
+        misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
+        @monkey_patch_logo()
+        if @read_only
+            @monkey_patch_read_only()
+        @monkey_patch_ui()
+
+    monkey_patch_ui: () =>
+        # Proper file rename with sync not supported yet (but will be -- TODO;
+        # needs to work with sync system)
+        @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
+
+        # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
+        for cmd in ['new', 'open', 'copy', 'rename']
+            @frame.$("#" + cmd + "_notebook").hide()
+
+        @frame.$("#save_checkpoint").hide()
+        @frame.$("#restore_checkpoint").hide()
+        @frame.$("#save-notbook").hide()   # in case they fix the typo
+        @frame.$("#save-notebook").hide()  # in case they fix the typo
+
+        @frame.$(".checkpoint_status").hide()
+        @frame.$(".autosave_status").hide()
+
+        @frame.$("#menus").find("li:first").find(".divider").hide()
+
+        # This makes the ipython notebook take up the full horizontal width, which is more
+        # consistent with the rest of SMC.   Also looks better on mobile.
+        @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+
+        if not require('./feature').IS_MOBILE
+            @frame.$("#site").css("padding-left", "20px")
+
+    monkey_patch_logo: () =>
+        @frame.$("#ipython_notebook").find("a").click () =>
+            @emit('info')
+            return false
+
+    monkey_patch_read_only: () =>
+        $(@frame.document).find("#menubar").hide()
+        $(@frame.document).find("#maintoolbar").hide()
 
     check_dirty: () =>
         if @nb.dirty and @nb.dirty != 'clean'
@@ -1202,6 +1234,12 @@ class JupyterWrapper extends EventEmitter
             name    : @nb.notebook_name
             path    : @nb.notebook_path
         @nb.fromJSON(obj)
+        if @read_only
+            @set_all_cells_to_read_only()
+
+    set_all_cells_read_only: () =>
+        for i in [0...@nb.ncells()]
+            @nb.get_cell(i).code_mirror.setOption('readOnly',true)
 
     get0: () =>
         return @nb.toJSON()
@@ -1348,7 +1386,6 @@ class JupyterWrapper extends EventEmitter
             cell.output_area.trusted = !!obj.metadata.trusted
             cell.output_area.fromJSON(obj.outputs, obj.metadata)
 
-
     delete_cell: (index) =>
         @dbg("delete_cell")(index)
         @nb.delete_cell(index)
@@ -1357,6 +1394,8 @@ class JupyterWrapper extends EventEmitter
         @dbg("insert_cell")(index, obj)
         new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
         new_cell.fromJSON(obj)
+        if @read_only
+            new_cell.code_mirror.setOption('readOnly',true)
 
     # Convert the visible displayed notebook into a textual sync-friendly string
     get: () =>
@@ -1374,8 +1413,8 @@ class JupyterWrapper extends EventEmitter
 class JupyterNotebook2
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
-            read_only       : false
-            mode            : undefined   # ignored
+            read_only : false
+            mode      : undefined   # ignored
         window.s = @
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
@@ -1432,6 +1471,7 @@ class JupyterNotebook2
             else
                 @init_dom_change()
                 @init_syncstring_change()
+                @init_dom_events()
                 @state = 'ready'
             cb?(err)
 
@@ -1452,11 +1492,25 @@ class JupyterNotebook2
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        @dom = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", cb)
+        done = (err) =>
+            if err
+                cb(err)
+            else
+                if @dom.read_only
+                    # DOM gets extra info about @read_only status of file from jupyter notebook server.
+                    @read_only = true
+                cb()
+        @dom = new JupyterWrapper(@notebook, "#{@server_url}#{@filename}", @read_only, done)
         @show()
+
+    init_dom_events: () =>
+        @dom.on('info', @info)
 
     # listen for and handle changes to the live document
     init_dom_change: () =>
+        if @read_only
+            # read-only mode: ignore any DOM changes
+            return
         dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
         handle_dom_change = () =>
@@ -1531,7 +1585,23 @@ class JupyterNotebook2
             @element.css('position':'fixed')
         @dom.show(width)
 
+    info: () =>
+        t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
+        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
+        t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization and history logging."
+        t += "<h4>Use Sage by pasting this into a cell</h4>"
+        t += "<pre>%load_ext sage</pre>"
+        #t += "<h4>Connect to this Jupyter kernel in a terminal</h4>"
+        #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+        t += "<h4>Pure Jupyter notebooks</h4>"
+        t += "You can <a target='_blank' href='#{@server_url}#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
+        #t += "<br><br>To start your own unmodified Jupyter Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
 
+        # this is still a problem, but removed to avoid overwhelming user.
+        #t += "<h4>Known Issues</h4>"
+        #t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
+        bootbox.alert(t)
+        return false
 
 get_timestamp = (opts) ->
     opts = defaults opts,

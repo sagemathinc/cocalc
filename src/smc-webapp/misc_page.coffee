@@ -442,6 +442,44 @@ $.fn.extend
 # Codemirror Extensions
 ####################################
 
+# We factor out this extension so it can be applied to CodeMirror's in iframes, e.g., Jupyter's.
+
+exports.cm_define_diffApply_extension = (cm) ->
+    cm.defineExtension 'diffApply', (diff) ->
+        next_pos = (val, pos) ->
+            # This functions answers the question:
+            # If you were to insert the string val at the CodeMirror position pos
+            # in a codemirror document, at what position (in codemirror) would
+            # the inserted string end at?
+            number_of_newlines = (val.match(/\n/g)||[]).length
+            if number_of_newlines == 0
+                return {line:pos.line, ch:pos.ch+val.length}
+            else
+                return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
+
+        pos = {line:0, ch:0}  # start at the beginning
+        for chunk in diff
+            #console.log(chunk)
+            op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
+            val = chunk[1]  # the actual text to leave same, delete, or add
+            pos1 = next_pos(val, pos)
+            switch op
+                when 0 # stay the same
+                    # Move our pos pointer to the next position
+                    pos = pos1
+                    #console.log("skipping to ", pos1)
+                when -1 # delete
+                    # Delete until where val ends; don't change pos pointer.
+                    @replaceRange("", pos, pos1)
+                    #console.log("deleting from ", pos, " to ", pos1)
+                when +1 # insert
+                    # Insert the new text right here.
+                    @replaceRange(val, pos)
+                    #console.log("inserted new text at ", pos)
+                    # Move our pointer to just beyond the text we just inserted.
+                    pos = pos1
+
+
 exports.define_codemirror_extensions = () ->
 
     # LaTeX code folding (isn't included in CodeMirror)
@@ -583,6 +621,8 @@ exports.define_codemirror_extensions = () ->
         if changeObj.next?
             @apply_changeObj(changeObj.next)
 
+    exports.cm_define_diffApply_extension(CodeMirror)
+
     # Delete all trailing whitespace from the editor's buffer.
     CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
         opts = defaults opts,
@@ -628,40 +668,6 @@ exports.define_codemirror_extensions = () ->
         new_value = dmp.patch_apply(patch, cur_value)[0]
         diff = dmp.diff_main(cur_value, new_value)
         @diffApply(diff)
-
-    CodeMirror.defineExtension 'diffApply', (diff) ->
-        next_pos = (val, pos) ->
-            # This functions answers the question:
-            # If you were to insert the string val at the CodeMirror position pos
-            # in a codemirror document, at what position (in codemirror) would
-            # the inserted string end at?
-            number_of_newlines = (val.match(/\n/g)||[]).length
-            if number_of_newlines == 0
-                return {line:pos.line, ch:pos.ch+val.length}
-            else
-                return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
-
-        pos = {line:0, ch:0}  # start at the beginning
-        for chunk in diff
-            #console.log(chunk)
-            op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-            val = chunk[1]  # the actual text to leave same, delete, or add
-            pos1 = next_pos(val, pos)
-            switch op
-                when 0 # stay the same
-                    # Move our pos pointer to the next position
-                    pos = pos1
-                    #console.log("skipping to ", pos1)
-                when -1 # delete
-                    # Delete until where val ends; don't change pos pointer.
-                    @replaceRange("", pos, pos1)
-                    #console.log("deleting from ", pos, " to ", pos1)
-                when +1 # insert
-                    # Insert the new text right here.
-                    @replaceRange(val, pos)
-                    #console.log("inserted new text at ", pos)
-                    # Move our pointer to just beyond the text we just inserted.
-                    pos = pos1
 
     # This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
     CodeMirror.defineExtension 'showCompletions', (opts) ->
