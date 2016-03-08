@@ -1462,7 +1462,6 @@ ProjectFiles = (name) -> rclass
             sort_by_time      : rtypes.bool
             error             : rtypes.string
             checked_files     : rtypes.immutable
-            # Tells the user to enter a file name for creation
             create_file_alert : rtypes.bool
 
     propTypes :
