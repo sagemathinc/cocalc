@@ -1214,13 +1214,21 @@ class JupyterWrapper extends EventEmitter
             @_set_via_mutate(doc)
             return doc  # if set_via_mutate works, it **should** work perfectly
         catch err
-            console.warn("Setting Jupyter DOM via mutation failed; instead setting vi fromJSON")
+            console.warn("Setting Jupyter DOM via mutation failed; instead setting fromJSON")
             v = doc.split('\n')
+            obj = {cells:[]}
             try
-                @nb.metadata.name = JSON.parse(v[0]).notebook_name
+                x = JSON.parse(v[0])
             catch err
                 console.warn("Error parsing notebook_name JSON '#{v[0]}' -- #{err}")
-            obj = {cells:[]}
+                x = {}
+            if x.notebook_name?
+                @nb.metadata.name = x.notebook_name
+            if x.metadata?
+                obj.metadata = x.metadata
+            else
+                # fallback -- try to use the last object that @get() returned.
+                obj.metatada = @_last_obj?.metadata ? @nb.toJSON().metadata
             i = 0
             for x in v.slice(1)
                 try
@@ -1236,6 +1244,7 @@ class JupyterWrapper extends EventEmitter
                         # Maybe there is no ith cell...
                         console.warn("Fallback to ith cell didn't work")
                 i += 1
+            @set0(obj)
             return @get()
 
     _set_via_mutate: (doc) =>
@@ -1352,7 +1361,8 @@ class JupyterWrapper extends EventEmitter
     # Convert the visible displayed notebook into a textual sync-friendly string
     get: () =>
         obj = @nb.toJSON()
-        doc = JSON.stringify({notebook_name: @nb.notebook_name})
+        @_last_obj = obj
+        doc = JSON.stringify({notebook_name: @nb.notebook_name, metadata:obj.metadata})
         for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
         return doc
