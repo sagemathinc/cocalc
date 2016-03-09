@@ -18,23 +18,28 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        window.h = @
         @init_paths()
-        @init_view_doc(opts)
-        @init_syncstring()
-        @init_slider()
+        @init_view_doc opts, (err) =>
+            console.log("init_view_doc returned ", err)
+            if not err
+                @init_syncstring()
+                @init_slider()
+            else
+                # TODO -- better way to report this
+                console.warn("FAILED to configure view_doc")
 
     init_paths: =>
         #   @filename = "path/to/.file.sage-history"
         s = misc.path_split(@filename)
         @_path = s.tail.slice(1, s.tail.length - ".sage-history".length)
+        @_open_file_path = @_path
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
-            @_ipynb_path = @_path
+            @_open_file_path = @_path
             @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
             if s.head
                 @_path = s.head + '/' + @_path
-                @_ipynb_path = s.head + '/' + @_ipynb_path
+                @_open_file_path = s.head + '/' + @_open_file_path
         if s.head
             @_path = s.head + '/' + @_path
 
@@ -57,13 +62,14 @@ class exports.HistoryEditor extends FileEditor
     disconnect_from_session: =>
         @close()
 
-    init_view_doc: (opts) =>
+    init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
         @element  = templates.find(".salvus-editor-history").clone()
         switch @ext
             when 'ipynb'
-                @view_doc = jupyter.jupyter_notebook(@editor, @_ipynb_path, opts).data("jupyter_notebook")
+                @view_doc = jupyter.jupyter_notebook(@editor, @_open_file_path, opts).data("jupyter_notebook")
+                @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
             else
@@ -77,6 +83,13 @@ class exports.HistoryEditor extends FileEditor
                 static_viewer         : true
                 read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
+
+        if @ext == 'ipynb'
+            @view_doc.once('ready', => cb())
+            @view_doc.once('failed', => cb('failed'))
+        else
+            cb()
+
 
     init_slider: =>
         @slider         = @element.find(".salvus-editor-history-slider")
@@ -110,7 +123,7 @@ class exports.HistoryEditor extends FileEditor
 
         @element.find("a[href=#file]").click () =>
             @editor.project_page.open_file
-                path       : @_path
+                path       : @_open_file_path
                 foreground : true
 
     set_doc: (time) ->
@@ -121,7 +134,7 @@ class exports.HistoryEditor extends FileEditor
             when 'sagews'
                 @view_doc.codemirror.setValue(val)
             when 'ipynb'
-                @view_doc.set_nb(val)
+                @view_doc.dom.set(val)
             when 'tasks'
                 @view_doc.set_value(val)
             else
@@ -161,7 +174,6 @@ class exports.HistoryEditor extends FileEditor
 
     render_slider: =>
         @length = @syncstring.all_versions().length
-        console.log('render_slider ', @length)
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
             @view_doc.codemirror?.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
@@ -184,7 +196,6 @@ class exports.HistoryEditor extends FileEditor
         if new_len == @length
             return
         @length = new_len
-        console.log('resize_slider @length = ', @length)
         @slider.slider
             max : @length - 1
         @update_buttons()
