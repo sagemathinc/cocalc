@@ -3905,9 +3905,9 @@ jupyter = require('./jupyter')
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
         @init_font_size() # get the @default_font_size
-        #console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
+        # console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
         @opts.default_font_size = @default_font_size
-        @element = jupyter.jupyter_notebook(@editor, @filename, @opts)
+        @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
 class JupyterNBViewer extends FileEditorWrapper

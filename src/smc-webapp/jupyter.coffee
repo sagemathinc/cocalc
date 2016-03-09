@@ -216,20 +216,21 @@ get_with_retry = (opts) ->
 # also increase the version number forcing users to refresh their browser.
 IPYTHON_SYNCFILE_EXTENSION = ".syncdoc4"
 
-exports.jupyter_notebook = (editor, filename, opts) ->
-    J = new JupyterNotebook(editor, filename, opts)
+exports.jupyter_notebook = (wrapper, filename, opts) ->
+    J = new JupyterNotebook(wrapper, filename, opts)
     return J.element
 
 class JupyterNotebook
     dbg: (f, m...) =>
         #console.log("#{new Date()} -- JupyterNotebook.#{f}: #{misc.to_json(m)}")
 
-    constructor: (@editor, @filename, opts={}) ->
+    constructor: (@wrapper, @filename, opts={}) ->
         opts = @opts = defaults opts,
             sync_interval     : 1000
             cursor_interval   : 2000
             default_font_size : 14
 
+        @editor = @wrapper.editor
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
@@ -827,7 +828,7 @@ class JupyterNotebook
         if @frame.$(".smc-override").length == 0
             @frame.$('<style type="text/css" class="smc-override"></style>').appendTo(@frame.$("body"))
 
-            font_size = @editor.local_storage("font_size")
+            font_size = @wrapper.local_storage("font_size")
             if font_size?
                 @font_size_set(font_size)
             else if @opts.default_font_size?
@@ -847,7 +848,7 @@ class JupyterNotebook
         if font_size?
             font_size += delta
             @font_size_set(font_size)
-            @editor.local_storage("font_size", font_size)
+            @wrapper.local_storage("font_size", font_size)
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{show: 500, hide: 100})
