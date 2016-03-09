@@ -548,8 +548,7 @@ class JupyterNotebook extends EventEmitter
             @element.find("a[href=#save]").addClass('disabled')
         else
             @save_button = @element.find("a[href=#save]").click(@save)
-        @reload_button  = @element.find("a[href=#reload]").click(@reload)
-        @publish_button = @element.find("a[href=#publish]").click(@publish)
+        @publish_button = @element.find("a[href=#publish]").click(@publish_ui)
 
     init_dom_events: () =>
         @dom.on('info', @info)
@@ -671,15 +670,77 @@ class JupyterNotebook extends EventEmitter
         else
             @save_button.removeClass('disabled')
 
-    save: () =>
+    save: (cb) =>
         @save_button.icon_spin(start:true, delay:4000)
         async.parallel [@dom.save, @syncstring.save], (err) =>
             @save_button.icon_spin(false)
             @update_save_state()
+            cb?(err)
 
-    reload: () =>
+    nbconvert: (opts) =>
+        opts = defaults opts,
+            format : required
+            cb     : undefined
+        salvus_client.exec
+            path        : @path
+            project_id  : @editor.project_id
+            command     : 'sage'
+            args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
+            bash        : false
+            err_on_exit : true
+            timeout     : 30
+            cb          : (err, output) =>
+                #console.log("nbconvert finished with err='#{err}, output='#{misc.to_json(output)}'")
+                opts.cb?(err)
+                
+    publish_ui: () =>
+        url = document.URL
+        url = url.slice(0,url.length-5) + 'html'
+        dialog = templates.find(".smc-jupyter-publish-dialog").clone()
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            return false
+        status = (mesg, percent) =>
+            dialog.find(".smc-jupyter-publish-status").text(mesg)
+            p = "#{percent}%"
+            dialog.find(".progress-bar").css('width',p).text(p)
 
-    publish: () =>
+        @publish status, (err) =>
+            dialog.find(".smc-jupyter-publish-dialog-publishing")
+            if err
+                dialog.find(".smc-jupyter-publish-dialog-fail").show().find('span').text(err)
+            else
+                dialog.find(".smc-jupyter-publish-dialog-success").show()
+                url_box = dialog.find(".smc-jupyter-publish-url")
+                url_box.val(url)
+                url_box.click () ->
+                    $(this).select()
+
+    publish: (status, cb) =>
+        @publish_button.find("fa-refresh").show()
+        async.series([
+            (cb) =>
+                status?("saving",0)
+                @save(cb)
+            (cb) =>
+                status?("running nbconvert",30)
+                @nbconvert
+                    format : 'html'
+                    cb     : (err) =>
+                        cb(err)
+            (cb) =>
+                status?("making '#{@filename}' public", 70)
+                redux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                html = @filename.slice(0,@filename.length-5)+'html'
+                status?("making '#{html}' public", 90)
+                redux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                cb()
+            ], (err) =>
+            status?("done", 100)
+            @publish_button.find("fa-refresh").hide()
+            cb?(err)
+        )
 
 get_timestamp = (opts) ->
     opts = defaults opts,
