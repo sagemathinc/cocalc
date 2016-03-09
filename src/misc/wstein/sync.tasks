@@ -162,3 +162,4 @@
 {"desc":"#0 #jupyter (0:30?)\nload indicator","position":-1.3134439562922466,"last_edited":1457487983665,"task_id":"b376e212-5975-4400-a158-dd6f7eaed41f"}
 {"desc":"#1 #jupyter\ncommand/control+s keyboard shortcut","position":-1.3134439562921614,"last_edited":1457488364993,"task_id":"4bdd23be-4d27-4b5e-a369-018696c1e723"}
 {"desc":"#1 #jupyter (0:45?)\nprint to pdf\n\nwhere is it?","position":-1.3134439562921756,"last_edited":1457488993034,"task_id":"ba73f6e0-9a4d-4af5-9f2d-7e32df6e7729"}
+{"desc":"#1 #jupyter\nwrite a function that takes as input a Jupyter syncstring, and returns a nearby one that is valid.\n\nThis will require reading the source and knowing exactly what \"valid Jupyter syncstring\" means.  Clearly relying on calling fromJSON of Jupyter is a disaster.\n","position":-1.3134439562921187,"last_edited":1457489822372,"task_id":"c36bf40d-8145-4171-8e68-2dccdc328b4f"}

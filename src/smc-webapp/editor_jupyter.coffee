@@ -497,6 +497,7 @@ class JupyterNotebook extends EventEmitter
         @state = 'loading'
         connect = (cb) =>
         async.parallel [@init_syncstring, @init_dom], (err) =>
+            @element.find(".smc-jupyter-startup-message").hide()
             if err
                 @state = 'failed'
             else
@@ -692,7 +693,7 @@ class JupyterNotebook extends EventEmitter
             cb          : (err, output) =>
                 #console.log("nbconvert finished with err='#{err}, output='#{misc.to_json(output)}'")
                 opts.cb?(err)
-                
+
     publish_ui: () =>
         url = document.URL
         url = url.slice(0,url.length-5) + 'html'
