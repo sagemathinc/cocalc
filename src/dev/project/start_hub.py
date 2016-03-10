@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-import os, json, socket, util
+import os, json, socket, sys, util
 
-import os; os.environ['DEVEL']='yes'
+path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.insert(0, path)
+
+os.environ['DEVEL']='yes'
 
 util.chdir()
 
