@@ -122,7 +122,9 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, @server_url, @filename, @read_only, cb) ->
+    constructor: (@element, @server_url, @filename, @read_only, @project_id, cb) ->
+        @blobs = {}
+        @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
@@ -184,6 +186,8 @@ class JupyterWrapper extends EventEmitter
             delete @dirty_interval
         @element.html('')
         @removeAllListeners()
+        delete @blobs
+        delete @blobs_pending
         @state = 'closed'
 
     # save notebook file from DOM to disk
@@ -344,13 +348,13 @@ class JupyterWrapper extends EventEmitter
                     for x in diff[i+1][1]
                         obj = undefined
                         try
-                            obj = JSON.parse(string_mapping._to_string[x])
+                            obj = @line_to_cell(string_mapping._to_string[x])
                         catch err
                             console.warn("failed to parse '#{string_mapping._to_string[x]}'. #{err}")
                         #old_val = stringify(@nb.get_cell(index).toJSON())  # for debugging only
                         if obj?
                             @mutate_cell(index, obj)
-                        new_val = stringify(@nb.get_cell(index).toJSON())
+                        new_val = @cell_to_line(@nb.get_cell(index), false)
                         if new_val != string_mapping._to_string[x]
                             console.warn("setting failed -- \n'#{string_mapping._to_string[x]}'\n'#{new_val}'")
                         #console.log("mutate: '#{old_val}' --> '#{new_val}'")
@@ -391,13 +395,6 @@ class JupyterWrapper extends EventEmitter
             console.log("tried to set to '#{doc}' but got '#{res}'")
             console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
         return res
-
-    line_to_cell: (line) =>
-        return JSON.parse(line)
-
-    cell_to_line: (cell) =>
-        # TODO: remove images and ensure stored in blob store.
-        return stringify(cell)
 
     set_cell: (index, obj) =>
         dbg = @dbg("set_cell")
@@ -456,16 +453,109 @@ class JupyterWrapper extends EventEmitter
             new_cell.code_mirror.setOption('readOnly',true)
 
     # Convert the visible displayed notebook into a textual sync-friendly string
-    get: () =>
-        obj = @nb.toJSON()
-        doc = stringify(obj.metadata)  # line 0 is metadata
-        for cell in obj.cells
-            doc += '\n' + @cell_to_line(cell)
+    get: (to_db) =>
+        doc = stringify(@nb.metadata)   # line 0 is metadata
+        for cell in @nb.get_cells()
+            doc += '\n' + @cell_to_line(cell, to_db)
         return doc
 
     show: (width) =>
         @iframe?.attr('width', width).maxheight()
         setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
+
+    line_to_cell: (line) =>
+        obj = JSON.parse(line)
+        if obj.cell_type == 'code' and obj.outputs?
+            for out in obj.outputs
+                if out.data?
+                    for k, v of out.data
+                        if k.slice(0,4) == 'smc/'
+                            blob = @load_blob(v)
+                            if blob?
+                                out.data[k.slice(4)] = blob
+                                delete out.data[k]
+        return obj
+
+    cell_to_line: (cell, to_db) =>
+        obj = cell.toJSON()
+        if obj.cell_type == 'code' and obj.outputs?
+            obj.outputs = misc.deep_copy(obj.outputs)
+            for out in obj.outputs
+                if out.data?
+                    for k, v of out.data
+                        if k.slice(0,6) == 'image/' and v
+                            key = 'smc/' + k
+                            if not out.data[key]?
+                                out.data[key] = @save_blob(v, to_db)
+                                delete out.data[k]
+        return stringify(obj)
+
+    save_blob: (blob, to_db) =>
+        id = sha1(blob)
+        if @blobs[id]
+            return id
+        @blobs[id] = blob
+        if to_db
+            query =
+                blobs :
+                    id         : id
+                    blob       : blob
+                    project_id : @project_id
+            salvus_client.query
+                query : query
+                cb : (err, resp) =>
+                    if err
+                        console.warn("error saving: #{err}")
+        return id
+
+    load_blob: (id) =>
+        blob = @blobs[id]
+        if blob?
+            return blob
+        else
+            # Async fetch blob from the database.
+            @blobs_pending[id] = true
+            salvus_client.query
+                query :
+                    blobs :
+                        id   : id
+                        blob : null
+                cb: (err, resp) =>
+                    if @state == 'closed'
+                        return
+                    delete @blobs_pending[id]
+                    if err
+                        console.warn("unable to get blob with id #{id}")
+                    else
+                        blob = resp.query?.blobs?.blob
+                        if blob?
+                            @blobs[id] = blob
+                            @_update_cells_with_blob(id)
+                        else
+                            console.warn("no blob with id #{id}")
+            return # blob not yet known
+
+    _update_cells_with_blob: (id) =>
+        # Find any cells with the given id in them and re-render them with
+        # the blob properly substituted in.
+        index = 0
+        for cell in @nb.get_cells()
+            outputs = cell.output_area?.outputs
+            if outputs?
+                done = false
+                for out in outputs
+                    if done
+                        break
+                    if out.data?
+                        for k, v of out.data
+                            if v == id
+                                @mutate_cell(index, @line_to_cell(@cell_to_line(cell)))
+                                done = true
+                                break
+            index += 1
+        return
+
+
 
 exports.jupyter_notebook = (editor, filename, opts) ->
     return (new JupyterNotebook(editor, filename, opts)).element
@@ -540,13 +630,22 @@ class JupyterNotebook extends EventEmitter
                 @init_dom_events()
                 @init_buttons()
                 @state = 'ready'
+                if not @read_only and @syncstring.live() == ""
+                    # First time to initialize the syncstring, so any images in the jupyter
+                    # file definitely not saved to the blob store, so we pass true to save
+                    # them all.
+                    live = @dom.get(true)
+                else
+                    # Initialize local cache with all images in the document -- but don't send them to
+                    # the backend blob store again, hence we pass false.
+                    live = @dom.get(false)
                 if not @read_only
                     # make either the syncstring or the file on disk the canonical one,
                     # depending on the time stamp.
                     if @syncstring_timestamp() > @_ipynb_load_timestamp
                         @dom.set(@syncstring.live())
                     else
-                        @syncstring.live(@dom.get())
+                        @syncstring.live(live)
                         @syncstring.sync()
             @emit(@state)
             cb?(err)
@@ -581,7 +680,7 @@ class JupyterNotebook extends EventEmitter
                     # DOM gets extra info about @read_only status of file from jupyter notebook server.
                     @read_only = true
                 cb()
-        @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, done)
+        @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, done)
         @show()
 
     init_buttons: () =>
@@ -605,18 +704,19 @@ class JupyterNotebook extends EventEmitter
         @_last_dom = @dom.get()
         handle_dom_change = () =>
             dbg()
-            new_ver = @dom.get()
+            new_ver = @dom.get(true)  # true = save any newly created images to blob store.
             @_last_dom = new_ver
             @syncstring.live(new_ver)
             @syncstring.sync () =>
                 @update_save_state()
         #@dom.on('change', handle_dom_change)
         # test this:
-        # We debounce so that no matter what the live doc has to be still for 2s before
-        # we handle any changes to it.  Since handling changes can be expensive this avoids
+        # We debounce so that no matter what the live doc has to be still for a while before
+        # we handle any changes to it.  Since handling changes can be VERY expensive for Jupyter,
+        # do to our approach from the outside (not changing the Jupyter code itself), this avoids
         # slowing the user down.  Making the debounce value large is also useful for
         # testing edge cases of the sync algorithm.
-        @dom.on('change', underscore.debounce(handle_dom_change, 500))
+        @dom.on('change', underscore.debounce(handle_dom_change, 1500))
 
     # listen for changes to the syncstring
     init_syncstring_change: () =>
@@ -629,7 +729,7 @@ class JupyterNotebook extends EventEmitter
             if last_syncstring != live
                 # it really did change
                 dbg()
-                cur_dom = @dom.get()
+                cur_dom = @dom.get(true)
                 if @_last_dom? and @_last_dom != cur_dom
                     patch = dmp.patch_make(@_last_dom, cur_dom)
                     live = dmp.patch_apply(patch, live)[0]
