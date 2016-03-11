@@ -25,6 +25,7 @@
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
+{FileTypeSelector} = require('./project_new')
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -341,7 +342,7 @@ NoFiles = rclass
 
     displayName : 'ProjectFiles-NoFiles'
 
-    create_file : ->
+    create_file : (ext) ->
         @props.actions.create_file
             name         : @props.file_search
             ext          : @extension()
@@ -380,14 +381,27 @@ NoFiles = rclass
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
 
-    render : ->
-        <div style={textAlign:'center', color:'#888', marginTop:'20px'} >
-            <span style={fontSize:'20px'}>
-                No Files
-            </span>
-            <hr/>
-            {@render_new_button() if not @props.public_view}
+    render_file_type_selection : ->
+        <div>
+            <h4 style={color:"#666"}>Or select a file type</h4>
+            <FileTypeSelector create_file={@create_file} create_folder={@create_file} />
         </div>
+
+    render : ->
+        <Row style={textAlign:'left', color:'#888', marginTop:'20px'} >
+            <Col sm=2>
+            </Col>
+            <Col sm=8>
+                <span style={fontSize:'20px'}>
+                    No Files Found
+                </span>
+                <hr/>
+                {@render_new_button() if not @props.public_view}
+                {@render_file_type_selection() if @props.file_search?.length > 0}
+            </Col>
+            <Col sm=2>
+            </Col>
+        </Row>
 
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
