@@ -31,7 +31,14 @@
     "webpack-dev-server": "^1.12.0"
   },
   "devDependencies": {
-    "uglifyjs": "^2.4.10"
+    "assets-webpack-plugin": "^3.4.0",
+    "clean-webpack-plugin": "^0.1.8",
+    "copy-webpack-plugin": "^1.1.1",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "html-webpack-plugin": "^2.10.0",
+    "script-loader": "^0.6.1",
+    "uglifyjs": "^2.4.10",
+    "webpack-sha-hash": "^1.0.0"
   },
   "scripts": {
     "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",

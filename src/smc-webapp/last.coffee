@@ -51,3 +51,5 @@ if client._connected
     if client._signed_in
         client.emit("signed_in", client._sign_in_mesg)
 
+$ ->
+    jQuery(parent).trigger('initialize:frame')

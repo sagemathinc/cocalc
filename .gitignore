@@ -20,6 +20,8 @@ node_modules
 *.sass-cache
 
 src/static/webpack
+src/static/index.html
+src/assets.json
 
 src/static/policies/pricing.html
 

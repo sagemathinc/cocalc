@@ -2,16 +2,8 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
-$("#smc-startup-banner").remove()
-
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
-
-# Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
-require('react-widgets/lib/less/react-widgets.less')
-
-# SASS Style file
-require('./index.sass')
 
 # Load/initialize Redux-based react functionality
 require('./smc-react')
@@ -54,6 +46,8 @@ if true
 # WE will remove this when we have a proper router.
 require('./r_help').render_help_page()
 
+$ = require("jquery")
+$("#smc-startup-banner").remove()
+
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')
-
