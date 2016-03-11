@@ -69,7 +69,6 @@ class exports.HistoryEditor extends FileEditor
         switch @ext
             when 'ipynb'
                 @view_doc = jupyter.jupyter_notebook(@editor, @_open_file_path, opts).data("jupyter_notebook")
-                @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
             else
@@ -85,7 +84,9 @@ class exports.HistoryEditor extends FileEditor
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
         if @ext == 'ipynb'
-            @view_doc.once('ready', => cb())
+            @view_doc.once 'ready', =>
+                @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
+                cb()
             @view_doc.once('failed', => cb('failed'))
         else
             cb()

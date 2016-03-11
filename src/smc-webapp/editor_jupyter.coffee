@@ -27,6 +27,7 @@ I didn't know about React.js at the time).
 {EventEmitter}       = require('events')
 
 async                = require('async')
+stringify            = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
@@ -104,9 +105,10 @@ Case 1: DOM change
  ==> now the syncstring equals the DOM, and syncstring is valid
 
 Case 2: syncstring change
- - if DOM changed since last case 1 or 2, compute patch that transforms DOM from last state we read from
+ - if DOM changed since last case 1 or 2, compute patch that transforms
+   DOM from last state we read from
    DOM to current DOM state, and apply that patch to current syncstring.
- - modify syncstring to ensure that each line defines valid JSON.
+ - modify syncstring to ensure it defines a valid state of the editor.
  - set DOM equal to syncstring
  ==> now the syncstring equals the DOM, and the syncstring is valid
 
@@ -160,6 +162,7 @@ class JupyterWrapper extends EventEmitter
                         # It would be dramatically better if Jupyter had an event it would
                         # fire on all changes, but this is what we have.
                         @dirty_interval = setInterval(@check_dirty, 250)
+                        @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                     @monkey_patch_frame()
                     @disable_autosave()
                     @state = 'ready'
@@ -230,8 +233,9 @@ class JupyterWrapper extends EventEmitter
             return false
 
     monkey_patch_read_only: () =>
-        $(@frame.document).find("#menubar").hide()
+        $(@frame.document).find("#menubar").hide()   # instead do this if want to preserve kernel -- find('.nav').hide()
         $(@frame.document).find("#maintoolbar").hide()
+        $(@frame.document).find(".current_kernel_logo").hide()
 
     check_dirty: () =>
         if @nb.dirty and @nb.dirty != 'clean'
@@ -256,85 +260,72 @@ class JupyterWrapper extends EventEmitter
     get0: () =>
         return @nb.toJSON()
 
-
     # Transform the visible displayed notebook view into what is described by the string doc.
-    # Returns string that actually got set, in case the doc string is partly invalid.
+    # If not read_only: returns string that actually got set, in case the doc string is
+    # partly invalid and must be changed...
+    # If read_only: what happens on set is not guaranteed to be at all correct
+    # when document is read_only, e.g., then we do not change metadata, since Jupyter starts
+    # spawning kernels, and we can't stop that.
     set: (doc) =>
-        try
-            @_set_via_mutate(doc)
-            return doc  # if set_via_mutate works, it **should** work perfectly
-        catch err
-            console.warn("Setting Jupyter DOM via mutation failed; instead setting fromJSON")
-            @_set_fromJSON(doc)
-            return @get()
+        if @state != 'ready'
+            throw Error("state must be ready")
 
-    _set_fromJSON: (doc) =>
-        v = doc.split('\n')
-        obj = {cells:[]}
-        try
-            x = JSON.parse(v[0])
-            @_last_meta = x
-        catch err
-            console.warn("Error parsing notebook_name JSON '#{v[0]}' -- #{err}")
-            if @_last_meta?
-                x = @_last_meta
-            else
-                x = {}
-
-        if not x? or not x.kernelspec? or not x.language_info? or not x.codemirror_mode?
-            # horrible fallback
-            x = {"kernelspec":{"name":"python2","display_name":"Python 2 (SageMath)","language":"python"},"language_info":{"mimetype":"text/x-python","nbconvert_exporter":"python","name":"python","pygments_lexer":"ipython2","version":"2.7.10","file_extension":".py","codemirror_mode":{"version":2,"name":"ipython"}}}
-
-        obj.metadata = x
-
-        i = 0
-        for x in v.slice(1)
-            try
-                obj.cells.push(JSON.parse(x))
-            catch err
-                console.warn("Jupyter -- Error parsing JSON '#{x}' -- #{err}")
-                # Arbitrary strategy: take the ith cell from the DOM and use that. Often
-                # this will be right, and there is no way to know in general.  User has
-                # full history, so they can manually resolve anything.
-                try
-                    obj.cells.push(@nb.get_cell(i))
-                catch err
-                    # Maybe there is no ith cell...
-                    console.warn("Jupyter -- Fallback to ith cell didn't work")
-            i += 1
-        try
-            @set0(obj)
-        catch err
-            # This can happen, e.g., even if it is valid JSON, but missing key info;
-            # in this case there can be significant loss of the worksheet.  However, again
-            # it is all in the history.
-            console.warn("Jupyter -- set failed -- #{err}")
-
-    _set_via_mutate: (doc) =>
         dbg = @dbg("set")
         dbg()
         if typeof(doc) != 'string'
-            throw "BUG -- set: doc must be of type string"
+            throw Error("BUG -- set: doc must be of type string")
 
-        # what we want visible document to look like
+        # What we want visible document to look like
         goal = doc.split('\n')
 
-        # what the actual visible document looks like
+        # What the actual visible document looks like.  We assume that live is valid.
         live = @get().split('\n')
 
-        # first line is metadata... (TODO: ignore for now; will need to use to set Jupyter kernel, etc.)
+        # What we actually set document to (construct during this function)
+        next = ''
 
-        v0    = live.slice(1)
-        v1    = goal.slice(1)
+        if not @read_only
+            # Metadata -- only do if not read only
+            try
+                metadata = JSON.parse(goal[0])
+                last_metadata = JSON.parse(live[0])
+                if not underscore.isEqual(metadata?.kernelspec, last_metadata.kernelspec)
+                    # validate and make the change
+                    spec = metadata?.kernelspec
+                    if spec? and typeof(spec.name) == 'string' and typeof(spec.language) == 'string' and typeof(spec.display_name) == 'string'
+                        @nb.kernel_selector.set_kernel(spec)
+                        next += goal[0]
+                    else
+                        next += live[0]
+                else
+                    next += live[0]
+            catch err
+                # Make not change to kernel metadata, and instead set next to be what is live in DOM.
+                console.warn("Error parsing metadata line: '#{goal[0]}', #{err}")
+                metadata = live[0]
+                next += live[0]
+                # In this case we ignore metadata entirely; it'll get fixed when @get()
+                # returns current valid metadata below.
+
+
+        # Cells are all lines after first
+        v0             = live.slice(1)
+        v1             = goal.slice(1)
+
+        # Map cells to unique unicode characters
         string_mapping = new misc.StringCharMapping()
-        v0_string  = string_mapping.to_string(v0)
-        v1_string  = string_mapping.to_string(v1)
-        diff = dmp.diff_main(v0_string, v1_string)
+        v0_string      = string_mapping.to_string(v0)
+        v1_string      = string_mapping.to_string(v1)
 
+        #console.log("v0_string='#{v0_string}'")
+        #console.log("v1_string='#{v1_string}'")
+
+        # Compute how to transform current cell list into new one via sequence of
+        # operations involving inserts and deletes (a diff).
+        diff           = dmp.diff_main(v0_string, v1_string)
+
+        #dbg(["diff", diff])
         index = 0
-        i = 0
-
-        @dbg("diff", diff)
         i = 0
         while i < diff.length
             chunk = diff[i]
@@ -351,9 +342,19 @@ class JupyterWrapper extends EventEmitter
                     # due to the overhead of creating codemirror instances (presumably).  Also, we can
                     # maintain the user cursors and local-to-that-cell undo history.
                     for x in diff[i+1][1]
-                        obj = @line_to_cell(string_mapping._to_string[x])
+                        obj = undefined
+                        try
+                            obj = JSON.parse(string_mapping._to_string[x])
+                        catch err
+                            console.warn("failed to parse '#{string_mapping._to_string[x]}'. #{err}")
+                        #old_val = stringify(@nb.get_cell(index).toJSON())  # for debugging only
                         if obj?
                             @mutate_cell(index, obj)
+                        new_val = stringify(@nb.get_cell(index).toJSON())
+                        if new_val != string_mapping._to_string[x]
+                            console.warn("setting failed -- \n'#{string_mapping._to_string[x]}'\n'#{new_val}'")
+                        #console.log("mutate: '#{old_val}' --> '#{new_val}'")
+                        next  += '\n' + new_val
                         index += 1
                     i += 1 # skip over next chunk
                 else
@@ -363,20 +364,40 @@ class JupyterWrapper extends EventEmitter
             else if op == 1
                 # Create new cells
                 for x in val
-                    obj = @line_to_cell(string_mapping._to_string[x])
+                    obj = undefined
+                    try
+                        obj = @line_to_cell(string_mapping._to_string[x])
+                    catch err
+                        console.warn("failed to parse '#{string_mapping._to_string[x]}'. #{err}")
                     if obj?
                         @insert_cell(index, obj)
-                    index += 1
+                        new_val = stringify(@nb.get_cell(index).toJSON())
+                        if new_val != string_mapping._to_string[x]
+                            console.warn("setting failed -- \n'#{string_mapping._to_string[x]}'\n'#{new_val}'")
+                        next  += '\n' + new_val
+                        #console.log("insert: '#{new_val}'")
+                        index += 1
             else
                 console.log("BUG -- invalid diff!", diff)
             i += 1
 
+        if @read_only
+            return
+        # For now, we just re-get to guarantee that the result is definitely what is in the DOM.
+        # This is not efficient; to would be better to algorithmically determine this based on
+        # what happens above.  However, works for sure for now is better than "works in theory".
+        res = @get()
+        if doc != res
+            console.log("tried to set to '#{doc}' but got '#{res}'")
+            console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
+        return res
+
     line_to_cell: (line) =>
-        cell = JSON.parse(line)
+        return JSON.parse(line)
 
     cell_to_line: (cell) =>
         # TODO: remove images and ensure stored in blob store.
-        return JSON.stringify(cell)
+        return stringify(cell)
 
     set_cell: (index, obj) =>
         dbg = @dbg("set_cell")
@@ -398,37 +419,46 @@ class JupyterWrapper extends EventEmitter
         dbg(index, obj)
         cell = @nb.get_cell(index)
         obj0 = cell.toJSON()
-        if obj0.source != obj.source
-            # only source differs
+        if cell.cell_type != obj.cell_type
+            switch obj.cell_type
+                when 'markdown'
+                    @nb.to_markdown(index)
+                when 'code'
+                    @nb.to_code(index)
+                when 'raw'
+                    @nb.to_raw(index)
+                when 'heading'
+                    @nb.to_heading(index)
+        if cell.code_mirror? and obj0.source != obj.source
+            # source differs
             cm_setValueNoJump(cell.code_mirror, obj.source)
             cell.auto_highlight()
         # TODO: when code running the asterisk doesn't sync out
-        if obj0.execution_count != obj.execution_count
+        if cell.set_input_prompt? and obj0.execution_count != obj.execution_count
             cell.set_input_prompt(obj.execution_count)
-        if not underscore.isEqual(obj0.outputs, obj.outputs) or not underscore.isEqual(obj0.metadata, obj.metadata)
+        if cell.output_area? and (not underscore.isEqual(obj0.outputs, obj.outputs) or not underscore.isEqual(obj0.metadata, obj.metadata))
             cell.output_area.clear_output(false, true)
             cell.output_area.trusted = !!obj.metadata.trusted
-            cell.output_area.fromJSON(obj.outputs, obj.metadata)
+            cell.output_area.fromJSON(obj.outputs ? [], obj.metadata)
         if cell.cell_type == 'markdown'
             cell.rendered = false
             cell.render()
 
     delete_cell: (index) =>
         @dbg("delete_cell")(index)
-        @nb.delete_cell(index)
+        @nb._unsafe_delete_cell(index)
 
     insert_cell: (index, obj) =>
         @dbg("insert_cell")(index, obj)
         new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
-        new_cell.fromJSON(obj)
+        @mutate_cell(index, obj)
         if @read_only
             new_cell.code_mirror.setOption('readOnly',true)
 
     # Convert the visible displayed notebook into a textual sync-friendly string
     get: () =>
         obj = @nb.toJSON()
-        @_last_obj = obj
-        doc = JSON.stringify(obj.metadata)  # line 0 is metadata
+        doc = stringify(obj.metadata)  # line 0 is metadata
         for cell in obj.cells
             doc += '\n' + @cell_to_line(cell)
         return doc
@@ -479,6 +509,9 @@ class JupyterNotebook extends EventEmitter
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
 
+    destroy: () =>
+        @close()
+
     close: () =>
         if @state == 'closed'
             return
@@ -496,8 +529,9 @@ class JupyterNotebook extends EventEmitter
 
         @state = 'loading'
         connect = (cb) =>
-        async.parallel [@init_syncstring, @init_dom], (err) =>
+        async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
+            @element.find(".smc-jupyter-notebook-buttons").show()
             if err
                 @state = 'failed'
             else
@@ -506,6 +540,14 @@ class JupyterNotebook extends EventEmitter
                 @init_dom_events()
                 @init_buttons()
                 @state = 'ready'
+                if not @read_only
+                    # make either the syncstring or the file on disk the canonical one,
+                    # depending on the time stamp.
+                    if @syncstring_timestamp() > @_ipynb_load_timestamp
+                        @dom.set(@syncstring.live())
+                    else
+                        @syncstring.live(@dom.get())
+                        @syncstring.sync()
             @emit(@state)
             cb?(err)
 
@@ -597,32 +639,35 @@ class JupyterNotebook extends EventEmitter
                 if cur_dom != live
                     @_last_dom = result = @dom.set(live)
                     if result != live
-                        # Something went wrong during set, e.g., JSON parsing issue.
-                        # The following sets the syncstring to be definitely valid
-                        # and equal to what is in the DOM.
-                        last_syncstring = live = result
-                        @syncstring.live(result)
-                        @syncstring.sync () =>
-                            @update_save_state()
-                # Now DOM equals syncstring.
+                        console.warn("Jupyter sync: inconsistency during sync")
+                        # If the user then makes a change to this notebook, the fixed
+                        # version of the syncstring will propogate automatically.  If
+                        # they don't, it stays broken.  Having this notebook *fix*
+                        # automatically DOES NOT WORK... because if there are multiple
+                        # notebooks open at once, they will all fix at once, which
+                        # breaks things (due to patch merge)!  Ad infinitum!!
 
         @syncstring.on('sync', handle_syncstring_change)
         @syncstring._syncstring.on('metadata-change', @update_save_state)
 
     ipynb_timestamp: (cb) =>
         dbg = @dbg("ipynb_timestamp")
-        dbg("get when .ipynb file last modified")
+        dbg("get when .ipynb file last *modified*")
         get_timestamp
             project_id : @project_id
             path       : @filename
-            cb         : cb
+            cb         : (err, timestamp) =>
+                if not err
+                    @_ipynb_load_timestamp = timestamp
+                else
+                    @_ipynb_load_timestamp = 0
+                cb()
 
     syncstring_timestamp: () =>
         dbg = @dbg("syncstring_timestamp")
         dbg("get when .ipynb file last modified")
         if @state != 'ready'
-            throw "BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')"
-            return
+            throw Error("BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')")
         return @syncstring._syncstring.last_changed() - 0
 
     show: (geometry={}) =>
@@ -664,7 +709,7 @@ class JupyterNotebook extends EventEmitter
             foreground : true
 
     update_save_state: () =>
-        if not @save_button?
+        if not @save_button? or @state != 'ready'
             return
         if not @syncstring._syncstring.has_unsaved_changes()
             @save_button.addClass('disabled')
@@ -752,7 +797,7 @@ get_timestamp = (opts) ->
         project_id : opts.project_id
         command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
         args       : ['--printf', '%Z ', opts.path]
-        timeout    : 20
+        timeout    : 15
         err_on_exit: false
         cb         : (err, output) =>
             if err
