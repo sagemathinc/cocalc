@@ -112,6 +112,9 @@ def time_past(hours=24, days=0):
     now = datetime.utcnow().replace(tzinfo=utc)
     return now - timedelta(days=days, hours=hours)
 
+def days_ago(days=0):
+    return time_past(24 * days)
+
 # Functions Querying RethinkDB Directly ###
 
 
@@ -185,19 +188,23 @@ def export_accounts(outfn):
                 # data[email] = account
 
 
-def active_courses(days=30):
+def active_courses(days=7):
     # teacher's course IDs of all active student course projects
     teacher_course_ids = projects.has_fields('course')\
-        .filter(r.row["last_edited"] > time_past(days * 24))\
+        .filter(r.row["last_edited"] > days_ago(days))\
             .pluck('course')["course"]["project_id"].distinct().run()
 
     courses = defaultdict(list)
     for tc in projects.get_all(*teacher_course_ids)\
-        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", {"host":"host"}).run():
-        t = 'member' if tc["host"]["host"] >= 'compute4-us' else 'free'
+        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", \
+               "settings", {"host":"host"}).run():
+        if "settings" in tc and tc["settings"].get('member_host', 0) >= 1:
+            proj_type = 'member'
+        else:
+            proj_type = 'free'
         # some courses do not have a created timestamp :-(
         tc["created"] = tc.get("created", datetime.fromtimestamp(0).replace(tzinfo=utc))
-        courses[t].append(tc)
+        courses[proj_type].append(tc)
 
     # e is a (account_id, account_data) pair
     group_order = {"owner": 0, "collaborator": 1}
