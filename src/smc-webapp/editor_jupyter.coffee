@@ -54,11 +54,12 @@ Attempt a more generic well defined approach to sync
     - set_cursors
     - get
     - event:
-       - 'change'
        - 'ready'
-       - 'cursor'
        - 'error'
+       - 'change'
+       - 'cursor' - cursor info
        - 'info'   - user requests info (clicking on jupyter logo)
+       - 'save'   - user requests save
 
 States:
 
@@ -231,6 +232,16 @@ class JupyterWrapper extends EventEmitter
 
         if not require('./feature').IS_MOBILE
             @frame.$("#site").css("padding-left", "20px")
+
+        if not @read_only
+            $(@iframe[0].contentWindow.document).keydown (evt) =>
+                if evt.ctrlKey or evt.metaKey or evt.altKey
+                    if evt.keyCode == 83 # s
+                        @emit('save')
+                        evt.preventDefault()
+                        evt.stopPropagation()
+                        return false
+
 
     monkey_patch_logo: () =>
         @frame.$("#ipython_notebook").find("a").click () =>
@@ -537,7 +548,7 @@ class JupyterWrapper extends EventEmitter
 
     show: (width) =>
         @iframe?.attr('width', width).maxheight()
-        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
+        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more in the next render loop.
 
     line_to_cell: (line) =>
         obj = JSON.parse(line)
@@ -758,16 +769,27 @@ class JupyterNotebook extends EventEmitter
                 if @dom.read_only
                     # DOM gets extra info about @read_only status of file from jupyter notebook server.
                     @read_only = true
+                else
+                    # not read only, so make "command/control+s" save.
+                    #@dom.frame.keydown (e) =>
+                    #    console.log("frame keydown ", e)
                 cb()
         @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, done)
 
     init_buttons: () =>
+        # info button
         @element.find("a[href=#info]").click(@info)
+
+        # time travel/history
         @element.find("a[href=#history]").click(@show_history_viewer)
+
+        # save button
         if @read_only
             @element.find("a[href=#save]").addClass('disabled')
         else
             @save_button = @element.find("a[href=#save]").click(@save)
+
+        # publish button
         @publish_button = @element.find("a[href=#publish]").click(@publish_ui)
 
     init_dom_events: () =>
@@ -776,6 +798,7 @@ class JupyterNotebook extends EventEmitter
             @dom.on 'cursor', (x) =>
                 @syncstring._syncstring.set_cursor_locs(x.locs, x.caused)
             @syncstring._syncstring.on('cursor_activity', @render_cursor)
+            @dom.on('save', @save)
 
     render_cursor: (account_id) =>
         if account_id == salvus_client.account_id
