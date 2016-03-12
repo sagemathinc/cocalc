@@ -1329,8 +1329,12 @@ ProjectFilesSearch = rclass
 
     render_warning : ->
         if @props.file_search?.length > 0
+            if @props.file_search == '/'
+                text = "Only showing folders"
+            else
+                text = "Showing only files matching #{@props.file_search}"
             <Alert style={wordWrap:'break-word'} bsStyle='info'>
-                Showing only files matching "{@props.file_search}"
+                {text}
             </Alert>
 
     render_create_file_warning : ->
