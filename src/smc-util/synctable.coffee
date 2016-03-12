@@ -164,11 +164,12 @@ class SyncTable extends EventEmitter
                 @_client.once('signed_in', connect)
                 @_client_listeners.signed_in = connect
 
-        disconnected = =>
-            dbg("disconnected -- #{misc.to_json(@_query)}")
-            @_state = 'disconnected'
-            @_client.once 'connected', connect
-            @_client_listeners.connected = connect
+        disconnected = () =>
+            if @_state != 'disconnected'
+                dbg("disconnected -- #{misc.to_json(@_query)}")
+                @_state = 'disconnected'
+                @_client.once 'connected', connect
+                @_client_listeners.connected = connect
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
@@ -462,9 +463,19 @@ class SyncTable extends EventEmitter
                         conflict = true
                 else
                     # This is a value defined locally that does not exist
-                    # on the remote serve.
-                    @_value_local = @_value_local.delete(key)
-                    changed_keys.push(key)
+                    # on the remote serve.   It could be that the value
+                    # was deleted when we weren't connected, in which case
+                    # we should delete the value we have locally.  On the
+                    # other hand, maybe the local value was newly set
+                    # while we weren't connected, so we know it but the
+                    # backend server doesn't, which case we should keep it,
+                    # and set conflict=true, so it gets saved to the backend.
+                    # Given that in sync we always want to keep, and basically
+                    # all of the synctables in SMC involve no deleting (just adding to or
+                    # changing fields), we MAKE THE CHOICE that we always keep the
+                    # local value.
+                    # This would be deleting local:  @_value_local = @_value_local.delete(key); changed_keys.push(key)
+                    conflict = true
 
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
