@@ -489,7 +489,6 @@ class SyncDoc extends EventEmitter
                     id     : null
                     locs   : null
                     time   : null
-                    caused : null
             @_cursors = @_client.sync_table(query)
             @_cursors.once 'change', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
@@ -508,12 +507,11 @@ class SyncDoc extends EventEmitter
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
                     @emit('cursor_activity', account_id)
 
-    set_cursor_locs: (locs, caused=true) =>
+    set_cursor_locs: (locs) =>
         x =
             id   : [@_string_id, @_user_id]
             locs : locs
             time : @_client.server_time()
-            caused : caused   # true if move was caused by user; false if caused by some remote change
         @_cursors?.set(x,'none')
         return
 
@@ -529,7 +527,6 @@ class SyncDoc extends EventEmitter
             #dbg("string closed -- can't save")
             cb?("string closed")
             return
-        @emit("before-save")
         value = @_doc.get()
         if not value?
             #dbg("string not initialized -- can't save")
@@ -886,11 +883,6 @@ class SyncDoc extends EventEmitter
             return
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)
-
-        # We give listeners a chance to update this syncstring *before* the upstream changes are merged in.
-        # This is used by Jupyter since the true live version is what's in the browser iframe, not what
-        # is in @_doc.  TODO: The *right way* to do things would be to make a custom Jupyter @_doc.
-        @emit("before-change")
 
         # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
         @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )

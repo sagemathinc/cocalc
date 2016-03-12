@@ -461,7 +461,8 @@ class SyncTable extends EventEmitter
                     if @_handle_new_val(x[key], changed_keys)
                         conflict = true
                 else
-                    # delete value we have locally
+                    # This is a value defined locally that does not exist
+                    # on the remote serve.
                     @_value_local = @_value_local.delete(key)
                     changed_keys.push(key)
 

@@ -433,17 +433,16 @@ class JupyterWrapper extends EventEmitter
             cell._smc_init_cell_cursor = index
             return
         cell.code_mirror?.on 'cursorActivity', (cm) =>
-            x =
-                locs   : ({x:c.anchor.ch, y:c.anchor.line, i:cell._smc_init_cell_cursor} for c in cm.listSelections())
-                caused : not cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
-            @emit('cursor', x)
+            if cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
+                return
+            @emit('cursor', ({x:c.anchor.ch, y:c.anchor.line, i:cell._smc_init_cell_cursor} for c in cm.listSelections()))
         cell._smc_init_cell_cursor = index
 
 
     # Move the cursor with given color to the given pos.
-    draw_other_cursors: (account_id, locs, caused) =>
+    draw_other_cursors: (account_id, locs) =>
         # ensure @_cursors is defined; this is map from key to ...?
-        #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)}, #{caused})")
+        #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
         @_users   ?= smc.redux.getStore('users')  # todo -- obviously not like this...
         x = @_cursors[account_id]
@@ -457,9 +456,6 @@ class JupyterWrapper extends EventEmitter
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
             color = @_users.get_color(account_id)
             if not data?
-                if not caused
-                    # don't create non user-caused cursors
-                    continue
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})
                 cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute')
@@ -477,12 +473,11 @@ class JupyterWrapper extends EventEmitter
             #console.log("put cursor into cell #{index} at pos #{misc.to_json(pos)}", data.cursor)
             @nb.get_cell(index)?.code_mirror?.addWidget(pos, data.cursor[0], false)
 
-            if caused  # if not user caused will have been fading already from when created
-                # Update cursor fade-out
-                # LABEL: first fade the label out over 6s
-                data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
-                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-                data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+            # Update cursor fade-out
+            # LABEL: first fade the label out over 6s
+            data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
+            data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
@@ -653,7 +648,6 @@ class JupyterNotebook extends EventEmitter
             read_only : false
             mode      : undefined   # ignored
             cb        : undefined   # optional
-        window.s = @
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
@@ -795,8 +789,8 @@ class JupyterNotebook extends EventEmitter
     init_dom_events: () =>
         @dom.on('info', @info)
         if not @read_only
-            @dom.on 'cursor', (x) =>
-                @syncstring._syncstring.set_cursor_locs(x.locs, x.caused)
+            @dom.on 'cursor', (locs) =>
+                @syncstring._syncstring.set_cursor_locs(locs)
             @syncstring._syncstring.on('cursor_activity', @render_cursor)
             @dom.on('save', @save)
 
@@ -808,7 +802,7 @@ class JupyterNotebook extends EventEmitter
         if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
-                @dom.draw_other_cursors(account_id, locs, x.get('caused'))
+                @dom.draw_other_cursors(account_id, locs)
 
     # listen for and handle changes to the live document
     init_dom_change: () =>

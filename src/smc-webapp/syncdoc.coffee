@@ -666,10 +666,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 if cm.name != @focused_codemirror().name
                     # ignore non-focused editor
                     return
-                caused = not cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
+                if cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
+                    return
                 # broadcast cursor positions
                 locs = ({x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
-                @_syncstring.set_cursor_locs(locs, caused)
+                @_syncstring.set_cursor_locs(locs)
                 # save primary cursor position to local storage for next time
                 #console.log("setting cursor#{cm.name} to #{misc.to_json(cm.getCursor())}")
                 @editor.local_storage("cursor#{cm.name}", cm.getCursor())
@@ -688,10 +689,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             locs = x.get('locs')?.toJS()
             if locs?
                 #console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
-                @draw_other_cursors(account_id, locs, x.get('caused'))
+                @draw_other_cursors(account_id, locs)
 
     # Move the cursor with given color to the given pos.
-    draw_other_cursors: (account_id, locs, caused) =>
+    draw_other_cursors: (account_id, locs) =>
         # ensure @_cursors is defined; this is map from key to ...?
         #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
@@ -705,9 +706,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
             color = @_users.get_color(account_id)
             if not data?
-                if not caused
-                    # don't create non user-caused cursors
-                    continue
                 data = x[i] = {cursor: templates.find(".smc-editor-codemirror-cursor").clone().show()}
             if name != data.name
                 data.cursor.find(".smc-editor-codemirror-cursor-label").text(name)
@@ -720,12 +718,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
             # Place cursor in the editor in the right spot
             @codemirror.addWidget(pos, data.cursor[0], false)
 
-            if caused  # if not user caused will have been fading already from when created
-                # Update cursor fade-out
-                # LABEL: first fade the label out over 6s
-                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
-                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+            # Update cursor fade-out
+            # LABEL: first fade the label out over 6s
+            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
+            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)

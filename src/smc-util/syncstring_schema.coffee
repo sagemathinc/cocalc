@@ -144,7 +144,6 @@ schema.cursors =
         id   : true    # [doc_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
         time : true    # time when these cursor positions were sent out
-        caused : true  # whether or not cursor move caused by user editing
     user_query:
         get :
             all :  # if input id in query is doc_id, this gets all cursors of *all users* with given doc_id
