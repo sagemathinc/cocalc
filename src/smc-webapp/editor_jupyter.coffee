@@ -165,6 +165,7 @@ class JupyterWrapper extends EventEmitter
                         # fire on all changes, but this is what we have.
                         @dirty_interval = setInterval(@check_dirty, 250)
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
+                        @init_cursor()
                     @monkey_patch_frame()
                     @disable_autosave()
                     @state = 'ready'
@@ -274,8 +275,8 @@ class JupyterWrapper extends EventEmitter
         if @state != 'ready'
             throw Error("state must be ready")
 
-        dbg = @dbg("set")
-        dbg()
+        #dbg = @dbg("set")
+        #dbg()
         if typeof(doc) != 'string'
             throw Error("BUG -- set: doc must be of type string")
 
@@ -382,7 +383,7 @@ class JupyterWrapper extends EventEmitter
                         #console.log("insert: '#{new_val}'")
                         index += 1
             else
-                console.log("BUG -- invalid diff!", diff)
+                console.warn("BUG -- invalid diff!", diff)
             i += 1
 
         if @read_only
@@ -391,6 +392,8 @@ class JupyterWrapper extends EventEmitter
         # This is not efficient; to would be better to algorithmically determine this based on
         # what happens above.  However, works for sure for now is better than "works in theory".
         res = @get()
+        # Check below is commented out, since the result may be different since we now
+        # factor blobs out.  Write a string with blobs, get something back without.
         if doc != res
             console.log("tried to set to '#{doc}' but got '#{res}'")
             console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
@@ -410,6 +413,78 @@ class JupyterWrapper extends EventEmitter
         new_cell.code_mirror = cm
         @nb.delete_cell(index + 1)
         # TODO: readonly
+
+    init_cell_cursor: (cell, index) =>
+        if @read_only or cell._smc_init_cell_cursor == index
+            # cursor activity already initialized (or read_only so don't care)
+            return
+        if cell._smc_init_cell_cursor? and cell._smc_init_cell_cursor != index
+            cell._smc_init_cell_cursor = index
+            return
+        cell.code_mirror?.on 'cursorActivity', (cm) =>
+            x =
+                locs   : ({x:c.anchor.ch, y:c.anchor.line, i:cell._smc_init_cell_cursor} for c in cm.listSelections())
+                caused : not cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
+            @emit('cursor', x)
+        cell._smc_init_cell_cursor = index
+
+
+    # Move the cursor with given color to the given pos.
+    draw_other_cursors: (account_id, locs, caused) =>
+        # ensure @_cursors is defined; this is map from key to ...?
+        #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)}, #{caused})")
+        @_cursors ?= {}
+        @_users   ?= smc.redux.getStore('users')  # todo -- obviously not like this...
+        x = @_cursors[account_id]
+        if not x?
+            x = @_cursors[account_id] = []
+        # First draw/update all current cursors
+        for [i, loc] in misc.enumerate(locs)
+            pos   = {line:loc.y, ch:loc.x}
+            index = loc.i # cell index
+            data  = x[i]
+            name  = misc.trunc(@_users.get_first_name(account_id), 10)
+            color = @_users.get_color(account_id)
+            if not data?
+                if not caused
+                    # don't create non user-caused cursors
+                    continue
+                cursor = templates.find(".smc-jupyter-cursor").clone().show()
+                cursor.css({'z-index':5})
+                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute')
+                cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', left:'.9ex', position:'absolute')
+                data = x[i] = {cursor: cursor}
+            if name != data.name
+                data.cursor.find(".smc-jupyter-cursor-label").text(name)
+                data.name = name
+            if color != data.color
+                data.cursor.find(".smc-jupyter-cursor-inside").css('border-left': "1px solid #{color}")
+                data.cursor.find(".smc-jupyter-cursor-label" ).css(background: color)
+                data.color = color
+
+            # Place cursor in the editor in the right spot
+            #console.log("put cursor into cell #{index} at pos #{misc.to_json(pos)}", data.cursor)
+            @nb.get_cell(index)?.code_mirror?.addWidget(pos, data.cursor[0], false)
+
+            if caused  # if not user caused will have been fading already from when created
+                # Update cursor fade-out
+                # LABEL: first fade the label out over 6s
+                data.cursor.find(".smc-jupyter-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
+                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
+                data.cursor.find(".smc-jupyter-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+
+        if x.length > locs.length
+            # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
+            for i in [locs.length...x.length]
+                #console.log('removing cursor ', i)
+                x[i].cursor.remove()
+            @_cursors[account_id] = x.slice(0, locs.length)
+
+    init_cursor: () =>
+        index = 0
+        for cell in @nb.get_cells()
+            @init_cell_cursor(cell, index)
+            index += 1
 
     mutate_cell: (index, obj) =>
         dbg = @dbg("mutate_cell")
@@ -440,6 +515,7 @@ class JupyterWrapper extends EventEmitter
         if cell.cell_type == 'markdown'
             cell.rendered = false
             cell.render()
+        @init_cell_cursor(cell, index)
 
     delete_cell: (index) =>
         @dbg("delete_cell")(index)
@@ -565,11 +641,14 @@ class JupyterNotebook extends EventEmitter
         opts = @opts = defaults opts,
             read_only : false
             mode      : undefined   # ignored
+            cb        : undefined   # optional
         window.s = @
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
         @project_id = @editor.project_id
+
+        @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         # Jupyter is proxied via the following canonical URL:
         @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
@@ -594,7 +673,7 @@ class JupyterNotebook extends EventEmitter
 
         # Load the notebook and transition state to either 'ready' or 'failed'
         @state = 'init'
-        @load()
+        @load(opts.cb)
 
     dbg: (f) =>
         return (m) -> salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
@@ -614,11 +693,10 @@ class JupyterNotebook extends EventEmitter
 
     load: (cb) =>
         if @state != 'init' and @state != 'failed'
-            cb("load BUG: @state must be init or failed")
+            cb?("load BUG: @state must be init or failed")
             return
 
         @state = 'loading'
-        connect = (cb) =>
         async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
             @element.find(".smc-jupyter-notebook-buttons").show()
@@ -648,6 +726,7 @@ class JupyterNotebook extends EventEmitter
                         @syncstring.live(live)
                         @syncstring.sync()
             @emit(@state)
+            @show()
             cb?(err)
 
     init_syncstring: (cb) =>
@@ -681,7 +760,6 @@ class JupyterNotebook extends EventEmitter
                     @read_only = true
                 cb()
         @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, done)
-        @show()
 
     init_buttons: () =>
         @element.find("a[href=#info]").click(@info)
@@ -694,6 +772,20 @@ class JupyterNotebook extends EventEmitter
 
     init_dom_events: () =>
         @dom.on('info', @info)
+        if not @read_only
+            @dom.on 'cursor', (x) =>
+                @syncstring._syncstring.set_cursor_locs(x.locs, x.caused)
+            @syncstring._syncstring.on('cursor_activity', @render_cursor)
+
+    render_cursor: (account_id) =>
+        if account_id == salvus_client.account_id
+            return
+        x = @syncstring._syncstring.get_cursors()?.get(account_id)
+        # important: must use server time to compare, not local time.
+        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+            locs = x.get('locs')?.toJS()
+            if locs?
+                @dom.draw_other_cursors(account_id, locs, x.get('caused'))
 
     # listen for and handle changes to the live document
     init_dom_change: () =>
@@ -909,7 +1001,9 @@ get_timestamp = (opts) ->
                 opts.cb(undefined, parseInt(output.stdout)*1000)
 
 cm_setValueNoJump = (cm, value) ->
+    cm._setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
     cm.diffApply(dmp.diff_main(cm.getValue(), value))
+    delete cm._setValueNoJump
 
 ###
 nbviewer -- used for publishing Jupyter notebooks

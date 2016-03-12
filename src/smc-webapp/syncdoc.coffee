@@ -42,11 +42,6 @@ account = require('./account')
 
 {redux} = require('./smc-react')
 
-# Return true if there are currently unsynchronized changes, e.g., due to the network
-# connection being down, or SageMathCloud not working, or a bug.
-exports.unsynced_docs = () ->
-    return $(".salvus-editor-codemirror-not-synced:visible").length > 0
-
 {EventEmitter} = require('events')
 
 class AbstractSynchronizedDoc extends EventEmitter

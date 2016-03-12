@@ -446,6 +446,7 @@ $.fn.extend
 
 exports.cm_define_diffApply_extension = (cm) ->
     cm.defineExtension 'diffApply', (diff) ->
+        editor = @
         next_pos = (val, pos) ->
             # This functions answers the question:
             # If you were to insert the string val at the CodeMirror position pos
@@ -470,11 +471,11 @@ exports.cm_define_diffApply_extension = (cm) ->
                     #console.log("skipping to ", pos1)
                 when -1 # delete
                     # Delete until where val ends; don't change pos pointer.
-                    @replaceRange("", pos, pos1)
+                    editor.replaceRange("", pos, pos1)
                     #console.log("deleting from ", pos, " to ", pos1)
                 when +1 # insert
                     # Insert the new text right here.
-                    @replaceRange(val, pos)
+                    editor.replaceRange(val, pos)
                     #console.log("inserted new text at ", pos)
                     # Move our pointer to just beyond the text we just inserted.
                     pos = pos1
@@ -656,7 +657,7 @@ exports.define_codemirror_extensions = () ->
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value) ->
-        @_setValueNoJump = true
+        @_setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
         @diffApply(dmp.diff_main(@getValue(), value))
         delete @_setValueNoJump
 
