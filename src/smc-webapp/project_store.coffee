@@ -783,8 +783,11 @@ class ProjectStore extends Store
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
-            if t == '/'
+            console.log(t[t.length - 1])
+            if t[t.length - 1] == '/'
                 if not is_dir
+                    return false
+                else if s.indexOf(t.slice(0, -1)) == -1
                     return false
             else if s.indexOf(t) == -1
                 return false
