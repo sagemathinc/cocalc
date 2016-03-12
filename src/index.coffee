@@ -21,6 +21,6 @@ require('./smc-webapp/index.sass')
 require('./smc-webapp/client_browser.coffee')
 require('./smc-webapp/landing')
 
-exports.smc_icon_path = smc_icon_path = require('./static/salvus-icon.svg')
-console.log("smc_icon", smc_icon_path)
+smc_icon_url = require('./static/salvus-icon.svg')
+
 

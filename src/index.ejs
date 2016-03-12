@@ -185,9 +185,9 @@
         <!-- <script type="text/javascript" src="static/bootstrap-switch/bootstrap-switch.min.js"></script> -->
 
         <!-- Load mathjax (can't be done via webpack) -->
-        <!--
         <script type="text/x-mathjax-config">
         MathJax.Hub.Config({
+           delayStartupUntil: "configured",
            skipStartupTypeset: true,
            extensions: ["tex2jax.js","asciimath2jax.js"],
            jax: ["input/TeX","input/AsciiMath", "output/SVG"],
@@ -224,8 +224,8 @@
            SVG: { linebreaks: { automatic: true } },
            showProcessingMessages: false
         });
-        </script> -->
-        <!-- <script type="text/javascript" src="static/mathjax/MathJax.js"></script> -->
+        </script>
+        <script type="text/javascript" src="static/mathjax/MathJax.js"></script>
 
         <!-- Bootstrap Colorpicker Plugin -->
         <!-- <script type="text/javascript" src="static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script> -->

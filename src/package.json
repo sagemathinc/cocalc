@@ -47,7 +47,7 @@
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-watch-map": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
-    "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack -p --progress --colors",
+    "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack --progress --colors",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/webpack",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",

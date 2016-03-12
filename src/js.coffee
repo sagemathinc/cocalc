@@ -61,7 +61,9 @@ require('script!./static/jsbeautify/beautify-html.min.js')
 require('script!./static/remarked/reMarked.min.js')
 
 # MathJax at the end
+### (nice idea, but SMC code has a hard depedency on MathJax)
 window.MathJax =
+   delayStartupUntil: "configured"
    skipStartupTypeset: true
    extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
    jax: ["input/TeX","input/AsciiMath", "output/SVG"]
@@ -101,4 +103,4 @@ window.MathJax =
    showProcessingMessages: false
 
 # require('script!./static/mathjax/MathJax.js') # doesn't work
-$('<script type="text/javascript" src="static/mathjax/MathJax.js"></script>').appendTo(document.body)
+###

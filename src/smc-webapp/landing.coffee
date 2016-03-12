@@ -46,8 +46,8 @@ if true
 # WE will remove this when we have a proper router.
 require('./r_help').render_help_page()
 
-$ = require("jquery")
-$("#smc-startup-banner").remove()
-
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')
+
+$ = require("jquery")
+$("#smc-startup-banner").remove()

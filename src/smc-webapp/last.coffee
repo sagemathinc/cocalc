@@ -29,6 +29,7 @@
 {top_navbar} = require('./top_navbar')
 top_navbar.hide_page_button("projects")
 {salvus_client} = require('./salvus_client')
+$ = require("jquery")
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
@@ -52,4 +53,5 @@ if client._connected
         client.emit("signed_in", client._sign_in_mesg)
 
 $ ->
-    jQuery(parent).trigger('initialize:frame')
+    $(parent).trigger('initialize:frame')
+    MathJax.Hub.Configured()
