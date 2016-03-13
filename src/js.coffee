@@ -1,3 +1,5 @@
+window.smcLoadStatus("Loading JavaScript Libraries")
+
 # this loads the "traditional" js files via webpack.config.coffee
 # it doesn't minify them (so you have to!), etc.
 # evals them right into the global context

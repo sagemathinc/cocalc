@@ -19,11 +19,12 @@ data/
 node_modules
 *.sass-cache
 
-src/static/webpack
+src/webpack/
 src/static/index.html
 src/assets.json
 
 src/static/policies/pricing.html
+src/static/mathjax-*
 
 src/page/temp
 

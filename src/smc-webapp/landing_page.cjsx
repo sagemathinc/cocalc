@@ -7,8 +7,14 @@
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
+{SMC_ICON_URL} = require('./misc_page')
 
-images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/05-sky_is_the_limit.png' ]
+images = [
+    require('static/sagepreview/01-worksheet.png'),
+    require('static/sagepreview/02-courses.png'),
+    require('static/sagepreview/03-latex.png'),
+    require('static/sagepreview/05-sky_is_the_limit.png'),
+]
 # 'static/sagepreview/04-files.png'
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
@@ -409,7 +415,7 @@ LogoWide = rclass
                     margin: UNIT + 'px 0',\
                     lineHeight: 0}>
           <span style={display: 'inline-block', \
-                       backgroundImage: 'url("/static/salvus-icon.svg")', \
+                       backgroundImage: "url('#{SMC_ICON_URL}')", \
                        backgroundSize: 'contain', \
                        height : UNIT * 4, width: UNIT * 4, \
                        borderRadius : 10, \

@@ -99,7 +99,7 @@ path_module = require('path')
 # mime library
 mime = require('mime')
 
-STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
+STATIC_PATH = path_module.join(SALVUS_HOME, 'webpack')
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -175,6 +175,7 @@ clients            = {}
 # HTTP Server
 ###
 util = require('util')
+ms   = require("ms")
 
 init_express_http_server = () ->
     winston.debug("initializing express http server")
@@ -187,12 +188,28 @@ init_express_http_server = () ->
     app = express()
     router.use(bodyParser.urlencoded({ extended: true }))
 
-    # The /static content
-    router.use('/static', express.static(STATIC_PATH, {hidden:true}))
-    router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))
+    # The /webpack content
+    webpackHeaderControl = (res, path) ->
+        path = path[STATIC_PATH.length + 1 ..]
+        console.log("path: ", path)
+        d = path_module.dirname(path).split("/")
+        console.log("dir: ", d, path_module.basename(path))
+        test = d[0][...8] == 'mathjax-' or d[0] == 'webpack'
+        console.log("test: ", test)
+        #if test
+        #    year = ms('1y')
+        #    res.setHeader('Cache-Control', "public, max-age='#{year}'")
+        #    res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
+
+    router.use '/webpack',
+        express.static(STATIC_PATH, {maxAge: '10m', setHeaders: webpackHeaderControl})
+
+    router.use '/policies',
+        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: '10m'})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(SALVUS_HOME, 'static', 'index.html'))
+        res.sendFile(path_module.join(SALVUS_HOME, 'webpack', 'index.html'), {maxAge: 0})
+
 
     # Define how the endpoints are handled
 

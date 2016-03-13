@@ -19,23 +19,41 @@ Resources for learning webpack:
     - http://webpack.github.io/docs/tutorials/getting-started/
 
 ###
+'use strict';
 
 _        = require('lodash')
 webpack  = require('webpack')
 path     = require('path')
 fs       = require('fs')
 
-
 VERSION  = "0.0.0"
 INPUT    = path.resolve(__dirname, "static")
-OUTPUT   = "static/webpack/"
+OUTPUT   = "./webpack"
 DEVEL    = "development"
 NODE_ENV = process.env.NODE_ENV || DEVEL
 dateISO  = new Date().toISOString()
 
+# mathjax version → symlink with version info from package.json
+MATHJAX_DIR = 'smc-webapp/node_modules/mathjax'
+MATHJAX_VERS = JSON.parse(fs.readFileSync("#{MATHJAX_DIR}/package.json", 'utf8')).version
+MATHJAX_ROOT = path.join(OUTPUT, "mathjax-#{MATHJAX_VERS}")
+
+class MathjaxVersionedSymlink
+
+MathjaxVersionedSymlink.prototype.apply = (compiler) ->
+    compiler.plugin "done", (compilation, cb) ->
+        fs.exists MATHJAX_ROOT,  (exists, cb) ->
+            if not exists
+                fs.symlink("../#{MATHJAX_DIR}", MATHJAX_ROOT, cb)
+
+mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
+
 # create a file base_url to set a base url
 BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() + "/" else ''
-console.log("NODE_ENV=#{NODE_ENV}; base_url='#{BASE_URL}'; INPUT='#{INPUT}'; OUTPUT='#{OUTPUT}'")
+console.log "NODE_ENV=#{NODE_ENV}"
+console.log "base_url='#{BASE_URL}'"
+console.log "INPUT='#{INPUT}'"
+console.log "OUTPUT='#{OUTPUT}'"
 
 # plugins
 
@@ -52,26 +70,28 @@ cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
-                        filename: "assets.json"
-                        fullPath: no
+                        filename   : "assets.json"
+                        fullPath   : no
                         prettyPrint: true
                         metadata:
                             version: VERSION
-                            date: dateISO
+                            date   : dateISO
 
 # https://www.npmjs.com/package/html-webpack-plugin
 HtmlWebpackPlugin = require('html-webpack-plugin')
-htmlWebpackPlugin = new HtmlWebpackPlugin
-                              date    : dateISO
-                              filename: 'index.html',
-                              template: 'index.ejs'
+jade2html = new HtmlWebpackPlugin
+                        date     : dateISO
+                        title    : 'SageMathCloud'
+                        mathjax  : "#{MATHJAX_ROOT}/MathJax.js"
+                        filename : 'index.html'
+                        template : 'index.jade'
 
 # https://webpack.github.io/docs/stylesheets.html
 ExtractTextPlugin = require("extract-text-webpack-plugin")
 
 # merge + minify of included CSS files
-cssConfig = JSON.stringify({discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true})
-#extractCSS = new ExtractTextPlugin("styles-[hash].css")
+cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
+extractCSS = new ExtractTextPlugin("styles-[hash].css")
 #extractTextCss  = ExtractTextPlugin.extract("style", "css?sourceMap&#{cssConfig}")
 #extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap&indentedSyntax")
 #extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
@@ -85,12 +105,12 @@ MoveFilesToTargetPlugin.prototype.apply = (compiler) ->
     compiler.plugin "done", (comp) =>
         #console.log('compilation:', _.keys(comp.compilation))
         _.forEach @files, (fn) =>
-            src = path.join(path.resolve(__dirname, OUTPUT), fn)
+            src = path.join(path.resolve(__dirname, INPUT), fn)
             dst = path.join(@target, fn)
             console.log("moving file:", src, "→", dst)
             fs.renameSync(src, dst)
 
-moveFilesToTargetPlugin = new MoveFilesToTargetPlugin(["index.html"], INPUT)
+moveFilesToTargetPlugin = new MoveFilesToTargetPlugin([], OUTPUT)
 
 ###
 CopyWebpackPlugin = require('copy-webpack-plugin')
@@ -98,43 +118,61 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 ###
 
 setNODE_ENV          = new webpack.DefinePlugin
-                                'process.env':
+                                'MATHJAX_VERS': MATHJAX_VERS
+                                'MATHJAX_ROOT': MATHJAX_ROOT
+                                'VERSION'     : VERSION
+                                'process.env' :
                                     'NODE_ENV': JSON.stringify(NODE_ENV)
 
 dedupePlugin         = new webpack.optimize.DedupePlugin()
 limitChunkCount      = new webpack.optimize.LimitChunkCountPlugin({maxChunks: 10})
-minChunkSize         = new webpack.optimize.MinChunkSizePlugin({minChunkSize: 10000})
+minChunkSize         = new webpack.optimize.MinChunkSizePlugin({minChunkSize: 51200})
 occurenceOrderPlugin = new webpack.optimize.OccurenceOrderPlugin()
+commonsChunkPlugin   = new webpack.optimize.CommonsChunkPlugin
+                                                name: "vendor"
+                                                minChunks: Infinity
+
+{StatsWriterPlugin} = require("webpack-stats-plugin")
+statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
+
 
 plugins = [
     cleanWebpackPlugin,
-    htmlWebpackPlugin,
-    assetsPlugin,
-    dedupePlugin,
-    limitChunkCount,
-    minChunkSize,
-    occurenceOrderPlugin,
-    setNODE_ENV,
-    moveFilesToTargetPlugin,
     webpackSHAHash,
-    #extractCSS,
+    setNODE_ENV,
+    jade2html,
+    commonsChunkPlugin,
+    assetsPlugin,
+    occurenceOrderPlugin,
+    moveFilesToTargetPlugin,
+    extractCSS,
     #copyWebpackPlugin
+    statsWriterPlugin,
+    mathjaxVersionedSymlink
 ]
 
 if NODE_ENV != DEVEL
+    plugins.push dedupePlugin
+    plugins.push limitChunkCount
+    plugins.push minChunkSize
     plugins.push new webpack.optimize.UglifyJsPlugin
                             minimize:true
                             comments:false
                             mangle:
                                 except: ['$super', '$', 'exports', 'require']
 
-hashname = 'name=[path][name].[ext]?[sha1:hash:base64:10]'
+hashname    = '[path][name]-[sha1:hash:base64:10].[ext]'
+pngconfig   = JSON.stringify(name: hashname, limit: 12000, mimetype: 'image/png')
+svgconfig   = JSON.stringify(name: hashname, limit: 12000, mimetype: 'image/svg+xml')
+icoconfig   = JSON.stringify(name: hashname, mimetype: 'image/x-icon')
+woffconfig  = JSON.stringify(name: hashname, mimetype: 'application/font-woff')
 
 module.exports =
     cache: true
 
     entry:
         js : 'js.coffee'
+        vendors_css : 'vendors-css.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'redux', 'react-redux', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
@@ -143,25 +181,29 @@ module.exports =
 
     output:
         path          : OUTPUT
-        publicPath    : path.join(BASE_URL, OUTPUT)
+        publicPath    : path.join(BASE_URL, OUTPUT) + '/'
         filename      : '[name]-[hash].js'
         chunkFilename : '[name]-[id]-[hash].js'
 
     module:
         loaders: [
-            { test: /\.cjsx$/,   loaders: ['coffee', 'cjsx'] },
-            { test: /\.coffee$/, loader: 'coffee' },
-            { test: /\.less$/,   loaders: ["style", "css", "less?#{cssConfig}"]},#loader : extractTextLess },
-            { test: /\.scss$/,   loaders: ["style", "css", "sass?#{cssConfig}"]}, #loader : extractTextScss },
-            { test: /\.sass$/,   loaders: ["style", "css", "sass?#{cssConfig}&indentedSyntax"]}, # loader : extractTextSass },
-            { test: /\.json$/,   loaders: ['json'] },
-            { test: /\.png$/,    loader: "url?limit=100000?mimetype=image/png&#{hashname}" },
-            { test: /\.(jpg|gif)$/,    loader: "file"},
-            { test: /\.html$/,   loader: "html"},
-            { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url?mimetype=application/font-woff&#{hashname}" },
-            { test: /\.(ttf|eot|svg)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file?#{hashname}" },
+            { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
+            { test: /\.coffee$/, loader: 'coffee-loader' },
+            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]},#loader : extractTextLess },
+            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss },
+            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # loader : extractTextSass },
+            { test: /\.json$/,   loaders: ['json-loader'] },
+            { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
+            { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
+            { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
+            { test: /\.(jpg|gif)$/,    loader: "file-loader"},
+            { test: /\.html$/,   loader: "raw!html-minify"},
+            { test: /\.hbs$/,    loader: "handlebars-loader" },
+            { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
+            { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
             # { test: /\.css$/,    loader: 'style!css' },
-            { test: /\.css$/, loaders: ["style", "css?#{cssConfig}"]}, # loader: extractTextCss },
+            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss },
+            { test: /\.jade$/, loader: 'jade' },
         ]
 
     resolve:
@@ -175,3 +217,7 @@ module.exports =
 
     plugins: plugins
 
+    'html-minify-loader':
+         empty: true        # KEEP empty attributes
+         cdata: true        # KEEP CDATA from scripts
+         comments: false

@@ -1,0 +1,79 @@
+#smc-startup-banner {
+    width: 450px;
+    min-height: 185px;
+    background-color: #428BCA;
+    border-radius: 5px;
+    padding: 15px 0;
+    text-align: center;
+    position: fixed;
+    top: 150px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    font-family: sans-serif;
+    font-size: 26px;
+    color: white;
+    animation: banner-error-main ease-in 31s forwards;
+}
+#smc-startup-banner-status {
+        color: #666;
+        text-align: center;
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+    }
+@keyframes banner-error-main {
+     95% {background-color: #428BCA; }
+    100% {background-color: #bf1919; }
+}
+#smc-startup-banner img {
+    width: 80px;
+    height: 80px;
+}
+#smc-startup-banner .banner-blink,
+#smc-startup-banner .banner-error {
+  position: absolute;
+  width: 450px;
+  padding: 0;
+}
+#smc-startup-banner .banner-blink {
+  animation: banner-blink 31s forwards;
+}
+@keyframes banner-blink {
+     0% {opacity: 1.0; }
+     5% {opacity:  .1; }
+    10% {opacity: 1.0; }
+    15% {opacity:  .15;}
+    20% {opacity: 1.0; }
+    25% {opacity:  .2; }
+    30% {opacity: 1.0; }
+    35% {opacity:  .25;}
+    40% {opacity: 1.0; }
+    45% {opacity:  .3; }
+    50% {opacity: 1.0; }
+    55% {opacity:  .35;}
+    60% {opacity: 1.0; }
+    65% {opacity:  .4; }
+    70% {opacity: 1.0; }
+    80% {opacity:  .1; }
+    90% {opacity: 0.8; }
+    95% {opacity: 0.0; }
+   100% {opacity: 0.0; }
+}
+#smc-startup-banner .banner-error {
+  animation: banner-error ease-in 31s forwards;
+  opacity: 0.0;
+}
+@keyframes banner-error {
+ 95% {opacity: 0.0;}
+100% {opacity: 1.0;}
+}
+#smc-startup-banner .message {
+    margin-top: 10px;
+    font-size: 16px;
+}
+#smc-startup-banner a {
+    color: white;
+    text-decoration: underline;
+}

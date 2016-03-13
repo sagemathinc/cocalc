@@ -50,4 +50,5 @@ require('./r_help').render_help_page()
 require('./last')
 
 $ = require("jquery")
-$("#smc-startup-banner").remove()
+$("#smc-startup-banner")?.remove()
+$('#smc-startup-banner-status')?.remove()

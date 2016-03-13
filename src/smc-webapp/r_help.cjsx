@@ -34,6 +34,8 @@
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
+{SMC_ICON_URL} = require('./misc_page')
+
 
 # CSS
 li_style =
@@ -498,7 +500,7 @@ HelpPage = rclass
                 <Well>
                     <h3>
                         <div style={display: 'inline-block', \
-                                    backgroundImage: 'url("/static/salvus-icon.svg")', \
+                                    backgroundImage: "url('#{SMC_ICON_URL}')", \
                                     backgroundSize: 'contain', \
                                     backgroundColor: SAGE_LOGO_COLOR}
                               className='img-rounded pull-right help-smc-logo' ></div>
