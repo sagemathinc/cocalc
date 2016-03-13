@@ -20,7 +20,6 @@ class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @init_paths()
         @init_view_doc opts, (err) =>
-            console.log("init_view_doc returned ", err)
             if not err
                 @init_syncstring()
                 @init_slider()
@@ -40,8 +39,9 @@ class exports.HistoryEditor extends FileEditor
             if s.head
                 @_path = s.head + '/' + @_path
                 @_open_file_path = s.head + '/' + @_open_file_path
-        if s.head
-            @_path = s.head + '/' + @_path
+        else
+            if s.head
+                @_path = s.head + '/' + @_path
 
     init_syncstring: =>
         @syncstring = salvus_client.sync_string
@@ -90,7 +90,6 @@ class exports.HistoryEditor extends FileEditor
             @view_doc.once('failed', => cb('failed'))
         else
             cb()
-
 
     init_slider: =>
         @slider         = @element.find(".salvus-editor-history-slider")

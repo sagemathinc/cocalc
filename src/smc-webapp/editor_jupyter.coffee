@@ -1,5 +1,5 @@
 ###
- SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
+SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
 
     Copyright (C) 2014, 2015, 2016, William Stein
 
@@ -241,7 +241,6 @@ class JupyterWrapper extends EventEmitter
                         evt.preventDefault()
                         evt.stopPropagation()
                         return false
-
 
     monkey_patch_logo: () =>
         @frame.$("#ipython_notebook").find("a").click () =>
