@@ -467,7 +467,7 @@ class JupyterWrapper extends EventEmitter
             if not data?
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})
-                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute')
+                cursor.find(".smc-jupyter-cursor-label").css( top:'-1.8em', 'padding-left':'.5ex', 'padding-right':'.5ex', left:'.9ex', 'padding-top':'.3ex', position:'absolute', width:'16ex')
                 cursor.find(".smc-jupyter-cursor-inside").css(top:'-1.2em', left:'.9ex', position:'absolute')
                 data = x[i] = {cursor: cursor}
             if name != data.name
@@ -526,8 +526,8 @@ class JupyterWrapper extends EventEmitter
             cell.output_area.clear_output(false, true)
             cell.output_area.trusted = !!obj.metadata.trusted
             cell.output_area.fromJSON(obj.outputs ? [], obj.metadata)
-        if cell.cell_type == 'markdown'
-            cell.rendered = false
+        if cell.cell_type == 'markdown' and cell.rendered
+            cell.rendered = false  # hack to force it to actually re-render
             cell.render()
         @init_cell_cursor(cell, index)
 
@@ -771,10 +771,6 @@ class JupyterNotebook extends EventEmitter
                 if @dom.read_only
                     # DOM gets extra info about @read_only status of file from jupyter notebook server.
                     @read_only = true
-                else
-                    # not read only, so make "command/control+s" save.
-                    #@dom.frame.keydown (e) =>
-                    #    console.log("frame keydown ", e)
                 cb()
         @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, done)
 
