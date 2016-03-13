@@ -831,34 +831,49 @@ class JupyterNotebook extends EventEmitter
 
     # listen for changes to the syncstring
     init_syncstring_change: () =>
-        #dbg = @dbg("syncstring_change")
+        #dbg = @dbg("syncstring_change"); dbg()
         if @read_only
             return
         last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
             live = @syncstring.live()
             if last_syncstring != live
-                # it really did change
-                #dbg()
+                # It really did change
+                # Get current state of the DOM.  We do this even if not "dirty" -- we always get,
+                # just to be absolutely sure, as this is critical to get right to avoid any data loss.
                 cur_dom = @dom.get(true)
                 if @_last_dom? and @_last_dom != cur_dom
+                    # The DOM changed since the last time we saved, so we compute
+                    # how it changed and apply that patch to the live syncstring
+                    # that just came in.  The result is what we update the DOM
+                    # to equal.
                     patch = dmp.patch_make(@_last_dom, cur_dom)
                     live = dmp.patch_apply(patch, live)[0]
                     @_last_dom = cur_dom
                     @syncstring.live(live)
                 last_syncstring = live
                 if cur_dom != live
-                    @_last_dom = result = @dom.set(live)
+                    # The actual current DOM is different than what we need to set it to be
+                    # equal to, so... we mutate it to equal live.
+                    @_last_dom = result = @dom.set(live)  # the output of this is what really got set.
                     if result != live
-                        console.warn("Jupyter sync: inconsistency during sync")
-                        # If the user then makes a change to this notebook, the fixed
+                        # It is entirely possible, due to weirdness of jupyter or corruption of the
+                        # state of syncstring that setting doesn't result in a DOM that equals what
+                        # we want.  We do NOT just change the syncstring, since that can lead to
+                        # crazy feedback loops.  Instead, we just note this.  If the user actively
+                        # does edit the DOM further, their change will then propogate back out.
+                        # In particular, if the user then makes a change to this notebook, the fixed
                         # version of the syncstring will propogate automatically.  If
                         # they don't, it stays broken.  Having this notebook *fix*
                         # automatically DOES NOT WORK... because if there are multiple
                         # notebooks open at once, they will all fix at once, which
                         # breaks things (due to patch merge)!  Ad infinitum!!
+                        console.warn("Jupyter sync: inconsistency during sync")
 
-        @syncstring.on('sync', handle_syncstring_change)
+        # The throttle makes it so now matter how often the syncstring changes, with many
+        # others doing edits (or whatever), we will only ever actually apply those changes
+        # at most once every 2s.  We do fully apply all edits though.
+        @syncstring.on('sync', underscore.throttle(handle_syncstring_change, 2000))
         @syncstring._syncstring.on('metadata-change', @update_save_state)
 
     ipynb_timestamp: (cb) =>
