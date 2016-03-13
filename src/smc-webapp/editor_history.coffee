@@ -57,7 +57,7 @@ class exports.HistoryEditor extends FileEditor
                 @load_all.show()
 
     close: () =>
-        @syncstring.close()
+        @syncstring?.close()
 
     disconnect_from_session: =>
         @close()

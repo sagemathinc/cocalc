@@ -43,8 +43,6 @@ editor_templates     = $("#salvus-editor-templates")
 
 exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".jupyter-sync"
 
-
-
 ###
 Attempt a more generic well defined approach to sync
 
@@ -148,7 +146,11 @@ class JupyterWrapper extends EventEmitter
                 @emit('error')
                 cb(@error)
             else
-                if @frame?.IPython?.notebook?.kernel?.is_connected()
+                # NOTE: we can't use '@nb.events.one "notebook_loaded.Notebook"', since we can't attach
+                # to that event until events loads, and by then we may have missed the one event.
+                # Also, I've observed that @frame.IPython.notebook._fully_loaded does not imply the
+                # kernels are connected.
+                if @frame?.IPython?.notebook?.kernel?.is_connected() and @frame.IPython.notebook._fully_loaded
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
                     if not @read_only and not @nb.writable
@@ -361,13 +363,14 @@ class JupyterWrapper extends EventEmitter
                         try
                             obj = @line_to_cell(string_mapping._to_string[x])
                         catch err
-                            console.warn("failed to parse '#{string_mapping._to_string[x]}'. #{err}")
+                            console.warn("failed to parse '#{misc.trunc(string_mapping._to_string[x],300)}'. #{err}")
                         #old_val = stringify(@nb.get_cell(index).toJSON())  # for debugging only
                         if obj?
                             @mutate_cell(index, obj)
                         new_val = @cell_to_line(@nb.get_cell(index), false)
-                        if new_val != string_mapping._to_string[x]
-                            console.warn("setting failed -- \n'#{string_mapping._to_string[x]}'\n'#{new_val}'")
+                        # Failure below expected in case of blobs:
+                        #if new_val != string_mapping._to_string[x]
+                        #    console.warn("setting failed -- \n'#{misc.trunc(string_mapping._to_string[x],300)}'\n'#{misc.trunc(new_val,300)}'")
                         #console.log("mutate: '#{old_val}' --> '#{new_val}'")
                         next  += '\n' + new_val
                         index += 1
@@ -387,8 +390,9 @@ class JupyterWrapper extends EventEmitter
                     if obj?
                         @insert_cell(index, obj)
                         new_val = stringify(@nb.get_cell(index).toJSON())
-                        if new_val != string_mapping._to_string[x]
-                            console.warn("setting failed -- \n'#{string_mapping._to_string[x]}'\n'#{new_val}'")
+                        # Failure below expected in case of blobs:
+                        #if new_val != string_mapping._to_string[x]
+                        #    console.warn("setting failed -- \n'#{misc.trunc(string_mapping._to_string[x],300)}'\n'#{misc.trunc(new_val,300)}'")
                         next  += '\n' + new_val
                         #console.log("insert: '#{new_val}'")
                         index += 1
@@ -404,9 +408,9 @@ class JupyterWrapper extends EventEmitter
         res = @get()
         # Check below is commented out, since the result may be different since we now
         # factor blobs out.  Write a string with blobs, get something back without.
-        if doc != res
-            console.log("tried to set to '#{doc}' but got '#{res}'")
-            console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
+        #if doc != res
+        #    console.log("tried to set to '#{doc}' but got '#{res}'")
+        #    console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
         return res
 
     set_cell: (index, obj) =>
@@ -492,8 +496,7 @@ class JupyterWrapper extends EventEmitter
             index += 1
 
     mutate_cell: (index, obj) =>
-        dbg = @dbg("mutate_cell")
-        dbg(index, obj)
+        #dbg = @dbg("mutate_cell")([index, obj])
         cell = @nb.get_cell(index)
         obj0 = cell.toJSON()
         if cell.cell_type != obj.cell_type
@@ -512,7 +515,7 @@ class JupyterWrapper extends EventEmitter
             cell.auto_highlight()
         # TODO: when code running the asterisk doesn't sync out
         if cell.set_input_prompt? and obj0.execution_count != obj.execution_count
-            cell.set_input_prompt(obj.execution_count)
+            cell.set_input_prompt(obj.execution_count ? '*')
         if cell.output_area? and (not underscore.isEqual(obj0.outputs, obj.outputs) or not underscore.isEqual(obj0.metadata, obj.metadata))
             cell.output_area.clear_output(false, true)
             cell.output_area.trusted = !!obj.metadata.trusted
@@ -523,11 +526,11 @@ class JupyterWrapper extends EventEmitter
         @init_cell_cursor(cell, index)
 
     delete_cell: (index) =>
-        @dbg("delete_cell")(index)
+        #@dbg("delete_cell")(index)
         @nb._unsafe_delete_cell(index)
 
     insert_cell: (index, obj) =>
-        @dbg("insert_cell")(index, obj)
+        #@dbg("insert_cell")(index)
         new_cell = @nb.insert_cell_at_index(obj.cell_type, index)
         @mutate_cell(index, obj)
         if @read_only
@@ -808,10 +811,10 @@ class JupyterNotebook extends EventEmitter
         if @read_only
             # read-only mode: ignore any DOM changes
             return
-        dbg = @dbg("dom_change")
+        #dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
         handle_dom_change = () =>
-            dbg()
+            #dbg()
             new_ver = @dom.get(true)  # true = save any newly created images to blob store.
             @_last_dom = new_ver
             @syncstring.live(new_ver)
@@ -828,7 +831,7 @@ class JupyterNotebook extends EventEmitter
 
     # listen for changes to the syncstring
     init_syncstring_change: () =>
-        dbg = @dbg("syncstring_change")
+        #dbg = @dbg("syncstring_change")
         if @read_only
             return
         last_syncstring = @syncstring.live()
@@ -836,7 +839,7 @@ class JupyterNotebook extends EventEmitter
             live = @syncstring.live()
             if last_syncstring != live
                 # it really did change
-                dbg()
+                #dbg()
                 cur_dom = @dom.get(true)
                 if @_last_dom? and @_last_dom != cur_dom
                     patch = dmp.patch_make(@_last_dom, cur_dom)
@@ -859,8 +862,8 @@ class JupyterNotebook extends EventEmitter
         @syncstring._syncstring.on('metadata-change', @update_save_state)
 
     ipynb_timestamp: (cb) =>
-        dbg = @dbg("ipynb_timestamp")
-        dbg("get when .ipynb file last *modified*")
+        #dbg = @dbg("ipynb_timestamp")
+        #dbg("get when .ipynb file last *modified*")
         get_timestamp
             project_id : @project_id
             path       : @filename
@@ -872,8 +875,8 @@ class JupyterNotebook extends EventEmitter
                 cb()
 
     syncstring_timestamp: () =>
-        dbg = @dbg("syncstring_timestamp")
-        dbg("get when .ipynb file last modified")
+        #dbg = @dbg("syncstring_timestamp")
+        #dbg("get when .ipynb file last modified")
         if @state != 'ready'
             throw Error("BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')")
         return @syncstring._syncstring.last_changed() - 0
@@ -911,7 +914,7 @@ class JupyterNotebook extends EventEmitter
 
     show_history_viewer: () =>
         path = misc.history_path(@filename)
-        @dbg("show_history_viewer", path)
+        #@dbg("show_history_viewer")(path)
         @editor.project_page.open_file
             path       : path
             foreground : true
