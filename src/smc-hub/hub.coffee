@@ -190,19 +190,21 @@ init_express_http_server = () ->
 
     # The /webpack content
     webpackHeaderControl = (res, path) ->
+        """
         path = path[STATIC_PATH.length + 1 ..]
         console.log("path: ", path)
         d = path_module.dirname(path).split("/")
         console.log("dir: ", d, path_module.basename(path))
         test = d[0][...8] == 'mathjax-' or d[0] == 'webpack'
         console.log("test: ", test)
+        """
         #if test
-        #    year = ms('1y')
-        #    res.setHeader('Cache-Control', "public, max-age='#{year}'")
-        #    res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
+        year = ms('100 days') # more than a year is definitely invalid
+        res.setHeader('Cache-Control', "public, max-age='#{year}'")
+        res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
 
     router.use '/webpack',
-        express.static(STATIC_PATH, {maxAge: '10m', setHeaders: webpackHeaderControl})
+        express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: '10m'})

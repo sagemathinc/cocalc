@@ -92,10 +92,10 @@ ExtractTextPlugin = require("extract-text-webpack-plugin")
 # merge + minify of included CSS files
 cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
 extractCSS = new ExtractTextPlugin("styles-[hash].css")
-#extractTextCss  = ExtractTextPlugin.extract("style", "css?sourceMap&#{cssConfig}")
-#extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap&indentedSyntax")
-#extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
-#extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sourceMap")
+extractTextCss  = ExtractTextPlugin.extract("style", "css?sourceMap&#{cssConfig}")
+extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap&indentedSyntax")
+extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
+extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sourceMap")
 
 # custom plugin, to handle the quirky situation of index.html
 class MoveFilesToTargetPlugin
@@ -128,25 +128,30 @@ dedupePlugin         = new webpack.optimize.DedupePlugin()
 limitChunkCount      = new webpack.optimize.LimitChunkCountPlugin({maxChunks: 10})
 minChunkSize         = new webpack.optimize.MinChunkSizePlugin({minChunkSize: 51200})
 occurenceOrderPlugin = new webpack.optimize.OccurenceOrderPlugin()
-commonsChunkPlugin   = new webpack.optimize.CommonsChunkPlugin
-                                                name: "vendor"
-                                                minChunks: Infinity
+# https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
+#commonsChunkPlugin   = new webpack.optimize.CommonsChunkPlugin
+#                                                name: "vendors"
+#                                                # minChunks: Infinity # wouldn't move anything
 
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
 
 
+#provideGlobals = new webpack.ProvidePlugin
+#                                $: "jquery"
+#                                jQuery: "jquery"
+
 plugins = [
     cleanWebpackPlugin,
-    webpackSHAHash,
+    #provideGlobals,
     setNODE_ENV,
     jade2html,
-    commonsChunkPlugin,
+    #commonsChunkPlugin,
     assetsPlugin,
-    occurenceOrderPlugin,
     moveFilesToTargetPlugin,
     extractCSS,
     #copyWebpackPlugin
+    webpackSHAHash,
     statsWriterPlugin,
     mathjaxVersionedSymlink
 ]
@@ -155,23 +160,46 @@ if NODE_ENV != DEVEL
     plugins.push dedupePlugin
     plugins.push limitChunkCount
     plugins.push minChunkSize
+    plugins.push occurenceOrderPlugin
     plugins.push new webpack.optimize.UglifyJsPlugin
                             minimize:true
                             comments:false
+                            output:
+                                comments: false
                             mangle:
                                 except: ['$super', '$', 'exports', 'require']
+                            compress:
+                                warnings: false
+                                properties: true
+                                sequences: true
+                                dead_code: true
+                                conditionals: true
+                                comparisons: true
+                                evaluate: true
+                                booleans: true
+                                unused: true
+                                loops: true
+                                hoist_funs: true
+                                cascade: true
+                                if_return: true
+                                join_vars: true
+                                drop_debugger: true
+                                negate_iife: true
+                                unsafe: true
+                                hoist_vars: true
+                                side_effects: true
+                            sourceMap: true
 
 hashname    = '[path][name]-[sha1:hash:base64:10].[ext]'
-pngconfig   = JSON.stringify(name: hashname, limit: 12000, mimetype: 'image/png')
-svgconfig   = JSON.stringify(name: hashname, limit: 12000, mimetype: 'image/svg+xml')
-icoconfig   = JSON.stringify(name: hashname, mimetype: 'image/x-icon')
-woffconfig  = JSON.stringify(name: hashname, mimetype: 'application/font-woff')
+pngconfig   = "name=#{hashname}&limit=2000&mimetype=image/png"
+svgconfig   = "name=#{hashname}&limit=2000&mimetype=image/svg+xml"
+icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
+woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 
 module.exports =
     cache: true
 
     entry:
-        js           : 'js.coffee'
         vendors_css  : 'vendors-css.coffee'
         vendors      : 'vendors.coffee'
         smc          : 'index.coffee'
@@ -186,9 +214,9 @@ module.exports =
         loaders: [
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]},#loader : extractTextLess },
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss },
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # loader : extractTextSass },
+            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, # 
+            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, # 
+            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, # 
             { test: /\.json$/,   loaders: ['json-loader'] },
             { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
@@ -199,7 +227,7 @@ module.exports =
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
             # { test: /\.css$/,    loader: 'style!css' },
-            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss },
+            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, # 
             { test: /\.jade$/, loader: 'jade' },
         ]
 
