@@ -390,7 +390,7 @@ class SyncTable extends EventEmitter
             cb      : (err) =>
                 if err
                     console.warn("_save error: #{err}")
-                if not err and at_start != @_value_local
+                if not err and not at_start.equals(@_value_local)
                     # keep saving until table doesn't change *during* the save
                     @_save(cb)
                 else
