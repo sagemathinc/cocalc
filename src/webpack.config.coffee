@@ -171,13 +171,10 @@ module.exports =
     cache: true
 
     entry:
-        js : 'js.coffee'
-        vendors_css : 'vendors-css.coffee'
-        vendors : ['react', 'async', 'events', 'marked', 'redux', 'react-redux', 'react-timeago', 'react-bootstrap',
-                   'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
-                   'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
-                   './smc-webapp/codemirror/codemirror.coffee' ]
-        smc : 'index.coffee'
+        js           : 'js.coffee'
+        vendors_css  : 'vendors-css.coffee'
+        vendors      : 'vendors.coffee'
+        smc          : 'index.coffee'
 
     output:
         path          : OUTPUT

@@ -33,8 +33,6 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-SMC_ICON_URL = require('../static/salvus-icon.svg')
-
 local_diff = exports.local_diff = (before, after) ->
     # Return object
     #

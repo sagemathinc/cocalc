@@ -7,7 +7,8 @@
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
-{SMC_ICON_URL} = require('./misc_page')
+# {SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('../static/salvus-icon.svg')
 
 images = [
     require('static/sagepreview/01-worksheet.png'),

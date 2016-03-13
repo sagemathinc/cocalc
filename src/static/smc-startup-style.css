@@ -16,13 +16,14 @@
     animation: banner-error-main ease-in 31s forwards;
 }
 #smc-startup-banner-status {
-        color: #666;
-        text-align: center;
-        position: fixed;
-        bottom: 20px;
-        left: 0;
-        right: 0;
-    }
+    font-family: sans-serif;
+    color: #666;
+    text-align: center;
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+}
 @keyframes banner-error-main {
      95% {background-color: #428BCA; }
     100% {background-color: #bf1919; }

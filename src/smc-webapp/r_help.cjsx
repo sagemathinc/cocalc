@@ -34,7 +34,8 @@
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
-{SMC_ICON_URL} = require('./misc_page')
+#{SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('../static/salvus-icon.svg')
 
 
 # CSS
