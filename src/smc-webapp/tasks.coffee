@@ -152,16 +152,11 @@ class TaskList
 
                     @set_clean()  # we have made no changes yet.
 
-                    # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
-
-                    @db.on 'presync', () =>
-                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:4000)
-                    @db.on 'sync', () =>
-                        @editor?.activity_indicator()
-                        @save_button.icon_spin(false)
+                    # UI indicators that sync happening...
+                    @db.on('sync', => @editor?.activity_indicator())
 
                     # Handle any changes, merging in with current state.
-                    @db.on 'change', @handle_changes
+                    @db.on('change', @handle_changes)
 
                     # We are done with initialization.
                     @element.find(".salvus-tasks-loading").remove()
