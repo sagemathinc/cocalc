@@ -209,6 +209,12 @@ class JupyterWrapper extends EventEmitter
             @monkey_patch_read_only()
         @monkey_patch_ui()
 
+        # Jupyter's onbeforeunload does a bunch of stuff we don't want, e.g., it's own autosave, complaints
+        # about kernel computations, possibly killing the kernel at some point, etc.  Also, having this at
+        # all always seems to cause a dialog to pop up, even if the user doesn't want one according to smc's
+        # own prefs.
+        @frame.window.onbeforeunload = null
+
     monkey_patch_ui: () =>
         # Proper file rename with sync not supported yet (but will be -- TODO;
         # needs to work with sync system)

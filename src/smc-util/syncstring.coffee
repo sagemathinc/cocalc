@@ -258,6 +258,15 @@ class SyncDoc extends EventEmitter
                 @_client.mark_file(project_id:@_project_id, path:path, action:action)
             @on('user_change', underscore.throttle(file_use, opts.file_use_interval))
 
+        # Initialize throttled functions
+        set_cursor_locs = (locs) =>
+            x =
+                id   : [@_string_id, @_user_id]
+                locs : locs
+                time : @_client.server_time()
+            @_cursors?.set(x,'none')
+        @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
+
     # Used for internal debug logging
     dbg: (f) ->
         return @_client.dbg("SyncString.#{f}:")
@@ -341,6 +350,9 @@ class SyncDoc extends EventEmitter
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
             delete @_periodically_touch
+        delete @_cursor_throttled
+        delete @_cursor_map
+        delete @_users
         @_syncstring_table?.close()
         @_patches_table?.close()
         @_cursors?.close()
@@ -501,18 +513,26 @@ class SyncDoc extends EventEmitter
             # @_other_cursors is an immutable.js map from account_id's
             # to list of cursor positions of *other* users (starts undefined).
             @_cursor_map = undefined
+            @_cursor_throttled = {}  # throttled event emitters for each account_id
+            emit_cursor_throttled = (account_id) =>
+                t = @_cursor_throttled[account_id]
+                if not t?
+                    f = () =>
+                        @emit('cursor_activity', account_id)
+                    t = @_cursor_throttled[account_id] = underscore.throttle(f, 2000)
+                t()
+
             @_cursors.on 'change', (keys) =>
                 for k in keys
                     account_id = @_users[JSON.parse(k)?[1]]
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
-                    @emit('cursor_activity', account_id)
+                    emit_cursor_throttled(account_id)
 
+    # Set this users cursors to the given locs.  This function is
+    # throttled, so calling it many times is safe, and all but
+    # the last call is discarded.
     set_cursor_locs: (locs) =>
-        x =
-            id   : [@_string_id, @_user_id]
-            locs : locs
-            time : @_client.server_time()
-        @_cursors?.set(x,'none')
+        @_throttled_set_cursor_locs(locs)
         return
 
     # returns immutable.js map from account_id to list of cursor positions
