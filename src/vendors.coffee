@@ -65,7 +65,7 @@ require('script!./static/jsbeautify/beautify-html.min.js')
 # Make html into markdown
 require('script!./static/remarked/reMarked.min.js')
 
-# *************************
+# ********************************
 
 require('react')
 require('async')

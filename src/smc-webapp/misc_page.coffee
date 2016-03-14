@@ -812,7 +812,9 @@ exports.define_codemirror_extensions = () ->
                         # this is a foldable line, and what did we do?  keep doing it.
                         mode = if editor.isFolded(pos) then "fold" else "unfold"
 
-    $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+    # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+    require.ensure [], =>
+        data = require('raw!../static/codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()
@@ -1400,9 +1402,14 @@ exports.load_coffeescript_compiler = (cb) ->
         cb()
     else
         console.log("loading coffee-script...")
-        $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            console.log("loaded CoffeeScript -- #{status}")
+        require.ensure [], =>
+            require("script!../static/coffeescript/coffee-script.js")
             cb()
+            ###
+            $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
+                console.log("loaded CoffeeScript -- #{status}")
+                cb()
+            ###
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 

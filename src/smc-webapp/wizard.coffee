@@ -90,17 +90,15 @@ class Wizard
             require.ensure [], =>
                 data = require('../static/wizard/wizard.json')
                 cb()
-            ###
-            $.ajax # TODO use some of those clever retry-functions
-                url: require("!file!../static/wizard/wizard.js")
-                dataType: "json"
-                error: (jqXHR, textStatus, errorThrown) =>
-                    console.log "AJAX Error: #{textStatus}"
-                success: (payload, textStatus, jqXHR) =>
-                    # console.log "Successful AJAX call: #{data}"
-                    data = payload
-                    cb()
-            ###
+            #$.ajax # TODO use some of those clever retry-functions
+            #    url: require("!file!../static/wizard/wizard.js")
+            #    dataType: "json"
+            #    error: (jqXHR, textStatus, errorThrown) =>
+            #        console.log "AJAX Error: #{textStatus}"
+            #    success: (payload, textStatus, jqXHR) =>
+            #        # console.log "Successful AJAX call: #{data}"
+            #        data = payload
+            #        cb()
 
     init_nav: () ->
         # <li role="presentation"><a href="#sage">Sage</a></li>
