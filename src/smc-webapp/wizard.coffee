@@ -87,8 +87,12 @@ class Wizard
             cb()
         else
             @nav.append($("<li><a href='#'>Loading Data ...</a></li>"))
+            require.ensure [], =>
+                data = require('../static/wizard/wizard.json')
+                cb()
+            ###
             $.ajax # TODO use some of those clever retry-functions
-                url: window.smc_base_url + "/static/wizard/wizard.js"
+                url: require("!file!../static/wizard/wizard.js")
                 dataType: "json"
                 error: (jqXHR, textStatus, errorThrown) =>
                     console.log "AJAX Error: #{textStatus}"
@@ -96,6 +100,7 @@ class Wizard
                     # console.log "Successful AJAX call: #{data}"
                     data = payload
                     cb()
+            ###
 
     init_nav: () ->
         # <li role="presentation"><a href="#sage">Sage</a></li>

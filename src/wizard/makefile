@@ -4,7 +4,7 @@ INDIR  := input
 OUTDIR := ../static/wizard
 
 INPUT  := $(shell find ${INDIR}/ -type f -name '*.yaml')
-OUTPUT := ${OUTDIR}/wizard.js
+OUTPUT := ${OUTDIR}/wizard.json
 
 .PHONY: clean
 

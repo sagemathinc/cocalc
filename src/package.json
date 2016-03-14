@@ -28,6 +28,7 @@
     "html-webpack-plugin": "^2.10.0",
     "jade": "^1.11.0",
     "jade-loader": "^0.8.0",
+    "json-loader": "^0.5.4",
     "less": "^2.6.1",
     "less-loader": "^2.2.1",
     "node-cjsx": "^1.0.0",
