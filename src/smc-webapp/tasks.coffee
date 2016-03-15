@@ -62,7 +62,7 @@ exports.task_list = (editor, filename, opts) ->
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
-SPECIAL_PROPS = {element:true, changed:true, last_desc:true, desc_timer:true, desc_last_sync:true}
+SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
 
 MIN_TIME = 1000 # minimum time in ms between sync events
 
@@ -939,6 +939,7 @@ class TaskList
     # save live state of editor to syncdb by going through all codemirror editors
     # of open in-edit-mode tasks, and saving them.
     save_live: () =>
+        #console.log("save_live")
         for task in @_visible_tasks
             e = task?.element
             if e?.hasClass('salvus-task-editing-desc')
@@ -1041,11 +1042,8 @@ class TaskList
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
 
-        task.desc_last_sync = undefined
-
         task.last_desc = task.desc  # initialize last_desc, in case we get an update before ever sync'ing.
         sync_desc = () =>
-            task.desc_last_sync = misc.mswalltime()
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
@@ -1056,24 +1054,12 @@ class TaskList
                 where : {task_id : task.task_id}
             @set_dirty()
 
-        task.desc_timer = undefined
-
         cm.sync_desc = sync_desc  # hack -- will go away with react rewrite of tasks...
 
-        cm.on 'changes', () =>
-            t = misc.mswalltime()
-            if not task.desc_last_sync?
-                sync_desc()
-            else
-                if t - task.desc_last_sync >= MIN_TIME
-                    sync_desc()
-                else
-                    if not task.desc_timer?
-                        f = () ->
-                            task.desc_timer = undefined
-                            if misc.mswalltime() - task.desc_last_sync >= MIN_TIME
-                                sync_desc()
-                        task.desc_timer = setTimeout(f, MIN_TIME - (t - task.desc_last_sync))
+        # Only typically sync save 2s after the user stops typing.  This ensures that
+        # the task list doesn't feel slow or waste a lot of cpu during bursts of typing
+        # (unless there are incoming sync updates to process).
+        cm.on 'changes', underscore.debounce(sync_desc, 2000)
 
         cm.on 'focus', () ->
             currently_focused_editor = cm
