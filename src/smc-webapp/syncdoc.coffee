@@ -65,6 +65,13 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     focused_codemirror: () =>
         @editor.focused_codemirror()
 
+    # For testing.  To use on 'foo' do this in some consoles:   smc.editors['foo'].syncdoc.testbot()
+    testbot: (opts) =>
+        @focused_codemirror().testbot
+            n     : opts?.n
+            delay : opts?.delay
+            f     : @sync
+
     ###
     The rest of this class is chat functionality.  This will, of course, be factored out.
     ###
@@ -581,6 +588,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_syncstring.on 'metadata-change', =>
                 update_unsaved_changes()
                 @_udpate_read_only()
+
+            @_syncstring.on 'before-change', =>
+                #console.log("syncstring before change")
+                @_syncstring.set(@codemirror.getValue())
 
             save_state = () => @_sync()
             # We debounce instead of throttle, because we want a single "diff/commit" to correspond

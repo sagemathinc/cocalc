@@ -480,6 +480,25 @@ exports.cm_define_diffApply_extension = (cm) ->
                     # Move our pointer to just beyond the text we just inserted.
                     pos = pos1
 
+exports.cm_define_testbot = (cm) ->
+    cm.defineExtension 'testbot', (opts) ->
+        opts = defaults opts,
+            n     : 30
+            delay : 500
+            f     : undefined  # if defined, gets called after each change.
+        e = @
+        pos = e.getCursor()
+        ch = pos.ch
+        k = 1
+        f = () ->
+            s = "#{k} "
+            ch += s.length
+            e.replaceRange(s, {line:pos.line, ch:ch})
+            opts.f?()
+            if k < opts.n
+                k += 1
+                setTimeout(f, opts.delay)
+        f()
 
 exports.define_codemirror_extensions = () ->
 
@@ -623,6 +642,7 @@ exports.define_codemirror_extensions = () ->
             @apply_changeObj(changeObj.next)
 
     exports.cm_define_diffApply_extension(CodeMirror)
+    exports.cm_define_testbot(CodeMirror)
 
     # Delete all trailing whitespace from the editor's buffer.
     CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
@@ -657,8 +677,13 @@ exports.define_codemirror_extensions = () ->
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
     CodeMirror.defineExtension 'setValueNoJump', (value) ->
+        r = @getOption('readOnly')
+        if not r
+            @setOption('readOnly', true)
         @_setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
         @diffApply(dmp.diff_main(@getValue(), value))
+        if not r
+            @setOption('readOnly', false)
         delete @_setValueNoJump
 
     CodeMirror.defineExtension 'patchApply', (patch) ->

@@ -204,6 +204,7 @@ class JupyterWrapper extends EventEmitter
 
     monkey_patch_frame: () =>
         misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
+        misc_page.cm_define_testbot(@frame.CodeMirror)
         @monkey_patch_logo()
         if @read_only
             @monkey_patch_read_only()
@@ -808,6 +809,14 @@ class JupyterNotebook extends EventEmitter
             if locs?
                 @dom.draw_other_cursors(account_id, locs)
 
+    _handle_dom_change: () =>
+        #dbg()
+        new_ver = @dom.get(true)  # true = save any newly created images to blob store.
+        @_last_dom = new_ver
+        @syncstring.live(new_ver)
+        @syncstring.sync () =>
+            @update_save_state()
+
     # listen for and handle changes to the live document
     init_dom_change: () =>
         if @read_only
@@ -815,15 +824,9 @@ class JupyterNotebook extends EventEmitter
             return
         #dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
-        handle_dom_change = () =>
-            #dbg()
-            new_ver = @dom.get(true)  # true = save any newly created images to blob store.
-            @_last_dom = new_ver
-            @syncstring.live(new_ver)
-            @syncstring.sync () =>
-                @update_save_state()
-        #@dom.on('change', handle_dom_change)
-        # test this:
+        handle_dom_change = () => @_handle_dom_change()
+
+        # DEBOUNCE:
         # We debounce so that no matter what the live doc has to be still for a while before
         # we handle any changes to it.  Since handling changes can be VERY expensive for Jupyter,
         # do to our approach from the outside (not changing the Jupyter code itself), this avoids
@@ -840,21 +843,11 @@ class JupyterNotebook extends EventEmitter
         handle_syncstring_change = () =>
             live = @syncstring.live()
             if last_syncstring != live
-                # It really did change
+                last_syncstring = live
+                # It really did change.
                 # Get current state of the DOM.  We do this even if not "dirty" -- we always get,
                 # just to be absolutely sure, as this is critical to get right to avoid any data loss.
-                cur_dom = @dom.get(true)
-                if @_last_dom? and @_last_dom != cur_dom
-                    # The DOM changed since the last time we saved, so we compute
-                    # how it changed and apply that patch to the live syncstring
-                    # that just came in.  The result is what we update the DOM
-                    # to equal.
-                    patch = dmp.patch_make(@_last_dom, cur_dom)
-                    live = dmp.patch_apply(patch, live)[0]
-                    @_last_dom = cur_dom
-                    @syncstring.live(live)
-                last_syncstring = live
-                if cur_dom != live
+                if @dom.get(true) != live
                     # The actual current DOM is different than what we need to set it to be
                     # equal to, so... we mutate it to equal live.
                     @_last_dom = result = @dom.set(live)  # the output of this is what really got set.
@@ -872,11 +865,16 @@ class JupyterNotebook extends EventEmitter
                         # breaks things (due to patch merge)!  Ad infinitum!!
                         console.warn("Jupyter sync: inconsistency during sync")
 
-        # The throttle makes it so now matter how often the syncstring changes, with many
-        # others doing edits (or whatever), we will only ever actually apply those changes
-        # at most once every 2s.  We do fully apply all edits though.
-        @syncstring.on('sync', underscore.throttle(handle_syncstring_change, 2000))
-        @syncstring._syncstring.on('metadata-change', @update_save_state)
+        # CRITICAL: We absolutely cannot throttle incoming syncstring changes.  If we
+        # did then when saving our own changes, we throw away changes already in the stream,
+        # JSON corruption increases, etc.  DO NOT THROTTLE.
+        ## DO NOT DO THIS -- @syncstring.on('sync', underscore.throttle(handle_syncstring_change, 2000))
+        @syncstring.on('sync', handle_syncstring_change)
+
+        # CRITICAL: if the upstream syncstring is about to change, we *must*
+        # save our current state before accepting those changes.  Or local
+        # work will be lost.
+        @syncstring._syncstring.on("before-change", @_handle_dom_change)
 
     ipynb_timestamp: (cb) =>
         #dbg = @dbg("ipynb_timestamp")
@@ -1016,6 +1014,31 @@ class JupyterNotebook extends EventEmitter
             cb?(err)
         )
 
+    ###
+    Used for testing.  Call this to have a "robot" count from 1 up to n
+    in the given cell.   Will call sync after adding each number.   The
+    test to do is to have several of these running at once and make
+    sure all numbers are entered.  Also, try typing while this is running.
+    Use like this:
+            smc.editors['tmp/bot.ipynb'].wrapped.testbot()
+    A good way to test is to start one of these running on one machine,
+    then just try to use the same notebook on another machine.  The
+    constant arrivable and merging in of new content will properly stress
+    the system.
+    ###
+    testbot: (opts) =>
+        opts = defaults opts,
+            n     : 30
+            delay : 1000
+            index : @dom?.nb?.get_selected_index() ? 0
+        cell = @dom?.nb?.get_cell(opts.index)
+        if not cell?
+            console.warn("no available cell to test")
+        cell.code_mirror.testbot
+            n     : opts.n
+            delay : opts.delay
+            f     : @_handle_dom_change
+
 get_timestamp = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1037,8 +1060,13 @@ get_timestamp = (opts) ->
                 opts.cb(undefined, parseInt(output.stdout)*1000)
 
 cm_setValueNoJump = (cm, value) ->
+    r = cm.getOption('readOnly')
+    if not r
+        cm.setOption('readOnly', true)
     cm._setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
     cm.diffApply(dmp.diff_main(cm.getValue(), value))
+    if not r
+        cm.setOption('readOnly', false)
     delete cm._setValueNoJump
 
 ###

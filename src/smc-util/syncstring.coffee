@@ -51,7 +51,9 @@ decompress_patch = (patch) ->
 
 # patch that transforms s0 into s1
 exports.make_patch = make_patch = (s0, s1) ->
-    return compress_patch(dmp.patch_make(s0, s1))
+    p = compress_patch(dmp.patch_make(s0, s1))
+    #console.log("make_patch: #{misc.to_json(p)}")
+    return p
 
 exports.apply_patch = apply_patch = (patch, s) ->
     x = dmp.patch_apply(decompress_patch(patch), s)
@@ -482,6 +484,7 @@ class SyncDoc extends EventEmitter
             @_last = value
             @_doc.set(value)
             @_patches_table.on('change', @_handle_patch_update)
+            @_patches_table.on('before-change', => @emit('before-change'))
             cb()
 
     _init_evaluator: (cb) =>

@@ -32,6 +32,8 @@ SYNCHRONIZED TABLE -- defined by an object query
       - close():   Frees up resources, stops syncing, don't use object further
 
    Events:
+      - 'before-change': fired right before (and in the same event loop) actually
+                  applying remote incoming changes
       - 'change', [array of string primary keys] : fired any time the value of the query result
                  changes, *including* if changed by calling set on this object.
                  Also, called with empty list on first connection if there happens
@@ -432,6 +434,7 @@ class SyncTable extends EventEmitter
             console.warn("_update_all(#{@_table}) called with v=undefined")
             return
 
+        @emit('before-change')
         # Restructure the array of records in v as a mapping from the primary key
         # to the corresponding record.
         x = {}
@@ -508,6 +511,7 @@ class SyncTable extends EventEmitter
         if not @_value_local?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
             return
+        @emit('before-change')
         changed_keys = []
         conflict = false
         if change.new_val?
