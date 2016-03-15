@@ -285,11 +285,14 @@ class JupyterWrapper extends EventEmitter
         return @nb.toJSON()
 
     # Transform the visible displayed notebook view into what is described by the string doc.
-    # If not read_only: returns string that actually got set, in case the doc string is
-    # partly invalid and must be changed...
+    # If not read_only: returns
+    #
+    #      {live: string that actually got set -- may differ due to errors or factoring out images,
+    #       parse_errors: true/false -- will be true if there were errors parsing the input doc.}
+    #
     # If read_only: what happens on set is not guaranteed to be at all correct
-    # when document is read_only, e.g., then we do not change metadata, since Jupyter starts
-    # spawning kernels, and we can't stop that.
+    # when document is read_only, e.g., then we do not change metadata, since
+    # Jupyter starts spawning kernels, and we can't stop that.
     set: (doc) =>
         if @state != 'ready'
             throw Error("state must be ready")
@@ -298,6 +301,8 @@ class JupyterWrapper extends EventEmitter
         #dbg()
         if typeof(doc) != 'string'
             throw Error("BUG -- set: doc must be of type string")
+
+        parse_errors = false
 
         # What we want visible document to look like
         goal = doc.split('\n')
@@ -328,6 +333,7 @@ class JupyterWrapper extends EventEmitter
                 console.warn("Error parsing metadata line: '#{goal[0]}', #{err}")
                 metadata = live[0]
                 next += live[0]
+                parse_errors = true
                 # In this case we ignore metadata entirely; it'll get fixed when @get()
                 # returns current valid metadata below.
 
@@ -371,6 +377,7 @@ class JupyterWrapper extends EventEmitter
                             obj = @line_to_cell(string_mapping._to_string[x])
                         catch err
                             console.warn("failed to parse '#{misc.trunc(string_mapping._to_string[x],300)}'. #{err}")
+                            parse_errors = true
                         #old_val = stringify(@nb.get_cell(index).toJSON())  # for debugging only
                         if obj?
                             @mutate_cell(index, obj)
@@ -394,6 +401,7 @@ class JupyterWrapper extends EventEmitter
                         obj = @line_to_cell(string_mapping._to_string[x])
                     catch err
                         console.warn("failed to parse '#{string_mapping._to_string[x]}'. #{err}")
+                        parse_errors = true
                     if obj?
                         @insert_cell(index, obj)
                         new_val = stringify(@nb.get_cell(index).toJSON())
@@ -418,7 +426,7 @@ class JupyterWrapper extends EventEmitter
         #if doc != res
         #    console.log("tried to set to '#{doc}' but got '#{res}'")
         #    console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
-        return res
+        return {live: res, parse_errors:parse_errors}
 
     set_cell: (index, obj) =>
         dbg = @dbg("set_cell")
@@ -850,7 +858,9 @@ class JupyterNotebook extends EventEmitter
                 if @dom.get(true) != live
                     # The actual current DOM is different than what we need to set it to be
                     # equal to, so... we mutate it to equal live.
-                    @_last_dom = result = @dom.set(live)  # the output of this is what really got set.
+                    info = @dom.set(live)
+                    @_parse_errors = info.parse_errors
+                    @_last_dom = result = info.live  #  what really got set.
                     if result != live
                         # It is entirely possible, due to weirdness of jupyter or corruption of the
                         # state of syncstring that setting doesn't result in a DOM that equals what
@@ -874,7 +884,27 @@ class JupyterNotebook extends EventEmitter
         # CRITICAL: if the upstream syncstring is about to change, we *must*
         # save our current state before accepting those changes.  Or local
         # work will be lost.
-        @syncstring._syncstring.on("before-change", @_handle_dom_change)
+        @syncstring._syncstring.on "before-change", =>
+            # CRITICAL: We also *only* do this if there wasn't a parse error
+            # when *last* set'ing.  This avoids the horrendously painful situation
+            # where every client tries to "fix" a JSON parse error at once, which
+            # simultaneously breaks everything even worse! Ad infinitum.  What this
+            # does is make it so that if a client received a broken syncstring, and
+            # sits there doing NOTHING, then they will not try to fix it.  Only a
+            # client very actively doing editing (or changes from output -- which can only
+            # happen in one cell), will thus do this set.  All others will stay calm
+            # and let the active clients sort things out.  Since multiple users are very
+            # unlikely to be heavily active at exactly the same time, especially when things
+            # have gone to hell, this works in practice well.
+            # There are other algorithms that involve electing leaders or some other
+            # consensus protocol, to decide who fixes issues, but they would all but
+            # much more complicated and brittle.
+            # For testing, I do
+            #    smc.editors['tmp/break.ipynb'].wrapped.testbot({n:60})
+            # in a console on at least one open notebook, then open tmp/.break.ipynb.jupyter-sync
+            # directly and corrupt it in all kinds of ways.
+            if not @_parse_errors
+                @_handle_dom_change()
 
     ipynb_timestamp: (cb) =>
         #dbg = @dbg("ipynb_timestamp")
