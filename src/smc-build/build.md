@@ -454,3 +454,12 @@ Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pe
     #!/usr/bin/env bash
     SAGEDIR=$(dirname $(readlink -f $(which sage)))
     exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
+
+# Plink
+
+Install the Ubuntu package (how?):
+
+
+
+Make a link to preserve the usual name: `cd /usr/bin; sudo ln -s /usr/bin/p-link plink`
+
