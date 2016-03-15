@@ -48,6 +48,9 @@ console.log "OUTPUT='#{OUTPUT}'"
 MATHJAX_DIR = 'smc-webapp/node_modules/mathjax'
 MATHJAX_VERS = JSON.parse(fs.readFileSync("#{MATHJAX_DIR}/package.json", 'utf8')).version
 MATHJAX_ROOT = path.join(OUTPUT, "mathjax-#{MATHJAX_VERS}")
+MATHJAX_URL  = path.join(BASE_URL, MATHJAX_ROOT, 'MathJax.js')
+console.log "MATHJAX_ROOT='#{MATHJAX_ROOT}'"
+console.log "MATHJAX_URL='#{MATHJAX_URL}'"
 
 # webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
@@ -95,7 +98,7 @@ smcChunkSorter = (a, b) ->
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
                         title    : 'SageMathCloud'
-                        mathjax  : "#{MATHJAX_ROOT}/MathJax.js"
+                        mathjax  : MATHJAX_URL
                         filename : 'index.html'
                         chunksSortMode: smcChunkSorter
                         hash: false
@@ -134,7 +137,7 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 
 setNODE_ENV          = new webpack.DefinePlugin
                                 'MATHJAX_VERS': MATHJAX_VERS
-                                'MATHJAX_ROOT': MATHJAX_ROOT
+                                'MATHJAX_URL' : MATHJAX_URL
                                 'VERSION'     : VERSION
                                 'process.env' :
                                     'NODE_ENV'     : JSON.stringify(NODE_ENV)
