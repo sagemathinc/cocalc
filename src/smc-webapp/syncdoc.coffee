@@ -485,6 +485,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring.on 'change', => # only when change is external
             @emit('sync')
 
+        @_syncstring.on 'before-change', =>
+            @emit('before-change')
+
     live: (s) =>
         if s?
             @_syncstring.set(s)

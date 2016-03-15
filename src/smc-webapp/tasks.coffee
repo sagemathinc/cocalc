@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2016, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -157,6 +157,12 @@ class TaskList
 
                     # Handle any changes, merging in with current state.
                     @db.on('change', @handle_changes)
+
+                    # Before syncing ensure that the db is updated to the
+                    # latest version of what is being edited.  If we don't do
+                    # this, then when two people edit at once, one person
+                    # will randomly loose their work!
+                    @db.on('before-change', @save_live)
 
                     # We are done with initialization.
                     @element.find(".salvus-tasks-loading").remove()
@@ -930,6 +936,16 @@ class TaskList
         if @current_task?
             @delete_task(@current_task, true)
 
+    # save live state of editor to syncdb by going through all codemirror editors
+    # of open in-edit-mode tasks, and saving them.
+    save_live: () =>
+        for task in @_visible_tasks
+            e = task?.element
+            if e?.hasClass('salvus-task-editing-desc')
+                cm = e.data('cm')
+                if cm? and cm.getValue() != task.last_desc
+                    cm.sync_desc()
+
     edit_desc: (task, cursor_at_end) =>
         if not task?
             task = @current_task
@@ -1041,6 +1057,9 @@ class TaskList
             @set_dirty()
 
         task.desc_timer = undefined
+
+        cm.sync_desc = sync_desc  # hack -- will go away with react rewrite of tasks...
+
         cm.on 'changes', () =>
             t = misc.mswalltime()
             if not task.desc_last_sync?

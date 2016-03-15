@@ -16,13 +16,18 @@ has a different API than DiffSync objects above.
 The wrapper object below allows you to use a DiffSync
 object with this API.
 
-    _doc._presync -- if set, is called before syncing
     _doc.on 'sync' -- event emitted on successful sync
     _doc.live() -- returns current live string
     _doc.live('new value') -- set current live string
     _doc.sync(cb) -- cause sync of _doc
     _doc.save(cb) -- cause save of _doc to persistent storage
     _doc.readonly -- true if and only if doc is readonly
+
+Events:
+
+  - 'before-change'
+  - 'sync'
+  - 'change'
 
 ###
 
@@ -42,7 +47,8 @@ class exports.SynchronizedDB extends EventEmitter
         @readonly = @_doc.readonly
         @_data = {}
         @valid_data = @_set_data_from_doc()
-        @_doc._presync = () =>
+        @_doc.on 'before-change', () =>
+            @emit('before-change')
             @_live_before_sync = @_doc?.live()  # doc could be deleted when this is called, due to destroy method.
         @_doc.on('sync', @_on_sync)
 
@@ -55,7 +61,6 @@ class exports.SynchronizedDB extends EventEmitter
             #console.log("DEBUG: invalid/corrupt sync request; revert it")
             @_doc.live(@_live_before_sync)
             @_set_data_from_doc()
-            @emit('presync')
             @_doc.sync()
 
     destroy: () =>
@@ -126,7 +131,6 @@ class exports.SynchronizedDB extends EventEmitter
                 v.push(@to_json(z.x.data))
                 line += 1
         @_doc.live(v.join('\n'))
-        @emit('presync')
         @_doc.sync()
 
     save: (cb) =>
