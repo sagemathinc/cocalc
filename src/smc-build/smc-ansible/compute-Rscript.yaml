@@ -1,0 +1,13 @@
+---
+- hosts: compute
+  become:
+  sudo: yes
+  gather_facts: no
+
+  tasks:
+
+  - name: "install temporary Rscript wrapper"
+    copy: src=files/Rscript dest=/usr/local/bin/Rscript
+          owner=root group=root mode=ugo=rx
+          
+          
