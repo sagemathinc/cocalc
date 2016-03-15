@@ -1,5 +1,3 @@
-window.smcLoadStatus("Loading Style")
-
 # definition of the smc-client for webpack
 # used via webpack.config.coffee to add entries to index.hbs for index.html
 require("./static/jquery/jquery-ui/css/humanity/jquery-ui.css")
@@ -15,3 +13,6 @@ require("./static/datetimepicker/bootstrap-datetimepicker.min.css")
 
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')
+
+# info for next step in startup sequence
+window.smcLoadStatus("Loading JavaScript libraries ...")

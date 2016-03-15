@@ -7,7 +7,11 @@ Run dev server with source maps:
 
 Then visit (say)
 
-    https://dev0.sagemath.com/static/webpack.html
+    https://dev0.sagemath.com/
+
+or for smc-in-smc project, info.py URL, e.g.
+
+    https://cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/port/56754/
 
 This is far from ready to use yet, e.g., we need to properly serve primus websockets, etc.:
 
@@ -28,16 +32,24 @@ fs       = require('fs')
 
 VERSION  = "0.0.0"
 INPUT    = path.resolve(__dirname, "static")
-OUTPUT   = "./webpack"
+OUTPUT   = "webpack"
 DEVEL    = "development"
 NODE_ENV = process.env.NODE_ENV || DEVEL
 dateISO  = new Date().toISOString()
 
-# mathjax version → symlink with version info from package.json
+# create a file base_url to set a base url
+BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() + "/" else ''
+console.log "NODE_ENV=#{NODE_ENV}"
+console.log "BASE_URL='#{BASE_URL}'"
+console.log "INPUT='#{INPUT}'"
+console.log "OUTPUT='#{OUTPUT}'"
+
+# mathjax version → symlink with version info from package.json/version
 MATHJAX_DIR = 'smc-webapp/node_modules/mathjax'
 MATHJAX_VERS = JSON.parse(fs.readFileSync("#{MATHJAX_DIR}/package.json", 'utf8')).version
 MATHJAX_ROOT = path.join(OUTPUT, "mathjax-#{MATHJAX_VERS}")
 
+# webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
 
 MathjaxVersionedSymlink.prototype.apply = (compiler) ->
@@ -47,13 +59,6 @@ MathjaxVersionedSymlink.prototype.apply = (compiler) ->
                 fs.symlink("../#{MATHJAX_DIR}", MATHJAX_ROOT, cb)
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
-
-# create a file base_url to set a base url
-BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() + "/" else ''
-console.log "NODE_ENV=#{NODE_ENV}"
-console.log "base_url='#{BASE_URL}'"
-console.log "INPUT='#{INPUT}'"
-console.log "OUTPUT='#{OUTPUT}'"
 
 # plugins
 
@@ -79,11 +84,21 @@ assetsPlugin = new AssetsPlugin
 
 # https://www.npmjs.com/package/html-webpack-plugin
 HtmlWebpackPlugin = require('html-webpack-plugin')
+# we need our own chunk sorter, because dependency doesn't work
+smcChunkSorter = (a, b) ->
+    order = ['css', 'lib', 'smc']
+    if order.indexOf(a.names[0]) < order.indexOf(b.names[0])
+        return -1
+    else
+        return 1
+
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
                         title    : 'SageMathCloud'
                         mathjax  : "#{MATHJAX_ROOT}/MathJax.js"
                         filename : 'index.html'
+                        chunksSortMode: smcChunkSorter
+                        hash: false
                         template : 'index.jade'
 
 # https://webpack.github.io/docs/stylesheets.html
@@ -122,7 +137,7 @@ setNODE_ENV          = new webpack.DefinePlugin
                                 'MATHJAX_ROOT': MATHJAX_ROOT
                                 'VERSION'     : VERSION
                                 'process.env' :
-                                    'NODE_ENV': JSON.stringify(NODE_ENV)
+                                    'NODE_ENV'     : JSON.stringify(NODE_ENV)
 
 dedupePlugin         = new webpack.optimize.DedupePlugin()
 limitChunkCount      = new webpack.optimize.LimitChunkCountPlugin({maxChunks: 10})
@@ -158,9 +173,9 @@ plugins = [
 
 if NODE_ENV != DEVEL
     plugins.push dedupePlugin
+    plugins.push occurenceOrderPlugin
     plugins.push limitChunkCount
     plugins.push minChunkSize
-    plugins.push occurenceOrderPlugin
     plugins.push new webpack.optimize.UglifyJsPlugin
                             minimize:true
                             comments:false
@@ -168,7 +183,9 @@ if NODE_ENV != DEVEL
                                 comments: false
                             mangle:
                                 except: ['$super', '$', 'exports', 'require']
+                                screw_ie8: true
                             compress:
+                                screw_ie8: true
                                 warnings: false
                                 properties: true
                                 sequences: true
@@ -186,11 +203,10 @@ if NODE_ENV != DEVEL
                                 drop_debugger: true
                                 negate_iife: true
                                 unsafe: true
-                                hoist_vars: true
                                 side_effects: true
                             sourceMap: true
 
-hashname    = '[path][name]-[sha1:hash:base64:10].[ext]'
+hashname    = '[path][name]-[sha256:hash:base64:10].[ext]'
 pngconfig   = "name=#{hashname}&limit=2000&mimetype=image/png"
 svgconfig   = "name=#{hashname}&limit=2000&mimetype=image/svg+xml"
 icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
@@ -199,16 +215,17 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 module.exports =
     cache: true
 
-    entry:
-        vendors_css  : 'vendors-css.coffee'
-        vendors      : 'vendors.coffee'
-        smc          : 'index.coffee'
+    entry: # ATTN don't alter or add names here, without changing the sorting function above!
+        css  : 'smc-webapp-css.coffee'
+        lib  : 'smc-webapp-lib.coffee'
+        smc  : 'smc-webapp.coffee'
 
     output:
         path          : OUTPUT
         publicPath    : path.join(BASE_URL, OUTPUT) + '/'
         filename      : '[name]-[hash].js'
-        chunkFilename : '[name]-[id]-[hash].js'
+        chunkFilename : '[id]-[hash].js'
+        hashFunction  : 'sha256'
 
     module:
         loaders: [

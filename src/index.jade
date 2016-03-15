@@ -53,17 +53,14 @@ html
             br/
             | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
     div#smc-startup-banner-status
-      | Initialization ...
+      | Initializing ...
 
     //- this sets the base_url
     script(type="text/javascript" src="base_url.js")
 
     script(type="text/javascript").
         function smcLoadStatus(msg) {
-            try {
-                document.getElementById("smc-startup-banner-status").innerHTML = msg;
-            } finally {}
-        }
+        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
 
     script(type="text/x-mathjax-config").
         MathJax.Hub.Config({

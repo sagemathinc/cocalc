@@ -1,5 +1,3 @@
-window.smcLoadStatus("Loading JavaScript Libraries")
-
 # These old-school JS files need to be on top, otherwise dependency issues arise
 # (e.g. minified jquery isn't properly being detected, etc.)
 
@@ -133,3 +131,6 @@ window.MathJax =
 
 # require('script!./static/mathjax/MathJax.js') # doesn't work
 ###
+
+# after "vendors", the real deal starts
+window.smcLoadStatus("Starting main application ...")

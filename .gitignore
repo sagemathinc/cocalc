@@ -22,7 +22,6 @@ node_modules
 src/webpack/
 src/static/index.html
 src/assets.json
-src/static/wizard/
 src/static/policies/pricing.html
 src/static/mathjax-*
 

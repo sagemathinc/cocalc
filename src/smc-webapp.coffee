@@ -1,5 +1,3 @@
-window.smcLoadStatus("Loading SMC")
-
 # SASS Style file for SMC
 require('./smc-webapp/index.sass')
 
