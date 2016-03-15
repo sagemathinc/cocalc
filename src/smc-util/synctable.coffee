@@ -502,6 +502,8 @@ class SyncTable extends EventEmitter
         if conflict
             @save()
 
+    # Apply one incoming change from the database to the in-memory
+    # local synchronized table
     _update_change: (change) =>
         #console.log("_update_change", change)
         if @_state == 'closed'

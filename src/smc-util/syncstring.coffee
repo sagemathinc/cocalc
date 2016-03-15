@@ -110,37 +110,74 @@ class SortedPatchList
             @_patches = @_patches.concat(v)
             @_patches.sort(patch_cmp)
 
-    # if optional time is given only include patches up to (and including) the given time
+    ###
+    value: Return the value of the string at the given (optional)
+    point in time.
+
+    If the optional time is given, only include patches up to (and
+    including) the given time; otherwise, return current value.
+
+    TODO:
+
+        - [ ] Record up to N distinct values in the cache (maybe separated by at least k time steps?)
+        - [ ] When inserting new patches, if a patch is older than something in the cache, remove that from the cache.
+        - [ ] Use best known cached value when computing new value in all cases.
+    ###
     value: (time) =>
+        #start_time = new Date()
+
+        # If the time is specified, verify that it is valid.
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
+
+        # If cache_time is nonzero, we will cache the results of this value computation,
+        # so we can use it in the future.
         cache_time = 0
         if not time? and @_cache?
-            value = @_cache.value
-            for x in @_patches.slice(@_cache.start, @_patches.length)
-                value = apply_patch(x.patch, value)[0]
-                cache_time = x.patch.time
+            # There is a cache,
+            # No time was specified, but the cache exists, so we simply move forward
+            # applying patches, starting with the last cached version.
+            value = @_cache.value   # the version that was cached most recently
+            for x in @_patches.slice(@_cache.start, @_patches.length)   # all patches starting with the one for cache
+                value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
+                cache_time = x.patch.time                # also record the time of the last patch we applied.
+            # Now value is the result of applying all patches, and cache_time is the most
+            # recent timestamp of any patch.
         else
-            # find the newest snapshot at a time that is <=time
+            # A time was specified or there is no cache.
+
+            # Find the newest snapshot at a time that is <=time.
             value = '' # default in case no snapshots
             start = 0
-            if @_patches.length > 0
+            if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
                 for i in [@_patches.length-1 .. 0]
                     if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
+                        # Found a patch with known snapshot that is as old as the time.
+                        # This is the base on which we will apply other patches to move forward
+                        # to the requested time.
                         value = @_patches[i].snapshot
                         start = i + 1
                         break
+            # Apply each of the patches we need to get from
+            # value (the last snapshot) to time.
             for i in [start...@_patches.length]
                 x = @_patches[i]
                 if time? and x.time > time
+                    # Done -- no more patches need to be applied
                     break
+                # Apply a patch to move us forward.
+                #console.log("applying patch #{i}")
                 value = apply_patch(x.patch, value)[0]
                 if not time?
-                    cache_time = x.patch.time
+                    # We will save the results of applying
+                    # all these patches in our local cache.
+                    cache_time = x.time
 
         if cache_time
+            # update the cache with our new known value
             @_cache = {time:cache_time, value:value, start:@_patches.length}
 
+        #console.log("value: time=#{new Date() - start_time}")
         return value
 
     # integer index of user who made the edit at given point in time (or undefined)
@@ -899,7 +936,11 @@ class SyncDoc extends EventEmitter
                 #dbg("send request to save")
                 @_set_save(state:'requested', error:false)
 
-    # update of remote version -- update live as a result.
+    ###
+    # When the underlying synctable that defines the state of the document changes
+    # due to new remote patches, this function is called.
+    # It handles update of the remote version, updating our live version as a result.
+    ###
     _handle_patch_update: (changed_keys) =>
         if not changed_keys?
             # this happens right now when we do a save.
