@@ -237,7 +237,15 @@ class exports.Connection extends EventEmitter
         @_ping()
 
     dbg: (f) =>
-        return (m) -> console.log("#{(new Date()).toISOString()} - Client.#{f}: #{m}")
+        return (m...) ->
+            switch m.length
+                when 0
+                    s = ''
+                when 1
+                    s = m[0]
+                else
+                    s = JSON.stringify(m)
+            console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
     _ping: () =>
         if not @_ping_interval?
