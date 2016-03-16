@@ -964,13 +964,20 @@ class JupyterNotebook extends EventEmitter
             path       : path
             foreground : true
 
+    # Whether or not the syncstring has unsaved changes.  This ignores
+    # the Jupyter/DOM, since taking into account the DOM would make
+    # this way too expensive (and any changes there will quickly get saved
+    # to the syncstring, or don't matter).
+    has_unsaved_changes: () =>
+        return @syncstring._syncstring.has_unsaved_changes()
+
     update_save_state: () =>
         if not @save_button? or @state != 'ready'
             return
-        if not @syncstring._syncstring.has_unsaved_changes()
-            @save_button.addClass('disabled')
-        else
+        if @has_unsaved_changes()
             @save_button.removeClass('disabled')
+        else
+            @save_button.addClass('disabled')
 
     save: (cb) =>
         @save_button.icon_spin(start:true, delay:4000)
