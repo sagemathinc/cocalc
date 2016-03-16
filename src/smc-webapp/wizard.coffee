@@ -88,7 +88,7 @@ class Wizard
         else
             @nav.append($("<li><a href='#'>Loading Data ...</a></li>"))
             require.ensure [], =>
-                data = require('../static/wizard/wizard.json')
+                data = require('wizard/wizard.json')
                 cb()
             #$.ajax # TODO use some of those clever retry-functions
             #    url: require("!file!../static/wizard/wizard.js")

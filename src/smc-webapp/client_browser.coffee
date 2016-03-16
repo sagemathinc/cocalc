@@ -24,7 +24,7 @@ _ = require('underscore')
 client = require('smc-util/client')
 
 #{SMC_ICON_URL} = require('./misc_page')
-SMC_ICON_URL = require('../static/salvus-icon.svg')
+SMC_ICON_URL = require('salvus-icon.svg')
 
 # these idle notifications were in misc_page, but importing it here failed
 

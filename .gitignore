@@ -20,10 +20,8 @@ node_modules
 *.sass-cache
 
 src/webpack/
-src/static/index.html
 src/assets.json
-src/static/policies/pricing.html
-src/static/mathjax-*
+src/webapp-lib/policies/_static_pricing_page.html
 
 src/page/temp
 
@@ -67,8 +65,8 @@ src/dev/smc/rethinkdb_data/
 src/dev/laptop/rethinkdb_data/
 
 
-src/static/primus/primus-engine.js
-src/static/primus/primus-engine.min.js
+src/webapp-lib/primus/primus-engine.js
+src/webapp-lib/primus/primus-engine.min.js
 src/restart_hub
 src/restart_compute
 .coffee

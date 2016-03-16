@@ -7,14 +7,14 @@
         <meta name="description" content="SageMathCloud">
         <meta name="author" content="William Stein">
         <title>SageMath, Inc. Pricing</title>
-        <link href="/static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
+        <link href="<%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>" rel="stylesheet">
          <!--
         <script type="text/javascript" src="/static/jquery/jquery.min.js"></script>
         <script type="text/javascript" src="/static/bootstrap-3.3.0/js/bootstrap.min.js"></script>
         -->
     </head>
     <body>
-        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="/static/favicon-96.png" class="img-rounded"><br>
+        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="<%= require('!file!webapp-lib/favicon-96.png') %>" class="img-rounded"><br>
             SageMathCloud</a>
         <div class="jumbotron">
             <div class="container">
@@ -49,12 +49,9 @@
 
             <hr>
             <!-- The React-rendered SubscriptionGrid component gets inserted below as
-                part of the render process via the update script.  This is temporary until
-                the entire policies pages are written using react... and then the whole
-                page instead gets rendered by update and render.coffee -->
+                part of the webpack static html plugin. -->
 
-            <!-- start:SubscriptionGrid -->
-            <!-- end:SubscriptionGrid -->
+            <%= require('html!./_static_pricing_page.html') %>
 
         </div>
     </body>

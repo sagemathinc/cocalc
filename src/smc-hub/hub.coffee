@@ -99,7 +99,7 @@ path_module = require('path')
 # mime library
 mime = require('mime')
 
-STATIC_PATH = path_module.join(SALVUS_HOME, 'webpack')
+STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -188,29 +188,25 @@ init_express_http_server = () ->
     app = express()
     router.use(bodyParser.urlencoded({ extended: true }))
 
-    # The /webpack content
+    # The webpack content
     webpackHeaderControl = (res, path) ->
-        """
-        path = path[STATIC_PATH.length + 1 ..]
-        console.log("path: ", path)
-        d = path_module.dirname(path).split("/")
-        console.log("dir: ", d, path_module.basename(path))
-        test = d[0][...8] == 'mathjax-' or d[0] == 'webpack'
-        console.log("test: ", test)
-        """
+        #path = path[STATIC_PATH.length + 1 ..]
+        #d = path_module.dirname(path).split("/")
+        #test = d[0] == 'webpack'
+        #console.log("static content: dir: ", d, path_module.basename(path), " → test: ", test)
         #if test
         year = ms('100 days') # more than a year is definitely invalid
         res.setHeader('Cache-Control', "public, max-age='#{year}'")
         res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
 
-    router.use '/webpack',
+    router.use '/static',
         express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
 
     router.use '/policies',
         express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: '10m'})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(SALVUS_HOME, 'webpack', 'index.html'), {maxAge: 0})
+        res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
 
 
     # Define how the endpoints are handled
@@ -6100,7 +6096,7 @@ init_compute_server = (cb) ->
 
 update_primus = (cb) ->
     misc_node.execute_code
-        command : path_module.join(SALVUS_HOME, 'static/primus/update_primus')
+        command : path_module.join(SALVUS_HOME, 'webapp-lib/primus/update_primus')
         cb      : cb
 
 #############################################

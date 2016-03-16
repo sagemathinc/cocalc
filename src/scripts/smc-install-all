@@ -27,5 +27,6 @@ npm install
 cd $SMC_ROOT/wizard
 make
 
+# static react pages update must come *before* webpack
 cd $SMC_ROOT
 update_react_static

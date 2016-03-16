@@ -42,8 +42,9 @@ def install_webapp():
     cmd("cd wizard && make")
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)
+    # react static step must come *before* webpack step
     cmd("update_react_static")
-    print("Building production webpack -- this will take about 3 minutes")
+    print("Building production webpack -- grab a coffee, this will take about 5 minutes")
     cmd("npm run webpack-production")
 
 def install_primus():

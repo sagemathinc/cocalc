@@ -25,17 +25,21 @@ Resources for learning webpack:
 ###
 'use strict';
 
-_        = require('lodash')
-webpack  = require('webpack')
-path     = require('path')
-fs       = require('fs')
+_             = require('lodash')
+webpack       = require('webpack')
+path          = require('path')
+fs            = require('fs')
+glob          = require('glob')
+child_process = require('child_process')
 
-VERSION  = "0.0.0"
-INPUT    = path.resolve(__dirname, "static")
-OUTPUT   = "webpack"
-DEVEL    = "development"
-NODE_ENV = process.env.NODE_ENV || DEVEL
-dateISO  = new Date().toISOString()
+git_head    = child_process.execSync("git rev-parse --short HEAD")
+SMC_VERSION = git_head.toString().trim()
+WEBAPP_LIB  = 'webapp-lib'
+INPUT       = path.resolve(__dirname, WEBAPP_LIB)
+OUTPUT      = "static"
+DEVEL       = "development"
+NODE_ENV    = process.env.NODE_ENV || DEVEL
+dateISO     = new Date().toISOString()
 
 # create a file base_url to set a base url
 BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() + "/" else ''
@@ -69,7 +73,7 @@ mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 WebpackSHAHash = require('webpack-sha-hash')
 webpackSHAHash = new WebpackSHAHash()
 
-# cleanup like "make distclean" (necessary, otherwise there are millions of hashed filenames)
+# cleanup like "make distclean"
 CleanWebpackPlugin = require('clean-webpack-plugin')
 cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
                                             verbose: true
@@ -82,7 +86,7 @@ assetsPlugin = new AssetsPlugin
                         fullPath   : no
                         prettyPrint: true
                         metadata:
-                            version: VERSION
+                            version: SMC_VERSION
                             date   : dateISO
 
 # https://www.npmjs.com/package/html-webpack-plugin
@@ -95,6 +99,14 @@ smcChunkSorter = (a, b) ->
     else
         return 1
 
+# https://github.com/kangax/html-minifier#options-quick-reference
+htmlMinifyOpts =
+    removeComments: true
+    minifyJS : true
+    minifyCSS : true
+    collapseWhitespace : true
+    conservativeCollapse : true
+
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
                         title    : 'SageMathCloud'
@@ -102,7 +114,21 @@ jade2html = new HtmlWebpackPlugin
                         filename : 'index.html'
                         chunksSortMode: smcChunkSorter
                         hash: false
-                        template : 'index.jade'
+                        template : path.join(INPUT, 'index.jade')
+                        minify   : htmlMinifyOpts
+
+# the following set of plugins renders the policy pages
+# they do *not* depend on any of the chunks, but rather specify css and favicon dependencies
+# via lodash's template syntax. e.g.: <%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>
+policyPages = []
+for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename(x)[0] != '_')
+    policyPages.push new HtmlWebpackPlugin
+                        filename : "policies/#{path.basename(pp)}"
+                        inject   : 'head'
+                        favicon  : path.join(INPUT, 'favicon.ico')
+                        template : pp
+                        chunks   : []
+                        minify   : htmlMinifyOpts
 
 # https://webpack.github.io/docs/stylesheets.html
 ExtractTextPlugin = require("extract-text-webpack-plugin")
@@ -115,20 +141,30 @@ extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sour
 extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
 extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sourceMap")
 
-# custom plugin, to handle the quirky situation of index.html
-class MoveFilesToTargetPlugin
+# custom plugin, to handle the quirky situation of extra *.html files
+class LinkFilesIntoTargetPlugin
     constructor: (@files, @target) ->
 
-MoveFilesToTargetPlugin.prototype.apply = (compiler) ->
+LinkFilesIntoTargetPlugin.prototype.apply = (compiler) ->
     compiler.plugin "done", (comp) =>
         #console.log('compilation:', _.keys(comp.compilation))
         _.forEach @files, (fn) =>
-            src = path.join(path.resolve(__dirname, INPUT), fn)
-            dst = path.join(@target, fn)
-            console.log("moving file:", src, "→", dst)
-            fs.renameSync(src, dst)
+            if fn[0] != '/'
+                src = path.join(path.resolve(__dirname, INPUT), fn)
+                dst = path.join(@target, fn)
+            else
+                src = fn
+                fnrelative = fn[INPUT.length + 1 ..]
+                dst = path.join(@target, fnrelative)
+            dst = path.resolve(__dirname, dst)
+            console.log("hard-linking file:", src, "→", dst)
+            dst_dir = path.dirname(dst)
+            if not fs.existsSync(dst_dir)
+                fs.mkdir(dst_dir)
+            fs.linkSync(src, dst) # mysteriously, that doesn't work
 
-moveFilesToTargetPlugin = new MoveFilesToTargetPlugin([], OUTPUT)
+#policies = glob.sync(path.join(INPUT, 'policies', '*.html'))
+#linkFilesIntoTargetPlugin = new LinkFilesToTargetPlugin(policies, OUTPUT)
 
 ###
 CopyWebpackPlugin = require('copy-webpack-plugin')
@@ -136,23 +172,27 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 ###
 
 setNODE_ENV          = new webpack.DefinePlugin
-                                'MATHJAX_VERS': MATHJAX_VERS
-                                'MATHJAX_URL' : MATHJAX_URL
-                                'VERSION'     : VERSION
                                 'process.env' :
-                                    'NODE_ENV'     : JSON.stringify(NODE_ENV)
-
-dedupePlugin         = new webpack.optimize.DedupePlugin()
-limitChunkCount      = new webpack.optimize.LimitChunkCountPlugin({maxChunks: 10})
-minChunkSize         = new webpack.optimize.MinChunkSizePlugin({minChunkSize: 51200})
-occurenceOrderPlugin = new webpack.optimize.OccurenceOrderPlugin()
-# https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
-#commonsChunkPlugin   = new webpack.optimize.CommonsChunkPlugin
-#                                                name: "vendors"
-#                                                # minChunks: Infinity # wouldn't move anything
+                                   'NODE_ENV' : JSON.stringify(NODE_ENV)
+                                'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
+                                'SMC_VERSION' : JSON.stringify(SMC_VERSION)
+                                'BUILD_DATE'  : JSON.stringify(dateISO)
 
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
+
+
+class PrintChunksPlugin
+
+PrintChunksPlugin.prototype.apply = (compiler) ->
+    compiler.plugin 'compilation', (compilation, params) ->
+        compilation.plugin 'after-optimize-chunk-assets', (chunks) ->
+            console.log(chunks.map (c) ->
+                    id: c.id
+                    name: c.name
+                    includes: c.modules.map (m) ->  m.request
+            )
+
 
 
 #provideGlobals = new webpack.ProvidePlugin
@@ -166,48 +206,55 @@ plugins = [
     jade2html,
     #commonsChunkPlugin,
     assetsPlugin,
-    moveFilesToTargetPlugin,
     extractCSS,
     #copyWebpackPlugin
     webpackSHAHash,
     statsWriterPlugin,
-    mathjaxVersionedSymlink
+    #new PrintChunksPlugin(),
+    mathjaxVersionedSymlink,
+    #linkFilesIntoTargetPlugin,
 ]
 
+plugins = plugins.concat(policyPages)
+
 if NODE_ENV != DEVEL
-    plugins.push dedupePlugin
-    plugins.push occurenceOrderPlugin
-    plugins.push limitChunkCount
-    plugins.push minChunkSize
+    console.log "production mode: enabling compression"
+    # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
+    # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
+    plugins.push new webpack.optimize.DedupePlugin()
+    plugins.push new webpack.optimize.OccurenceOrderPlugin()
+    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
+    plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 25600)
     plugins.push new webpack.optimize.UglifyJsPlugin
-                            minimize:true
-                            comments:false
-                            output:
-                                comments: false
-                            mangle:
-                                except: ['$super', '$', 'exports', 'require']
-                                screw_ie8: true
-                            compress:
-                                screw_ie8: true
-                                warnings: false
-                                properties: true
-                                sequences: true
-                                dead_code: true
-                                conditionals: true
-                                comparisons: true
-                                evaluate: true
-                                booleans: true
-                                unused: true
-                                loops: true
-                                hoist_funs: true
-                                cascade: true
-                                if_return: true
-                                join_vars: true
-                                drop_debugger: true
-                                negate_iife: true
-                                unsafe: true
-                                side_effects: true
-                            sourceMap: true
+                                sourceMap: true
+                                minimize:true
+                                comments:false
+                                output:
+                                    comments: false
+                                mangle:
+                                    except: ['$super', '$', 'exports', 'require']
+                                    screw_ie8: true
+                                compress:
+                                    screw_ie8: true
+                                    warnings: false
+                                    properties: true
+                                    sequences: true
+                                    dead_code: true
+                                    conditionals: true
+                                    comparisons: true
+                                    evaluate: true
+                                    booleans: true
+                                    unused: true
+                                    loops: true
+                                    hoist_funs: true
+                                    cascade: true
+                                    if_return: true
+                                    join_vars: true
+                                    drop_debugger: true
+                                    negate_iife: true
+                                    unsafe: true
+                                    side_effects: true
+
 
 hashname    = '[path][name]-[sha256:hash:base64:10].[ext]'
 pngconfig   = "name=#{hashname}&limit=2000&mimetype=image/png"
@@ -219,8 +266,8 @@ module.exports =
     cache: true
 
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
-        css  : 'smc-webapp-css.coffee'
-        lib  : 'smc-webapp-lib.coffee'
+        css  : 'webapp-css.coffee'
+        lib  : 'webapp-lib.coffee'
         smc  : 'smc-webapp.coffee'
 
     output:
@@ -242,7 +289,7 @@ module.exports =
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},
-            { test: /\.html$/,   loader: "raw!html-minify"},
+            # { test: /\.html$/,   loader: "raw!html-minify"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
@@ -255,6 +302,7 @@ module.exports =
         # So we can require('file') instead of require('file.coffee')
         extensions : ['', '.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
         root       : [path.resolve(__dirname),
+                      path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),

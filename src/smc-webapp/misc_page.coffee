@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('diffsync')
@@ -814,7 +813,7 @@ exports.define_codemirror_extensions = () ->
 
     # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
     require.ensure [], =>
-        data = require('raw!../static/codemirror-extra/data/latex-completions.txt')
+        data = require('raw!codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()
@@ -1401,15 +1400,13 @@ exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb()
     else
-        console.log("loading coffee-script...")
         require.ensure [], =>
-            require("script!../static/coffeescript/coffee-script.js")
+            require("script!coffeescript/coffee-script.js")
+            console.log("loaded CoffeeScript via reqire.ensure")
             cb()
-            ###
-            $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-                console.log("loaded CoffeeScript -- #{status}")
-                cb()
-            ###
+            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
+            #    console.log("loaded CoffeeScript -- #{status}")
+            #    cb()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 

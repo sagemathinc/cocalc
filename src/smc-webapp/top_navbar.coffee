@@ -116,7 +116,7 @@ class TopNavbar  extends EventEmitter
         else if icon_img?
             button_label.prepend($("<img>").attr("src", icon_img))
         else if logo_smc?
-            smc_icon_url = require('../static/salvus-icon.svg')
+            smc_icon_url = require('salvus-icon.svg')
             logo_smc_div = $("<div class='img-rounded'>")
                                 .css('display', 'inline-block')
                                 .css('background-image', "url('#{smc_icon_url}')")
