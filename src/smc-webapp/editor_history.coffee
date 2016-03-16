@@ -32,16 +32,15 @@ class exports.HistoryEditor extends FileEditor
         s = misc.path_split(@filename)
         @_path = s.tail.slice(1, s.tail.length - ".sage-history".length)
         @_open_file_path = @_path
+        if s.head
+            @_open_file_path = s.head + '/' + @_path
+        else
+            @_open_file_path = @_path
         @ext = misc.filename_extension(@_path)
         if @ext == 'ipynb'
-            @_open_file_path = @_path
             @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
-            if s.head
-                @_path = s.head + '/' + @_path
-                @_open_file_path = s.head + '/' + @_open_file_path
-        else
-            if s.head
-                @_path = s.head + '/' + @_path
+        if s.head
+            @_path = s.head + '/' + @_path
 
     init_syncstring: =>
         @syncstring = salvus_client.sync_string
