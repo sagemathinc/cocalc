@@ -151,7 +151,7 @@ class PatchValueCache
         x = @cache[time]
         if not x?
             return
-        x.last_used = new Date()
+        x.last_used = new Date()   # this is only for the client cache, so fine to use browser's clock
         return x
 
     oldest_time: () =>
