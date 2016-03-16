@@ -87,54 +87,5 @@ require("react-widgets/lib/DateTimePicker")
 require("md5")
 require("./smc-webapp/codemirror/codemirror.coffee")
 
-
-# ********************************
-
-
-# MathJax at the end
-### (nice idea, but SMC code has a hard depedency on MathJax)
-window.MathJax =
-   delayStartupUntil: "configured"
-   skipStartupTypeset: true
-   extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
-   jax: ["input/TeX","input/AsciiMath", "output/SVG"]
-   tex2jax:
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ]
-      displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
-      processEscapes: true
-
-   TeX:
-       extensions: ["autoload-all.js"]
-       Macros:  # get these from sage/misc/latex.py
-            Bold:  ["\\mathbb{#1}",1]
-            ZZ:    ["\\Bold{Z}",0]
-            NN:    ["\\Bold{N}",0]
-            RR:    ["\\Bold{R}",0]
-            CC:    ["\\Bold{C}",0]
-            FF:    ["\\Bold{F}",0]
-            QQ:    ["\\Bold{Q}",0]
-            QQbar: ["\\overline{\\QQ}",0]
-            CDF:   ["\\Bold{C}",0]
-            CIF:   ["\\Bold{C}",0]
-            CLF:   ["\\Bold{C}",0]
-            RDF:   ["\\Bold{R}",0]
-            RIF:   ["\\Bold{I} \\Bold{R}",0]
-            RLF:   ["\\Bold{R}",0]
-            CFF:   ["\\Bold{CFF}",0]
-            GF:    ["\\Bold{F}_{#1}",1]
-            Zp:    ["\\ZZ_{#1}",1]
-            Qp:    ["\\QQ_{#1}",1]
-            Zmod:  ["\\ZZ/#1\\ZZ",1]
-
-   # do not use "xypic.js", frequently causes crash!
-   "HTML-CSS":
-        linebreaks: { automatic: true }
-   SVG:
-        linebreaks: { automatic: true }
-   showProcessingMessages: false
-
-# require("script!./static/mathjax/MathJax.js") # doesn't work
-###
-
 # after "vendors", the real deal starts
 window.smcLoadStatus("Starting main application ...")

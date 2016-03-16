@@ -110,6 +110,7 @@ htmlMinifyOpts =
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
                         title    : 'SageMathCloud'
+                        version  : SMC_VERSION
                         mathjax  : MATHJAX_URL
                         filename : 'index.html'
                         chunksSortMode: smcChunkSorter

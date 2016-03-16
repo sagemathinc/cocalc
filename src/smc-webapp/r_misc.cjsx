@@ -24,9 +24,9 @@ async = require('async')
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
-# injected by webpack, but not for react-static renderings
-SMC_VERSION = SMC_VERSION ? '?'
-BUILD_DATE = BUILD_DATE ? '?'
+# injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
+smc_version = SMC_VERSION ? '?'
+build_date = BUILD_DATE ? '?'
 
 Combobox = require('react-widgets/lib/Combobox')
 
@@ -219,7 +219,7 @@ exports.Footer = rclass
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
-            <span title="Version: #{SMC_VERSION} @ #{BUILD_DATE}">&copy; {misc.YEAR}</span>
+            <span title="Version: #{smc_version} @ #{build_date}">&copy; {misc.YEAR}</span>
         </footer>
 
 

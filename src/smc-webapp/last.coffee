@@ -52,6 +52,55 @@ if client._connected
     if client._signed_in
         client.emit("signed_in", client._sign_in_mesg)
 
+###
+# mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
+# the essential step is at the bottom below: MathJax.Hub.Configured()
+# TODO: this doesn't work, because parts of the SMC app require MathJax during startup to be already there.
+
+window.MathJax =
+   skipStartupTypeset: true
+   extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
+   jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+   tex2jax:
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ]
+      displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
+      processEscapes: true
+
+   TeX:
+       extensions: ["autoload-all.js"]
+       Macros:  # get these from sage/misc/latex.py
+            Bold:  ["\\mathbb{#1}",1]
+            ZZ:    ["\\Bold{Z}",0]
+            NN:    ["\\Bold{N}",0]
+            RR:    ["\\Bold{R}",0]
+            CC:    ["\\Bold{C}",0]
+            FF:    ["\\Bold{F}",0]
+            QQ:    ["\\Bold{Q}",0]
+            QQbar: ["\\overline{\\QQ}",0]
+            CDF:   ["\\Bold{C}",0]
+            CIF:   ["\\Bold{C}",0]
+            CLF:   ["\\Bold{C}",0]
+            RDF:   ["\\Bold{R}",0]
+            RIF:   ["\\Bold{I} \\Bold{R}",0]
+            RLF:   ["\\Bold{R}",0]
+            CFF:   ["\\Bold{CFF}",0]
+            GF:    ["\\Bold{F}_{#1}",1]
+            Zp:    ["\\ZZ_{#1}",1]
+            Qp:    ["\\QQ_{#1}",1]
+            Zmod:  ["\\ZZ/#1\\ZZ",1]
+
+   # do not use "xypic.js", frequently causes crash!
+   "HTML-CSS":
+        linebreaks: { automatic: true }
+   SVG:
+        linebreaks: { automatic: true }
+   showProcessingMessages: false
+###
+
+$ = require("jquery")
 $ ->
+    $("#smc-startup-banner")?.remove()
+    $('#smc-startup-banner-status')?.remove()
     $(parent).trigger('initialize:frame')
+    # $.getScript "#{MATHJAX_URL}?delayStartupUntil=configured", ->
     MathJax.Hub.Configured()
