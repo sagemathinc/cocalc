@@ -364,6 +364,15 @@ class SyncTable extends EventEmitter
         if not @_value_local?
             cb?("don't know local yet")
             return
+
+        if not @_client_query.set?
+            # Nothing to do -- can never set anything for this table.
+            # There are some tables (e.g., stats) where the remote values
+            # could change while user is offline, and the code below would
+            # result in warnings.
+            cb?()
+            return
+
         at_start = @_value_local
         changed = @_changes()
 
@@ -605,9 +614,12 @@ class SyncTable extends EventEmitter
         if not immutable.Map.isMap(changes)
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
         # Ensure that each key is allowed to be set.
+        if not @_client_query.set?
+            cb?("users may not set #{@_table}")
+            return
         can_set = @_client_query.set.fields
         try
-            changes.map (v, k) => if (can_set[k] == undefined) then throw Error("users may not set {@_table}.#{k}")
+            changes.map (v, k) => if (can_set[k] == undefined) then throw Error("users may not set #{@_table}.#{k}")
         catch e
             cb?(e)
             return

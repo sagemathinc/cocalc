@@ -16,6 +16,10 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
                 return err
         return
 
+    warn = (err) ->
+        console.warn("invalid client query: #{err}; query=#{misc.to_json(query)}")
+        return err
+
     v = misc.keys(query)
     if v.length > 1
         return 'must specify exactly one key in the query'
@@ -23,13 +27,12 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
     # Check that the table is in the schema
     user_query = schema.SCHEMA[table]?.user_query
     if not user_query?
-        console.log(misc.to_json(query))
-        return "no user queries of '#{table}' allowed"
+        return warn("no user queries of '#{table}' allowed")
     pattern = query[table]
     if misc.is_array(pattern)
         # get queries are an array or a pattern with a null leaf
         if pattern.length > 1
-            return 'array of length > 1 not yet implemented'
+            return warn('array of length > 1 not yet implemented')
         pattern = pattern[0]
         is_set_query = false
     else
@@ -39,17 +42,17 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
     if is_set_query
         S = user_query.set
         if not S?
-            return "no user set queries of '#{table}' allowed"
+            return warn("no user set queries of '#{table}' allowed")
     else
         S = user_query.get
         if not S?
-            return "no user get queries of '#{table}' allowed"
+            return warn("no user get queries of '#{table}' allowed")
 
     for k,v of pattern
         # Verify that every key of the pattern is in the schema
         f = S.fields[k]
         if f == undefined  # crucial: we don't just need "f?" to be true
-            return "not allowed to access key '#{k}' of '#{table}'"
+            return warn("not allowed to access key '#{k}' of '#{table}'")
 
     # Fill in any function call parts of the pattern
     for k, f of S.fields
@@ -59,6 +62,6 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
     if S.required_fields?
         for k, v of S.required_fields
             if not pattern[k]?
-                return "field '#{k}' must be set"
+                return warn("field '#{k}' must be set")
 
     return
