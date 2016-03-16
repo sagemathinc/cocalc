@@ -657,8 +657,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
             omit_lines = {}
-            for k, x of @other_cursors
-                omit_lines[x.line] = true
+            @_syncstring.get_cursors().map (x, _) =>
+                x.get('locs')?.map (loc) =>
+                    y = loc.get('y')
+                    if y?
+                        omit_lines[y] = true
             cm.delete_trailing_whitespace(omit_lines:omit_lines)
         misc.retry_until_success
             f           : @_save
