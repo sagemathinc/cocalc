@@ -19,7 +19,7 @@ data/
 node_modules
 *.sass-cache
 
-src/webpack/
+src/static/
 src/assets.json
 src/webapp-lib/policies/_static_pricing_page.html
 

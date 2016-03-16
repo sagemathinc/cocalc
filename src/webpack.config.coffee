@@ -289,7 +289,8 @@ module.exports =
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},
-            # { test: /\.html$/,   loader: "raw!html-minify"},
+            # .html only for files in smc-webapp!
+            { test: /\.html$/, include: [ path.resolve(__dirname, 'smc-webapp') ], loader: "raw!html-minify"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
