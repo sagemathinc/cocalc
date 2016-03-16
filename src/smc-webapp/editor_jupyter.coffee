@@ -143,7 +143,6 @@ class JupyterWrapper extends EventEmitter
             if new Date() - start >= max_time_ms
                 @state = 'error'
                 @error = 'timeout loading'
-                @emit('error')
                 cb(@error)
             else
                 # NOTE: we can't use '@nb.events.one "notebook_loaded.Notebook"', since we can't attach
@@ -761,6 +760,10 @@ class JupyterNotebook extends EventEmitter
             dbg("read only")
             cb()
             return
+        if @syncstring?
+            dbg("syncstring already initialized")
+            cb()
+            return
         dbg("initializing synchronized string '#{@syncdb_filename}'")
         syncdoc.synchronized_string
             project_id : @project_id
@@ -770,10 +773,23 @@ class JupyterNotebook extends EventEmitter
                 cb(err)
 
     init_dom: (cb) =>
+        # We try twice, since the first time may result in a timeout or gateway
+        # error as Jupyter gets started up.
+        @_init_dom (err) =>
+            if not err
+                cb()
+            else
+                console.warn("Jupyter -- error loading first time so will try again -- #{err}")
+                @dom?.close()
+                @_init_dom(cb)
+
+    _init_dom: (cb) =>
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
+        @notebook.css('opacity',.05)  # so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
+            @notebook.css('opacity',1)
             if err
                 cb(err)
             else
@@ -798,6 +814,8 @@ class JupyterNotebook extends EventEmitter
 
         # publish button
         @publish_button = @element.find("a[href=#publish]").click(@publish_ui)
+
+        @refresh_button = @element.find("a[href=#refresh]").click(@refresh)
 
     init_dom_events: () =>
         @dom.on('info', @info)
@@ -1050,6 +1068,12 @@ class JupyterNotebook extends EventEmitter
             @publish_button.find("fa-refresh").hide()
             cb?(err)
         )
+
+    refresh: (cb) =>
+        @dom?.close()
+        delete @dom
+        @state = 'init'
+        @load(cb)
 
     ###
     Used for testing.  Call this to have a "robot" count from 1 up to n
