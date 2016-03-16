@@ -156,8 +156,9 @@ class FileUseActions extends Actions
             obj.last_edited = now
         table.set obj, (err)=>
             if err
-                err += " (project_id=#{project_id}, path=#{path})"
-                console.warn("FileUseActions.mark_file error: ", err)
+                if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
+                    err += " (project_id=#{project_id}, path=#{path})"
+                    console.warn("FileUseActions.mark_file error: ", err)
 
 class FileUseStore extends Store
     get_errors: =>

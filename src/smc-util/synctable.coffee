@@ -413,7 +413,7 @@ class SyncTable extends EventEmitter
             return
 
         if @_state != 'connected'
-            cb?("not connected")
+            cb?("not connected")    # do not change this error message; it is assumed elsewhere.
             return
 
         @_save_debounce ?= {}
