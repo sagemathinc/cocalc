@@ -53,7 +53,7 @@ schema.syncstrings =
                 string_id         : null
                 users             : null
                 last_snapshot     : null
-                snapshot_interval : 200      # unclear how good of a choice this is...
+                snapshot_interval : 150      # unclear how good of a choice this is...
                 project_id        : null
                 path              : null
                 save              : null
