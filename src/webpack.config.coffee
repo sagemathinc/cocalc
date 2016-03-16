@@ -23,7 +23,7 @@ Resources for learning webpack:
     - http://webpack.github.io/docs/tutorials/getting-started/
 
 ###
-'use strict';
+'use strict'
 
 _             = require('lodash')
 webpack       = require('webpack')
@@ -31,30 +31,40 @@ path          = require('path')
 fs            = require('fs')
 glob          = require('glob')
 child_process = require('child_process')
+misc_node     = require('smc-util-node/misc_node')
 
-git_head    = child_process.execSync("git rev-parse --short HEAD")
-SMC_VERSION = git_head.toString().trim()
-WEBAPP_LIB  = 'webapp-lib'
-INPUT       = path.resolve(__dirname, WEBAPP_LIB)
-OUTPUT      = "static"
-DEVEL       = "development"
-NODE_ENV    = process.env.NODE_ENV || DEVEL
-dateISO     = new Date().toISOString()
+git_head      = child_process.execSync("git rev-parse --short HEAD")
+SMC_VERSION   = git_head.toString().trim()
+TITLE         = 'SageMathCloud'
+SMC_REPO      = 'https://github.com/sagemathinc/smc'
+SMC_LICENSE   = 'GPLv3'
+WEBAPP_LIB    = 'webapp-lib'
+INPUT         = path.resolve(__dirname, WEBAPP_LIB)
+OUTPUT        = misc_node.OUTPUT_DIR
+DEVEL         = "development"
+NODE_ENV      = process.env.NODE_ENV || DEVEL
+dateISO       = new Date().toISOString()
 
 # create a file base_url to set a base url
-BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() + "/" else ''
+BASE_URL      = misc_node.BASE_URL
 console.log "NODE_ENV=#{NODE_ENV}"
 console.log "BASE_URL='#{BASE_URL}'"
 console.log "INPUT='#{INPUT}'"
 console.log "OUTPUT='#{OUTPUT}'"
 
 # mathjax version → symlink with version info from package.json/version
-MATHJAX_DIR = 'smc-webapp/node_modules/mathjax'
-MATHJAX_VERS = JSON.parse(fs.readFileSync("#{MATHJAX_DIR}/package.json", 'utf8')).version
-MATHJAX_ROOT = path.join(OUTPUT, "mathjax-#{MATHJAX_VERS}")
-MATHJAX_URL  = path.join(BASE_URL, MATHJAX_ROOT, 'MathJax.js')
-console.log "MATHJAX_ROOT='#{MATHJAX_ROOT}'"
-console.log "MATHJAX_URL='#{MATHJAX_URL}'"
+MATHJAX_URL     = misc_node.MATHJAX_URL  # from where the files are served
+MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
+MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
+console.log "MATHJAX_URL = '#{MATHJAX_URL}'"
+console.log "MATHJAX_ROOT= '#{MATHJAX_ROOT}'"
+
+banner = new webpack.BannerPlugin(
+                        """\
+                        This file has been created by #{TITLE}.
+                        It was compiled #{dateISO} at revision #{SMC_VERSION}.
+                        See #{SMC_REPO} for its #{SMC_LICENSE} code.
+                        """)
 
 # webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
@@ -63,7 +73,8 @@ MathjaxVersionedSymlink.prototype.apply = (compiler) ->
     compiler.plugin "done", (compilation, cb) ->
         fs.exists MATHJAX_ROOT,  (exists, cb) ->
             if not exists
-                fs.symlink("../#{MATHJAX_DIR}", MATHJAX_ROOT, cb)
+                # one directory up, relative to the target of the symlink
+                fs.symlink("../#{MATHJAX_LIB}", MATHJAX_ROOT, cb)
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
@@ -109,7 +120,7 @@ htmlMinifyOpts =
 
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
-                        title    : 'SageMathCloud'
+                        title    : TITLE
                         version  : SMC_VERSION
                         mathjax  : MATHJAX_URL
                         filename : 'index.html'
@@ -204,6 +215,7 @@ plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
+    banner,
     jade2html,
     #commonsChunkPlugin,
     assetsPlugin,

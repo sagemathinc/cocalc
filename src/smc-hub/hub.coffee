@@ -48,8 +48,6 @@ if not process.env.SMC_TEST
 ##############################################################################
 
 
-SALVUS_HOME=process.env['SALVUS_ROOT']
-
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
@@ -99,6 +97,9 @@ path_module = require('path')
 # mime library
 mime = require('mime')
 
+misc_node = require('smc-util-node/misc_node')
+
+SALVUS_HOME = misc_node.SALVUS_HOME
 STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
 
 # SMC libraries
@@ -142,8 +143,6 @@ send_client_version_updates = () ->
     for id, c of clients
         if c.smc_version < SMC_VERSION
             c.push_version_update()
-
-misc_node = require('smc-util-node/misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -198,7 +197,7 @@ init_express_http_server = () ->
         year = ms('100 days') # more than a year is definitely invalid
         res.setHeader('Cache-Control', "public, max-age='#{year}'")
         res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
-
+    console.log "MATHJAX_URL = ", misc_node.MATHJAX_URL
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
 
