@@ -75,11 +75,102 @@ patch_cmp = (a, b) ->
 time_cmp = (a,b) ->
     return a - b   # sorting Date objects doesn't work perfectly!
 
+###
+The PatchValueCache is used to cache values returned
+by SortedPatchList.value.  Caching is critical, since otherwise
+the client may have to apply hundreds of patches after ever
+few keystrokes, which would make SMC unusable.  Also, the
+history browser is very painful to use without caching.
+###
+MAX_PATCHLIST_CACHE_SIZE = 20
+class PatchValueCache
+    constructor: () ->
+        @cache = {}
+
+    # Remove everything from the value cache that has timestamp >= time.
+    # If time not defined, removes everything, thus emptying the cache.
+    invalidate: (time) =>
+        if not time?
+            @cache = {}
+            return
+        time0 = time - 0
+        for tm, _ of @cache
+            if tm >= time0
+                delete @cache[tm]
+        return
+
+    # Ensure the value cache doesn't have too many entries in it by
+    # removing all but n of the ones that have not been accessed recently.
+    prune: (n) =>
+        v = []
+        for time, x of @cache
+            v.push({time:time, last_used:x.last_used})
+        if v.length <= n
+            # nothing to do
+            return
+        v.sort((a,b) -> misc.cmp_Date(a.last_used, b.last_used))
+        for x in v.slice(0, v.length - n)
+            delete @cache[x.time]
+        return
+
+    # Include the given value at the given point in time, which should be
+    # the output of @value(time), and should involve applying all patches
+    # up to @_patches[start-1].
+    include: (time, value, start) =>
+        @cache[time - 0] = {time:time, value:value, start:start, last_used:new Date()}
+        return
+
+    # Return the newest value x with x.time <= time in the cache as an object
+    #    x={time:time, value:value, start:start},
+    # where @value(time) is the given value, and it was obtained
+    # by applying the elements of @_patches up to @_patches[start-1]
+    # Return undefined if there are no cached values.
+    # If time is undefined, returns the newest value in the cache.
+    newest_value_at_most: (time) =>
+        v = misc.keys(@cache)
+        if v.length == 0
+            return
+        v.sort()
+        v.reverse()
+        if not time?
+            return @get(v[0])
+        time0 = time - 0
+        for t in v
+            if t <= time0
+                return @get(t)
+        return
+
+    # Return cached value corresponding to the given point in time.
+    # Here time must be either a new Date() object, or a number (ms since epoch).
+    # If there is nothing in the cache for the given time, returns undefined.
+    # Do NOT mutate the returned value.
+    get: (time) =>
+        if typeof(time) != 'number'
+            # also allow dates
+            time = time - 0
+        x = @cache[time]
+        if not x?
+            return
+        x.last_used = new Date()
+        return x
+
+    oldest_time: () =>
+        v = misc.keys(@cache)
+        if v.length == 0
+            return
+        v.sort()
+        return new Date(parseInt(v[0]))
+
+    # Number of cached values
+    size: () =>
+        return misc.len(@cache)
+
 # Sorted list of patches applied to a string
 class SortedPatchList
     constructor: () ->
         @_patches = []
         @_times = {}
+        @_cache = new PatchValueCache()
         @_snapshot_times = {}
 
     add: (patches) =>
@@ -87,22 +178,20 @@ class SortedPatchList
             # nothing to do
             return
         v = []
+        oldest = undefined
         for x in patches
             if x? and (not @_times[x.time - 0] or (x.snapshot? and not @_snapshot_times[x.time - 0]))
                 v.push(x)
                 @_times[x.time - 0] = true
+                if not oldest? or oldest > x.time
+                    oldest = x.time
                 if x.snapshot?
                     @_snapshot_times[x.time - 0] = true
                     # WARNING: again, assuming patch times are unique here.
                     @_patches = (y for y in @_patches when y.time - 0 != x.time - 0)
-        if @_cache?
-            # if any patch introduced is as old as cached result (but
-            # newer than latest snapshot),
-            # then clear cache, since can't build on it
-            for x in v
-                if x.time - 0 <= @_cache.time - 0
-                    delete @_cache
-                    break
+        if oldest?
+            @_cache.invalidate(oldest)
+
         # this is O(n*log(n)) where n is the length of @_patches and patches;
         # better would be an insertion sort which would be O(m*log(n)) where m=patches.length...
         if v.length > 0
@@ -112,16 +201,8 @@ class SortedPatchList
 
     ###
     value: Return the value of the string at the given (optional)
-    point in time.
-
-    If the optional time is given, only include patches up to (and
-    including) the given time; otherwise, return current value.
-
-    TODO:
-
-        - [ ] Record up to N distinct values in the cache (maybe separated by at least k time steps?)
-        - [ ] When inserting new patches, if a patch is older than something in the cache, remove that from the cache.
-        - [ ] Use best known cached value when computing new value in all cases.
+    point in time.  If the optional time is given, only include patches up
+    to (and including) the given time; otherwise, return current value.
     ###
     value: (time) =>
         #start_time = new Date()
@@ -130,23 +211,31 @@ class SortedPatchList
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
 
-        # If cache_time is nonzero, we will cache the results of this value computation,
-        # so we can use it in the future.
-        cache_time = 0
-        if not time? and @_cache?
-            # There is a cache,
-            # No time was specified, but the cache exists, so we simply move forward
-            # applying patches, starting with the last cached version.
-            value = @_cache.value   # the version that was cached most recently
-            for x in @_patches.slice(@_cache.start, @_patches.length)   # all patches starting with the one for cache
+        # Determine oldest cached value
+        oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
+        # If the oldest cached value exists and is at least as old as the requested
+        # point in time, use it as a base.
+        if oldest_cached_time? and (not time? or time - 0 >= oldest_cached_time - 0)
+            # There is something in the cache, and it is at least as far back in time
+            # as the value we want to compute now.
+            cache = @_cache.newest_value_at_most(time)
+            value = cache.value
+            start = cache.start
+            cache_time = cache.time
+            for x in @_patches.slice(cache.start, @_patches.length)   # all patches starting with the cached one
+                if time? and x.time > time
+                    # Done -- no more patches need to be applied
+                    break
                 value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
-                cache_time = x.patch.time                # also record the time of the last patch we applied.
-            # Now value is the result of applying all patches, and cache_time is the most
-            # recent timestamp of any patch.
+                cache_time = x.time                      # also record the time of the last patch we applied.
+                start += 1
+            if not time? or start - cache.start >= 10
+                # Newest -- or at least 10 patches needed to be applied -- so cache result
+                @_cache.include(cache_time, value, start)
+                @_cache.prune(Math.max(3, Math.min(Math.ceil(30000000/value.length), MAX_PATCHLIST_CACHE_SIZE)))
         else
-            # A time was specified or there is no cache.
-
-            # Find the newest snapshot at a time that is <=time.
+            # Cache is empty or doesn't have anything sufficiently old to be useful.
+            # Find the newest snapshot at a time that is <= time.
             value = '' # default in case no snapshots
             start = 0
             if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
@@ -160,24 +249,49 @@ class SortedPatchList
                         break
             # Apply each of the patches we need to get from
             # value (the last snapshot) to time.
-            for i in [start...@_patches.length]
-                x = @_patches[i]
+            cache_time = 0
+            cache_start = start
+            for x in @_patches.slice(start, @_patches.length)
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
                 value = apply_patch(x.patch, value)[0]
-                if not time?
-                    # We will save the results of applying
-                    # all these patches in our local cache.
-                    cache_time = x.time
-
-        if cache_time
-            # update the cache with our new known value
-            @_cache = {time:cache_time, value:value, start:@_patches.length}
+                cache_time = x.time
+                cache_start += 1
+            if not time? or cache_time and cache_start - start >= 10
+                # Newest -- or at least 10 patches needed to be applied -- so
+                # update the cache with our new known value
+                @_cache.include(cache_time, value, cache_start)
+                @_cache.prune(Math.max(3, Math.min(Math.ceil(30000000/value.length), MAX_PATCHLIST_CACHE_SIZE)))
 
         #console.log("value: time=#{new Date() - start_time}")
+        # Use the following only for testing/debugging, since it will make everything VERY slow.
+        #if @_value_no_cache(time) != value
+        #    console.warn("value for time #{time-0} is wrong!")
+        return value
+
+    # Slow -- only for consistency checking purposes
+    _value_no_cache: (time) =>
+        value = '' # default in case no snapshots
+        start = 0
+        if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
+            for i in [@_patches.length-1 .. 0]
+                if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
+                    # Found a patch with known snapshot that is as old as the time.
+                    # This is the base on which we will apply other patches to move forward
+                    # to the requested time.
+                    value = @_patches[i].snapshot
+                    start = i + 1
+                    break
+        # Apply each of the patches we need to get from
+        # value (the last snapshot) to time.
+        for x in @_patches.slice(start, @_patches.length)
+            if time? and x.time > time
+                # Done -- no more patches need to be applied
+                break
+            value = apply_patch(x.patch, value)[0]
         return value
 
     # integer index of user who made the edit at given point in time (or undefined)
