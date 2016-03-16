@@ -188,7 +188,7 @@ init_express_http_server = () ->
     app = express()
     router.use(bodyParser.urlencoded({ extended: true }))
 
-    # The webpack content
+    # The webpack content. all files except for unhashed .html should be cached long-term
     webpackHeaderControl = (res, path) ->
         #path = path[STATIC_PATH.length + 1 ..]
         #d = path_module.dirname(path).split("/")
