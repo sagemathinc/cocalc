@@ -1,0 +1,701 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+  - name: "rethinkdb apt key"
+    apt_key: url=http://download.rethinkdb.com/apt/pubkey.gpg
+             state=present
+
+  - name: "rethinkdb ppa"
+    apt_repository: repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
+                    state=present
+
+  - name: "apt-get update & upgrade"
+    apt: update_cache=yes cache_valid_time=3600 upgrade=safe
+    # that's cached one hour and upgrades safer uses aptitude's heuristics
+    tags: update
+
+  - name: "additional install packages for all machines"
+    apt: state=latest name={{ item }}
+    with_items:
+      - aptitude
+      - bup
+      - etckeeper
+      - htop
+      - fio
+      - monit
+      - python-pip
+      - dstat
+      - iotop
+      - python-apt
+      - python-pip
+      - python-dateutil
+      - python-tz
+      - python-configparser
+      - python-scipy
+      - python-paramiko
+      - python3-pip
+      - python3-scipy
+      - python3-paramiko
+      - sysbench
+    tags:
+      - install
+
+
+  - name: "system wide pip packages"
+    pip:  executable=pip
+          state=latest
+          name={{ item }}
+    with_items:
+       - google-api-python-client
+       - jsonschema
+       - par2
+
+  - name: "system wide pip3 packages"
+    pip:  executable=pip3
+          state=latest
+          name={{ item }}
+    with_items:
+       - rethinkdb
+       - dateutils
+       - par2
+
+# Install critical packages needed for building SMC source code:
+- hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+
+  - name: 'critical packages needed for building SMC source code'
+    apt: state=latest name={{ item }}
+    with_items:
+    - calibre
+    - dpkg-dev
+    - g++
+    - gfortran
+    - git
+    - iperf
+    - libacl1-dev
+    - libattr1-dev
+    - libbz2-dev
+    - libevent-dev
+    - libfuse-dev
+    - liblzo2-dev
+    - libncurses5-dev
+    - libreadline-dev
+    - libsqlite3-dev
+    - libssl-dev
+    - linux-image-extra-virtual
+    - lsof
+    - m4
+    - make
+    - ntp
+    - openjdk-7-jdk
+    - pandoc
+    - par2
+    - pkg-config
+    - python-lxml
+    - python-pylibacl
+    - python-pyxattr
+    - software-properties-common
+    - ssh
+    - tk-dev
+    - vim
+    - wget
+    - xfsprogs
+    - zlib1g-dev
+    tags:
+      - install
+
+# Compute VM's
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+
+  - name: 'packages on Compute VMs'
+    apt: state=latest name={{ item }}
+    tags:
+      - install
+    with_items:
+    - calibre
+    - dpkg-dev
+    - g++
+    - gfortran
+    - git
+    - git
+    - iperf
+    - libacl1-dev
+    - libattr1-dev
+    - libbz2-dev
+    - libevent-dev
+    - libfuse-dev
+    - liblzo2-dev
+    - libncurses5-dev
+    - libreadline-dev
+    - libsqlite3-dev
+    - libssl-dev
+    - lsof
+    - m4
+    - make
+    - ntp
+    - openjdk-7-jdk
+    - pandoc
+    - par2
+    - pkg-config
+    - python-lxml
+    - python-psutil
+    - python-pylibacl
+    - python-pyxattr
+    - python-simplegeneric
+    - python3-psutil
+    - software-properties-common
+    - ssh
+    - tk-dev
+    - vim
+    - wget
+    - xfsprogs
+    - zlib1g-dev
+
+# Critical to get rid of certain packages that just cause trouble
+- hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'getting rid of certain packages causing trouble'
+    apt: state=absent name={{ item }}
+    with_items:
+    - mlocate
+    tags:
+    - install
+
+# Additional packages (mainly for users, not building)
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Additional packages (mainly for users, not building)'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    with_items:
+    - asciidoc
+    - aspell-*
+    - attr
+    - auctex
+    - autoconf
+    - axiom
+    - bindfs
+    - bison
+    - bowtie2
+    - bowtie2
+    - bowtie2-examples
+    - bowtie2-examples
+    - bsdtar
+    - btrfs-tools
+    - build-essential
+    - bzr
+    - camlp4-extra
+    - ccache
+    - cgmanager
+    - cgmanager-utils
+    - cgmanager-utils
+    - cgroup-bin
+    - cgroup-bin
+    - cgroup-lite
+    - cgroup-lite
+    - check
+    - checkinstall
+    - clang
+    - clojure1.6
+    - cmake
+    - cmake
+    - csh
+    - cvs
+    - cython
+    - dieharder
+    - dieharder
+    - dot2tex
+    - doxygen
+    - dstat
+    - emacs
+    - emacs-goodies-el
+    - emacs-goodies-el
+    - encfs
+    - epstool
+    - ffmpeg
+    - ffmpeg
+    - fig2ps
+    - fish
+    - flex
+    - fonts-ocr-a
+    - gawk
+    - gcc-multilib
+    - gcc-multilib
+    - gdb
+    - ghc
+    - ghc-doc
+    - ghc-haddock
+    - ghc-mod
+    - ghc-prof
+    - git-svn
+    - gmsh
+    - gnugo
+    - golang-go
+    - gpicview
+    - grace
+    - grace
+    - gv
+    - h5utils
+    - haskell-doc
+    - haskell-mode
+    - haskell-platform
+    - haskell-platform-doc
+    - haskell-platform-prof
+    - hdf5-helpers
+    - htop
+    - iceweasel
+    - ifrench
+    - imagemagick
+    - ingerman
+    - inkscape
+    - iotop
+    - ipython3
+    - irssi
+    - ispanish
+    - jags
+    - jags
+    - jekyll
+    - joe
+    - joe
+    - lbzip2
+    - libapr1-dev
+    - libav-tools
+    - libavcodec-dev
+    - libavcodec-extra
+    - libavcodec-extra
+    - libavformat-dev
+    - libboost-all-dev
+    - libboost-all-dev
+    - libboost-python-dev
+    - libboost-python-dev
+    - libboost-signals-dev
+    - libboost-signals-dev
+    - libc6-i386
+    - libc6-i386
+    - libcairomm-1.0-dev
+    - libcap2-bin
+    - libcgal-dev
+    - libcgal-dev
+    - libcurl4-openssl-dev
+    - libcurl4-openssl-dev
+    - libcurl4-openssl-dev
+    - libdc1394-22-dev
+    - libedit-dev
+    - libevent-dev
+    - libf2c2-dev
+    - libgdbm-dev
+    - libgeos++-dev
+    - libgeos-dev
+    - libglpk-dev
+    - libgmp3-dev
+    - libgraphviz-dev
+    - libgsl0-dev
+    - libgstreamer-plugins-base0.10-dev
+    - libgstreamer0.10-dev
+    - libgtk2.0-dev
+    - libgtk2.0-dev
+    - libhdf5-cpp-8
+    - libhdf5-dev
+    - libhdf5-mpich2-dev
+    - libicu-dev
+    - libjasper-dev
+    - libjemalloc-dev
+    - libjemalloc-dev
+    - libjemalloc-dev
+    - libjpeg-dev
+    - liblz4-tool
+    - libmed1
+    - libmp3lame-dev
+    - libncurses5-dev
+    - libnetcdf-dev
+    - libopencore-amrnb-dev
+    - libopencore-amrwb-dev
+    - libpam-cgroup
+    - libpango1.0-dev
+    - libpangox-1.0-dev
+    - libpari-dbg
+    - libpari-dev
+    - libpng++-dev
+    - libprotobuf-dev
+    - libqt4-dev
+    - libroot-bindings-python-dev
+    - libroot-graf2d-postscript5.34
+    - libswscale-dev
+    - libtbb-dev
+    - libtheora-dev
+    - libtool
+    - libv4l-dev
+    - libvorbis-dev
+    - libwebp-dev
+    - libxine2-dev
+    - libxml2-dev
+    - libxslt-dev
+    - libxvidcore-dev
+    - libzmq-dev
+    - linux-tools-common
+    - linux-tools-common
+    - linux-tools-generic
+    - linux-tools-generic
+    - llvm
+    - llvm
+    - lrzip
+    - lua5.2
+    - lua5.2-*
+    - lynx-cur
+    - lzip
+    - m4
+    - markdown
+    - maven
+    - mc
+    - mc
+    - meld
+    - mercurial
+    - mesa-utils
+    - mit-scheme
+    - mit-scheme-dbg
+    - mit-scheme-doc
+    - ml-lex
+    - ml-yacc
+    - mlton
+    - mono-devel
+    - mono-tools-devel
+    - mosh
+    - mysql-client
+    - ncbi-blast+
+    - ncbi-blast+
+    - ncompress
+    - netcdf-bin
+    - netcdf-doc
+    - noweb
+    - ocaml
+    - ocaml-batteries-included
+    - ocaml-batteries-included
+    - ocaml-mode
+    - ocaml-native-compilers
+    - octave
+    - octave-symbolic
+    - opam
+    - opam
+    - opam-docs
+    - opam-docs
+    - p7zip-full
+    - parallel
+    - pari-galpol
+    - pari-gp2c
+    - pdftk
+    - php5
+    - pkg-config
+    - plink
+    - plink
+    - poppler-utils
+    - proofgeneral
+    - proofgeneral-doc
+    - protobuf-compiler
+    - protobuf-compiler
+    - pv
+    - python-autopep8
+    - python-dev
+    - python-docutils
+    - python-fuse
+    - python-h5py
+    - python-mode
+    - python-mode
+    - python-numpy
+    - python-numpy
+    - python-pandas
+    - python-pip
+    - python-scikits-learn
+    - python-scikits.statsmodels
+    - python-scipy
+    - python-skimage
+    - python-skimage-doc
+    - python-skimage-lib
+    - python-sklearn
+    - python-sklearn-doc
+    - python-sklearn-lib
+    - python-software-properties
+    - python-tables
+    - python-virtualenv
+    - python3
+    - python3-setuptools
+    - python3-zmq
+    - quota
+    - quotatool
+    - r-cran-cairodevice
+    - r-cran-rgl
+    - r-recommended
+    - racket
+    - rcs
+    - root-system-bin
+    - ruby-dev
+    - samtools
+    - samtools
+    - sbcl
+    - scilab
+    - scons
+    - sloccount
+    - smem
+    - smlnj
+    - software-properties-common
+    - sparkleshare
+    - spell
+    - sshfs
+    - subversion
+    - subversion-tools
+    - sysstat
+    - texlive
+    - texlive-*
+    - tig
+    - tinc
+    - tmpreaper
+    - tmux
+    - tree
+    - tuareg-mode
+    - unison-all
+    - unrar-free
+    - unrar-free
+    - unzip
+    - uuid-dev
+    - v4l-utils
+    - valgrind
+    - vim
+    - vim-latexsuite
+    - wget
+    - whois
+    - wordnet
+    - x11-apps
+    - x11-apps
+    - x11vnc
+    - x264
+    - xorg-dev
+    - xpra
+    - xpra
+    - xvfb
+    - yacas
+    - yasm
+    - yatex
+    - zsh
+
+
+# Python3-related packages of interest
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Python3-related packages of interest'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    with_items:
+    - bpython3
+    - diveintopython3
+    - libpython3-dev
+    - libzmq3-dev
+    - python3-aeidon
+    - python3-alabaster
+    - python3-anyjson
+    - python3-args
+    - python3-astropy
+    - python3-audioread
+    - python3-babel
+    - python3-bottle
+    - python3-bs4
+    - python3-bsddb3
+    - python3-celery
+    - python3-changelog
+    - python3-cherrypy3
+    - python3-crypto
+    - python3-cryptography
+    - python3-csb
+    - python3-cssutils
+    - python3-dateutil
+    - python3-decorator
+    - python3-defer
+    - python3-dev
+    - python3-distutils-extra
+    - python3-django
+    - python3-django-filters
+    - python3-django-jsonfield
+    - python3-django-model-utils
+    - python3-django-tables2
+    - python3-django-xmlrpc
+    - python3-dns
+    - python3-dnsq
+    - python3-doc
+    - python3-docutils
+    - python3-ecdsa
+    - python3-empy
+    - python3-examples
+    - python3-expiringdict
+    - python3-extras
+    - python3-feedparser
+    - python3-fftw3
+    - python3-flake8
+    - python3-flask
+    - python3-flask-principal
+    - python3-flask-script
+    - python3-flask-sqlalchemy
+    - python3-fysom
+    - python3-gdal
+    - python3-genshi
+    - python3-geoip
+    - python3-gmpy2
+    - python3-gnupg
+    - python3-greenlet
+    - python3-gsw
+    - python3-h5py
+    - python3-httplib2
+    - python3-icalendar
+    - python3-idna
+    - python3-ipy
+    - python3-jinja2
+    - python3-jsmin
+    - python3-lesscpy
+    - python3-levenshtein
+    - python3-linop
+    - python3-mako
+    - python3-matplotlib
+    - python3-mia
+    - python3-misaka
+    - python3-mock
+    - python3-mockito
+    - python3-mpi4py
+    - python3-mpmath
+    - python3-msgpack
+    - python3-nine
+    - python3-nose
+    - python3-nose2
+    - python3-nose2-cov
+    - python3-numexpr
+    - python3-numpy
+    - python3-numpy
+    - python3-oauth
+    - python3-openssl
+    - python3-pandas
+    - python3-pandas
+    - python3-pandocfilters
+    - python3-paramiko
+    - python3-patsy
+    - python3-pep8
+    - python3-persistent
+    - python3-pexpect
+    - python3-pil
+    - python3-pip
+    - python3-pkginfo
+    - python3-ply
+    - python3-potr
+    - python3-progressbar
+    - python3-pyasn1
+    - python3-pygments
+    - python3-pygraph
+    - python3-pyramid
+    - python3-pyro4
+    - python3-pyscss
+    - python3-rdflib
+    - python3-releases
+    - python3-rsa
+    - python3-scipy
+    - python3-shortuuid
+    - python3-simplejson
+    - python3-six
+    - python3-skimage
+    - python3-sphere
+    - python3-sphinx
+    - python3-sqlalchemy
+    - python3-tables
+    - python3-testtools
+    - python3-urllib3
+    - python3-venv
+    - python3-virtualenv
+    - python3-werkzeug
+    - python3-xlrd
+    - python3-xlsxwriter
+    - python3-yaml
+    - python3-zmq
+
+# KWANT
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: kwant
+
+  tasks:
+
+  - name: 'KWANT apt repository'
+    apt_repository: repo='ppa:kwant-project/ppa'
+
+  - name: 'install KWANT'
+    apt: state=latest name={{ item }}
+    with_items:
+    - python-kwant
+    - python-kwant-doc
+    - python3-kwant
+
+# GIAC
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: giac
+
+  tasks:
+
+  - name: 'GIAC repository'
+    apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main' state=present
+
+  - name: 'install GIAC'
+    apt: state=latest name={{ item }}
+    with_items:
+    - giac
+    - python-giacpy
+
+# FEniCS
+# add-apt-repository ppa:fenics-packages/fenics && apt-get update && apt-get install fenics
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: fenics
+
+  tasks:
+
+  - name: 'FEniCS repository'
+    apt_repository: repo='ppa:fenics-packages/fenics'
+
+  - name: 'install FEniCS'
+    apt: state=latest name=fenics
+
+# MPICH
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: mpi
+
+  tasks:
+
+  - name: 'install mpich'
+    apt: state=latest name={{ item }}
+    with_items:
+    - mpich
+    - mpich-doc
+    - libmpich-dev
+
+  - name: 'update-alternativs for mpich binary'
+    alternatives: name=mpi path=/usr/include/mpich

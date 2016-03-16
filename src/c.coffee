@@ -7,6 +7,8 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
+async = require('async')
+
 db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
 
 misc = require('smc-util/misc')
@@ -91,23 +93,31 @@ global.delete_account = (email) ->
                         done("SUCCESS!")
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
 
+DEFAULT_CLOSE_DAYS = 50
 
-global.close_unused_projects = (host) ->
+global.close_unused_projects = (host, cb) ->
+    cb ?= done()
     require('smc-hub/compute-client').compute_server
         db_hosts : db_hosts
         cb       : (err, s)->
             if err
-                done("FAIL -- #{err}")
+                cb("FAIL -- #{err}")
                 return
             s.close_open_unused_projects
                 dry_run      : false
-                min_age_days : 50
+                min_age_days : DEFAULT_CLOSE_DAYS
                 max_age_days : 1000
                 threads      : 2
                 host         : host
-                cb           : done()
+                cb           : cb
 
-console.log("close_unused_projects('hostname') -- close all projects on that host not used in the last 60 days")
+console.log("close_unused_projects('hostname') -- closes all projects on that host not used in the last #{DEFAULT_CLOSE_DAYS} days")
+
+global.close_unused_free_projects = () ->
+    free = [0..3].map((n) -> "compute#{n}-us")
+    async.mapSeries(free, global.close_unused_projects, done())
+
+console.log("close_unused_free_projects() -- closes all projects on all free hosts not used in the last #{DEFAULT_CLOSE_DAYS} days")
 
 global.active_students = (cb) ->
     cb ?= done()

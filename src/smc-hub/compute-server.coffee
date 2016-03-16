@@ -441,15 +441,40 @@ class Project
         @_update_state_cbs = [cb]
         dbg("state likely changed -- determined what it changed to")
         before = @_state
-        @_command
-            action  : 'state'
-            timeout : 60
-            cb      : (err, r) =>
+        result = undefined
+        async.series([
+            (cb) =>
+                @_command
+                    action  : 'state'
+                    timeout : 60
+                    cb      : (err, r) =>
+                        result = r
+                        cb(err)
+            (cb) =>
+                if result?.state == 'broken'
+                    dbg("project broken, so try to stop once")
+                    @_command
+                        action  : 'stop'
+                        cb      : cb
+                else
+                    cb()
+            (cb) =>
+                if result?.state == 'broken'
+                    dbg("project was broken; we stopped, so now trying to get state again")
+                    @_command
+                        action  : 'state'
+                        timeout : 60
+                        cb      : (err, r) =>
+                            result = r
+                            cb(err)
+                else
+                    cb()
+            ], (err) =>
                 if err
                     dbg("error getting status -- #{err}")
                 else
-                    if r['state'] != before
-                        @_state = r['state']
+                    if result.state != before
+                        @_state = result.state
                         @_state_time = new Date()
                         @_state_error = state_error
                         dbg("got new state -- #{@_state}")
@@ -461,6 +486,7 @@ class Project
                 dbg("calling #{v.length} callbacks")
                 for cb in v
                     cb?(err)
+        )
 
     state: (opts) =>
         opts = defaults opts,

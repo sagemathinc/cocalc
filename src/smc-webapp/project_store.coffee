@@ -845,7 +845,7 @@ class ProjectStore extends Store
         listing = listing.toJS()
 
         # TODO: make this store update when account store updates.
-        if @redux.getStore('account')?.state?.other_settings?.mask_files
+        if @redux.getStore('account')?.getIn(["other_settings", "mask_files"])
             @_compute_file_masks(listing)
 
         if path == '.snapshots'
