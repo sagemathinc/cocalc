@@ -395,21 +395,25 @@ class SyncDoc extends EventEmitter
                 @emit('error', err)
 
         if opts.file_use_interval and @_client.is_user()
-            is_chat = misc.filename_extension(@_path) == 'sage-chat'
+            is_chat    = misc.filename_extension(@_path) == 'sage-chat'
+            is_jupyter = misc.filename_extension(@_path) == 'jupyter-sync'
             if opts.file_use_interval == 'default'
                 if is_chat
                     opts.file_use_interval = 10000
                 else
                     opts.file_use_interval = 60000
             if is_chat
-                path = @_path.slice(1, @_path.length-10)
+                path = misc.original_path(@_path)
                 action = 'chat'
+            else if is_jupyter  # it is lame to put this here, but easy.
+                path = misc.original_path(@_path)
+                action = 'edit'
             else
                 path = @_path
                 action = 'edit'
             file_use = () =>
                 @_client.mark_file(project_id:@_project_id, path:path, action:action)
-            @on('user_change', underscore.throttle(file_use, opts.file_use_interval))
+            @on('user_change', underscore.debounce(file_use, opts.file_use_interval, true))
 
         # Initialize throttled functions
         set_cursor_locs = (locs) =>

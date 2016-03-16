@@ -527,8 +527,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
-            cursor_interval   : 1000  # ignored below right now
-            sync_interval     : 1000     # never send sync messages upstream more often than this
+            cursor_interval   : 1000   # ignored below right now
+            sync_interval     : 2000   # never send sync messages upstream more often than this
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
