@@ -55,6 +55,7 @@ The schema below determines the RethinkDB-based database structure.   The notati
 schema.table_name =
     desc: 'A description of this table.'   # will be used only for tooling
     primary_key : 'the_table_primary_key'
+    durability :  'hard' or 'soft' # optional -- if given, specify the table durability; 'hard' is the default
     fields :   # every field *must* be listed here or user queries won't work.
         the_table_primary_key :
             type : 'uuid'
@@ -345,6 +346,7 @@ schema.blobs =
 schema.central_log =
     desc : 'Table for logging system stuff that happens.  Meant to help in running and understanding the system better.'
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields :
         id    : true
         event : true
@@ -356,6 +358,7 @@ schema.central_log =
 
 schema.client_error_log =
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
         id         : true
         event      : true
@@ -395,6 +398,7 @@ schema.compute_servers =
 
 schema.file_access_log =
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
         id         : true
         project_id : true
@@ -407,6 +411,7 @@ schema.file_access_log =
 
 schema.file_use =
     primary_key: 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     fields:
         id          : true
         project_id  : true
@@ -445,6 +450,7 @@ schema.file_use =
 
 schema.hub_servers =
     primary_key : 'host'
+    durability : 'soft' # loss of some log data not serious, since ephemeral and expires quickly anyways
     fields:
         expire : true
     indexes:
@@ -483,6 +489,7 @@ schema.password_reset =
 
 schema.password_reset_attempts =
     primary_key: 'id'
+    durability : 'soft' # loss not serious, since used only for analytics and preventing attacks
     fields:
         email_address : true
         ip_address    : true
@@ -494,6 +501,7 @@ schema.password_reset_attempts =
 
 schema.project_log =
     primary_key: 'id'
+    durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
 
     fields :
         id          : true  # which
@@ -727,6 +735,7 @@ schema.public_paths =
 
 schema.remember_me =
     primary_key : 'hash'
+    durability  : 'soft' # dropping this would just require a user to login again
     fields :
         hash       : true
         value      : true
@@ -797,6 +806,7 @@ schema.site_settings =
 
 schema.stats =
     primary_key: 'id'
+    durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
     anonymous : true   # allow user access, even if not signed in
     fields:
         id                  : true

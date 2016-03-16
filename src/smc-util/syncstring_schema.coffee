@@ -140,6 +140,7 @@ schema.patches.project_query = schema.patches.user_query     #TODO -- will be di
 
 schema.cursors =
     primary_key: 'id'  # this is a compound primary key as an array -- [doc_id, user_id]
+    durability : 'soft' # loss of data for the cursors table just doesn't matter
     fields:
         id   : true    # [doc_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
@@ -169,6 +170,7 @@ schema.cursors =
 
 schema.eval_inputs =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
+    durability : 'soft' # loss of eval requests not serious
     fields:
         id    : true
         input : true
@@ -192,6 +194,7 @@ schema.eval_inputs.project_query = schema.eval_inputs.user_query
 
 schema.eval_outputs =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, output_number starting at 0]
+    durability : 'soft' # loss of eval output not serious (in long term only used for analytics)
     fields:
         id     : true
         output : true

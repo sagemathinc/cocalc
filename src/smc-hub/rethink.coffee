@@ -67,6 +67,7 @@ table_options = (table) ->
     t = SCHEMA[table]
     options =
         primaryKey : t.primary_key ? 'id'
+        durability : t.durability ? 'hard'
     return options
 
 # these fields are arrays of account id's, which
@@ -496,6 +497,26 @@ class RethinkDB
                         dbg("creating #{tables.length} tables: #{tables.join(', ')}")
                     async.map(tables, ((table, cb) => @db.tableCreate(table, table_options(table)).run(cb)), cb)
             (cb) =>
+                dbg("Ensure table durability configuration is as specified in the schema")
+                f = (name, cb) =>
+                    query = @db.table(name).config()
+                    query.pluck('durability').run (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            durability = table_options(name).durability
+                            if x.durability != durability
+                                dbg("Changing durability option for '#{name}' to '#{durability}'")
+                                query.update(durability:durability).run(cb)
+                            else
+                                cb()
+                @db.tableList().run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        async.map(x, f, cb)
+            (cb) =>
+                dbg("Ensure indexes are as specified in the schema")
                 f = (name, cb) =>
                     indexes = misc.deep_copy(SCHEMA[name].indexes)  # sutff gets deleted out of indexes below!
                     if not indexes or SCHEMA[name].virtual
