@@ -1475,9 +1475,15 @@ class RethinkDB
             query = query.between(start, end, {index:'time'})
         query.count().run(opts.cb)
 
-    #############
-    # Tracking file access
-    ############
+    ###
+    Tracking file access
+
+    log_file_access is throttled in each server, in the sense that
+    if it is called with the same input within a minute, those
+    subsequent calls are ignored.  Of course, if multiple servers
+    are recording file_access then there can be more than one
+    entry per minute.
+    ###
     log_file_access: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1485,24 +1491,42 @@ class RethinkDB
             filename   : required
             cb         : undefined
         if not @_validate_opts(opts) then return
+        @_log_file_access ?= {}
+        key = "#{opts.project_id}#{opts.account_id}#{opts.filename}"
+        v = @_log_file_access[key]
+        minute_ago = misc.minutes_ago(1)
+        if v? and v >= minute_ago
+            opts.cb?()
+            return
         entry =
             project_id : opts.project_id
             account_id : opts.account_id
             filename   : opts.filename
             time       : new Date()
+        @_log_file_access[key] = entry.time
+
+        if Math.random() <= 0.2
+            # Sometimes we clear old entries from cache to avoid leaking memory in the long run
+            for k, v of @_log_file_access
+                if v < minute_ago
+                    delete @_log_file_access[k]
+
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
 
-    # Get all files accessed in all projects in given time range
+    ###
+    Query for all files accessed in all projects in given time range.
+
+        db.get_file_access(start:misc.minutes_ago(5)).run(done())
+    ###
     get_file_access: (opts) =>
         opts = defaults opts,
             start  : undefined   # start time
             end    : undefined   # end time
-            cb     : required
         query = @table('file_access_log')
         @_process_time_range(opts)
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'time'})
-        query.run(opts.cb)
+        return query
 
     #############
     # Projects
@@ -3795,10 +3819,22 @@ class RethinkDB
         #dbg("new_val='#{misc.to_json(new_val)}")
 
         # Now do the following reactions to this syncstring change in the background:
+
+        # 1. Awaken the relevant project.
         project_id = old_val?.project_id ? new_val?.project_id
         if project_id? and (new_val.save?.state == 'requested' or (new_val.last_active? and new_val.last_active != old_val.last_active))
             dbg("awakening project #{project_id}")
             awaken_project(@, project_id)
+
+        # 2. Log that this particular file is being used/accessed; this is used only
+        # longterm for analytics.  Note that log_file_access is throttled.
+        if project_id? and new_val?.last_active?
+            filename = old_val?.path
+            if filename? and account_id?
+                @log_file_access
+                    project_id : project_id
+                    account_id : account_id
+                    filename   : filename
 
     # One-off code
     ###
