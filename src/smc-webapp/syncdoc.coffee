@@ -503,13 +503,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         cb?()
 
     _save: (cb) =>
-        async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
-            if err
-                cb(err)
-            else if @_syncstring.has_unsaved_changes()
-                cb("unsaved changes")
-            else
-                cb()
+        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     save: (cb) =>
         misc.retry_until_success
@@ -652,10 +646,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         @_syncstring.set(@codemirror.getValue())
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
+            @_update_unsaved_changes()
             if err
                 cb(err)
-            else if @_has_unsaved_changes()
-                cb("unsaved changes")
             else
                 @_post_save_success?()  # hook so that derived classes can do things, e.g., make blobs permanent
                 cb()

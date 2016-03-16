@@ -25,7 +25,7 @@ Task List
 
 ###
 
-SAVE_SPINNER_DELAY_MS = 3000  # TODO -- make this consistent across editors
+SAVE_SPINNER_DELAY_MS = 5000  # TODO -- make this consistent across editors
 
 # tasks makes use of future timestamps (for due date)
 jQuery.timeago.settings.allowFuture = true
