@@ -215,6 +215,8 @@ schema.eval_inputs =
             fields :
                 id    : 'null'   # 'null' = field gets used for args above then set to null
                 input : null
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
         set :
             fields :
                 id    : true
@@ -222,6 +224,8 @@ schema.eval_inputs =
             required_fields :
                 id    : true
                 input : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
 
 schema.eval_inputs.project_query = schema.eval_inputs.user_query
 
@@ -239,6 +243,8 @@ schema.eval_outputs =
             fields :
                 id    : 'null'   # 'null' = field gets used for args above then set to null
                 output : null
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
         set :
             fields :
                 id    : true
@@ -246,6 +252,8 @@ schema.eval_outputs =
             required_fields :
                 id    : true
                 output : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstring_access_check(obj.id?[0], account_id, project_id, cb)
 
 schema.eval_outputs.project_query = schema.eval_outputs.user_query
 

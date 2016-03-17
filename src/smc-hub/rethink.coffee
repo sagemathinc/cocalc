@@ -3973,7 +3973,7 @@ class RethinkDB
         # claiming they are another users of that project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
-        @table('syncstrings').get(string_id).pluck('project_id').run (err, x) =>
+        @table('syncstrings').get(string_id).pluck('project_id').run {cache:true}, (err, x) =>
             if err
                 cb(err)
             else if not x
@@ -3991,8 +3991,8 @@ class RethinkDB
 
     # Check permissions for querying for syncstrings in a project
     _syncstrings_check: (obj, account_id, project_id, cb) =>
-        dbg = @dbg("_syncstrings_check")
-        dbg(misc.to_json([obj, account_id, project_id]))
+        #dbg = @dbg("_syncstrings_check")
+        #dbg(misc.to_json([obj, account_id, project_id]))
         if not misc.is_valid_uuid_string(obj?.project_id)
             cb("project_id must be a valid uuid")
         else if project_id?
@@ -4006,7 +4006,6 @@ class RethinkDB
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("only users and projects can access syncstrings")
-
 
     # One-off code
     ###
