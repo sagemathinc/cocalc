@@ -1,5 +1,7 @@
 ###
 Schema for synchronized editing of strings.
+
+(c) William Stein, 2016
 ###
 
 misc = require('./misc')
@@ -105,8 +107,6 @@ schema.recent_syncstrings_in_project =
 
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
-# TODO -- currently no security/auth
-# TODO: need an index!
 schema.patches =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
     fields:
@@ -122,16 +122,22 @@ schema.patches =
         lz :
             type : 'boolean'
             desc : "Set or true if the patch string is compressed using the lz algorithm; false if it isn't."
+    indexes :
+        string_id_time : ["[that.r.row('id')(0), that.r.row('id')(1)]"]
     user_query:
         get :
             all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
-                cmd   : 'between'
-                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+                   # -- uses index instead of commented out range query
+                #cmd   : 'between'
+                #args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+                cmd : 'between'
+                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval], index:'string_id_time']
             fields :
                 id       : 'null'   # 'null' = field gets used for args above then set to null
                 patch    : null
                 snapshot : null
             check_hook : (db, obj, account_id, project_id, cb) ->
+                # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
         set :
             fields :
@@ -142,6 +148,7 @@ schema.patches =
                 id       : true
                 patch    : true
             check_hook : (db, obj, account_id, project_id, cb) ->
+                # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
 
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
@@ -153,31 +160,34 @@ schema.cursors =
         id   : true    # [string_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
         time : true    # time when these cursor positions were sent out
+    indexes :
+        string_id : ["that.r.row('id')(0)"]
     user_query:
         get :
-            all :  # if input id in query is doc_id, this gets all cursors of *all users* with given doc_id
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.doc_id, db.r.minval], [obj.doc_id, db.r.maxval]]
+            all :  # query gets all cursors of *all users* with given string_id -- uses index instead of commented out range query
+                #cmd  : 'between'
+                #args : (obj, db) -> [[obj.string_id, db.r.minval], [obj.string_id, db.r.maxval]]
+                cmd  : 'getAll'
+                args : (obj, db) -> [obj.string_id, index:'string_id']
             fields :
-                doc_id : 'null'  # virtual
-                id     : null
-                locs   : null
-                time   : null
-                caused : null
+                id        : null
+                locs      : null
+                time      : null
+                string_id : 'null'  # virtual -- only used for query, not kept in table
             check_hook : (db, obj, account_id, project_id, cb) ->
+                # this verifies that user has read access to these cursors
                 db._user_get_query_cursors_check(obj, account_id, project_id, cb)
         set :
             fields :
                 id     : true    # [string_id, user_id] for setting!
                 locs   : true
                 time   : true
-                caused : true
             required_fields :
                 id     : true
                 locs   : true
                 time   : true
-                caused : true
             check_hook : (db, obj, account_id, project_id, cb) ->
+                # this verifies that user has write access to these cursors
                 db._user_set_query_cursors_check(obj, account_id, project_id, cb)
 
 schema.eval_inputs =

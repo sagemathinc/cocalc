@@ -655,7 +655,7 @@ class SyncDoc extends EventEmitter
         else
             query =
                 cursors :
-                    doc_id : @_string_id
+                    string_id : @_string_id
                     id     : null
                     locs   : null
                     time   : null
