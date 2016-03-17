@@ -3530,8 +3530,8 @@ class RethinkDB
         require_admin = false
         async.series([
             (cb) =>
-                if client_query.check_hook?
-                    client_query.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
+                if client_query.get.check_hook?
+                    client_query.get.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
                 else
                     cb()
             (cb) =>
@@ -3944,7 +3944,7 @@ class RethinkDB
 
     # Verify that writing a patch is allowed.
     _user_get_query_cursors_check: (obj, account_id, project_id, cb) =>
-        @_user_set_query_cursors_check(obj, account_id, project_id, cb)
+        @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
 
     _syncstring_access_check: (string_id, account_id, project_id, cb) =>
         # Check that string_id is the id of a syncstring the the given account_id or
@@ -3969,6 +3969,23 @@ class RethinkDB
                 else
                     cb("project not allowed to write to syncstring in different project")
 
+    # Check permissions for querying for syncstrings in a project
+    _syncstrings_check: (obj, account_id, project_id, cb) =>
+        dbg = @dbg("_syncstrings_check")
+        dbg(misc.to_json([obj, account_id, project_id]))
+        if not misc.is_valid_uuid_string(obj?.project_id)
+            cb("project_id must be a valid uuid")
+        else if project_id?
+            if project_id == obj.project_id
+                # The project can access its own syncstrings
+                cb()
+            else
+                cb("projects can only access their own syncstrings") # for now at least!
+        else if account_id?
+            # Access request by a client user
+            @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
+        else
+            cb("only users and projects can access syncstrings")
 
 
     # One-off code

@@ -21,8 +21,8 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
         return err
 
     v = misc.keys(query)
-    if v.length > 1
-        return 'must specify exactly one key in the query'
+    if v.length != 1
+        return warn('must specify exactly one key in the query')
     table = v[0]
     # Check that the table is in the schema
     user_query = schema.SCHEMA[table]?.user_query

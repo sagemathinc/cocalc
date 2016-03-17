@@ -310,11 +310,11 @@ class SyncTable extends EventEmitter
                     if @_state == 'closed'
                         cb?("closed")
                     else if err
-                        console.warn("query '#{@_table}': _run: first error ", err)
+                        console.warn("query '#{misc.to_json(@_query)}': _run: first error ", err)
                         @_state = 'closed'
                         cb?(err)
                     else if not resp?.query?[@_table]?
-                        console.warn("query on '#{@_table}' returned undefined")
+                        console.warn("query on '#{misc.to_json(@_query)}' returned undefined")
                         @_state = 'closed'
                         cb?("got no data")
                     else

@@ -62,14 +62,18 @@ schema.syncstrings =
                 last_active       : null
                 init              : null
                 read_only         : null
-
+            required_fields :
+                path              : true
+                project_id        : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstrings_check(obj, account_id, project_id, cb)
         set :
             fields :
                 string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : true
                 last_snapshot     : true
                 snapshot_interval : true
-                project_id        : 'project_write'
+                project_id        : true
                 path              : true
                 save              : true
                 last_active       : true
@@ -78,8 +82,10 @@ schema.syncstrings =
             required_fields :
                 path              : true
                 project_id        : true
-            on_change : (database, old_val, new_val, account_id, cb) ->
-                database._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstrings_check(obj, account_id, project_id, cb)
+            on_change : (db, old_val, new_val, account_id, cb) ->
+                db._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
 
 
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
@@ -99,11 +105,16 @@ schema.recent_syncstrings_in_project =
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.project_id, misc.minutes_ago(obj.max_age_m)], [obj.project_id, db.r.maxval], index:'project_last_active']
             fields :
-                project_id  : true
+                project_id  : null
                 max_age_m   : 'null'
                 string_id   : null
                 last_active : null
                 path        : null
+            required_fields :
+                project_id  : true
+                max_age_m   : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstrings_check(obj, account_id, project_id, cb)
 
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
