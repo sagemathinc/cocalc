@@ -3381,49 +3381,20 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     """
     Display a PDF file from the filesystem in an output cell of a worksheet.
 
+    It uses the HTML object tag, which uses either the browser plugin,
+    or provides a download link in case the browser can't display pdf's.
+
     INPUT:
 
     - filename
-    - viewer -- 'object' (default): use html object tag, which uses the browser plugin, or
-                provides a download link in case the browser can't display pdf's.
-              -- 'pdfjs' (experimental):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
-                (this works on more browser, but may be slower and uglier)
-    - width -- (default: 1000) -- pixel width of viewer
-    - height -- (default: 600) -- pixel height of viewer
-    - scale  -- (default: 1.6) -- zoom scale (only applies to pdfjs)
+    - width     -- (default: 1000) -- pixel width of viewer
+    - height    -- (default: 600)  -- pixel height of viewer
     """
     url = salvus.file(filename, show=False)
-    if viewer == 'object':
-        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> Your browser doesn\'t support embedded PDF\'s, but you can <a href="%s">download %s</a></p> </object>'%(url, width, height, url, filename)
-        salvus.html(s)
-    elif viewer == 'pdfjs':
-        import uuid
-        id = 'a'+str(uuid())
-        salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
-        salvus.html("""
-    <!-- pdf.js-based embedded javascript PDF viewer -->
-    <!-- File from the PDF.JS Library -->
-    <script type="text/javascript" src="pdfListView/external/compatibility.js"></script>
-    <script type="text/javascript" src="pdfListView/external/pdf.js"></script>
-
-    <!-- to disable webworkers: swap these below -->
-    <!-- <script type="text/javascript">PDFJS.disableWorker = true;</script> -->
-    <script type="text/javascript">PDFJS.workerSrc = 'pdfListView/external/pdf.js';</script>
-
-    <link rel="stylesheet" href="pdfListView/src/TextLayer.css">
-    <script src="pdfListView/src/TextLayerBuilder.js"></script>
-    <link rel="stylesheet" href="pdfListView/src/AnnotationsLayer.css">
-    <script src="pdfListView/src/AnnotationsLayerBuilder.js"></script>
-    <script src="pdfListView/src/PdfListView.js"></script>
-    """)
-
-        salvus.javascript('''
-            var lv = new PDFListView($("#%s")[0], {textLayerBuilder:TextLayerBuilder, annotationsLayerBuilder: AnnotationsLayerBuilder});
-            lv.setScale(%s);
-            lv.loadPdf("%s")'''%(
-            id, scale, url))
-    else:
-        raise RuntimeError("viewer must be 'object' or 'pdfjs'")
+    s = '''<object data="%s" type="application/pdf" width="%s" height="%s">
+    <p>Your browser doesn't support embedded PDF's, but you can <a href="%s">download %s</a></p>
+    </object>'''%(url, width, height, url, filename)
+    salvus.html(s)
 
 
 ########################################################

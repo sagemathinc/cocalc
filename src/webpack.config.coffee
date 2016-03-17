@@ -144,10 +144,16 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename
 
 # video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
 # maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
-videoChat = new HtmlWebpackPlugin
-                        filename : "group_chat_side.html"
+videoChatSide = new HtmlWebpackPlugin
+                        filename : "webrtc/group_chat_side.html"
                         inject   : 'head'
                         template : 'webapp-lib/webrtc/group_chat_side.html'
+                        chunks   : []
+                        minify   : htmlMinifyOpts
+videoChatCell = new HtmlWebpackPlugin
+                        filename : "webrtc/group_chat_cell.html"
+                        inject   : 'head'
+                        template : 'webapp-lib/webrtc/group_chat_cell.html'
                         chunks   : []
                         minify   : htmlMinifyOpts
 
@@ -226,7 +232,8 @@ plugins = [
     setNODE_ENV,
     banner,
     jade2html,
-    videoChat,
+    videoChatSide,
+    videoChatCell,
     #commonsChunkPlugin,
     assetsPlugin,
     extractCSS,
