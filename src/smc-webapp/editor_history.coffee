@@ -159,9 +159,14 @@ class exports.HistoryEditor extends FileEditor
         t = time.toLocaleString()
         @element.find(".salvus-editor-history-revision-time").text($.timeago(t)).attr('title', t)
         @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
-        name = smc.redux.getStore('users').get_name(@syncstring.account_id(time))
+        id = @syncstring.account_id(time)
+        name = smc.redux.getStore('users')?.get_name(id)
+        if not name?
+            name = smc.redux.getStore('projects')?.get_title(id)
+            if name?
+                name = "Project: #{name}"
         if name?
-            username = ", #{misc.trunc_middle(name,100)}"
+            username = ", #{misc.trunc_middle(name,35)}"
         else
             username = ''  # don't know user or maybe no recorded user (e.g., initial version)
         @element.find(".salvus-editor-history-revision-user").text(username)
