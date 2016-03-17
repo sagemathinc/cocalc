@@ -470,8 +470,10 @@ class SyncDoc extends EventEmitter
         @_client.query
             query :
                 syncstrings :
-                    string_id : @_string_id
-                    init      : init
+                    string_id  : @_string_id
+                    project_id : @_project_id
+                    path       : @_path
+                    init       : init
             cb : cb
 
     # List of timestamps of the versions of this string in the sync
@@ -762,7 +764,7 @@ class SyncDoc extends EventEmitter
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set(obj, 'none')
         # save the snapshot time in the database
-        @_syncstring_table.set({string_id:@_string_id, last_snapshot:time})
+        @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time})
         @_last_snapshot = time
         return time
 
@@ -840,21 +842,13 @@ class SyncDoc extends EventEmitter
         @_patch_list.show_history(opts)
 
     get_path: =>
-        return @_syncstring_table.get_one()?.get('path')
+        return @_path
 
     get_project_id: =>
-        return @_syncstring_table.get_one()?.get('project_id')
-
-    set_path: (path) =>
-        @_syncstring_table.set(@_syncstring_table.get_one().set('path',path))
-        return
+        return @_project_id
 
     set_snapshot_interval: (n) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('snapshot_interval', n))
-        return
-
-    set_project_id: (project_id) =>
-        @_syncstring_table.set(@_syncstring_table.get_one().set('project_id',project_id))
         return
 
     _handle_syncstring_update: =>
@@ -872,11 +866,12 @@ class SyncDoc extends EventEmitter
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
-            obj = {string_id:@_string_id, last_snapshot:@_last_snapshot, users:@_users}
-            if @_project_id?
-                obj.project_id = @_project_id
-            if @_path?
-                obj.path = @_path
+            obj =
+                string_id     : @_string_id
+                project_id    : @_project_id
+                path          : @_path
+                last_snapshot : @_last_snapshot
+                users         : @_users
             @_syncstring_table.set(obj)
         else
             @_last_snapshot     = x.last_snapshot
@@ -890,7 +885,7 @@ class SyncDoc extends EventEmitter
             if @_user_id == -1
                 @_user_id = @_users.length
                 @_users.push(client_id)
-                @_syncstring_table.set({string_id:@_string_id, users:@_users})
+                @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, users:@_users})
 
             if @_client.is_project()
                 # If client is project and save is requested, start saving...

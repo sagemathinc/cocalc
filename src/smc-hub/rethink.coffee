@@ -3858,7 +3858,7 @@ class RethinkDB
 
         # 1. Awaken the relevant project.
         project_id = old_val?.project_id ? new_val?.project_id
-        if project_id? and (new_val.save?.state == 'requested' or (new_val.last_active? and new_val.last_active != old_val.last_active))
+        if project_id? and (new_val?.save?.state == 'requested' or (new_val?.last_active? and new_val?.last_active != old_val?.last_active))
             dbg("awakening project #{project_id}")
             awaken_project(@, project_id)
 

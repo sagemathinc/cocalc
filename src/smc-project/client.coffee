@@ -112,10 +112,10 @@ class exports.Client extends EventEmitter
                 keys[string_id] = true
                 if not @_open_syncstrings[string_id]?
                     dbg("opening syncstring '#{val.get('path')}' with id '#{string_id}'")
-                    @_open_syncstrings[string_id] = @sync_string(id:string_id)
+                    @_open_syncstrings[string_id] = @sync_string(path:path)
             for id, val of @_open_syncstrings
                 if not keys[id]
-                    dbg("closing syncstring '#{val.path}'")
+                    dbg("closing syncstring '#{path}'")
                     val.close()
                     delete @_open_syncstrings[id]
 
@@ -310,14 +310,13 @@ class exports.Client extends EventEmitter
         #    debounce_interval : 2000
         #return new synctable.SyncTable(opts.query, opts.options, @, opts.debounce_interval)
 
-    # Get the synchronized string with the given id.
+    # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
-            id         : undefined
-            project_id : undefined
-            path       : undefined
-            default    : ''
+            path    : required
+            default : ''
         opts.client = @
+        opts.project_id = @project_id
         return new syncstring.SyncString(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
