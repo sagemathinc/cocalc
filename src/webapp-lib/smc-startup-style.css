@@ -1,7 +1,8 @@
 #smc-startup-banner {
     width: 450px;
-    min-height: 185px;
     background-color: #428BCA;
+    /* bootstrap 3.3 has this line height. fix it, if it changes! */
+    line-height: 1.42857143;
     border-radius: 5px;
     padding: 15px 0;
     text-align: center;
@@ -15,12 +16,13 @@
     color: white;
     animation: banner-error-main ease-in 31s forwards;
 }
+
 #smc-startup-banner-status {
     font-family: sans-serif;
     color: #666;
     text-align: center;
     position: fixed;
-    bottom: 20px;
+    bottom: 15px;
     left: 0;
     right: 0;
 }
@@ -34,10 +36,14 @@
 }
 #smc-startup-banner .banner-blink,
 #smc-startup-banner .banner-error {
-  position: absolute;
   width: 450px;
-  padding: 0;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
+
+#smc-startup-banner .banner-error { float: left; }
+#smc-startup-banner .banner-blink { position: absolute; }
+
 #smc-startup-banner .banner-blink {
   animation: banner-blink 31s forwards;
 }
