@@ -40,6 +40,8 @@ message = require('smc-util/message')
 
 exports.SALVUS_HOME = process.env['SALVUS_ROOT']
 
+exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js libraries
+
 ###
 Asynchronous JSON functionality: these are slower but block the main thread *less*.
 
@@ -781,7 +783,7 @@ run_jQuery = (cb) ->
     if _jQuery_cached != null
         cb(_jQuery_cached)
     else
-        jquery_file = fs.readFileSync("../static/jquery/jquery.min.js", "utf-8")
+        jquery_file = fs.readFileSync("../#{exports.WEBAPP_LIB}/jquery/jquery.min.js", "utf-8")
         require("jsdom").env
           html: "<html></html>",
           src: [jquery_file],

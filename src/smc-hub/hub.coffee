@@ -99,8 +99,10 @@ mime = require('mime')
 
 misc_node = require('smc-util-node/misc_node')
 
-SALVUS_HOME = misc_node.SALVUS_HOME
-STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
+SALVUS_HOME     = misc_node.SALVUS_HOME
+OUTPUT_DIR      = misc_node.OUTPUT_DIR
+STATIC_PATH     = path_module.join(SALVUS_HOME, OUTPUT_DIR)
+WEBAPP_LIB      = misc_node.WEBAPP_LIB
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -178,6 +180,7 @@ ms   = require("ms")
 
 init_express_http_server = () ->
     winston.debug("initializing express http server")
+    winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
     # Create an express application
     express = require('express')
@@ -197,7 +200,7 @@ init_express_http_server = () ->
         year = ms('100 days') # more than a year is definitely invalid
         res.setHeader('Cache-Control', "public, max-age='#{year}'")
         res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
-    console.log "MATHJAX_URL = ", misc_node.MATHJAX_URL
+
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
 
@@ -467,7 +470,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     doc.pipe(res)
 
-    doc.image(path_module.join(SALVUS_HOME, 'static/favicon-128.png'), 268, 15, {width: 64, align: 'center'})
+    doc.image(path_module.join(SALVUS_HOME, "#{WEBAPP_LIB}/favicon-128.png"), 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid
