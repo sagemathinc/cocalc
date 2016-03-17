@@ -109,6 +109,8 @@ class RethinkDB
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
+            cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
+            cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -121,6 +123,9 @@ class RethinkDB
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
+
+        if opts.cache_expiry and opts.cache_size
+            @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -259,9 +264,21 @@ class RethinkDB
                 if not opts?
                     opts = {}
                 that2 = @  # needed to call run_native properly on the object below.
-                query_string = "#{that2}"
+                full_query_string = query_string = "#{that2}"
                 if query_string.length > 200
                     query_string = misc.trunc_middle(query_string, 200) + " (#{query_string.length} chars)"
+
+                if opts.cache?
+                    cache = opts.cache
+                    delete opts.cache
+                    if cache and that._query_cache?
+                        # check for cached result
+                        x = that._query_cache.get(full_query_string)
+                        if x?
+                            winston.debug("using cache for '#{query_string}'")
+                            cb(x[0], x[1])
+                            return
+
                 error = result = undefined
                 f = (cb) ->
                     start = new Date()
@@ -360,7 +377,10 @@ class RethinkDB
                     start_delay : 3000
                     factor      : 1.4
                     max_tries   : 15
-                    cb          : -> cb?(error, result)
+                    cb          : ->
+                        if cache
+                            that._query_cache.set(full_query_string, [error, result])
+                        cb?(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
@@ -2999,7 +3019,7 @@ class RethinkDB
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {"#{account_id}": true}
         require_admin = false
-        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run (err, x) =>
+        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run {cache:true}, (err, x) =>
             if err
                 cb(err)
             else
