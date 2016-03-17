@@ -248,6 +248,9 @@ exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
+exports.is_valid_sha1_string = (s) ->
+    return typeof(s) == 'string' and s.length == 40 and /[a-fA-F0-9]{40}/i.test(s)
+
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 

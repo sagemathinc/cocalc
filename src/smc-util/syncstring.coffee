@@ -366,17 +366,13 @@ class SyncDoc extends EventEmitter
             save_interval     : 1500
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
-            project_id        : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
-            path              : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)
+            project_id        : required   # project_id that contains the doc
+            path              : required   # path of the file corresponding to the doc
             client            : required
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
-        #if window? and not misc.endswith(opts.path ? '', 'chat')
-        #    window.ss = @ # DEBUGING
         if not opts.string_id?
-            if not opts.project_id? or not opts.path?
-                throw "if string_id is not given, then project_id and path must both be given"
             opts.string_id = require('smc-util/schema').client_db.sha1(opts.project_id, opts.path)
         @_closed         = true
         @_string_id     = opts.string_id
@@ -458,6 +454,8 @@ class SyncDoc extends EventEmitter
                 query :
                     syncstrings :
                         string_id   : @_string_id
+                        project_id  : @_project_id
+                        path        : @_path
                         last_active : misc.server_time()
 
     # The project calls this once it has checked for the file on disk; this
@@ -530,8 +528,8 @@ class SyncDoc extends EventEmitter
         query =
             syncstrings :
                 string_id         : @_string_id
-                project_id        : null
-                path              : null
+                project_id        : @_project_id
+                path              : @_path
                 users             : null
                 last_snapshot     : null
                 snapshot_interval : null

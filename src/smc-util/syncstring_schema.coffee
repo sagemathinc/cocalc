@@ -11,8 +11,8 @@ schema.syncstrings =
     primary_key : 'string_id'
     fields :
         string_id :
-            type : 'uuid'
-            desc : 'id of this synchronized string'
+            type : 'sha1'
+            desc : 'id of this synchronized string sha1 hash of (project_id and path)'
         project_id :
             type : 'uuid'
             desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
@@ -50,10 +50,10 @@ schema.syncstrings =
                 cmd   : 'getAll'
                 args  : (obj, db) -> [obj.string_id]
             fields :
-                string_id         : null
+                string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : null
                 last_snapshot     : null
-                snapshot_interval : 150      # unclear how good of a choice this is...
+                snapshot_interval : 150      # unclear how good of a choice 150 is...
                 project_id        : null
                 path              : null
                 save              : null
@@ -62,19 +62,20 @@ schema.syncstrings =
                 read_only         : null
 
         set :
-            # TODO: impose constraints on what can set
             fields :
-                string_id         : true
+                string_id         : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 users             : true
                 last_snapshot     : true
                 snapshot_interval : true
-                project_id        : true
+                project_id        : 'project_write'
                 path              : true
                 save              : true
                 last_active       : true
                 init              : true
                 read_only         : true
-
+            required_fields :
+                path              : true
+                project_id        : true
             on_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
 
@@ -118,15 +119,20 @@ schema.patches =
         snapshot :
             type : 'string'
             desc : 'Optionally gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
+        lz :
+            type : 'boolean'
+            desc : "Set or true if the patch string is compressed using the lz algorithm; false if it isn't."
     user_query:
         get :
             all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+                cmd   : 'between'
+                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
                 id       : 'null'   # 'null' = field gets used for args above then set to null
                 patch    : null
                 snapshot : null
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._user_get_query_patches_check(obj, account_id, project_id, cb)
         set :
             fields :
                 id       : true
@@ -135,14 +141,16 @@ schema.patches =
             required_fields :
                 id       : true
                 patch    : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._user_set_query_patches_check(obj, account_id, project_id, cb)
 
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
 
 schema.cursors =
-    primary_key: 'id'  # this is a compound primary key as an array -- [doc_id, user_id]
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
     durability : 'soft' # loss of data for the cursors table just doesn't matter
     fields:
-        id   : true    # [doc_id, user_id]
+        id   : true    # [string_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
         time : true    # time when these cursor positions were sent out
     user_query:
@@ -156,9 +164,11 @@ schema.cursors =
                 locs   : null
                 time   : null
                 caused : null
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._user_get_query_cursors_check(obj, account_id, project_id, cb)
         set :
             fields :
-                id     : true    # [doc_id, user_id] for setting!
+                id     : true    # [string_id, user_id] for setting!
                 locs   : true
                 time   : true
                 caused : true
@@ -167,6 +177,8 @@ schema.cursors =
                 locs   : true
                 time   : true
                 caused : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._user_set_query_cursors_check(obj, account_id, project_id, cb)
 
 schema.eval_inputs =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]

@@ -3161,6 +3161,11 @@ class RethinkDB
         # user set queries.  In each case, new_val below is only the part
         # of the object that the user requested to change.
 
+        # 0. CHECK: Runs before doing any further processing; has callback, so this
+        # provides a generic way to quickly check whether or not this query is allowed
+        # for things that can't be done declaratively.
+        check_hook = client_query.set.check_hook
+
         # 1. BEFORE: If before_change is set, it is called with input
         #   (database, old_val, new_val, account_id, cb)
         # before the actual change to the database is made.
@@ -3213,6 +3218,11 @@ class RethinkDB
                         else
                             cb()
                 ], cb)
+            (cb) =>
+                if check_hook?
+                    check_hook(@, query, account_id, project_id, cb)
+                else
+                    cb()
             (cb) =>
                 if on_change_hook? or before_change_hook? or instead_of_change_hook?
                     # get the old value before changing it
@@ -3519,6 +3529,11 @@ class RethinkDB
         killfeed      = undefined
         require_admin = false
         async.series([
+            (cb) =>
+                if client_query.check_hook?
+                    client_query.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
+                else
+                    cb()
             (cb) =>
                 # this possibly increases the load on the database a LOT which is not an option, since it kills the site :-(
                 ## cb(); return # to disable
@@ -3849,6 +3864,8 @@ class RethinkDB
 
         # 2. Log that this particular file is being used/accessed; this is used only
         # longterm for analytics.  Note that log_file_access is throttled.
+        # Also, record in a local cache that the user has permission to write
+        # to this syncstring.
         if project_id? and new_val?.last_active?
             filename = old_val?.path
             if filename? and account_id?
@@ -3856,6 +3873,103 @@ class RethinkDB
                     project_id : project_id
                     account_id : account_id
                     filename   : filename
+
+    # Verify that writing a patch is allowed.
+    _user_set_query_patches_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_set_query_patches_check")
+        #dbg(misc.to_json([obj, account_id]))
+        # 1. Check that
+        #  obj.id = [string_id, time, user_id],
+        # where string_id is a valid uuid, time is a timestamp, and user_id is a nonnegative integer.
+        id = obj.id
+        if not misc.is_array(id)
+            cb("id must be an array")
+            return
+        if id.length != 3
+            cb("id must be of length 3")
+            return
+        string_id = id[0]; time = id[1]; user_id = id[2]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        if not misc.is_date(time)
+            cb("id[1] must be a Date")
+            return
+        if typeof(user_id) != 'number'
+            cb("id[2] must be a number")
+            return
+        if user_id < 0
+            cb("id[2] must be positive")
+            return
+
+        # 2. Write access
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_get_query_patches_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_get_query_patches_check")
+        #dbg(misc.to_json([obj, account_id]))
+        string_id = obj.id?[0]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        # Write access (no notion of read only yet -- will be easy to add later)
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_set_query_cursors_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_set_query_cursors_check")
+        #dbg(misc.to_json([obj, account_id]))
+        # 1. Check that
+        #  obj.id = [string_id, user_id],
+        # where string_id is a valid uuid, time is a timestamp, and user_id is a nonnegative integer.
+        id = obj.id
+        if not misc.is_array(id)
+            cb("id must be an array")
+            return
+        if id.length != 2
+            cb("id must be of length 2")
+            return
+        string_id = id[0]; user_id = id[1]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        if typeof(user_id) != 'number'
+            cb("id[1] must be a number")
+            return
+        if user_id < 0
+            cb("id[1] must be positive")
+            return
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_get_query_cursors_check: (obj, account_id, project_id, cb) =>
+        @_user_set_query_cursors_check(obj, account_id, project_id, cb)
+
+    _syncstring_access_check: (string_id, account_id, project_id, cb) =>
+        # Check that string_id is the id of a syncstring the the given account_id or
+        # project_id is allowed to write to.  NOTE: We do not concern ourselves (for now at least)
+        # with proof of identity (i.e., one user with full read/write access to a project
+        # claiming they are another users of that project), since our security model
+        # is that any user of a project can edit anything there.  In particular, the
+        # synctable lets any user with write access to the project edit the users field.
+        @table('syncstrings').get(string_id).pluck('project_id').run (err, x) =>
+            if err
+                cb(err)
+            else if not x
+                # There is no such syncstring with this id -- fail
+                cb("no such syncstring")
+            else if account_id?
+                # Attempt to write by a user browser client
+                @_require_project_ids_in_groups(account_id, [x.project_id], ['owner', 'collaborator'], cb)
+            else if project_id?
+                # Attempt to write by a *project*
+                if project_id == x.project_id
+                    cb()
+                else
+                    cb("project not allowed to write to syncstring in different project")
+
+
 
     # One-off code
     ###
