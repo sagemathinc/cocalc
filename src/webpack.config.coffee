@@ -269,9 +269,10 @@ if NODE_ENV != DEVEL
                                     side_effects: true
 
 
-hashname    = '[path][name]-[sha256:hash:base64:10].[ext]'
-pngconfig   = "name=#{hashname}&limit=2000&mimetype=image/png"
-svgconfig   = "name=#{hashname}&limit=2000&mimetype=image/svg+xml"
+# don't use base64!
+hashname    = '[sha256:hash:base62:33].[ext]'
+pngconfig   = "name=#{hashname}&limit=16000&mimetype=image/png"
+svgconfig   = "name=#{hashname}&limit=16000&mimetype=image/svg+xml"
 icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
 woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 
