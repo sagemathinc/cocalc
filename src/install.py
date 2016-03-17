@@ -48,7 +48,7 @@ def install_webapp():
     cmd("npm run webpack-production")
 
 def install_primus():
-    cmd("static/primus/update_primus")
+    cmd("webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:

@@ -142,6 +142,15 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename
                         chunks   : []
                         minify   : htmlMinifyOpts
 
+# video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
+# maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
+videoChat = new HtmlWebpackPlugin
+                        filename : "group_chat_side.html"
+                        inject   : 'head'
+                        template : 'webapp-lib/webrtc/group_chat_side.html'
+                        chunks   : []
+                        minify   : htmlMinifyOpts
+
 # https://webpack.github.io/docs/stylesheets.html
 ExtractTextPlugin = require("extract-text-webpack-plugin")
 
@@ -217,6 +226,7 @@ plugins = [
     setNODE_ENV,
     banner,
     jade2html,
+    videoChat,
     #commonsChunkPlugin,
     assetsPlugin,
     extractCSS,
@@ -304,7 +314,8 @@ module.exports =
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},
             # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [ path.resolve(__dirname, 'smc-webapp') ], loader: "raw!html-minify"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify"},
+            #{ test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp', 'webrtc')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },

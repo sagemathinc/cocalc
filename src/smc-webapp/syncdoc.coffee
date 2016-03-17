@@ -1138,10 +1138,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         video_container = @element.find(".salvus-editor-codemirror-chat-video")
         video_container.empty()
-        video_container.html("
-            <iframe id=#{room_id} src=\"/static/webrtc/group_chat_side.html?#{room_id}\" height=\"#{video_height}\">
-            </iframe>
-            ")
+        # webpacking this here doesn't, because it needs a parameter and webpack only has js file as targets (if rendered to a file)
+        # maybe https://github.com/webpack/webpack/issues/536 has some answer some day in the future …
+        # TODO make this video chat properly part of the website or get rid of it
+        group_chat_url = window.smc_base_url + "/static/group_chat_side.html"
+        video_container.html("<iframe id='#{room_id}' src='#{group_chat_url}?#{room_id}' height='#{video_height}'></iframe>")
 
         # Update heights of chat and video windows
         @editor.emit 'show-chat'
