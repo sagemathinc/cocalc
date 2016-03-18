@@ -2416,7 +2416,8 @@ class RethinkDB
         opts = defaults opts,
             host : required   # hostname of the compute server
             cb   : required
-        @table('compute_servers').get(opts.host).pluck('member_host').run (err, x) =>
+        # we cache (for a few seconds), since this is very unlikely to change.
+        @table('compute_servers').get(opts.host).pluck('member_host').run {cache:true}, (err, x) =>
             opts.cb(err, !!(x?.member_host))
 
     ###
@@ -2996,7 +2997,7 @@ class RethinkDB
         return selector
 
     is_admin: (account_id, cb) =>
-        @table('accounts').get(account_id).pluck('groups').run (err, x) =>
+        @table('accounts').get(account_id).pluck('groups').run {cache:true}, (err, x) =>
             if err
                 cb(err)
             else
