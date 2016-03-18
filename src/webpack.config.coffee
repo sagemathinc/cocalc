@@ -112,6 +112,7 @@ smcChunkSorter = (a, b) ->
 
 # https://github.com/kangax/html-minifier#options-quick-reference
 htmlMinifyOpts =
+    empty: true
     removeComments: true
     minifyJS : true
     minifyCSS : true
@@ -139,7 +140,7 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.html') when path.basename
                         inject   : 'head'
                         favicon  : path.join(INPUT, 'favicon.ico')
                         template : pp
-                        chunks   : []
+                        chunks   : ['css']
                         minify   : htmlMinifyOpts
 
 # video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
@@ -254,11 +255,11 @@ if NODE_ENV != DEVEL
     plugins.push new webpack.optimize.DedupePlugin()
     plugins.push new webpack.optimize.OccurenceOrderPlugin()
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
-    plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 25600)
+    plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
     plugins.push new webpack.optimize.UglifyJsPlugin
                                 sourceMap: true
-                                minimize:true
-                                comments:false
+                                minimize: true
+                                comments: false
                                 output:
                                     comments: false
                                 mangle:
@@ -296,10 +297,13 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 module.exports =
     cache: true
 
+    # https://webpack.github.io/docs/configuration.html#devtool
+    devtool: 'cheap-source-map'
+
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
         css  : 'webapp-css.coffee'
         lib  : 'webapp-lib.coffee'
-        smc  : 'smc-webapp.coffee'
+        smc  : 'webapp-smc.coffee'
 
     output:
         path          : OUTPUT
@@ -321,8 +325,8 @@ module.exports =
             { test: /\.svg(\?v=[0-9].[0-9].[0-9])?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},
             # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify"},
-            #{ test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp', 'webrtc')], loader: "html-loader"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
+            # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.(ttf|eot)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=#{hashname}" },
@@ -344,6 +348,11 @@ module.exports =
     plugins: plugins
 
     'html-minify-loader':
-         empty: true        # KEEP empty attributes
-         cdata: true        # KEEP CDATA from scripts
-         comments: false
+        empty: true        # KEEP empty attributes
+        cdata: true        # KEEP CDATA from scripts
+        comments: false    # no idea if the settings below from here have any effect
+        removeComments: true
+        minifyJS : true
+        minifyCSS : true
+        collapseWhitespace : true
+        conservativeCollapse : true

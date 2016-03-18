@@ -197,15 +197,15 @@ init_express_http_server = () ->
         #test = d[0] == 'webpack'
         #console.log("static content: dir: ", d, path_module.basename(path), " → test: ", test)
         #if test
-        year = ms('100 days') # more than a year is definitely invalid
-        res.setHeader('Cache-Control', "public, max-age='#{year}'")
+        t = ms('100 days') # more than a year is definitely invalid
+        res.setHeader('Cache-Control', "public, max-age='#{t}'")
         res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
 
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
 
     router.use '/policies',
-        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: '10m'})
+        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
 
     router.get '/', (req, res) ->
         res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})

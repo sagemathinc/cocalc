@@ -16,4 +16,5 @@ require("datetimepicker/bootstrap-datetimepicker.min.css")
 require('react-widgets/lib/less/react-widgets.less')
 
 # info for next step in startup sequence
-window.smcLoadStatus("Loading JavaScript libraries ...")
+if window.smcLoadStatus?
+    window.smcLoadStatus("Loading JavaScript libraries ...")
