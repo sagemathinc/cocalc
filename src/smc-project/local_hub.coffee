@@ -1886,7 +1886,7 @@ class CodeMirrorSession
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
- 
+
     dbg: (f) =>
         return (m) -> winston.debug("CodeMirrorSessions.#{f}: #{m}")
 
@@ -2274,9 +2274,11 @@ jupyter_port = (socket, mesg) ->
     jupyter_port_queue.push({socket:socket, mesg:mesg})
     if jupyter_port_queue.length > 1
         return
+    # fallback during upgrade (TODO remove this)
+    mathjax = mesg.mathjax_url ? "/static/mathjax/MathJax.js"
     misc_node.execute_code
         command     : "smc-jupyter"
-        args        : ['start']
+        args        : ['start', mathjax]
         err_on_exit : true
         bash        : false
         timeout     : 60
@@ -2289,6 +2291,7 @@ jupyter_port = (socket, mesg) ->
                     if not port?
                         err = "unable to start -- no port; info=#{misc.to_json(out)}"
                     else
+                        winston.debug("jupyter_port: smc-jupyter executed → port=#{port}")
                 catch e
                     err = "error parsing smc-jupyter startup output -- #{e}, {misc.to_json(out)}"
             if err

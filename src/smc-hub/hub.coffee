@@ -192,14 +192,9 @@ init_express_http_server = () ->
 
     # The webpack content. all files except for unhashed .html should be cached long-term
     webpackHeaderControl = (res, path) ->
-        #path = path[STATIC_PATH.length + 1 ..]
-        #d = path_module.dirname(path).split("/")
-        #test = d[0] == 'webpack'
-        #console.log("static content: dir: ", d, path_module.basename(path), " → test: ", test)
-        #if test
-        t = ms('100 days') # more than a year is definitely invalid
-        res.setHeader('Cache-Control', "public, max-age='#{t}'")
-        res.setHeader("Expires", new Date(Date.now() + year).toUTCString());
+        timeout = ms('100 days') # more than a year would be invalid
+        res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
+        res.setHeader("Expires", new Date(Date.now() + timeout).toUTCString());
 
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
@@ -1272,7 +1267,8 @@ init_http_proxy_server = () =>
             project_id : required   # assumed valid and that all auth already done
             cb         : required   # cb(err, port)
         new_project(opts.project_id).jupyter_port
-            cb   : opts.cb
+            mathjax_url : misc_node.MATHJAX_URL
+            cb          : opts.cb
 
     target = (remember_me, url, cb) ->
         {key, type, project_id, port_number} = target_parse_req(remember_me, url)
