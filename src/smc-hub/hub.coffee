@@ -4837,10 +4837,11 @@ class Project
 
     jupyter_port: (opts) =>
         opts = defaults opts,
-            cb : required
+            mathjax_url : required
+            cb          : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port()
+            mesg    : message.jupyter_port(mathjax_url: opts.mathjax_url)
             timeout : 30
             cb      : (err, resp) =>
                 if err

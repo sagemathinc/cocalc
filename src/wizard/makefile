@@ -1,7 +1,7 @@
 PYTHON ?= python2.7
 
 INDIR  := input
-OUTDIR := ../static/wizard
+OUTDIR := ../webapp-lib/wizard
 
 INPUT  := $(shell find ${INDIR}/ -type f -name '*.yaml')
 OUTPUT := ${OUTDIR}/wizard.json

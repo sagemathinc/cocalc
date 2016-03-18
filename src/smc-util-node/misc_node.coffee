@@ -797,23 +797,24 @@ exports.sanitize_html = (html, cb) ->
         cb($("<div>").html(html).html())
 
 # common configuration for webpack and hub
+# inside the project, there is no salvus_home set, and the code below can't work anyways?
+if exports.SALVUS_HOME?
+	# this is the directory where webpack builds everything
+	exports.OUTPUT_DIR = "static"
+	base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
+	exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else ''
 
-# this is the directory where webpack builds everything
-exports.OUTPUT_DIR = "static"
-base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
-exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else ''
+	# mathjax location and version: we read it from its package.json
+	# webpack symlinks with the version in the path (MATHJAX_ROOT)
+	# this is used by the webapp (via webpack.config and the hub)
+	# the purpose is, that both of them have to know where the final directory of the mathjax root is
 
-# mathjax location and version: we read it from its package.json
-# webpack symlinks with the version in the path (MATHJAX_ROOT)
-# this is used by the webapp (via webpack.config and the hub)
-# the purpose is, that both of them have to know where the final directory of the mathjax root is
-
-exports.MATHJAX_LIB      = 'smc-webapp/node_modules/mathjax'
-mathjax_package_json     = path.resolve(exports.SALVUS_HOME, "#{exports.MATHJAX_LIB}", 'package.json')
-# if the line below causes an exception, there is no mathjax or at the wrong location (should be in MATHJAX_LIB)
-# without that information here, the jupyter notebook can't work
-exports.MATHJAX_VERSION  = JSON.parse(fs.readFileSync(mathjax_package_json, 'utf8')).version
-# that's where webpack writes the symlink to
-exports.MATHJAX_ROOT     = path.join(exports.OUTPUT_DIR, "mathjax-#{exports.MATHJAX_VERSION}")
-# this is where the webapp and the jupyter notebook should get mathjax from
-exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
+	exports.MATHJAX_LIB      = 'smc-webapp/node_modules/mathjax'
+	mathjax_package_json     = path.resolve(exports.SALVUS_HOME, "#{exports.MATHJAX_LIB}", 'package.json')
+	# if the line below causes an exception, there is no mathjax or at the wrong location (should be in MATHJAX_LIB)
+	# without that information here, the jupyter notebook can't work
+	exports.MATHJAX_VERSION  = JSON.parse(fs.readFileSync(mathjax_package_json, 'utf8')).version
+	# that's where webpack writes the symlink to
+	exports.MATHJAX_ROOT     = path.join(exports.OUTPUT_DIR, "mathjax-#{exports.MATHJAX_VERSION}")
+	# this is where the webapp and the jupyter notebook should get mathjax from
+	exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')

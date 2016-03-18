@@ -820,7 +820,7 @@ message
     event       : 'jupyter_port'
     port        : undefined  # gets set in response
     id          : undefined
-    mathjax_url : undefined  # the webapp knows it, e.g. '/mathjax/MathJax.js'
+    mathjax_url : undefined  # e.g. '/static/mathjax-2.6.1/MathJax.js'
 
 #############################################################################
 
