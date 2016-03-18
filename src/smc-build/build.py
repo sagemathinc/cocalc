@@ -313,6 +313,8 @@ R_PACKAGES = [
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
+    'buckygen',
+    'benzene',
     #'chomp',
     'database_cremona_ellcurve',
     'database_odlyzko_zeta',
