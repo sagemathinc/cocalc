@@ -3900,28 +3900,29 @@ class RethinkDB
         #dbg = @dbg("_user_set_query_patches_check")
         #dbg(misc.to_json([obj, account_id]))
         # 1. Check that
-        #  obj.id = [string_id, time, user_id],
-        # where string_id is a valid uuid, time is a timestamp, and user_id is a nonnegative integer.
+        #  obj.id = [string_id, time],
+        # where string_id is a valid sha1 hash and time is a timestamp
         id = obj.id
         if not misc.is_array(id)
             cb("id must be an array")
             return
-        if id.length != 3
-            cb("id must be of length 3")
+        if id.length != 2
+            cb("id must be of length 2")
             return
-        string_id = id[0]; time = id[1]; user_id = id[2]
+        string_id = id[0]; time = id[1]
         if not misc.is_valid_sha1_string(string_id)
             cb("id[0] must be a valid sha1 hash")
             return
         if not misc.is_date(time)
             cb("id[1] must be a Date")
             return
-        if typeof(user_id) != 'number'
-            cb("id[2] must be a number")
-            return
-        if user_id < 0
-            cb("id[2] must be positive")
-            return
+        if obj.user?
+            if typeof(obj.user) != 'number'
+                cb("user must be a number")
+                return
+            if obj.user < 0
+                cb("user must be positive")
+                return
 
         # 2. Write access
         @_syncstring_access_check(string_id, account_id, project_id, cb)

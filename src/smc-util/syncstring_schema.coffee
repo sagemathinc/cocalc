@@ -119,33 +119,29 @@ schema.recent_syncstrings_in_project =
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
 schema.patches =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time]
     fields:
         id       :
-            type : 'compound key [string_id, time, user_id]'
+            type : 'compound key [string_id, time]'
             desc : 'Primary key'
+        user     :
+            type : 'number'
+            desc : 'a nonnegative integer; this is an index into syncstrings.users'
         patch    :
             type : 'string'
             desc : 'JSON string the parses to a patch, which goes from the previous of the syncstring to this version'
         snapshot :
             type : 'string'
-            desc : 'Optionally gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
-        lz :
-            type : 'boolean'
-            desc : "Set or true if the patch string is compressed using the lz algorithm; false if it isn't."
-    indexes :
-        string_id_time : ["[that.r.row('id')(0), that.r.row('id')(1)]"]
+            desc : 'Optionally, gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
     user_query:
         get :
-            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
-                   # -- uses index instead of commented out range query
-                #cmd   : 'between'
-                #args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+            all :
                 cmd : 'between'
-                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval], index:'string_id_time']
+                args  : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
             fields :
                 id       : 'null'   # 'null' = field gets used for args above then set to null
                 patch    : null
+                user     : null
                 snapshot : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
@@ -154,6 +150,7 @@ schema.patches =
             fields :
                 id       : true
                 patch    : true
+                user     : true
                 snapshot : true
             required_fields :
                 id       : true

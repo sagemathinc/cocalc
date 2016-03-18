@@ -677,6 +677,7 @@ class SyncDoc extends EventEmitter
         query =
             id       : [@_string_id, cutoff ? 0]
             patch    : null
+            user     : null
             snapshot : null
         return query
 
@@ -775,12 +776,11 @@ class SyncDoc extends EventEmitter
         @_last = value
         # now save the resulting patch
         time = @_client.server_time()
-
-        # FOR DEBUGGING/TESTING ONLY!
-        window?.s = @
-        time = new Date(Math.floor((time - 0)/10000)*10000)   # fake date for testing to cause collisions
-
         time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
+
+        # FOR *nasty* worst case DEBUGGING/TESTING ONLY!
+        ##window?.s = @
+        ##time = new Date(Math.floor((time - 0)/10000)*10000)   # fake timestamps for testing to cause collisions
 
         @_save_patch(time, patch, cb)
 
@@ -791,8 +791,9 @@ class SyncDoc extends EventEmitter
 
     _save_patch: (time, patch, cb) =>
         obj =  # version for database
-            id    : [@_string_id, time, @_user_id]
+            id    : [@_string_id, time]
             patch : JSON.stringify(patch)
+            user  : @_user_id
         #console.log("_save_patch: #{misc.to_json(obj)}")
         @_my_patches[time - 0] = obj
         x = @_patches_table.set(obj, 'none', cb)
@@ -861,8 +862,9 @@ class SyncDoc extends EventEmitter
     _process_patch: (x, time0, time1, patch) =>
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
-        key = x.get('id').toJS()
-        time = key[1]; user = key[2]
+        key  = x.get('id').toJS()
+        time = key[1]
+        user = x.get('user')
         if time0? and time < time0
             return
         if time1? and time > time1
