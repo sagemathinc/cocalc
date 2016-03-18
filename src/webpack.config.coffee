@@ -257,7 +257,7 @@ if NODE_ENV != DEVEL
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
     plugins.push new webpack.optimize.UglifyJsPlugin
-                                sourceMap: true
+                                sourceMap: false
                                 minimize: true
                                 comments: false
                                 output:
