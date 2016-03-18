@@ -105,18 +105,28 @@ schema    = require('./schema')
 # NOTE (2) Of course you could use both a string and an array as primary keys
 # in the same table.  You could evily make the string equal the json of an array,
 # and this *would* break things.  We are thus assuming that such mixing
-# doesn't happen.  An alternative would be to just *always* use JSON.stringify.
+# doesn't happen.  An alternative would be to just *always* use a *stable* version of stringify.
+# NOTE (3) we use a stable version, since otherwise things will randomly break if the
+# key is an object.
+
+json_stable_stringify = require('json-stable-stringify')
+
 to_key = (x) ->
     if typeof(x) == 'object'
-        return JSON.stringify(x)
+        return json_stable_stringify(x)
     else
         return x
-
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval=2000) ->
         @_init_query()
         @_init()
+
+    # Return string key used in the immutable map in which this table is stored.
+    to_key: (x) =>
+        if immutable.Map.isMap(x)
+            x = x.get(@_primary_key).toJS()
+        return to_key(x)
 
     _init: () =>
         # Any listeners on the client that we should remove when closing this table.
@@ -548,6 +558,7 @@ class SyncTable extends EventEmitter
         local_val = @_value_local.get(key)
         conflict  = false
         if not new_val.equals(local_val)
+            #console.log("change table='#{@_table}': #{misc.to_json(local_val?.toJS())} --> #{misc.to_json(new_val.toJS())}") if @_table == 'patches'
             if not local_val?
                 @_value_local = @_value_local.set(key, new_val)
                 changed_keys.push(key)
@@ -567,6 +578,8 @@ class SyncTable extends EventEmitter
                     @_value_local = @_value_local.set(key, local_val)
                     changed_keys.push(key)
                 if not local_val.equals(new_val)
+                    #console.log("#{@_table}: conflict! ", local_val, new_val) if @_table == 'patches'
+                    @emit('conflict', {new_val:new_val, old_val:local_val})
                     conflict = true
         @_value_server = @_value_server.set(key, new_val)
         return conflict

@@ -56,7 +56,13 @@ exports.make_patch = make_patch = (s0, s1) ->
     return p
 
 exports.apply_patch = apply_patch = (patch, s) ->
-    x = dmp.patch_apply(decompress_patch(patch), s)
+    try
+        x = dmp.patch_apply(decompress_patch(patch), s)
+    catch err
+        # If a patch is so corrupted it can't be parsed -- e.g., due to a bug in SMC -- we at least
+        # want to make application the identity map, so the document isn't completely unreadable!
+        console.warn("apply_patch -- #{err}")
+        return [s, false]
     clean = true
     for a in x[1]
         if not a
@@ -166,29 +172,67 @@ class PatchValueCache
         return misc.len(@cache)
 
 # Sorted list of patches applied to a string
-class SortedPatchList
+class SortedPatchList extends EventEmitter
     constructor: () ->
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
         @_snapshot_times = {}
 
+    close: () =>
+        @removeAllListeners()
+        delete @_patches
+        delete @_times
+        delete @_cache
+        delete @_snapshot_times
+
+    # Choose the next available time in ms that is congruent to m modulo n.
+    # The congruence condition is so that any time collision will have to be
+    # with a single person editing a document with themselves -- two different
+    # users are guaranteed to not collide.  Note: even if there is a collision,
+    # it will automatically fix itself very quickly.
+    next_available_time: (time, m=0, n=1) =>
+        if misc.is_date(time)
+            t = time - 0
+        else
+            t = time
+        if n <= 0
+            n = 1
+        a = m - (t%n)
+        if a < 0
+            a += n
+        t += a  # now t = m (mod n)
+        while @_times[t]?
+            t += n
+        return new Date(t)
+
     add: (patches) =>
         if patches.length == 0
             # nothing to do
             return
+        #console.log("SortedPatchList.add: #{misc.to_json(patches)}")
         v = []
         oldest = undefined
         for x in patches
-            if x? and (not @_times[x.time - 0] or (x.snapshot? and not @_snapshot_times[x.time - 0]))
+            if x?
+                t   = x.time - 0
+                cur = @_times[t]
+                if cur?
+                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user
+                        # re-inserting something; nothing at all to do
+                        continue
+                    else
+                        # adding snapshot or timestamp collision -- remove duplicate
+                        #console.log "overwriting patch #{misc.to_json(t)}"
+                        # remove patch with same timestamp from the sorted list of patches
+                        @_patches = (y for y in @_patches when y.time - 0 != t)
+                        @emit('overwrite', t)
                 v.push(x)
-                @_times[x.time - 0] = true
+                @_times[t] = x
                 if not oldest? or oldest > x.time
                     oldest = x.time
                 if x.snapshot?
-                    @_snapshot_times[x.time - 0] = true
-                    # WARNING: again, assuming patch times are unique here.
-                    @_patches = (y for y in @_patches when y.time - 0 != x.time - 0)
+                    @_snapshot_times[t] = true
         if oldest?
             @_cache.invalidate(oldest)
 
@@ -317,8 +361,8 @@ class SortedPatchList
         i = 0
         for x in @_patches
             tm = x.time
-            if opts.milliseconds then tm = tm - 0
-            console.log("-----------------------------------------------------\n", i, x.user, tm.toLocaleString(), misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
+            tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
+            console.log("-----------------------------------------------------\n", i, x.user, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
             t = apply_patch(x.patch, s)
@@ -381,6 +425,7 @@ class SyncDoc extends EventEmitter
         @_client        = opts.client
         @_doc           = opts.doc
         @_save_interval = opts.save_interval
+        @_my_patches    = {}  # patches that this client made during this editing session.
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -511,8 +556,13 @@ class SyncDoc extends EventEmitter
         delete @_cursor_map
         delete @_users
         @_syncstring_table?.close()
+        delete @_syncstring_table
         @_patches_table?.close()
+        delete @_patches_table
+        @_patch_list?.close()
+        delete @_patch_list
         @_cursors?.close()
+        delete @_cursors
         @_update_watch_path()  # no input = closes it
         @_evaluator?.close()
         delete @_evaluator
@@ -642,6 +692,11 @@ class SyncDoc extends EventEmitter
             @_patches_table.on('before-change', => @emit('before-change'))
             cb()
 
+        @_patch_list.on 'overwrite', (t) =>
+            # ensure that any outstanding save is done
+            @_patches_table.save () =>
+                @_check_for_timestamp_collision(t)
+
     _init_evaluator: (cb) =>
         if misc.filename_extension(@_path) == 'sagews'
             @_evaluator = new Evaluator(@, cb)
@@ -720,16 +775,41 @@ class SyncDoc extends EventEmitter
         @_last = value
         # now save the resulting patch
         time = @_client.server_time()
-        obj =  # version for database
-            id    : [@_string_id, time, @_user_id]
-            patch : JSON.stringify(patch)
-        #dbg("attempting to save patch #{time}")
-        x = @_patches_table.set(obj, 'none', cb)
-        @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
+
+        # FOR DEBUGGING/TESTING ONLY!
+        window?.s = @
+        time = new Date(Math.floor((time - 0)/10000)*10000)   # fake date for testing to cause collisions
+
+        time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
+
+        @_save_patch(time, patch, cb)
+
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
         return value
+
+    _save_patch: (time, patch, cb) =>
+        obj =  # version for database
+            id    : [@_string_id, time, @_user_id]
+            patch : JSON.stringify(patch)
+        #console.log("_save_patch: #{misc.to_json(obj)}")
+        @_my_patches[time - 0] = obj
+        x = @_patches_table.set(obj, 'none', cb)
+        @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
+
+    _check_for_timestamp_collision: (t) =>
+        obj = @_my_patches[t]
+        if not obj?
+            return
+        key = @_patches_table.to_key(obj.id)
+        if obj.patch != @_patches_table.get(key)?.get('patch')
+            #console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
+            # We fix the collision by finding the nearest time after time that
+            # is available, and reinserting our patch at that new time.
+            @_my_patches[t] = 'killed'
+            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
+            @_save_patch(new_time, JSON.parse(obj.patch))
 
     # Save current live string to backend.  It's safe to call this frequently,
     # since it will debounce itself.
@@ -1053,6 +1133,7 @@ class SyncDoc extends EventEmitter
     # It handles update of the remote version, updating our live version as a result.
     ###
     _handle_patch_update: (changed_keys) =>
+        #console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
         if not changed_keys?
             # this happens right now when we do a save.
             return
@@ -1064,16 +1145,18 @@ class SyncDoc extends EventEmitter
 
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
-        # changes would likely overwrite the local ones.
+        # changes would overwrite the local ones.
         live = @_save()
 
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
+
         # if document changed, set to new version
         if live != new_remote
             @_last = new_remote
             @_doc.set(new_remote)
             @emit('change')
+
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.
