@@ -731,25 +731,39 @@ class exports.SynchronizedDB extends EventEmitter
         if not @_doc?
             return
         # change/add anything that has changed or been added
-        i = 0
-        hashes = {}
-        changes = []
-        is_valid = true
+        i = 0  # the current line
+        hashes = {}     # hashes of lines in the synchronized string that represents this local "database"
+        changes = []    # list of changes: inserts, deletes, etc., that we'll make to update the local db from the string
+        is_valid = true          # json corruption: whether any json was corrupt
+        duplicate_lines = false  # another type of corruption: same line duplicated
         for x in @_doc.live().split('\n')
-            if x.length > 0
-                h = hash_string(x)
-                hashes[h] = true
-                if not @_data[h]?
-                    # insert a new record
-                    try
-                        data = @from_json(x)
-                    catch e
-                        # invalid/corrupted json -- still, we try out best
-                        # WE will revert this, unless it is on the initial load.
-                        data = {'corrupt':x}
-                        is_valid = false
-                    @_data[h] = {data:data, line:i}
-                    changes.push({insert:misc.deep_copy(data)})
+            # for each line, compute its hash and check to see if we already know it locally
+            if x.trim().length == 0
+                # ignore empty lines - might as well be robust against them.
+                i += 1
+                continue
+            h = hash_string(x)
+            if hashes[h]
+                # duplicate line in @_doc file! -- should never happen,
+                # but could happen anyways in case of corruption, so
+                # our code may as well be robust against it.
+                i += 1
+                duplicate_lines = true  # remember to fix the document later
+                continue
+            # Found an interesting new line -- record the hash of it.
+            hashes[h] = x
+            if not @_data[h]?
+                # We don't know the data defined by this line of the
+                # syncstring locally, so record it.
+                try
+                    data = @from_json(x)
+                catch e
+                    # Dang -- Invalid/corrupted json -- still, we try out best
+                    # WE will revert this, unless it is on the initial load.
+                    data = {'corrupt':x}
+                    is_valid = false
+                @_data[h] = {data:data, line:i}
+                changes.push({insert:misc.deep_copy(data)})
             i += 1
         for h,v of @_data
             if not hashes[h]?
@@ -758,13 +772,23 @@ class exports.SynchronizedDB extends EventEmitter
                 delete @_data[h]
         if changes.length > 0
             @emit("change", changes)
+        if duplicate_lines
+            # There was corruption involving multiple copies of the same line
+            # in @_doc, so we fix that.  Just setting the whole @_doc from
+            # the database is extra work, but fixes things.
+            @_set_doc_from_data()
         return is_valid
 
+    # Set the synchronized string from our local database.  If hash
+    # is given, only sets ...?
     _set_doc_from_data: (hash) =>
         if not @_doc?
             return
-        if hash? and @_data[hash]?  # second condition due to potential of @_data changing before _set_doc_from_data called
-            # one line changed
+        if hash? and @_data[hash]?
+            # The second condition "@_data[hash]?" is due to the potential
+            # of @_data changing before _set_doc_from_data called and the
+            # corresponding object being gone.
+            # Only one line changed
             d = @_data[hash]
             v = @_doc.live().split('\n')
             v[d.line] = @to_json(d.data)
