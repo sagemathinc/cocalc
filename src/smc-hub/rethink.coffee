@@ -575,7 +575,7 @@ class RethinkDB
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
-    # db._error_thresh=100000; db.delete_expired(cb:done())
+    # db._error_thresh=100000; db.delete_expired(count_only:false, cb:done())
     #
     delete_expired: (opts) =>
         opts = defaults opts,

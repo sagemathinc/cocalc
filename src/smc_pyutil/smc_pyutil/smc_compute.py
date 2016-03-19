@@ -450,6 +450,7 @@ class Project(object):
                     self.get_memory(s)
                 except:
                     log("error running status command")
+                    s['state'] = 'broken'
             return s
 
         if self._single:
@@ -489,6 +490,7 @@ class Project(object):
                 self.get_memory(s)
             except:
                 log("error running status command")
+                s['state'] = 'broken'
         return s
 
     def state(self, timeout=60):
@@ -515,6 +517,7 @@ class Project(object):
                         s['state'] = 'running'
                 except Exception, err:
                     log("error running status command -- %s", err)
+                    s['state'] = 'broken'
             return s
 
         if not os.path.exists(self.project_path):  # would have to be full tiered storage mode
@@ -537,6 +540,7 @@ class Project(object):
                     s['state'] = 'running'
             except Exception, err:
                 log("error running status command -- %s", err)
+                s['state'] = 'broken'
         return s
 
     def _exclude(self, prefix='', extras=[]):
