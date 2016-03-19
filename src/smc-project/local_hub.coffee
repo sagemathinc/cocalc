@@ -2270,7 +2270,7 @@ session_info = (project_id) ->
 ###############################################
 jupyter_port_queue = []
 jupyter_port = (socket, mesg) ->
-    winston.debug("jupyter_port")
+    winston.debug("jupyter_port: mesg=#{misc.to_json(mesg)}")
     jupyter_port_queue.push({socket:socket, mesg:mesg})
     if jupyter_port_queue.length > 1
         return

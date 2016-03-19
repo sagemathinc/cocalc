@@ -72,9 +72,9 @@ def command():
     else:
         base = ''
 
-    # 2nd argument after "start"
-    if len(sys.argv) >= 3:
-        mathjax_url = sys.argv.pop(2)
+    # 2nd argument after "start" ("start" is already eaten, see above)
+    if len(sys.argv) >= 2:
+        mathjax_url = sys.argv.pop(1)
     else:
         mathjax_url = "/static/mathjax/MathJax.js" # fallback
 

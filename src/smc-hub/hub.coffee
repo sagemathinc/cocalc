@@ -1267,7 +1267,6 @@ init_http_proxy_server = () =>
             project_id : required   # assumed valid and that all auth already done
             cb         : required   # cb(err, port)
         new_project(opts.project_id).jupyter_port
-            mathjax_url : misc_node.MATHJAX_URL
             cb          : opts.cb
 
     target = (remember_me, url, cb) ->
@@ -4837,11 +4836,10 @@ class Project
 
     jupyter_port: (opts) =>
         opts = defaults opts,
-            mathjax_url : required
             cb          : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port(mathjax_url: opts.mathjax_url)
+            mesg    : message.jupyter_port(mathjax_url : misc_node.MATHJAX_URL)
             timeout : 30
             cb      : (err, resp) =>
                 if err
