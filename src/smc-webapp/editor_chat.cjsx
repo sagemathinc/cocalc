@@ -136,7 +136,7 @@ Message = rclass
             </Col>
 
     content_column: ->
-        value = @props.message.get('payload')?.get('content')
+        value = @props.message.get('payload')?.get('content') ? ''
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
