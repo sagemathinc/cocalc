@@ -6,6 +6,12 @@ path-prepend () {
   fi
 }
 
+path-append () {
+  if ! echo $PATH | /bin/egrep -q "(^|:)$1($|:)" ; then
+    PATH="$PATH":"$1"
+  fi
+}
+
 path-remove () {
     PATH=${PATH//":$1:"/:} #delete all instances in the middle
     PATH=${PATH/%":$1"/}   #delete any instance at the end
@@ -43,4 +49,6 @@ export SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS
 
 path-prepend "$HOME/.local/bin"
 path-prepend "$HOME/bin"
+path-append  "/projects/data/homer/bin"
+path-append  "/projects/data/weblogo"
 export PATH
