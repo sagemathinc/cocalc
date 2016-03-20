@@ -20,6 +20,12 @@ MAX_FILE_SIZE_MB = 4
 # when the local hub is running.
 TOUCH_INTERVAL_M = 10
 
+# If the client becomes disconnected from the backend for more than this long
+# the---on reconnect---do extra work to ensure that all snapshots are up to
+# date (in case snapshots were made when we were offline), and mark the sent
+# field of patches that weren't saved.
+OFFLINE_THRESH_S = 30
+
 {EventEmitter} = require('events')
 immutable = require('immutable')
 underscore = require('underscore')
@@ -136,7 +142,7 @@ class PatchValueCache
         v = misc.keys(@cache)
         if v.length == 0
             return
-        v.sort()
+        v.sort(misc.cmp)
         v.reverse()
         if not time?
             return @get(v[0])
@@ -164,7 +170,7 @@ class PatchValueCache
         v = misc.keys(@cache)
         if v.length == 0
             return
-        v.sort()
+        v.sort(misc.cmp)
         return new Date(parseInt(v[0]))
 
     # Number of cached values
@@ -218,8 +224,8 @@ class SortedPatchList extends EventEmitter
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
-                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user
-                        # re-inserting something; nothing at all to do
+                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot
+                        # re-inserting exactly the same thing; nothing at all to do
                         continue
                     else
                         # adding snapshot or timestamp collision -- remove duplicate
@@ -247,10 +253,13 @@ class SortedPatchList extends EventEmitter
     value: Return the value of the string at the given (optional)
     point in time.  If the optional time is given, only include patches up
     to (and including) the given time; otherwise, return current value.
-    ###
-    value: (time) =>
-        #start_time = new Date()
 
+    If force is true, doesn't use snapshot at given input time, even if
+    there is one; this is used to update snapshots in case of offline changes
+    getting inserted into the changelog.
+    ###
+    value: (time, force=false) =>
+        #start_time = new Date()
         # If the time is specified, verify that it is valid.
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
@@ -285,6 +294,11 @@ class SortedPatchList extends EventEmitter
             if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
                 for i in [@_patches.length-1 .. 0]
                     if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
+                        if force and @_patches[i].time - time == 0
+                            # If force is true we do NOT want to use the existing snapshot, since
+                            # the whole point is to force recomputation of it, as it is wrong.
+                            # Instead, we'll use the previous snapshot.
+                            continue
                         # Found a patch with known snapshot that is as old as the time.
                         # This is the base on which we will apply other patches to move forward
                         # to the requested time.
@@ -342,7 +356,11 @@ class SortedPatchList extends EventEmitter
     user: (time) =>
         return @patch(time)?.user
 
+    time_sent: (time) =>
+        return @patch(time)?.sent
+
     # patch at a given point in time
+    # TODO: optimization -- this shouldn't be a linear search!!
     patch: (time) =>
         for x in @_patches
             if x.time - time == 0
@@ -392,6 +410,11 @@ class SortedPatchList extends EventEmitter
         # This is the largest multiple i of interval that is <= n - interval
         i = Math.floor((n - interval) / interval) * interval
         return @_patches[i].time
+
+    # Times of all snapshots in memory on this client; these are the only ones
+    # we need to worry about for offline patches...
+    snapshot_times: () =>
+        return (x.time for x in @_patches when x.snapshot?)
 
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
@@ -486,6 +509,13 @@ class SyncDoc extends EventEmitter
     # the given point in time.
     account_id: (time) =>
         return @_users[@user(time)]
+
+    # Approximate time when patch with given timestamp was
+    # actually sent to the server; returns undefined if time
+    # sent is approximately the timestamp time.  Only not undefined
+    # when there is a significant difference.
+    time_sent: (time) =>
+        @_patch_list.time_sent(time)
 
     # integer index of user who made the edit at given
     # point in time.
@@ -684,15 +714,16 @@ class SyncDoc extends EventEmitter
     _patch_table_query: (cutoff) =>
         query =
             id       : [@_string_id, cutoff ? 0]
-            patch    : null
-            user     : null
-            snapshot : null
+            patch    : null      # compressed format patch as a JSON *string*
+            user     : null      # integer id of user (maps to syncstring table)
+            snapshot : null      # (optional) a snapshot at this point in time
+            sent     : null      # (optional) when patch actually sent, which may be later than when made
         return query
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList()
         @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 200)
-        @_patches_table.once 'change', =>
+        @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
             @_last = value
@@ -705,6 +736,12 @@ class SyncDoc extends EventEmitter
             # ensure that any outstanding save is done
             @_patches_table.save () =>
                 @_check_for_timestamp_collision(t)
+
+        #@_patches_table.on 'connected', (server_value) =>
+        #@_patches_table.on 'disconnected', =>
+
+        @_patches_table.on 'saved', (data) =>
+            @_handle_offline(data)
 
     _init_evaluator: (cb) =>
         if misc.filename_extension(@_path) == 'sagews'
@@ -835,21 +872,22 @@ class SyncDoc extends EventEmitter
     # be the time of an existing patch.
     # If time not given, instead make a periodic snapshot
     # according to the @_snapshot_interval rule.
-    snapshot: (time) =>
+    snapshot: (time, force=false) =>
         if not misc.is_date(time)
             throw Error("time must be a date")
         x = @_patch_list.patch(time)
         if not x?
             console.warn("no patch at time #{time}")  # should never happen...
             return
-        if x.snapshot?
+        if x.snapshot? and not force
             # there is already a snapshot at this point in time, so nothing further to do.
             return
         # save the snapshot itself in the patches table.
         obj =
-            id       : [@_string_id, time, x.user]
+            id       : [@_string_id, time]
             patch    : JSON.stringify(x.patch)
-            snapshot : @_patch_list.value(time)
+            snapshot : @_patch_list.value(time, force)
+            user     : x.user
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set(obj, 'none')
         # save the snapshot time in the database
@@ -873,6 +911,7 @@ class SyncDoc extends EventEmitter
         key  = x.get('id').toJS()
         time = key[1]
         user = x.get('user')
+        sent = x.get('sent')
         if time0? and time < time0
             return
         if time1? and time > time1
@@ -884,6 +923,8 @@ class SyncDoc extends EventEmitter
             time  : time
             user  : user
             patch : patch
+        if sent?
+            obj.sent = sent
         if snapshot?
             obj.snapshot = snapshot
         return obj
@@ -940,6 +981,32 @@ class SyncDoc extends EventEmitter
     set_snapshot_interval: (n) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('snapshot_interval', n))
         return
+
+    # Check if any patches that just got confirmed as saved are relatively old; if so,
+    # we mark them as such and also possibly recompute snaphshots.
+    _handle_offline: (data) =>
+        #dbg = @dbg("_handle_offline")
+        #dbg("data='#{misc.to_json(data)}'")
+        now = misc.server_time()
+        oldest = undefined
+        for obj in data
+            if obj.sent
+                # CRITICAL: ignore anything already processed! (otherwise, infinite loop)
+                continue
+            #console.log(now, obj.id[1], now - obj.id[1], 1000*OFFLINE_THRESH_S)
+            if now - obj.id[1] >= 1000*OFFLINE_THRESH_S
+                # patch is "old" -- mark it as likely being sent as a result of being
+                # offline, so clients could potentially discard it.
+                obj.sent = now
+                @_patches_table.set(obj)
+                if not oldest? or obj.id[1] < oldest
+                    oldest = obj.id[1]
+        if oldest
+            #dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
+            for snapshot_time in @_patch_list.snapshot_times()
+                if snapshot_time - oldest >= 0
+                    #console.log("recomputing snapshot #{snapshot_time}")
+                    @snapshot(snapshot_time, true)
 
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()

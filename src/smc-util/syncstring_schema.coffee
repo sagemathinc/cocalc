@@ -133,6 +133,9 @@ schema.patches =
         snapshot :
             type : 'string'
             desc : 'Optionally, gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
+        sent :
+            type : 'timestamp'
+            desc : 'Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.'
     user_query:
         get :
             all :
@@ -143,6 +146,7 @@ schema.patches =
                 patch    : null
                 user     : null
                 snapshot : null
+                sent     : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -152,6 +156,7 @@ schema.patches =
                 patch    : true
                 user     : true
                 snapshot : true
+                sent     : true
             required_fields :
                 id       : true
                 patch    : true

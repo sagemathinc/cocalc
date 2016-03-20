@@ -527,7 +527,6 @@ class JupyterWrapper extends EventEmitter
             # source differs
             cm_setValueNoJump(cell.code_mirror, obj.source)
             cell.auto_highlight()
-        # TODO: when code running the asterisk doesn't sync out
         if cell.set_input_prompt? and obj0.execution_count != obj.execution_count
             cell.set_input_prompt(obj.execution_count ? '*')
         if cell.output_area? and (not underscore.isEqual(obj0.outputs, obj.outputs) or not underscore.isEqual(obj0.metadata, obj.metadata))

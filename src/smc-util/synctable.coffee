@@ -1,5 +1,4 @@
 ###
-
 SageMathCloud, Copyright (C) 2015, William Stein
 
 This program is free software: you can redistribute it and/or modify
@@ -39,6 +38,10 @@ SYNCHRONIZED TABLE -- defined by an object query
                  Also, called with empty list on first connection if there happens
                  to be nothing in this table.   If the primary key is not a string it is
                  converted to a JSON string.
+      - 'disconnected': fired when table is disconnected from the server for some reason
+      - 'connected': fired when table has successfully connected and finished initializing
+                     and is ready to use
+      - 'saved', [array of saved objects]: fired after confirmed successful save of objects to backend
 
 STATES:
 
@@ -180,6 +183,7 @@ class SyncTable extends EventEmitter
             if @_state != 'disconnected'
                 dbg("disconnected -- #{misc.to_json(@_query)}")
                 @_state = 'disconnected'
+                @emit('disconnected')   # tell any listeners that we're disconnected now.
                 @_client.once('connected', @_connect)
                 @_client_listeners.connected = @_connect
 
@@ -321,6 +325,7 @@ class SyncTable extends EventEmitter
                     # to maintain this changefeed: if so, we connect immediately,
                     # and if not, we wait until the next connection.
                     console.warn("query #{@_table}: _run: socket-end ")
+                    @emit('disconnected')
                     @_state = 'disconnected'
                     if @_client.is_connected()
                         # some socket is still available
@@ -349,6 +354,7 @@ class SyncTable extends EventEmitter
                         @_state = 'connected'
                         #console.log("query #{@_table}: query resp = ", resp)
                         @_update_all(resp.query[@_table])
+                        @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
                 else
                     #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
@@ -382,6 +388,9 @@ class SyncTable extends EventEmitter
         if @_state == 'closed'
             cb?("closed")
             return
+        if @_state != 'connected'
+            cb?("not connected")    # do not change this error message; it is assumed elsewhere.
+            return
         # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
         if not @_value_server?
@@ -404,18 +413,20 @@ class SyncTable extends EventEmitter
 
         # Send our changes to the server.
         query = []
-        for key in misc.keys(changed).sort()  # sort so that behavior is more predictable = faster (e.g., sync patches are in order)
+        saved_objs = []
+        for key in misc.keys(changed).sort()  # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
             c = changed[key]
-            obj = {"#{@_primary_key}":key}
+            obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
                     if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
-                        if immutable.Map.isMap(v)
+                        if immutable.Iterable.isIterable(v)
                             obj[k] = v.toJS()
                         else
                             obj[k] = v
             query.push({"#{@_table}":obj})
+            saved_objs.push(obj)
 
         #console.log("sending #{query.length} changes: #{misc.to_json(query)}")
         if query.length == 0
@@ -426,7 +437,9 @@ class SyncTable extends EventEmitter
             options : [{set:true}]  # force it to be a set query
             cb      : (err) =>
                 if err
-                    console.warn("_save error: #{err}")
+                    console.warn("_save('#{@_table}') error: #{err}")
+                else
+                    @emit('saved', saved_objs)
                 if not err and not at_start.equals(@_value_local)
                     # keep saving until table doesn't change *during* the save
                     @_save(cb)
@@ -466,7 +479,7 @@ class SyncTable extends EventEmitter
             return
 
         if not v?
-            console.warn("_update_all(#{@_table}) called with v=undefined")
+            console.warn("_update_all('#{@_table}') called with v=undefined")
             return
 
         @emit('before-change')
