@@ -21,6 +21,9 @@ schema.syncstrings =
         last_active :
             type : 'timestamp'
             desc : 'when a user most-recently "cared" about this syncstring (syncstring will be automatically opened in running project if last_active is sufficiently recent)'
+        last_file_change:
+            type : 'timestamp'
+            desc : 'when file on disk last changed not due to save (used by Jupyter sync)'
         path :
             type : 'string'
             desc : 'optional path of file being edited'
@@ -62,6 +65,7 @@ schema.syncstrings =
                 last_active       : null
                 init              : null
                 read_only         : null
+                last_file_change  : null
             required_fields :
                 path              : true
                 project_id        : true
@@ -79,6 +83,7 @@ schema.syncstrings =
                 last_active       : true
                 init              : true
                 read_only         : true
+                last_file_change  : true
             required_fields :
                 path              : true
                 project_id        : true

@@ -41,7 +41,11 @@ misc_page            = require('./misc_page')
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#salvus-editor-templates")
 
-exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".jupyter-sync"
+exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".sage-jupyter"
+
+# Given a filename 'foo/bar/xyz.ipynb', return 'foo/bar/.xyz.ipynb.sage-jupyter'
+exports.syncdb_filename = syncdb_filename = (ipynb_filename) ->
+    misc.meta_file(ipynb_filename, 'jupyter')
 
 ###
 Attempt a more generic well defined approach to sync
@@ -511,8 +515,24 @@ class JupyterWrapper extends EventEmitter
 
     mutate_cell: (index, obj) =>
         #dbg = @dbg("mutate_cell")([index, obj])
+        ###
+        NOTE: If you need to work on this function, here's how to get an instance
+        of this class. In the Javascript console, do this:
+
+            X = smc.editors['your_file_that_is_open.ipynb'].wrapped.dom
+
+        For example, this then gets the first cell:
+
+            X.nb.get_cell(0)
+
+        (and X.nb.get_cell(0).element is the underlying DOM element)
+
+        You can then mess around with this until you get it to work.
+        ###
+
         cell = @nb.get_cell(index)
         obj0 = cell.toJSON()
+        do_rerender_cell = false
         if cell.cell_type != obj.cell_type
             switch obj.cell_type
                 when 'markdown'
@@ -534,8 +554,22 @@ class JupyterWrapper extends EventEmitter
             cell.output_area.trusted = !!obj.metadata.trusted
             cell.output_area.fromJSON(obj.outputs ? [], obj.metadata)
         if cell.cell_type == 'markdown' and cell.rendered
+            do_rerender_cell = true
+
+        # Handle slideshow metadata values.
+        # See setter in ipython/notebook/js/celltoolbarpresets/slideshow.js
+        # and usage of setter in ipython/notebook/js/celltoolbar.js
+        if obj.metadata?.slideshow? and not underscore.isEqual(obj0.metadata.slideshow, obj.metadata.slideshow)
+            # 1. mutate the DOM
+            select = cell.element.find(".celltoolbar select")
+            select.val(obj.metadata.slideshow.slide_type)
+            # 2. update cell metadata
+            cell.metadata.slideshow = obj.metadata?.slideshow
+
+        if do_rerender_cell
             cell.rendered = false  # hack to force it to actually re-render
             cell.render()
+
         @init_cell_cursor(cell, index)
 
     delete_cell: (index) =>
@@ -686,7 +720,7 @@ class JupyterNotebook extends EventEmitter
         @file = s.tail
 
         # filename for our sync-friendly representation of the Jupyter notebook
-        @syncdb_filename = (if @path then (@path+'/.') else '.') + @file + IPYTHON_SYNCFILE_EXTENSION
+        @syncdb_filename = syncdb_filename(@filename)
 
         # where we will put the page itself
         @notebook = @element.find(".smc-jupyter-notebook-notebook")

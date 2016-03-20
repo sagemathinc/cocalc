@@ -627,6 +627,7 @@ class SyncDoc extends EventEmitter
                 last_active       : null
                 init              : null
                 read_only         : null
+                last_file_change  : null
 
         @_syncstring_table = @_client.sync_table(query)
 
@@ -987,6 +988,9 @@ class SyncDoc extends EventEmitter
     _handle_offline: (data) =>
         #dbg = @dbg("_handle_offline")
         #dbg("data='#{misc.to_json(data)}'")
+        if @_closed
+            # closed -- nothing to do
+            return
         now = misc.server_time()
         oldest = undefined
         for obj in data
@@ -1213,6 +1217,9 @@ class SyncDoc extends EventEmitter
         #console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
         if not changed_keys?
             # this happens right now when we do a save.
+            return
+        if not @_patch_list?
+            # nothing to do
             return
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)

@@ -483,6 +483,8 @@ exports.original_path = (path) ->
         x = s.head + '/' + x
     return x
 
+
+
 # "foobar" --> "foo..."
 exports.trunc = (s, max_length=1024) ->
     if not s?
