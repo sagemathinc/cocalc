@@ -448,7 +448,11 @@ class SyncDoc extends EventEmitter
                 else
                     opts.file_use_interval = 60000
             if is_chat
-                path = misc.original_path(@_path)
+                if misc.path_split(@_path).tail[0] == '.'
+                    # hidden chat file associated with editing of another file
+                    path = misc.original_path(@_path)
+                else
+                    path = @_path
                 action = 'chat'
             else if is_jupyter  # it is lame to put this here, but easy.
                 path = misc.original_path(@_path)

@@ -478,7 +478,7 @@ exports.meta_file = (path, ext) ->
 exports.original_path = (path) ->
     s = exports.path_split(path)
     ext = exports.filename_extension(s.tail)
-    x = s.tail.slice(1, s.tail.length - (ext.length+1))
+    x = s.tail.slice((if s.tail[0] == '.' then 1 else 0),   s.tail.length - (ext.length+1))
     if s.head != ''
         x = s.head + '/' + x
     return x
