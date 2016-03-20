@@ -1523,7 +1523,8 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"malformed query")
             return
         dbg = @dbg("user_query")
-        dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
+        # CRITICAL: don't enable this except for serious debugging, since it can result in HUGE output
+        #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         first = true
         if mesg.changes
             if not @_query_changefeeds?
