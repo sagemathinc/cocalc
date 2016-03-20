@@ -178,7 +178,7 @@ class exports.Evaluator
 
     # Runs only in the project
     _evaluate_using_sage: (input, cb) =>
-        @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
+        @_sage_session ?= @string._client.sage_session(path : @string._path)
         # TODO: input also may have -- uuid, output_uuid, timeout
         if input.event == 'execute_code'
             input = misc.copy_with(input, ['code', 'data', 'preparse', 'event', 'id'])

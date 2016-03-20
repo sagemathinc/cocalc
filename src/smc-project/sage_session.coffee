@@ -134,13 +134,13 @@ class exports.SageSession
     constructor: (opts) ->
         opts = defaults opts,
             client : required
-            path   : required
+            path   : required   # the path to the *worksheet* file
         @_path = opts.path
         @_client = opts.client
         @_output_cb = {}
 
     dbg: (f) =>
-        return (m) -> winston.debug("SageSession.#{f}: #{m}")
+        return (m) => winston.debug("SageSession(path='#{@_path}').#{f}: #{m}")
 
     close: () =>
         if @_socket?
@@ -153,7 +153,7 @@ class exports.SageSession
         # TODO: send kill signal?
 
     _init_socket: (cb) =>
-        dbg = @dbg('_init_socket')
+        dbg = @dbg('_init_socket()')
         dbg()
         exports.get_sage_socket (err, socket) =>
             if err
@@ -161,42 +161,47 @@ class exports.SageSession
                 cb(err)
                 return
 
-            dbg("successfully opened a Sage session for worksheet '#{@_path}'")
+            dbg("successfully opened a sage session")
             @_socket = socket
-
-            dbg("Set path to be the same as the file.")
-            @set_path(path:@_path)
 
             socket.on 'end', () =>
                 delete @_socket
-                dbg("codemirror session terminated.")
+                dbg("codemirror session terminated")
 
+            # CRITICAL: we must define this handler before @_init_path below,
+            # or @_init_path can't possibly work... since it would wait for
+            # this handler to get the response message!
             socket.on 'mesg', (type, mesg) =>
                 dbg("sage session: received message #{type}")
                 @["_handle_mesg_#{type}"]?(mesg)
 
-            cb()
+            @_init_path(cb)
 
-    set_path: (opts) =>
-        opts = defaults opts,
-            path : required
-            cb   : undefined
+    _init_path: (cb) =>
+        dbg = @dbg("_init_path()")
+        dbg()
+        err = undefined
         @call
             input :
                 event : 'execute_code'
                 code  : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
                 data  :
-                    path : misc.path_split(opts.path).head
-                    file : misc_node.abspath(opts.path)
+                    path : misc_node.abspath(misc.path_split(@_path).head)
+                    file : misc_node.abspath(@_path)
                 preparse : false
-            cb       : opts.cb
+            cb    : (resp) =>
+                if resp.stderr
+                    err = resp.stderr
+                    dbg("error '#{err}'")
+                if resp.done
+                    cb?(err)
 
     call: (opts) =>
         opts = defaults opts,
             input : required
             cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
         dbg = @dbg("call")
-        dbg("input='#{misc.to_json(opts.input)}'")
+        dbg("input='#{misc.trunc(misc.to_json(opts.input), 300)}'")
         switch opts.input.event
             when 'signal'
                 if @_socket?
