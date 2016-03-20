@@ -149,7 +149,7 @@ class SyncTable extends EventEmitter
         #dbg()
         dbg = ->
 
-        connect = () =>
+        @_connect = () =>
             if @_state != 'disconnected'
                 # only try to connect if currently 'disconnected'
                 return
@@ -162,26 +162,26 @@ class SyncTable extends EventEmitter
                 @_reconnect()
 
         if @_schema.anonymous or @_client.is_project()
-            # just need to be connected
+            # just need to be connected; also projects don't have to authenticate
             if @_client.is_connected()
-                connect() # first time
+                @_connect() # first time
             else
-                @_client.once('connected', connect)
-                @_client_listeners.connected = connect
+                @_client.once('connected', @_connect)
+                @_client_listeners.connected = @_connect
         else
             # need to be signed in
             if @_client.is_signed_in()
-                connect() # first time
+                @_connect() # first time
             else
-                @_client.once('signed_in', connect)
-                @_client_listeners.signed_in = connect
+                @_client.once('signed_in', @_connect)
+                @_client_listeners.signed_in = @_connect
 
         disconnected = () =>
             if @_state != 'disconnected'
                 dbg("disconnected -- #{misc.to_json(@_query)}")
                 @_state = 'disconnected'
-                @_client.once 'connected', connect
-                @_client_listeners.connected = connect
+                @_client.once('connected', @_connect)
+                @_client_listeners.connected = @_connect
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
@@ -264,7 +264,7 @@ class SyncTable extends EventEmitter
         #dbg()
         dbg = =>
         if not @_client._connected
-            # nothing to do -- not connected to server; when reconnect to server, will do proper reconnect
+            # nothing to do -- not connected to server; connecting to server triggers another reconnect later
             dbg("not connected to server")
             return
         if @_state == 'connected'
@@ -314,6 +314,22 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
+                if err == 'socket-end' and @_client.is_project()
+                    # This is a synctable in a project and the socket that it was
+                    # using for getting changefeed updates from a hub ended.
+                    # There may be other sockets that this project can use
+                    # to maintain this changefeed: if so, we connect immediately,
+                    # and if not, we wait until the next connection.
+                    console.warn("query #{@_table}: _run: socket-end ")
+                    @_state = 'disconnected'
+                    if @_client.is_connected()
+                        # some socket is still available
+                        @_connect()
+                    else
+                        # no sockets avialable; wait to connect
+                        @_client.once('connected', @_connect)
+                    return
+
                 @_last_err = err
                 if first_resp and resp?.event != 'query_cancel'
                     first_resp = false

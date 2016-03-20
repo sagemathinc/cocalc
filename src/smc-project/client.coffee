@@ -1,3 +1,22 @@
+###
+client.coffee -- A project viewed as a client for a hub.
+
+For security reasons, a project does initiate a TCP connection to a hub,
+but rather hubs initiate TCP connections to projects:
+
+ * MINUS: This makes various things more complicated, e.g., a project
+   might not have any open connection to a hub, but still "want" to write
+   something to the database; in such a case it is simply out of luck
+   and must wait.
+
+ * PLUS: Security is simpler since a hub initiates the connection to
+   a project.   A hub doesn't have to receive TCP connections and decide
+   whether or not to trust what is on the other end of those connections.
+
+That said, this architecture could change, and very little code would change
+as a resut.
+###
+
 fs     = require('fs')
 {join} = require('path')
 
@@ -33,11 +52,11 @@ class exports.Client extends EventEmitter
         @_changefeed_sockets = {}
         @_connected = false
 
+        # Start listening for syncstrings that have been recently modified, so that we
+        # can open them and porivde filesystem and computational support.
         @_init_recent_syncstrings_table()
 
-        #@_test_sync_table()
-        #@_test_sync_string()
-
+    ###
     _test_ping: () =>
         dbg = @dbg("_test_ping")
         test = () =>
@@ -87,6 +106,7 @@ class exports.Client extends EventEmitter
         s.on 'change', () =>
             dbg("sync_string changed to='#{s.version()}'")
         return s
+    ###
 
     _init_recent_syncstrings_table: () =>
         dbg = @dbg("_init_recent_syncstrings_table")
@@ -151,20 +171,23 @@ class exports.Client extends EventEmitter
     server_time: () =>
         return new Date()
 
-    # declare that the given socket is active right now and can be used for communication with some hub
+    # Declare that the given socket is active right now and can be used for
+    # communication with some hub (the one the socket is connected to).
     active_socket: (socket) =>
         dbg = @dbg("active_socket(id=#{socket.id})")
-        dbg()
         x = @_hub_client_sockets[socket.id]
         if not x?
+            dbg()
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
             socket.on 'end', =>
                 dbg("end")
                 for id, cb of x.callbacks
-                    cb('socket closed')
+                    cb?('socket closed')
                 delete @_hub_client_sockets[socket.id]
+                dbg("number of active sockets now equals #{misc.len(@_hub_client_sockets)}")
                 if misc.len(@_hub_client_sockets) == 0
                     @_connected = false
+                    dbg("lost all active sockets")
                     @emit('disconnected')
             if misc.len(@_hub_client_sockets) == 1
                 dbg("CONNECTED!")
@@ -192,7 +215,9 @@ class exports.Client extends EventEmitter
 
     # Get a socket connection to the hub from one in our cache; choose the
     # connection that most recently sent us a message.  There is no guarantee
-    # to get the same hub if you call this twice!
+    # to get the same hub if you call this twice!  Returns undefined if there
+    # are currently no connections from any hub to us (in which case, the project
+    # must wait).
     get_hub_socket: () =>
         v = misc.values(@_hub_client_sockets)
         if v.length == 0
@@ -258,6 +283,16 @@ class exports.Client extends EventEmitter
         if opts.changes
             # Record socket for this changefeed in @_changefeed_sockets
             @_changefeed_sockets[mesg.id] = socket
+            socket.on 'end', =>
+                # CRITICAL: Send an end error to the synctable, so that it will
+                # attempt to reconnect.  This is important, since for project clients
+                # the disconnected event is only emitted when *all* connections from
+                # hubs to the local_hub end.  If two connections s1 and s2 are open,
+                # and s1 is used for a sync table, and s1 closes (e.g., hub1 is restarted),
+                # then s2 is still open and no 'disconnected' event is emitted.  Nonetheless,
+                # it's important for the project to consider the synctable broken and
+                # try to reconnect it, which in this case it would do using s2.
+                opts.cb('socket-end')
         @call
             message     : mesg
             timeout     : opts.timeout

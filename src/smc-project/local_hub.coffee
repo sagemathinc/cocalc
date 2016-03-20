@@ -222,21 +222,15 @@ start_tcp_server = (secret_token, cb) ->
                 socket.id = uuid.v4()
                 misc_node.enable_mesg(socket)
 
-                socket.call_hub_callbacks = {}
-
                 handler = (type, mesg) ->
                     if mesg.event not in ['connect_to_session', 'start_session']
-                        # this is a control connection, so we can use it to call the hub later.
+                        # This is a control connection, so we can use it to call the hub later.
                         hub_client.active_socket(socket)
                     if type == "json"   # other types are handled elsewhere in event handling code.
                         winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
-                socket.on('mesg', handler)
 
-                socket.on 'end', ->
-                    for id, cb of socket.call_hub_callbacks
-                        cb("socket closed")
-                    socket.call_hub_callbacks = {}
+                socket.on('mesg', handler)
 
     port_file = misc_node.abspath("#{DATA}/local_hub.port")
     server.listen undefined, '0.0.0.0', (err) ->
