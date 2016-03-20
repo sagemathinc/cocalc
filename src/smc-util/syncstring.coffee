@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2015, William Stein
+SageMathCloud, Copyright (C) 2015, 2016, William Stein
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,11 +10,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 RethinkDB-backed time-log database-based synchronized editing
 
-[Describe algorithm here]
+[TODO: High level description of algorithm here, or link to article.]
 ###
 
 # How big of files can be opened
-MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_MB = 4
 
 # Touch syncstring every so often so that it stays opened in the local hub,
 # when the local hub is running.
@@ -402,6 +402,10 @@ EVENTS:
    when document is initialized.
 
  - 'user_change' when the string is definitely changed locally (so a new patch is recorded)
+
+STATES:
+
+
 ###
 
 class SyncDoc extends EventEmitter
@@ -612,7 +616,7 @@ class SyncDoc extends EventEmitter
             ], (err) =>
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
-                    cb    : (err, init) => @emit('init', err ? init.get('error')?.toJS?())
+                    cb    : (err, init) => @emit('init', err ? init.toJS().error)
                 if err
                     cb(err)
                 else
@@ -1045,7 +1049,7 @@ class SyncDoc extends EventEmitter
             maxsize_MB : MAX_FILE_SIZE_MB
             cb         : (err, data) =>
                 if err
-                    #dbg("failed -- #{err}")
+                    dbg("failed -- #{err}")
                     cb?(err)
                 else
                     dbg("got it")

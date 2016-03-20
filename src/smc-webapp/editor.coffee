@@ -2062,7 +2062,7 @@ class CodeMirrorEditor extends FileEditor
                         cm.scrollIntoView(pos, info.clientHeight/2)
                     catch e
                         #console.log("#{@filename}: failed to scroll view #{cm.name} into view -- #{e}")
-        @codemirror.focus()
+        @codemirror?.focus()
 
     # set background color of active line in editor based on background color (which depends on the theme)
     _style_active_line: () =>
