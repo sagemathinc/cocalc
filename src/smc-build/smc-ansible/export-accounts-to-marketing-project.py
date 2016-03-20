@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.expanduser("~/bin/"))
-os.chdir(os.path.expanduser("~/smc-cluster-mgmt"))
+os.chdir(os.path.join(os.environ['SMC_ROOT'], "smc-build/smc-ansible"))
 
 from smc_rethinkdb import export_accounts, project_host
 export_accounts("accounts.yaml.bz2")
