@@ -41,7 +41,11 @@ misc = require('./misc')
 class exports.SynchronizedDB extends EventEmitter
     constructor: (@_doc, @to_json, @from_json, @max_len) ->
         if not @to_json?
-            @to_json = misc.to_json
+            # We use a stable algorithm for converting to JSON, so that
+            # on all machines we always get the same result every time; this
+            # is important so that we can easily/correctly sync the syncstring with
+            # the in-memory data structure using hashes.
+            @to_json = require('json-stable-stringify')
         if not @from_json?
             @from_json = misc.from_json
         @readonly = @_doc.readonly
