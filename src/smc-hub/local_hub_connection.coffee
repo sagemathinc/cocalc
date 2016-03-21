@@ -463,17 +463,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 if opts.multi_response
                     @call_callbacks[opts.mesg.id] = opts.cb
                 else if opts.timeout
+                    # Listen to exactly one response, them remove the listener:
                     @call_callbacks[opts.mesg.id] = (resp) =>
                         delete @call_callbacks[opts.mesg.id]
                         if resp.event == 'error'
                             opts.cb(resp.error)
                         else
                             opts.cb(undefined, resp)
-                    socket.recv_mesg
-                        type    : 'json'
-                        id      : opts.mesg.id
-                        timeout : opts.timeout
-                        cb      : @call_callbacks[opts.mesg.id]
+                # As mentioned above -- there's no else -- if not timeout then 
+                # we do not listen for a response.
 
     ####################################################
     # Session management

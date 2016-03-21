@@ -87,7 +87,7 @@ def main():
     parser_project = subparsers.add_parser('project', help='install project server code system-wide')
     parser_project.set_defaults(func = lambda *args: install_project())
 
-    parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers')
+    parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node')
     parser_all.add_argument("--compute", default=False, action="store_const", const=True)
     parser_all.add_argument("--web", default=False, action="store_const", const=True)
     parser_all.set_defaults(func = lambda args: install_all(compute=args.compute, web=args.web))
