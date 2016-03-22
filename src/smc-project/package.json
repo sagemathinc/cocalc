@@ -12,6 +12,7 @@
     "express": "^4.13.3",
     "gaze": "^0.5.2",
     "googlediff": "^0.1.0",
+    "json-stable-stringify": "^1.0.1",
     "node-uuid": "^1.4.3",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",

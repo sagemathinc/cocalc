@@ -1396,6 +1396,7 @@ class FileEditor extends EventEmitter
 
     remove: () =>
         @element.remove()
+        @removeAllListeners()
 
     terminate_session: () =>
         # If some backend session on a remote machine is serving this session, terminate it.
@@ -1579,7 +1580,8 @@ class CodeMirrorEditor extends FileEditor
                 indentWithTabs          : not opts.spaces_instead_of_tabs
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
-                cursorScrollMargin      : 15
+                cursorScrollMargin      : 7
+                viewportMargin          : 100
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -3067,7 +3069,7 @@ class PDF_Preview extends FileEditor
     remove: () =>
         if @_f?
             clearInterval(@_f)
-        @element.remove()
+        super()
 
     focus: () =>
         @element.maxheight()
@@ -3457,7 +3459,7 @@ class Terminal extends FileEditor
 
     remove: () =>
         @element.salvus_console(false)
-        @element.remove()
+        super()
 
     _show: () =>
         if @console?
@@ -3579,7 +3581,7 @@ class FileEditorWrapper extends FileEditor
         @wrapped?.destroy?()
 
     remove: () =>
-        @element?.remove()
+        super()
         @wrapped?.destroy?()
         delete @editor; delete @filename; delete @content; delete @opts
 
@@ -3852,9 +3854,6 @@ class HTML_MD_Editor extends FileEditor
     forward_search: (cb) =>
 
     action_key: () =>
-
-    remove: () =>
-        @element.remove()
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )

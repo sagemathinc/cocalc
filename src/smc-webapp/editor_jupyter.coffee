@@ -28,6 +28,7 @@ I didn't know about React.js at the time).
 
 async                = require('async')
 stringify            = require('json-stable-stringify')
+
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')

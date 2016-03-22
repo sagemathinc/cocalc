@@ -5,6 +5,8 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 ###
 
+stringify = require('json-stable-stringify')
+
 sagews = require('./sagews')
 misc   = require('./misc')
 
@@ -22,7 +24,7 @@ class exports.Evaluator
             eval_outputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 output : null
-        @_outputs = @string._client.sync_table(query, {}, 1)
+        @_outputs = @string._client.sync_table(query, {}, 1000)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
         if @string._client.is_project()
@@ -114,7 +116,7 @@ class exports.Evaluator
             n = content.indexOf('\n', i)
             if n == -1   # corrupted
                 return
-            output_line += misc.to_json(misc.copy_without(mesg, ['event'])) + sagews.MARKERS.output
+            output_line += stringify(misc.copy_without(mesg, ['id', 'event'])) + sagews.MARKERS.output
             #winston.debug("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
             if output_line.length > n - i
                 #winston.debug("sage_execute_code: initiating client didn't maintain sync promptly. fixing")

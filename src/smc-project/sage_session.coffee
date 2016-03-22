@@ -265,7 +265,11 @@ class exports.SageSession
         dbg("mesg='#{misc.trunc_middle(misc.to_json(mesg),400)}'")
         c = @_output_cb[mesg?.id]
         if c?
-            c(mesg)
+            # Must do this check first since it uses done:false.
             if mesg.done or not mesg.done?
                 delete @_output_cb[mesg.id]
+            if mesg.done? and not mesg.done
+                # waste of space to include done part of mesg if just false for everything else...
+                delete mesg.done
+            c(mesg)
 

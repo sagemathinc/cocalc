@@ -1,4 +1,5 @@
 async = require('async')
+stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS} = require('smc-util/sagews')
 
@@ -36,6 +37,7 @@ for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
+        window.s = @
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
@@ -61,6 +63,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         @editor.on 'show', (height) =>
             @process_sage_updates(caller:"show")
+            @set_all_output_line_classes()
 
         v = [@codemirror, @codemirror1]
         for cm in v
@@ -107,6 +110,56 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 #        cm            : instance
                 #        ignore_output : true
                 #        caller: "change"
+
+            # Ensuring cursors never end up *in* lines containing input or output markers, except as
+            # the first character.   Setting the inclusiveLeft/Right options for input markers seems
+            # to be a much nicer way of accomplish nearly the same goal, but messes up undo/redo
+            # badly and makes some natural selections impossibly, which is VERY frustrating.
+            markers = MARKERS.cell + MARKERS.output
+            is_marker = (c) ->
+                return markers.indexOf(c) != -1
+            move = (cm, c, eps) ->
+                n = cm.lineCount()
+                single = (c.head.line == c.anchor.line and c.head.ch == c.anchor.ch)
+                if c.head.ch != 0
+                    while is_marker(cm.getLine(c.head.line)[0]) and (eps + c.head.line) >= 0 and (eps+c.head.line < n)
+                        c.head.line += eps
+                        if single
+                            c.anchor.line = c.head.line
+                if not single
+                    # now move the anchor of the selection
+                    while is_marker(cm.getLine(c.anchor.line)[0]) and (eps + c.anchor.line) >= 0 and (eps+c.anchor.line < n)
+                        c.anchor.line += eps
+
+            cm.on 'cursorActivity', (cm) =>
+                if cm.name != @focused_codemirror().name
+                    # ignore non-focused editor
+                    return
+                if cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
+                    return
+                sel = cm.listSelections()
+                changed = false
+                i = -1
+                for c in sel
+                    i += 1
+                    x = cm.getLine(c.head.line)
+                    if is_marker(x[0])
+                        changed = true
+                        if cm._last_selections? and sel[0].head.line > cm._last_selections[0].head.line
+                            eps = 1    # moving down
+                        else
+                            eps = -1   # moving up
+                        move(cm, c, eps)
+                        if is_marker(cm.getLine(c.head.line)[0])
+                            # still not falid: must be a top or bottom line -- put in col 0, which is always valid.
+                            c.head.ch = 0
+                        if is_marker(cm.getLine(c.anchor.line)[0])
+                            # still not fixed
+                            c.anchor.ch = 0
+
+                if changed
+                    cm.setSelections(sel)
+                cm._last_selections = sel
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
@@ -450,6 +503,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cm.undo()
             catch e
                 console.warn("skipping undo: ",e)
+        @process_sage_updates() # reprocess entire buffer -- e.g., output could change in strange ways
 
     on_redo: (cm, changeObj) =>
         u = cm.getHistory().done
@@ -463,6 +517,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @set_all_output_line_classes()
             catch e
                 console.warn("skipping redo: ",e)
+        @process_sage_updates() # reprocess entire buffer
 
     interrupt: (opts={}) =>
         opts = defaults opts,
@@ -682,7 +737,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         for line in [start..stop]
             x = cm.getLine(line)
-            #console.log("line=#{line}: '#{misc.trunc(x,256)}'")
             if not x?
                 continue
 
@@ -770,8 +824,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                     element : elt
                                     mark    : mark
                             catch e
-                                console.log(e.stack)
-                                log("BUG: error rendering output: '#{mesg}' -- #{e}")
+                                # this means that the output can't be rendered yet (e.g., partial sync)
+                                #console.log(e.stack)
+                                #log("BUG: error rendering output: '#{mesg}' -- #{e}")
 
                         # This is more complicated than you might think because past messages can
                         # be modified at any time -- it's not a linear stream.
@@ -1417,8 +1472,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         opts =
             shared         : false
-            inclusiveLeft  : false
-            inclusiveRight : false
+            inclusiveLeft  : false    # CRITICAL: do not set this to true; it screws up undo/redo badly (maybe with undo/redo based on syncstring this will be fine again)
+            inclusiveRight : true
             atomic         : true
             replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
 
@@ -1439,12 +1494,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             c.addLineClass(line, 'wrap', 'sagews-output-cm-wrap')
 
     set_all_output_line_classes: =>
-        cm = @focused_codemirror()
-        for m in cm.getAllMarks()
-            if m.type == MARKERS.output
-                line = m.find()?.from.line
-                if line? and not cm.lineInfo(line)?.textClass?
-                    @set_output_line_class(line, false)
+        for cm in @codemirrors()
+            for m in cm.getAllMarks()
+                if m.type == MARKERS.output
+                    line = m.find()?.from.line
+                    if line? and not cm.lineInfo(line)?.textClass?
+                        @set_output_line_class(line, false)
 
     mark_output_line: (cm, line) =>
         # Assuming the proper text is in the document for output to be displayed at this line,
@@ -2084,13 +2139,18 @@ class SynchronizedWorksheetCell
             s  = cm.getLine(n)
             return {cm: cm, loc: loc, s: s, n: n}
 
+    mesg_to_json: (mesg) =>
+        return stringify(misc.copy_without(mesg, ['id', 'event']))
+
     # append an output message to this cell
     append_output_message: (mesg) =>
         x = @_get_output()
         if not x?
             return
+        s = @mesg_to_json(mesg)
+        #console.log("append_output_mesg: '#{s}'")
         {cm, loc, n} = x
-        t  = MARKERS.output + misc.to_json(mesg)
+        t  = MARKERS.output + s
         cm.replaceRange(t, loc.to, loc.to)
         @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.append_output_message")
 
@@ -2121,7 +2181,7 @@ class SynchronizedWorksheetCell
             return
         cm = @doc.focused_codemirror()
         n  = loc.from.line
-        s  = MARKERS.output + (misc.to_json(mesg) for mesg in output).join(MARKERS.output)
+        s  = MARKERS.output + (@mesg_to_json(mesg) for mesg in output).join(MARKERS.output)
         cm.replaceRange(s, {line:loc.from.line, ch:37}, loc.to)
         @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.set_output")
 
