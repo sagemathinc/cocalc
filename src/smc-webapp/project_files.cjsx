@@ -342,6 +342,10 @@ NoFiles = rclass
 
     displayName : 'ProjectFiles-NoFiles'
 
+    create_folder : () ->
+        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
+        @props.actions.setState(file_search : '', page_number: 0)
+
     create_file : (ext) ->
         @props.actions.create_file
             name         : @props.file_search
@@ -350,12 +354,12 @@ NoFiles = rclass
             on_download  : ((a) => @setState(download: a))
             # TODO: Render error in useful location
             on_error     : ((a) => @setState(error: a))
-        if not @state.error?
+        if not @state?.error?
             @props.actions.setState(file_search : '', page_number: 0)
 
     # Default to sagews if none is given.
     extension : ->
-        if @props.file_search?.indexOf('.') == -1
+        if @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
           "sagews"
 
     # Go to the new file tab if there is no file search
@@ -365,14 +369,18 @@ NoFiles = rclass
         else
             @create_file()
 
-    button_text : ->
+    filename_text : ->
         ext = @extension()
+        if ext and @props.file_search.slice(-1) isnt '/'
+            "#{@props.file_search}.#{ext}"
+        else
+            "#{@props.file_search}"
+
+    button_text : ->
         if not @props.file_search?.length > 0
             "Create or upload files..."
-        else if ext and @props.file_search.slice(-1) isnt '/'
-            "Create #{@props.file_search}.#{ext}"
         else
-            "Create #{@props.file_search}"
+            "Create #{@filename_text()}"
 
     render_new_button : ->
         <Button
@@ -381,10 +389,25 @@ NoFiles = rclass
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
 
+    # TODO: Make better help text
+    render_help_text : ->
+        last_folder_index = @props.file_search?.lastIndexOf('/')
+        if @props.file_search?.length > 0 and last_folder_index > 1
+            if last_folder_index == @props.file_search.length - 1
+                text = "Will create the nested folder structure #{@props.file_search}"
+            else
+                text = "Will create #{@filename_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
+            style =
+                wordWrap:'break-word'
+                marginTop:'4px'
+            <Alert style={style} bsStyle='info'>
+                {text}
+            </Alert>
+
     render_file_type_selection : ->
         <div>
             <h4 style={color:"#666"}>Or select a file type</h4>
-            <FileTypeSelector create_file={@create_file} create_folder={@create_file} />
+            <FileTypeSelector create_file={@create_file} create_folder={@create_folder} />
         </div>
 
     render : ->
@@ -397,6 +420,7 @@ NoFiles = rclass
                 </span>
                 <hr/>
                 {@render_new_button() if not @props.public_view}
+                {@render_help_text()}
                 {@render_file_type_selection() if @props.file_search?.length > 0}
             </Col>
             <Col sm=2>
@@ -1327,12 +1351,12 @@ ProjectFilesSearch = rclass
     getDefaultProps : ->
         file_search : ''
 
-    render_warning : ->
-        if @props.file_search?.length > 0
+    render_help_info : ->
+        if @props.file_search?.length > 0 and @props.file_search?.lastIndexOf('/') < 1
             if @props.file_search == '/'
                 text = "Only showing folders"
             else
-                text = "Showing only files matching #{@props.file_search}"
+                text = "Showing files matching #{@props.file_search}"
             <Alert style={wordWrap:'break-word'} bsStyle='info'>
                 {text}
             </Alert>
@@ -1378,7 +1402,7 @@ ProjectFilesSearch = rclass
                 on_submit     = {@search_submit}
             />
             {@render_create_file_warning()}
-            {@render_warning()}
+            {@render_help_info()}
         </span>
 
 ProjectFilesNew = rclass
