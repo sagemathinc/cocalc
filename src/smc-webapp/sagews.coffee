@@ -34,13 +34,19 @@ for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
     CLIENT_SIDE_MODE_LINES["%#{mode}(once=false)"] = {mode:mode}
     CLIENT_SIDE_MODE_LINES["%#{mode}(once=0)"]     = {mode:mode}
 
+MARKERS_STRING = MARKERS.cell + MARKERS.output
+is_marked = (c) ->
+    if not c?
+        return false
+    return c.indexOf(MARKERS.cell) != -1 or c.indexOf(MARKERS.output) != -1
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        window.s = @
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
+
+        @disable_undo()
 
         if @opts.static_viewer
             @readonly   = true
@@ -115,21 +121,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # the first character.   Setting the inclusiveLeft/Right options for input markers seems
             # to be a much nicer way of accomplish nearly the same goal, but messes up undo/redo
             # badly and makes some natural selections impossibly, which is VERY frustrating.
-            markers = MARKERS.cell + MARKERS.output
-            is_marker = (c) ->
-                return markers.indexOf(c) != -1
             move = (cm, c, eps) ->
                 n = cm.lineCount()
                 single = (c.head.line == c.anchor.line and c.head.ch == c.anchor.ch)
                 if c.head.ch != 0
-                    while is_marker(cm.getLine(c.head.line)[0]) and (eps + c.head.line) >= 0 and (eps+c.head.line < n)
+                    while is_marked(cm.getLine(c.head.line)[0]) and (eps + c.head.line) >= 0 and (eps+c.head.line < n)
                         c.head.line += eps
                         if single
                             c.anchor.line = c.head.line
                 if not single
                     # now move the anchor of the selection
-                    while is_marker(cm.getLine(c.anchor.line)[0]) and (eps + c.anchor.line) >= 0 and (eps+c.anchor.line < n)
+                    while is_marked(cm.getLine(c.anchor.line)[0]) and (eps + c.anchor.line) >= 0 and (eps+c.anchor.line < n)
                         c.anchor.line += eps
+
 
             cm.on 'cursorActivity', (cm) =>
                 if cm.name != @focused_codemirror().name
@@ -143,20 +147,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 for c in sel
                     i += 1
                     x = cm.getLine(c.head.line)
-                    if is_marker(x[0])
+                    if is_marked(x[0])
                         changed = true
                         if cm._last_selections? and sel[0].head.line > cm._last_selections[0].head.line
                             eps = 1    # moving down
                         else
                             eps = -1   # moving up
                         move(cm, c, eps)
-                        if is_marker(cm.getLine(c.head.line)[0])
-                            # still not falid: must be a top or bottom line -- put in col 0, which is always valid.
+                        if is_marked(cm.getLine(c.head.line)[0])
+                            # still not valid: must be a top or bottom line -- put in col 0, which is always valid.
                             c.head.ch = 0
-                        if is_marker(cm.getLine(c.anchor.line)[0])
+                        if is_marked(cm.getLine(c.anchor.line)[0])
                             # still not fixed
                             c.anchor.ch = 0
-
                 if changed
                     cm.setSelections(sel)
                 cm._last_selections = sel
@@ -165,7 +168,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
-
 
     cell: (line) ->
         return new SynchronizedWorksheetCell(@, line)
@@ -187,7 +189,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if not top? or n < top
                 cell = @cell(n)
                 cells.push(cell)
-                top = cell.get_input_mark().find().from.line
+                top = cell.get_input_mark()?.find().from.line
         for sel in cm.listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
             n = sel.anchor.line; m = sel.head.line
             if n == m
@@ -487,11 +489,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for c in changes
             if c.from.line == c.to.line
                 if c.from.line < cm.lineCount()  # ensure we have such line in document
-                    line = cm.getLine(c.from.line)
-                    if line? and line.length > 0 and (line[0] == MARKERS.output or line[0] == MARKERS.cell)
+                    if is_marked(cm.getLine(c.from.line))
                         return true
             for t in c.text
-                if MARKERS.output in t or MARKERS.cell in t
+                if is_marked(t)
                     return true
         return false
 
@@ -509,6 +510,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     on_redo: (cm, changeObj) =>
         u = cm.getHistory().done
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
+            #console.log("on_redo(repeat)")
             try
                 cm.redo()
                 # TODO: having to do this is potentially very bad/slow if document has large number
@@ -725,7 +727,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             console.log("Error rendering worksheet", e)
         ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
         after = @editor.codemirror.getValue()
-        if before != after
+        if before != after and not @readonly
             @_syncstring.set(after)
 
     _process_sage_updates: (cm, start, stop) =>

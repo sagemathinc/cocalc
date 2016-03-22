@@ -636,6 +636,18 @@ class SynchronizedDocument2 extends SynchronizedDocument
     sync: (cb) =>
         @_sync(cb)
 
+    # completely disable undo/redo functionality, and make hitting control+z pop up the
+    # time travel history slider.
+    disable_undo: () =>
+        @codemirror.setOption('undoDepth',1)
+        @codemirror1.setOption('undoDepth',1)
+        @editor.element.find("a[href=#undo]").remove()
+        @editor.element.find("a[href=#redo]").remove()
+        @codemirror.on 'beforeChange', (instance, changeObj) =>
+            if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                changeObj.cancel()
+                @editor.click_history_button()
+
     _connect: (cb) =>
         # no op
         cb?()
