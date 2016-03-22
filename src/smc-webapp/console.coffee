@@ -46,14 +46,17 @@ CSI = String.fromCharCode(0x9b)
 
 initfile_content = (fn) ->
     """# This initialization file is associated with your terminal in #{fn}.
-# It is automatically run whenever it starts up -- restart it via Ctrl-d and Return-key.
+# It is automatically run whenever it starts up -- restart the terminal via Ctrl-d and Return-key.
 
 # Usually, your ~/.bashrc is executed and this behavior is emulated for completeness:
 source ~/.bashrc
 
 # You can export environment variables, e.g. to set custom GIT_* variables
+# https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
 #export GIT_AUTHOR_NAME="Your Name"
 #export GIT_AUTHOR_EMAIL="your@email.address"
+#export GIT_COMMITTER_NAME="Your Name"
+#export GIT_COMMITTER_EMAIL="your@email.address"
 
 # It is also possible to automatically start a program ...
 
