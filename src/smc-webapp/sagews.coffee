@@ -504,6 +504,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             catch e
                 console.warn("skipping undo: ",e)
         @process_sage_updates() # reprocess entire buffer -- e.g., output could change in strange ways
+        @set_all_output_line_classes()
 
     on_redo: (cm, changeObj) =>
         u = cm.getHistory().done
@@ -511,13 +512,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             try
                 cm.redo()
                 # TODO: having to do this is potentially very bad/slow if document has large number
-                # of outputs.  However, codemirror throws away all the line classes on redo.  So have
                 # to do this.  This is temporary anyways, since we plan to get rid of using codemirror
                 # undo entirely.
-                @set_all_output_line_classes()
             catch e
                 console.warn("skipping redo: ",e)
         @process_sage_updates() # reprocess entire buffer
+        @set_all_output_line_classes()
 
     interrupt: (opts={}) =>
         opts = defaults opts,
