@@ -723,7 +723,7 @@ class SyncDoc extends EventEmitter
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList()
-        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 200)
+        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 1000)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
@@ -1134,7 +1134,7 @@ class SyncDoc extends EventEmitter
                     @_save(cb)
 
     _set_save: (x) =>
-        @_syncstring_table.set(@_syncstring_table.get_one().set('save', immutable.fromJS(x)))
+        @_syncstring_table.set(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
         return
 
     _set_read_only: (read_only) =>

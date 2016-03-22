@@ -230,14 +230,15 @@ class Message(object):
                file         = None,
                raw_input    = None,
                obj          = None,
-               done         = None,
                once         = None,
                hide         = None,
                show         = None,
                auto         = None,
                events       = None,
                clear        = None,
-               delete_last  = None):
+               delete_last  = None,
+               done         = False   # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
+              ):
         m = self._new('output')
         m['id'] = id
         t = truncate_text

@@ -268,6 +268,7 @@ class exports.SageSession
             # Must do this check first since it uses done:false.
             if mesg.done or not mesg.done?
                 delete @_output_cb[mesg.id]
+                mesg.done = true
             if mesg.done? and not mesg.done
                 # waste of space to include done part of mesg if just false for everything else...
                 delete mesg.done

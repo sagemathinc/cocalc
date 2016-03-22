@@ -192,6 +192,8 @@ class SyncTable extends EventEmitter
         return
 
     get: (arg) =>
+        if not @_value_local?
+            return
         if arg?
             if misc.is_array(arg)
                 x = {}

@@ -24,7 +24,7 @@ class exports.Evaluator
             eval_outputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 output : null
-        @_outputs = @string._client.sync_table(query, {}, 1000)
+        @_outputs = @string._client.sync_table(query, {}, 1)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
         if @string._client.is_project()
@@ -72,9 +72,10 @@ class exports.Evaluator
                     return
                 for key in keys
                     t = misc.from_json(key)
-                    if t[1] - time == 0  # we called opts.cb on output with the given timestamp; ignore any other output
+                    if t[1] - time == 0  # we called opts.cb on output with the given timestamp
                         mesg = @_outputs.get(key)?.get('output')?.toJS()
                         if mesg?
+                            delete mesg.id # waste of space
                             if mesg.done
                                 @_outputs.removeListener('change', handle_output)
                             # Message may arrive in somewhat random order -- RethinkDB doesn't guarantee

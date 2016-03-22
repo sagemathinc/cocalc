@@ -763,9 +763,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         if m.from.line != m.to.line
                             mark.clear()
                             @mark_cell_start(cm, line)
-                        else if m.from.ch != 0
-                            console.warn("deleting beginning of line", m)
-                            cm.replaceRange('', {line:line,ch:0}, m.from)
+                        # CRITICAL: This ends up causing corruption during sync
+                        #else if m.from.ch != 0
+                        #    console.warn("deleting beginning of line", m)
+                        #    cm.replaceRange('', {line:line,ch:0}, m.from)
                 flagstring = x.slice(37, x.length-1)
                 mark = cm.findMarksAt({line:line, ch:0})[0]
                 #console.log("at line=#{line} we have flagstring=#{flagstring}, mark.flagstring=#{mark?.flagstring}")
