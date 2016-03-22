@@ -23,7 +23,8 @@ exports.FLAGS = FLAGS =
     hide_output  : "o"   # hide output part of cell
     auto         : "a"   # if set, run the cell when the sage session first starts
 
-exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt, FLAGS.this_session]
+exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt]
+exports.ACTION_SESSION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt, FLAGS.this_session]
 
 # Return a list of the uuids of files that are displayed in the given document,
 # where doc is the string representation of a worksheet.

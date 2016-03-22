@@ -1,7 +1,7 @@
 async = require('async')
 stringify = require('json-stable-stringify')
 
-{MARKERS, FLAGS, ACTION_FLAGS} = require('smc-util/sagews')
+{MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
@@ -63,6 +63,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @init_worksheet_buttons()
         @init_html_editor_buttons()
 
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side)
+
         @on 'sync', () =>
             #console.log("sync")
             @process_sage_update_queue()
@@ -93,7 +95,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # from a "beforeChange" handler that would cause changes to the
                     # document or its visualization."  I think this is OK below though
                     # since we just canceled the change.
-                    @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
+                    @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
                     @_apply_changeObj(changeObj)
                     @process_sage_updates(caller:"paste")
                     @sync()
@@ -163,6 +165,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if changed
                     cm.setSelections(sel)
                 cm._last_selections = sel
+
+    close: =>
+        @execution_queue.close()
+        super()
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
@@ -529,6 +535,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             opts.cb?(); return
         @close_on_action()
         t = misc.walltime()
+        @execution_queue.clear()
+        @clear_action_flags(false)
         async.series([
             (cb) =>
                 @send_signal
@@ -540,6 +548,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     cb      : cb
         ], (err) => opts.cb?(err))
 
+    clear_action_flags: (this_session) =>
+        flags = if this_session then ACTION_SESSION_FLAGS else ACTION_FLAGS
+        # Set any running cells to not running.
+        for cm in [@codemirror, @codemirror1]
+            for marker in cm.getAllMarks()
+                if marker.type == MARKERS.cell
+                    for flag in flags
+                        @remove_cell_flag(marker, flag)
+
     kill: (opts={}) =>
         opts = defaults opts,
             restart : false
@@ -549,12 +566,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             opts.cb?(); return
         t = misc.walltime()
         @close_on_action()
-        # Set any running cells to not running.
-        for cm in [@codemirror, @codemirror1]
-            for marker in cm.getAllMarks()
-                if marker.type == MARKERS.cell
-                    for flag in ACTION_FLAGS
-                        @remove_cell_flag(marker, flag)
+        @clear_action_flags(true)
+        # Empty the execution queue.
+        @execution_queue.clear()
         @process_sage_updates(caller:"kill")
         if opts.restart
             @restart(cb:opts.cb)
@@ -778,7 +792,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         mark.flagstring = ''
                     if not @opts.static_viewer
                         elt = @elt_at_mark(mark)
-                        if FLAGS.execute in flagstring
+                        if FLAGS.waiting in flagstring
+                            elt.data('execute',FLAGS.waiting)
+                            @set_input_state(elt:elt, run_state:'waiting')
+                        else if FLAGS.execute in flagstring
                             elt.data('execute',FLAGS.execute)
                             @set_input_state(elt:elt, run_state:'execute')
                         else if FLAGS.running in flagstring
@@ -882,7 +899,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             elt        : undefined
             line       : undefined
             eval_state : undefined    # undefined, true, false
-            run_state  : undefined    # undefined, 'execute', 'running', 'done'
+            run_state  : undefined    # undefined, 'execute', 'running', 'waiting', 'done'
         #console.log("set_input_state", opts)
         if opts.elt?
             elt = opts.elt
@@ -899,12 +916,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.addClass('sagews-input-unevaluated').removeClass('sagews-input-evaluated')
         if opts.run_state?
             e = elt.find(".sagews-input-run-state")
-            if opts.run_state == 'execute'
-                e.addClass('sagews-input-execute').removeClass('sagews-input-running').addClass('blink')
-            else if opts.run_state == 'running'
-                e.addClass('sagews-input-running').removeClass('sagews-input-execute').addClass('blink')
-            else if opts.run_state == 'done'
-                e.removeClass('sagews-input-execute').removeClass('sagews-input-running').removeClass('blink')
+            for k in ['execute', 'running', 'waiting']
+                e.removeClass("sagews-input-#{k}")
+            if opts.run_state == 'done'
+                e.removeClass('blink')
+            else
+                e.addClass("sagews-input-#{opts.run_state}").addClass('blink')
 
     # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
@@ -1723,6 +1740,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         opts = defaults opts,
             cell   : required
             cb     : undefined    # called when the execution is completely done (so no more output)
+        @execution_queue.push(opts)
+
+    _execute_cell_server_side: (opts) =>
+        opts = defaults opts,
+            cell   : required
+            cb     : undefined    # called when the execution is completely done (so no more output)
 
         #dbg = (m...) -> console.log("execute_cell_server_side:", m...)
         #dbg("block=#{misc.to_json(opts.block)}")
@@ -1959,28 +1982,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cm?.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
-    interrupt: (opts) =>
-        opts = defaults opts,
-            maxtime : 15
-            cb      : undefined
-        if @readonly
-            opts.cb?()
-            return
-        @close_on_action()
-        t = misc.walltime()
-        async.series([
-            (cb) =>
-                @send_signal
-                    signal : 2
-                    cb     : cb
-            (cb) =>
-                @start
-                    maxtime : opts.maxtime - misc.walltime(t)
-                    cb      : cb
-        ], (err) =>
-            opts.cb?(err)
-        )
-
     close_on_action: (element) =>
         # Close popups (e.g., introspection) that are set to be closed when an
         # action, such as "execute", occurs.
@@ -1993,6 +1994,87 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             for e in @_close_on_action_elements
                 e.remove()
             @_close_on_action_elements = []
+
+class ExecutionQueue
+    constructor: (@_exec) ->
+        if not @_exec
+            throw "BUG: execution function must be provided"
+        @_queue   = []
+        @_state   = 'ready'
+
+    close: () =>
+        @dbg("close")()
+        @_state = 'closed'
+        delete @_queue
+
+    dbg: (f) =>
+        return () ->  # disabled logging
+        #return (m...) -> console.log("ExecutionQueue.#{f}(): #{misc.to_json(m)}")
+
+    push: (opts) =>
+        opts = defaults opts,
+            cell   : required
+            cb     : undefined
+        @dbg("push")()
+        if @_state == 'closed'
+            return
+        uuid = opts.cell.input_uuid()
+        if not uuid? # removed
+            return
+        for x in @_queue
+            if x.cell.input_uuid() == uuid
+                return # cell already queued up to run
+        if uuid == @_running_uuid
+            # currently running
+            return
+        @_queue.push(opts)
+        opts.cell.set_cell_flag(FLAGS.waiting)
+        @_process()
+
+    clear: () =>
+        @dbg("clear")()
+        if @_state == 'closed'
+            return
+        # TODO/NOTE: this of course doesn't fully account for multiple users!
+        # E.g., two people start, one cancels, the other will still be
+        # queued up... But we have to start somewhere, to even know what
+        # state needs to be sync'd around.
+        for x in @_queue
+            x.cell.remove_cell_flag(FLAGS.waiting)
+        @_queue = []
+        @_state = 'ready'
+
+    _process: () =>
+        if @_state == 'closed'
+            return
+        dbg = @dbg('process')
+        dbg()
+        if @_state == 'running'
+            dbg("running...")
+            return
+        dbg("length ",  @_queue.length)
+        if @_queue.length == 0
+            return
+        x = @_queue.shift()
+        uuid = x.cell.input_uuid()
+        if not uuid?
+            # cell no longer exists
+            @_process()
+            return
+        @_running_uuid = uuid
+        orig_cb = x.cb
+        x.cb = (args...) =>
+            if @_state == 'closed'
+                # ignore further output
+                return
+            orig_cb?(args...)
+            @_state = 'ready'
+            delete @_running_uuid
+            @_process()
+        @_state = 'running'
+        x.cell.remove_cell_flag(FLAGS.waiting)
+        @_exec(x)
+
 
 class SynchronizedWorksheetCell
     constructor: (@doc, line) ->
