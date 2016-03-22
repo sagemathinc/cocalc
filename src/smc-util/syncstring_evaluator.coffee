@@ -118,9 +118,9 @@ class exports.Evaluator
             if n == -1   # corrupted
                 return
             output_line += stringify(misc.copy_without(mesg, ['id', 'event'])) + sagews.MARKERS.output
-            #winston.debug("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
+            #dbg("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
             if output_line.length > n - i
-                #winston.debug("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
+                dbg("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
                 x = content.slice(0, i)
                 content = x + output_line + content.slice(n)
                 if mesg.done
@@ -129,7 +129,7 @@ class exports.Evaluator
                         j = x.lastIndexOf('\n', j)
                         cell_id = x.slice(j+2, j+38)
                         #dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
-                        S = sagews(content)
+                        S = sagews.sagews(content)
                         S.remove_cell_flag(cell_id, sagews.FLAGS.running)
                         content = S.content
                         #dbg("removing a cell flag: after='#{content}'")
