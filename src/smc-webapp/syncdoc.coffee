@@ -558,6 +558,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
+
         @_syncstring.once 'init', (err) =>
             if err
                 window.err = err
@@ -565,50 +566,52 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     err = "You do not have permission to read '#{@filename}'."
                 @editor.show_startup_message(err, 'danger')
                 return
-            @editor.show_content()
-            @editor._set(@_syncstring.get())
-            @codemirror.setOption('readOnly', false)
-            @codemirror1.setOption('readOnly', false)
-            @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-            @codemirror1.clearHistory()
+            # Now wait until read_only is *defined*, so backend file has been opened.
+            @_syncstring.wait_until_read_only_known (err) =>
+                @editor.show_content()
+                @editor._set(@_syncstring.get())
+                @codemirror.setOption('readOnly', false)
+                @codemirror1.setOption('readOnly', false)
+                @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+                @codemirror1.clearHistory()
 
-            update_unsaved_changes()
-            @_udpate_read_only()
-
-            @_init_cursor_activity()
-
-            @_syncstring.on 'change', =>
-                #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
-                @codemirror.setValueNoJump(@_syncstring.get())
-                @emit('sync')
-
-            @_syncstring.on 'metadata-change', =>
                 update_unsaved_changes()
-                @_udpate_read_only()
+                @_update_read_only()
 
-            @_syncstring.on 'before-change', =>
-                #console.log("syncstring before change")
-                @_syncstring.set(@codemirror.getValue())
+                @_init_cursor_activity()
 
-            save_state = () => @_sync()
-            # We debounce instead of throttle, because we want a single "diff/commit" to correspond
-            # a burst of activity, not a bunch of little pieces of that burst.  This is more
-            # consistent with how undo stacks work.
-            @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+                @_syncstring.on 'change', =>
+                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
+                    @codemirror.setValueNoJump(@_syncstring.get())
+                    @emit('sync')
 
-            @codemirror.on 'change', (instance, changeObj) =>
-                #console.log("change event when live='#{@live().string()}'")
-                if changeObj.origin?
-                    if changeObj.origin == 'undo'
-                        @on_undo?(instance, changeObj)
-                    if changeObj.origin == 'redo'
-                        @on_redo?(instance, changeObj)
-                    if changeObj.origin != 'setValue'
-                        @save_state_debounce()
-                update_unsaved_changes()
+                @_syncstring.on 'metadata-change', =>
+                    update_unsaved_changes()
+                    @_update_read_only()
 
-            @emit('connect')   # successful connection
-            cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+                @_syncstring.on 'before-change', =>
+                    #console.log("syncstring before change")
+                    @_syncstring.set(@codemirror.getValue())
+
+                save_state = () => @_sync()
+                # We debounce instead of throttle, because we want a single "diff/commit" to correspond
+                # a burst of activity, not a bunch of little pieces of that burst.  This is more
+                # consistent with how undo stacks work.
+                @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+
+                @codemirror.on 'change', (instance, changeObj) =>
+                    #console.log("change event when live='#{@live().string()}'")
+                    if changeObj.origin?
+                        if changeObj.origin == 'undo'
+                            @on_undo?(instance, changeObj)
+                        if changeObj.origin == 'redo'
+                            @on_redo?(instance, changeObj)
+                        if changeObj.origin != 'setValue'
+                            @save_state_debounce()
+                    update_unsaved_changes()
+
+                @emit('connect')   # successful connection
+                cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
         synchronized_string
             project_id    : @project_id
@@ -626,7 +629,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     _update_unsaved_changes: =>
         @editor.has_unsaved_changes(@_has_unsaved_changes())
 
-    _udpate_read_only: =>
+    _update_read_only: =>
         @editor.set_readonly_ui(@_syncstring.get_read_only())
 
     _sync: (cb) =>

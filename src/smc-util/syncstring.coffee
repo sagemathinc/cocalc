@@ -1146,6 +1146,11 @@ class SyncDoc extends EventEmitter
     get_read_only: () =>
         @_syncstring_table?.get_one()?.get('read_only')
 
+    wait_until_read_only_known: (cb) =>
+        @_syncstring_table.wait
+            until : (t) => t.get_one()?.get('read_only')?
+            cb    : cb
+
     # Returns true if the current live version of this document has a different hash
     # than the version mostly recently saved to disk.
     has_unsaved_changes: () =>
