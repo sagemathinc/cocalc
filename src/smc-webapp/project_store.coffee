@@ -601,8 +601,11 @@ class ProjectActions extends Actions
                 opts.on_download?(false)
             return
         if name[name.length - 1] == '/'
-            @create_folder(name, opts.current_path, opts.on_error)
-            return
+            if not opts.ext?
+                @create_folder(name, opts.current_path, opts.on_error)
+                return
+            else
+                name = name.slice(0, name.length - 1)
         p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
         if not p
             return

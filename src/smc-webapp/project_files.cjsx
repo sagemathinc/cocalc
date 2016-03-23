@@ -347,9 +347,11 @@ NoFiles = rclass
         @props.actions.setState(file_search : '', page_number: 0)
 
     create_file : (ext) ->
+        if not ext?
+            ext = @extension_defaulter()
         @props.actions.create_file
             name         : @props.file_search
-            ext          : @extension()
+            ext          : ext
             current_path : @props.current_path
             on_download  : ((a) => @setState(download: a))
             # TODO: Render error in useful location
@@ -357,8 +359,8 @@ NoFiles = rclass
         if not @state?.error?
             @props.actions.setState(file_search : '', page_number: 0)
 
-    # Default to sagews if none is given.
-    extension : ->
+    # Determines whether or not an extension is given
+    ext_defaulter : ->
         if @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
           "sagews"
 
@@ -370,7 +372,7 @@ NoFiles = rclass
             @create_file()
 
     filename_text : ->
-        ext = @extension()
+        ext = @ext_defaulter()
         if ext and @props.file_search.slice(-1) isnt '/'
             "#{@props.file_search}.#{ext}"
         else
@@ -1367,9 +1369,13 @@ ProjectFilesSearch = rclass
                 You must enter file name above to create it
             </Alert>
 
-# Consider consolodating to parent component. Siblings of this component have this same function
+    create_folder : () ->
+        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
+        @props.actions.setState(file_search : '', page_number: 0)
+
+    # Consider consolodating to parent component. Siblings of this component have a very similar function
     create_file : (ext) ->
-        if not ext and @props.file_search?.indexOf('.') == -1
+        if not ext? and @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
             ext = "sagews"
         @props.actions.create_file
             name         : @props.file_search
@@ -1380,9 +1386,6 @@ ProjectFilesSearch = rclass
         @props.actions.setState(file_search : '', page_number: 0)
 
     search_submit: ->
-        if not @props.selected_file? and not @props.files_displayed and @props.file_search?.length > 0
-            @create_file()
-
         # TODO: Add visual indication that a file is selected at all.
         if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
@@ -1390,7 +1393,12 @@ ProjectFilesSearch = rclass
                 @props.actions.set_current_path(new_path)
             else
                 @props.actions.open_file(path: new_path)
-            @props.actions.set_file_search('')
+            @props.actions.set_file_search
+        else if not @props.files_displayed and @props.file_search?.length > 0
+            if @props.file_search[@props.file_search.length - 1] == '/'
+                @create_folder()
+            else
+                @create_file()
 
     render : ->
         <span>
