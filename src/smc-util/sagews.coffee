@@ -21,7 +21,6 @@ exports.FLAGS = FLAGS =
     this_session : "s"   # if set, cell was executed during the current sage session.
     hide_input   : "i"   # hide input part of cell
     hide_output  : "o"   # hide output part of cell
-    auto         : "a"   # if set, run the cell when the sage session first starts
 
 exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt]
 exports.ACTION_SESSION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt, FLAGS.this_session]
@@ -78,6 +77,7 @@ class SageWS
         s = @get_cell_flagstring(id)
         if s? and flag in s
             @content = @set_cell_flagstring(id, s.replace(new RegExp(flag, "g"), ""))
+
 
 exports.sagews = (content) ->
     return new SageWS(content)

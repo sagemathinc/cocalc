@@ -233,7 +233,6 @@ class Message(object):
                once         = None,
                hide         = None,
                show         = None,
-               auto         = None,
                events       = None,
                clear        = None,
                delete_last  = None,
@@ -269,7 +268,6 @@ class Message(object):
         if once is not None: m['once'] = once
         if hide is not None: m['hide'] = hide
         if show is not None: m['show'] = show
-        if auto is not None: m['auto'] = auto
         if events is not None: m['events'] = events
         if clear is not None: m['clear'] = clear
         if delete_last is not None: m['delete_last'] = delete_last
@@ -1157,13 +1155,6 @@ class Salvus(object):
         """
         self._check_component(component)
         self._send_output(self._id, show=component)
-
-    def auto(self, state=True):
-        """
-        Set whether or not the current cells is automatically executed when
-        the Sage process restarts.
-        """
-        self._send_output(self._id, auto=state)
 
     def notify(self, **kwds):
         """

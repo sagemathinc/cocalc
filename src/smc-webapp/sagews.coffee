@@ -59,11 +59,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
             @process_sage_updates(caller:"constructor")
+            @status cb: (err, status) =>
+                if not status?.running
+                    @execute_auto_cells()
 
         @init_worksheet_buttons()
         @init_html_editor_buttons()
 
-        @execution_queue = new ExecutionQueue(@_execute_cell_server_side)
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
         @on 'sync', () =>
             #console.log("sync")
@@ -187,7 +190,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     # Return list of all cells that are touched by the current selection
     # or contain any cursors.
-    get_current_cells: ->
+    get_current_cells: =>
         cm = @focused_codemirror()
         cells = []
         top = undefined
@@ -208,7 +211,27 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     process_line(i)
         return cells.reverse()
 
-    process_sage_update_queue: () =>
+    get_all_cells: =>
+        cm = @focused_codemirror()
+        cells = []
+        top = undefined
+        process_line = (n) =>
+            if not top? or n < top
+                cell = @cell(n)
+                cells.push(cell)
+                top = cell.get_input_mark()?.find().from.line
+        n = cm.lineCount() - 1
+        while n > 0 and cm.getLine(n)[0] != MARKERS.output # skip empty lines at end so don't create another cell
+            n -= 1
+        if n == 0
+            # no cells yet
+            return []
+        while n >= 0
+            process_line(n)
+            n -= 1
+        return cells.reverse()
+
+    process_sage_update_queue: =>
         #console.log("process, start=#{@_update_queue_start}, stop=#{@_update_queue_stop}")
         if @_update_queue_start?
             @process_sage_updates
@@ -609,7 +632,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb  : undefined
         @sage_call
             input : {event:'restart'}
-            cb    : () => opts.cb?()
+            cb    : =>
+                @execute_auto_cells()
+                opts.cb?()
 
     send_signal: (opts) =>
         opts = defaults opts,
@@ -979,6 +1004,18 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 input   : opts.input
                 cb      : opts.cb
         return
+
+    status: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @sage_call
+            input :
+                event:'status'
+            cb    : (resp) =>
+                if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp)
 
     execute_code: (opts) =>
         opts = defaults opts,
@@ -1749,13 +1786,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         #dbg = (m...) -> console.log("execute_cell_server_side:", m...)
         #dbg("block=#{misc.to_json(opts.block)}")
-        if @_restarting
-            @once 'restarted', (err) =>
-                if not err
-                    @execute_cell_server_side(opts)
-                else
-                    opts.cb?(err)
-            return
 
         cell  = opts.cell
         input = cell.input()
@@ -1805,6 +1835,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if mesg.done
                     done()
                 @sync()
+
+    # enqueue all of the auto cells for execution
+    execute_auto_cells: () =>
+        for cell in @get_all_cells()
+            is_auto = cell.is_auto()
+            if is_auto? and is_auto
+                cell.action(execute:true)
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
@@ -1996,7 +2033,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @_close_on_action_elements = []
 
 class ExecutionQueue
-    constructor: (@_exec) ->
+    constructor: (@_exec, @worksheet) ->
         if not @_exec
             throw "BUG: execution function must be provided"
         @_queue   = []
@@ -2049,6 +2086,11 @@ class ExecutionQueue
             return
         dbg = @dbg('process')
         dbg()
+        if @worksheet._restarting
+            dbg("waiting for restart to finish")
+            @worksheet.once 'restarted', =>
+                @_process()
+            return
         if @_state == 'running'
             dbg("running...")
             return
@@ -2201,6 +2243,14 @@ class SynchronizedWorksheetCell
 
     input: =>
         return @raw_input(1)
+
+    is_auto: =>
+        input = @input()
+        if input?
+            for line in input.split('\n')
+                if line.length > 0 and line[0] != '#'
+                    return line.slice(0,5) == '%auto'
+            return false
 
     # return current content of the output line of this cell as a string (or undefined)
     raw_output: =>

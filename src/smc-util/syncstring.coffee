@@ -783,6 +783,8 @@ class SyncDoc extends EventEmitter
                 t()
 
             @_cursors.on 'change', (keys) =>
+                if @_closed
+                    return
                 for k in keys
                     account_id = @_users[JSON.parse(k)?[1]]
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))

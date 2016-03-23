@@ -127,10 +127,20 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
     ], (err) -> cb(err, sage_socket))
 
 
+cache = {}
+exports.sage_session = (opts) ->
+    opts = defaults opts,
+        client : required
+        path   : required   # the path to the *worksheet* file
+    # compute and cache if not cached; otherwise, get from cache:
+    return cache[opts.path] ?= new SageSession(opts)
+
 ###
-# Sage Session object
+Sage Session object
+
+Until you actually try to call it no socket need
 ###
-class exports.SageSession
+class SageSession
     constructor: (opts) ->
         opts = defaults opts,
             client : required
@@ -150,7 +160,11 @@ class exports.SageSession
         for id, cb of @_output_cb
             cb({done:true, error:"killed"})
         @_output_cb = {}
-        # TODO: send kill signal?
+        delete cache[@_path]
+
+    # return true if there is a socket connection to a sage server process
+    is_running: () =>
+        return @_socket?
 
     _init_socket: (cb) =>
         dbg = @dbg('_init_socket()')
@@ -203,20 +217,24 @@ class exports.SageSession
         dbg = @dbg("call")
         dbg("input='#{misc.trunc(misc.to_json(opts.input), 300)}'")
         switch opts.input.event
+            when 'ping'
+                opts.cb?({pong:true})
+            when 'status'
+                opts.cb?({running:@is_running()})
             when 'signal'
                 if @_socket?
                     dbg("sending signal #{opts.input.signal} to process #{@_socket.pid}")
                     misc_node.process_kill(@_socket.pid, opts.input.signal)
-                opts.cb?({done:true})
+                opts.cb?({})
             when 'restart'
                 dbg("restarting sage session")
                 if @_socket?
                     @close()
                 @_init_socket (err) =>
                     if err
-                        opts.cb?({done:true, error:err})
+                        opts.cb?({error:err})
                     else
-                        opts.cb?({done:true})
+                        opts.cb?({})
             when 'raw_input'
                 dbg("sending sage_raw_input event")
                 @_socket?.write_mesg('json', {event:'sage_raw_input', value:opts.input.value})
