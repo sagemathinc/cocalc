@@ -113,7 +113,7 @@ class exports.Client extends EventEmitter
         dbg()
         obj =
             project_id  : @project_id
-            max_age_m   : 30
+            max_age_m   : 10
             path        : null
             last_active : null
 

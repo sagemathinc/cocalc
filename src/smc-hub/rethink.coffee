@@ -36,6 +36,8 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+{UserQueryStats} = require './user-query-stats'
+
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
 
@@ -97,7 +99,7 @@ exports.set_default_hosts = (hosts) ->
 #
 
 class RethinkDB
-    constructor : (opts={}) ->
+    constructor: (opts={}) ->
         opts = defaults opts,
             hosts    : default_hosts
             database : 'smc'
@@ -123,6 +125,7 @@ class RethinkDB
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
+        @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
 
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
@@ -2820,6 +2823,7 @@ class RethinkDB
         x = @_change_feeds?[opts.id]
         if x?
             delete @_change_feeds[opts.id]
+            @_user_query_stats.cancel_changefeed(changefeed_id: opts.id)
             winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
@@ -3091,6 +3095,11 @@ class RethinkDB
             opts.cb("account_id or project_id must be specified")
             return
         dbg(to_json(opts.query))
+
+        @_user_query_stats.set_query
+            account_id : opts.account_id
+            project_id : opts.project_id
+            table      : opts.table
 
         query = misc.copy(opts.query)
         table = opts.table
@@ -3482,6 +3491,12 @@ class RethinkDB
         else
             dbg = @dbg("user_get_query(anonymous, table=#{opts.table})")
 
+        if not opts.changes
+            @_user_query_stats.get_query
+                account_id : opts.account_id
+                project_id : opts.project_id
+                table      : opts.table
+
         # For testing, it can be useful to simulate lots of random failures
         #if Math.random() <= .5
         #    dbg("user_get_query: randomly failing as a test")
@@ -3827,6 +3842,12 @@ class RethinkDB
                             if not @_change_feeds?
                                 @_change_feeds = {}
                             @_change_feeds[changefeed_id] = [feed]
+                            @_user_query_stats.changefeed
+                                account_id    : opts.account_id
+                                project_id    : opts.project_id
+                                table         : opts.table
+                                changefeed_id : changefeed_id
+
                             winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
                             changefeed_state = 'initializing'
                             feed.each (err, x) =>
