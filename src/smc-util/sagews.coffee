@@ -78,6 +78,10 @@ class SageWS
         if s? and flag in s
             @content = @set_cell_flagstring(id, s.replace(new RegExp(flag, "g"), ""))
 
+    set_cell_flag: (id, flag) =>
+        s = @get_cell_flagstring(id)
+        if s? and flag not in s
+            @content = @set_cell_flagstring(id, s + flag)
 
 exports.sagews = (content) ->
     return new SageWS(content)

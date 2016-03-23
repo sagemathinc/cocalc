@@ -1791,12 +1791,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         input = cell.input()
         if not input?
             #dbg("cell vanished/invalid")
+            opts.cb?("cell vanished/invalid")
             return
 
         cur_height = cell.get_output_height()
         output_uuid = cell.new_output_uuid()
         if not output_uuid?
             #dbg("output_uuid not defined")
+            opts.cb?("output_uuid no longer defined")
             return
 
         # set cell to running mode
@@ -1830,10 +1832,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if first_output  # we *always* clear the first time, even if we cleared above via the setTimeout.
                     first_output = false
                     clear_output()
-                #console.log("got mesg ", mesg, new Date() - t0); t0 = new Date()
                 cell.append_output_message(mesg)
                 if mesg.done
-                    done()
+                    done?()
+                    done = undefined
                 @sync()
 
     # enqueue all of the auto cells for execution

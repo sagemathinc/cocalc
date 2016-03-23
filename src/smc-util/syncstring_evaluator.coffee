@@ -18,13 +18,13 @@ class exports.Evaluator
             eval_inputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 input : null
-        @_inputs = @string._client.sync_table(query, {}, 1)
+        @_inputs = @string._client.sync_table(query, {}, 500)
 
         query =
             eval_outputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 output : null
-        @_outputs = @string._client.sync_table(query, {}, 1)
+        @_outputs = @string._client.sync_table(query, {}, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
         if @string._client.is_project()
@@ -65,6 +65,11 @@ class exports.Evaluator
             # Listen for output until we receive a message with mesg.done true.
             messages = {}
             mesg_number = 0
+            send = (mesg) =>
+                if mesg.done
+                    @_outputs.removeListener('change', handle_output)
+                opts.cb?(mesg)
+
             handle_output = (keys) =>
                 #console.log("handle_output #{misc.to_json(keys)}")
                 if @_closed
@@ -76,19 +81,17 @@ class exports.Evaluator
                         mesg = @_outputs.get(key)?.get('output')?.toJS()
                         if mesg?
                             delete mesg.id # waste of space
-                            if mesg.done
-                                @_outputs.removeListener('change', handle_output)
                             # Message may arrive in somewhat random order -- RethinkDB doesn't guarantee
                             # anything about the order of writes versus when changes get pushed out!  E.g. this
                             # in a Sage worksheet:
                             #    for i in range(20): print i; sys.stdout.flush()
                             if t[2] == mesg_number     # t[2] is the sequence number of the message
                                 # Inform caller of result
-                                opts.cb(mesg)
+                                send(mesg)
                                 # Push out any messages that arrived earlier that are ready to send.
                                 mesg_number += 1
                                 while messages[mesg_number]?
-                                    opts.cb(messages[mesg_number])
+                                    send(messages[mesg_number])
                                     delete messages[mesg_number]
                                     mesg_number += 1
                             else
@@ -131,6 +134,7 @@ class exports.Evaluator
                         #dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
                         S = sagews.sagews(content)
                         S.remove_cell_flag(cell_id, sagews.FLAGS.running)
+                        S.set_cell_flag(cell_id, sagews.FLAGS.this_session)
                         content = S.content
                         #dbg("removing a cell flag: after='#{content}'")
                 @string.set(content)

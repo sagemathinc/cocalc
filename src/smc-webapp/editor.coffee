@@ -1392,10 +1392,10 @@ class FileEditor extends EventEmitter
         # define in derived class
 
     hide: () =>
-        @element.hide()
+        @element?.hide()
 
     remove: () =>
-        @element.remove()
+        @element?.remove()
         @removeAllListeners()
 
     terminate_session: () =>
