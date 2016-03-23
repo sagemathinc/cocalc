@@ -17,6 +17,12 @@ That said, this architecture could change, and very little code would change
 as a resut.
 ###
 
+# close our copy of syncstring (so stop watching it for changes, etc) if
+# not active for this long (must be at least 5 minutes)
+SYNCSTRING_MAX_AGE_M = 15
+
+## SYNCSTRING_MAX_AGE_M = 1 # for debugging
+
 fs     = require('fs')
 {join} = require('path')
 
@@ -113,31 +119,45 @@ class exports.Client extends EventEmitter
         dbg()
         obj =
             project_id  : @project_id
-            max_age_m   : 10
+            max_age_m   : SYNCSTRING_MAX_AGE_M
             path        : null
             last_active : null
 
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
-        @_recent_syncstrings.on 'change', () =>
+        @_recent_syncstrings.on 'change', =>
             dbg("@_recent_syncstrings change")
-            keys = {}
-            @_recent_syncstrings.get().map (val, key) =>
-                path = val.get('path')
-                if path == '.smc/local_hub/local_hub.log'
-                    # do NOT open this file, since opening it causes a feedback loop!  The act of opening
-                    # it is logged in it, which results in further logging ...!
-                    return
-                string_id = val.get('string_id')
+            @update_recent_syncstrings()
+
+        @_recent_syncstrings.once 'change', =>
+            # We have to do this since syncstrings no longer satisfying the max_age_m query
+            # do NOT automatically get removed from the table (that's just not implemented yet).
+            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 60*1000)
+
+    update_recent_syncstrings: () =>
+        dbg = @dbg("update_recent_syncstrings")
+        cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
+        keys = {}
+        x = @_recent_syncstrings.get()
+        if not x?
+            return
+        @_recent_syncstrings.get().map (val, key) =>
+            path = val.get('path')
+            if path == '.smc/local_hub/local_hub.log'
+                # do NOT open this file, since opening it causes a feedback loop!  The act of opening
+                # it is logged in it, which results in further logging ...!
+                return
+            string_id = val.get('string_id')
+            if val.get("last_active") > cutoff
                 keys[string_id] = true
                 if not @_open_syncstrings[string_id]?
-                    dbg("opening syncstring '#{val.get('path')}' with id '#{string_id}'")
+                    dbg("opening syncstring '#{path}' with id '#{string_id}'")
                     @_open_syncstrings[string_id] = @sync_string(path:path)
-            for id, val of @_open_syncstrings
-                if not keys[id]
-                    dbg("closing syncstring '#{path}'")
-                    val.close()
-                    delete @_open_syncstrings[id]
+        for string_id, val of @_open_syncstrings
+            if not keys[string_id]
+                dbg("closing syncstring '#{val._path}' with id '#{string_id}'")
+                val.close()
+                delete @_open_syncstrings[string_id]
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
@@ -148,6 +168,7 @@ class exports.Client extends EventEmitter
         for _, s of misc.keys(@_open_syncstrings)
             s.close()
         delete @_open_syncstrings
+        clearInterval(@_recent_syncstrings_interval)
 
     # account_id or project_id of this client
     client_id: () =>
