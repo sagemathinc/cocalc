@@ -53,7 +53,9 @@ A SyncTable is a finite state machine as follows:
 
 Also, there is a final state called 'closed', that the SyncTable moves to when
 it will not be used further; this frees up all connections and used memory.
-The table can't be used after it is closed.
+The table can't be used after it is closed.   The only way to get to the
+closed state is to explicitly call close() on the table; otherwise, the
+table will keep attempting to connect and work, until it works.
 
     (anything)  --> [closed]
 
@@ -266,6 +268,9 @@ class SyncTable extends EventEmitter
         @_anonymous = !!@_schema.anonymous
 
     _reconnect: =>
+        if @_state == 'closed'
+            # nothing to do
+            return
         #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
         #dbg()
         dbg = =>
@@ -344,11 +349,9 @@ class SyncTable extends EventEmitter
                         cb?("closed")
                     else if err
                         console.warn("query '#{misc.to_json(@_query)}': _run: first error ", err)
-                        @_state = 'closed'
                         cb?(err)
                     else if not resp?.query?[@_table]?
                         console.warn("query on '#{misc.to_json(@_query)}' returned undefined")
-                        @_state = 'closed'
                         cb?("got no data")
                     else
                         # Successfully completed a query
@@ -359,6 +362,9 @@ class SyncTable extends EventEmitter
                         @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
                 else
+                    if @_state == 'closed'
+                        # nothing to do
+                        return
                     #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
                     # changefeed
                     if err
