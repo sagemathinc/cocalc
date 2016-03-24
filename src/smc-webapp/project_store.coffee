@@ -595,6 +595,9 @@ class ProjectActions extends Actions
             on_empty     : undefined
 
         name = opts.name
+        if (name == ".." or name == ".") and not opts.ext?
+            opts.on_error?("Cannot create a file named . or ..")
+            return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
             opts.on_download?(true)
             @new_file_from_web name, opts.current_path, () =>
