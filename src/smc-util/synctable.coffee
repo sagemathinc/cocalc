@@ -569,6 +569,9 @@ class SyncTable extends EventEmitter
         if not @_value_local?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
             return
+        if not @_value_server?
+            console.warn("_update_change(#{@_table}): tried to call _update_change even though set not yet defined (ignoring)")
+            return
         @emit('before-change')
         changed_keys = []
         conflict = false
