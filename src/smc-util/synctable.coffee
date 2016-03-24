@@ -281,9 +281,6 @@ class SyncTable extends EventEmitter
         if @_state == 'connected'
             dbg("already connected")
             return
-        if @_state == 'reconnecting'
-            dbg("_reconnecting right now already")
-            return
         if not @_anonymous and not @_client.is_signed_in()
             dbg("waiting for sign in before connecting")
             @_state = 'reconnecting'
