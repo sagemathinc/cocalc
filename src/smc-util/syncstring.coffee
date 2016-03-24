@@ -576,7 +576,7 @@ class SyncDoc extends EventEmitter
     # case the full history has been loaded.  The list of timestamps
     # is sorted from oldest to newest.
     all_versions: () =>
-        return @_patch_list.versions()
+        return @_patch_list?.versions()
 
     last_changed: () =>
         v = @versions()

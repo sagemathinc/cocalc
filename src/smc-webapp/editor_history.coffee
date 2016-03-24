@@ -146,6 +146,9 @@ class exports.HistoryEditor extends FileEditor
         if not num?
             return
         versions = @syncstring.all_versions()
+        if not versions?
+            # not yet initialized
+            return
         time = versions[num]
         if not time?
             num  = @length - 1
