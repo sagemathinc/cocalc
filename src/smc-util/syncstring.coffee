@@ -249,6 +249,13 @@ class SortedPatchList extends EventEmitter
             @_patches = @_patches.concat(v)
             @_patches.sort(patch_cmp)
 
+    newest_snapshot_time: () =>
+        t0 = 0
+        for t in @_snapshot_times
+            if t > t0
+                t0 = t
+        return new Date(t0)
+
     ###
     value: Return the value of the string at the given (optional)
     point in time.  If the optional time is given, only include patches up
@@ -264,6 +271,7 @@ class SortedPatchList extends EventEmitter
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
 
+        prev_cutoff = @newest_snapshot_time()
         # Determine oldest cached value
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
@@ -279,7 +287,7 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                if not x.prev? or @_times[x.prev - 0]
+                if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
                     value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
@@ -316,7 +324,7 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                if not x.prev? or @_times[x.prev - 0]
+                if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
                     value = apply_patch(x.patch, value)[0]
                 cache_time = x.time
                 cache_start += 1
@@ -379,13 +387,14 @@ class SortedPatchList extends EventEmitter
             trunc        : 80
         s = undefined
         i = 0
+        prev_cutoff = @newest_snapshot_time()
         for x in @_patches
             tm = x.time
             tm = if opts.milliseconds then tm - 0 else tm.toLocaleString()
             console.log("-----------------------------------------------------\n", i, x.user, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
-            if not x.prev? or @_times[x.prev - 0]
+            if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
                 t = apply_patch(x.patch, s)
             else
                 console.log("prev=#{x.prev} missing, so not applying")
