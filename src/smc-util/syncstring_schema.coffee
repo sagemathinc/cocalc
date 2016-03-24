@@ -141,6 +141,9 @@ schema.patches =
         sent :
             type : 'timestamp'
             desc : 'Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.'
+        prev :
+            type : 'timestamp'
+            desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
     user_query:
         get :
             all :
@@ -152,6 +155,7 @@ schema.patches =
                 user     : null
                 snapshot : null
                 sent     : null
+                prev     : null
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has read access to these patches
                 db._user_get_query_patches_check(obj, account_id, project_id, cb)
@@ -162,6 +166,7 @@ schema.patches =
                 user     : true
                 snapshot : true
                 sent     : true
+                prev     : true
             required_fields :
                 id       : true
                 patch    : true
@@ -169,7 +174,7 @@ schema.patches =
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
 
-schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
+schema.patches.project_query = schema.patches.user_query
 
 schema.cursors =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]

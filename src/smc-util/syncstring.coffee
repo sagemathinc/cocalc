@@ -224,7 +224,7 @@ class SortedPatchList extends EventEmitter
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
-                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot
+                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot and cur.prev == x.prev
                         # re-inserting exactly the same thing; nothing at all to do
                         continue
                     else
@@ -279,7 +279,8 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
+                if not x.prev? or @_times[x.prev - 0]
+                    value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
             if not time? or start - cache.start >= 10
@@ -315,7 +316,8 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                value = apply_patch(x.patch, value)[0]
+                if not x.prev? or @_times[x.prev - 0]
+                    value = apply_patch(x.patch, value)[0]
                 cache_time = x.time
                 cache_start += 1
             if not time? or cache_time and cache_start - start >= 10
@@ -383,7 +385,10 @@ class SortedPatchList extends EventEmitter
             console.log("-----------------------------------------------------\n", i, x.user, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
-            t = apply_patch(x.patch, s)
+            if not x.prev? or @_times[x.prev - 0]
+                t = apply_patch(x.patch, s)
+            else
+                console.log("prev=#{x.prev} missing, so not applying")
             s = t[0]
             console.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()))
             i += 1
@@ -719,6 +724,7 @@ class SyncDoc extends EventEmitter
             user     : null      # integer id of user (maps to syncstring table)
             snapshot : null      # (optional) a snapshot at this point in time
             sent     : null      # (optional) when patch actually sent, which may be later than when made
+            prev     : null      # (optional) timestamp of previous patch sent from this session
         return query
 
     _init_patch_list: (cb) =>
@@ -842,6 +848,10 @@ class SyncDoc extends EventEmitter
             id    : [@_string_id, time]
             patch : JSON.stringify(patch)
             user  : @_user_id
+        if @_save_patch_prev?
+            # timestamp of last saved patch during this session
+            obj.prev = @_save_patch_prev
+        @_save_patch_prev = time
         #console.log("_save_patch: #{misc.to_json(obj)}")
         @_my_patches[time - 0] = obj
         x = @_patches_table.set(obj, 'none', cb)
@@ -915,6 +925,7 @@ class SyncDoc extends EventEmitter
         time = key[1]
         user = x.get('user')
         sent = x.get('sent')
+        prev = x.get('prev')
         if time0? and time < time0
             return
         if time1? and time > time1
@@ -928,6 +939,8 @@ class SyncDoc extends EventEmitter
             patch : patch
         if sent?
             obj.sent = sent
+        if prev?
+            obj.prev = prev
         if snapshot?
             obj.snapshot = snapshot
         return obj
@@ -991,7 +1004,6 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("_handle_offline")
         #dbg("data='#{misc.to_json(data)}'")
         if @_closed
-            # closed -- nothing to do
             return
         now = misc.server_time()
         oldest = undefined
@@ -1015,6 +1027,8 @@ class SyncDoc extends EventEmitter
                     @snapshot(snapshot_time, true)
 
     _handle_syncstring_update: =>
+        if not @_syncstring_table? # nothing more to do
+            return
         x = @_syncstring_table.get_one()?.toJS()
         #dbg = @dbg("_handle_syncstring_update")
         #dbg(JSON.stringify(x))
@@ -1221,6 +1235,8 @@ class SyncDoc extends EventEmitter
     # It handles update of the remote version, updating our live version as a result.
     ###
     _handle_patch_update: (changed_keys) =>
+        if @_closed
+            return
         #console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
         if not changed_keys?
             # this happens right now when we do a save.

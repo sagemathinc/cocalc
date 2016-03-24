@@ -438,7 +438,7 @@ class SyncTable extends EventEmitter
             query.push({"#{@_table}":obj})
             saved_objs.push(obj)
 
-        #console.log("sending #{query.length} changes: #{misc.to_json(query)}")
+        # console.log("sending #{query.length} changes: #{misc.to_json(query)}")
         if query.length == 0
             cb?()
             return
