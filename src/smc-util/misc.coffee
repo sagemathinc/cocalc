@@ -251,6 +251,23 @@ exports.is_valid_uuid_string = (uuid) ->
 exports.is_valid_sha1_string = (s) ->
     return typeof(s) == 'string' and s.length == 40 and /[a-fA-F0-9]{40}/i.test(s)
 
+# Compute a uuid v4 from the Sha-1 hash of data.
+# If on backend, use the version in misc_node, which is faster.
+sha1 = require('sha1')
+exports.uuidsha1 = (data) ->
+    s = sha1(data)
+    i = -1
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
+        i += 1
+        switch c
+            when 'x'
+                return s[i]
+            when 'y'
+                # take 8 + low order 3 bits of hex number.
+                return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
+    )
+
+
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 

@@ -2431,13 +2431,19 @@ class RethinkDB
     ###
     save_blob: (opts) =>
         opts = defaults opts,
-            uuid       : required  # uuid=sha1-based uuid coming from blob
-            blob       : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
+            uuid       : required  # uuid=sha1-based id coming from blob
+            blob       : required  # unless check=true, we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
             ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
                                    # if there is already something in blobstore with longer ttl, we leave it;
                                    # infinite ttl = 0 or undefined.
             project_id : required  # the id of the project that is saving the blob
+            check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        if opts.check
+            uuid = misc_node.uuidsha1(opts.blob)
+            if uuid != opts.uuid
+                opts.cb("the sha1 uuid (='#{uuid}') of the blob must equal the given uuid (='#{opts.uuid}')")
+                return
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
                 if err.name == 'ReqlNonExistenceError'

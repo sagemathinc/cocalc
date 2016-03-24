@@ -311,7 +311,6 @@ schema.blobs =
     user_query :
         get :
             instead_of_query : (database, obj, account_id, cb) ->
-                console.log("INSTEAD_OF_QUERY obj=#{misc.to_json(obj)}")
                 if not obj.id?
                     cb("id must be specified")
                     return
@@ -327,7 +326,7 @@ schema.blobs =
                 blob        : null
         set :
             fields :
-                id          : (obj, db) -> db.sha1(obj.blob)
+                id          : true
                 blob        : true
                 project_id  : 'project_write'
                 ttl         : 0
@@ -341,6 +340,7 @@ schema.blobs =
                     blob       : new_val.blob
                     ttl        : new_val.ttl
                     project_id : new_val.project_id
+                    check      : true  # can't trust the user!
                     cb         : cb
 
 schema.central_log =

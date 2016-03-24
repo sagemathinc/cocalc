@@ -336,6 +336,11 @@ sha1 hash functionality
 crypto = require('crypto')
 # compute sha1 hash of data in hex
 exports.sha1 = (data) ->
+    if typeof(data) == 'string'
+        # CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
+        # the wrong result where wrong means that it doesn't agree with the frontend version defined
+        # in misc.
+        data = new Buffer(data)
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')

@@ -36,7 +36,6 @@ misc                 = require('smc-util/misc')
 {redux}              = require('./smc-react')
 syncdoc              = require('./syncdoc')
 {synchronized_db}    = require('./syncdb')
-sha1                 = require('sha1')
 misc_page            = require('./misc_page')
 
 templates            = $(".smc-jupyter-templates")
@@ -601,11 +600,10 @@ class JupyterWrapper extends EventEmitter
             for out in obj.outputs
                 if out.data?
                     for k, v of out.data
-                        if k.slice(0,4) == 'smc/'
-                            blob = @load_blob(v)
+                        if is_smc_subs(v)
+                            blob = @load_blob(from_smc_subs(v))
                             if blob?
-                                out.data[k.slice(4)] = blob
-                                delete out.data[k]
+                                out.data[k] = blob
         return obj
 
     cell_to_line: (cell, to_db) =>
@@ -615,15 +613,12 @@ class JupyterWrapper extends EventEmitter
             for out in obj.outputs
                 if out.data?
                     for k, v of out.data
-                        if k.slice(0,6) == 'image/' and v
-                            key = 'smc/' + k
-                            if not out.data[key]?
-                                out.data[key] = @save_blob(v, to_db)
-                                delete out.data[k]
+                        if do_smc_subs(v)
+                            out.data[k] = to_smc_subs(@save_blob(v, to_db))
         return stringify(obj)
 
     save_blob: (blob, to_db) =>
-        id = sha1(blob)
+        id = misc.uuidsha1(blob)
         if @blobs[id]
             return id
         @blobs[id] = blob
@@ -633,9 +628,11 @@ class JupyterWrapper extends EventEmitter
                     id         : id
                     blob       : blob
                     project_id : @project_id
+            #console.log("saving blob with id #{id} to database")
             salvus_client.query
                 query : query
                 cb : (err, resp) =>
+                    #console.log("saving blob got response: #{err}, #{misc.to_json(resp)}")
                     if err
                         console.warn("error saving: #{err}")
         return id
@@ -671,6 +668,7 @@ class JupyterWrapper extends EventEmitter
         # Find any cells with the given id in them and re-render them with
         # the blob properly substituted in.
         index = 0
+        subs = to_smc_subs(id)
         for cell in @nb.get_cells()
             outputs = cell.output_area?.outputs
             if outputs?
@@ -680,7 +678,7 @@ class JupyterWrapper extends EventEmitter
                         break
                     if out.data?
                         for k, v of out.data
-                            if v == id
+                            if v == subs
                                 @mutate_cell(index, @line_to_cell(@cell_to_line(cell)))
                                 done = true
                                 break
@@ -989,7 +987,7 @@ class JupyterNotebook extends EventEmitter
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
-        @dom.show(width)
+        @dom?.show(width)
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
@@ -1216,3 +1214,29 @@ class JupyterNBViewer
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('download')
             return false
+
+###
+Functions used for defining how we replace large strings in Jupyter cell
+output with sha1-uuid blobs.  In short, we replace any sufficiently
+large string (as defined by SMC_SUBS_THRESH) with smc-blob::uuid, where
+uuid is derived from the sha1 hash of that string.
+
+WARNING: If you change this mapping all deployed Jupyter notebooks that used it
+will have their history broken, in that images will no longer appear.
+###
+
+SMC_SUBS_PREFIX = "smc-blob::"
+SMC_SUBS_THRESH = 500 # must be bigger than 36 + SMC_SUBS_PREFIX.length!
+
+do_smc_subs = (s) ->
+    return typeof(s) == 'string' and s.length > SMC_SUBS_THRESH
+
+is_smc_subs = (s) ->
+    n = SMC_SUBS_PREFIX.length
+    return typeof(s) == 'string' and s.slice(0,n) == SMC_SUBS_PREFIX and misc.is_valid_uuid_string(s.slice(n))
+
+to_smc_subs = (uuid) ->
+    return "#{SMC_SUBS_PREFIX}#{uuid}"
+
+from_smc_subs = (s) ->
+    return s.slice(SMC_SUBS_PREFIX.length)
