@@ -317,7 +317,8 @@ class SyncTable extends EventEmitter
             cb?("closed")
             return
         first_resp = true
-        #this_id = misc.uuid().slice(0,8)
+        query_id = misc.uuid()
+        @_query_id = query_id
         #console.log("#{this_id} -- query #{@_table}: _run")
         @_client.query
             query   : @_query
@@ -325,6 +326,10 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
+                if @_query_id != query_id
+                    # ignore any potential output from past attempts to query.
+                    return
+
                 if err == 'socket-end' and @_client.is_project()
                     # This is a synctable in a project and the socket that it was
                     # using for getting changefeed updates from a hub ended.
@@ -375,7 +380,7 @@ class SyncTable extends EventEmitter
                         delete @_state  # undefined until @_reconnect sets it (in same tick)
                         @_reconnect()
                     else
-                        if resp?.event != 'query_cancel'
+                        if resp?.event != 'query_cancel' and @_state == 'connected'
                             @_update_change(resp)
                         #else
                         #    console.log("#{this_id} -- query_cancel")
