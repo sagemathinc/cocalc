@@ -1697,7 +1697,7 @@ class ProjectClient extends EventEmitter
             cb : required
         dbg = @dbg("address")
         dbg("get project location and listening port -- will open and start project if necessary")
-        address = undefined
+        the_address = undefined
         async.series([
             (cb) =>
                 dbg("first ensure project is running")
@@ -1715,7 +1715,7 @@ class ProjectClient extends EventEmitter
                                     cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                                 else
                                     dbg("status includes info about address...")
-                                    address =
+                                    the_address =
                                         host         : @host
                                         port         : status['local_hub.port']
                                         secret_token : status.secret_token
@@ -1727,10 +1727,13 @@ class ProjectClient extends EventEmitter
                     max_time    : 20000
                     cb : cb
         ], (err) =>
+            if not the_address?
+                dbg("BUG in getting address - should never happen")
+                err = 'not running'  # this should never happen!
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, address)
+                opts.cb(undefined, the_address)
         )
 
     copy_path: (opts) =>
