@@ -24,7 +24,7 @@ TOUCH_INTERVAL_M = 10
 # the---on reconnect---do extra work to ensure that all snapshots are up to
 # date (in case snapshots were made when we were offline), and mark the sent
 # field of patches that weren't saved.
-OFFLINE_THRESH_S = 30
+OFFLINE_THRESH_S = 5*60
 
 {EventEmitter} = require('events')
 immutable = require('immutable')
@@ -910,6 +910,12 @@ class SyncDoc extends EventEmitter
             patch    : JSON.stringify(x.patch)
             snapshot : @_patch_list.value(time, force)
             user     : x.user
+        if force
+            # CRITICAL: We are sending the patch/snapshot later, but it was valid.
+            # It's important to make this clear or _handle_offline will
+            # recompute this snapshot and try to update sent on it again,
+            # which leads to serious problems!
+            obj.sent = time
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set(obj, 'none')
         # save the snapshot time in the database
@@ -1008,7 +1014,7 @@ class SyncDoc extends EventEmitter
         return
 
     # Check if any patches that just got confirmed as saved are relatively old; if so,
-    # we mark them as such and also possibly recompute snaphshots.
+    # we mark them as such and also possibly recompute snapshots.
     _handle_offline: (data) =>
         #dbg = @dbg("_handle_offline")
         #dbg("data='#{misc.to_json(data)}'")
