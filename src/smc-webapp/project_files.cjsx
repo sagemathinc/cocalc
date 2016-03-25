@@ -1370,6 +1370,7 @@ ProjectFilesSearch = rclass
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path)
+                @props.actions.setState(file_search : '', page_number: 0)
             else
                 @props.actions.open_file(path: new_path)
             @props.actions.set_file_search
