@@ -1763,19 +1763,18 @@ class Client extends EventEmitter
                                     cb()
                     (cb) =>
                         dbg("creating stripe customer")
-                        stripe.customers.create
+                        x =
                             source      : mesg.token
                             description : description
                             email       : email
                             metadata    :
                                 account_id : @account_id
-                         ,
-                            (err, customer) =>
-                                if err
-                                    cb(err)
-                                else
-                                    customer_id = customer.id
-                                    cb()
+                        stripe.customers.create x, (err, customer) =>
+                            if err
+                                cb(err)
+                            else
+                                customer_id = customer.id
+                                cb()
                     (cb) =>
                         dbg("success; now save customer id token to database")
                         database.set_stripe_customer_id
@@ -2095,18 +2094,17 @@ class Client extends EventEmitter
                     cb()
                 else
                     dbg("create stripe entry for this customer")
-                    stripe.customers.create
+                    x =
                         description : description
                         email       : email
                         metadata    :
                             account_id : mesg.account_id
-                     ,
-                        (err, customer) =>
-                            if err
-                                cb(err)
-                            else
-                                customer_id = customer.id
-                                cb()
+                    stripe.customers.create x, (err, customer) =>
+                        if err
+                            cb(err)
+                        else
+                            customer_id = customer.id
+                            cb()
             (cb) =>
                 if not new_customer
                     cb()
@@ -2690,7 +2688,7 @@ create_account = (client, mesg, cb) ->
 
         (cb) ->
             dbg("check for account creation actions")
-            account_creation_actions
+            database.do_account_creation_actions
                 email_address : mesg.email_address
                 account_id    : account_id
                 cb            : cb
@@ -2725,39 +2723,7 @@ create_account = (client, mesg, cb) ->
 
 
 
-account_creation_actions = (opts) ->
-    opts = defaults opts,
-        email_address : required
-        account_id    : required
-        cb            : required
-    winston.debug("account_creation_actions for #{opts.email_address}")
-    database.account_creation_actions
-        email_address : opts.email_address
-        cb            : (err, actions) ->
-            if err
-                opts.cb(err); return
-            f = (action, cb) ->
-                winston.debug("account_creation_actions: action = #{misc.to_json(action)}")
-                if action.action == 'add_to_project'
-                    database.add_user_to_project
-                        project_id : action.project_id
-                        account_id : opts.account_id
-                        group      : action.group
-                        cb         : (err) =>
-                            if err
-                                winston.debug("Error adding user to project: #{err}")
-                            cb(err)
-                else
-                    # TODO: need to report this some better way, maybe email?
-                    winston.debug("skipping unknown action -- #{action.action}")
-                    cb()
-            async.map actions, f, (err) ->
-                if not err
-                    database.account_creation_actions_success
-                        account_id : opts.account_id
-                        cb         : opts.cb
-                else
-                    opts.cb(err)
+
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
@@ -2878,7 +2844,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
             # TODO: move to hook this only after validation of the email address?
-            account_creation_actions
+            database.do_account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id
                 cb            : cb

@@ -983,6 +983,40 @@ class RethinkDB
             cb         : required
         @table('accounts').get(opts.account_id).update(creation_actions_done:true).run(opts.cb)
 
+    do_account_creation_actions: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            account_id    : required
+            cb            : required
+        dbg = @dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
+        @account_creation_actions
+            email_address : opts.email_address
+            cb            : (err, actions) =>
+                if err
+                    opts.cb(err); return
+                f = (action, cb) =>
+                    dbg("account_creation_actions: action = #{misc.to_json(action)}")
+                    if action.action == 'add_to_project'
+                        @add_user_to_project
+                            project_id : action.project_id
+                            account_id : opts.account_id
+                            group      : action.group
+                            cb         : (err) =>
+                                if err
+                                    dbg("Error adding user to project: #{err}")
+                                cb(err)
+                    else
+                        # TODO: need to report this some better way, maybe email?
+                        dbg("skipping unknown action -- #{action.action}")
+                        cb()
+                async.map actions, f, (err) =>
+                    if not err
+                        @account_creation_actions_success
+                            account_id : opts.account_id
+                            cb         : opts.cb
+                    else
+                        opts.cb(err)
+
     ###
     # Stripe support for accounts
     ###

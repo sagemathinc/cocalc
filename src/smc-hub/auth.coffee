@@ -190,7 +190,7 @@ passport_login = (opts) ->
                     if not email_address?
                         cb()
                     else
-                        account_creation_actions
+                        opts.database.do_account_creation_actions
                             email_address : email_address
                             account_id    : account_id
                             cb            : cb
