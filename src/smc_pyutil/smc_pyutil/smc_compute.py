@@ -434,7 +434,7 @@ class Project(object):
         except:
             log("error running memory command")
 
-    def status(self, timeout=60):
+    def status(self, timeout=60, base_url=''):
         log = self._log("status")
         s = {}
 
@@ -499,7 +499,7 @@ class Project(object):
                 s['state'] = 'broken'
         return s
 
-    def state(self, timeout=60):
+    def state(self, timeout=60, base_url=''):
         log = self._log("state")
 
         if (self._dev or self._single) and not os.path.exists(self.project_path):
@@ -912,11 +912,13 @@ def main():
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_status.add_argument("--base_url", help="ignored", type=str, default='')
 
     f(parser_status)
 
     parser_state = subparsers.add_parser('state', help='get state of project')  # {state:?}
     parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_state.add_argument("--base_url", help="ignored", type=str, default='')
     f(parser_state)
 
 
