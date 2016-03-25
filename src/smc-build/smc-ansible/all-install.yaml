@@ -41,6 +41,7 @@
       - python3-scipy
       - python3-paramiko
       - sysbench
+      - sysstat
     tags:
       - install
 
