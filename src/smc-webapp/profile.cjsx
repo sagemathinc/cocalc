@@ -127,11 +127,14 @@ UsersViewingDocument = rclass
         @setInterval (=> @forceUpdate()), 5000
 
     _find_most_recent: (log) ->
-        latest_key = Object.keys(log)[0]
-        for k,v of log
-            if new Date(log[latest_key]).valueOf() < new Date(v).valueOf()
+        latest_key = undefined
+        newest     = 0
+        for k in ['open', 'edit', 'chat']
+            tm = (log[k] ? 0) - 0
+            if tm > newest
                 latest_key = k
-        return [latest_key,new Date(log[latest_key]).valueOf()/1000]
+                newest     = tm
+        return [latest_key, newest/1000]
 
     render_avatars: ->
         if not (@props.file_use? and @props.user_map?)
@@ -151,7 +154,7 @@ UsersViewingDocument = rclass
                 continue
 
             account = @props.user_map.get(user_id)?.toJS() ? {}
-            [event, seconds] = @_find_most_recent events
+            [event, seconds] = @_find_most_recent(events)
             time_since = Date.now()/1000 - seconds
             # TODO do something with the type like show a small typing picture
             # or whatever corresponds to the action like "open" or "edit"

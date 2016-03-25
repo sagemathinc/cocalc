@@ -31,7 +31,7 @@ The URI schema is as follows:
     Overall settings:
        https://cloud.sagemath.com/projects/settings
 
-    Projects Page:
+    Projects page:
        https://cloud.sagemath.com/projects/
 
     Specific project:

@@ -196,7 +196,7 @@ ChatLog = rclass
                     project_id = {@props.project_id}
                     file_path  = {@props.file_path}
                 />
-        k = misc.keys(v).sort()
+        k = misc.keys(v).sort(misc.cmp_Date)
         return (v[date] for date in k)
 
     render: ->

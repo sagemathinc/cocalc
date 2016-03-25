@@ -1274,10 +1274,9 @@ ProjectFilesActionBox = rclass
     render_download_link : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
+        target = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
         <pre style={@pre_styles}>
-            <a href={"/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
-                {"#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
-            </a>
+            <a href={target} target='_blank'>{target}</a>
         </pre>
 
     render_download_alert : ->

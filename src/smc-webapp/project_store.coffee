@@ -26,8 +26,8 @@ immutable  = require('immutable')
 # At most this many of the most recent log messages for a project get loaded:
 MAX_PROJECT_LOG_ENTRIES = 5000
 
-misc     = require('smc-util/misc')
-diffsync = require('diffsync')
+misc      = require('smc-util/misc')
+{MARKERS} = require('smc-util/sagews')
 
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
@@ -704,8 +704,8 @@ class ProjectActions extends Actions
                     filename = filename.slice(2)
                 context = line.slice(i + 1)
                 # strip codes in worksheet output
-                if context.length > 0 and context[0] == diffsync.MARKERS.output
-                    i = context.slice(1).indexOf(diffsync.MARKERS.output)
+                if context.length > 0 and context[0] == MARKERS.output
+                    i = context.slice(1).indexOf(MARKERS.output)
                     context = context.slice(i + 2, context.length - 1)
 
                 search_results.push
@@ -745,7 +745,7 @@ class ProjectActions extends Actions
             else
                 cmd = "grep -I -H #{ins} #{search_query} *"
 
-        cmd += " | grep -v #{diffsync.MARKERS.cell}"
+        cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
         max_output  = 110 * max_results  # just in case
 
