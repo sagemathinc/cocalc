@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2016, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ Task List
 
 ###
 
-SAVE_SPINNER_DELAY_MS = 3000  # TODO -- make this consistent across editors
+SAVE_SPINNER_DELAY_MS = 5000  # TODO -- make this consistent across editors
 
 # tasks makes use of future timestamps (for due date)
 jQuery.timeago.settings.allowFuture = true
@@ -39,10 +39,9 @@ misc   = require('smc-util/misc')
 {salvus_client}   = require('./salvus_client')
 {alert_message}   = require('./alerts')
 {synchronized_db} = require('./syncdb')
-{DiffSyncDoc}     = require('./syncdoc')
-{dmp}             = require('diffsync')     # diff-match-patch library
 markdown          = require('./markdown')
 
+underscore = require('underscore')
 
 {IS_MOBILE} = require('./feature')
 
@@ -55,15 +54,15 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (project_id, filename, editor) ->
+exports.task_list = (editor, filename, opts) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(project_id, filename, element, editor)
+    new TaskList(editor, filename, element, opts)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
 HEADING_MAP = {custom:'position', description:'desc', due:'due_date', 'last-edited':'last_edited'}
 
-SPECIAL_PROPS = {element:true, changed:true, last_desc:true, desc_timer:true, desc_last_sync:true}
+SPECIAL_PROPS = {element:true, changed:true, last_desc:true}
 
 MIN_TIME = 1000 # minimum time in ms between sync events
 
@@ -80,13 +79,15 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element, @editor) ->
+    constructor : (@editor, @filename, @element, @opts) ->
+        @project_id = @editor?.editor.project_id
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
         @save_button = @element.find("a[href=#save]")
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @readonly = true # at least until loaded
+        @init_history_button()
         @init_create_task()
         @init_delete_task()
         @init_move_task_to_top()
@@ -96,14 +97,28 @@ class TaskList
         @init_search()
         @init_sort()
         @init_info()
-        @init_syncdb()
-        #@element.find(".salvus-tasks-hashtags").resizable
-        #     handles  : "s"
+        if @opts.viewer
+            @init_viewer()
+        else
+            @init_syncdb()
 
     destroy: () =>
         delete @tasks
         @element.removeData()
         @db?.destroy()
+
+    init_history_button: =>
+        if not @opts.viewer
+            @element.find("a[href=#history]").show().click () =>
+                @editor?.editor.project_page.open_file
+                    path       : misc.history_path(@filename)
+                    foreground : true
+
+    init_viewer: () =>
+        @element.find(".salvus-tasks-loading").remove()
+        @element.find(".salvus-task-empty-trash").remove()
+        @element.find(".salvus-tasks-action-buttons").remove()
+        @element.find(".salvus-tasks-hashtags-row").remove()  # TODO: only because they don't work in viewer mode; for later.
 
     init_syncdb: (cb) =>
         synchronized_db
@@ -137,22 +152,38 @@ class TaskList
 
                     @set_clean()  # we have made no changes yet.
 
-                    # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
-
-                    @db.on 'presync', () =>
-                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:4000)
-                    @db.on 'sync', () =>
-                        @editor?.activity_indicator()
-                        @save_button.icon_spin(false)
+                    # UI indicators that sync happening...
+                    @db.on('sync', => @editor?.activity_indicator())
 
                     # Handle any changes, merging in with current state.
-                    @db.on 'change', @handle_changes
+                    @db.on('change', @handle_changes)
+
+                    # Before syncing ensure that the db is updated to the
+                    # latest version of what is being edited.  If we don't do
+                    # this, then when two people edit at once, one person
+                    # will randomly loose their work!
+                    @db.on('before-change', @save_live)
 
                     # We are done with initialization.
                     @element.find(".salvus-tasks-loading").remove()
 
                     @init_save()
 
+    # Set the task list to what is defined by the given syncdb string.
+    # This is used for the history viewer
+    set_value: (value) =>
+        @tasks = {}
+        # We just completely clear and re-render everything.  Obviously this is not efficient.
+        # However, it will be really hard/tricky to do this properly, and this code will just
+        # get tossed when we rewrite tasks using React.js.
+        @render_task_list()
+        for x in value.split('\n')
+            try
+                task = JSON.parse(x)
+                @tasks[task.task_id] = task
+            catch e
+                console.warn("error parsing task #{e} '#{x}'")
+        @render_task_list()
 
     init_tasks: () =>
 
@@ -301,6 +332,8 @@ class TaskList
         @render_task_list()
 
     local_storage: (key, value) =>
+        if @opts.viewer
+            return
         {local_storage}   = require('./editor')
         return local_storage(@project_id, @filename, key, value)
 
@@ -541,7 +574,7 @@ class TaskList
             e.highlight(non_hashtag_search_terms)
 
         # show the "create a new task" link if no tasks.
-        if count == 0
+        if count == 0 and not @readonly
             @element.find(".salvus-tasks-list-none").show()
         else
             @element.find(".salvus-tasks-list-none").hide()
@@ -653,9 +686,7 @@ class TaskList
                 if task.changed
                     # if the description changed
                     if task.desc != task.last_desc
-                        # compute patch and apply diff to live content
-                        p = dmp.patch_make(task.last_desc, task.desc)
-                        t.data('diff_sync').patch_in_place(p)
+                        cm.setValueNoJump(task.desc)
 
         if not task.changed
             # nothing changed, so nothing to update
@@ -673,6 +704,8 @@ class TaskList
             return
 
     display_undelete: (task) =>
+        if @opts.viewer or @readonly
+            return
         if task.deleted
             task.element.find(".salvus-task-undelete").show()
         else
@@ -903,6 +936,17 @@ class TaskList
         if @current_task?
             @delete_task(@current_task, true)
 
+    # save live state of editor to syncdb by going through all codemirror editors
+    # of open in-edit-mode tasks, and saving them.
+    save_live: () =>
+        #console.log("save_live")
+        for task in @_visible_tasks
+            e = task?.element
+            if e?.hasClass('salvus-task-editing-desc')
+                cm = e.data('cm')
+                if cm? and cm.getValue() != task.last_desc
+                    cm.sync_desc()
+
     edit_desc: (task, cursor_at_end) =>
         if not task?
             task = @current_task
@@ -928,8 +972,7 @@ class TaskList
             cm.focus()
             e.addClass('salvus-task-editing-desc')
             # apply any changes
-            p = dmp.patch_make(cm.getValue(), task.desc)
-            e.data('diff_sync').patch_in_place(p)
+            cm.setValueNoJump(task.desc)
             return
 
         elt = edit_task_template.find(".salvus-tasks-desc-edit").clone()
@@ -987,7 +1030,6 @@ class TaskList
         if not task.desc?
             task.desc = ''
         cm.setValue(task.desc)
-        e.data('diff_sync', new DiffSyncDoc(cm:cm, readonly:false))
 
         cm.clearHistory()  # ensure that the undo history doesn't start with "empty document"
         $(cm.getWrapperElement()).addClass('salvus-new-task-cm-editor').css(height:'auto')  # setting height via salvus-new-task-cm-editor doesn't work.
@@ -1000,11 +1042,8 @@ class TaskList
         elt.find(".CodeMirror-hscrollbar").remove()
         elt.find(".CodeMirror-vscrollbar").remove()
 
-        task.desc_last_sync = undefined
-
         task.last_desc = task.desc  # initialize last_desc, in case we get an update before ever sync'ing.
         sync_desc = () =>
-            task.desc_last_sync = misc.mswalltime()
             desc           = cm.getValue()
             task.last_desc = desc  # update current description before syncing.
             task.desc      = desc
@@ -1015,21 +1054,12 @@ class TaskList
                 where : {task_id : task.task_id}
             @set_dirty()
 
-        task.desc_timer = undefined
-        cm.on 'changes', () =>
-            t = misc.mswalltime()
-            if not task.desc_last_sync?
-                sync_desc()
-            else
-                if t - task.desc_last_sync >= MIN_TIME
-                    sync_desc()
-                else
-                    if not task.desc_timer?
-                        f = () ->
-                            task.desc_timer = undefined
-                            if misc.mswalltime() - task.desc_last_sync >= MIN_TIME
-                                sync_desc()
-                        task.desc_timer = setTimeout(f, MIN_TIME - (t - task.desc_last_sync))
+        cm.sync_desc = sync_desc  # hack -- will go away with react rewrite of tasks...
+
+        # Only typically sync save 2s after the user stops typing.  This ensures that
+        # the task list doesn't feel slow or waste a lot of cpu during bursts of typing
+        # (unless there are incoming sync updates to process).
+        cm.on 'changes', underscore.debounce(sync_desc, 2000)
 
         cm.on 'focus', () ->
             currently_focused_editor = cm
@@ -1284,7 +1314,10 @@ class TaskList
             @render_task_list()
 
     init_showing_done: () =>
-        @showing_done = @local_storage("showing_done")
+        if @opts.viewer
+            @showing_done = false
+        else
+            @showing_done = @local_storage("showing_done")
         if not @showing_done?
             @showing_done = true  # default to showing done
         @set_showing_done(@showing_done)
@@ -1305,7 +1338,10 @@ class TaskList
 
 
     init_showing_deleted: () =>
-        @showing_deleted = @local_storage("showing_deleted")
+        if @opts.viewer
+            @showing_deleted = false
+        else
+            @showing_deleted = @local_storage("showing_deleted")
         if not @showing_deleted?
             @showing_deleted = false
         @set_showing_deleted(@showing_deleted)

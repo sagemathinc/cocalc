@@ -6,8 +6,8 @@ Will hopefully all go away with react rewrite.
 {defaults} = require('smc-util/misc')
 
 $.fn.icon_spin = (start) ->
-    if typeof start == "object"
-        {start,delay} = defaults start,
+    if typeof(start) == "object"
+        {start, delay} = defaults start,
             start : true
             delay : 0
     else
@@ -18,14 +18,9 @@ $.fn.icon_spin = (start) ->
             if elt.data('fa-spin')?  # means that there is a timeout that hasn't gone off yet
                 return
             f = () ->
-                elt.data('fa-spin',null)
+                elt.data('fa-spin', null)
                 if elt.find("i.fa-spinner").length == 0  # fa-spin
                     elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
-                    # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
-                    # (and the font-awesome people can't work around it):
-                    #    https://github.com/FortAwesome/Font-Awesome/issues/701
-                    #if not $.browser.chrome
-                    ## -- re-enabling soince fontawesome 4.0 is way faster.
                     elt.find("i.fa-spinner").addClass('fa-spin')
             if delay
                 elt.data('fa-spin', setTimeout(f, delay))

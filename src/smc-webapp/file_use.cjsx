@@ -140,13 +140,26 @@ class FileUseActions extends Actions
         @mark((x.id for x in v), action)
 
     mark_file: (project_id, path, action) =>
-        table = @redux.getTable('file_use')
+        #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
-        u = {"#{account_id}":{"#{action}":new Date()}}
-        table.set {project_id:project_id, path:path, users:u}, (err)=>
+        if not account_id?
+            # nothing to do -- non-logged in users shouldn't be marking files
+            return
+        table = @redux.getTable('file_use')
+        now   = new Date()
+        obj   =
+            project_id : project_id
+            path       : path
+            users      : {"#{account_id}":{"#{action}":now}}
+        if action == 'edit' or action == 'chat'
+            # Update the overall "last_edited" field for the file; this is used for sorting,
+            # and grabbing only recent files from database for file use notifications.
+            obj.last_edited = now
+        table.set obj, (err)=>
             if err
-                err += "(project_id=#{project_id}, path=#{path}) #{err}"
-                console.warn("FileUseActions.mark_file", err)
+                if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
+                    err += " (project_id=#{project_id}, path=#{path})"
+                    console.warn("FileUseActions.mark_file error: ", err)
 
 class FileUseStore extends Store
     get_errors: =>

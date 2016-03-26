@@ -7,19 +7,12 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
-db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
-
-misc = require('smc-util/misc')
 async = require('async')
 
-global.done = () ->
-    start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
+
+global.misc = require('smc-util/misc')
+global.done = misc.done
 
 db = undefined
 get_db = (cb) ->

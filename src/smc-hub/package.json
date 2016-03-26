@@ -13,6 +13,7 @@
     "commander": "^2.6.0",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
+    "expiring-lru-cache": "^2.1.0",
     "express": "^4.11.2",
     "express-session": "^1.10.4",
     "formidable": "^1.0.17",

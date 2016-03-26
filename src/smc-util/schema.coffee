@@ -55,6 +55,7 @@ The schema below determines the RethinkDB-based database structure.   The notati
 schema.table_name =
     desc: 'A description of this table.'   # will be used only for tooling
     primary_key : 'the_table_primary_key'
+    durability :  'hard' or 'soft' # optional -- if given, specify the table durability; 'hard' is the default
     fields :   # every field *must* be listed here or user queries won't work.
         the_table_primary_key :
             type : 'uuid'
@@ -307,10 +308,45 @@ schema.blobs =
         expire : []   # when expired
         needs_gcloud : [(x) -> x.hasFields('expire').not().and(x.hasFields('gcloud').not())]  # never-expiring blobs that haven't been uploaded to gcloud  -- find via .getAll(true, index:'needs_gcloud')
         needs_backup : [(x) -> x.hasFields('expire').not().and(x.hasFields('backup').not())]  # never-expiring blobs that haven't been backed up offsite -- find via .getAll(true, index:'needs_backup')
+    user_query :
+        get :
+            instead_of_query : (database, obj, account_id, cb) ->
+                if not obj.id?
+                    cb("id must be specified")
+                    return
+                database.get_blob
+                    uuid : obj.id
+                    cb   : (err, blob) ->
+                        if err
+                            cb(err)
+                        else
+                            cb(undefined, {id:obj.id, blob:blob})
+            fields :
+                id          : null
+                blob        : null
+        set :
+            fields :
+                id          : true
+                blob        : true
+                project_id  : 'project_write'
+                ttl         : 0
+            required_fields :
+                id          : true
+                blob        : true
+                project_id  : true
+            instead_of_change : (database, old_val, new_val, account_id, cb) ->
+                database.save_blob
+                    uuid       : new_val.id
+                    blob       : new_val.blob
+                    ttl        : new_val.ttl
+                    project_id : new_val.project_id
+                    check      : true  # can't trust the user!
+                    cb         : cb
 
 schema.central_log =
     desc : 'Table for logging system stuff that happens.  Meant to help in running and understanding the system better.'
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields :
         id    : true
         event : true
@@ -322,6 +358,7 @@ schema.central_log =
 
 schema.client_error_log =
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
         id         : true
         event      : true
@@ -361,6 +398,7 @@ schema.compute_servers =
 
 schema.file_access_log =
     primary_key : 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
     fields:
         id         : true
         project_id : true
@@ -373,6 +411,7 @@ schema.file_access_log =
 
 schema.file_use =
     primary_key: 'id'
+    durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     fields:
         id          : true
         project_id  : true
@@ -411,6 +450,7 @@ schema.file_use =
 
 schema.hub_servers =
     primary_key : 'host'
+    durability : 'soft' # loss of some log data not serious, since ephemeral and expires quickly anyways
     fields:
         expire : true
     indexes:
@@ -449,6 +489,7 @@ schema.password_reset =
 
 schema.password_reset_attempts =
     primary_key: 'id'
+    durability : 'soft' # loss not serious, since used only for analytics and preventing attacks
     fields:
         email_address : true
         ip_address    : true
@@ -460,6 +501,7 @@ schema.password_reset_attempts =
 
 schema.project_log =
     primary_key: 'id'
+    durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
 
     fields :
         id          : true  # which
@@ -595,6 +637,21 @@ schema.projects =
             on_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
+    project_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['project_id']
+            fields :
+                project_id     : null
+                title          : null
+                description    : null
+        set :
+            fields :
+                project_id     : 'project_id'
+                title          : true
+                description    : true
+
 for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
@@ -678,6 +735,7 @@ schema.public_paths =
 
 schema.remember_me =
     primary_key : 'hash'
+    durability  : 'soft' # dropping this would just require a user to login again
     fields :
         hash       : true
         value      : true
@@ -710,7 +768,7 @@ exports.site_settings_conf =
     site_description:
         name    : "Site description"
         desc    : "The description of your site."
-        default : "collaborative computational mathematics"
+        default : ""
     terms_of_service:
         name    : "Terms of service link text"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
@@ -748,6 +806,7 @@ schema.site_settings =
 
 schema.stats =
     primary_key: 'id'
+    durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
     anonymous : true   # allow user access, even if not signed in
     fields:
         id                  : true
@@ -831,66 +890,8 @@ schema.system_notifications =
                 done     : true
 
 
-schema.syncstrings =
-    primary_key : 'string_id'
-    fields :
-        string_id :
-            type : 'uuid'
-            desc : 'id of this synchronized string'
-        project_id  :
-            type : 'uuid'
-            desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
-        path :
-            type : 'string'
-            desc : 'optional path of file being edited'
-        users :
-            type : 'array'
-            desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
-        snapshot :
-            type : 'map'
-            desc : 'last snapshot of the synchronized string as map {string:"the string", time:time}; the current value of the syncstring is the result of applying all patches with timestamp strictly greater than time to the given string'
-
-    user_query:
-        get :
-            all:
-                cmd   : 'getAll'
-                args  : (obj, db) -> [obj.string_id]
-            fields :
-                string_id  : null
-                users      : null
-                snapshot   : null
-                project_id : null
-                path       : null
-        set :
-            # TODO: impose constraints on what can set
-            fields :
-                string_id  : true
-                users      : true
-                snapshot   : true
-                project_id : true
-                path       : true
-
-
-schema.patches =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
-    fields:
-        id         : true
-        patch      : true
-    user_query:
-        get :
-            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
-                cmd  : 'between'
-                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
-            fields :
-                id    : 'null'   # 'null' = field gets used for args above then set to null
-                patch : null
-        set :
-            fields :
-                id    : true
-                patch : true
-            required_fields :
-                id    : true
-                patch : true
+# Load the syncstring extensions to the schema
+require('./syncstring_schema')
 
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
@@ -900,8 +901,8 @@ class ClientDB
         @r = {}
 
     sha1 : (args...) =>
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
-        return sha1(args.join(''))
+        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        return sha1(v)
 
     _user_set_query_project_users: (obj) =>
         # client allows anything; server may be more stringent
@@ -913,8 +914,6 @@ class ClientDB
         cb()
 
 exports.client_db = new ClientDB()
-
-
 
 ###
 Compute related schema stuff (see compute.coffee)

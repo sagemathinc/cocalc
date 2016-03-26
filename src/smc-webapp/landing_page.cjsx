@@ -56,8 +56,9 @@ Passports = rclass
     render_strategy : (name) ->
         if name is 'email'
             return
-        <a href={"/auth/#{name}"} key={name}>
-            <Icon size='2x' name='stack' href={"/auth/#{name}"}>
+        url = "#{window.smc_base_url}/auth/#{name}"
+        <a href={url} key={name}>
+            <Icon size='2x' name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
                 <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
             </Icon>

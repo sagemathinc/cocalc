@@ -101,33 +101,6 @@ message
     data_channel  : undefined
 
 
-# client <--> hub <--> local_hub
-# info = {
-#         sage_sessions    : {uuid:{desc:info.desc, status:info.status}, ...},
-#         console_sessions : {uuid:{}, ...}
-#        }
-message
-    event         : 'project_session_info'
-    id            : undefined
-    project_id    : undefined
-    info          : undefined
-
-
-
-
-
-message
-    event         : 'project_status'
-    id            : undefined
-    project_id    : undefined
-    status        : undefined
-
-message
-    event         : 'project_get_state'
-    id            : undefined
-    project_id    : undefined
-    state         : undefined
-
 #
 
 # client --> hub
@@ -153,27 +126,6 @@ message
     pid    : required
     limits : undefined
 
-# client --> hub --> session servers
-message
-    event        : 'send_signal'
-    id           : undefined
-    session_uuid : undefined   # from browser-->hub this must be set
-    pid          : undefined   # from hub-->sage_server this must be set
-    signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
-
-message
-    event        : 'signal_sent'
-    id           : required
-
-# Restart the underlying Sage process for this session; the session
-# with the given id still exists, it's just that the underlying sage
-# process got restarted.
-# client --> hub
-message
-    event        : 'restart_session'
-    session_uuid : required
-    id           : undefined
-
 # client <----> hub <--> sage_server
 message
     event        : 'terminate_session'
@@ -182,7 +134,6 @@ message
     reason       : undefined
     done         : undefined
 
-# client --> hub --> sage_server
 message
     event        : 'execute_code'
     id           : undefined
@@ -236,45 +187,6 @@ message
 
 
 ############################################
-# Session Introspection
-#############################################
-# An introspect message from the client can result in numerous types
-# of responses (but there will only be one response).  The id of the
-# message from hub back to client will match the id of the message
-# from client to hub; the client is responsible for deciding
-# what/where/how to deal with the message.
-
-# client --> hub --> sage_server
-message
-    event              : 'introspect'
-    id                 : undefined
-    session_uuid       : required
-    line               : required
-    preparse           : true
-
-# hub --> client (can be sent in response to introspect message)
-message
-    event       : 'introspect_completions'
-    id          : undefined   # match id of 'introspect' message
-    target      : required    # 'Ellip'
-    completions : required    # ['sis', 'ticCurve', 'ticCurve_from_c4c6', ...]
-
-# hub --> client  (can be sent in response to introspect message)
-message
-    event       : 'introspect_docstring'
-    id          : undefined
-    target      : required
-    docstring   : required
-
-# hub --> client
-message
-    event       : 'introspect_source_code'
-    id          : undefined
-    target      : required
-    source_code : required
-
-
-############################################
 # Information about several projects or accounts
 #############################################
 
@@ -287,158 +199,6 @@ message
     event       : 'usernames'
     id          : undefined
     usernames   : required
-
-############################################
-# CodeMirror editor sessions
-#############################################
-
-# client --> hub --> local_hub
-message
-    event        : 'codemirror_get_session'
-    path         : undefined   # at least one of path or session_uuid must be defined
-    session_uuid : undefined
-    project_id   : required
-    id           : undefined
-
-# local_hub --> hub --> client
-message
-    event        : 'codemirror_session'
-    id           : undefined
-    session_uuid : required
-    path         : required    # absolute path
-    content      : required
-    readonly     : false       # if true, the file must be treated as "read-only" by the client.
-
-
-# turn on or off recording of revisions of a given synchronized editing file.
-# The file will be called
-message
-    event        : 'codemirror_revision_tracking'
-    id           : undefined
-    session_uuid : required
-    enable       : required    # true or false  -- if true, start recording revisions for this file; if false, stop.
-
-
-# A list of edits that should be applied, along with the
-# last version of edits received before.
-# client <--> hub <--> local_hub
-message
-    event            : 'codemirror_diffsync'
-    id               : undefined
-    session_uuid     : undefined
-    edit_stack       : required
-    last_version_ack : required
-
-# Suggest to the connected big hub that there is data ready to be synced:
-# local_hub --> hub --> client
-message
-    event            : 'codemirror_diffsync_ready'
-    session_uuid     : undefined
-
-# Hub uses this message to tell client that client should try to sync later, since hub is
-# busy now with some other locking sync operation.
-# local_hub <-- hub
-message
-    event            : 'codemirror_diffsync_retry_later'
-    id               : undefined
-
-
-# Write out whatever is on local_hub to the physical disk
-# client --> hub --> local_hub
-message
-    event        : 'codemirror_write_to_disk'
-    id           : undefined
-    session_uuid : undefined
-
-# local_hub --> hub --> client
-message
-    event        : 'codemirror_wrote_to_disk'
-    id           : undefined
-    hash         : undefined     # on success, return message contains sha1 hash of what was actually written to disk.
-
-# Replace what is on local_hub by what is on physical disk (will push out a
-# codemirror_change message, so any browser client has a chance to undo this).
-# client --> hub --> local_hub
-message
-    event        : 'codemirror_read_from_disk'
-    id           : undefined
-    session_uuid : undefined
-
-# Request the current content of the file.   This may be
-# used to refresh the content in a client, even after a session started.
-# client --> hub --> local_hub
-message
-    event        : 'codemirror_get_content'
-    id           : undefined
-    session_uuid : undefined
-
-# Sent in response to a codemirror_get_content message.
-# local_hub --> hub --> client
-message
-    event        : 'codemirror_content'
-    id           : undefined
-    content      : required
-
-# Disconnect a client from a codemirror editing session.
-# local_hub --> hub
-# client --> hub
-message
-    event        : 'codemirror_disconnect'
-    id           : undefined
-    session_uuid : undefined  # gets filled in
-
-# Broadcast mesg to all clients connected to this session.
-# This is used for cursors, updating session id's, etc.
-# client <--> hub <--> local_hub
-message
-    event        : 'codemirror_bcast'
-    session_uuid : required
-    self         : undefined    # if true, message will also be sent to self from global hub.
-    name         : undefined
-    color        : undefined
-    date         : undefined
-    mesg         : required     # arbitrary message, can have event, etc., attributes.
-
-# This is used so that a client can execute code in the Sage process that is running
-# controlled by a codemirror sync session.  This is mainly used to implement interact
-# in synchronized worksheets that are embedded in a single codemirror editor.
-# client --> hub --> local_hub --> sage_server
-message
-    event        : 'codemirror_execute_code'
-    id           : undefined
-    code         : required
-    data         : undefined
-    session_uuid : required
-    output_uuid  : undefined   # if given and output messages don't get set by client for a while, local_hub will sart setting them.
-    preparse     : true
-
-# client --> hub --> local_hub --> sage_server
-message
-    event        : 'codemirror_sage_raw_input'
-    value        : required
-    session_uuid : required
-
-# Introspection in the context of a codemirror editing session.
-# client --> hub --> sage_server
-message
-    event              : 'codemirror_introspect'
-    id                 : undefined
-    session_uuid       : required
-    line               : required
-    preparse           : true
-
-# client --> hub --> local_hub
-message
-    event        : 'codemirror_send_signal'
-    id           : undefined
-    session_uuid : required
-    signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
-
-# client --> local_hub
-message
-    event        : 'codemirror_restart'
-    id           : undefined
-    session_uuid : required
 
 
 ############################################
@@ -577,103 +337,6 @@ message
     event    : 'unlink_passport'
     strategy : required
     id       : required
-
-############################################
-# Account Settings
-#############################################
-
-# client --> hub
-message
-    event          : "get_account_settings"
-    id             : undefined
-    account_id     : required
-
-# settings that require the password in the message (so user must
-# explicitly retype password to change these):
-exports.restricted_account_settings =
-    plan_id              : undefined
-    plan_name            : undefined
-    plan_starttime       : undefined
-    storage_limit        : undefined
-    session_limit        : undefined
-    max_session_time     : undefined
-    ram_limit            : undefined
-    support_level        : undefined
-    email_address        : undefined
-    passports            : undefined
-    password_is_set      : undefined
-    groups               : undefined  # only admins can actually change this...
-
-# these can be changed without additional re-typing of the password
-# (of course, user must have somehow logged in):
-exports.unrestricted_account_settings =
-    first_name           : required
-    last_name            : required
-    default_system       : required
-    evaluate_key         : required
-    email_new_features   : required
-    email_maintenance    : required
-    enable_tooltips      : required
-    autosave             : required   # time in seconds or 0 to disable
-    terminal             : required   # JSON object -- client interprets
-    editor_settings      : required   # JSON object -- client interprets
-    other_settings       : required   # JSON object
-
-exports.account_settings_defaults =
-    plan_id            : 0  # the free trial plan
-    default_system     : 'sage'
-    evaluate_key       : 'Shift-Enter'
-    email_new_features : true
-    email_maintenance  : true
-    enable_tooltips    : true
-    autosave           : 45
-    groups             : undefined
-    other_settings     :
-        confirm_close             : false
-        mask_files                : true
-        default_file_sort         : 'time'
-    editor_settings    :
-        strip_trailing_whitespace : false
-        show_trailing_whitespace  : true
-        line_wrapping             : true
-        line_numbers              : true
-        smart_indent              : true
-        electric_chars            : true
-        match_brackets            : true
-        auto_close_brackets       : true
-        code_folding              : true
-        match_xml_tags            : true
-        auto_close_xml_tags       : true
-        spaces_instead_of_tabs    : true
-        multiple_cursors          : true
-        track_revisions           : true
-        extra_button_bar          : true
-        first_line_number         : 1
-        indent_unit               : 4
-        tab_size                  : 4
-        bindings                  : "standard"
-        theme                     : "standard"
-        undo_depth                : 300
-    terminal           :
-        font_size                 : 14
-        color_scheme              : 'default'
-        font                      : 'monospace'
-
-# client <--> hub
-message(
-    misc.merge({},
-        event                : "account_settings"
-        account_id           : required
-        id                   : undefined
-        password             : undefined   # only set when sending message from client to hub; must be set to change restricted settings
-        exports.unrestricted_account_settings,
-        exports.restricted_account_settings
-    )
-)
-
-message
-    event : 'account_settings_saved'
-    id    : undefined
 
 message
     event : 'error'
@@ -915,39 +578,12 @@ message
     description: required
     start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
 
-# client --> hub
-message
-    event      : 'move_project'
-    id         : undefined
-    project_id : required
-    target     : undefined   # prefered destination of move
-
-message
-    event      : 'project_moved'
-    id         : undefined
-    location   : required  # new location
-
-
 # hub --> client
 message
     event      : 'project_created'
     id         : required
     project_id : required
 
-
-# Get info about a single project (instead of all projects)
-# client --> hub
-message
-    event      : 'get_project_info'
-    project_id : required
-    id         : undefined
-
-# Response to get_project_info message.
-# hub --> client
-message
-    event      : 'project_info'
-    info       : required
-    id         : undefined
 
 # hub --> client(s)
 message
