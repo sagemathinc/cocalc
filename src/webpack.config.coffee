@@ -74,7 +74,7 @@ child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 
-git_head      = child_process.execSync("git rev-parse --short HEAD")
+git_head      = child_process.execSync("git rev-parse HEAD")
 SMC_VERSION   = git_head.toString().trim()
 TITLE         = 'SageMathCloud'
 SMC_REPO      = 'https://github.com/sagemathinc/smc'
@@ -84,6 +84,8 @@ INPUT         = path.resolve(__dirname, WEBAPP_LIB)
 OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
+PRODMODE      = NODE_ENV != DEVEL
+DEVMODE       = not PRODMODE
 dateISO       = new Date().toISOString()
 
 # create a file base_url to set a base url
@@ -138,7 +140,7 @@ cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
-                        filename   : "assets.json"
+                        filename   : path.join(OUTPUT, 'assets.json')
                         fullPath   : no
                         prettyPrint: true
                         metadata:
@@ -173,7 +175,7 @@ jade2html = new HtmlWebpackPlugin
                         mathjax  : MATHJAX_URL
                         filename : 'index.html'
                         chunksSortMode: smcChunkSorter
-                        hash: false
+                        hash     : PRODMODE
                         template : path.join(INPUT, 'index.jade')
                         minify   : htmlMinifyOpts
 
@@ -225,8 +227,8 @@ extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sour
 
 # custom plugin, to handle the quirky situation of extra *.html files
 # it was originally used to copy auxiliary .html files, but since there is
-# no processing of the included style/js files (hashing them), it's useless for now.
-# in the future, it might become handy for any additional files.
+# no processing of the included style/js files (hashing them), it cannot be used.
+# maybe it will be useful for something else in the future...
 class LinkFilesIntoTargetPlugin
     constructor: (@files, @target) ->
 
@@ -305,7 +307,7 @@ plugins = [
 
 plugins = plugins.concat(policyPages)
 
-if NODE_ENV != DEVEL
+if PRODMODE
     console.log "production mode: enabling compression"
     # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
@@ -346,7 +348,10 @@ if NODE_ENV != DEVEL
 
 
 # tuning generated filenames and the configs for the aux files loader.
-hashname    = '[sha256:hash:base62:33].[ext]' # don't use base64, it's not recommended for some reason.
+if PRODMODE
+    hashname = '[sha256:hash:base62:33].[ext]' # don't use base64, it's not recommended for some reason.
+else
+    hashname = '[path][name].[ext]'
 pngconfig   = "name=#{hashname}&limit=16000&mimetype=image/png"
 svgconfig   = "name=#{hashname}&limit=16000&mimetype=image/svg+xml"
 icoconfig   = "name=#{hashname}&mimetype=image/x-icon"
@@ -366,17 +371,17 @@ module.exports =
     output:
         path          : OUTPUT
         publicPath    : path.join(BASE_URL, OUTPUT) + '/'
-        filename      : '[name]-[hash].js'
-        chunkFilename : '[id]-[hash].js'
+        filename      : if PRODMODE then '[name]-[hash].js' else '[name].js'
+        chunkFilename : if PRODMODE then '[id]-[hash].js'   else '[id].js'
         hashFunction  : 'sha256'
 
     module:
         loaders: [
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, # 
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, # 
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, # 
+            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
+            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
+            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
             { test: /\.json$/,   loaders: ['json-loader'] },
             { test: /\.png$/,    loader: "url-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },

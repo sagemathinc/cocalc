@@ -19,6 +19,8 @@ winston     = require('winston')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 
+misc_node    = require('smc-util-node/misc_node')
+
 hub_register = require('./hub_register')
 
 auth         = require('./auth')
