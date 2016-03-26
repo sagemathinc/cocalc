@@ -72,6 +72,7 @@ fs            = require('fs')
 glob          = require('glob')
 child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
+async         = require('async')
 
 git_head      = child_process.execSync("git rev-parse --short HEAD")
 SMC_VERSION   = git_head.toString().trim()
@@ -96,8 +97,9 @@ console.log "OUTPUT='#{OUTPUT}'"
 MATHJAX_URL     = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
 MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
-console.log "MATHJAX_URL = '#{MATHJAX_URL}'"
-console.log "MATHJAX_ROOT= '#{MATHJAX_ROOT}'"
+console.log "MATHJAX_URL  = '#{MATHJAX_URL}'"
+console.log "MATHJAX_ROOT = '#{MATHJAX_ROOT}'"
+console.log "MATHJAX_LIB  = '#{MATHJAX_LIB}'"
 
 banner = new webpack.BannerPlugin(
                         """\
@@ -110,11 +112,15 @@ banner = new webpack.BannerPlugin(
 class MathjaxVersionedSymlink
 
 MathjaxVersionedSymlink.prototype.apply = (compiler) ->
-    compiler.plugin "done", (compilation, cb) ->
-        fs.exists MATHJAX_ROOT,  (exists, cb) ->
+    # make absolute path to the mathjax lib (lives in node_module of smc-webapp)
+    symto = path.resolve(__dirname, "#{MATHJAX_LIB}")
+    console.log("mathjax symlink: pointing to #{symto}")
+    mksymlink = (dir, cb) ->
+        fs.exists dir,  (exists, cb) ->
             if not exists
-                # one directory up, relative to the target of the symlink
-                fs.symlink("../#{MATHJAX_LIB}", MATHJAX_ROOT, cb)
+                fs.symlink(symto, dir, cb)
+    compiler.plugin "done", (compilation, cb) ->
+        async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink, -> cb())
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
@@ -312,9 +318,8 @@ if NODE_ENV != DEVEL
     plugins.push new webpack.optimize.UglifyJsPlugin
                                 sourceMap: false
                                 minimize: true
-                                comments: false
                                 output:
-                                    comments: false
+                                    comments: /TITLE/ # to keep the banner from above
                                 mangle:
                                     except: ['$super', '$', 'exports', 'require']
                                     screw_ie8: true
