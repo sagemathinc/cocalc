@@ -46,7 +46,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
-        @disable_undo()
+        # disable disabling undo -- too many complaints
+        #@disable_undo()
 
         if @opts.static_viewer
             @readonly   = true
