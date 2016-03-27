@@ -38,7 +38,7 @@ misc = require('smc-util/misc')
 {walltime, defaults, required, to_json} = misc
 message = require('smc-util/message')
 
-exports.SALVUS_HOME = process.env['SALVUS_ROOT']
+exports.SALVUS_HOME = exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
 
 exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js libraries
 
@@ -893,3 +893,34 @@ if exports.SALVUS_HOME?
     exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
     # this is where the webapp and the jupyter notebook should get mathjax from
     exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
+
+# *** SMC_VERSION from smc-version.js file
+
+version_file = SMC_ROOT + '/smc-util/smc-version.js'
+
+process_smc_version_file = (data, cb) ->
+    s = data.toString()
+    i = s.indexOf('=')
+    j = s.indexOf('\n')
+    if i != -1 and j != -1
+        ver = parseInt(s.slice(i+1,j))
+        cb?(undefined, ver)
+    else
+        err = "parsing error (fix the smc-version.js file!)"
+        cb?(err)
+    if not cb?
+        return [err, ver]
+
+# reads and extracts the SMC_VERSION, which is written to the smc-version.js file
+exports.get_smc_version = (cb) ->
+    fs.readFile version_file, (err, data) ->
+        if err
+            winston.warning("get_smc_version: WARNING: Error reading -- #{version_file} -- #{err}")
+            cb(err)
+        else
+            process_smc_version_file(data, cb)
+
+# sync version of the above -- I have no idea how to use cb for global variables in webpack.config
+exports.get_smc_version_sync = ->
+    data = fs.readFileSync(version_file)
+    return process_smc_version_file(data)

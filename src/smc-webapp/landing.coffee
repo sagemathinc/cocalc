@@ -4,6 +4,7 @@ Entry point for the Landing Page -- sign up, sign in, learn more about.
 
 # output some of the global variables
 console.log("SMC_VERSION", SMC_VERSION)
+console.log("SMC_GIT_REV", SMC_GIT_REV)
 console.log("BUILD_DATE",  BUILD_DATE)
 console.log("MATHJAX_URL", MATHJAX_URL)
 

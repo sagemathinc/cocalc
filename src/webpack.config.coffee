@@ -75,7 +75,11 @@ misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 
 git_head      = child_process.execSync("git rev-parse HEAD")
-SMC_VERSION   = git_head.toString().trim()
+GIT_REV       = git_head.toString().trim()
+[err, SMC_VERSION] = misc_node.get_smc_version_sync()
+if err?
+    console.error "get_smc_version_sync error: #{err}"
+    process.exit(1)
 TITLE         = 'SageMathCloud'
 SMC_REPO      = 'https://github.com/sagemathinc/smc'
 SMC_LICENSE   = 'GPLv3'
@@ -90,10 +94,12 @@ dateISO       = new Date().toISOString()
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
-console.log "NODE_ENV=#{NODE_ENV}"
-console.log "BASE_URL='#{BASE_URL}'"
-console.log "INPUT='#{INPUT}'"
-console.log "OUTPUT='#{OUTPUT}'"
+console.log "SMC_VERSION = #{SMC_VERSION}"
+console.log "SMC_GIT_REV = #{GIT_REV}"
+console.log "NODE_ENV    = #{NODE_ENV}"
+console.log "BASE_URL    ='#{BASE_URL}'"
+console.log "INPUT       ='#{INPUT}'"
+console.log "OUTPUT      ='#{OUTPUT}'"
 
 # mathjax version → symlink with version info from package.json/version
 MATHJAX_URL     = misc_node.MATHJAX_URL  # from where the files are served
@@ -106,7 +112,7 @@ console.log "MATHJAX_LIB  = '#{MATHJAX_LIB}'"
 banner = new webpack.BannerPlugin(
                         """\
                         This file has been created by #{TITLE}.
-                        It was compiled #{dateISO} at revision #{SMC_VERSION}.
+                        It was compiled #{dateISO} at revision #{GIT_REV} and version #{SMC_VERSION}.
                         See #{SMC_REPO} for its #{SMC_LICENSE} code.
                         """)
 
@@ -144,8 +150,9 @@ assetsPlugin = new AssetsPlugin
                         fullPath   : no
                         prettyPrint: true
                         metadata:
-                            version: SMC_VERSION
-                            date   : dateISO
+                            git_ref : GIT_REV
+                            version : SMC_VERSION
+                            date    : dateISO
 
 # https://www.npmjs.com/package/html-webpack-plugin
 HtmlWebpackPlugin = require('html-webpack-plugin')
@@ -171,7 +178,7 @@ htmlMinifyOpts =
 jade2html = new HtmlWebpackPlugin
                         date     : dateISO
                         title    : TITLE
-                        version  : SMC_VERSION
+                        git_rev  : GIT_REV
                         mathjax  : MATHJAX_URL
                         filename : 'index.html'
                         chunksSortMode: smcChunkSorter
@@ -266,6 +273,7 @@ setNODE_ENV          = new webpack.DefinePlugin
                                    'NODE_ENV' : JSON.stringify(NODE_ENV)
                                 'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
                                 'SMC_VERSION' : JSON.stringify(SMC_VERSION)
+                                'SMC_GIT_REV' : JSON.stringify(GIT_REV)
                                 'BUILD_DATE'  : JSON.stringify(dateISO)
 
 {StatsWriterPlugin} = require("webpack-stats-plugin")

@@ -15,9 +15,6 @@ if not process.env.SMC_TEST
     if process.env.SMC_DEBUG2
         DEBUG2 = true
 
-SMC_ROOT = process.env.SMC_ROOT
-
-
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
@@ -56,6 +53,7 @@ path_module = require('path')
 mime = require('mime')
 misc_node = require('smc-util-node/misc_node')
 
+SMC_ROOT        = misc_node.SMC_ROOT
 SALVUS_HOME     = misc_node.SALVUS_HOME
 OUTPUT_DIR      = misc_node.OUTPUT_DIR
 STATIC_PATH     = path_module.join(SALVUS_HOME, OUTPUT_DIR)
@@ -92,22 +90,16 @@ REGISTER_INTERVAL_S = 45   # every 45 seconds
 
 SMC_VERSION = undefined
 update_smc_version = () ->
-    version_file = SMC_ROOT + '/smc-util/smc-version.js'
-    fs.readFile version_file, (err, data) ->
-        if err
-            winston.debug("update_smc_version: WARNING: Error reading -- #{version_file} -- #{err}")
-        else
-            s = data.toString()
-            i = s.indexOf('=')
-            j = s.indexOf('\n')
-            if i != -1 and j != -1
-                ver = parseInt(s.slice(i+1,j))
-            if not SMC_VERSION?  # initialization on startup
-                SMC_VERSION = ver
-            else if ver != SMC_VERSION
-                SMC_VERSION = ver
-                winston.debug("update_smc_version: SMC_VERSION=#{SMC_VERSION}")
-                send_client_version_updates()
+    misc_node.get_smc_version (err, ver) ->
+        if err?
+            winston.error("no SMC_VERSION available due to #{err}")
+        if not SMC_VERSION?  # initialization on startup
+            SMC_VERSION = ver
+            winston.debug("update_smc_version: initializing SMC_VERSION=#{SMC_VERSION}")
+        else if ver != SMC_VERSION
+            SMC_VERSION = ver
+            winston.debug("update_smc_version: updating SMC_VERSION=#{SMC_VERSION}")
+            send_client_version_updates()
 
 init_smc_version = () ->
     update_smc_version()
