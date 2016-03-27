@@ -808,7 +808,14 @@ class SyncDoc extends EventEmitter
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
+    # NOTE: no-op if only one user!
     set_cursor_locs: (locs) =>
+        if @_users.length <= 2
+            # Don't bother in special case when only one user (plus the project -- for 2 above!) 
+            # since we never display the user's
+            # own cursors - just other user's cursors.  This simple optimization will save tons
+            # of bandwidth, since many files are never opened by more than one user.
+            return
         @_throttled_set_cursor_locs(locs)
         return
 
