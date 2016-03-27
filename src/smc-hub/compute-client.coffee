@@ -1692,49 +1692,60 @@ class ProjectClient extends EventEmitter
                     cb     : (err) =>
                         dbg("finished save message to backend: #{err}")
 
-    address: (opts) =>
-        opts = defaults opts,
-            cb : required
-        dbg = @dbg("address")
+    _address: (cb) =>
+        dbg = @dbg("_address")
         dbg("get project location and listening port -- will open and start project if necessary")
-        the_address = undefined
+        address = undefined
         async.series([
             (cb) =>
                 dbg("first ensure project is running")
                 @ensure_running(cb:cb)
             (cb) =>
-                dbg("now get the status")
-                f = (cb) =>
-                    @status
-                        cb : (err, status) =>
-                            if err
-                                cb(err)
+                @status
+                    cb : (err, status) =>
+                        if err
+                            cb(err)
+                        else
+                            if status.state != 'running'
+                                dbg("something went wrong and not running ?! -- status=#{misc.to_json(status)}")
+                                cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
-                                if status.state != 'running'
-                                    dbg("something went wrong and not running ?! -- status=#{misc.to_json(status)}")
-                                    cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
-                                else
-                                    dbg("status includes info about address...")
-                                    the_address =
-                                        host         : @host
-                                        port         : status['local_hub.port']
-                                        secret_token : status.secret_token
-                                    cb()
-                # we do this since state = running doesn't instantly imply status.state == running
-                misc.retry_until_success
-                    f : f
-                    start_delay : 3000
-                    max_time    : 20000
-                    cb : cb
+                                dbg("status includes info about address...")
+                                address =
+                                    host         : @host
+                                    port         : status['local_hub.port']
+                                    secret_token : status.secret_token
+                                cb()
         ], (err) =>
-            if not the_address?
-                dbg("BUG in getting address - should never happen")
-                err = 'not running'  # this should never happen!
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, the_address)
+            cb(err, address)
         )
+
+    # This will keep trying for up to an hour to get the address, with exponential
+    # decay backing off up to 15s between attempts.
+    address: (opts) =>
+        opts = defaults opts,
+            cb : required
+        if @_address_cbs?
+            @_address_cbs.push(opts.cb)
+            return
+        @_address_cbs = [opts.cb]
+        dbg = @dbg("address")
+        dbg()
+        address = undefined
+        misc.retry_until_success
+            f           : (cb) =>
+                @_address (err, x) =>
+                    address = x
+                    cb(err)
+            start_delay : 3000
+            max_delay   : 15000
+            max_time    : 3600*1000
+            cb          : (err) =>
+                if not address and not err
+                    err = "failed to get address"
+                for cb in @_address_cbs
+                    cb(err, address)
+                delete @_address_cbs
 
     copy_path: (opts) =>
         opts = defaults opts,
