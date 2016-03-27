@@ -1819,7 +1819,7 @@ class RethinkDB
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
-    # actually hit the database at most once every 30s (per project).  In particular,
+    # actually hit the database at most once every 30s (per project, per client).  In particular,
     # once called, it ignores subsequent calls for the same project for 30s.
     touch_project: (opts) =>
         opts = defaults opts,
@@ -2216,6 +2216,7 @@ class RethinkDB
             entry.last_edited = now
         #winston.debug("record_file_use: #{to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
+        @touch_project(project_id: opts.project_id)
 
     get_file_use: (opts) =>
         opts = defaults opts,
