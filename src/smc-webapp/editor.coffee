@@ -996,7 +996,7 @@ class exports.Editor
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
         open_file = (name) =>
-            @project_page.set_current_path(misc.path_split(name).head)
+            #@project_page.set_current_path(misc.path_split(name).head)
             @project_page.display_tab("project-editor")
             @display_tab(path:name)
 
