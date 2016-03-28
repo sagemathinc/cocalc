@@ -184,8 +184,7 @@ schema.patches =
                     if old_val.patch? and new_val.patch? and old_val.patch != new_val.patch
                         cb("you may not change a patch")
                         return
-                else
-                    cb()
+                cb()
 
 schema.patches.project_query = schema.patches.user_query
 

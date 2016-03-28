@@ -258,6 +258,7 @@ class RethinkDB
         # for how to monkey patch run.
         that = @ # needed to reconnect if connection dies
         TermBase = @r.expr(1).constructor.__super__.constructor.__super__
+        run_cbs = {}
         if not TermBase.run_native?  # only do this once!
             TermBase.run_native = TermBase.run
             TermBase.run = (opts, cb) ->
@@ -272,6 +273,7 @@ class RethinkDB
                     query_string = misc.trunc_middle(query_string, 200) + " (#{query_string.length} chars)"
 
                 if opts.cache?
+                    opts.dedup = true  # if allowing cached result, definitely allow dedup below!
                     cache = opts.cache
                     delete opts.cache
                     if cache and that._query_cache?
@@ -281,6 +283,17 @@ class RethinkDB
                             winston.debug("using cache for '#{query_string}'")
                             cb(x[0], x[1])
                             return
+
+                if opts.dedup?
+                    # Multiple copies of same query get done once only and all callbacks called.
+                    # Fine for idempotent queries where exact order doesn't matter, e.g., a bunch
+                    # of permissions checks. Simplifies other code a lot.
+                    delete opts.dedup
+                    if run_cbs[full_query_string]?
+                        run_cbs[full_query_string].push(cb)
+                        return
+                    else
+                        run_cbs[full_query_string] = [cb]
 
                 error = result = undefined
                 f = (cb) ->
@@ -383,7 +396,13 @@ class RethinkDB
                     cb          : ->
                         if cache
                             that._query_cache.set(full_query_string, [error, result])
-                        cb?(error, result)
+                        if run_cbs[full_query_string]?
+                            v = run_cbs[full_query_string]
+                            delete run_cbs[full_query_string]
+                            for cb in v
+                                cb?(error, result)
+                        else
+                            cb?(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)

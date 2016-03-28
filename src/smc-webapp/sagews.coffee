@@ -1417,17 +1417,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             when 'output'
                                 cell.set_cell_flag(FLAGS.hide_output)
 
-        if mesg.auto?
-            if opts.mark?
-                line = opts.mark.find()?.from.line
-                if line?
-                    cell = @cell(line)
-                    if cell?
-                        if mesg.auto
-                            cell.set_cell_flag(FLAGS.auto)
-                        else
-                            cell.remove_cell_flag(FLAGS.auto)
-
         # NOTE: Right now the "state object" is a just a list of messages in the output of a cell. It's viewed as something that should get rendered in order, with no dependence between them. Instead alll thoose messages should get fed into one single state object, which then gets rendered each time it changes. React makes that approach easy and efficient. Without react (or something similar) it is basically impossible.  When sage worksheets are rewritten using react, this will change.
         if mesg.clear
             line = opts.mark.find()?.from.line
