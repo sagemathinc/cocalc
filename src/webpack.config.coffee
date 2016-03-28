@@ -268,7 +268,7 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 # this is like #ifdef in the source code. It is particularly useful in the
 # source code of SMC, such that it knows about itself's version and where
 # mathjax is. The version&date is shown in the hover-title in the footer (year)
-setNODE_ENV          = new webpack.DefinePlugin
+setNODE_ENV         = new webpack.DefinePlugin
                                 'process.env' :
                                    'NODE_ENV' : JSON.stringify(NODE_ENV)
                                 'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
@@ -329,7 +329,7 @@ if PRODMODE
                                 sourceMap: false
                                 minimize: true
                                 output:
-                                    comments: /TITLE/ # to keep the banner from above
+                                    comments: new RegExp(TITLE,"g") # to keep the banner from above
                                 mangle:
                                     except: ['$super', '$', 'exports', 'require']
                                     screw_ie8: true
