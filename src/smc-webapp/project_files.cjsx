@@ -353,6 +353,8 @@ NoFiles = rclass
     handle_click : ->
         if not @props.file_search?.length > 0
             @props.actions.set_focused_page('project-new-file')
+        else if @props.file_search?[@props.file_search.length - 1] == '/'
+            @props.create_folder()
         else
             @props.create_file()
 
@@ -386,7 +388,7 @@ NoFiles = rclass
                 text = "Will create #{@filename_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
             style =
                 wordWrap:'break-word'
-                marginTop:'4px'
+                marginTop:'10px'
             <Alert style={style} bsStyle='info'>
                 {text}
             </Alert>
@@ -1421,6 +1423,8 @@ ProjectFilesNew = rclass
         if @props.file_search.length == 0
             # Tell state to render an error in file search
             @props.actions.setState(create_file_alert : true)
+        else if @props.file_search?[@props.file_search.length - 1] == '/'
+            @props.create_folder()
         else
             @props.create_file(ext)
 
@@ -1428,6 +1432,8 @@ ProjectFilesNew = rclass
     handle_file_click : ->
         if @props.file_search.length == 0
             @props.actions.set_focused_page('project-new-file')
+        else if @props.file_search?[@props.file_search.length - 1] == '/'
+            @props.create_folder()
         else
             @props.create_file()
 
