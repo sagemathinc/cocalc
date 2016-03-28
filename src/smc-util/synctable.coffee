@@ -373,7 +373,7 @@ class SyncTable extends EventEmitter
                         # were connected, but got an error, e.g., disconnect from server, so switch
                         # to reconnect state.
                         if err != 'killfeed' and err?.msg != 'Connection is closed.'   # killfeed is expected and happens regularly (right now)
-                            console.warn("query #{@_table}: _run: not first error -- ", err)
+                            console.warn("query #{@_table}: _run: not first error -- #{misc.to_json(err)}")
                         delete @_state  # undefined until @_reconnect sets it (in same tick)
                         @_reconnect()
                     else

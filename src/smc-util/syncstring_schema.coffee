@@ -173,6 +173,19 @@ schema.patches =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # this verifies that user has write access to these patches
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                if old_val?
+                    if old_val.sent? and new_val.sent? and new_val.sent != old_val.sent
+                        cb("you may not change the sent time once it is set")
+                        return
+                    if old_val.user? and new_val.user? and old_val.user != new_val.user
+                        cb("you may not change the author of a patch from #{old_val.user} to #{new_val.user}")
+                        return
+                    if old_val.patch? and new_val.patch? and old_val.patch != new_val.patch
+                        cb("you may not change a patch")
+                        return
+                else
+                    cb()
 
 schema.patches.project_query = schema.patches.user_query
 

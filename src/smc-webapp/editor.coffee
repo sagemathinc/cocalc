@@ -1352,10 +1352,10 @@ class FileEditor extends EventEmitter
     focus: () => # TODO in derived class
 
     _get: () =>
-        throw("TODO: implement _get in derived class")
+        console.warn("TODO: editor -- needs to implement _get in derived class")
 
     _set: (content) =>
-        throw("TODO: implement _set in derived class")
+        console.warn("TODO: editor -- needs to implement _set in derived class")
 
     restore_cursor_position: () =>
         # implement in a derived class if you need this

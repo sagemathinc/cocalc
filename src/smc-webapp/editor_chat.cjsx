@@ -82,7 +82,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name, {messages: immutable.Map(), input:''})
+    store   = redux.createStore(name, {input:''})
 
     synchronized_db
         project_id    : project_id

@@ -165,6 +165,10 @@ class exports.SynchronizedDB extends EventEmitter
         if not @_doc?
             cb?("@_doc not defined")
             return
+        if @_saving_cbs?
+            @_saving_cbs.push(cb)
+            return
+        @_saving_cbs = [cb]
         f = (cb) =>
             @sync (err) =>
                 if err
@@ -180,7 +184,10 @@ class exports.SynchronizedDB extends EventEmitter
             max_delay   : 5000
             factor      : 1.3
             max_time    : 1000*MAX_SAVE_TIME_S
-            cb          : cb
+            cb          : (err) =>
+                for cb in @_saving_cbs
+                    cb?(err)
+                delete @_saving_cbs
 
     sync: (cb) =>
         #console.log("returning fake save error"); cb?("fake saving error"); return
