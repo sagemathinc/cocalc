@@ -1171,7 +1171,7 @@ exports.cmp_Date = (a,b) ->
 exports.timestamp_cmp = (a,b,field='timestamp') ->
     return -exports.cmp_Date(a[field], b[field])
 
-timestamp_cmp0 = (a,b) ->
+timestamp_cmp0 = (a,b,field='timestamp') ->
     return exports.cmp_Date(a[field], b[field])
 
 #####################
