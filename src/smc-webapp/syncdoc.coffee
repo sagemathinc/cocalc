@@ -481,7 +481,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
         @_syncstring.once 'change', =>
             @emit('connect')   # successful connection
-            opts.cb(undefined, @)
+            @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
+                opts.cb(err, @)
 
         @_syncstring.on 'change', => # only when change is external
             @emit('sync')

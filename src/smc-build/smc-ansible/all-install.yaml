@@ -261,6 +261,7 @@
     - haskell-platform-doc
     - haskell-platform-prof
     - hdf5-helpers
+    - hexcurse
     - htop
     - iceweasel
     - ifrench

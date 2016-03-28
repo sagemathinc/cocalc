@@ -89,21 +89,21 @@ HelpPageUsageSection = rclass
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_hour]  ? @props.last_hour_projects} projects</strong> in the last hour,
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_day]   ? @props.last_day_projects} projects</strong> in the last day,
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_week]  ? @props.last_week_projects} projects</strong> in the last week and
-                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month.
+                <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month
             </li>
 
     render_historical_usage : ->
         <li key='usage_data' style={li_style}>
             <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                 <Icon name='line-chart' fixedWidth />Historical usage statistics
-            </a> &mdash; number of projects and users over time.
+            </a> &mdash; number of projects and users over time
         </li>
 
     render_historical_metrics : ->
         <li key='usage_metrics' style={li_style}>
             <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
                 <Icon name='area-chart' fixedWidth />Historical system metrics
-            </a> &mdash; CPU usage, running projects and software instances, etc.
+            </a> &mdash; CPU usage, running projects and software instances, etc
         </li>
 
     render_when_updated : ->
@@ -169,7 +169,7 @@ SUPPORT_LINKS =
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues'
         link : 'Github issue tracker'
-        text : '(you may also email bug reports to us)'
+        text : '(you may also email help@sagemath.com)'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
@@ -242,24 +242,21 @@ ABOUT_SECTION =
         </span>
     developers :
         <span>
-            <a target='_blank' href='http://wstein.org'>William Stein</a> is
-            the founder and main architect of <SiteName/>, and
-            <a target='_blank' href='http://harald.schil.ly/'> Harald Schilly</a> does marketing and QA testing.
-            Also, Keith Clawson has done hardware, and Jonathan Lee, Nicholas Ruhland, and Andy Huchala
-            have done web development.
+            <a target='_blank' href='http://wstein.org'>William Stein</a> and <a target='_blank' href='http://harald.schil.ly/'>
+            Harald Schilly</a> develop and run <SiteName/>, and <a href='https://github.com/sagemathinc/smc/graphs/contributors' target='_blank'>many people  contribute code</a>
         </span>
     funding :
         <span>
-            <SiteName/> first launched (as "SageMathCloud") in April, 2013 with early support from the National Science Foundation
-            (awards <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226'> 1161226</a>,
-            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802'> 1147802</a>,
-            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378'> 1020378</a> and
-            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114'> 1015114</a>), and
+            <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
+        </span>
+    launched :
+        <span>
+            <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
             <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
-            Education Grant program.</a>
+            Education Grant program</a>
         </span>
     incorporated :
-        'SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015.'
+        'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
 
 HelpPageAboutSection = rclass
     displayName : 'HelpPage-HelpPageAboutSection'
@@ -300,12 +297,6 @@ HelpPageGettingStartedSection = rclass
     render : ->
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
-
-            <div>
-              <ul>
-                <li><a target="_blank" href="https://youtu.be/mHr-cEGqiuw?t=8m23s">SageMathCloud introduction talk at a PyData NYC Meetup</a> (by Jason Grout, August 2015).</li>
-              </ul>
-            </div>
 
             <Accordion>
                 <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>

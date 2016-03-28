@@ -974,7 +974,8 @@ describe "timestamp_cmp", ->
     it "correctly compares timestamps", ->
         tcmp(a, b).should.eql 1
         tcmp(b, a).should.eql -1
-        tcmp(a, a).should.eql 0
+        # sometimes, that's -0 instead of 0
+        assert.strictEqual(tcmp(a, a), 0)
 
     it "handles missing timestamps gracefully", ->
         tcmp(a, {}).should.eql -1

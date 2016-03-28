@@ -808,7 +808,14 @@ class SyncDoc extends EventEmitter
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
+    # NOTE: no-op if only one user!
     set_cursor_locs: (locs) =>
+        if @_users.length <= 2
+            # Don't bother in special case when only one user (plus the project -- for 2 above!)
+            # since we never display the user's
+            # own cursors - just other user's cursors.  This simple optimization will save tons
+            # of bandwidth, since many files are never opened by more than one user.
+            return
         @_throttled_set_cursor_locs(locs)
         return
 
@@ -917,10 +924,14 @@ class SyncDoc extends EventEmitter
             # which leads to serious problems!
             obj.sent = time
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
-        @_patches_table.set(obj, 'none')
-        # save the snapshot time in the database
-        @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time})
-        @_last_snapshot = time
+        @_patches_table.set obj, 'none' , (err) =>
+            if not err
+                # Only save the snapshot time in the database after the set in the patches table was confirmed as a
+                # success -- otherwise if the user refreshes their browser (or visits later) they lose all their early work!
+                @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time})
+                @_last_snapshot = time
+            else
+                console.warn("failed to save snapshot -- #{err}")
         return time
 
     # Have a snapshot every @_snapshot_interval patches, except

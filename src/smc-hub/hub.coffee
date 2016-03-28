@@ -30,6 +30,9 @@ MESG_QUEUE_MAX_SIZE_MB  = 7
 # How frequently to check if the smc-util/smc-version.js file has changed.
 SMC_VERSION_CHECK_INTERVAL_S = 15
 
+# Don't tell users to upgrade until this many minutes after version file updated.
+SMC_VERSION_CHECK_AGE_M = 6
+
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
@@ -97,6 +100,11 @@ update_smc_version = () ->
             SMC_VERSION = ver
             winston.debug("update_smc_version: initializing SMC_VERSION=#{SMC_VERSION}")
         else if ver != SMC_VERSION
+            ver_age_s = (new Date() - ver*1000)/1000
+            winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
+            if ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
+                # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
+                return
             SMC_VERSION = ver
             winston.debug("update_smc_version: updating SMC_VERSION=#{SMC_VERSION}")
             send_client_version_updates()
