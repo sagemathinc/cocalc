@@ -237,3 +237,5 @@
 {"desc":"#0 #critical\nthe caching for permissions is having a bunch of calls for the same result so caching doesn't get used!\n\nThis is a KILLER!","position":-1.3134439562921703,"last_edited":1459145261003,"task_id":"d0182ad1-6751-4e42-ad95-ba325ffcb25b","due_date":1459316793100,"done":1459145260591}
 {"desc":"#0 #snapshots #critical\nDo not record that we've made a snapshot in syncstrings table until write is confirmed!","position":-1.3134439562921676,"last_edited":1459144237612,"task_id":"c2daf815-2f37-48b9-83fa-8010bdcf17bd","done":1459144237201}
 {"desc":"#1 #critical\ntime travel needs a Loading... indicator.","position":-1.3134439562921663,"last_edited":1459143982348,"task_id":"f147de34-64a0-468d-bdc3-3437ba53803a","due_date":1459316780104}
+{"desc":"#1 #critical\nnotifications bell needs a loading indicator...","position":-1.313443956292173,"last_edited":1459174579193,"task_id":"5aa6a175-7935-44f5-9144-8c4d0fc51340","due_date":1459260977034}
+{"desc":"","position":-1.3134439562921716,"last_edited":1459177066509,"task_id":"7a2254d7-aa54-40d1-9d99-fc7f843b3d21","deleted":true}

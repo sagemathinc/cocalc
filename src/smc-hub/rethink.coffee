@@ -508,6 +508,38 @@ class RethinkDB
                 opts.cb?(err)
         )
 
+    ###
+    Sometimes RethinkDB tables waste huge amounts of disk space.  A trick that Daniel Mewes suggests to
+    fix this is to write and remove a dummy field from all records.  This function implements that idea.
+    ###
+    recompact_table: (opts) =>
+        opts = defaults opts,
+            table : required
+            limit : undefined
+            cb    : undefined
+        dbg = @dbg("recompact_table(table='#{opts.table}', limit=#{opts.limit})");
+        dbg()
+        async.series([
+            (cb) =>
+                dbg('writing dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: null}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+            (cb) =>
+                dbg('deleting dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: db.r.literal()}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+        ], (err) =>
+            dbg('finished')
+            opts.cb?(err)
+        )
 
     dbg: (f) =>
         if @_debug
