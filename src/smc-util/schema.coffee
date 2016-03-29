@@ -449,7 +449,7 @@ schema.file_use =
                 path        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # hook to note that project is being used
-                db.touch_project(project_id: obj.project_id)
+                db.touch(project_id: obj.project_id, account_id:account_id, path:obj.path)
                 cb?()
 
 schema.hub_servers =

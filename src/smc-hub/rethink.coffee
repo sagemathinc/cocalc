@@ -1454,21 +1454,31 @@ class RethinkDB
             project_id : undefined
             path       : undefined
             action     : 'edit'
+            ttl_s      : 50        # min activity interval; calling this function with same input again within this interval is ignored
             cb         : undefined
+        if opts.ttl_s
+            @_touch_lock ?= {}
+            key = "#{opts.account_id}-#{opts.project_id}-#{opts.path}-#{opts.action}"
+            if @_touch_lock[key]
+                opts.cb?()
+                return
+            @_touch_lock[key] = true
+            setTimeout((()=>delete @_touch_lock[key]), opts.ttl_s*1000)
+
+        now = new Date()
         async.parallel([
             (cb) =>
                 # touch accounts table
-                @table('accounts').get(opts.account_id).update(last_active:new Date()).run(cb)
+                @table('accounts').get(opts.account_id).update(last_active:now).run(cb)
             (cb) =>
                 if not opts.project_id?
                     cb(); return
                 # touch projects table
-                @table('projects').get(opts.project_id).update(last_active:{"#{opts.account_id}":new Date()}).run(cb)
+                @table('projects').get(opts.project_id).update(last_edited:now, last_active:{"#{opts.account_id}":now}).run(cb)
             (cb) =>
-                if not opts.path? or not opts.project_id?
+                if not opts.path?
                     cb(); return
-                # touch file_use table
-                @record_file_use(project_id:opts.project_id, path:opts.path, account_id:opts.account_id, action:opts.action, cb:cb)
+                @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
     ###
@@ -2272,7 +2282,6 @@ class RethinkDB
             entry.last_edited = now
         #winston.debug("record_file_use: #{to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
-        @touch_project(project_id: opts.project_id)
 
     get_file_use: (opts) =>
         opts = defaults opts,
