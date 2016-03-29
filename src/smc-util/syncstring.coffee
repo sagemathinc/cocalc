@@ -36,6 +36,8 @@ async     = require('async')
 misc      = require('./misc')
 {sagews}  = require('./sagews')
 
+schema    = require('./schema')
+
 {Evaluator} = require('./syncstring_evaluator')
 
 {diff_match_patch} = require('./dmp')
@@ -458,7 +460,7 @@ class SyncDoc extends EventEmitter
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
         if not opts.string_id?
-            opts.string_id = require('smc-util/schema').client_db.sha1(opts.project_id, opts.path)
+            opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
@@ -1065,7 +1067,7 @@ class SyncDoc extends EventEmitter
         if not x? or not x.last_snapshot? or not x.users?
             # Brand new document
             @_last_snapshot = 0
-            @_snapshot_interval = x.snapshot_interval
+            @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
