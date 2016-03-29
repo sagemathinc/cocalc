@@ -23,6 +23,8 @@ HOST = socket.gethostname()
 # alternatively, just count the active users
 # e.g. len(set(Popen(["ps", "-e", "-o", "user="], stdout=PIPE).stdout.readlines())) - 7
 
+SAGEWS_CMDLINE = "from smc_sagews.sage_server_command_line"
+
 def running_process_stats():
     import psutil as ps
     """
@@ -41,8 +43,12 @@ def running_process_stats():
             cmd = p.cmdline()
             if len(cmd) < 3:
                 continue
-            if "smc_sagews.sage_server_command_line" in cmd[-1]:
-                nb_sage += 1
+            if SAGEWS_CMDLINE in cmd[-1]:
+                # also check, if parent process is sagemath, since all sagews instances are forked
+                # (otherwise, it's always one too many per project)
+                cmdpar = p.parent().cmdline()
+                if len(cmdpar) > 1 and SAGEWS_CMDLINE in cmdpar[-1]:
+                    nb_sage += 1
             elif cmd[2] == 'notebook':
                 nb_ipynb += 1
 
