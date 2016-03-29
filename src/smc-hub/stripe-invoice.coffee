@@ -22,6 +22,10 @@ exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
                 customer = x; cb(err)
         (cb) ->
             if not invoice.paid
+                # no time paid
+                cb()
+            else if not invoice.charge
+                # there was no charge (e.g., a trial)
                 cb()
             else
                 stripe.charges.retrieve invoice.charge, (err, x) ->
