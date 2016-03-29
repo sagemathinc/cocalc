@@ -1,3 +1,5 @@
+# SageMathCloud, by SageMath, Inc., (c) 2016 -- License: GPLv3
+
 ###
 # Webpack configuration file
 
@@ -52,7 +54,16 @@ The remaining configuration deals with setting up variables (misc_page contains 
 information about where the page is getting rendered to, because also the hub.coffee needs to know
 about certain file locations)
 
-MathJax: It lifes in its own isolated world. This means, don't mess with the MathJax.js ...
+Development vs. Production: There are two variables DEVMODE and PRODMODE.
+* Produmode:
+  * additional compression is enabled (do *not* add the -p switch to webpack, that's done here!)
+  * all output filenames, except for the essential .html files, do have hashes and a flat hierarchy.
+* Devmode:
+  * as little additional plugins as possible (runs faster)
+  * file names have no hashes, or hashes based on the content. This means, when running
+    webpack-watch, you do not end up with thousands of files in the output directory.
+
+MathJax: It lives in its own isolated world. This means, don't mess with the MathJax.js ...
 it needs to know from where it is loaded (the path), to retrieve many additional files on demand.
 That's also the main reason why it is slow, because for each file a new SSL connection has to be setup!
 (even, if the sever just says 302 not modified). Still, we help it a little bit by caching it, too.
@@ -60,7 +71,7 @@ The trick is to add the MathJax version number to the path, such that it is uniq
 trigger a reload after an update. The MathjaxVersionedSymlink in combination with misc_node.MATHJAX_LIB
 does extract the MathJax version number, computes the path, and does symlink to it's location.
 Why in misc_node? The problem is, that also the jupyter server (in its isolated iframe),
-needs to know about the URL. That way, the hub can send down the URL to the server (there is no webapp client in between).
+needs to know about the URL. That way, the hub can send down the URL to the jupyter server (there is no webapp client in between).
 ###
 
 'use strict'
@@ -76,10 +87,6 @@ async         = require('async')
 
 git_head      = child_process.execSync("git rev-parse HEAD")
 GIT_REV       = git_head.toString().trim()
-[err, SMC_VERSION] = misc_node.get_smc_version_sync()
-if err?
-    console.error "get_smc_version_sync error: #{err}"
-    process.exit(1)
 TITLE         = 'SageMathCloud'
 SMC_REPO      = 'https://github.com/sagemathinc/smc'
 SMC_LICENSE   = 'GPLv3'
@@ -90,7 +97,9 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
-dateISO       = new Date().toISOString()
+date          = new Date()
+BUILD_DATE    = date.toISOString()
+BUILD_TS      = date.getTime()
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -102,9 +111,9 @@ console.log "INPUT       ='#{INPUT}'"
 console.log "OUTPUT      ='#{OUTPUT}'"
 
 # mathjax version → symlink with version info from package.json/version
-MATHJAX_URL     = misc_node.MATHJAX_URL  # from where the files are served
-MATHJAX_ROOT    = misc_node.MATHJAX_ROOT # where the symlink originates
-MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
+MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
+MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
+MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
 console.log "MATHJAX_URL  = '#{MATHJAX_URL}'"
 console.log "MATHJAX_ROOT = '#{MATHJAX_ROOT}'"
 console.log "MATHJAX_LIB  = '#{MATHJAX_LIB}'"
@@ -112,7 +121,7 @@ console.log "MATHJAX_LIB  = '#{MATHJAX_LIB}'"
 banner = new webpack.BannerPlugin(
                         """\
                         This file has been created by #{TITLE}.
-                        It was compiled #{dateISO} at revision #{GIT_REV} and version #{SMC_VERSION}.
+                        It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
                         See #{SMC_REPO} for its #{SMC_LICENSE} code.
                         """)
 
@@ -150,9 +159,10 @@ assetsPlugin = new AssetsPlugin
                         fullPath   : no
                         prettyPrint: true
                         metadata:
-                            git_ref : GIT_REV
-                            version : SMC_VERSION
-                            date    : dateISO
+                            git_ref   : GIT_REV
+                            version   : SMC_VERSION
+                            built     : BUILD_DATE
+                            timestamp : BUILD_TS
 
 # https://www.npmjs.com/package/html-webpack-plugin
 HtmlWebpackPlugin = require('html-webpack-plugin')
@@ -176,7 +186,7 @@ htmlMinifyOpts =
 
 # this is the main indes.html file, which should be served without any caching
 jade2html = new HtmlWebpackPlugin
-                        date     : dateISO
+                        date     : BUILD_DATE
                         title    : TITLE
                         git_rev  : GIT_REV
                         mathjax  : MATHJAX_URL
@@ -274,7 +284,8 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
                                 'SMC_VERSION' : JSON.stringify(SMC_VERSION)
                                 'SMC_GIT_REV' : JSON.stringify(GIT_REV)
-                                'BUILD_DATE'  : JSON.stringify(dateISO)
+                                'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
+                                'BUILD_TS'    : JSON.stringify(BUILD_TS)
 
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
