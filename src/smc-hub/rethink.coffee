@@ -24,6 +24,9 @@ async      = require('async')
 underscore = require('underscore')
 moment     = require('moment')
 uuid       = require('node-uuid')
+
+json_stable_stringify = require('json-stable-stringify')
+
 winston    = require('winston')
 winston.remove(winston.transports.Console)
 
@@ -2933,6 +2936,7 @@ class RethinkDB
             options    : []         # used for initial query; **IGNORED** by changefeed!; can use set:true or set:false to force get or set query
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+        dbg = @dbg("user_query(...)")
         if misc.is_array(opts.query)
             if opts.changes and opts.query.length > 1
                 opts.cb("changefeeds only implemented for single table")
@@ -2996,12 +3000,34 @@ class RethinkDB
                 if not opts.account_id? and not opts.project_id?
                     opts.cb("no anonymous set queries")
                     return
+
+                on_success = undefined
+                if SCHEMA[table].unique_writes
+                    # no reason for user to ever write the same thing to this table twice
+                    uniq = @_user_set_query_unique_writes ?= {}
+                    uniq[table] ?= {}
+                    #dbg("uniq = #{misc.to_json(uniq)}")
+                    rep = json_stable_stringify(opts.query)
+                    q = misc_node.sha1(rep)
+                    if uniq[table][q]
+                        dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
+                        uniq[table][q] += 1
+                        opts.cb()
+                        return
+                    else
+                        on_success = () =>
+                            uniq[table][q] = 1
+
                 @user_set_query
                     account_id : opts.account_id
                     project_id : opts.project_id
                     table      : table
                     query      : query
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+                    cb         : (err, x) =>
+                        if not err
+                            on_success?()
+                        opts.cb(err, {"#{table}":x})
+
             else
                 # do a get query
                 if changes and not multi
@@ -3202,6 +3228,7 @@ class RethinkDB
         project_id = opts.project_id
 
         s = SCHEMA[table]
+
         if account_id?
             client_query = s?.user_query
         else
@@ -3933,8 +3960,7 @@ class RethinkDB
                             else
                                 cb(err)
                         else
-                            if not @_change_feeds?
-                                @_change_feeds = {}
+                            @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
                             @_user_query_stats.changefeed
                                 account_id    : opts.account_id
