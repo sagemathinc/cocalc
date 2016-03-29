@@ -1523,7 +1523,7 @@ class exports.Connection extends EventEmitter
             project_id        : undefined
             path              : undefined
             default           : ''
-            file_use_interval : 60000       # report that there is active editing of this file (debounced with this parameter).
+            file_use_interval : 'default'
         opts.client = @
         return new syncstring.SyncString(opts)
 

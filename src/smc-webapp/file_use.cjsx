@@ -140,6 +140,7 @@ class FileUseActions extends Actions
         @mark((x.id for x in v), action)
 
     mark_file: (project_id, path, action) =>
+        path = misc.original_path(path)
         #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
