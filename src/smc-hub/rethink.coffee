@@ -511,6 +511,8 @@ class RethinkDB
     ###
     Sometimes RethinkDB tables waste huge amounts of disk space.  A trick that Daniel Mewes suggests to
     fix this is to write and remove a dummy field from all records.  This function implements that idea.
+
+    db._error_thresh=1e6; db.recompact_table(table:'blobs', cb:done())
     ###
     recompact_table: (opts) =>
         opts = defaults opts,
