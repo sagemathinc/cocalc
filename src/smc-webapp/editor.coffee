@@ -3784,7 +3784,7 @@ class HTML_MD_Editor extends FileEditor
         @spell_check()
 
         cm = @cm()
-        cm.on('change', @update_preview)
+        cm.on('change', _.debounce(@update_preview,500))
         #cm.on 'cursorActivity', @update_preview
 
         @init_buttons()
