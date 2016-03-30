@@ -963,6 +963,22 @@ message
     description : required
 
 #############
+# Support Tickets → right now going through Zendesk
+#############
+message
+    event        : 'create_support_ticket'
+    id           : undefined
+    email_address: required  # if there is no email_address in the account, there can't be a ticket! (for now)
+    subject      : required  # like an email subject
+    body         : required  # html or md formatted text
+    tags         : undefined # a list of tags, like ['member']
+    account_id   : undefined
+    project_id   : undefined
+    file         : undefined # path to file (together with project_id → full URL)
+    info         : undefined # additional data dict, like browser/OS
+
+
+#############
 # Queries directly to the database (sort of like Facebook's GraphQL)
 #############
 

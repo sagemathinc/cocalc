@@ -51,6 +51,7 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 net     = require('net')
 assert  = require('assert')
 fs      = require('fs')
+underscore = require('underscore')
 path_module = require('path')
 {EventEmitter} = require('events')
 
@@ -70,7 +71,6 @@ access = require('./access')
 
 local_hub_connection = require('./local_hub_connection')
 hub_projects         = require('./projects')
-
 hub_proxy            = require('./proxy')
 
 # express http server -- serves some static/dynamic endpoints
@@ -1621,6 +1621,16 @@ class Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
+
+    ######################################################
+    # Support Tickets → Zendesk
+    ######################################################
+
+    mesg_create_support_ticket: (mesg) =>
+        dbg = @dbg("mesg_create_support_ticket")
+        dbg("#{misc.to_json(mesg)}")
+        m = underscore.omit(mesg, 'id', 'event')
+        support.create_ticket(m)
 
     ######################################################
     #Stripe-integration billing code
@@ -3226,6 +3236,13 @@ stripe_sales_tax = (opts) ->
             return
         opts.cb(undefined, misc_node.sales_tax(zip))
 
+support = undefined
+init_support = (cb) ->
+    {Support} = require('./support')
+    support = new Support cb: (err, s) =>
+        support = s
+        cb(err)
+
 #############################################
 # Start everything running
 #############################################
@@ -3278,6 +3295,8 @@ exports.start_server = start_server = (cb) ->
                 cb()
         (cb) ->
             init_stripe(cb)
+        (cb) ->
+            init_support(cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->

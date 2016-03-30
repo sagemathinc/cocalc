@@ -1491,6 +1491,31 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    # Support Tickets
+
+    create_support_ticket: (opts) =>
+        opts = defaults opts,
+            email_address: required  # if there is no email_address in the account, there can't be a ticket!
+            subject      : required  # like an email subject
+            body         : required  # html or md formatted text
+            tags         : undefined # e.g. [ 'member' ]
+            account_id   : undefined
+            project_id   : undefined
+            file         : undefined # path to file (together with project_id → full URL)
+            info         : undefined # additional data dict, like browser/OS
+            cb           : required
+        @call
+            message: message.create_support_ticket
+                email_address: opts.email_address
+                subject      : opts.subject
+                body         : opts.body
+                category     : opts.category
+                account_id   : opts.account_id
+                project_id   : opts.project_id
+                file         : opts.file
+                info         : opts.info
+            cb           : opts.cb
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>
