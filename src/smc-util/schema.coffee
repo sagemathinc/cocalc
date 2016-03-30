@@ -412,6 +412,7 @@ schema.file_access_log =
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
+    unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
         id          : true
         project_id  : true

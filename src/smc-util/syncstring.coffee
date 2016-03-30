@@ -482,9 +482,9 @@ class SyncDoc extends EventEmitter
             is_chat = misc.filename_extension(@_path) == 'sage-chat'
             if opts.file_use_interval == 'default'
                 if is_chat
-                    opts.file_use_interval = 10000
+                    opts.file_use_interval = 15000
                 else
-                    opts.file_use_interval = 60000
+                    opts.file_use_interval = 120000
             if is_chat
                 action = 'chat'
             else
@@ -492,7 +492,7 @@ class SyncDoc extends EventEmitter
             file_use = () =>
                 @_client.mark_file(project_id:@_project_id, path:@_path, action:action)
 
-            @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
+            @on('user_change', underscore.debounce(file_use, opts.file_use_interval, true))
 
         # Initialize throttled functions
         set_cursor_locs = (locs) =>
