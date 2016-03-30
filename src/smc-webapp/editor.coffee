@@ -1417,10 +1417,10 @@ class FileEditor extends EventEmitter
             cb         : (err, mesg) =>
                 # TODO -- on error, we *might* consider saving to localStorage...
                 if err
-                    alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
+                    alert_message(type:"error", message:"Communications issue saving #{@filename} -- #{err}")
                     cb?(err)
                 else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{to_json(mesg.error)}")
                     cb?(mesg.error)
                 else
                     cb?()
