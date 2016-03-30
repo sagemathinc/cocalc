@@ -446,7 +446,7 @@ exports.TimeAgo = rclass
         placement   : rtypes.string
 
     getDefaultProps: ->
-        popover   : true
+        popover   : false
         minPeriod : 45000
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
