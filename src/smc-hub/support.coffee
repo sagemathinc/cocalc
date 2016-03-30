@@ -98,6 +98,7 @@ class exports.Support
     create_ticket: (opts={}) ->
         opts = defaults opts,
             email_address : required  # if there is no email_address in the account, there can't be a ticket!
+            username      : undefined
             subject       : required  # like an email subject
             body          : required  # html or md formatted text
             tags          : undefined # e.g. [ 'member' ]
@@ -105,27 +106,87 @@ class exports.Support
             project_id    : undefined
             file          : undefined # path to file (together with project_id → full URL)
             info          : undefined # additional data dict, like browser/OS
-            cb            : undefined
+            cb            : undefined # will be called as cb(err|null, url_to_ticket)
         dbg = @dbg("create_ticket")
         dbg("opts = #{misc.to_json(opts)}")
 
+        if not @_zd?
+            err = "no zendesk instance available -- abort"
+            dbg(err)
+            opts.cb?(err)
+            return
+
+        # data assembly, we need a special formatted user and ticket object
+        # https://developer.zendesk.com/rest_api/docs/core/users
+        user =
+            user:
+                name         : opts.username ? opts.email_address
+                email        : opts.email_address
+                verified     : true  # i.e. no email sent to them verifying their email address + password creation request
+                external_id  : opts.account_id ? null
+                # manage custom_fields here: https://sagemathcloud.zendesk.com/agent/admin/user_fields
+                custom_fields:
+                    subscription : null
+                    type         : null # student, member, ...
+
+        # below the body message, add a link to the project + file
+        # TODO fix hardcoded URL
+        if opts.project_id?
+            file = opts.file ? ''
+            path = "#{opts.project_id}/#{file}"
+            body = opts.body + "<br/><br/><a href='https://cloud.sagemath.com/projects/#{path}' target='_blank'>project #{path}</a>"
+        else
+            body = opts.body + "<br/><br/>No project_id provided."
+
+        # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
         custom_fields =
             account_id: opts.account_id
             project_id: opts.project_id
+            file      : opts.file
 
         if opts.info?
-            custom_fields = _.extend(custom_fields, opts.info)
+            custom_fields.info = JSON.stringify(opts.info)
 
+        # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =
             ticket:
                 subject: opts.subject
                 comment:
-                    body: opts.body
+                    body: body
+                tags : tags
+                type: "problem"
                 custom_fields: custom_fields
 
-        #@_zd?.tickets.create ticket, (err, req, result) =>
-        #    if (err)
-        #        opts.cb?(err)
-        #        return
-        #    dbg(JSON.stringify(result, null, 2, true))
-        #    opts.cb?(id : result.id) # id: ticket number
+        # data assembly finished → creating or updating existing zendesk user, then sending ticket creation
+
+        async.waterfall([
+            # 1. get or create user ID in zendesk-land
+            (cb) =>
+                # workaround, until https://github.com/blakmatrix/node-zendesk/pull/131/files is in
+                @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
+                    if err
+                        dbg("create_or_update user error: #{misc.to_json(err)}")
+                        cb(err); return
+                    # result = { "id": int, "url": "https://…json", "name": …, "email": "…", "created_at": "…", "updated_at": "…", … }
+                    # dbg(JSON.stringify(result, null, 2, true))
+                    cb(null, result.id)
+
+            # 2. creating ticket with known zendesk user ID (an integer number)
+            (requester_id, cb) =>
+                dbg("create ticket #{misc.to_json(ticket)} with requester_id: #{user_id}")
+                ticket.ticket.requester_id = requester_id
+                @_zd.tickets.create ticket, (err, req, result) =>
+                    if (err)
+                        cb(err); return
+                    # dbg(JSON.stringify(result, null, 2, true))
+                    cb(null, result.id)
+
+        ], (err, ticket_id) =>
+            if err
+                opts.cb?(err)
+            else
+                url = "https://sagemathcloud.zendesk.com/agent/tickets/#{ticket_id}"
+                opts.cb?(null, url)
+        )
+
+

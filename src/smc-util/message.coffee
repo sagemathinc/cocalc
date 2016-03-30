@@ -969,6 +969,7 @@ message
     event        : 'create_support_ticket'
     id           : undefined
     email_address: required  # if there is no email_address in the account, there can't be a ticket! (for now)
+    username     : undefined
     subject      : required  # like an email subject
     body         : required  # html or md formatted text
     tags         : undefined # a list of tags, like ['member']
