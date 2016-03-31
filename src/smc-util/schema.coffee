@@ -449,8 +449,9 @@ schema.file_use =
                 project_id  : true
                 path        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
-                # hook to note that project is being used
-                db.touch(project_id: obj.project_id, account_id:account_id, path:obj.path)
+                # hook to note that project is being used (CRITICAL: do not pass path
+                # into db.touch since that would cause another write to the file_use table!)
+                db.touch(project_id: obj.project_id, account_id:account_id)
                 cb?()
 
 schema.hub_servers =

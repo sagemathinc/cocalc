@@ -1455,7 +1455,7 @@ class RethinkDB
             @_touch_account_lock[account_id] = true
             now = new Date()
             @table('accounts').get(account_id).update(last_active:now).run(cb)
-            setTimeout((()=>delete @_touch_account_lock[key]), 60*1000)
+            setTimeout((()=>delete @_touch_account_lock[key]), 120*1000)
 
     _touch_project: (project_id, account_id, cb) =>
         # never do this more than once per minute
@@ -1467,7 +1467,7 @@ class RethinkDB
             @_touch_project_lock[key] = true
             now = new Date()
             @table('projects').get(project_id).update(last_edited:now, last_active:{"#{account_id}":now}).run(cb)
-            setTimeout((()=>delete @_touch_project_lock[key]), 60*1000)
+            setTimeout((()=>delete @_touch_project_lock[key]), 120*1000)
 
     # Indicate activity by a user, possibly on a specific project, and
     # then possibly on a specific path in that project.
