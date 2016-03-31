@@ -22,6 +22,10 @@ exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
                 customer = x; cb(err)
         (cb) ->
             if not invoice.paid
+                # no time paid
+                cb()
+            else if not invoice.charge
+                # there was no charge (e.g., a trial)
                 cb()
             else
                 stripe.charges.retrieve invoice.charge, (err, x) ->
@@ -66,7 +70,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     doc.text("#{invoice.date}")
     doc.text(customer.description)
     doc.text(customer.email)
-    if invoice.paid
+    if invoice.paid and charge?.source?
         doc.text("#{charge.source.brand} ending #{charge.source.last4}")
 
     y += 120

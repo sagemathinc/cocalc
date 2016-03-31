@@ -112,24 +112,6 @@ class FileUseActions extends Actions
             err = misc.to_json(err)
         @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
 
-    # Mark a record (or array of them) x with the given action happening now for this user.
-    # INPUT:
-    #    - x: uuid or array of uuid's of file_use records
-    #    - action: 'read', 'seen', 'edit', 'chat'
-    mark: (x, action) =>
-        if not misc.is_array(x)
-            x = [x]
-        table = @redux.getTable('file_use')
-        account_id = @redux.getStore('account').get_account_id()
-        u = {"#{account_id}":{"#{action}":new Date()}}
-        f = (id, cb) =>
-            table.set {id:id, users:u}, (err)=>
-                if err then err += "(id=#{id}) #{err}"
-                cb(err)
-        async.map x, f, (err) =>
-            if err
-                @record_error("error marking record #{action} -- #{err}")
-
     mark_all: (action) =>
         if action == 'read'
             v = @redux.getStore('file_use').get_all_unread()
@@ -137,14 +119,25 @@ class FileUseActions extends Actions
             v = @redux.getStore('file_use').get_all_unseen()
         else
             @record_error("mark_all: unknown action '#{action}'")
-        @mark((x.id for x in v), action)
+            return
+        for x in v
+            @mark_file(x.project_id, x.path, action)
 
-    mark_file: (project_id, path, action) =>
+    mark_file: (project_id, path, action, ttl=120) =>
+        path = misc.original_path(path)
         #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
             return
+        if ttl
+            key = "#{project_id}-#{path}-#{action}"
+            @_mark_file_lock ?= {}
+            if @_mark_file_lock[key]
+                return
+            @_mark_file_lock[key] = true
+            setTimeout((()=>delete @_mark_file_lock[key]), ttl*1000)
+
         table = @redux.getTable('file_use')
         now   = new Date()
         obj   =
@@ -297,7 +290,7 @@ open_file_use_entry = (info, redux) ->
     if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    redux.getActions('file_use').mark(info.id, 'read')
+    redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.
@@ -430,7 +423,7 @@ FileUseViewer = rclass
 
     render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read')}>
+            onClick={=>@props.redux.getActions('file_use').mark_all('read'); hide_notification_list()}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 

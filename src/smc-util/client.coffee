@@ -1523,7 +1523,7 @@ class exports.Connection extends EventEmitter
             project_id        : undefined
             path              : undefined
             default           : ''
-            file_use_interval : 60000       # report that there is active editing of this file (debounced with this parameter).
+            file_use_interval : 'default'
         opts.client = @
         return new syncstring.SyncString(opts)
 
@@ -1539,8 +1539,9 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             action     : required
+            ttl        : 120
         # TODO: this is bad. Really client should have a reference to redux...
-        window?.smc?.redux.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action)
+        window?.smc?.redux.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     query: (opts) =>
         opts = defaults opts,

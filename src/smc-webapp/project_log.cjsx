@@ -261,7 +261,7 @@ LogEntry = rclass
             <Col sm=11>
                 {@render_user()}<Space/>
                 {@render_desc()}<Space/>
-                <TimeAgo style={style} date={@props.time} />
+                <TimeAgo style={style} date={@props.time} popover={true} />
             </Col>
         </Row>
 

@@ -849,6 +849,10 @@ class JupyterNotebook extends EventEmitter
 
         @refresh_button = @element.find("a[href=#refresh]").click(@refresh)
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
     init_dom_events: () =>
         @dom.on('info', @info)
         if not @read_only
@@ -976,14 +980,16 @@ class JupyterNotebook extends EventEmitter
             throw Error("BUG -- syncstring_timestamp -- state must be ready (but it is '#{@state}')")
         return @syncstring._syncstring.last_changed() - 0
 
-    show: (geometry={}) =>
-        @_last_top ?= @editor.editor_top_position()
+    show: (geometry) =>
+        if not geometry?
+            geometry = @_last_show_geometry
+        else
+            @_last_show_geometry = geometry
         {top, left, width, height} = defaults geometry,
             left   : undefined  # not implemented
-            top    : @_last_top
+            top    : @editor.editor_top_position()
             width  : $(window).width()
             height : undefined  # not implemented
-        @_last_top = top
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')

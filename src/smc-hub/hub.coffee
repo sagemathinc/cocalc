@@ -191,7 +191,7 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
-    touch: (opts={}) =>  # all options are optional
+    touch: (opts={}) =>
         #winston.debug("touch('#{opts.project_id}', '#{opts.path}')")
         if not @account_id  # not logged in
             opts.cb?('not logged in')
