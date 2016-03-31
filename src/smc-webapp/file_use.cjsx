@@ -290,7 +290,7 @@ open_file_use_entry = (info, redux) ->
     if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    redux.getActions('file_use').mark(info.id, 'read')
+    redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.
@@ -423,7 +423,7 @@ FileUseViewer = rclass
 
     render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read')}>
+            onClick={=>@props.redux.getActions('file_use').mark_all('read'); hide_notification_list()}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 
