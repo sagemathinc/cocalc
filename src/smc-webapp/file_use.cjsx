@@ -112,24 +112,6 @@ class FileUseActions extends Actions
             err = misc.to_json(err)
         @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
 
-    # Mark a record (or array of them) x with the given action happening now for this user.
-    # INPUT:
-    #    - x: uuid or array of uuid's of file_use records
-    #    - action: 'read', 'seen', 'edit', 'chat'
-    mark: (x, action) =>
-        if not misc.is_array(x)
-            x = [x]
-        table = @redux.getTable('file_use')
-        account_id = @redux.getStore('account').get_account_id()
-        u = {"#{account_id}":{"#{action}":new Date()}}
-        f = (id, cb) =>
-            table.set {id:id, users:u}, (err)=>
-                if err then err += "(id=#{id}) #{err}"
-                cb(err)
-        async.map x, f, (err) =>
-            if err
-                @record_error("error marking record #{action} -- #{err}")
-
     mark_all: (action) =>
         if action == 'read'
             v = @redux.getStore('file_use').get_all_unread()
@@ -137,7 +119,9 @@ class FileUseActions extends Actions
             v = @redux.getStore('file_use').get_all_unseen()
         else
             @record_error("mark_all: unknown action '#{action}'")
-        @mark((x.id for x in v), action)
+            return
+        for x in v
+            @mark_file(x.project_id, x.path, action)
 
     mark_file: (project_id, path, action, ttl=120) =>
         path = misc.original_path(path)
