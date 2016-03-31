@@ -390,7 +390,7 @@ NoFiles = rclass
                     # Only one folder
                     text = "Creates a folder named #{@props.file_search}"
             else
-                text = "Creates #{@full_path_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
+                text = "#{@full_path_text().slice(last_folder_index + 1)} will be created under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
             <Alert style={marginTop: '10px'} bsStyle='info'>
                 {text}
             </Alert>
