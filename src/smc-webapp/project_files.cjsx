@@ -371,7 +371,7 @@ NoFiles = rclass
 
     render_create_button : ->
         <Button
-            style   = {fontSize:'40px', color:'#888', maxWidth:'100%'}
+            style   = {fontSize:'40px', color:'#888', maxWidth:'100%', textAlign:'left'}
             onClick = {=>@handle_click()} >
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
@@ -379,13 +379,18 @@ NoFiles = rclass
     # TODO: Make better help text
     render_help_text : ->
         last_folder_index = @props.file_search?.lastIndexOf('/')
-        if @props.file_search?.length > 0 and last_folder_index > 1
-            if @props.file_search.indexOf('/') == last_folder_index
-                text = "This will create a folder named #{@props.file_search}"
-            else if last_folder_index == @props.file_search.length - 1
-                text = "This will create the nested folder structure #{@props.file_search}"
+        # Non-empty search and there is a file divisor ('/')
+        if @props.file_search?.length > 0 and last_folder_index > 0
+            # Ends with a '/' ie. only folders
+            if last_folder_index == @props.file_search.length - 1
+                if last_folder_index isnt @props.file_search.indexOf('/')
+                    # More than one sub folder
+                    text = "Path #{@props.file_search} will be ensured to exist."
+                else
+                    # Only one folder
+                    text = "Creates a folder named #{@props.file_search}"
             else
-                text = "This will create #{@full_path_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
+                text = "Creates #{@full_path_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
             <Alert style={marginTop: '10px'} bsStyle='info'>
                 {text}
             </Alert>
@@ -1348,9 +1353,12 @@ ProjectFilesSearch = rclass
         file_search : ''
 
     render_help_info : ->
-        if @props.file_search?.length > 0 and @props.file_search?.lastIndexOf('/') < 1
+        if @props.file_search?.length > 0 and @props.files_displayed
+            firstFolderPosition = @props.file_search.indexOf('/')
             if @props.file_search == '/'
-                text = "Only showing folders"
+                text = "Showing all folders in this directory"
+            else if firstFolderPosition == @props.file_search.length - 1
+                text = "Showing folders matching #{@props.file_search.slice(0, @props.file_search.length - 1)}"
             else
                 text = "Showing files matching #{@props.file_search}"
             <Alert style={wordWrap:'break-word'} bsStyle='info'>
