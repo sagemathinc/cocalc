@@ -1492,7 +1492,7 @@ class RethinkDB
         async.parallel([
             (cb) =>
                 # touch accounts table
-                @_touch_table('accounts', opts.account_id, cb)
+                @_touch_account(opts.account_id, cb)
             (cb) =>
                 if not opts.project_id?
                     cb(); return
