@@ -85,6 +85,7 @@ class exports.HistoryEditor extends FileEditor
         if @ext == 'ipynb'
             @view_doc.once 'ready', =>
                 @view_doc.element.find(".smc-jupyter-notebook-buttons").hide()
+                @show()
                 cb()
             @view_doc.once('failed', => cb('failed'))
         else
@@ -218,6 +219,10 @@ class exports.HistoryEditor extends FileEditor
     show: () =>
         if not @is_active() or not @element? or not @view_doc?
             return
+        top = @editor.editor_top_position()
+        @element.css('top', top)
+        if top == 0
+            @element.css('position':'fixed', 'width':'100%')
         @element.show()
         x = @element.find('.salvus-editor-history-slider')
         @view_doc.show(top:x.offset().top + x.height() + 15)
