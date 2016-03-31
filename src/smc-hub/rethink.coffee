@@ -3813,7 +3813,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3847,7 +3847,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3981,8 +3981,8 @@ class RethinkDB
                         process.nextTick(f)
 
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
-                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false, squash:.5).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")
