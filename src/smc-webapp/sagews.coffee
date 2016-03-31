@@ -2109,7 +2109,6 @@ class ExecutionQueue
         x.cell.remove_cell_flag(FLAGS.waiting)
         @_exec(x)
 
-
 class SynchronizedWorksheetCell
     constructor: (@doc, line) ->
         # Set an id; this is useful to keep track of this cell for this client only;
@@ -2351,6 +2350,10 @@ class SynchronizedWorksheetCell
             n = input.find().from.line
             @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_input")
         if opts.toggle_output
+            flags = @get_cell_flags()
+            if FLAGS.hide_input in flags and not (FLAGS.hide_output in flags)
+                # input is currently hidden and output is visible; don't hide it since then everything hidden, which is confusing
+                return
             if FLAGS.hide_output in @get_cell_flags()
                 # output is currently hidden
                 @remove_cell_flag(FLAGS.hide_output)
@@ -2360,6 +2363,9 @@ class SynchronizedWorksheetCell
             n = input.find().from.line
             @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_output")
         if opts.delete_output
+            if FLAGS.hide_input in @get_cell_flags()
+                # input is currently hidden -- so we do NOT delete output (this confuses people too much)
+                return
             @set_output([])
             # also show it if hidden (since nothing there)
             if FLAGS.hide_output in @get_cell_flags()

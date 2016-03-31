@@ -333,9 +333,11 @@ class Project(object):
             if not self._dev:
                 os.chown(self.project_path, self.uid, self.uid)
 
-    def remove_old_sagemathcloud_path(self):
-        # temporary -- once we go through and delete all these from all live projects, don't have to have this.
-        p = os.path.join(self.project_path, '.sagemathcloud')
+    def remove_snapshots_path(self):
+        """
+        Remove the ~/.snapshots path
+        """
+        p = os.path.join(self.project_path, '.snapshots')
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
 
@@ -371,10 +373,9 @@ class Project(object):
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
     def start(self, cores, memory, cpu_shares, base_url):
-        self.remove_old_sagemathcloud_path()  # temporary
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
-
+        self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
 
@@ -418,6 +419,7 @@ class Project(object):
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
+        self.remove_snapshots_path()
 
     def restart(self, cores, memory, cpu_shares, base_url):
         log = self._log("restart")
