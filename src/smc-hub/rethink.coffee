@@ -1446,6 +1446,29 @@ class RethinkDB
                 @_account(opts).update(misc.map_without_undefined(opts.set)).run(cb)
         ], opts.cb)
 
+    _touch_account: (account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_account_lock ?= {}
+        if @_touch_account_lock[account_id]?
+            cb()
+        else
+            @_touch_account_lock[account_id] = true
+            now = new Date()
+            @table('accounts').get(account_id).update(last_active:now).run(cb)
+            setTimeout((()=>delete @_touch_account_lock[key]), 60*1000)
+
+    _touch_project: (project_id, account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_project_lock ?= {}
+        key = "#{project_id}-#{account_id}"
+        if @_touch_project_lock[key]?
+            cb()
+        else
+            @_touch_project_lock[key] = true
+            now = new Date()
+            @table('projects').get(project_id).update(last_edited:now, last_active:{"#{account_id}":now}).run(cb)
+            setTimeout((()=>delete @_touch_project_lock[key]), 60*1000)
+
     # Indicate activity by a user, possibly on a specific project, and
     # then possibly on a specific path in that project.
     touch: (opts) =>
@@ -1469,14 +1492,14 @@ class RethinkDB
         async.parallel([
             (cb) =>
                 # touch accounts table
-                @table('accounts').get(opts.account_id).update(last_active:now).run(cb)
+                @_touch_table('accounts', opts.account_id, cb)
             (cb) =>
                 if not opts.project_id?
                     cb(); return
                 # touch projects table
-                @table('projects').get(opts.project_id).update(last_edited:now, last_active:{"#{opts.account_id}":now}).run(cb)
+                @_touch_project(opts.project_id, opts.account_id, cb)
             (cb) =>
-                if not opts.path?
+                if not opts.path? or not opts.project_id?
                     cb(); return
                 @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
