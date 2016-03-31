@@ -344,11 +344,6 @@ NoFiles = rclass
 
     displayName : 'ProjectFiles-NoFiles'
 
-    # Determines whether or not an extension is given
-    ext_defaulter : ->
-        if @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
-          "sagews"
-
     # Go to the new file tab if there is no file search
     handle_click : ->
         if not @props.file_search?.length > 0
@@ -358,23 +353,26 @@ NoFiles = rclass
         else
             @props.create_file()
 
-    filename_text : ->
-        ext = @ext_defaulter()
+    # Returns the full file_search text in addition to the default extension if applicable
+    full_path_text : ->
+        if @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
+          ext = "sagews"
         if ext and @props.file_search.slice(-1) isnt '/'
             "#{@props.file_search}.#{ext}"
         else
             "#{@props.file_search}"
 
+    # Text for the large create button
     button_text : ->
         if not @props.file_search?.length > 0
             "Create or upload files..."
         else
-            "Create #{@filename_text()}"
+            "Create #{@full_path_text()}"
 
-    render_new_button : ->
+    render_create_button : ->
         <Button
-            style   = {fontSize:'40px', color:'#888'}
-            onClick = {=>@handle_click()}>
+            style   = {fontSize:'40px', color:'#888', maxWidth:'100%'}
+            onClick = {=>@handle_click()} >
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
 
@@ -382,14 +380,13 @@ NoFiles = rclass
     render_help_text : ->
         last_folder_index = @props.file_search?.lastIndexOf('/')
         if @props.file_search?.length > 0 and last_folder_index > 1
-            if last_folder_index == @props.file_search.length - 1
-                text = "Will create the nested folder structure #{@props.file_search}"
+            if @props.file_search.indexOf('/') == last_folder_index
+                text = "This will create a folder named #{@props.file_search}"
+            else if last_folder_index == @props.file_search.length - 1
+                text = "This will create the nested folder structure #{@props.file_search}"
             else
-                text = "Will create #{@filename_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
-            style =
-                wordWrap:'break-word'
-                marginTop:'10px'
-            <Alert style={style} bsStyle='info'>
+                text = "This will create #{@full_path_text().slice(last_folder_index + 1)} under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
+            <Alert style={marginTop: '10px'} bsStyle='info'>
                 {text}
             </Alert>
 
@@ -400,7 +397,7 @@ NoFiles = rclass
         </div>
 
     render : ->
-        <Row style={textAlign:'left', color:'#888', marginTop:'20px'} >
+        <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
             <Col sm=2>
             </Col>
             <Col sm=8>
@@ -408,7 +405,7 @@ NoFiles = rclass
                     No Files Found
                 </span>
                 <hr/>
-                {@render_new_button() if not @props.public_view}
+                {@render_create_button() if not @props.public_view}
                 {@render_help_text()}
                 {@render_file_type_selection() if @props.file_search?.length > 0}
             </Col>
@@ -1507,6 +1504,12 @@ ProjectFiles = (name) -> rclass
     create_folder : ->
         @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
         @props.actions.setState(file_search : '', page_number: 0)
+
+    generic_create : (ext) ->
+        if @props.file_search?[@props.file_search.length - 1] == '/'
+            @create_folder()
+        else
+            @create_file(ext)
 
     render_paging_buttons : (num_pages) ->
         if num_pages > 1
