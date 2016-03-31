@@ -371,7 +371,7 @@ NoFiles = rclass
 
     render_create_button : ->
         <Button
-            style   = {fontSize:'40px', color:'#888', maxWidth:'100%', textAlign:'left'}
+            style   = {fontSize:'40px', color:'#888', maxWidth:'100%'}
             onClick = {=>@handle_click()} >
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
@@ -391,14 +391,14 @@ NoFiles = rclass
             if last_folder_index isnt @props.file_search.indexOf('/')
                 # More than one sub folder
                 <div>
-                    Folder path <span style={fontWeight:'bold'}>
+                    <span style={fontWeight:'bold'}>
                             {@props.file_search}
-                        </span> will be created if non-existant
+                        </span> will be created as a <span style={fontWeight:'bold'}>folder path</span> if non-existant
                 </div>
             else
                 # Only one folder
                 <div>
-                    Creates a folder named <span style={fontWeight:'bold'}>
+                    Creates a <span style={fontWeight:'bold'}>folder</span> named <span style={fontWeight:'bold'}>
                         {@props.file_search}
                     </span>
                 </div>
