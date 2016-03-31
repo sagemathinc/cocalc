@@ -490,7 +490,7 @@ class SyncDoc extends EventEmitter
             else
                 action = 'edit'
             file_use = () =>
-                @_client.mark_file(project_id:@_project_id, path:@_path, action:action)
+                @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
 
             @on('user_change', underscore.debounce(file_use, opts.file_use_interval, true))
 
