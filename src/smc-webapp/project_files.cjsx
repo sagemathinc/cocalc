@@ -377,23 +377,39 @@ NoFiles = rclass
         </Button>
 
     # TODO: Make better help text
-    render_help_text : ->
+    render_help_alert : ->
         last_folder_index = @props.file_search?.lastIndexOf('/')
         # Non-empty search and there is a file divisor ('/')
         if @props.file_search?.length > 0 and last_folder_index > 0
-            # Ends with a '/' ie. only folders
-            if last_folder_index == @props.file_search.length - 1
-                if last_folder_index isnt @props.file_search.indexOf('/')
-                    # More than one sub folder
-                    text = "Path #{@props.file_search} will be ensured to exist."
-                else
-                    # Only one folder
-                    text = "Creates a folder named #{@props.file_search}"
-            else
-                text = "#{@full_path_text().slice(last_folder_index + 1)} will be created under the folder path #{@props.file_search.slice(0, last_folder_index + 1)}"
             <Alert style={marginTop: '10px'} bsStyle='info'>
-                {text}
+                {@render_help_text(last_folder_index)}
             </Alert>
+
+    render_help_text : (last_folder_index) ->
+        # Ends with a '/' ie. only folders
+        if last_folder_index == @props.file_search.length - 1
+            if last_folder_index isnt @props.file_search.indexOf('/')
+                # More than one sub folder
+                <div>
+                    Folder path <span style={fontWeight:'bold'}>
+                            {@props.file_search}
+                        </span> will be created if non-existant
+                </div>
+            else
+                # Only one folder
+                <div>
+                    Creates a folder named <span style={fontWeight:'bold'}>
+                        {@props.file_search}
+                    </span>
+                </div>
+        else
+            <div>
+                <span style={fontWeight:'bold'}>
+                    {@full_path_text().slice(last_folder_index + 1)}
+                </span> will be created under the folder path <span style={fontWeight:'bold'}>
+                    {@props.file_search.slice(0, last_folder_index + 1)}
+                </span>
+            </div>
 
     render_file_type_selection : ->
         <div>
@@ -411,7 +427,7 @@ NoFiles = rclass
                 </span>
                 <hr/>
                 {@render_create_button() if not @props.public_view}
-                {@render_help_text()}
+                {@render_help_alert()}
                 {@render_file_type_selection() if @props.file_search?.length > 0}
             </Col>
             <Col sm=2>
