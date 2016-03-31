@@ -373,10 +373,9 @@ class Project(object):
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
     def start(self, cores, memory, cpu_shares, base_url):
-        self.remove_snapshots_path()
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
-
+        self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
 
@@ -420,6 +419,7 @@ class Project(object):
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
+        self.remove_snapshots_path()
 
     def restart(self, cores, memory, cpu_shares, base_url):
         log = self._log("restart")
