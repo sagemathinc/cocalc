@@ -82,6 +82,9 @@ table is set on server version of table, so reconnecting user only sends its cha
 hasn't changed anything in that same record.
 ###
 
+# if true, will log to the console a huge amount of info about every get/set
+DEBUG = true
+
 {EventEmitter} = require('events')
 
 immutable = require('immutable')
@@ -574,6 +577,8 @@ class SyncTable extends EventEmitter
         if not @_value_server?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though set not yet defined (ignoring)")
             return
+        if DEBUG
+            console.log("_update_change('#{@_table}'): #{misc.to_json(change)}")
         @emit('before-change')
         changed_keys = []
         conflict = false
@@ -667,7 +672,12 @@ class SyncTable extends EventEmitter
             merge = 'deep'
 
         if not immutable.Map.isMap(changes)
-            cb?("type error -- changes must be an immutable.js Map or JS map"); return
+            cb?("type error -- changes must be an immutable.js Map or JS map")
+            return
+
+        if DEBUG
+            console.log("set('#{@_table}'): #{misc.to_json(changes.toJS())}")
+
         # Ensure that each key is allowed to be set.
         if not @_client_query.set?
             cb?("users may not set #{@_table}")
