@@ -83,7 +83,10 @@ hasn't changed anything in that same record.
 ###
 
 # if true, will log to the console a huge amount of info about every get/set
-DEBUG = true
+DEBUG = false
+
+exports.set_debug = (x) ->
+    DEBUG = !!x
 
 {EventEmitter} = require('events')
 
