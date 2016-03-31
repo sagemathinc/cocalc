@@ -492,7 +492,7 @@ class SyncDoc extends EventEmitter
             file_use = () =>
                 @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
 
-            @on('user_change', underscore.debounce(file_use, opts.file_use_interval, true))
+            @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
 
         # Initialize throttled functions
         set_cursor_locs = (locs) =>
