@@ -1630,7 +1630,13 @@ class Client extends EventEmitter
         dbg = @dbg("mesg_create_support_ticket")
         dbg("#{misc.to_json(mesg)}")
         m = underscore.omit(mesg, 'id', 'event')
-        support.create_ticket(m)
+        support.create_ticket m, (err, url) =>
+            dbg("callback being called with #{err} and url: #{url}")
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(
+                    message.support_ticket_url(id:mesg.id, url: url))
 
     ######################################################
     #Stripe-integration billing code

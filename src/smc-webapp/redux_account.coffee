@@ -158,6 +158,9 @@ class AccountStore extends Store
     get_username: =>
         return misc.make_valid_name(@get_fullname())
 
+    get_email_address: =>
+        return @get('email_address')
+
     get_confirm_close: =>
         return @getIn(['other_settings', 'confirm_close'])
 

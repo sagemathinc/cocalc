@@ -11,6 +11,9 @@ https://developer.zendesk.com/rest_api/docs/core/introduction
 https://github.com/blakmatrix/node-zendesk
 ###
 
+# if true, no real tickets are created
+DEBUG   = true
+
 async   = require 'async'
 fs      = require 'fs'
 misc    = require 'smc-util/misc'
@@ -95,7 +98,7 @@ class exports.Support
 
     # mapping of incoming data from SMC to the API of Zendesk
     # https://developer.zendesk.com/rest_api/docs/core/tickets#create-ticket
-    create_ticket: (opts={}) ->
+    create_ticket: (opts, cb) ->
         opts = defaults opts,
             email_address : required  # if there is no email_address in the account, there can't be a ticket!
             username      : undefined
@@ -104,11 +107,12 @@ class exports.Support
             tags          : undefined # e.g. [ 'member' ]
             account_id    : undefined
             project_id    : undefined
-            file          : undefined # path to file (together with project_id → full URL)
+            filepath      : undefined # path to file (together with project_id → full URL)
             info          : undefined # additional data dict, like browser/OS
-            cb            : undefined # will be called as cb(err|null, url_to_ticket)
+        @cb = cb
+
         dbg = @dbg("create_ticket")
-        dbg("opts = #{misc.to_json(opts)}")
+        # dbg("opts = #{misc.to_json(opts)}")
 
         if not @_zd?
             err = "no zendesk instance available -- abort"
@@ -129,20 +133,22 @@ class exports.Support
                     subscription : null
                     type         : null # student, member, ...
 
-        # below the body message, add a link to the project + file
+        # below the body message, add a link to the project + filepath
         # TODO fix hardcoded URL
         if opts.project_id?
-            file = opts.file ? ''
-            path = "#{opts.project_id}/#{file}"
-            body = opts.body + "<br/><br/><a href='https://cloud.sagemath.com/projects/#{path}' target='_blank'>project #{path}</a>"
+            filepath = opts.filepath ? ''
+            filepath = "#{opts.project_id}/#{filepath}"
+            body = opts.body + "\n\nhttps://cloud.sagemath.com/projects/#{filepath}"
         else
-            body = opts.body + "<br/><br/>No project_id provided."
+            body = opts.body + "\n\nNo project_id provided."
+
+        # dbg("opts.filepath: #{opts.filepath}  body: #{body}")
 
         # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
         custom_fields =
             account_id: opts.account_id
             project_id: opts.project_id
-            file      : opts.file
+            filepath  : opts.filepath
 
         if opts.info?
             custom_fields.info = JSON.stringify(opts.info)
@@ -153,7 +159,7 @@ class exports.Support
                 subject: opts.subject
                 comment:
                     body: body
-                tags : tags
+                tags : opts.tags ? []
                 type: "problem"
                 custom_fields: custom_fields
 
@@ -162,31 +168,43 @@ class exports.Support
         async.waterfall([
             # 1. get or create user ID in zendesk-land
             (cb) =>
-                # workaround, until https://github.com/blakmatrix/node-zendesk/pull/131/files is in
-                @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
-                    if err
-                        dbg("create_or_update user error: #{misc.to_json(err)}")
-                        cb(err); return
-                    # result = { "id": int, "url": "https://…json", "name": …, "email": "…", "created_at": "…", "updated_at": "…", … }
-                    # dbg(JSON.stringify(result, null, 2, true))
-                    cb(null, result.id)
+                if DEBUG
+                    cb(null, 1234567890)
+                else
+                    # workaround, until https://github.com/blakmatrix/node-zendesk/pull/131/files is in
+                    @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
+                        if err
+                            dbg("create_or_update user error: #{misc.to_json(err)}")
+                            cb(err); return
+                        # result = { "id": int, "url": "https://…json", "name": …, "email": "…", "created_at": "…", "updated_at": "…", … }
+                        # dbg(JSON.stringify(result, null, 2, true))
+                        cb(null, result.id)
 
             # 2. creating ticket with known zendesk user ID (an integer number)
             (requester_id, cb) =>
-                dbg("create ticket #{misc.to_json(ticket)} with requester_id: #{user_id}")
+                dbg("create ticket #{misc.to_json(ticket)} with requester_id: #{requester_id}")
                 ticket.ticket.requester_id = requester_id
-                @_zd.tickets.create ticket, (err, req, result) =>
-                    if (err)
-                        cb(err); return
-                    # dbg(JSON.stringify(result, null, 2, true))
-                    cb(null, result.id)
+                if DEBUG
+                    cb(null, Math.floor(Math.random() * 1e6 + 999e7))
+                else
+                    @_zd.tickets.create ticket, (err, req, result) =>
+                        if (err)
+                            cb(err); return
+                        # dbg(JSON.stringify(result, null, 2, true))
+                        cb(null, result.id)
+
+            # 3. store ticket data, timestamp, and zendesk ticket number in our own DB
+            (ticket_id, cb) =>
+                # TODO: NYI
+                cb(null, ticket_id)
 
         ], (err, ticket_id) =>
+            # dbg("done! ticket_id: #{ticket_id}, err: #{err}, and callback: #{@cb?}")
             if err
-                opts.cb?(err)
+                @cb?(err)
             else
                 url = "https://sagemathcloud.zendesk.com/agent/tickets/#{ticket_id}"
-                opts.cb?(null, url)
+                @cb?(null, url)
         )
 
 
