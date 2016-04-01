@@ -1939,7 +1939,10 @@ class Client extends EventEmitter
                             tax_rate = rate
                             dbg("tax_rate = #{tax_rate}")
                             if tax_rate
-                                options.tax_percent = tax_rate*100
+                                # CRITICAL: if we don't just multiply by 100, since then sometimes
+                                # stripe comes back with an error like this
+                                #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
+                                options.tax_percent = Math.round(tax_rate*100*100)/100
                             cb(err)
                 (cb) =>
                     dbg("add customer subscription to stripe")
