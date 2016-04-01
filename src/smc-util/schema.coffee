@@ -451,7 +451,13 @@ schema.file_use =
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # hook to note that project is being used (CRITICAL: do not pass path
                 # into db.touch since that would cause another write to the file_use table!)
-                db.touch(project_id: obj.project_id, account_id:account_id)
+                # CRITICAL: Only do this if what edit or chat for this user is very recent.
+                # Otherwise we touch the project just for seeing notifications or opening
+                # the file, which is confusing and wastes a lot of resources.
+                x = obj.users?[account_id]
+                recent = misc.minutes_ago(3)
+                if x.edit >= recent or x.chat >= recent
+                    db.touch(project_id:obj.project_id, account_id:account_id)
                 cb?()
 
 schema.hub_servers =
