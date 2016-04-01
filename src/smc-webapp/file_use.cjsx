@@ -121,22 +121,29 @@ class FileUseActions extends Actions
             @record_error("mark_all: unknown action '#{action}'")
             return
         for x in v
-            @mark_file(x.project_id, x.path, action)
+            @mark_file(x.project_id, x.path, action, 0, false)
 
-    mark_file: (project_id, path, action, ttl=120) =>
-        path = misc.original_path(path)
+    mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
+        if fix_path
+            path = misc.original_path(path)
         #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
             return
         if ttl
+            if ttl == 'default'
+                if action == 'chat'
+                    ttl = 10*1000
+                else
+                    ttl = 120*1000
+            #console.log('ttl', ttl)
             key = "#{project_id}-#{path}-#{action}"
             @_mark_file_lock ?= {}
             if @_mark_file_lock[key]
                 return
             @_mark_file_lock[key] = true
-            setTimeout((()=>delete @_mark_file_lock[key]), ttl*1000)
+            setTimeout((()=>delete @_mark_file_lock[key]), ttl)
 
         table = @redux.getTable('file_use')
         now   = new Date()

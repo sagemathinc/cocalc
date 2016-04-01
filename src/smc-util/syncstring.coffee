@@ -480,11 +480,6 @@ class SyncDoc extends EventEmitter
 
         if opts.file_use_interval and @_client.is_user()
             is_chat = misc.filename_extension(@_path) == 'sage-chat'
-            if opts.file_use_interval == 'default'
-                if is_chat
-                    opts.file_use_interval = 15000
-                else
-                    opts.file_use_interval = 120000
             if is_chat
                 action = 'chat'
             else
