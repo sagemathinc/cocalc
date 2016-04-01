@@ -1417,17 +1417,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             when 'output'
                                 cell.set_cell_flag(FLAGS.hide_output)
 
-        if mesg.auto?
-            if opts.mark?
-                line = opts.mark.find()?.from.line
-                if line?
-                    cell = @cell(line)
-                    if cell?
-                        if mesg.auto
-                            cell.set_cell_flag(FLAGS.auto)
-                        else
-                            cell.remove_cell_flag(FLAGS.auto)
-
         # NOTE: Right now the "state object" is a just a list of messages in the output of a cell. It's viewed as something that should get rendered in order, with no dependence between them. Instead alll thoose messages should get fed into one single state object, which then gets rendered each time it changes. React makes that approach easy and efficient. Without react (or something similar) it is basically impossible.  When sage worksheets are rewritten using react, this will change.
         if mesg.clear
             line = opts.mark.find()?.from.line
@@ -2120,7 +2109,6 @@ class ExecutionQueue
         x.cell.remove_cell_flag(FLAGS.waiting)
         @_exec(x)
 
-
 class SynchronizedWorksheetCell
     constructor: (@doc, line) ->
         # Set an id; this is useful to keep track of this cell for this client only;
@@ -2362,6 +2350,10 @@ class SynchronizedWorksheetCell
             n = input.find().from.line
             @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_input")
         if opts.toggle_output
+            flags = @get_cell_flags()
+            if FLAGS.hide_input in flags and not (FLAGS.hide_output in flags)
+                # input is currently hidden and output is visible; don't hide it since then everything hidden, which is confusing
+                return
             if FLAGS.hide_output in @get_cell_flags()
                 # output is currently hidden
                 @remove_cell_flag(FLAGS.hide_output)
@@ -2371,6 +2363,9 @@ class SynchronizedWorksheetCell
             n = input.find().from.line
             @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_output")
         if opts.delete_output
+            if FLAGS.hide_input in @get_cell_flags()
+                # input is currently hidden -- so we do NOT delete output (this confuses people too much)
+                return
             @set_output([])
             # also show it if hidden (since nothing there)
             if FLAGS.hide_output in @get_cell_flags()

@@ -189,7 +189,7 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
-    touch: (opts={}) =>  # all options are optional
+    touch: (opts={}) =>
         #winston.debug("touch('#{opts.project_id}', '#{opts.path}')")
         if not @account_id  # not logged in
             opts.cb?('not logged in')
@@ -1937,7 +1937,10 @@ class Client extends EventEmitter
                             tax_rate = rate
                             dbg("tax_rate = #{tax_rate}")
                             if tax_rate
-                                options.tax_percent = tax_rate*100
+                                # CRITICAL: if we don't just multiply by 100, since then sometimes
+                                # stripe comes back with an error like this
+                                #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
+                                options.tax_percent = Math.round(tax_rate*100*100)/100
                             cb(err)
                 (cb) =>
                     dbg("add customer subscription to stripe")

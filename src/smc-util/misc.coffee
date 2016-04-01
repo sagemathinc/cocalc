@@ -487,19 +487,20 @@ exports.meta_file = (path, ext) ->
 
 # Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
 # For example:
-#    .example.ipynb.jupyter-sync --> example.ipynb
-#    tmp/.example.ipynb.jupyter-sync --> tmp/example.ipynb
+#    .example.ipynb.sage-jupyter --> example.ipynb
+#    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
 #    .foo.txt.sage-chat --> foo.txt
 #    tmp/.foo.txt.sage-chat --> tmp/foo.txt
 
 exports.original_path = (path) ->
     s = exports.path_split(path)
+    if s.tail[0] != '.' or s.tail.indexOf('.sage-') == -1
+        return path
     ext = exports.filename_extension(s.tail)
     x = s.tail.slice((if s.tail[0] == '.' then 1 else 0),   s.tail.length - (ext.length+1))
     if s.head != ''
         x = s.head + '/' + x
     return x
-
 
 
 # "foobar" --> "foo..."

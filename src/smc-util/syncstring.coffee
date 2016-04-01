@@ -36,6 +36,8 @@ async     = require('async')
 misc      = require('./misc')
 {sagews}  = require('./sagews')
 
+schema    = require('./schema')
+
 {Evaluator} = require('./syncstring_evaluator')
 
 {diff_match_patch} = require('./dmp')
@@ -458,7 +460,7 @@ class SyncDoc extends EventEmitter
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
         if not opts.string_id?
-            opts.string_id = require('smc-util/schema').client_db.sha1(opts.project_id, opts.path)
+            opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
@@ -477,29 +479,15 @@ class SyncDoc extends EventEmitter
                 @emit('error', err)
 
         if opts.file_use_interval and @_client.is_user()
-            is_chat    = misc.filename_extension(@_path) == 'sage-chat'
-            is_jupyter = misc.filename_extension(@_path) == 'jupyter-sync'
-            if opts.file_use_interval == 'default'
-                if is_chat
-                    opts.file_use_interval = 10000
-                else
-                    opts.file_use_interval = 60000
+            is_chat = misc.filename_extension(@_path) == 'sage-chat'
             if is_chat
-                if misc.path_split(@_path).tail[0] == '.'
-                    # hidden chat file associated with editing of another file
-                    path = misc.original_path(@_path)
-                else
-                    path = @_path
                 action = 'chat'
-            else if is_jupyter  # it is lame to put this here, but easy.
-                path = misc.original_path(@_path)
-                action = 'edit'
             else
-                path = @_path
                 action = 'edit'
             file_use = () =>
-                @_client.mark_file(project_id:@_project_id, path:path, action:action)
-            @on('user_change', underscore.debounce(file_use, opts.file_use_interval, true))
+                @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
+
+            @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
 
         # Initialize throttled functions
         set_cursor_locs = (locs) =>
@@ -1065,7 +1053,7 @@ class SyncDoc extends EventEmitter
         if not x? or not x.last_snapshot? or not x.users?
             # Brand new document
             @_last_snapshot = 0
-            @_snapshot_interval = x.snapshot_interval
+            @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
@@ -1176,17 +1164,20 @@ class SyncDoc extends EventEmitter
                     @_save(cb)
 
     _set_save: (x) =>
-        @_syncstring_table.set(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
+        @_syncstring_table.set?(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
         return
 
     _set_read_only: (read_only) =>
-        @_syncstring_table.set(@_syncstring_table.get_one().set('read_only', read_only))
+        @_syncstring_table.set?(@_syncstring_table.get_one()?.set('read_only', read_only))
         return
 
     get_read_only: () =>
         @_syncstring_table?.get_one()?.get('read_only')
 
     wait_until_read_only_known: (cb) =>
+        if not @_syncstring_table?
+            cb("@_syncstring_table must be defined")
+            return
         @_syncstring_table.wait
             until : (t) => t.get_one()?.get('read_only')?
             cb    : cb
@@ -1198,7 +1189,7 @@ class SyncDoc extends EventEmitter
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
-        return @_syncstring_table.get_one()?.getIn(['save', 'hash'])
+        return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
 
     # Initiates a save of file to disk, then if cb is set, waits for the state to
     # change to done before calling cb.
@@ -1206,6 +1197,9 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("save_to_disk(cb)")
         #dbg("initiating the save")
         @_save_to_disk()
+        if not @_syncstring_table?
+            cb("@_syncstring_table must be defined")
+            return
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             @_syncstring_table.wait
@@ -1304,21 +1298,21 @@ class StringDocument
 class exports.SyncString extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
-            id         : undefined
-            client     : required
-            project_id : undefined
-            path       : undefined
-            save_interval : undefined
+            id                : undefined
+            client            : required
+            project_id        : undefined
+            path              : undefined
+            save_interval     : undefined
             file_use_interval : undefined
-            default    : ''
+            default           : ''
         super
-            string_id  : opts.id
-            client     : opts.client
-            project_id : opts.project_id
-            path       : opts.path
+            string_id         : opts.id
+            client            : opts.client
+            project_id        : opts.project_id
+            path              : opts.path
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
-            doc        : new StringDocument(opts.default)
+            doc               : new StringDocument(opts.default)
 
 
     set: (value) ->

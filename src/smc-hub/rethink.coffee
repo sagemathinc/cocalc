@@ -24,6 +24,9 @@ async      = require('async')
 underscore = require('underscore')
 moment     = require('moment')
 uuid       = require('node-uuid')
+
+json_stable_stringify = require('json-stable-stringify')
+
 winston    = require('winston')
 winston.remove(winston.transports.Console)
 
@@ -508,6 +511,40 @@ class RethinkDB
                 opts.cb?(err)
         )
 
+    ###
+    Sometimes RethinkDB tables waste huge amounts of disk space.  A trick that Daniel Mewes suggests to
+    fix this is to write and remove a dummy field from all records.  This function implements that idea.
+
+    db._error_thresh=1e6; db.recompact_table(table:'blobs', cb:done())
+    ###
+    recompact_table: (opts) =>
+        opts = defaults opts,
+            table : required
+            limit : undefined
+            cb    : undefined
+        dbg = @dbg("recompact_table(table='#{opts.table}', limit=#{opts.limit})");
+        dbg()
+        async.series([
+            (cb) =>
+                dbg('writing dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: null}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+            (cb) =>
+                dbg('deleting dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: db.r.literal()}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+        ], (err) =>
+            dbg('finished')
+            opts.cb?(err)
+        )
 
     dbg: (f) =>
         if @_debug
@@ -1409,6 +1446,29 @@ class RethinkDB
                 @_account(opts).update(misc.map_without_undefined(opts.set)).run(cb)
         ], opts.cb)
 
+    _touch_account: (account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_account_lock ?= {}
+        if @_touch_account_lock[account_id]?
+            cb()
+        else
+            @_touch_account_lock[account_id] = true
+            now = new Date()
+            @table('accounts').get(account_id).update(last_active:now).run(cb)
+            setTimeout((()=>delete @_touch_account_lock[account_id]), 120*1000)
+
+    _touch_project: (project_id, account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_project_lock ?= {}
+        key = "#{project_id}-#{account_id}"
+        if @_touch_project_lock[key]?
+            cb()
+        else
+            @_touch_project_lock[key] = true
+            now = new Date()
+            @table('projects').get(project_id).update(last_edited:now, last_active:{"#{account_id}":now}).run(cb)
+            setTimeout((()=>delete @_touch_project_lock[key]), 120*1000)
+
     # Indicate activity by a user, possibly on a specific project, and
     # then possibly on a specific path in that project.
     touch: (opts) =>
@@ -1417,21 +1477,31 @@ class RethinkDB
             project_id : undefined
             path       : undefined
             action     : 'edit'
+            ttl_s      : 50        # min activity interval; calling this function with same input again within this interval is ignored
             cb         : undefined
+        if opts.ttl_s
+            @_touch_lock ?= {}
+            key = "#{opts.account_id}-#{opts.project_id}-#{opts.path}-#{opts.action}"
+            if @_touch_lock[key]
+                opts.cb?()
+                return
+            @_touch_lock[key] = true
+            setTimeout((()=>delete @_touch_lock[key]), opts.ttl_s*1000)
+
+        now = new Date()
         async.parallel([
             (cb) =>
                 # touch accounts table
-                @table('accounts').get(opts.account_id).update(last_active:new Date()).run(cb)
+                @_touch_account(opts.account_id, cb)
             (cb) =>
                 if not opts.project_id?
                     cb(); return
                 # touch projects table
-                @table('projects').get(opts.project_id).update(last_active:{"#{opts.account_id}":new Date()}).run(cb)
+                @_touch_project(opts.project_id, opts.account_id, cb)
             (cb) =>
                 if not opts.path? or not opts.project_id?
                     cb(); return
-                # touch file_use table
-                @record_file_use(project_id:opts.project_id, path:opts.path, account_id:opts.account_id, action:opts.action, cb:cb)
+                @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
     ###
@@ -2235,7 +2305,6 @@ class RethinkDB
             entry.last_edited = now
         #winston.debug("record_file_use: #{to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
-        @touch_project(project_id: opts.project_id)
 
     get_file_use: (opts) =>
         opts = defaults opts,
@@ -2899,6 +2968,7 @@ class RethinkDB
             options    : []         # used for initial query; **IGNORED** by changefeed!; can use set:true or set:false to force get or set query
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+        dbg = @dbg("user_query(...)")
         if misc.is_array(opts.query)
             if opts.changes and opts.query.length > 1
                 opts.cb("changefeeds only implemented for single table")
@@ -2962,12 +3032,34 @@ class RethinkDB
                 if not opts.account_id? and not opts.project_id?
                     opts.cb("no anonymous set queries")
                     return
+
+                on_success = undefined
+                if SCHEMA[table].unique_writes
+                    # no reason for user to ever write the same thing to this table twice
+                    uniq = @_user_set_query_unique_writes ?= {}
+                    uniq[table] ?= {}
+                    #dbg("uniq = #{misc.to_json(uniq)}")
+                    rep = json_stable_stringify(opts.query)
+                    q = misc_node.sha1(rep)
+                    if uniq[table][q]
+                        dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
+                        uniq[table][q] += 1
+                        opts.cb()
+                        return
+                    else
+                        on_success = () =>
+                            uniq[table][q] = 1
+
                 @user_set_query
                     account_id : opts.account_id
                     project_id : opts.project_id
                     table      : table
                     query      : query
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+                    cb         : (err, x) =>
+                        if not err
+                            on_success?()
+                        opts.cb(err, {"#{table}":x})
+
             else
                 # do a get query
                 if changes and not multi
@@ -3168,6 +3260,7 @@ class RethinkDB
         project_id = opts.project_id
 
         s = SCHEMA[table]
+
         if account_id?
             client_query = s?.user_query
         else
@@ -3720,7 +3813,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3754,7 +3847,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3888,8 +3981,8 @@ class RethinkDB
                         process.nextTick(f)
 
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
-                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false, squash:.5).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")
@@ -3899,8 +3992,7 @@ class RethinkDB
                             else
                                 cb(err)
                         else
-                            if not @_change_feeds?
-                                @_change_feeds = {}
+                            @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
                             @_user_query_stats.changefeed
                                 account_id    : opts.account_id

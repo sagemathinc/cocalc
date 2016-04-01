@@ -412,6 +412,7 @@ schema.file_access_log =
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
+    unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
         id          : true
         project_id  : true
@@ -448,8 +449,15 @@ schema.file_use =
                 project_id  : true
                 path        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
-                # hook to note that project is being used
-                db.touch_project(project_id: obj.project_id)
+                # hook to note that project is being used (CRITICAL: do not pass path
+                # into db.touch since that would cause another write to the file_use table!)
+                # CRITICAL: Only do this if what edit or chat for this user is very recent.
+                # Otherwise we touch the project just for seeing notifications or opening
+                # the file, which is confusing and wastes a lot of resources.
+                x = obj.users?[account_id]
+                recent = misc.minutes_ago(3)
+                if x? and (x.edit >= recent or x.chat >= recent)
+                    db.touch(project_id:obj.project_id, account_id:account_id)
                 cb?()
 
 schema.hub_servers =
