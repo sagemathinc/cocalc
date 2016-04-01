@@ -379,8 +379,12 @@ NoFiles = rclass
     # TODO: Make better help text
     render_help_alert : ->
         last_folder_index = @props.file_search?.lastIndexOf('/')
+        if @props.file_search?.indexOf('\\') != -1
+            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: \ is an illegal character
+            </Alert>
         # Non-empty search and there is a file divisor ('/')
-        if @props.file_search?.length > 0 and last_folder_index > 0
+        else if @props.file_search?.length > 0 and last_folder_index > 0
             <Alert style={marginTop: '10px'} bsStyle='info'>
                 {@render_help_text(last_folder_index)}
             </Alert>
@@ -1356,14 +1360,14 @@ ProjectFilesSearch = rclass
     displayName : 'ProjectFiles-ProjectFilesSearch'
 
     propTypes :
-        file_search   : rtypes.string
-        current_path  : rtypes.string
-        actions       : rtypes.object.isRequired
-        create_file   : rtypes.func.isRequired
-        create_folder : rtypes.func.isRequired
-        selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
-        create_file_alert : rtypes.bool
-        files_displayed: rtypes.bool # True if there are any files displayed
+        file_search        : rtypes.string
+        current_path       : rtypes.string
+        actions            : rtypes.object.isRequired
+        create_file        : rtypes.func.isRequired
+        create_folder      : rtypes.func.isRequired
+        selected_file      : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
+        file_creation_error: rtypes.string
+        files_displayed    : rtypes.bool # True if there are any files displayed
 
     getDefaultProps : ->
         file_search : ''
@@ -1381,11 +1385,14 @@ ProjectFilesSearch = rclass
                 {text}
             </Alert>
 
-    render_create_file_warning : ->
-        if @props.create_file_alert
-            <Alert style={wordWrap:'break-word'} bsStyle='warning'>
-                You must enter file name above to create it
+    render_file_creation_error : ->
+        if @props.file_creation_error
+            <Alert style={wordWrap:'break-word'} bsStyle='warning' onDismiss=@dismiss_alert>
+                {@props.file_creation_error}
             </Alert>
+
+    dismiss_alert : ->
+        @props.actions.setState(file_creation_error : '')
 
     search_submit: ->
         # TODO: Add visual indication that a file is selected at all.
@@ -1412,7 +1419,7 @@ ProjectFilesSearch = rclass
                 on_change     = {@props.actions.set_file_search}
                 on_submit     = {@search_submit}
             />
-            {@render_create_file_warning()}
+            {@render_file_creation_error()}
             {@render_help_info()}
         </span>
 
@@ -1441,9 +1448,9 @@ ProjectFilesNew = rclass
         </MenuItem>
 
     handle_menu_click : (ext) ->
-        if @props.file_search.length == 0
+        if not @props.file_search?.length > 0
             # Tell state to render an error in file search
-            @props.actions.setState(create_file_alert : true)
+            @props.actions.setState(file_creation_error : "You must enter file name above to create it")
         else if @props.file_search?[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -1451,7 +1458,7 @@ ProjectFilesNew = rclass
 
     # Go to new file tab if no file is specified
     handle_file_click : ->
-        if @props.file_search.length == 0
+        if not @props.file_search?.length > 0
             @props.actions.set_focused_page('project-new-file')
         else if @props.file_search?[@props.file_search.length - 1] == '/'
             @props.create_folder()
@@ -1488,16 +1495,16 @@ ProjectFiles = (name) -> rclass
         account :
             other_settings : rtypes.immutable
         "#{name}" :
-            current_path      : rtypes.string
-            activity          : rtypes.object
-            page_number       : rtypes.number
-            file_action       : rtypes.string
-            file_search       : rtypes.string
-            show_hidden       : rtypes.bool
-            sort_by_time      : rtypes.bool
-            error             : rtypes.string
-            checked_files     : rtypes.immutable
-            create_file_alert : rtypes.bool
+            current_path       : rtypes.string
+            activity           : rtypes.object
+            page_number        : rtypes.number
+            file_action        : rtypes.string
+            file_search        : rtypes.string
+            show_hidden        : rtypes.bool
+            sort_by_time       : rtypes.bool
+            error              : rtypes.string
+            checked_files      : rtypes.immutable
+            file_creation_error : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1522,8 +1529,11 @@ ProjectFiles = (name) -> rclass
             ext          : ext
             current_path : @props.current_path
             on_download  : ((a) => @setState(download: a))
-            on_error     : ((a) => @setState(error: a))
+            on_error     : @handle_creation_error
         @props.actions.setState(file_search : '', page_number: 0)
+
+    handle_creation_error : (e) ->
+        @props.actions.setState(file_creation_error : e)
 
     create_folder : ->
         @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
@@ -1724,15 +1734,15 @@ ProjectFiles = (name) -> rclass
             <Row>
                 <Col sm=3>
                     <ProjectFilesSearch
-                        key               = {@props.current_path}
-                        file_search       = {@props.file_search}
-                        actions           = {@props.actions}
-                        current_path      = {@props.current_path}
-                        selected_file     = {visible_listing?[0]}
-                        create_file_alert = {@props.create_file_alert}
-                        files_displayed   = {visible_listing?.length > 0}
-                        create_file       = {@create_file}
-                        create_folder     = {@create_folder} />
+                        key                = {@props.current_path}
+                        file_search        = {@props.file_search}
+                        actions            = {@props.actions}
+                        current_path       = {@props.current_path}
+                        selected_file      = {visible_listing?[0]}
+                        file_creation_error = {@props.file_creation_error}
+                        files_displayed    = {visible_listing?.length > 0}
+                        create_file        = {@create_file}
+                        create_folder      = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
                 <Col sm={if public_view then 6 else 4}>
