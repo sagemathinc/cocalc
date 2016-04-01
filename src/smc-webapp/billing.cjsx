@@ -108,7 +108,7 @@ class BillingActions extends Actions
                         response = _response
                         cb()
             (cb) =>
-                @_action('create_source', 'Creating a new payment method (sending token to <SiteName/>)', {token:response.id, cb:cb})
+                @_action('create_source', 'Creating a new payment method (sending token)', {token:response.id, cb:cb})
         ], (err) =>
             @setState(action:'', error:err)
             cb?(err)

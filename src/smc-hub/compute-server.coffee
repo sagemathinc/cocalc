@@ -1054,6 +1054,11 @@ init_firewall = (cb) ->
                 command : "clear"
                 cb      : cb
         (cb) ->
+            dbg("not disabling incoming connections -- no need to")
+            # CRITICAL: this causes a lot of trouble for no gain at all
+            cb()
+            return
+
             dbg("starting firewall -- applying incoming rules")
             if admin_whitelist
                 incoming_whitelist_hosts += ',' + admin_whitelist
