@@ -90,7 +90,6 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Firewall(object):
     def iptables(self, args, **kwds):
-        return cmd(['iptables','-v'] + args, **kwds)
         try:
             return cmd(['iptables','-v'] + args, **kwds)
         except Exception, err:
