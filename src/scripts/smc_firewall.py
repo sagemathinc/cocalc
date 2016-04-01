@@ -90,10 +90,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Firewall(object):
     def iptables(self, args, **kwds):
-        try:
-            return cmd(['iptables','-v'] + args, **kwds)
-        except Exception, err:
-            log("WARNING: error inserting an iptable rule -- %s", err)
+        return cmd(['iptables','-v'] + args, **kwds)
 
     def insert_rule(self, rule, force=False):
         if not self.exists(rule):
@@ -274,7 +271,7 @@ class Firewall(object):
         self.append_rule(['INPUT', '-i', 'lo', '-j', 'ACCEPT'])
 
         # Block *new* packets arriving via a new connection from anywhere else.  We
-        # don't want to block all packages -- e.g., if something on this machine
+        # don't want to block all packets -- e.g., if something on this machine
         # connects to DNS, it should be allowed to receive the answer back.
         self.append_rule(['INPUT', '-m', 'state', '--state', 'NEW', '-j', 'DROP'])
 
