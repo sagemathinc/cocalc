@@ -388,6 +388,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     new_socket: (cb) =>     # cb(err, socket)
         @dbg("new_socket")
         f = (cb) =>
+            if not @address?
+                cb("no address")
+                return
             connect_to_a_local_hub
                 port         : @address.port
                 host         : @address.host
