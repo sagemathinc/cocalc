@@ -126,7 +126,7 @@ class exports.Support
             user:
                 name         : opts.username ? opts.email_address
                 email        : opts.email_address
-                verified     : true  # i.e. no email sent to them verifying their email address + password creation request
+                verified     : false  # if true: an email is sent to verify the email address and informed to get account
                 external_id  : opts.account_id ? null
                 # manage custom_fields here: https://sagemathcloud.zendesk.com/agent/admin/user_fields
                 custom_fields:

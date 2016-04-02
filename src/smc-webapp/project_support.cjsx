@@ -23,7 +23,7 @@ underscore = require('underscore')
 
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
 
-{Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
+{Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
@@ -31,10 +31,43 @@ misc_page       = require('./misc_page')
 {PathLink} = require('./project_new')
 
 
-ProjectSupport = (name) -> rclass
-    displayName : 'ProjectSupport-ProjectSupport'
+ProjectSupportForm = rclass
+    displayName : 'ProjectSupport-form'
+
+    propTypes :
+        body    : rtypes.string.isRequired
+        subject : rtypes.string.isRequired
+        actions : rtypes.object.isRequired
+
+    handle_change : ->
+        @props.actions.setState(body     : @refs.project_support_body.getValue())
+        @props.actions.setState(subject  : @refs.project_support_subject.getValue())
+
+    render : ->
+        <form onSubmit={@submit}>
+            <Input
+                ref         = 'project_support_subject'
+                autoFocus
+                type        = 'text'
+                placeholder = "Subject ..."
+                value       = {@props.subject}
+                onChange    = {@handle_change} />
+            <Input
+                ref         = 'project_support_body'
+                type        = 'textarea'
+                placeholder = 'Describe the problem ...'
+                value       = {@props.body}
+                onChange    = {@handle_change} />
+        </form>
+
+
+ProjectSupport2 = (name) -> rclass
+    displayName : 'ProjectSupport2-main'
 
     mixins: [ImmutablePureRenderMixin]
+
+    getInitialState : ->
+        show: false
 
     propTypes :
         actions     : rtypes.object.isRequired
@@ -55,9 +88,11 @@ ProjectSupport = (name) -> rclass
             url         : rtypes.string
             error       : rtypes.bool
 
-    handle_change : ->
-        @props.actions.setState(body     : @refs.project_support_body.getValue())
-        @props.actions.setState(subject  : @refs.project_support_subject.getValue())
+    open : ->
+        @setState(show: true)
+
+    close : ->
+        @setState(show: false)
 
     submit : (event) ->
         event.preventDefault()
@@ -73,51 +108,54 @@ ProjectSupport = (name) -> rclass
             url = <a href={@props.url}>{@props.url}</a>
         else
             url = 'no ticket'
-        <Col>
-            <Row>
-                <h1>Support form</h1>
-            </Row>
-            <Row>
-                <ul>
-                    <li>filepath: {@props.filepath ? 'no recent document'}</li>
-                    <li>status: {@props.status}</li>
-                    <li>ticket url: {url}</li>
-                    <li>error: {@props.error}</li>
-                </ul>
-            </Row>
-            <Row>
-                <form onSubmit={@submit}>
-                    <Input
-                        ref         = 'project_support_subject'
-                        autoFocus
-                        type        = 'text'
-                        placeholder = "Subject ..."
-                        value       = {@props.subject}
-                        onChange    = {@handle_change} />
-                    <Input
-                        ref         = 'project_support_body'
-                        type        = 'textarea'
-                        placeholder = 'Describe the problem ...'
-                        value       = {@props.body}
-                        onChange    = {@handle_change} />
+
+        <a data-toggle="tooltip" data-placement="bottom" title="Support" onClick={@open}>
+            <Icon name='medkit' className="project-control-icon" />
+            <Modal show={@state.show} onHide={@close}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Support Ticket</Modal.Title>
+                </Modal.Header>
+
+                <Modal.Body>
+                    <p>
+                        Contact us about a problem you have by creating a support ticket.
+                        The following additional data will be submitted and
+                        you{"'"}ll receive a ticket number and a link to the ticket.
+                        Keep it to stay in contact with us!
+
+                        <ul>
+                            <li>filepath: {@props.filepath ? 'no recent document'}</li>
+                            <li>status: {@props.status}</li>
+                            <li>ticket url: {url}</li>
+                            <li>error: {@props.error}</li>
+                        </ul>
+                    </p>
+                    <ProjectSupportForm
+                        subject = {@props.subject}
+                        body    = {@props.body}
+                        actions = {@props.actions} />
+                </Modal.Body>
+
+                <Modal.Footer>
+                    <Button bsStyle='default' onClick={@close}>Close</Button>
                     <Button bsStyle='primary' onClick={@submit} disabled={not @valid()}>
-                        <Icon name='aid' /> Get Support
+                        <Icon name='medkit' /> Get Support
                     </Button>
-                </form>
-            </Row>
-        </Col>
+                </Modal.Footer>
+            </Modal>
+        </a>
 
 render = (project_id, filepath, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
 
     # TODO how to properly store the filepath in this store?!?!
-    ProjectSupport_connected = ProjectSupport(store.name)
+    ProjectSupport2_connected = ProjectSupport2(store.name)
 
     <Redux redux={redux}>
-        <ProjectSupport_connected
-            filepath   = {filepath}
-            actions    = {actions} />
+        <ProjectSupport2_connected
+                filepath   = {filepath}
+                actions    = {actions} />
     </Redux>
 
 exports.render_project_support = (project_id, filepath, dom_node, redux) ->

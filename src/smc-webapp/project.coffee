@@ -317,15 +317,10 @@ class ProjectPage
                 tab.onblur = ->
                     require('./project_search').unmount(that.container.find(".smc-react-project-search")[0])
 
-            else if name == 'project-support' and not @public_access
-                tab.onshow = () ->
-                    path = that.editor?.active_tab?.filename ? ''
-                    require('./project_support').render_project_support(that.project.project_id, path, that.container.find(".smc-react-project-support")[0], redux)
-                    that.editor?.hide_editor_content()
-                    that.actions.push_state('support')
-                tab.onblur = ->
-                    require('./project_support').unmount(that.container.find(".smc-react-project-support")[0])
-
+        if not @public_access
+            $support = @container.find('.project-pages > .project-support-menu-item')
+            path = that.editor?.active_tab?.filename ? ''
+            require('./project_support').render_project_support(that.project.project_id, path, $support[0], redux)
 
         for item in @container.find(".file-pages").children()
             t = $(item)
