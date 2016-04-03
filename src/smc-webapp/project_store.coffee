@@ -667,7 +667,7 @@ class ProjectActions extends Actions
     set_has_email_address: () =>
         account  = @redux.getStore('account')
         email = account.get_email_address()
-        @setState(support_has_email: email? and email.length > 0)
+        @setState(support_has_email: email? and misc.is_valid_email_address(email))
 
     process_support: (err, url) =>
         # console.log("callback process_support:", err, url)
