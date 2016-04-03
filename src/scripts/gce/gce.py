@@ -10,6 +10,7 @@ gce.py create_compute_server --machine_type g1-small  0-devel
 """
 
 import math, os, sys, argparse, json, time
+from pprint import pprint
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
@@ -261,8 +262,14 @@ class GCE(object):
 
         errors = []
         for disk in info['disks']:
+            # ignore boot disks (would be True)
             if disk.get('boot', False):
                 continue
+            # ignore read-only disks (like for globally mounted data volumes)
+            # they would be snapshotted manually
+            if disk.get('mode', 'READ_WRITE') == 'READ_ONLY':
+                continue
+
             src = disk['source'].split('/')[-1]
             if 'swap' in src: continue
             if 'tmp' in src: continue

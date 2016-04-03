@@ -333,9 +333,11 @@ class Project(object):
             if not self._dev:
                 os.chown(self.project_path, self.uid, self.uid)
 
-    def remove_old_sagemathcloud_path(self):
-        # temporary -- once we go through and delete all these from all live projects, don't have to have this.
-        p = os.path.join(self.project_path, '.sagemathcloud')
+    def remove_snapshots_path(self):
+        """
+        Remove the ~/.snapshots path
+        """
+        p = os.path.join(self.project_path, '.snapshots')
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
 
@@ -363,16 +365,21 @@ class Project(object):
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
         os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
+        os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
+        # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
+        # the hub is running
+        os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares):
-        self.remove_old_sagemathcloud_path()  # temporary
+    def start(self, cores, memory, cpu_shares, base_url):
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
-
+        self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
+
+        os.environ['SMC_BASE_URL'] = base_url
 
         if self._dev:
             self.dev_env()
@@ -412,13 +419,14 @@ class Project(object):
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
+        self.remove_snapshots_path()
 
-    def restart(self, cores, memory, cpu_shares):
+    def restart(self, cores, memory, cpu_shares, base_url):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start(cores, memory, cpu_shares)
+        self.start(cores, memory, cpu_shares, base_url)
 
     def get_memory(self, s):
         try:
@@ -428,7 +436,7 @@ class Project(object):
         except:
             log("error running memory command")
 
-    def status(self, timeout=60):
+    def status(self, timeout=60, base_url=''):
         log = self._log("status")
         s = {}
 
@@ -493,7 +501,7 @@ class Project(object):
                 s['state'] = 'broken'
         return s
 
-    def state(self, timeout=60):
+    def state(self, timeout=60, base_url=''):
         log = self._log("state")
 
         if (self._dev or self._single) and not os.path.exists(self.project_path):
@@ -901,15 +909,18 @@ def main():
     parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_start.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_status.add_argument("--base_url", help="ignored", type=str, default='')
 
     f(parser_status)
 
     parser_state = subparsers.add_parser('state', help='get state of project')  # {state:?}
     parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_state.add_argument("--base_url", help="ignored", type=str, default='')
     f(parser_state)
 
 
@@ -945,6 +956,7 @@ def main():
     parser_restart.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_restart.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_restart.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_restart.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_restart)
 
     # directory listing

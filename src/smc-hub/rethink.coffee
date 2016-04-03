@@ -24,6 +24,9 @@ async      = require('async')
 underscore = require('underscore')
 moment     = require('moment')
 uuid       = require('node-uuid')
+
+json_stable_stringify = require('json-stable-stringify')
+
 winston    = require('winston')
 winston.remove(winston.transports.Console)
 
@@ -35,6 +38,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
+
+{UserQueryStats} = require './user-query-stats'
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
@@ -67,6 +72,7 @@ table_options = (table) ->
     t = SCHEMA[table]
     options =
         primaryKey : t.primary_key ? 'id'
+        durability : t.durability ? 'hard'
     return options
 
 # these fields are arrays of account id's, which
@@ -96,7 +102,7 @@ exports.set_default_hosts = (hosts) ->
 #
 
 class RethinkDB
-    constructor : (opts={}) ->
+    constructor: (opts={}) ->
         opts = defaults opts,
             hosts    : default_hosts
             database : 'smc'
@@ -108,6 +114,8 @@ class RethinkDB
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
+            cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
+            cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -120,6 +128,10 @@ class RethinkDB
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
+        @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
+
+        if opts.cache_expiry and opts.cache_size
+            @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -249,6 +261,7 @@ class RethinkDB
         # for how to monkey patch run.
         that = @ # needed to reconnect if connection dies
         TermBase = @r.expr(1).constructor.__super__.constructor.__super__
+        run_cbs = {}
         if not TermBase.run_native?  # only do this once!
             TermBase.run_native = TermBase.run
             TermBase.run = (opts, cb) ->
@@ -258,9 +271,33 @@ class RethinkDB
                 if not opts?
                     opts = {}
                 that2 = @  # needed to call run_native properly on the object below.
-                query_string = "#{that2}"
+                full_query_string = query_string = "#{that2}"
                 if query_string.length > 200
                     query_string = misc.trunc_middle(query_string, 200) + " (#{query_string.length} chars)"
+
+                if opts.cache?
+                    opts.dedup = true  # if allowing cached result, definitely allow dedup below!
+                    cache = opts.cache
+                    delete opts.cache
+                    if cache and that._query_cache?
+                        # check for cached result
+                        x = that._query_cache.get(full_query_string)
+                        if x?
+                            winston.debug("using cache for '#{query_string}'")
+                            cb(x[0], x[1])
+                            return
+
+                if opts.dedup?
+                    # Multiple copies of same query get done once only and all callbacks called.
+                    # Fine for idempotent queries where exact order doesn't matter, e.g., a bunch
+                    # of permissions checks. Simplifies other code a lot.
+                    delete opts.dedup
+                    if run_cbs[full_query_string]?
+                        run_cbs[full_query_string].push(cb)
+                        return
+                    else
+                        run_cbs[full_query_string] = [cb]
+
                 error = result = undefined
                 f = (cb) ->
                     start = new Date()
@@ -359,7 +396,16 @@ class RethinkDB
                     start_delay : 3000
                     factor      : 1.4
                     max_tries   : 15
-                    cb          : -> cb?(error, result)
+                    cb          : ->
+                        if cache
+                            that._query_cache.set(full_query_string, [error, result])
+                        if run_cbs[full_query_string]?
+                            v = run_cbs[full_query_string]
+                            delete run_cbs[full_query_string]
+                            for cb in v
+                                cb?(error, result)
+                        else
+                            cb?(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
@@ -374,6 +420,23 @@ class RethinkDB
             cb             : required
         new SyncTable(opts.query, opts.primary_key, @, opts.idle_timeout_s, opts.cb)
         return
+
+    # This is mainly for interactive debugging use. Any time a record changes in any of
+    # the given tables, calls the cb with the change.
+    watch: (opts) =>
+        opts = defaults opts,
+            tables : required   # array of strings (names of tables) -- or a single string
+            cb     : required
+        if typeof(opts.tables) == 'string'
+            opts.tables = [opts.tables]
+        if opts.tables.length == 0
+            # nothing ever changes
+            return
+        query = db.table(opts.tables[0])
+        for i in [1...opts.tables.length]
+            query = query.union(db.table(opts.tables[i]))
+        query.changes(includeInitial:false).run (err, feed) =>
+            feed.each(opts.cb)
 
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
@@ -414,8 +477,8 @@ class RethinkDB
     # wouldn't be the end of the world.  There is a similar client-only slower version
     # of this function (in schema.coffee), so don't change it willy nilly.
     sha1: (args...) ->
-        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
-        return misc_node.sha1(args.join(''))
+        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        return misc_node.sha1(v)
 
     # This will change the database so that a random password is required.  It will
     # then write the random password to the given file.
@@ -448,6 +511,40 @@ class RethinkDB
                 opts.cb?(err)
         )
 
+    ###
+    Sometimes RethinkDB tables waste huge amounts of disk space.  A trick that Daniel Mewes suggests to
+    fix this is to write and remove a dummy field from all records.  This function implements that idea.
+
+    db._error_thresh=1e6; db.recompact_table(table:'blobs', cb:done())
+    ###
+    recompact_table: (opts) =>
+        opts = defaults opts,
+            table : required
+            limit : undefined
+            cb    : undefined
+        dbg = @dbg("recompact_table(table='#{opts.table}', limit=#{opts.limit})");
+        dbg()
+        async.series([
+            (cb) =>
+                dbg('writing dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: null}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+            (cb) =>
+                dbg('deleting dummy field')
+                q = @table(opts.table)
+                if opts.limit?
+                    q = q.limit(opts.limit)
+                q.update({dummy: db.r.literal()}, {durability: "soft"}).run (err, x) =>
+                    dbg(misc.to_json(x))
+                    cb(err)
+        ], (err) =>
+            dbg('finished')
+            opts.cb?(err)
+        )
 
     dbg: (f) =>
         if @_debug
@@ -479,6 +576,26 @@ class RethinkDB
                         dbg("creating #{tables.length} tables: #{tables.join(', ')}")
                     async.map(tables, ((table, cb) => @db.tableCreate(table, table_options(table)).run(cb)), cb)
             (cb) =>
+                dbg("Ensure table durability configuration is as specified in the schema")
+                f = (name, cb) =>
+                    query = @db.table(name).config()
+                    query.pluck('durability').run (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            durability = table_options(name).durability
+                            if x.durability != durability
+                                dbg("Changing durability option for '#{name}' to '#{durability}'")
+                                query.update(durability:durability).run(cb)
+                            else
+                                cb()
+                @db.tableList().run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        async.map(x, f, cb)
+            (cb) =>
+                dbg("Ensure indexes are as specified in the schema")
                 f = (name, cb) =>
                     indexes = misc.deep_copy(SCHEMA[name].indexes)  # sutff gets deleted out of indexes below!
                     if not indexes or SCHEMA[name].virtual
@@ -922,6 +1039,40 @@ class RethinkDB
             cb         : required
         @table('accounts').get(opts.account_id).update(creation_actions_done:true).run(opts.cb)
 
+    do_account_creation_actions: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            account_id    : required
+            cb            : required
+        dbg = @dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
+        @account_creation_actions
+            email_address : opts.email_address
+            cb            : (err, actions) =>
+                if err
+                    opts.cb(err); return
+                f = (action, cb) =>
+                    dbg("account_creation_actions: action = #{misc.to_json(action)}")
+                    if action.action == 'add_to_project'
+                        @add_user_to_project
+                            project_id : action.project_id
+                            account_id : opts.account_id
+                            group      : action.group
+                            cb         : (err) =>
+                                if err
+                                    dbg("Error adding user to project: #{err}")
+                                cb(err)
+                    else
+                        # TODO: need to report this some better way, maybe email?
+                        dbg("skipping unknown action -- #{action.action}")
+                        cb()
+                async.map actions, f, (err) =>
+                    if not err
+                        @account_creation_actions_success
+                            account_id : opts.account_id
+                            cb         : opts.cb
+                    else
+                        opts.cb(err)
+
     ###
     # Stripe support for accounts
     ###
@@ -1295,6 +1446,29 @@ class RethinkDB
                 @_account(opts).update(misc.map_without_undefined(opts.set)).run(cb)
         ], opts.cb)
 
+    _touch_account: (account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_account_lock ?= {}
+        if @_touch_account_lock[account_id]?
+            cb()
+        else
+            @_touch_account_lock[account_id] = true
+            now = new Date()
+            @table('accounts').get(account_id).update(last_active:now).run(cb)
+            setTimeout((()=>delete @_touch_account_lock[account_id]), 120*1000)
+
+    _touch_project: (project_id, account_id, cb) =>
+        # never do this more than once per minute
+        @_touch_project_lock ?= {}
+        key = "#{project_id}-#{account_id}"
+        if @_touch_project_lock[key]?
+            cb()
+        else
+            @_touch_project_lock[key] = true
+            now = new Date()
+            @table('projects').get(project_id).update(last_edited:now, last_active:{"#{account_id}":now}).run(cb)
+            setTimeout((()=>delete @_touch_project_lock[key]), 120*1000)
+
     # Indicate activity by a user, possibly on a specific project, and
     # then possibly on a specific path in that project.
     touch: (opts) =>
@@ -1303,21 +1477,31 @@ class RethinkDB
             project_id : undefined
             path       : undefined
             action     : 'edit'
+            ttl_s      : 50        # min activity interval; calling this function with same input again within this interval is ignored
             cb         : undefined
+        if opts.ttl_s
+            @_touch_lock ?= {}
+            key = "#{opts.account_id}-#{opts.project_id}-#{opts.path}-#{opts.action}"
+            if @_touch_lock[key]
+                opts.cb?()
+                return
+            @_touch_lock[key] = true
+            setTimeout((()=>delete @_touch_lock[key]), opts.ttl_s*1000)
+
+        now = new Date()
         async.parallel([
             (cb) =>
                 # touch accounts table
-                @table('accounts').get(opts.account_id).update(last_active:new Date()).run(cb)
+                @_touch_account(opts.account_id, cb)
             (cb) =>
                 if not opts.project_id?
                     cb(); return
                 # touch projects table
-                @table('projects').get(opts.project_id).update(last_active:{"#{opts.account_id}":new Date()}).run(cb)
+                @_touch_project(opts.project_id, opts.account_id, cb)
             (cb) =>
                 if not opts.path? or not opts.project_id?
                     cb(); return
-                # touch file_use table
-                @record_file_use(project_id:opts.project_id, path:opts.path, account_id:opts.account_id, action:opts.action, cb:cb)
+                @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
     ###
@@ -1458,9 +1642,15 @@ class RethinkDB
             query = query.between(start, end, {index:'time'})
         query.count().run(opts.cb)
 
-    #############
-    # Tracking file access
-    ############
+    ###
+    Tracking file access
+
+    log_file_access is throttled in each server, in the sense that
+    if it is called with the same input within a minute, those
+    subsequent calls are ignored.  Of course, if multiple servers
+    are recording file_access then there can be more than one
+    entry per minute.
+    ###
     log_file_access: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1468,24 +1658,42 @@ class RethinkDB
             filename   : required
             cb         : undefined
         if not @_validate_opts(opts) then return
+        @_log_file_access ?= {}
+        key = "#{opts.project_id}#{opts.account_id}#{opts.filename}"
+        v = @_log_file_access[key]
+        minute_ago = misc.minutes_ago(1)
+        if v? and v >= minute_ago
+            opts.cb?()
+            return
         entry =
             project_id : opts.project_id
             account_id : opts.account_id
             filename   : opts.filename
             time       : new Date()
+        @_log_file_access[key] = entry.time
+
+        if Math.random() <= 0.2
+            # Sometimes we clear old entries from cache to avoid leaking memory in the long run
+            for k, v of @_log_file_access
+                if v < minute_ago
+                    delete @_log_file_access[k]
+
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
 
-    # Get all files accessed in all projects in given time range
+    ###
+    Query for all files accessed in all projects in given time range.
+
+        db.get_file_access(start:misc.minutes_ago(5)).run(done())
+    ###
     get_file_access: (opts) =>
         opts = defaults opts,
             start  : undefined   # start time
             end    : undefined   # end time
-            cb     : required
         query = @table('file_access_log')
         @_process_time_range(opts)
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'time'})
-        query.run(opts.cb)
+        return query
 
     #############
     # Projects
@@ -1700,7 +1908,7 @@ class RethinkDB
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
-    # actually hit the database at most once every 30s (per project).  In particular,
+    # actually hit the database at most once every 30s (per project, per client).  In particular,
     # once called, it ignores subsequent calls for the same project for 30s.
     touch_project: (opts) =>
         opts = defaults opts,
@@ -2334,7 +2542,8 @@ class RethinkDB
         opts = defaults opts,
             host : required   # hostname of the compute server
             cb   : required
-        @table('compute_servers').get(opts.host).pluck('member_host').run (err, x) =>
+        # we cache (for a few seconds), since this is very unlikely to change.
+        @table('compute_servers').get(opts.host).pluck('member_host').run {cache:true}, (err, x) =>
             opts.cb(err, !!(x?.member_host))
 
     ###
@@ -2345,13 +2554,19 @@ class RethinkDB
     ###
     save_blob: (opts) =>
         opts = defaults opts,
-            uuid       : required  # uuid=sha1-based uuid coming from blob
-            blob       : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
+            uuid       : required  # uuid=sha1-based id coming from blob
+            blob       : required  # unless check=true, we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
             ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
                                    # if there is already something in blobstore with longer ttl, we leave it;
                                    # infinite ttl = 0 or undefined.
             project_id : required  # the id of the project that is saving the blob
+            check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        if opts.check
+            uuid = misc_node.uuidsha1(opts.blob)
+            if uuid != opts.uuid
+                opts.cb("the sha1 uuid (='#{uuid}') of the blob must equal the given uuid (='#{opts.uuid}')")
+                return
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
                 if err.name == 'ReqlNonExistenceError'
@@ -2737,6 +2952,7 @@ class RethinkDB
         x = @_change_feeds?[opts.id]
         if x?
             delete @_change_feeds[opts.id]
+            @_user_query_stats.cancel_changefeed(changefeed_id: opts.id)
             winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
@@ -2747,10 +2963,12 @@ class RethinkDB
     user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
+            project_id : undefined
             query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!
+            options    : []         # used for initial query; **IGNORED** by changefeed!; can use set:true or set:false to force get or set query
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+        dbg = @dbg("user_query(...)")
         if misc.is_array(opts.query)
             if opts.changes and opts.query.length > 1
                 opts.cb("changefeeds only implemented for single table")
@@ -2760,6 +2978,7 @@ class RethinkDB
             f = (query, cb) =>
                 @user_query
                     account_id : opts.account_id
+                    project_id : opts.project_id
                     query      : query
                     options    : opts.options
                     cb         : (err, x) =>
@@ -2769,7 +2988,8 @@ class RethinkDB
 
         subs =
             '{account_id}' : opts.account_id
-            '{now}' : new Date()
+            '{project_id}' : opts.project_id
+            '{now}'        : new Date()
 
         if opts.changes?
             changes =
@@ -2791,32 +3011,68 @@ class RethinkDB
             query = query[0]
         else
             multi = false
+        is_set_query = undefined
+        if opts.options?
+            for x in opts.options
+                if x.set?
+                    is_set_query = !!x.set
+            options = (x for x in opts.options when not x.set?)
+        else
+            options = undefined
         if typeof(query) == "object"
             query = misc.deep_copy(query)
             obj_key_subs(query, subs)
-            if has_null_leaf(query)
+            if not is_set_query?
+                is_set_query = not misc.has_null_leaf(query)
+            if is_set_query
+                # do a set query
+                if changes
+                    opts.cb("changefeeds only for read queries")
+                    return
+                if not opts.account_id? and not opts.project_id?
+                    opts.cb("no anonymous set queries")
+                    return
+
+                on_success = undefined
+                if SCHEMA[table].unique_writes
+                    # no reason for user to ever write the same thing to this table twice
+                    uniq = @_user_set_query_unique_writes ?= {}
+                    uniq[table] ?= {}
+                    #dbg("uniq = #{misc.to_json(uniq)}")
+                    rep = json_stable_stringify(opts.query)
+                    q = misc_node.sha1(rep)
+                    if uniq[table][q]
+                        dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
+                        uniq[table][q] += 1
+                        opts.cb()
+                        return
+                    else
+                        on_success = () =>
+                            uniq[table][q] = 1
+
+                @user_set_query
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    table      : table
+                    query      : query
+                    cb         : (err, x) =>
+                        if not err
+                            on_success?()
+                        opts.cb(err, {"#{table}":x})
+
+            else
+                # do a get query
                 if changes and not multi
                     opts.cb("changefeeds only implemented for multi-document queries")
                     return
                 @user_get_query
                     account_id : opts.account_id
+                    project_id : opts.project_id
                     table      : table
                     query      : query
-                    options    : opts.options
+                    options    : options
                     multi      : multi
                     changes    : changes
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
-            else
-                if changes
-                    opts.cb("changefeeds only for read queries")
-                    return
-                if not opts.account_id?
-                    opts.cb("user must be signed in to do a set query")
-                    return
-                @user_set_query
-                    account_id : opts.account_id
-                    table      : table
-                    query      : query
                     cb         : (err, x) => opts.cb(err, {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
@@ -2897,13 +3153,16 @@ class RethinkDB
         return selector
 
     is_admin: (account_id, cb) =>
-        @table('accounts').get(account_id).pluck('groups').run (err, x) =>
+        @table('accounts').get(account_id).pluck('groups').run {cache:true}, (err, x) =>
             if err
                 cb(err)
             else
                 cb(undefined, x?.groups? and 'admin' in x.groups)
 
     _require_is_admin: (account_id, cb) =>
+        if not account_id?
+            cb("user must be an admin")
+            return
         @is_admin account_id, (err, is_admin) =>
             if err
                 cb(err)
@@ -2917,7 +3176,7 @@ class RethinkDB
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {"#{account_id}": true}
         require_admin = false
-        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run (err, x) =>
+        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run {cache:true}, (err, x) =>
             if err
                 cb(err)
             else
@@ -2975,48 +3234,71 @@ class RethinkDB
 
     user_set_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
+            project_id : undefined
             table      : required
             query      : required
             cb         : required   # cb(err)
-        dbg = @dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+        if opts.project_id?
+            dbg = @dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
+        else if opts.account_id?
+            dbg = @dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+        else
+            opts.cb("account_id or project_id must be specified")
+            return
         dbg(to_json(opts.query))
+
+        @_user_query_stats.set_query
+            account_id : opts.account_id
+            project_id : opts.project_id
+            table      : opts.table
 
         query = misc.copy(opts.query)
         table = opts.table
         db_table = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
+        project_id = opts.project_id
 
         s = SCHEMA[table]
-        user_query = s?.user_query
-        if not user_query?.set?.fields?
+
+        if account_id?
+            client_query = s?.user_query
+        else
+            client_query = s?.project_query
+        if not client_query?.set?.fields?
             #dbg("requested to do set on table '#{opts.table}' that doesn't allow set")
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
-
-        #dbg("verify all requested fields may be set by users, and also fill in generated values")
 
         # mod_fields counts the fields in query that might actually get modified
         # in the database when we do the query; e.g., account_id won't since it gets
         # filled in with the user's account_id, and project_write won't since it must
         # refer to an existing project.  We use mod_field **only** to skip doing
-        # no-op queries below.
+        # no-op queries below. It's just an optimization.
         mod_fields = 0
         for field in misc.keys(opts.query)
-            if user_query.set.fields[field] not in ['account_id', 'project_write']
+            if client_query.set.fields[field] not in ['account_id', 'project_write']
                 mod_fields += 1
         if mod_fields == 0
             # nothing to do
             opts.cb()
             return
 
-        for field in misc.keys(user_query.set.fields)
-            if user_query.set.fields[field] == undefined
+        for field in misc.keys(client_query.set.fields)
+            if client_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
                 return
-            switch user_query.set.fields[field]
+            switch client_query.set.fields[field]
                 when 'account_id'
+                    if not account_id?
+                        opts.cb("account_id must be specified")
+                        return
                     query[field] = account_id
+                when 'project_id'
+                    if not project_id?
+                        opts.cb("project_id must be specified")
+                        return
+                    query[field] = project_id
                 when 'time_id'
                     query[field] = uuid.v1()
                     #console.log("time_id -- query['#{field}']='#{query[field]}'")
@@ -3033,7 +3315,7 @@ class RethinkDB
 
         #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
-            f = user_query.set.fields?[field]
+            f = client_query.set.fields?[field]
             if typeof(f) == 'function'
                 try
                     query[field] = f(query, @, opts.account_id)
@@ -3041,7 +3323,7 @@ class RethinkDB
                     opts.cb("error setting '#{field}' -- #{err}")
                     return
 
-        if user_query.set.admin
+        if client_query.set.admin
             require_admin = true
 
         primary_key = s.primary_key
@@ -3050,7 +3332,7 @@ class RethinkDB
         for k, v of query
             if primary_key == k
                 continue
-            if s.user_query?.set?.fields?[k] != undefined
+            if client_query?.set?.fields?[k] != undefined
                 continue
             if s.admin_query?.set?.fields?[k] != undefined
                 require_admin = true
@@ -3058,12 +3340,37 @@ class RethinkDB
             opts.cb("changing #{table}.#{k} not allowed")
             return
 
-        # If set, the on_change_hook is called with (database, old_val, new_val, account_id, cb) after
-        # everything else is done.
-        before_change_hook = user_query.set.before_change
-        on_change_hook = user_query.set.on_change
+        # HOOKS which allow for running arbitrary code in response to
+        # user set queries.  In each case, new_val below is only the part
+        # of the object that the user requested to change.
+
+        # 0. CHECK: Runs before doing any further processing; has callback, so this
+        # provides a generic way to quickly check whether or not this query is allowed
+        # for things that can't be done declaratively.
+        check_hook = client_query.set.check_hook
+
+        # 1. BEFORE: If before_change is set, it is called with input
+        #   (database, old_val, new_val, account_id, cb)
+        # before the actual change to the database is made.
+        before_change_hook = client_query.set.before_change
+
+        # 2. INSTEAD OF: If instead_of_change is set, then instead_of_change_hook
+        # is called with input
+        #      (database, old_val, new_val, account_id, cb)
+        # *instead* of actually doing the update/insert to
+        # the database.  This makes it possible to run arbitrary
+        # code whenever the user does a certain type of set query.
+        # Obviously, if that code doesn't set the new_val in the
+        # database, then new_val won't be the new val.
+        instead_of_change_hook = client_query.set.instead_of_change
+
+        # 3. AFTER:  If set, the on_change_hook is called with
+        #   (database, old_val, new_val, account_id, cb)
+        # after everything the database has been modified.
+        on_change_hook = client_query.set.on_change
+
         old_val = undefined
-        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
+        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
 
         async.series([
             (cb) =>
@@ -3075,8 +3382,16 @@ class RethinkDB
                             cb()
                     (cb) =>
                         if require_project_ids_write_access?
-                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
-                                             ['owner', 'collaborator'], cb)
+                            if project_id?
+                                err = undefined
+                                for x in require_project_ids_write_access
+                                    if x != project_id
+                                        err = "can only query same project"
+                                        break
+                                cb(err)
+                            else
+                                @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                                 ['owner', 'collaborator'], cb)
                         else
                             cb()
                     (cb) =>
@@ -3087,7 +3402,12 @@ class RethinkDB
                             cb()
                 ], cb)
             (cb) =>
-                if on_change_hook? or before_change_hook?
+                if check_hook?
+                    check_hook(@, query, account_id, project_id, cb)
+                else
+                    cb()
+            (cb) =>
+                if on_change_hook? or before_change_hook? or instead_of_change_hook?
                     # get the old value before changing it
                     @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
@@ -3099,7 +3419,10 @@ class RethinkDB
                 else
                     cb()
             (cb) =>
-                @table(db_table).insert(query, conflict:'update').run(cb)
+                if instead_of_change_hook?
+                    instead_of_change_hook(@, old_val, query, account_id, cb)
+                else
+                    @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
                 if on_change_hook?
                     #dbg("calling on_change_hook")
@@ -3108,13 +3431,13 @@ class RethinkDB
                     cb()
         ], (err) => opts.cb(err))
 
-    # fill in the default values for obj in the given table
-    _query_set_defaults: (obj, table, fields) =>
+    # fill in the default values for obj using the client_query spec.
+    _query_set_defaults: (client_query, obj, fields) =>
         if not misc.is_array(obj)
             obj = [obj]
         else if obj.length == 0
             return
-        s = SCHEMA[table]?.user_query?.get?.fields ? {}
+        s = client_query?.get?.fields ? {}
         for k in fields
             v = s[k]
             if v?
@@ -3295,6 +3618,7 @@ class RethinkDB
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
+            project_id : undefined
             table      : required
             query      : required
             multi      : required
@@ -3313,7 +3637,18 @@ class RethinkDB
         If no error in query, and changes is a given uuid, then sets up a change
         feed that calls opts.cb on changes as well.
         ###
-        dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
+        if opts.account_id?
+            dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
+        else if opts.project_id?
+            dbg = @dbg("user_get_query(project_id=#{opts.project_id}, table=#{opts.table})")
+        else
+            dbg = @dbg("user_get_query(anonymous, table=#{opts.table})")
+
+        if not opts.changes
+            @_user_query_stats.get_query
+                account_id : opts.account_id
+                project_id : opts.project_id
+                table      : opts.table
 
         # For testing, it can be useful to simulate lots of random failures
         #if Math.random() <= .5
@@ -3321,47 +3656,52 @@ class RethinkDB
         #    opts.cb("random failure")
         #    return
 
-        ##opts.changes = undefined
-
-        if opts.changes?
-            if not opts.changes.id?
-                opts.cb("user_get_query -- must specifiy opts.changes.id"); return
-            if not opts.changes.cb?
-                opts.cb("user_get_query -- must specifiy opts.changes.cb"); return
-
-        # get data about user queries on this table
-        user_query = SCHEMA[opts.table]?.user_query
-        if not user_query?.get?
-            opts.cb("user get queries not allowed for table '#{opts.table}'")
+        if opts.changes? and not opts.changes.cb?
+            opts.cb("user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified")
             return
 
-        if not opts.account_id? and not SCHEMA[opts.table].anonymous
+        # get data about user queries on this table
+        if opts.project_id?
+            client_query = SCHEMA[opts.table]?.project_query
+        else
+            client_query = SCHEMA[opts.table]?.user_query
+
+        if not client_query?.get?
+            opts.cb("get queries not allowed for table '#{opts.table}'")
+            return
+
+        if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
             opts.cb("anonymous get queries not allowed for table '#{opts.table}'")
             return
 
         # Are only admins allowed any get access to this table?
-        if user_query.get.admin
+        if client_query.get.admin
             require_admin = true
         else
             require_admin = false
 
         # verify all requested fields may be read by users
         for field in misc.keys(opts.query)
-            if user_query.get.fields?[field] == undefined
+            if client_query.get.fields?[field] == undefined
                 opts.cb("user get query not allowed for #{opts.table}.#{field}")
                 return
 
-        # get the query that gets only things in this table that this user
+        if client_query.get.instead_of_query?
+            # custom version: instead of doing a full query, we instead call a function and that's it.
+            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
+            return
+
+        # Make sure there is the query that gets only things in this table that this user
         # is allowed to see.
-        if not user_query.get.all?.args?
+        if not client_query.get.all?.args?
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
 
-        # Apply default all options to the get query (don't impact changefeed)
+        # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
-        if user_query.get.all?.options?
-            for k, v of user_query.get.all.options
+        if client_query.get.all?.options?
+            for k, v of client_query.get.all.options
                 if not opts.options[k]?
                     opts.options[k] = v
 
@@ -3375,8 +3715,14 @@ class RethinkDB
         # will cause the client to reconnect and reset properly, so it's clean.  It's of course less
         # efficient, and should only be used in situations where it will rarely happen.  E.g.,
         # the collaborators of a user don't change constantly.
-        killfeed = undefined
+        killfeed      = undefined
+        require_admin = false
         async.series([
+            (cb) =>
+                if client_query.get.check_hook?
+                    client_query.get.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
+                else
+                    cb()
             (cb) =>
                 # this possibly increases the load on the database a LOT which is not an option, since it kills the site :-(
                 ## cb(); return # to disable
@@ -3393,7 +3739,7 @@ class RethinkDB
             (cb) =>
                 dbg("initial selection of records from table")
                 # Get the spec
-                {cmd, args} = user_query.get.all
+                {cmd, args} = client_query.get.all
                 if not cmd?
                     cmd = 'getAll'
                 if typeof(args) == 'function'
@@ -3402,6 +3748,7 @@ class RethinkDB
                     args = (x for x in args) # important to copy!
                 v = []
                 f = (x, cb) =>
+                    #dbg("f('#{x}')")
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
@@ -3421,7 +3768,10 @@ class RethinkDB
                                             v.push(opts.query.project_id)
                                             cb()
                     else if x == 'project_id'
-                        if not opts.query.project_id
+                        if opts.project_id?
+                            v.push(opts.project_id)
+                            cb()
+                        else if not opts.query.project_id
                             cb("must specify project_id")
                         else
                             if SCHEMA[opts.table].anonymous
@@ -3463,7 +3813,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3497,7 +3847,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
                                                         if e.indexOf("Did you just reshard?") != -1
@@ -3554,6 +3904,7 @@ class RethinkDB
                                     # We want to interpret them as the empty result.
                                     # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                     v = ['this-is-not-a-valid-project-id']
+                                #dbg("v=#{misc.to_json(v)}")
                                 db_query = db_query[cmd](v...)
                                 cb()
             (cb) =>
@@ -3563,7 +3914,7 @@ class RethinkDB
 
                 # If the schema lists the value in a get query as null, then we reset it to null; it was already
                 # used by the initial get all part of the query.
-                for field, val of user_query.get.fields
+                for field, val of client_query.get.fields
                     if val == 'null'
                         query[field] = null
 
@@ -3591,14 +3942,14 @@ class RethinkDB
                 main_query = (cb) =>
                     db_query.run (err, x) =>
                         if err
-                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
+                            dbg("query (time=#{misc.walltime(time_start)}s):  #{db_query}  ERROR -- #{to_json(err)}")
                             cb(err)
                         else
                             dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
                             if not opts.multi
                                 x = x[0]
                             result = x
-                            @_query_set_defaults(result, opts.table, misc.keys(opts.query))
+                            @_query_set_defaults(client_query, result, misc.keys(opts.query))
                             #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
                             cb()
 
@@ -3630,8 +3981,8 @@ class RethinkDB
                         process.nextTick(f)
 
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
-                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false, squash:.5).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")
@@ -3641,14 +3992,19 @@ class RethinkDB
                             else
                                 cb(err)
                         else
-                            if not @_change_feeds?
-                                @_change_feeds = {}
+                            @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
+                            @_user_query_stats.changefeed
+                                account_id    : opts.account_id
+                                project_id    : opts.project_id
+                                table         : opts.table
+                                changefeed_id : changefeed_id
+
                             winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
                             changefeed_state = 'initializing'
                             feed.each (err, x) =>
                                 if not err
-                                    @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
+                                    @_query_set_defaults(client_query, x.new_val, misc.keys(opts.query))
                                 else
                                     # feed is broken
                                     winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
@@ -3683,6 +4039,148 @@ class RethinkDB
             #    dbg("error: #{to_json(err)}")
             opts.cb(err, result)
         )
+
+    ###
+    Synchronized strings
+    ###
+    _user_set_query_syncstring_change_after: (old_val, new_val, account_id, cb) =>
+        dbg = @dbg("_user_set_query_syncstring_change_after")
+        cb() # immediately -- stuff below can happen as side effect in the background.
+        #dbg("new_val='#{misc.to_json(new_val)}")
+
+        # Now do the following reactions to this syncstring change in the background:
+
+        # 1. Awaken the relevant project.
+        project_id = old_val?.project_id ? new_val?.project_id
+        if project_id? and (new_val?.save?.state == 'requested' or (new_val?.last_active? and new_val?.last_active != old_val?.last_active))
+            dbg("awakening project #{project_id}")
+            awaken_project(@, project_id)
+
+        # 2. Log that this particular file is being used/accessed; this is used only
+        # longterm for analytics.  Note that log_file_access is throttled.
+        # Also, record in a local cache that the user has permission to write
+        # to this syncstring.
+        if project_id? and new_val?.last_active?
+            filename = old_val?.path
+            if filename? and account_id?
+                @log_file_access
+                    project_id : project_id
+                    account_id : account_id
+                    filename   : filename
+
+    # Verify that writing a patch is allowed.
+    _user_set_query_patches_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_set_query_patches_check")
+        #dbg(misc.to_json([obj, account_id]))
+        # 1. Check that
+        #  obj.id = [string_id, time],
+        # where string_id is a valid sha1 hash and time is a timestamp
+        id = obj.id
+        if not misc.is_array(id)
+            cb("id must be an array")
+            return
+        if id.length != 2
+            cb("id must be of length 2")
+            return
+        string_id = id[0]; time = id[1]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        if not misc.is_date(time)
+            cb("id[1] must be a Date")
+            return
+        if obj.user?
+            if typeof(obj.user) != 'number'
+                cb("user must be a number")
+                return
+            if obj.user < 0
+                cb("user must be positive")
+                return
+
+        # 2. Write access
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_get_query_patches_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_get_query_patches_check")
+        #dbg(misc.to_json([obj, account_id]))
+        string_id = obj.id?[0]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        # Write access (no notion of read only yet -- will be easy to add later)
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_set_query_cursors_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_user_set_query_cursors_check")
+        #dbg(misc.to_json([obj, account_id]))
+        # 1. Check that
+        #  obj.id = [string_id, user_id],
+        # where string_id is a valid uuid, time is a timestamp, and user_id is a nonnegative integer.
+        id = obj.id
+        if not misc.is_array(id)
+            cb("id must be an array")
+            return
+        if id.length != 2
+            cb("id must be of length 2")
+            return
+        string_id = id[0]; user_id = id[1]
+        if not misc.is_valid_sha1_string(string_id)
+            cb("id[0] must be a valid sha1 hash")
+            return
+        if typeof(user_id) != 'number'
+            cb("id[1] must be a number")
+            return
+        if user_id < 0
+            cb("id[1] must be positive")
+            return
+        @_syncstring_access_check(string_id, account_id, project_id, cb)
+
+    # Verify that writing a patch is allowed.
+    _user_get_query_cursors_check: (obj, account_id, project_id, cb) =>
+        @_syncstring_access_check(obj.string_id, account_id, project_id, cb)
+
+    _syncstring_access_check: (string_id, account_id, project_id, cb) =>
+        # Check that string_id is the id of a syncstring the the given account_id or
+        # project_id is allowed to write to.  NOTE: We do not concern ourselves (for now at least)
+        # with proof of identity (i.e., one user with full read/write access to a project
+        # claiming they are another users of that project), since our security model
+        # is that any user of a project can edit anything there.  In particular, the
+        # synctable lets any user with write access to the project edit the users field.
+        @table('syncstrings').get(string_id).pluck('project_id').run {cache:true}, (err, x) =>
+            if err
+                cb(err)
+            else if not x
+                # There is no such syncstring with this id -- fail
+                cb("no such syncstring")
+            else if account_id?
+                # Attempt to write by a user browser client
+                @_require_project_ids_in_groups(account_id, [x.project_id], ['owner', 'collaborator'], cb)
+            else if project_id?
+                # Attempt to write by a *project*
+                if project_id == x.project_id
+                    cb()
+                else
+                    cb("project not allowed to write to syncstring in different project")
+
+    # Check permissions for querying for syncstrings in a project
+    _syncstrings_check: (obj, account_id, project_id, cb) =>
+        #dbg = @dbg("_syncstrings_check")
+        #dbg(misc.to_json([obj, account_id, project_id]))
+        if not misc.is_valid_uuid_string(obj?.project_id)
+            cb("project_id must be a valid uuid")
+        else if project_id?
+            if project_id == obj.project_id
+                # The project can access its own syncstrings
+                cb()
+            else
+                cb("projects can only access their own syncstrings") # for now at least!
+        else if account_id?
+            # Access request by a client user
+            @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
+        else
+            cb("only users and projects can access syncstrings")
 
     # One-off code
     ###
@@ -3998,12 +4496,6 @@ class RethinkDB
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
     ###
-
-has_null_leaf = (obj) ->
-    for k, v of obj
-        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
-            return true
-    return false
 
 # modify obj in place substituting keys as given.
 obj_key_subs = (obj, subs) ->
@@ -4338,4 +4830,29 @@ class SyncTable extends EventEmitter
                                 process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
     ####
 
+_last_awaken_time = {}
+awaken_project = (db, project_id) ->
+    # throttle so that this gets called *for a given project* at most once every 30s.
+    now = new Date()
+    if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
+        return
+    _last_awaken_time[project_id] = now
+    dbg = (m) -> winston.debug("_awaken_project: #{m}")
+    dbg("getting #{project_id}")
+    db.compute_server.project
+        project_id : project_id
+        cb         : (err, project) =>
+            if err
+                dbg("err = #{err}")
+            else
+                dbg("requesting whole-project save of #{project_id}")
+                project.save()  # this causes saves of all files to storage machines to happen periodically
+                project.ensure_running
+                    cb : (err) =>
+                        if err
+                            dbg("failed to ensure running of #{project_id}")
+                        else
+                            dbg("also make sure there is a connection from hub to project")
+                            # This is so the project can find out that the user wants to save a file (etc.)
+                            db.ensure_connection_to_project?(project_id)
 

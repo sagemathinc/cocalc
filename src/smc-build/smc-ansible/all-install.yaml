@@ -41,6 +41,7 @@
       - python3-scipy
       - python3-paramiko
       - sysbench
+      - sysstat
     tags:
       - install
 
@@ -260,6 +261,7 @@
     - haskell-platform-doc
     - haskell-platform-prof
     - hdf5-helpers
+    - hexcurse
     - htop
     - iceweasel
     - ifrench

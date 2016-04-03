@@ -9,7 +9,7 @@ from os.path import join, expanduser, relpath, normpath
 project_id = '7561f68d-3d97-4530-b97e-68af2fb4ed13'
 
 sys.path.insert(0, expanduser("~/bin/"))
-os.chdir(expanduser("~/smc-cluster-mgmt"))
+os.chdir(os.path.join(os.environ['SMC_ROOT'], "smc-build/smc-ansible"))
 
 # host of statistics project
 print("get host")

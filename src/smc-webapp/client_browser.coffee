@@ -71,7 +71,10 @@ class Connection extends client.Connection
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
-
+        window.smc.done = window.smc.misc.done  # useful for debugging
+        window.smc.sha1 = require('sha1')       # used only for debugging
+        window.smc.schema = require('smc-util/schema')  # only for debugging
+        window.smc.synctable_debug = require('smc-util/synctable').set_debug  # use to enable/disable verbose synctable logging
         setTimeout(@_init_idle, 15 * 1000)
         super(opts)
 

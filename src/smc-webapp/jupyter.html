@@ -1,27 +1,30 @@
 <div class="smc-jupyter-templates hide">
+    <div class="smc-jupyter-cursor"><pre class="smc-jupyter-cursor-label"></pre><div class="smc-jupyter-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
     <div class="smc-jupyter-notebook">
-        <!--<h3 style="margin-left:1em">IPython Notebook: <span class="smc-jupyter-filename"></span></h3>-->
-        <div class="smc-jupyter-notebook-buttons smc-jupyter-notebook-buttons-hidden-xs hidden-xs">
+        <div class="smc-jupyter-startup-message alert alert-info" role='alert' style="width: 94%; margin: 3%;">
+            Loading...
+        </div>
+        <div class="hide smc-jupyter-notebook-buttons smc-jupyter-notebook-buttons-hidden-xs hidden-xs">
             <span class="smc-jupyter-notebook-status-messages lighten"> </span>
             <span class="hide smc-jupyter-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
-            <span class="btn-group">
-                <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> <span class="hidden-sm">Save</span></a>
-                <a href="#history" class="btn btn-sm btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
-                        <i class="fa fa-history"></i>
-                        <span class="hidden-sm">History</span>
+            <span class="btn-group" style="margin-right:64px">
+                <a href="#save" class="btn  btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> <span class="hidden-sm">Save</span></a>
+                <a href="#history" class="btn  btn-info salvus-editor-history-button" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                    <i class="fa fa-history"></i>
+                    <span class="hidden-sm">TimeTravel</span>
                 </a>
-                <a href="#reload" class="btn  btn-sm btn-warning" data-toggle="tooltip" data-placement="bottom" title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="fa fa-refresh"></i> <span class="hidden-sm">Reload</span></a>
-                    <a href="#publish" class="btn btn-primary btn-sm" data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> <span class="hidden-sm">Publish</span></a>
-                    <a href="#info" class="btn  btn-sm btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-question-circle"></i> <span class="hidden-sm">About</span> </a>
+                <a href="#publish" class="btn btn-warning " data-toggle="tooltip" data-placement="bottom" title="Publish this notebook for anybody to see"> <i class="fa fa-refresh fa-spin hide"> </i> <i class="fa fa-share-square-o"></i> <span class="hidden-sm">Publish</span></a>
+                <a href="#info" class="btn   btn-info" data-toggle="tooltip" data-placement="bottom" title="Extra information about the IPython notebook"> <i class="fa fa-question-circle"></i> <span class="hidden-sm">About</span> </a>
+                <a href="#refresh" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Reload the notebook"> <i class="fa fa-refresh"> </i> <span class="hidden-sm">Refresh</span></a>
             </span>
         </div>
+
         <div class="smc-jupyter-notebook-buttons  visible-xs">
             <span class="btn-group">
                 <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> Files...</a>
                 <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> </a>
-                <a href="#reload" class="btn btn-warning btn-lg"> <i class="fa fa-refresh"></i> </a>
-                <a href="#publish" class="btn btn-primary btn-lg"> <i class="fa fa-share-square-o"></i></a>
+                <a href="#publish" class="btn btn-warning btn-lg"> <i class="fa fa-share-square-o"></i></a>
                 <a href="#info" class="btn  btn-info btn-lg"> <i class="fa fa-info-circle"></i> </a>
             </span>
             <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
@@ -35,40 +38,6 @@
                     <span>Tab</span>
                 </a>
             </span>
-        </div>
-
-        <div class="smc-jupyter-notebook-history-slider-controls hide">
-            <div class="row">
-                <div class="col-sm-2">
-                    <span class="smc-jupyter-history-control-button-container btn-group">
-                        <a href="#history-back" class="btn btn-default"><i class="fa fa-step-backward"></i></a>
-                        <a href="#history-forward" class="btn btn-default"><i class="fa fa-step-forward"></i></a>
-                    </span>
-                </div>
-                <div class="col-sm-4">
-                    <div class="smc-jupyter-notebook-history-slider"></div>
-                </div>
-                <div class="col-sm-3">
-                    <span class="smc-jupyter-history-revision-number"></span>
-                    at
-                    <span class="smc-jupyter-history-revision-time"></span>
-                </div>
-                <div class="col-sm-3">
-                    <span class="btn-group pull-right">
-                        <a href="#revert-history" class="btn btn-warning">Revert...</a>
-                        <a href="#close-history" class="btn btn-info">Close</a>
-                        <!--<a href="#trim-history" class="btn btn-danger">Trim</a>-->
-                    </span>
-                </div>
-            </div>
-            <div class="row" style="margin-top:2em">
-                <div class="col-sm-2">
-                    Warning:
-                </div>
-                <div class="col-sm-10">
-                    <span class="lighten">Any changes you make to revisions displayed below will be discarded.</span>
-                </div>
-            </div>
         </div>
 
         <h3 class="smc-jupyter-notebook-connecting hide" style="margin-left:2em">Opening...</h3>

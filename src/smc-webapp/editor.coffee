@@ -19,10 +19,7 @@
 #
 ###############################################################################
 
-
-##################################################
 # Editor for files in a project
-
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
 #    require('./editor').SHOW_BUTTON_LABELS=0
@@ -316,8 +313,7 @@ exports.public_access_supported = (filename) ->
 
 # Multiplex'd worksheet mode
 
-diffsync = require('diffsync')
-MARKERS  = diffsync.MARKERS
+{MARKERS} = require('smc-util/sagews')
 
 sagews_decorator_modes = [
     ['cjsx'        , 'text/cjsx'],
@@ -887,7 +883,7 @@ class exports.Editor
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
-
+                delete window.smc.editors?[filename]          # FOR DEBUGGING ONLY!
 
         link.data('tab', @tabs[filename])
         @nav_tabs.append(link)
@@ -958,6 +954,7 @@ class exports.Editor
                 else
                     editor = new HTML_MD_Editor(@, filename, content, extra_opts)
             when 'history'
+                {HistoryEditor} = require('./editor_history')
                 editor = new HistoryEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
@@ -974,6 +971,11 @@ class exports.Editor
             else
                 throw("Unknown editor type '#{editor_name}'")
 
+        # FOR DEBUGGING!
+        window.smc.editors ?= {}
+        window.smc.editors[filename] = editor
+
+        editor.init_autosave()
         return editor
 
     create_opened_file_tab: (filename) =>
@@ -1128,15 +1130,18 @@ class exports.Editor
         if not tab? # nothing to do -- tab isn't opened anymore
             return
 
-        # Disconnect from remote session (if relevant)
         if tab.editor_open()
-            tab.editor().disconnect_from_session()
-            tab.editor().remove()
+            # Disconnect from remote session (if relevant), clean up, etc.
+            e = tab.editor()
+            e.save?()
+            e.disconnect_from_session?()
+            e.remove?()
 
         tab.link.remove()
         tab.close_tab?()
         delete @tabs[filename]
         @update_counter()
+
 
     show_chat_window: (path) =>
         @tabs[path]?.editor()?.show_chat_window()
@@ -1181,6 +1186,8 @@ class exports.Editor
             @_active_tab_filename = filename
             @push_state('files/' + opts.path)
             @show_editor_content()
+            # record that file placed in the foreground by this client
+            window?.smc.redux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
 
         prev_active_tab = @active_tab
         for name, tab of @tabs
@@ -1250,11 +1257,6 @@ class exports.Editor
             cb?()
             return
 
-        if not tab.editor().has_unsaved_changes()
-            # nothing to save
-            cb?()
-            return
-
         tab.editor().save(cb)
 
     change_tab_filename: (old_filename, new_filename) =>
@@ -1302,7 +1304,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = redux.getStore('account').get('autosave') #TODO
+        autosave = redux.getStore('account').get('autosave')
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -1313,7 +1315,10 @@ class FileEditor extends EventEmitter
                     # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
                     clearInterval(@_autosave_interval)
                     return
-                if @has_unsaved_changes()
+                if @has_unsaved_changes() and (new Date()  -  (@_when_had_no_unsaved_changes ? 0)) >= @_autosave_interval
+                    # Both has some unsaved changes *and* has had those changes for at least @_autosave_interval ms.
+                    # NOTE: the second condition won't really work for documents that don't yet
+                    # synchronize the "unsaved changes" state with the backend; this is temporary.
                     if @click_save_button?
                         # nice gui feedback
                         @click_save_button()
@@ -1338,6 +1343,7 @@ class FileEditor extends EventEmitter
         else
             if not @_has_unsaved_changes? or @_has_unsaved_changes != val
                 if val
+                    @_when_had_no_unsaved_changes = new Date()  # when we last knew for a fact there are no unsaved changes
                     @save_button.removeClass('disabled')
                 else
                     @save_button.addClass('disabled')
@@ -1346,10 +1352,10 @@ class FileEditor extends EventEmitter
     focus: () => # TODO in derived class
 
     _get: () =>
-        throw("TODO: implement _get in derived class")
+        console.warn("TODO: editor -- needs to implement _get in derived class")
 
     _set: (content) =>
-        throw("TODO: implement _set in derived class")
+        console.warn("TODO: editor -- needs to implement _set in derived class")
 
     restore_cursor_position: () =>
         # implement in a derived class if you need this
@@ -1367,7 +1373,7 @@ class FileEditor extends EventEmitter
             else
                 opts = {}
         @_last_show_opts = opts
-        if not @is_active()
+        if not @is_active?()
             return
 
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
@@ -1386,10 +1392,11 @@ class FileEditor extends EventEmitter
         # define in derived class
 
     hide: () =>
-        @element.hide()
+        @element?.hide()
 
     remove: () =>
-        @element.remove()
+        @element?.remove()
+        @removeAllListeners()
 
     terminate_session: () =>
         # If some backend session on a remote machine is serving this session, terminate it.
@@ -1410,10 +1417,10 @@ class FileEditor extends EventEmitter
             cb         : (err, mesg) =>
                 # TODO -- on error, we *might* consider saving to localStorage...
                 if err
-                    alert_message(type:"error", message:"Communications issue saving #{filename} -- #{err}")
+                    alert_message(type:"error", message:"Communications issue saving #{@filename} -- #{err}")
                     cb?(err)
                 else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error saving #{filename} -- #{to_json(mesg.error)}")
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{to_json(mesg.error)}")
                     cb?(mesg.error)
                 else
                     cb?()
@@ -1573,7 +1580,8 @@ class CodeMirrorEditor extends FileEditor
                 indentWithTabs          : not opts.spaces_instead_of_tabs
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
-                cursorScrollMargin      : 40
+                cursorScrollMargin      : 7
+                viewportMargin          : 100
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -1630,8 +1638,6 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
-
-        @init_change_event()
         @init_draggable_splits()
 
         if opts.read_only
@@ -1688,6 +1694,27 @@ class CodeMirrorEditor extends FileEditor
                 # redraw, which uses split info
                 @show()
 
+    hide_content: () =>
+        @element.find(".salvus-editor-codemirror-content").hide()
+
+    show_content: () =>
+        @hide_startup_message()
+        @element.find(".salvus-editor-codemirror-content").show()
+        for cm in @codemirrors()
+            cm.refresh()
+
+    hide_startup_message: () =>
+        @element.find(".salvus-editor-codemirror-startup-message").hide()
+
+    show_startup_message: (mesg, type='info') =>
+        @hide_content()
+        if typeof(mesg) != 'string'
+            mesg = JSON.stringify(mesg)
+        e = @element.find(".salvus-editor-codemirror-startup-message").show().text(mesg)
+        for t in ['success', 'info', 'warning', 'danger']
+            e.removeClass("alert-#{t}")
+        e.addClass("alert-#{type}")
+
     is_active: () =>
         return @codemirror? and @editor? and @editor._active_tab_filename == @filename
 
@@ -1698,10 +1725,17 @@ class CodeMirrorEditor extends FileEditor
         @opts.theme = theme
 
     # add something visual to the UI to suggest that the file is read only
-    set_readonly_ui: () =>
-        @element.find("a[href=#save]").text('Readonly').addClass('disabled')
-        @element.find(".salvus-editor-write-only").hide()
-        @element.find("a[href=#history]").remove()
+    set_readonly_ui: (readonly=true) =>
+        if readonly
+            @element.find(".salvus-editor-write-only").hide()
+            @element.find(".salvus-editor-read-only").show()
+            @codemirror.setOption('readOnly', true)
+            @codemirror1.setOption('readOnly', true)
+        else
+            @element.find(".salvus-editor-write-only").show()
+            @element.find(".salvus-editor-read-only").hide()
+            @codemirror.setOption('readOnly', false)
+            @codemirror1.setOption('readOnly', false)
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -2001,23 +2035,12 @@ class CodeMirrorEditor extends FileEditor
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             @save_button.icon_spin(false)
             @_saving = false
-            if not err
-                @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
-        p = misc.path_split(@filename)
-        if p.head
-            path = "#{p.head}/.#{p.tail}.sage-history"
-        else
-            path = ".#{p.tail}.sage-history"
         @editor.project_page.open_file
-            path       : path
+            path       : misc.history_path(@filename)
             foreground : true
-
-    init_change_event: () =>
-        @codemirror.on 'changes', () =>
-            @has_unsaved_changes(true)
 
     _get: () =>
         return @codemirror.getValue()
@@ -2041,7 +2064,7 @@ class CodeMirrorEditor extends FileEditor
                         cm.scrollIntoView(pos, info.clientHeight/2)
                     catch e
                         #console.log("#{@filename}: failed to scroll view #{cm.name} into view -- #{e}")
-
+        @codemirror?.focus()
 
     # set background color of active line in editor based on background color (which depends on the theme)
     _style_active_line: () =>
@@ -2427,12 +2450,10 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
-        when "_sync_test"
-            E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
         when "sage-history"
-            # temporary
+            # no syncdoc
         else
-            E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
+            E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
     return E
 
 
@@ -3048,7 +3069,7 @@ class PDF_Preview extends FileEditor
     remove: () =>
         if @_f?
             clearInterval(@_f)
-        @element.remove()
+        super()
 
     focus: () =>
         @element.maxheight()
@@ -3372,200 +3393,6 @@ class PDF_PreviewEmbed extends FileEditor
 
 exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
-
-#############################################
-# Viewer/editor (?) for history of changes to a document
-#############################################
-
-class HistoryEditor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
-        opts.mode = ''
-
-        @_parse_logstring_cache = {}
-        @_parse_logstring_inverse_cache = {}
-
-        # create history editor
-        @element = templates.find(".salvus-editor-history").clone()
-        @history_editor = codemirror_session_editor(@editor, @filename, opts)
-        fname = misc.path_split(@filename).tail
-        @ext = misc.filename_extension(fname[1..-14])
-
-        @element.find(".salvus-editor-history-history_editor").append(@history_editor.element)
-        @history_editor.codemirror.setOption("readOnly", true)
-        @history_editor.show()
-
-        if @ext == "sagews"
-            opts0 =
-                allow_javascript_eval : false
-                static_viewer         : true
-                read_only             : true
-            @worksheet = new (sagews.SynchronizedWorksheet)(@history_editor, opts0)
-
-        @slider = @element.find(".salvus-editor-history-slider")
-        @forward_button = @element.find("a[href=#forward]")
-        @back_button = @element.find("a[href=#back]")
-
-        @init_history()
-
-        @diffsync = new syncdoc.DiffSyncDoc
-            cm          : @history_editor.codemirror
-            readonly    : true
-
-        @forward_button.click () =>
-            if @forward_button.hasClass("disabled")
-                return false
-            @slider.slider("option", "value", @revision_num + 1)
-            @goto_revision(@revision_num + 1)
-            return false
-
-        @back_button.click () =>
-            if @back_button.hasClass("disabled")
-                return false
-            @slider.slider("option", "value", @revision_num - 1)
-            @goto_revision(@revision_num - 1)
-            return false
-
-    init_history: () =>
-        @element.find(".editor-btn-group").children().not(".btn-history").hide()
-        @element.find(".salvus-editor-save-group").hide()
-        @element.find(".salvus-editor-chat-title").hide()
-        @element.find(".salvus-editor-history-controls").show()
-        @slider.show()
-        async.series([
-            (cb) =>
-                require('./syncdoc').synchronized_string
-                    project_id : @editor.project_id
-                    filename   : @filename
-                    cb         : (err, doc) =>
-                        @file_history = doc
-                        cb(err)
-            (cb) =>
-                @file_history.on 'sync', () =>
-                    @render_history(false)
-                @render_history(true)
-        ])
-
-    @revision_num = -1
-
-    parse_logstring: (s) =>
-        ##return JSON.parse(s)
-        # In goto_revision below it looks like parse_logstring can get frequently called,
-        # often on the same log entry repeatedly.  So we cache the parsing.
-        obj = @_parse_logstring_cache[s]
-        if obj?
-            return obj
-        try
-            obj = JSON.parse(s)
-            obj.patch = diffsync.decompress_patch_compat(obj.patch)
-        catch e
-            # It's better to do this than have the entire history become completely unusable.
-            # Also, we should always *assume* any file can get corrupted.
-            console.log("ERROR -- corrupt line in history -- '#{s}'")
-            obj = {time:0, patch:[]}
-        @_parse_logstring_cache[s] = obj
-        return obj
-
-    # same as parse_logstring above, but patch is replaced by its inverse
-    parse_logstring_inverse: (s) =>
-        ##obj = JSON.parse(s); diffsync.invert_patch_in_place(obj.patch)
-        ##return obj
-        # In goto_revision below it looks like parse_logstring can get frequently called,
-        # often on the same log entry repeatedly.  So we cache the parsing.
-        obj = @_parse_logstring_inverse_cache[s]
-        if obj?
-            return obj
-        obj = misc.deep_copy(@parse_logstring(s))
-        diffsync.invert_patch_in_place(obj.patch)
-        @_parse_logstring_inverse_cache[s] = obj
-        return obj
-
-    goto_revision: (num) ->
-        #t = misc.mswalltime()
-        @element.find(".salvus-editor-history-revision-number").text("Revision " + num)
-        if num == 0
-            @element.find(".salvus-editor-history-revision-time").text("")
-        else
-            @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
-        if @revision_num - num > 2
-            #console.log("goto_revision #{num} from #{@revision_num}"); t = misc.mswalltime()
-            text = @history_editor.codemirror.getValue()
-            text_old = text
-            #console.log("got value", misc.mswalltime(t)); t = misc.mswalltime()
-            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
-            #console.log("patched text", misc.mswalltime(t)); t = misc.mswalltime()
-            @history_editor.codemirror.setValueNoJump(text)
-            #console.log("changed editor", misc.mswalltime(t)); t = misc.mswalltime()
-        else if @revision_num > num
-            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                @diffsync.patch_in_place(@parse_logstring(patch).patch)
-        else if num - @revision_num > 2
-            text = @history_editor.codemirror.getValue()
-            text_old = text
-            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
-            @history_editor.codemirror.setValueNoJump(text)
-        else
-            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                @diffsync.patch_in_place(@parse_logstring_inverse(patch).patch)
-        @revision_num = num
-        if @revision_num == 0
-            @back_button.addClass("disabled")
-        else
-            @back_button.removeClass("disabled")
-        if @revision_num == @nlines
-            @forward_button.addClass("disabled")
-        else
-            @forward_button.removeClass("disabled")
-
-        @process_view()
-        #console.log("going to revision #{num} took #{misc.mswalltime(t)}ms")
-
-    render_history: (first) =>
-        @log = @file_history.live().split("\n")
-        @nlines = @log.length - 1
-        if first
-            @element.find(".salvus-editor-history-revision-number").text("Revision " + @nlines)
-            if @nlines == 0
-                @element.find(".salvus-editor-history-revision-time").text("")
-                @back_button.addClass("disabled")
-            else
-                @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
-            @history_editor.codemirror.setValue(JSON.parse(@log[0]))
-            @revision_num = @nlines
-            if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
-                @history_editor.codemirror.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
-            @slider.slider
-                animate : false
-                min     : 0
-                max     : @nlines
-                step    : 1
-                value   : @revision_num
-                slide  : (event, ui) =>
-                    @goto_revision(ui.value)
-
-        else
-            @slider.slider
-                max : @nlines
-            @forward_button.removeClass("disabled")
-
-        @process_view()
-
-    process_view: () =>
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
-        else if @ext == 'syncdoc4'
-            # Jupyter notebook history
-            jupyter.process_history_editor(@history_editor.codemirror)
-
-    show: () =>
-        if not @is_active()
-            return
-        @element?.show()
-        @history_editor?.show()
-        if @ext == 'sagews'
-            @worksheet.process_sage_updates()
-
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -3632,7 +3459,7 @@ class Terminal extends FileEditor
 
     remove: () =>
         @element.salvus_console(false)
-        @element.remove()
+        super()
 
     _show: () =>
         if @console?
@@ -3725,14 +3552,16 @@ class StaticHTML extends FileEditor
 class FileEditorWrapper extends FileEditor
     constructor: (@editor, @filename, @content, @opts) ->
         @init_wrapped(@editor, @filename, @content, @opts)
-        @init_autosave()
 
     init_wrapped: () =>
         # Define @element and @wrapped in derived class
         throw Error('must define in derived class')
 
-    save: () =>
-        @wrapped?.save?()
+    save: (cb) =>
+        if @wrapped?.save?
+            @wrapped.save(cb)
+        else
+            cb?()
 
     has_unsaved_changes: (val) =>
         return @wrapped?.has_unsaved_changes?(val)
@@ -3752,7 +3581,7 @@ class FileEditorWrapper extends FileEditor
         @wrapped?.destroy?()
 
     remove: () =>
-        @element?.remove()
+        super()
         @wrapped?.destroy?()
         delete @editor; delete @filename; delete @content; delete @opts
 
@@ -3784,7 +3613,7 @@ class TaskList extends FileEditorWrapper
         @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
         require.ensure [], () =>
             tasks = require('./tasks')
-            elt = tasks.task_list(@editor.project_id, @filename, @)
+            elt = tasks.task_list(@, @filename, {})
             @element.replaceWith(elt)
             @element = elt
             @wrapped = elt.data('task_list')
@@ -3892,7 +3721,7 @@ class Archive extends FileEditorWrapper
 ###
 # Jupyter notebook
 ###
-jupyter = require('./jupyter')
+jupyter = require('./editor_jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
@@ -3903,8 +3732,6 @@ class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
         @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
-
-
 
 #############################################
 # Editor for HTML/Markdown/ReST documents
@@ -3957,7 +3784,7 @@ class HTML_MD_Editor extends FileEditor
         @spell_check()
 
         cm = @cm()
-        cm.on('change', @update_preview)
+        cm.on('change', _.debounce(@update_preview,500))
         #cm.on 'cursorActivity', @update_preview
 
         @init_buttons()
@@ -4027,9 +3854,6 @@ class HTML_MD_Editor extends FileEditor
     forward_search: (cb) =>
 
     action_key: () =>
-
-    remove: () =>
-        @element.remove()
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )

@@ -16,20 +16,10 @@ def cmd(s):
     if os.system(s):
        sys.exit(1)
 
-def create_root_link():
-    root_link = os.path.join(SMC, "root")
-    if not os.path.exists(root_link):
-        try:
-            cmd("cd '%s'; ln -s / root"%SMC)
-        except:
-            print "WARNING: problem making root link"
-
 def started():
     return os.path.exists("%s/local_hub/local_hub.port"%SMC)
 
 def main():
-    create_root_link()
-
     # Start local hub server
     cmd("smc-local-hub start")
 

@@ -105,6 +105,7 @@ exports.compute_server = compute_server = (opts) ->
         database : undefined
         db_name  : 'smc'
         db_hosts : ['localhost']
+        base_url : ''
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
         single   : false          # single -- for single-server use/development; everything runs on a single machine.
         cb       : required
@@ -121,9 +122,11 @@ class ComputeServerClient
             db_hosts : ['localhost']
             dev      : false
             single   : false
+            base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
+        @_base_url = opts.base_url
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
@@ -401,8 +404,8 @@ class ComputeServerClient
                             misc_node.enable_mesg(socket)
                             socket.id = uuid.v4()
                             dbg("successfully connected -- socket #{socket.id}")
-                            socket.on 'close', () =>
-                                dbg("socket #{socket.id} closed")
+                            socket.on 'end', () =>
+                                dbg("socket #{socket.id} ended")
                                 for _, p of @_project_cache
                                     if p._socket_id == socket.id
                                         delete p._socket_id
@@ -1276,7 +1279,10 @@ class ProjectClient extends EventEmitter
                 @open(cb : cb)
             (cb) =>
                 dbg("issuing the start command")
-                @_action(action: "start",  cb: cb)
+                @_action
+                    action : "start"
+                    args   : ['--base_url', @compute_server._base_url]
+                    cb     : cb
             (cb) =>
                 dbg("waiting until running")
                 @wait_for_a_state
@@ -1354,7 +1360,7 @@ class ProjectClient extends EventEmitter
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
-            cb : required   # cb(err, state='opened' or 'running')
+            cb : undefined  # cb(err, state='opened' or 'running')
         state = undefined
         dbg = @dbg("ensure_opened_or_running")
         async.series([
@@ -1378,11 +1384,11 @@ class ProjectClient extends EventEmitter
                                 cb()
                 else
                     cb("bug -- state='#{state}' should be stable but isn't known")
-        ], (err) => opts.cb(err, state))
+        ], (err) => opts.cb?(err, state))
 
     ensure_running: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         state = undefined
         dbg = @dbg("ensure_running")
         async.series([
@@ -1409,11 +1415,11 @@ class ProjectClient extends EventEmitter
                                 f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     ensure_closed: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb     : undefined
         dbg = @dbg("ensure_closed()")
         state = undefined
         async.series([
@@ -1439,7 +1445,7 @@ class ProjectClient extends EventEmitter
                                 f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     # Determine whether or not a storage request is currently running for this project
     is_storage_request_running: () =>
@@ -1581,17 +1587,17 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             action : required
             target : undefined
-            cb     : required
+            cb     : undefined
         m = "_storage_request(action='#{opts.action}'"
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
         if @compute_server.storage_servers.get().size == 0
             dbg('no storage servers -- so all _storage_requests trivially done')
-            opts.cb()
+            opts.cb?()
             return
         if @is_storage_request_running()
-            opts.cb("already doing a storage request")
+            opts.cb?("already doing a storage request")
             return
 
         final_state = fail_state = undefined
@@ -1647,19 +1653,19 @@ class ProjectClient extends EventEmitter
                     state      : final_state
                     cb         : cb
         ], (err) =>
-            opts.cb(err)
+            opts.cb?(err)
         )
 
     save: (opts) =>
         opts = defaults opts,
             min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
-            cb            : required
+            cb            : undefined
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
         @_synctable.connect
             cb : (err) =>
                 if err
-                    opts.cb(err)
+                    opts.cb?(err)
                     return
                 # update @_last_save with value from database (could have been saved by another compute server)
                 s = @_synctable.getIn([@project_id, 'storage', 'saved'])
@@ -1669,7 +1675,7 @@ class ProjectClient extends EventEmitter
                 # Do a client-side test to see if we have saved too recently
                 if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
                     dbg("already saved")
-                    opts.cb("already saved within min_interval")
+                    opts.cb?("already saved within min_interval")
                     return
                 @_last_save = new Date()
                 dbg('doing actual save')
@@ -1685,10 +1691,8 @@ class ProjectClient extends EventEmitter
                     cb     : (err) =>
                         dbg("finished save message to backend: #{err}")
 
-    address: (opts) =>
-        opts = defaults opts,
-            cb : required
-        dbg = @dbg("address")
+    _address: (cb) =>
+        dbg = @dbg("_address")
         dbg("get project location and listening port -- will open and start project if necessary")
         address = undefined
         async.series([
@@ -1696,35 +1700,51 @@ class ProjectClient extends EventEmitter
                 dbg("first ensure project is running")
                 @ensure_running(cb:cb)
             (cb) =>
-                dbg("now get the status")
-                f = (cb) =>
-                    @status
-                        cb : (err, status) =>
-                            if err
-                                cb(err)
+                @status
+                    cb : (err, status) =>
+                        if err
+                            cb(err)
+                        else
+                            if status.state != 'running'
+                                dbg("something went wrong and not running ?! -- status=#{misc.to_json(status)}")
+                                cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
-                                if status.state != 'running'
-                                    dbg("something went wrong and not running ?! -- status=#{misc.to_json(status)}")
-                                    cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
-                                else
-                                    dbg("status includes info about address...")
-                                    address =
-                                        host         : @host
-                                        port         : status['local_hub.port']
-                                        secret_token : status.secret_token
-                                    cb()
-                # we do this since state = running doesn't instantly imply status.state == running
-                misc.retry_until_success
-                    f : f
-                    start_delay : 3000
-                    max_time    : 20000
-                    cb : cb
+                                dbg("status includes info about address...")
+                                address =
+                                    host         : @host
+                                    port         : status['local_hub.port']
+                                    secret_token : status.secret_token
+                                cb()
         ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, address)
+            cb(err, address)
         )
+
+    # This will keep trying for up to an hour to get the address, with exponential
+    # decay backing off up to 15s between attempts.
+    address: (opts) =>
+        opts = defaults opts,
+            cb : required
+        if @_address_cbs?
+            @_address_cbs.push(opts.cb)
+            return
+        @_address_cbs = [opts.cb]
+        dbg = @dbg("address")
+        dbg()
+        address = undefined
+        misc.retry_until_success
+            f           : (cb) =>
+                @_address (err, x) =>
+                    address = x
+                    cb(err)
+            start_delay : 3000
+            max_delay   : 15000
+            max_time    : 3600*1000
+            cb          : (err) =>
+                if not address and not err
+                    err = "failed to get address"
+                for cb in @_address_cbs
+                    cb(err, address)
+                delete @_address_cbs
 
     copy_path: (opts) =>
         opts = defaults opts,

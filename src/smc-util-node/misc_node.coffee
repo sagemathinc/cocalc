@@ -115,7 +115,8 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                     when 'j'   # JSON
                         s = mesg.toString()
                         try
-                            obj = JSON.parse(s)
+                            # Do not use "obj = JSON.parse(s)"
+                            obj = misc.from_json(s)  # this also parses iso Dates
                         catch e
                             winston.debug("Error parsing JSON message='#{misc.trunc(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
@@ -280,9 +281,66 @@ exports.connect_to_locked_socket = (opts) ->
         cb?(err)
         cb = undefined
 
+
+# Connect two sockets together.
+# If max_burst is optionally given, then parts of a big burst of data
+# from s2 will be replaced by '[...]'.
+exports.plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
+    last_tm = misc.mswalltime()
+    last_data = ''
+    amount  = 0
+    # Connect the sockets together.
+    s1_data = (data) ->
+        if not s2.writable
+            s1.removeListener('data', s1_data)
+        else
+            s2.write(data)
+    s2_data = (data) ->
+        if not s1.writable
+            s2.removeListener('data', s2_data)
+        else
+            if max_burst?
+                tm = misc.mswalltime()
+                if tm - last_tm >= 20
+                    if amount < 0 # was truncating
+                        try
+                            x = last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4)))
+                        catch e
+                            # I don't know why the above sometimes causes an exception, but it *does* in
+                            # Buffer.slice, which is a serious problem.   Best to ignore that data.
+                            x = ''
+                        data = "]" + x + data
+                    #console.log("max_burst: reset")
+                    amount = 0
+                last_tm = tm
+                #console.log("max_burst: amount=#{amount}")
+                if amount >= max_burst
+                    last_data = data
+                    data = data.slice(0,Math.floor(max_burst/4)) + "[..."
+                    amount = -1 # so do only once every 20ms.
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else if amount < 0
+                    last_data += data
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else
+                    amount += data.length
+                # Never push more than max_burst characters at once to hub, since that could overwhelm
+            s1.write(data)
+    s1.on('data', s1_data)
+    s2.on('data', s2_data)
+
+###
+sha1 hash functionality
+###
+
 crypto = require('crypto')
 # compute sha1 hash of data in hex
 exports.sha1 = (data) ->
+    if typeof(data) == 'string'
+        # CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
+        # the wrong result where wrong means that it doesn't agree with the frontend version defined
+        # in misc.
+        data = new Buffer(data)
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')
@@ -682,7 +740,21 @@ exports.forward_remote_port_to_localhost = (opts) ->
             clearInterval(kill_no_activity_timer)
 
 
-
+exports.process_kill = (pid, signal) ->
+    switch signal
+        when 2
+            signal = 'SIGINT'
+        when 3
+            signal = 'SIGQUIT'
+        when 9
+            signal = 'SIGKILL'
+        else
+            winston.debug("BUG -- process_kill: only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
+            return
+    try
+        process.kill(pid, signal)
+    catch e
+        # it's normal to get an exception when sending a signal... to a process that doesn't exist.
 
 
 # Any non-absolute path is assumed to be relative to the user's home directory.
@@ -695,6 +767,8 @@ exports.abspath = abspath = (path) ->
     p = process.env.HOME + '/' + path
     p = p.replace(/\/\.\//g,'/')    # get rid of /./, which is the same as /...
     return p
+
+
 
 # Other path related functions...
 

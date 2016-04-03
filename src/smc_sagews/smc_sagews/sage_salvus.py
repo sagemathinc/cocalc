@@ -2462,16 +2462,12 @@ except:
 def auto(s):
     """
     The %auto decorator sets a cell so that it will be automatically
-    executed when the Sage process first starts.
+    executed when the Sage process first starts.  Make it the first
+    line of a cell.
 
     Thus %auto allows you to initialize functions, variables, interacts,
     etc., e.g., when loading a worksheet.
-
-    NOTE: The %auto decorator just calls salvus.auto(True), which sets
-    a cell metatag.  You *must* execute the cell containing %auto at
-    least once in order for it to work.
     """
-    salvus.auto(True)
     return s # the do-nothing block decorator.
 
 def hide(component='input'):

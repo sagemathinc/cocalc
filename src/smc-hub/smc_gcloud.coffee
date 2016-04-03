@@ -1114,15 +1114,15 @@ class VM_Manager
             delete @_instances_table
 
     ###
-    vms()
-    vms.request(name:'compute8-us',status:'TERMINATED',cb:done()) 
+    require 'c'; vms()
+    vms.request(name:'compute8-us', status:'RUNNING', preemtible:true, cb:done())
+    vms.request(name:'compute8-us',status:'TERMINATED',cb:done())
     ###
-
     request: (opts) =>
         opts = defaults opts,
             name        : required
             status      : undefined   # 'RUNNING', 'TERMINATED'
-            preemptible : undefined # true or false
+            preemptible : undefined   # true or false
             cb          : undefined
         obj = {}
         if opts.status?
