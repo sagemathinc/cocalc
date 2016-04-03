@@ -104,7 +104,7 @@ class exports.Support
             username      : undefined
             subject       : required  # like an email subject
             body          : required  # html or md formatted text
-            tags          : undefined # e.g. [ 'member' ]
+            tags          : undefined
             account_id    : undefined
             project_id    : undefined
             filepath      : undefined # path to file (together with project_id → full URL)
@@ -131,7 +131,7 @@ class exports.Support
                 # manage custom_fields here: https://sagemathcloud.zendesk.com/agent/admin/user_fields
                 custom_fields:
                     subscription : null
-                    type         : null # student, member, ...
+                    type         : null
 
         # below the body message, add a link to the project + filepath
         # TODO fix hardcoded URL
@@ -154,7 +154,6 @@ class exports.Support
             custom_fields.info = JSON.stringify(opts.info)
 
         tags = opts.tags ? []
-        tags.push(if opts.subcriber then 'member' else 'free')
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =

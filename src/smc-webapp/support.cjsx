@@ -1,0 +1,339 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+underscore = require('underscore')
+{React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux}  = require('./smc-react')
+{Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
+{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
+misc            = require('smc-util/misc')
+misc_page       = require('./misc_page')
+{top_navbar}    = require('./top_navbar')
+{salvus_client} = require('./salvus_client')
+{HelpEmailLink, SiteName} = require('./customize')
+
+class SupportStore extends Store
+
+
+class SupportActions extends Actions
+
+    get_store: =>
+        return @redux.getStore('support')
+
+    show: (show) =>
+        if show
+            @set_email_address()
+        @setState
+            show     : show
+
+    new_ticket: () =>
+        @setState
+            state: ''
+
+    set_email_address: () =>
+        account  = @redux.getStore('account')
+        @setState(email: account.get_email_address())
+
+    process_support: (err, url) =>
+        # console.log("callback process_support:", err, url)
+        if not err
+            @setState
+                subject  : ''
+                body     : ''
+                url      : url
+        @setState
+            state  : if err then 'error' else 'created'
+            err    : err
+
+    project_id : ->
+        return top_navbar.current_page_id
+
+    project_title : ->
+        return redux.getStore("projects").get_title(@project_id())
+
+    support: () =>
+        store    = @get_store()
+        account  = @redux.getStore('account')
+
+        tags = []
+        # TODO use this to add 'member' or 'free'
+        account.get_total_upgrades()
+        # tags.push(if TEST then 'member' else 'free')
+
+        @setState
+            state   : 'creating'
+
+        salvus_client.create_support_ticket
+            opts:
+                username     : account.get_fullname()
+                email_address: account.get_email_address()
+                subject      : store.get('subject')
+                body         : store.get('body') # TODO markdown2html
+                tags         : tags
+                project_id   : @project_id
+                filepath     : store.get('filepath')
+                info         : undefined # additional data dict, like browser/OS
+            cb : @process_support
+
+
+
+
+SupportInfo = rclass
+    displayName : 'Support-info'
+
+    propTypes :
+        actions      : rtypes.object.isRequired
+        state        : rtypes.string.isRequired
+        url          : rtypes.string.isRequired
+        err          : rtypes.string.isRequired
+        filepath     : rtypes.string.isRequired
+        email        : rtypes.string.isRequired
+        show_form    : rtypes.bool.isRequired
+        new          : rtypes.func.isRequired
+
+    error : () ->
+        <div style={fontWeight:'bold', fontSize: '120%'}>
+            Sorry, there has been an error creating the ticket.
+            Please email <HelpEmailLink /> directly!
+            <pre>{"ERROR: "} {@props.err}</pre>
+        </div>
+
+    created : () ->
+        if @props.url?.length > 1
+            url = <a href={@props.url} target='_blank'>{@props.url}</a>
+        else
+            url = 'no ticket'
+        <div style={textAlign:'center'}>
+          <p>
+              Ticket has been created successfully.
+              Save this link for future reference:
+          </p>
+          <p style={fontSize:'120%'}>{url}</p>
+          <Button bsStyle='success'
+              style={marginTop:'3em'}
+              onClick={@props.new}>Create New Ticket</Button>
+       </div>
+
+    default : () ->
+        if @props.filepath? and @props.filepath.length > 0
+            what = ["file ", <code key={1}>{@props.filepath}</code>]
+        else
+            what = "current project \"#{@props.actions.project_title()}\""
+        <div>
+            <p>
+                You have a problem in the {what}?
+                Tell us about it by creating a support ticket.
+            </p>
+            <p>
+                After successfully submitting it,
+                you{"'"}ll receive a ticket number and a link to the ticket.
+                Keep it to stay in contact with us!
+            </p>
+        </div>
+
+    render : ->
+        if not @props.email?
+            return <p>To get support, you have to specify a valid email address in your account first!</p>
+        else
+            switch @props.state
+                when 'error'
+                    return @error()
+                when 'creating'
+                    return <Loading />
+                when 'created'
+                    return @created()
+                else
+                    return @default()
+
+SupportFooter = rclass
+    displayName : 'Support-footer'
+
+    propTypes :
+        close    : rtypes.func.isRequired
+        submit   : rtypes.func.isRequired
+        show_form: rtypes.bool.isRequired
+        valid    : rtypes.bool.isRequired
+
+    render : ->
+        if @props.show_form
+            btn = <Button bsStyle='primary'
+                          onClick={@props.submit}
+                          disabled={not @props.valid}>
+                       <Icon name='medkit' /> Get Support
+                   </Button>
+        else
+            btn = <span/>
+
+        <Modal.Footer>
+            <Button bsStyle='default' onClick={@props.close}>Close</Button>
+            {btn}
+        </Modal.Footer>
+
+SupportForm = rclass
+    displayName : 'Support-form'
+
+    getDefaultProps : ->
+        show        : true
+
+    propTypes :
+        body    : rtypes.string.isRequired
+        subject : rtypes.string.isRequired
+        show    : rtypes.bool.isRequired
+        submit  : rtypes.func.isRequired
+        actions : rtypes.object.isRequired
+
+    handle_change : ->
+        @props.actions.setState(body     : @refs.body.getValue())
+        @props.actions.setState(subject  : @refs.subject.getValue())
+
+    render : ->
+        if @props.show
+            <form onSubmit={@props.submit}>
+                <Input
+                    ref         = 'subject'
+                    autoFocus
+                    type        = 'text'
+                    placeholder = "Subject ..."
+                    value       = {@props.subject}
+                    onChange    = {@handle_change} />
+                <Input
+                    ref         = 'body'
+                    type        = 'textarea'
+                    placeholder = 'Describe the problem ...'
+                    rows        = 6
+                    value       = {@props.body}
+                    onChange    = {@handle_change} />
+            </form>
+        else
+            <div />
+
+
+Support = rclass
+    displayName : 'Support-main'
+
+    mixins: [ImmutablePureRenderMixin]
+
+    propTypes :
+        actions : rtypes.object.isRequired
+
+    getDefaultProps : ->
+        show        : false
+        email       : ''
+        subject     : ''
+        body        : ''
+        state       : ''
+        url         : ''
+        err         : ''
+        filepath    : ''
+
+    reduxProps :
+        support:
+            show         : rtypes.bool
+            email        : rtypes.string
+            subject      : rtypes.string
+            body         : rtypes.string
+            state        : rtypes.string # '' ←→ {creating → created|error}
+            url          : rtypes.string
+            err          : rtypes.string
+            filepath     : rtypes.string
+
+    open : ->
+        @props.actions.show(true)
+
+    close : ->
+        @props.actions.show(false)
+
+    submit : (event) ->
+        event.preventDefault()
+        @props.actions.support()
+
+    new : (event) ->
+        @props.actions.new_ticket()
+
+    valid : () ->
+        s = @props.subject.trim() isnt ''
+        b = @props.body.trim() isnt ''
+        return s and b
+
+    render : () ->
+        show_form = false
+
+        if @props.email?
+            if (not @props.state?) or @props.state == ''
+                show_form = true
+
+        <Modal show={@props.show} onHide={@close}>
+            <Modal.Header closeButton>
+                <Modal.Title>Support Ticket</Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+                <SupportInfo
+                    actions   = {@props.actions}
+                    state     = {@props.state}
+                    url       = {@props.url}
+                    err       = {@props.err}
+                    filepath  = {@props.filepath}
+                    email     = {@props.email}
+                    new       = {=> @new()}
+                    show_form = {show_form} />
+                <SupportForm
+                    email   = {@props.email}
+                    subject = {@props.subject}
+                    body    = {@props.body}
+                    show    = {show_form}
+                    submit  = {(e) => @submit(e)}
+                    actions = {@props.actions} />
+            </Modal.Body>
+
+            <SupportFooter
+                    show_form       = {show_form}
+                    close           = {=> @close()}
+                    submit          = {(e) => @submit(e)}
+                    valid           = {@valid()} />
+        </Modal>
+
+render = (redux) ->
+    store   = redux.getStore('support')
+    actions = redux.getActions('support')
+
+    <Redux redux={redux}>
+        <Support actions = {actions} />
+    </Redux>
+
+render_project_support = (dom_node, redux) ->
+    ReactDOM.render(render(redux), dom_node)
+
+unmount = unmount = (dom_node) ->
+    ReactDOM.unmountComponentAtNode(dom_node)
+
+init_redux = (redux) ->
+    if not redux.getActions('support')?
+        redux.createActions('support', SupportActions)
+        redux.createStore('support', SupportStore, {})
+init_redux(redux)
+
+# hooking this up to the website
+$support = $('#smc-top_navbar-support')
+$targ = $support.find('.react-target')
+render_project_support($targ[0], redux)
+$support.find("a").click () ->
+    # path = that.editor?.active_tab?.filename ? ''
+    redux.getActions('support').show(true)

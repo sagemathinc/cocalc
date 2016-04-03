@@ -255,23 +255,15 @@ class ProjectPage
             t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
             name = target
 
-            if name != 'project-support'
-                tab = {label:t, name:name, target:@container.find(".#{name}")}
-                @tabs.push(tab)
+            tab = {label:t, name:name, target:@container.find(".#{name}")}
+            @tabs.push(tab)
 
-                t.find("a").data('item',t).click () ->
-                    link = $(@)
-                    if link.data('item').hasClass('disabled')
-                        return false
-                    that.display_tab(link.data("target"))
+            t.find("a").data('item',t).click () ->
+                link = $(@)
+                if link.data('item').hasClass('disabled')
                     return false
-            else
-                $targ = that.container.find('.project-support-react-target')
-                project_id = that.project.project_id
-                require('./project_support').render_project_support(project_id, $targ[0], redux)
-                t.find("a").click () ->
-                    path = that.editor?.active_tab?.filename ? ''
-                    that.actions.show_support_dialog(true, path)
+                that.display_tab(link.data("target"))
+                return false
 
             if name == "project-file-listing"
                 tab.onshow = () ->

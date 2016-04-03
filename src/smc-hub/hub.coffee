@@ -1634,18 +1634,14 @@ class Client extends EventEmitter
             @error_to_client(id:id, error:err)
             return
 
-        @stripe_get_customer_id mesg.id, (err, customer_id) =>
-            stripe.customers.listSubscriptions customer_id, {}, (err, subscriptions) =>
-                #dbg("subscriptions: #{misc.to_json(subscriptions)}")
-                m = underscore.omit(mesg, 'id', 'event')
-                m.subscriber = subscriptions? and subscriptions.length > 0
-                support.create_ticket m, (err, url) =>
-                    dbg("callback being called with #{err} and url: #{url}")
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(
-                            message.support_ticket_url(id:mesg.id, url: url))
+        m = underscore.omit(mesg, 'id', 'event')
+        support.create_ticket m, (err, url) =>
+            dbg("callback being called with #{err} and url: #{url}")
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(
+                    message.support_ticket_url(id:mesg.id, url: url))
 
     ######################################################
     #Stripe-integration billing code

@@ -650,56 +650,6 @@ class ProjectActions extends Actions
                 cb?(err)
 
     ###
-    # Actions for SUPPORT
-    ###
-
-    show_support_dialog: (show, filepath = '') =>
-        if show
-            @set_has_email_address()
-        @setState
-            support_show     : show
-            support_filepath : filepath
-
-    support_new_ticket: () =>
-        @setState
-            support_state: ''
-
-    set_has_email_address: () =>
-        account  = @redux.getStore('account')
-        email = account.get_email_address()
-        @setState(support_has_email: email? and misc.is_valid_email_address(email))
-
-    process_support: (err, url) =>
-        # console.log("callback process_support:", err, url)
-        if not err
-            @setState
-                support_subject  : ''
-                support_body     : ''
-                support_url      : url
-        @setState
-            support_state  : if err then 'error' else 'created'
-            support_err    : err
-
-    support: () =>
-        store    = @get_store()
-        account  = @redux.getStore('account')
-
-        @setState
-            support_state   : 'creating'
-
-        salvus_client.create_support_ticket
-            opts:
-                username     : account.get_fullname()
-                email_address: account.get_email_address()
-                subject      : store.get('support_subject')
-                body         : store.get('support_body') # TODO markdown2html
-                tags         : undefined # e.g. ['member']
-                project_id   : @project_id
-                filepath     : store.get('support_filepath')
-                info         : undefined # additional data dict, like browser/OS
-            cb : @process_support
-
-    ###
     # Actions for PUBLIC PATHS
     ###
     set_public_path: (path, description) =>
