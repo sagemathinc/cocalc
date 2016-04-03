@@ -1113,6 +1113,11 @@ class VM_Manager
             @_instances_table.close()
             delete @_instances_table
 
+    ###
+    vms()
+    vms.request(name:'compute8-us',status:'TERMINATED',cb:done()) 
+    ###
+
     request: (opts) =>
         opts = defaults opts,
             name        : required
