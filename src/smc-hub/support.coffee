@@ -98,7 +98,7 @@ class exports.Support
 
     # mapping of incoming data from SMC to the API of Zendesk
     # https://developer.zendesk.com/rest_api/docs/core/tickets#create-ticket
-    create_ticket: (opts, cb) ->
+    create_ticket: (opts, @cb) ->
         opts = defaults opts,
             email_address : required  # if there is no email_address in the account, there can't be a ticket!
             username      : undefined
@@ -108,8 +108,8 @@ class exports.Support
             account_id    : undefined
             project_id    : undefined
             filepath      : undefined # path to file (together with project_id → full URL)
+            subscriber    : false
             info          : undefined # additional data dict, like browser/OS
-        @cb = cb
 
         dbg = @dbg("create_ticket")
         # dbg("opts = #{misc.to_json(opts)}")
@@ -153,13 +153,16 @@ class exports.Support
         if opts.info?
             custom_fields.info = JSON.stringify(opts.info)
 
+        tags = opts.tags ? []
+        tags.push(if opts.subcriber then 'member' else 'free')
+
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =
             ticket:
                 subject: opts.subject
                 comment:
                     body: body
-                tags : opts.tags ? []
+                tags : tags
                 type: "problem"
                 custom_fields: custom_fields
 
@@ -203,7 +206,7 @@ class exports.Support
             if err
                 @cb?(err)
             else
-                url = "https://sagemathcloud.zendesk.com/agent/tickets/#{ticket_id}"
+                url = "https://sagemathcloud.zendesk.com/requests/#{ticket_id}"
                 @cb?(null, url)
         )
 

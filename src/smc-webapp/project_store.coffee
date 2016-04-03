@@ -653,37 +653,49 @@ class ProjectActions extends Actions
     # Actions for SUPPORT
     ###
 
+    show_support_dialog: (show, filepath = '') =>
+        if show
+            @set_has_email_address()
+        @setState
+            support_show     : show
+            support_filepath : filepath
+
+    support_new_ticket: () =>
+        @setState
+            support_state: ''
+
+    set_has_email_address: () =>
+        account  = @redux.getStore('account')
+        email = account.get_email_address()
+        @setState(support_has_email: email? and email.length > 0)
+
     process_support: (err, url) =>
         # console.log("callback process_support:", err, url)
-        if err
-            msg = 'error creating ticket: #{err}'
-        else
-            msg = 'ticket created successfully!'
+        if not err
             @setState
-                subject  : ''
-                body     : ''
+                support_subject  : ''
+                support_body     : ''
+                support_url      : url
         @setState
-            status : msg
-            url    : url
-            error  : err?
+            support_state  : if err then 'error' else 'created'
+            support_err    : err
 
-    support: (filepath) =>
+    support: () =>
         store    = @get_store()
         account  = @redux.getStore('account')
 
         @setState
-            status   : 'creating ticket ...'
+            support_state   : 'creating'
 
         salvus_client.create_support_ticket
             opts:
                 username     : account.get_fullname()
                 email_address: account.get_email_address()
-                subject      : store.get('subject')
-                body         : store.get('body') # TODO markdown2html
+                subject      : store.get('support_subject')
+                body         : store.get('support_body') # TODO markdown2html
                 tags         : undefined # e.g. ['member']
-                account_id   : account.get_account_id()
                 project_id   : @project_id
-                filepath     : filepath
+                filepath     : store.get('support_filepath')
                 info         : undefined # additional data dict, like browser/OS
             cb : @process_support
 

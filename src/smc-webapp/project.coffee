@@ -254,15 +254,24 @@ class ProjectPage
 
             t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
             name = target
-            tab = {label:t, name:name, target:@container.find(".#{name}")}
-            @tabs.push(tab)
 
-            t.find("a").data('item',t).click () ->
-                link = $(@)
-                if link.data('item').hasClass('disabled')
+            if name != 'project-support'
+                tab = {label:t, name:name, target:@container.find(".#{name}")}
+                @tabs.push(tab)
+
+                t.find("a").data('item',t).click () ->
+                    link = $(@)
+                    if link.data('item').hasClass('disabled')
+                        return false
+                    that.display_tab(link.data("target"))
                     return false
-                that.display_tab(link.data("target"))
-                return false
+            else
+                $targ = that.container.find('.project-support-react-target')
+                project_id = that.project.project_id
+                require('./project_support').render_project_support(project_id, $targ[0], redux)
+                t.find("a").click () ->
+                    path = that.editor?.active_tab?.filename ? ''
+                    that.actions.show_support_dialog(true, path)
 
             if name == "project-file-listing"
                 tab.onshow = () ->
@@ -316,11 +325,6 @@ class ProjectPage
                     that.container.find(".project-search-form-input").focus()
                 tab.onblur = ->
                     require('./project_search').unmount(that.container.find(".smc-react-project-search")[0])
-
-        if not @public_access
-            $support = @container.find('.project-pages > .project-support-menu-item')
-            path = that.editor?.active_tab?.filename ? ''
-            require('./project_support').render_project_support(that.project.project_id, path, $support[0], redux)
 
         for item in @container.find(".file-pages").children()
             t = $(item)
