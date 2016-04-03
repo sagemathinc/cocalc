@@ -57,7 +57,7 @@ class exports.Support
                                 cb(null, creds[0], creds[1])
                     else
                         dbg("no password file found at #{password_file}")
-                        cb(null, null)
+                        cb(null, null, null)
 
             (username, password, cb) =>
                 if username? and password?
@@ -115,7 +115,7 @@ class exports.Support
         # dbg("opts = #{misc.to_json(opts)}")
 
         if not @_zd?
-            err = "no zendesk instance available -- abort"
+            err = "zendesk not available -- abort"
             dbg(err)
             opts.cb?(err)
             return

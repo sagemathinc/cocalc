@@ -31,6 +31,29 @@ misc_page       = require('./misc_page')
 {HelpEmailLink, SiteName} = require('./customize')
 {PathLink} = require('./project_new')
 
+ProjectSupportFooter = rclass
+    displayName : 'ProjectSupport-footer'
+
+    propTypes :
+        close    : rtypes.func.isRequired
+        submit   : rtypes.func.isRequired
+        show_form: rtypes.bool.isRequired
+        valid    : rtypes.bool.isRequired
+
+    render : ->
+        if @props.show_form
+            btn = <Button bsStyle='primary'
+                          onClick={@props.submit}
+                          disabled={not @props.valid}>
+                       <Icon name='medkit' /> Get Support
+                   </Button>
+        else
+            btn = <span/>
+
+        <Modal.Footer>
+            <Button bsStyle='default' onClick={@props.close}>Close</Button>
+            {btn}
+        </Modal.Footer>
 
 ProjectSupportForm = rclass
     displayName : 'ProjectSupport-form'
@@ -147,15 +170,15 @@ ProjectSupport = (name) -> rclass
                 when 'created'
                     show_form = false
                     info = <div style={textAlign:'center'}>
-                        <p>
-                            Ticket has been created successfully.
-                            Save this link for future reference:
-                        </p>
-                        <p style={fontSize:'120%'}>{url}</p>
-                        <Button style={marginTop:'3em'}
-                                bsStyle='info'
-                                onClick={@new}>Create New Ticket</Button>
-                    </div>
+                              <p>
+                                  Ticket has been created successfully.
+                                  Save this link for future reference:
+                              </p>
+                              <p style={fontSize:'120%'}>{url}</p>
+                              <Button bsStyle='info'
+                                  style={marginTop:'3em'}
+                                  onClick={@new}>Create New Ticket</Button>
+                           </div>
 
                 else
                     if @props.support_filepath? and @props.support_filepath.length > 0
@@ -185,16 +208,16 @@ ProjectSupport = (name) -> rclass
                     support_subject = {@props.support_subject}
                     support_body    = {@props.support_body}
                     show            = {show_form}
-                    submit          = {=> @props.submit()}
+                    submit          = {(e) => @submit(e)}
                     actions         = {@props.actions} />
             </Modal.Body>
 
-            <Modal.Footer>
-                <Button bsStyle='default' onClick={@close}>Close</Button>
-                {<Button bsStyle='primary' onClick={@submit} disabled={not @valid()}>
-                    <Icon name='medkit' /> Get Support
-                </Button> if show_form}
-            </Modal.Footer>
+            <ProjectSupportFooter
+                    show_form       = {show_form}
+                    close           = {=> @close()}
+                    submit          = {(e) => @submit(e)}
+                    valid           = {@valid()}
+            />
         </Modal>
 
 render = (project_id, redux) ->
