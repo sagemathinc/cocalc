@@ -31,7 +31,8 @@ def gen_haproxy():
             i = x.find('#')
             t = x[:i] + x[i+1:]
             for h in hosts:
-                v.append(t.replace('web0', h))
+                n = h[3:]
+                v.append(t.replace('web0',h).replace('nginx0','nginx'+n).replace('proxy0','proxy'+n).replace('hub0','hub'+n))
         else:
             v.append(x)
     # write out our new haproxy config file
