@@ -3247,7 +3247,7 @@ SharedProject = rclass
                     You created a common shared project, which everybody -- students and all collaborators
                     on this project (your TAs and other instructors) -- have <b>write</b> access to.  Use
                     this project for collaborative in-class labs, course-wide chat rooms, and making
-                    miscellanous materials available for
+                    miscellaneous materials available for
                     students to experiment with together.
                 </p>
                 <p>
