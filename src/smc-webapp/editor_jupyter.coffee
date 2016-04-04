@@ -138,7 +138,7 @@ class JupyterWrapper extends EventEmitter
         # wait until connected -- iT is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
-        max_time_ms = 15*1000 # try for up to 15s
+        max_time_ms = 20*1000 # try for up to 20s
         f = () =>
             @frame ?= window.frames[@iframe_uuid]
             if not @frame
@@ -173,13 +173,11 @@ class JupyterWrapper extends EventEmitter
                         @dirty_interval = setInterval(@check_dirty, 250)
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
-                    f = () =>
-                        @monkey_patch_frame()
-                        @disable_autosave()
-                        @state = 'ready'
-                        @emit('ready')
-                        cb()
-                    setTimeout(f, 1000)  # give it a second "for luck"
+                    @monkey_patch_frame()
+                    @disable_autosave()
+                    @state = 'ready'
+                    @emit('ready')
+                    cb()
                 else
                     # not yet connected, so try again shortly
                     setTimeout(f, 250)
