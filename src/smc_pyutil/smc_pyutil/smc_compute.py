@@ -36,7 +36,7 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+import errno, hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
 
 from subprocess import Popen, PIPE
 
