@@ -20,7 +20,7 @@
 ###############################################################################
 
 underscore = require('underscore')
-{React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
@@ -35,11 +35,14 @@ class SupportStore extends Store
 class SupportActions extends Actions
 
     get_store: =>
-        return @redux.getStore('support')
+        @redux.getStore('support')
+
+    get: (key) =>
+        @get_store().get(key)
 
     show: (show) =>
         if show
-            @set_email_address()
+            @init_email_address()
         @setState
             show     : show
 
@@ -47,9 +50,23 @@ class SupportActions extends Actions
         @setState
             state: ''
 
-    set_email_address: () =>
+    init_email_address: () =>
         account  = @redux.getStore('account')
-        @setState(email: account.get_email_address())
+        email    = account.get_email_address()
+        @set_email(email)
+
+    set_email: (email) =>
+        @setState(email: email)
+        if misc.is_valid_email_address(email)
+            @setState(email_err : null)
+        else
+            @setState(email_err : "Email address invalid!")
+
+    valid: () =>
+        s = @get('subject')?.trim() isnt ''
+        b = @get('body')?.trim() isnt ''
+        e = not @get('email_err')?
+        return s and b and e
 
     process_support: (err, url) =>
         # console.log("callback process_support:", err, url)
@@ -191,38 +208,60 @@ SupportForm = rclass
 
     getDefaultProps : ->
         show        : true
+        email_err   : ''
 
     propTypes :
-        body    : rtypes.string.isRequired
-        subject : rtypes.string.isRequired
-        show    : rtypes.bool.isRequired
-        submit  : rtypes.func.isRequired
-        actions : rtypes.object.isRequired
+        email     : rtypes.string.isRequired
+        email_err : rtypes.string.isRequired
+        subject   : rtypes.string.isRequired
+        body      : rtypes.string.isRequired
+        show      : rtypes.bool.isRequired
+        submit    : rtypes.func.isRequired
+        actions   : rtypes.object.isRequired
 
-    handle_change : ->
-        @props.actions.setState(body     : @refs.body.getValue())
-        @props.actions.setState(subject  : @refs.subject.getValue())
+    email_change  : ->
+        @props.actions.set_email(@refs.email.getValue())
+
+    data_change : ->
+        @props.actions.setState
+            body     : @refs.body.getValue()
+            subject  : @refs.subject.getValue()
 
     render : ->
-        if @props.show
-            <form onSubmit={@props.submit}>
-                <Input
-                    ref         = 'subject'
-                    autoFocus
-                    type        = 'text'
-                    placeholder = "Subject ..."
-                    value       = {@props.subject}
-                    onChange    = {@handle_change} />
-                <Input
-                    ref         = 'body'
-                    type        = 'textarea'
-                    placeholder = 'Describe the problem ...'
-                    rows        = 6
-                    value       = {@props.body}
-                    onChange    = {@handle_change} />
-            </form>
-        else
-            <div />
+        if not @props.show
+            return <div />
+
+        alert = if @props.email_err?.length > 0
+            <Alert bsStyle='danger'>
+                 <div>{@props.email_err}</div>
+            </Alert>
+
+        <form>
+            {alert if alert?}
+            <Input
+                label       = 'You email address'
+                ref         = 'email'
+                type        = 'text'
+                placeholder = 'your_email@address.com'
+                bsStyle     = {if ee? then 'warning'}
+                value       = {@props.email}
+                onChange    = {@email_change} />
+            <Input
+                ref         = 'subject'
+                autoFocus
+                type        = 'text'
+                label       = 'Message'
+                placeholder = "Subject ..."
+                value       = {@props.subject}
+                onChange    = {@data_change} />
+            <Input
+                ref         = 'body'
+                type        = 'textarea'
+                placeholder = 'Describe the problem ...'
+                rows        = 6
+                value       = {@props.body}
+                onChange    = {@data_change} />
+        </form>
 
 
 Support = rclass
@@ -241,6 +280,7 @@ Support = rclass
         state       : ''
         url         : ''
         err         : ''
+        email_err   : ''
         filepath    : ''
 
     reduxProps :
@@ -252,6 +292,7 @@ Support = rclass
             state        : rtypes.string # '' ←→ {creating → created|error}
             url          : rtypes.string
             err          : rtypes.string
+            email_err    : rtypes.string
             filepath     : rtypes.string
 
     open : ->
@@ -268,16 +309,13 @@ Support = rclass
         @props.actions.new_ticket()
 
     valid : () ->
-        s = @props.subject.trim() isnt ''
-        b = @props.body.trim() isnt ''
-        return s and b
+        @props.actions.valid()
 
     render : () ->
         show_form = false
 
-        if @props.email?
-            if (not @props.state?) or @props.state == ''
-                show_form = true
+        if (not @props.state?) or @props.state == ''
+            show_form = true
 
         <Modal show={@props.show} onHide={@close}>
             <Modal.Header closeButton>
@@ -295,12 +333,13 @@ Support = rclass
                     new       = {=> @new()}
                     show_form = {show_form} />
                 <SupportForm
-                    email   = {@props.email}
-                    subject = {@props.subject}
-                    body    = {@props.body}
-                    show    = {show_form}
-                    submit  = {(e) => @submit(e)}
-                    actions = {@props.actions} />
+                    email     = {@props.email}
+                    email_err = {@props.email_err}
+                    subject   = {@props.subject}
+                    body      = {@props.body}
+                    show      = {show_form}
+                    submit    = {(e) => @submit(e)}
+                    actions   = {@props.actions} />
             </Modal.Body>
 
             <SupportFooter

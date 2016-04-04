@@ -23,8 +23,6 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-underscore = require 'underscore'
-
 async       = require('async')
 
 syncstring = require('./syncstring')
