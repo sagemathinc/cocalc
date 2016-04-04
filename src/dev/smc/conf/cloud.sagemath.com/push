@@ -1,1 +1,0 @@
-scp haproxy.cfg web0:/tmp/; scp haproxy.cfg web1:/tmp/; scp haproxy.cfg web2:/tmp/
