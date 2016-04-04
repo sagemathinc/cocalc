@@ -138,13 +138,14 @@ class JupyterWrapper extends EventEmitter
         # wait until connected -- iT is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
-        max_time_ms = 30*1000 # try for up to 30s
+        max_time_ms = 15*1000 # try for up to 15s
         f = () =>
             @frame ?= window.frames[@iframe_uuid]
             if not @frame
                 setTimeout(f, 250)
                 return
-            if new Date() - start >= max_time_ms
+            innerHTML = @frame?.document?.body?.innerHTML
+            if (new Date() - start >= max_time_ms) or (innerHTML? and innerHTML.indexOf('<h1>504 Gateway Time-out</h1>') != -1)
                 @state = 'error'
                 @error = 'timeout loading'
                 cb(@error)
@@ -172,11 +173,13 @@ class JupyterWrapper extends EventEmitter
                         @dirty_interval = setInterval(@check_dirty, 250)
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
-                    @monkey_patch_frame()
-                    @disable_autosave()
-                    @state = 'ready'
-                    @emit('ready')
-                    cb()
+                    f = () =>
+                        @monkey_patch_frame()
+                        @disable_autosave()
+                        @state = 'ready'
+                        @emit('ready')
+                        cb()
+                    setTimeout(f, 1000)  # give it a second "for luck"
                 else
                     # not yet connected, so try again shortly
                     setTimeout(f, 250)
@@ -805,24 +808,31 @@ class JupyterNotebook extends EventEmitter
                 cb(err)
 
     init_dom: (cb) =>
-        # We try twice, since the first time may result in a timeout or gateway
+        if @state != 'loading'
+            cb("init_dom BUG: @state must be loading")
+            return
+        # We try multiple times, since result maybe be a timeout or gateway
         # error as Jupyter gets started up.
-        @_init_dom (err) =>
-            if not err
-                cb()
-            else
-                console.warn("Jupyter -- error loading first time so will try again -- #{err}")
-                @dom?.close()
-                @_init_dom(cb)
+        misc.retry_until_success
+            f        : @_init_dom
+            max_time : 4*60*1000  # try for at most 4 minutes
+            cb       : (err) =>
+                if not err
+                    cb()
+                else
+                    console.warn("Jupyter -- failed to load -- #{err}")
+                    @dom?.close()
+                    cb(err)
 
     _init_dom: (cb) =>
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        @notebook.css('opacity',.05)  # so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
+        @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
             @notebook.css('opacity',1)
             if err
+                @dom?.close()
                 cb(err)
             else
                 if @dom.read_only
