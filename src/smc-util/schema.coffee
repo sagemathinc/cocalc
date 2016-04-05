@@ -456,7 +456,7 @@ schema.file_use =
                 # the file, which is confusing and wastes a lot of resources.
                 x = obj.users?[account_id]
                 recent = misc.minutes_ago(3)
-                if x.edit >= recent or x.chat >= recent
+                if x? and (x.edit >= recent or x.chat >= recent)
                     db.touch(project_id:obj.project_id, account_id:account_id)
                 cb?()
 

@@ -1455,7 +1455,7 @@ class RethinkDB
             @_touch_account_lock[account_id] = true
             now = new Date()
             @table('accounts').get(account_id).update(last_active:now).run(cb)
-            setTimeout((()=>delete @_touch_account_lock[key]), 120*1000)
+            setTimeout((()=>delete @_touch_account_lock[account_id]), 120*1000)
 
     _touch_project: (project_id, account_id, cb) =>
         # never do this more than once per minute
