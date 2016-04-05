@@ -1443,21 +1443,19 @@ ProjectFilesNew = rclass
 
     file_dropdown_item : (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onClick={=>@handle_menu_click(ext)}>
+        <MenuItem eventKey=i key={i} onClick={=>@on_menu_item_clicked(ext)}>
             <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
-    handle_menu_click : (ext) ->
+    on_menu_item_clicked : (ext) ->
         if not @props.file_search?.length > 0
             # Tell state to render an error in file search
             @props.actions.setState(file_creation_error : "You must enter file name above to create it")
-        else if @props.file_search?[@props.file_search.length - 1] == '/'
-            @props.create_folder()
         else
             @props.create_file(ext)
 
     # Go to new file tab if no file is specified
-    handle_file_click : ->
+    on_create_button_clicked : ->
         if not @props.file_search?.length > 0
             @props.actions.set_focused_page('project-new-file')
         else if @props.file_search?[@props.file_search.length - 1] == '/'
@@ -1468,7 +1466,7 @@ ProjectFilesNew = rclass
     render : ->
         # This div prevents the split button from line-breaking when the page is small
         <div style={width:'111px'}>
-            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@handle_file_click} >
+            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
