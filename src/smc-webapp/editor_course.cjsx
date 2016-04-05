@@ -2199,10 +2199,10 @@ Assignment = rclass
             </Col>
             <Col md=3 key='delete'>
                 <Row>
-                    <Col md=9>
+                    <Col md=7>
                         {@render_peer_button()}
                     </Col>
-                    <Col md=3>
+                    <Col md=5>
                         {@render_delete_button()}
                     </Col>
                 </Row>
@@ -2217,6 +2217,12 @@ Assignment = rclass
             v.push <Row key='header2-peer' style={marginTop:'10px'}>
                 <Col md=12>
                     {@render_configure_peer()}
+                </Col>
+            </Row>
+        if @state.confirm_delete
+            v.push <Row key='header2-delete' style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_confirm_delete()}
                 </Col>
             </Row>
         return v
@@ -2402,20 +2408,20 @@ Assignment = rclass
         @props.redux.getActions(@props.name).undelete_assignment(@props.assignment)
 
     render_confirm_delete : ->
-        if @state.confirm_delete
-            <Alert bsStyle='warning' key='confirm_delete'>
-                Are you sure you want to delete this assignment (you can undelete it later)?<Space/>
+        <Alert bsStyle='warning' key='confirm_delete'>
+            Are you sure you want to delete this assignment (you can undelete it later)?
+            <br/> <br/>
+            <ButtonToolbar>
                 <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
                     <Icon name="trash" /> Delete
                 </Button>
                 <Button key='no' onClick={=>@setState(confirm_delete:false)}>
                     Cancel
                 </Button>
-            </Alert>
+            </ButtonToolbar>
+        </Alert>
 
     render_delete_button : ->
-        if @state.confirm_delete
-            return @render_confirm_delete()
         if @props.assignment.get('deleted')
             <Tip key='delete' placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
                 <Button onClick={@undelete_assignment}>
@@ -2424,8 +2430,8 @@ Assignment = rclass
             </Tip>
         else
             <Tip key='delete' placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
-                <Button onClick={=>@setState(confirm_delete:true)}>
-                    <Icon name="trash" />
+                <Button onClick={=>@setState(confirm_delete:true)} disabled={@state.confirm_delete}>
+                    <Icon name="trash" /> Delete
                 </Button>
             </Tip>
 
