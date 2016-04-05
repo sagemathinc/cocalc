@@ -1403,7 +1403,7 @@ ProjectFilesSearch = rclass
                 @props.actions.setState(file_search : '', page_number: 0)
             else
                 @props.actions.open_file(path: new_path)
-            @props.actions.set_file_search
+            @props.actions.set_file_search('')
         else if not @props.files_displayed and @props.file_search?.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
                 @props.create_folder()
