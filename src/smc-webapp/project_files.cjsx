@@ -1537,12 +1537,6 @@ ProjectFiles = (name) -> rclass
         @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
         @props.actions.setState(file_search : '', page_number: 0)
 
-    generic_create : (ext) ->
-        if @props.file_search?[@props.file_search.length - 1] == '/'
-            @create_folder()
-        else
-            @create_file(ext)
-
     render_paging_buttons : (num_pages) ->
         if num_pages > 1
             <Row>
