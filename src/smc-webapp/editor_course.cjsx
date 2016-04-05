@@ -56,7 +56,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, Calendar, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
+    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, NumberInput, UPGRADE_ERROR_STYLE} = require('./r_misc')
 
 {User} = require('./users')
 
@@ -661,6 +661,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         set_assignment_note: (assignment, note) =>
             @_set_assignment_field(assignment, 'note', note)
 
+        set_peer_grade: (assignment, config) =>
+            cur = assignment.get('peer_grade')?.toJS() ? {}
+            for k, v of config
+                cur[k] = v
+            @_set_assignment_field(assignment, 'peer_grade', cur)
+
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
         # If the store is initialized and the student and assignment both exist,
@@ -1027,6 +1033,16 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
     redux.createActions(the_redux_name, CourseActions)
 
     class CourseStore extends Store
+        any_assignment_uses_peer_grading: =>
+            # Return true if there are any non-deleted assignments that use peer grading
+            has_peer = false
+            @get_assignments().forEach (assignment, _) =>
+                console.log 'assignment = ', assignment.toJS()
+                if assignment.getIn(['peer_grade', 'enabled']) and not assignment.get('deleted')
+                    has_peer = true
+                    return false  # stop looping
+            return has_peer
+
         get_shared_project_id: =>
             # return project_id (a string) if shared project has been created, or undefined or empty string otherwise.
             return @getIn(['settings', 'shared_project_id'])
@@ -1269,9 +1285,9 @@ entry_style =
     paddingBottom : '5px'
 
 selected_entry_style = misc.merge
-    border        : '1px solid #888'
-    boxShadow     : '5px 5px 5px grey'
-    borderRadius  : '5px'
+    border        : '1px solid #aaa'
+    boxShadow     : '5px 5px 5px #999'
+    borderRadius  : '3px'
     marginBottom  : '10px',
     entry_style
 
@@ -1439,7 +1455,9 @@ Student = rclass
                   grade={grade} />
 
     render_assignments_info : ->
-        return [<StudentAssignmentInfoHeader key='header' title="Assignment" />, @render_assignments_info_rows()]
+        peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
+        header = <StudentAssignmentInfoHeader key='header' title="Assignment" peer_grade={peer_grade}/>
+        return [header, @render_assignments_info_rows()]
 
     render_note : ->
         <Row key='note' style={note_style}>
@@ -1785,7 +1803,59 @@ StudentAssignmentInfoHeader = rclass
     displayName : "CourseEditor-StudentAssignmentInfoHeader"
 
     propTypes :
-        title : rtypes.string.isRequired
+        title      : rtypes.string.isRequired
+        peer_grade : rtypes.bool
+
+    render_col: (number, key, width) ->
+        switch key
+            when 'last_assignment'
+                title = 'Assign to Student'
+                tip   = 'This column gives the status of making homework available to students, and lets you copy homework to one student at a time.'
+            when 'collect'
+                title = 'Collect from Student'
+                tip   = 'This column gives status information about collecting homework from students, and lets you collect from one student at a time.'
+            when 'grade'
+                title = 'Grade'
+                tip   = 'Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Settings tab.'
+
+            when 'peer-assign'
+                title = 'Assign Peer Grading'
+                tip   = 'This column gives the status of sending out collected homework to students for peer grading.'
+
+            when 'peer-collect'
+                title = 'Collect Peer Grading'
+                tip   = 'This column gives status information about collecting the peer grading work that students did, and lets you collect peer grading from one student at a time.'
+
+            when 'return_graded'
+                title = 'Return to Student'
+                tip   = 'This column gives status information about when you returned homework to the students.  Once you have entered a grade, you can return the assignment.'
+                placement = 'left'
+        <Col md={width} key={key}>
+                <Tip title={title} tip={tip}>
+                    <b>{number}. {title}</b>
+                </Tip>
+        </Col>
+
+
+    render_headers: ->
+        w = 3
+        <Row>
+            {@render_col(1, 'last_assignment', w)}
+            {@render_col(2, 'collect', w)}
+            {@render_col(3, 'grade', w)}
+            {@render_col(4, 'return_graded', w)}
+        </Row>
+
+    render_headers_peer: ->
+        w = 2
+        <Row>
+            {@render_col(1, 'last_assignment', w)}
+            {@render_col(2, 'collect', w)}
+            {@render_col(3, 'peer-assign', w)}
+            {@render_col(4, 'peer-collect', w)}
+            {@render_col(5, 'grade', w)}
+            {@render_col(6, 'return_graded', w)}
+        </Row>
 
     render : ->
         <Row style={borderBottom:'2px solid #aaa'} >
@@ -1795,28 +1865,7 @@ StudentAssignmentInfoHeader = rclass
                 </Tip>
             </Col>
             <Col md=10 key="rest">
-                <Row>
-                    <Col md=3 key='last_assignment'>
-                        <Tip title="Assign homework" tip="This column gives the status of making homework available to students, and lets you copy homework to one student at a time.">
-                            <b>1. Assign to Student</b>
-                        </Tip>
-                    </Col>
-                    <Col md=3 key='collect'>
-                        <Tip title="Collect homework" tip="This column gives status information about collecting homework from students, and lets you collect from one student at a time.">
-                            <b>2. Collect from Student</b>
-                        </Tip>
-                    </Col>
-                    <Col md=3 key='grade'>
-                        <Tip title="Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Settings tab.">
-                            <b>3. Grade</b>
-                        </Tip>
-                    </Col>
-                    <Col md=3 key='return_graded'>
-                        <Tip title="Return graded homework" placement='left' tip="This column gives status information about when you returned homework to the students.  Once you have entered a grade, you can return the assignment.">
-                            <b>4. Return to Student</b>
-                        </Tip>
-                    </Col>
-                </Row>
+                {if @props.peer_grade then @render_headers_peer() else @render_headers()}
             </Col>
         </Row>
 
@@ -1970,28 +2019,46 @@ StudentAssignmentInfo = rclass
             v.push(@render_error(name, obj.error))
         return v
 
+    render_peer_assign: (info) ->
+        <Col md={2} key='peer-assign'>
+            {@render_last('Peer Assign', info.last_peer_assignment, 'peer-assigned', info, true,
+               "Copy the assignments from your project to this student's project so they can peer grade.",
+               "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
+        </Col>
+
+    render_peer_collect: (info) ->
+        <Col md={2} key='peer-collect'>
+            {@render_last('Peer Collect', info.last_peer_collect, 'peer-collected', info, info.last_peer_assignment?,
+               "Copy the peer graded assignments from your student's project back to your project so you can assign a final grade their work.",
+               "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
+        </Col>
+
     render : ->
         info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
+        peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
+        width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
                 {@props.title}
             </Col>
             <Col md=10 key="rest">
                 <Row>
-                    <Col md=3 key='last_assignment'>
+                    <Col md={width} key='last_assignment'>
                         {@render_last('Assign', info.last_assignment, 'assigned', info, true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
                            "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
-                    <Col md=3 key='collect'>
+                    <Col md={width} key='collect'>
                         {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
                            "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
-                    <Col md=3 key='grade'>
+                    {@render_peer_assign(info)  if peer_grade}
+                    {@render_peer_collect(info) if peer_grade}
+                    <Col md={width} key='grade'>
                         {@render_grade(info)}
                     </Col>
-                    <Col md=3 key='return_graded'>
+                    <Col md={width} key='return_graded'>
                         {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
                            "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
@@ -2044,7 +2111,11 @@ StudentListForAssignment = rclass
 
     render : ->
         <div>
-            <StudentAssignmentInfoHeader key='header' title="Student" />
+            <StudentAssignmentInfoHeader
+                key        = 'header'
+                title      = "Student"
+                peer_grade = {!!@props.assignment.get('peer_grade')?.get('enabled')}
+            />
             {@render_students()}
         </div>
 
@@ -2089,7 +2160,7 @@ Assignment = rclass
 
     date_change : (date) ->
         if not date
-            date = @props.assignment.get('due_date') ? new Date()
+            date = @props.assignment.get('due_date') ? misc.server_time()
         @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
 
     render_note : ->
@@ -2115,7 +2186,7 @@ Assignment = rclass
             return <Loading key='loading_more'/>
         v = []
         v.push <Row key='header1'>
-            <Col md=6 key='buttons'>
+            <Col md=5 key='buttons'>
                 <ButtonToolbar key='buttons'>
                     {@render_open_button()}
                     {@render_assign_button(status)}
@@ -2126,17 +2197,28 @@ Assignment = rclass
             <Col md=4 style={fontSize:'14px'} key='due'>
                 {@render_due()}
             </Col>
-            <Col md=2 key='delete'>
-                <span style={float:'right'}>
-                    {@render_delete_button()}
-                </span>
+            <Col md=3 key='delete'>
+                <Row>
+                    <Col md=9>
+                        {@render_peer_button()}
+                    </Col>
+                    <Col md=3>
+                        {@render_delete_button()}
+                    </Col>
+                </Row>
             </Col>
         </Row>
-        v.push <Row key='header2'>
+        v.push <Row key='header2-copy'>
             <Col md=12>
                 {@render_copy_confirms(status)}
             </Col>
         </Row>
+        if @state.configure_peer
+            v.push <Row key='header2-peer' style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_configure_peer()}
+                </Col>
+            </Row>
         return v
 
     render_more : ->
@@ -2321,17 +2403,15 @@ Assignment = rclass
 
     render_confirm_delete : ->
         if @state.confirm_delete
-            <div key='confirm_delete'>
-                Are you sure you want to delete this assignment (you can always undelete it later)?<Space/>
-                <ButtonToolbar>
-                    <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
-                        <Icon name="trash" /> YES, Delete
-                    </Button>
-                    <Button key='no' onClick={=>@setState(confirm_delete:false)}>
-                        Cancel
-                    </Button>
-                </ButtonToolbar>
-            </div>
+            <Alert bsStyle='warning' key='confirm_delete'>
+                Are you sure you want to delete this assignment (you can undelete it later)?<Space/>
+                <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
+                    <Icon name="trash" /> Delete
+                </Button>
+                <Button key='no' onClick={=>@setState(confirm_delete:false)}>
+                    Cancel
+                </Button>
+            </Alert>
 
     render_delete_button : ->
         if @state.confirm_delete
@@ -2345,9 +2425,81 @@ Assignment = rclass
         else
             <Tip key='delete' placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
                 <Button onClick={=>@setState(confirm_delete:true)}>
-                    <Icon name="trash" /> Delete...
+                    <Icon name="trash" />
                 </Button>
             </Tip>
+
+    set_peer_grade: (config) ->
+        @props.redux.getActions(@props.name).set_peer_grade(@props.assignment, config)
+
+    render_configure_peer_checkbox: (config) ->
+        <Input checked  = {config.enabled}
+               key      = 'peer_grade_checkbox'
+               type     = 'checkbox'
+               label    = {"Enable Peer Grading"}
+               ref      = 'peer_grade_checkbox'
+               onChange = {=>@set_peer_grade(enabled:@refs.peer_grade_checkbox.getChecked())}
+        />
+
+    peer_due_change : (date) ->
+        if not date
+            date = @props.assignment.getIn(['peer_grade', 'due_date']) ? misc.server_days_ago(-7)
+        @set_peer_grade(due_date : date)
+
+    render_configure_peer_due: (config) ->
+        <Row>
+            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+                <Tip placement='top' title="Set the due date"
+                    tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading.">
+                    Due
+                </Tip>
+            </Col>
+            <Col xs=11>
+                <DateTimePicker
+                    value     = {config.due_date ? misc.server_days_ago(-7)}
+                    on_change = {@peer_due_change}
+                />
+            </Col>
+        </Row>
+
+    render_configure_peer_number: (config) ->
+        store = @props.redux.getStore(@props.name)
+        <LabeledRow label='Minimum number of students who will grade each assignment'>
+            <NumberInput
+                on_change = {(n)=>@set_peer_grade(number : n)}
+                min       = 1
+                max       = {store?.num_students()}
+                number    = {config.number ? 1} />
+        </LabeledRow>
+
+
+    render_configure_peer: ->
+        config = @props.assignment.get('peer_grade')?.toJS() ? {}
+        <Alert bsStyle='warning'>
+            <h3>Configure peer grading</h3>
+
+            <span style={color:'#666'}>
+                (add description here)
+            </span>
+
+            {@render_configure_peer_checkbox(config)}
+            {@render_configure_peer_number(config) if config.enabled}
+            {@render_configure_peer_due(config) if config.enabled}
+
+            <Button onClick={=>@setState(configure_peer:false)}>
+                Close
+            </Button>
+
+        </Alert>
+
+    render_peer_button : ->
+        if @props.assignment.get('peer_grade')?.get('enabled')
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+        <Button disabled={@state.configure_peer} onClick={=>@setState(configure_peer:true)}>
+            <Icon name={icon} /> Peer Grading...
+        </Button>
 
     render_summary_due_date : ->
         due_date = @props.assignment.get('due_date')

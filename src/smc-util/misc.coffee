@@ -1634,7 +1634,7 @@ exports.peer_grading = (students, N=2) ->
         asmnt[k] = underscore.sortBy(v, (s) -> students.indexOf(s))
     return asmnt
 
-# demonstration of the above, for tests see misc-test.coffee
+# demonstration of the above; for tests see misc-test.coffee
 exports.peer_grading_demo = (S = 10, N = 2) ->
     peer_grading = exports.peer_grading
     students = [0...S]
