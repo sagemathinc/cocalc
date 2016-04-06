@@ -798,14 +798,23 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 @clear_activity(id)
             else
                 @set_activity(id:id, desc:"Returning assignment to #{student_name}")
-                src_path = assignment.get('collect_path') + '/' + student.get('student_id')
+                src_path = assignment.get('collect_path')
+                if assignment.getIn(['peer_grade', 'enabled'])
+                    peer_graded = true
+                    src_path  += '-peer-grade/'
+                else
+                    peer_graded = false
+                src_path += '/' + student.get('student_id')
                 async.series([
                     (cb) =>
                         # write their grade to a file
+                        content = "Your grade on this assignment:\n\n    #{grade}"
+                        if peer_graded
+                            content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
                         salvus_client.write_text_file_to_project
                             project_id : course_project_id
                             path       : src_path + '/GRADE.txt'
-                            content    : "Your grade on this assignment:\n\n    #{grade}"
+                            content    : content
                             cb         : cb
                     (cb) =>
                         salvus_client.copy_path_between_projects
