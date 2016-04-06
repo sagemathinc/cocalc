@@ -611,7 +611,7 @@ exports.MarkdownInput = rclass
                 </form>
                 <div style={paddingTop:'8px', color:'#666'}>
                     <Tip title='Use Markdown' tip={tip}>
-                        Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
+                        Format using <a href='https://help.github.com/articles/basic-writing-and-formatting-syntax/' target='_blank'>Markdown</a>
                     </Tip>
                 </div>
             </div>

@@ -608,12 +608,15 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             where      = {table:'students', student_id:student.get('student_id')}
             @_update(set:{"note":note}, where:where)
 
+        _collect_path: (path) =>
+            i = course_filename.lastIndexOf('.')
+            course_filename.slice(0,i) + '-collect/' + path
+
         # Assignments
         add_assignment: (path) =>
             # Add an assignment to the course, which is defined by giving a directory in the project.
-            i = course_filename.lastIndexOf('.')
             # Where we collect homework that students have done (in teacher project)
-            collect_path = course_filename.slice(0,i) + '-collect/' + path
+            collect_path = @_collect_path(path)
             # folder that we return graded homework to (in student project)
             graded_path = path + '-graded'
             # folder where we copy the assignment to
@@ -667,6 +670,17 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 cur[k] = v
             @_set_assignment_field(assignment, 'peer_grade', cur)
 
+        # Synchronous function that makes the peer grading map for the given
+        # assignment, if it hasn't already been made.
+        update_peer_assignment: (assignment) =>
+            store = get_store()
+            return if not store?
+            assignment = store.get_assignment(assignment)
+            if assignment.getIn(['peer_grade', 'map'])?
+                return  # nothing to do
+            map = misc.peer_grading(store.get_student_ids())
+            @set_peer_grade(assignment, map:map)
+
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
         # If the store is initialized and the student and assignment both exist,
@@ -713,11 +727,11 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             cb                : cb
                     (cb) =>
                         # write their name to a file
-                        name = store.get_student_name(student).replace(/\W/g, ' ')
+                        name = store.get_student_name(student, true)
                         salvus_client.write_text_file_to_project
                             project_id : course_project_id
-                            path       : target_path + "/STUDENT - #{name}.txt"
-                            content    : "This student is named #{name}"
+                            path       : target_path + "/STUDENT - #{name.simple}.txt"
+                            content    : "This student is #{name.full}."
                             cb         : cb
                 ], finish)
 
@@ -850,6 +864,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
                 @_update(set:{"#{type}":x}, where:where)
 
+        # This is called internally before doing any copy/collection operation
+        # to ensure that we aren't doing the same thing repeatedly, and that
+        # everything is in place to do the operation.
         _start_copy: (assignment, student, type) =>
             if student? and assignment?
                 store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
@@ -929,7 +946,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     salvus_client.write_text_file_to_project
                         project_id : course_project_id
                         path       : src_path + '/DUE_DATE.txt'
-                        content    : "This assignment is due\n\n   #{due_date}"
+                        content    : "This assignment is due\n\n   #{due_date.toLocaleString()}"
                         cb         : cb
                 (cb) =>
                     @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
@@ -987,8 +1004,157 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     @copy_assignment_from_student(assignment_id, student_id)
                 when 'graded'
                     @return_assignment_to_student(assignment_id, student_id)
+                when 'peer-assigned'
+                    @peer_copy_to_student(assignment_id, student_id)
+                when 'peer-collected'
+                    @peer_collect_from_student(assignment_id, student_id)
                 else
                     @set_error("copy_assignment -- unknown type: #{type}")
+
+        # Copy the collected folders from some students to the given student for peer grading.
+        peer_copy_to_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_peer_assignment')
+                return
+            id = @set_activity(desc:"Copying peer grading to a student")
+            finish = (err) =>
+                @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_peer_assignment', err)
+                if err
+                    @set_error("copy peer-grading to student: #{err}")
+            store = get_store()
+            if not @_store_is_initialized()
+                return finish("store not yet initialized")
+            if not student = store.get_student(student)
+                return finish("no student")
+            if not assignment = store.get_assignment(assignment)
+                return finish("no assignment")
+
+            student_name = store.get_student_name(student)
+            @set_activity(id:id, desc:"Copying peer grading to #{student_name}")
+
+            @update_peer_assignment(assignment) # synchronous
+
+            # list of student_id's
+            peers = store.get_peers_that_student_will_grade(assignment, student)
+            if not peers?
+                # empty peer assignment for this student (maybe added late)
+                return finish()
+
+            student_project_id = student.get('project_id')
+
+            guidelines = assignment.getIn(['peer_grade', 'guidelines']) ? 'Please grade this assignment.'
+            due_date = assignment.getIn(['peer_grade', 'due_date'])
+            if due_date?
+                guidelines = "GRADING IS DUE #{due_date.toLocaleString()} \n\n " + guidelines
+
+            target_base_path = assignment.get('path') + "-peer-grade"
+            f = (student_id, cb) =>
+                src_path = assignment.get('collect_path') + '/' + student_id
+                target_path = target_base_path + "/" + student_id
+                async.series([
+                    (cb) =>
+                        # delete the student's name so that grading is anonymous; also, remove original
+                        # due date to avoid confusion.
+                        name = store.get_student_name(student_id, true)
+                        salvus_client.exec
+                            project_id : course_project_id
+                            command    : 'rm'
+                            args       : ['-f', src_path + "/STUDENT - #{name.simple}.txt", src_path + "/DUE_DATE.txt", src_path + "/STUDENT - #{name.simple}.txt~", src_path + "/DUE_DATE.txt~"]
+                            cb         : cb
+                    (cb) =>
+                        # copy the files to be peer graded into place for this student
+                        salvus_client.copy_path_between_projects
+                            src_project_id    : course_project_id
+                            src_path          : src_path
+                            target_project_id : student_project_id
+                            target_path       : target_path
+                            overwrite_newer   : false
+                            delete_missing    : false
+                            cb                : cb
+                ], cb)
+
+            # write instructions file to the student
+            salvus_client.write_text_file_to_project
+                project_id : student_project_id
+                path       : target_base_path + "/GRADING_GUIDE.md"
+                content    : guidelines
+                cb         : (err) =>
+                    if not err
+                        # now copy actual stuff to grade
+                        async.map(peers, f, finish)
+                    else
+                        finish(err)
+
+        # Collect all the peer graading of the given student (not the work the student did, but
+        # the grading about the student!).
+        peer_collect_from_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_peer_collect')
+                return
+            id = @set_activity(desc:"Collecting peer grading of a student")
+            finish = (err) =>
+                @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_peer_collect', err)
+                if err
+                    @set_error("collecting peer-grading of a student: #{err}")
+            store = get_store()
+            if not @_store_is_initialized()
+                return finish("store not yet initialized")
+            if not student = store.get_student(student)
+                return finish("no student")
+            if not assignment = store.get_assignment(assignment)
+                return finish("no assignment")
+
+            student_name = store.get_student_name(student)
+            @set_activity(id:id, desc:"Collecting peer grading of #{student_name}")
+
+            # list of student_id of students that graded this student
+            peers = store.get_peers_that_graded_student(assignment, student)
+            if not peers?
+                # empty peer assignment for this student (maybe added late)
+                return finish()
+
+            our_student_id = student.get('student_id')
+
+            f = (student_id, cb) =>
+                s = store.get_student(student_id)
+                if s.get('deleted')
+                    # ignore deleted students
+                    cb()
+                    return
+                path        = assignment.get('path')
+                src_path    = "#{path}-peer-grade/#{our_student_id}"
+                target_path = "#{assignment.get('collect_path')}-peer-grade/#{our_student_id}/#{student_id}"
+                async.series([
+                    (cb) =>
+                        # copy the files over from the student who did the peer grading
+                        salvus_client.copy_path_between_projects
+                            src_project_id    : s.get('project_id')
+                            src_path          : src_path
+                            target_project_id : course_project_id
+                            target_path       : target_path
+                            overwrite_newer   : false
+                            delete_missing    : false
+                            cb                : cb
+                    (cb) =>
+                        # write local file identifying the grader
+                        name = store.get_student_name(student_id, true)
+                        salvus_client.write_text_file_to_project
+                            project_id : course_project_id
+                            path       : target_path + "/GRADER - #{name.simple}.txt"
+                            content    : "The student who did the peer grading is named #{name.full}."
+                            cb         : cb
+                    (cb) =>
+                        # write local file identifying student being graded
+                        name = store.get_student_name(student, true)
+                        salvus_client.write_text_file_to_project
+                            project_id : course_project_id
+                            path       : target_path + "/STUDENT - #{name.simple}.txt"
+                            content    : "This student is #{name.full}."
+                            cb         : cb
+                ], cb)
+
+            async.map(peers, f, finish)
+
 
         # This doesn't really stop it yet, since that's not supported by the backend.
         # It does stop the spinner and let the user try to restart the copy.
@@ -1000,6 +1166,10 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     type = 'last_collect'
                 when 'graded'
                     type = 'last_return_graded'
+                when 'peer-assigned'
+                    type = 'last_peer_assignment'
+                when 'peer-collected'
+                    type = 'last_peer_collect'
             @_stop_copy(assignment_id, student_id, type)
 
         open_assignment: (type, assignment_id, student_id) =>
@@ -1019,6 +1189,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 when 'collected'   # where collected locally
                     path = assignment.get('collect_path') + '/' + student.get('student_id')  # TODO: refactor
                     proj = course_project_id
+                when 'peer-assigned'  # where peer-assigned (in student's project)
+                    proj = student_project_id
+                    path = assignment.get('path') + '-peer-grade'
+                when 'peer-collected'  # where collected peer-graded work (in our project)
+                    path = assignment.get('collect_path') + '-peer-grade/' + student.get('student_id')
+                    proj = course_project_id
                 when 'graded'  # where project returned
                     path = assignment.get('graded_path')  # refactor
                     proj = student_project_id
@@ -1037,11 +1213,29 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             # Return true if there are any non-deleted assignments that use peer grading
             has_peer = false
             @get_assignments().forEach (assignment, _) =>
-                console.log 'assignment = ', assignment.toJS()
                 if assignment.getIn(['peer_grade', 'enabled']) and not assignment.get('deleted')
                     has_peer = true
                     return false  # stop looping
             return has_peer
+
+        get_peers_that_student_will_grade: (assignment, student) =>
+            # Return the peer assignment for grading of the given assignment for the given student,
+            # if such an assignment has been made.  If not, returns undefined.
+            # In particular, this returns a Javascript array of student_id's.
+            assignment = @get_assignment(assignment)
+            student    = @get_student(student)
+            return assignment.getIn(['peer_grade', 'map'])?.get(student.get('student_id'))?.toJS()
+
+        get_peers_that_graded_student: (assignment, student) =>
+            # Return Javascript array of the student_id's of the students
+            # that graded the given student, or undefined if no relevant assignment.
+            assignment = @get_assignment(assignment)
+            map = assignment.getIn(['peer_grade', 'map'])
+            if not map?
+                return
+            student = @get_student(student)
+            id      = student.get('student_id')
+            return (student_id for student_id, who_grading of map.toJS() when id in who_grading)
 
         get_shared_project_id: =>
             # return project_id (a string) if shared project has been created, or undefined or empty string otherwise.
@@ -1060,11 +1254,26 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         get_students: =>
             @get('students')
 
-        get_student_name: (student) =>
+        get_student_name: (student, include_email=false) =>
             student = @get_student(student)
             if not student?
                 return 'student'
-            return user_store.get_name(student.get('account_id')) ? student.get('email_address') ? 'student'
+            email = student.get('email_address')
+            name = user_store.get_name(student.get('account_id'))
+            n = name ? email ? 'student'
+            if not include_email
+                return n
+            if include_email and name? and email?
+                full = n + " <#{email}>"
+            else
+                full = n
+            return {simple:n.replace(/\W/g, ' '), full:full}
+
+        get_student_email: (student) =>
+            student = @get_student(student)
+            if not student?
+                return 'student'
+            return student.get('email_address')
 
         get_student_ids: (opts) =>
             opts = defaults opts,
@@ -1174,12 +1383,14 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             assignment = @get_assignment(assignment)
             student = @get_student(student)
             student_id = student.get('student_id')
-            info =
-                last_assignment    : assignment.get('last_assignment')?.get(student_id)?.toJS()   # important to be undefined if no info -- assumed in code
-                last_collect       : assignment.get('last_collect')?.get(student_id)?.toJS()
-                last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS()
-                student_id         : student_id
-                assignment_id      : assignment.get('assignment_id')
+            info =                         # RHS -- important to be undefined if no info -- assumed in code
+                last_assignment      : assignment.get('last_assignment')?.get(student_id)?.toJS()
+                last_collect         : assignment.get('last_collect')?.get(student_id)?.toJS()
+                last_peer_assignment : assignment.get('last_peer_assignment')?.get(student_id)?.toJS()
+                last_peer_collect    : assignment.get('last_peer_collect')?.get(student_id)?.toJS()
+                last_return_graded   : assignment.get('last_return_graded')?.get(student_id)?.toJS()
+                student_id           : student_id
+                assignment_id        : assignment.get('assignment_id')
             return info
 
 
@@ -1793,11 +2004,7 @@ BigTime = rclass
             return
         if typeof(date) == 'string'
             return <span>{date}</span>
-        if typeof(date) == "number"
-            date = new Date(date)
-        <span>
-            <TimeAgo date={date} /> ({date.toLocaleString()})
-        </span>
+        return <TimeAgo popover={true} date={date} />
 
 StudentAssignmentInfoHeader = rclass
     displayName : "CourseEditor-StudentAssignmentInfoHeader"
@@ -1921,20 +2128,18 @@ StudentAssignmentInfo = rclass
                     Grade: {@props.grade}
                 </div>
 
-    render_grade : (info) ->
-        if not info.last_collect?
-            return  # waiting to collect first
+    render_grade : (info, width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
-        <div>
+        <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
                 <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
             </Tip>
             {@render_grade_score()}
-        </div>
+        </Col>
 
     render_last_time : (name, time) ->
         <div key='time' style={color:"#666"}>
-            {name}ed <BigTime date={time} />
+            (<BigTime date={time} />)
         </div>
 
     render_open_recopy_confirm : (name, open, copy, copy_tip, open_tip, placement) ->
@@ -1942,30 +2147,30 @@ StudentAssignmentInfo = rclass
         if @state[key]
             v = []
             v.push <Button key="copy_confirm" bsStyle="danger" onClick={=>@setState("#{key}":false);copy()}>
-                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, re-{name.toLowerCase()}
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, {name.toLowerCase()} again
             </Button>
             v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
-                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Cancel
+                 Cancel
             </Button>
             return v
         else
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
                 <Tip title={name} placement={placement}
                     tip={<span>{copy_tip}</span>}>
-                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}...
+                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> {name}...
                 </Tip>
             </Button>
 
     render_open_recopy : (name, open, copy, copy_tip, open_tip) ->
         placement = if name == 'Return' then 'left' else 'right'
-        <ButtonGroup key='open_recopy'>
+        <ButtonToolbar key='open_recopy'>
             {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
             <Button key='open'  onClick={open}>
                 <Tip title="Open assignment" placement={placement} tip={open_tip}>
                     <Icon name="folder-open-o" /> Open
                 </Tip>
             </Button>
-        </ButtonGroup>
+        </ButtonToolbar>
 
     render_open_copying : (name, open, stop) ->
         if name == "Return"
@@ -2021,21 +2226,22 @@ StudentAssignmentInfo = rclass
 
     render_peer_assign: (info) ->
         <Col md={2} key='peer-assign'>
-            {@render_last('Peer Assign', info.last_peer_assignment, 'peer-assigned', info, true,
-               "Copy the assignments from your project to this student's project so they can peer grade.",
+            {@render_last('Peer Assign', info.last_peer_assignment, 'peer-assigned', info, info.last_collect?,
+               "Copy collected assignments from your project to this student's project so they can grade them.",
                "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
         </Col>
 
     render_peer_collect: (info) ->
         <Col md={2} key='peer-collect'>
             {@render_last('Peer Collect', info.last_peer_collect, 'peer-collected', info, info.last_peer_assignment?,
-               "Copy the peer graded assignments from your student's project back to your project so you can assign a final grade their work.",
+               "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
         </Col>
 
     render : ->
         info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
+        show_grade_col = (peer_grade and info.last_peer_collect) or (not peer_grade and info.last_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
@@ -2055,9 +2261,7 @@ StudentAssignmentInfo = rclass
                     </Col>
                     {@render_peer_assign(info)  if peer_grade}
                     {@render_peer_collect(info) if peer_grade}
-                    <Col md={width} key='grade'>
-                        {@render_grade(info)}
-                    </Col>
+                    {if show_grade_col then @render_grade(info, width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
@@ -2167,7 +2371,7 @@ Assignment = rclass
         <Row key='note' style={note_style}>
             <Col xs=2>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
-                    Assignment Notes<br /><span style={color:"#666"}></span>
+                    Private Assignment Notes<br /><span style={color:"#666"}></span>
                 </Tip>
             </Col>
             <Col xs=10>
@@ -2454,13 +2658,13 @@ Assignment = rclass
 
     render_configure_peer_due: (config) ->
         <Row>
-            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+            <Col xs=4 style={marginTop:'8px', color:'#666'}>
                 <Tip placement='top' title="Set the due date"
                     tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading.">
                     Due
                 </Tip>
             </Col>
-            <Col xs=11>
+            <Col xs=8>
                 <DateTimePicker
                     value     = {config.due_date ? misc.server_days_ago(-7)}
                     on_change = {@peer_due_change}
@@ -2470,14 +2674,28 @@ Assignment = rclass
 
     render_configure_peer_number: (config) ->
         store = @props.redux.getStore(@props.name)
-        <LabeledRow label='Minimum number of students who will grade each assignment'>
+        <LabeledRow label='Number of students who will grade each assignment'>
             <NumberInput
-                on_change = {(n)=>@set_peer_grade(number : n)}
+                on_change = {(n) => @set_peer_grade(number : n)}
                 min       = 1
-                max       = {store?.num_students()}
+                max       = {(store?.num_students() ? 2) - 1}
                 number    = {config.number ? 1} />
         </LabeledRow>
 
+    render_configure_grading_guidelines: (config) ->
+        store = @props.redux.getStore(@props.name)
+        <div style={marginTop:'10px'}>
+            <LabeledRow label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.'>
+                <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
+                    <MarkdownInput
+                        rows          = 16
+                        placeholder   = 'Enter your grading guidelines for this assignment...'
+                        default_value = {config.guidelines}
+                        on_save       = {(x) => @set_peer_grade(guidelines : x)}
+                    />
+                </div>
+            </LabeledRow>
+        </div>
 
     render_configure_peer: ->
         config = @props.assignment.get('peer_grade')?.toJS() ? {}
@@ -2491,6 +2709,7 @@ Assignment = rclass
             {@render_configure_peer_checkbox(config)}
             {@render_configure_peer_number(config) if config.enabled}
             {@render_configure_peer_due(config) if config.enabled}
+            {@render_configure_grading_guidelines(config) if config.enabled}
 
             <Button onClick={=>@setState(configure_peer:false)}>
                 Close
