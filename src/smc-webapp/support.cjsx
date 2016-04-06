@@ -40,16 +40,24 @@ class SupportActions extends Actions
     get: (key) =>
         @get_store().get(key)
 
+    set: (update) =>
+        @setState(update)
+        u = underscore
+        fields = ['email_err', 'subject', 'body']
+        if u.intersection(u.keys(update), fields).length > 0
+            @check_valid()
+
     reset: =>
         @init_email_address()
-        @setState
+        @set
             state   : ''
             err     : ''
+            valid   : true
 
     show: (show) =>
         if show
             @reset()
-        @setState
+        @set
             show     : show
 
     new_ticket: (evt) =>
@@ -62,17 +70,17 @@ class SupportActions extends Actions
         @set_email(email)
 
     set_email: (email) =>
-        @setState(email: email)
+        @set(email: email)
         if misc.is_valid_email_address(email)
-            @setState(email_err : null)
+            @set(email_err : null)
         else
-            @setState(email_err : "Email address invalid!")
+            @set(email_err : "Email address invalid!")
 
-    valid: () =>
+    check_valid: () =>
         s = @get('subject')?.trim() isnt ''
         b = @get('body')?.trim() isnt ''
         e = not @get('email_err')?
-        return s and b and e
+        @set(valid: s and b and e)
 
     project_id : ->
         pid = top_navbar.current_page_id
@@ -112,7 +120,7 @@ class SupportActions extends Actions
         account.get_total_upgrades()
         # tags.push(if TEST then 'member' else 'free')
 
-        @setState
+        @set
             state   : 'creating'
 
         info = {} # additional data dict, like browser/OS
@@ -130,13 +138,12 @@ class SupportActions extends Actions
             cb : @process_support
 
     process_support: (err, url) =>
-        console.log("callback process_support:", err, url)
         if not err?
-            @setState    # only clear subject/boy, if there has been a success!
+            @set    # only clear subject/boy, if there has been a success!
                 subject  : ''
                 body     : ''
                 url      : url
-        @setState
+        @set
             state  : if err? then 'error' else 'created'
             err    : err ? ''
 
@@ -258,7 +265,7 @@ SupportForm = rclass
         @props.actions.set_email(@refs.email.getValue())
 
     data_change : ->
-        @props.actions.setState
+        @props.actions.set
             body     : @refs.body.getValue()
             subject  : @refs.subject.getValue()
 
@@ -316,6 +323,7 @@ Support = rclass
         url         : ''
         err         : ''
         email_err   : ''
+        valid       : true
 
     reduxProps :
         support:
@@ -327,6 +335,7 @@ Support = rclass
             url          : rtypes.string
             err          : rtypes.string
             email_err    : rtypes.string
+            valid        : rtypes.bool
 
     open : ->
         @props.actions.show(true)
@@ -372,7 +381,7 @@ Support = rclass
                     show_form       = {show_form}
                     close           = {=> @close()}
                     submit          = {(e) => @submit(e)}
-                    valid           = {@valid()} />
+                    valid           = {@props.valid} />
         </Modal>
 
 render = (redux) ->

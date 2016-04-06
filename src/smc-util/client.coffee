@@ -1499,7 +1499,6 @@ class exports.Connection extends EventEmitter
             timeout      : 20
             error_event  : true
             cb           : (err, resp) ->
-                console.log("create_support_ticket:", err, resp)
                 if err
                     cb?(err)
                 else
