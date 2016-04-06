@@ -81,6 +81,7 @@ codemirror_associations =
     cljs   : 'text/x-clojure'
     cljc   : 'text/x-clojure'
     edn    : 'text/x-clojure'
+    elm    : 'text/x-elm'
     cjsx   : 'text/cjsx'
     coffee : 'coffeescript'
     css    : 'css'

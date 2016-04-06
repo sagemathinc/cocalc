@@ -122,6 +122,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
     if get_actions()?
         # already initalized
         return
+
     syncdb = undefined
 
     user_store = redux.getStore('users')
@@ -241,6 +242,71 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
 
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
+
+        # return the default title and description of the shared project.
+        shared_project_settings: () =>
+            store = get_store()
+            return if not store?
+            x =
+                title       : "Shared Project -- #{store.getIn(['settings', 'title'])}"
+                description : store.getIn(['settings', 'description']) + "\n---\n This project is shared with all students."
+            return x
+
+        # start the shared project running (if it is defined)
+        start_shared_project: =>
+            store = get_store()
+            return if not store?
+            shared_project_id = store.get_shared_project_id()
+            if not shared_project_id
+                return  # no shared project
+            redux.getActions('projects').start_project(shared_project_id)
+
+        # configure the shared project so that it has everybody as collaborators
+        configure_shared_project: =>
+            store = get_store()
+            return if not store?
+            shared_project_id = store.get_shared_project_id()
+            if not shared_project_id
+                return  # no shared project
+            # add collabs -- all collaborators on course project and all students
+            projects = redux.getStore('projects')
+            current = projects.get_users(shared_project_id)
+            if not current?
+                return
+            actions = redux.getActions('projects')
+            invite = (account_id) =>
+                actions.invite_collaborator(shared_project_id, account_id)
+            projects.get_users(course_project_id).map (_, account_id) =>
+                if not current.get(account_id)?
+                    invite(account_id)
+            store.get_students().map (student, student_id) =>
+                account_id = student.get('account_id')
+                if account_id? and not current.get(account_id)?
+                    invite(account_id)
+
+        # set the shared project id in our syncdb
+        _set_shared_project_id: (project_id) =>
+            @_update
+                set   : {shared_project_id:project_id}
+                where : {table:'settings'}
+
+        # create the globally shared project if it doesn't exist
+        create_shared_project: () =>
+            store = get_store()
+            return if not store?
+            if store.get_shared_project_id()
+                return
+            id = @set_activity(desc:"Creating global shared project for everybody.")
+            x  = @shared_project_settings()
+            x.token = misc.uuid()
+            redux.getActions('projects').create_project(x)
+            redux.getStore('projects').wait_until_project_created x.token, 30, (err, project_id) =>
+                @clear_activity(id)
+                if err
+                    @set_error("error creating shared project -- #{err}")
+                else
+                    @_set_shared_project_id(project_id)
+                    @configure_shared_project()
 
         # Set the pay option for the course, and ensure that the course fields are
         # set on every student project in the course (see schema.coffee for format
@@ -440,6 +506,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     student_project_id = student.get('project_id')
                     if student_project_id?
                         redux.getActions('projects').start_project(student_project_id)
+            @start_shared_project()
 
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
@@ -509,6 +576,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 return
             for student_id in store.get_student_ids(deleted:false)
                 @configure_project(student_id, false)   # always re-invite students on running this.
+            @configure_shared_project()
             @set_activity(id:id)
             @set_all_student_project_course_info()
 
@@ -959,8 +1027,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
     redux.createActions(the_redux_name, CourseActions)
 
     class CourseStore extends Store
+        get_shared_project_id: =>
+            # return project_id (a string) if shared project has been created, or undefined or empty string otherwise.
+            return @getIn(['settings', 'shared_project_id'])
+
         get_pay: =>
-            @getIn(['settings', 'pay']) ? ''
+            return @getIn(['settings', 'pay']) ? ''
 
         get_email_invite: =>
             host = window.location.hostname
@@ -3135,6 +3207,109 @@ Settings = rclass
             </Row>
         </div>
 
+# Component that renders the "shared project" tab
+SharedProject = rclass
+    displayName : "CourseEditor-SharedProject"
+
+    propTypes :
+        shared_project_id : rtypes.string
+        redux             : rtypes.object.isRequired
+        name              : rtypes.string.isRequired
+
+    getInitialState : ->
+        confirm_create : false
+
+    panel_header_text: ->
+        if @props.shared_project_id
+            "Shared project that everybody can fully use"
+        else
+            "Optionally create a shared project for everybody"
+
+    render : ->
+        <Row>
+            <Col md=6>
+                 <Panel header={<h4><Icon name='users' />  {@panel_header_text()} </h4>}>
+                    {@render_content()}
+                 </Panel>
+            </Col>
+        </Row>
+
+    render_content: ->
+        if @props.shared_project_id
+            @render_has_shared_project()
+        else
+            @render_no_shared_project()
+
+    render_has_shared_project: ->
+        <div>
+            <div style={color:'#444'}>
+                <p>
+                    You created a common shared project, which everybody -- students and all collaborators
+                    on this project (your TAs and other instructors) -- have <b>write</b> access to.  Use
+                    this project for collaborative in-class labs, course-wide chat rooms, and making
+                    miscellaneous materials available for
+                    students to experiment with together.
+                </p>
+                <p>
+                    When you created the shared project, everybody who has already created an account
+                    is added as a collaborator to the project.  Whenever you re-open this course,
+                    any students or collaborators on the project that contains this course will be
+                    added to the shared project.
+                </p>
+            </div>
+            <br/>
+            <Button onClick={@open_project}>
+                <Icon name="edit" /> Open shared project
+            </Button>
+        </div>
+
+    open_project : ->
+        @props.redux.getActions('projects').open_project(project_id:@props.shared_project_id)
+
+    render_no_shared_project: ->
+        <div>
+            <div style={color:'#444'}>
+                <p>
+                    You may <i>optionally</i> create a single common shared project, which everybody -- students and all collaborators
+                    on this project (your TAs and other instructors) -- will have <b>write</b> access to.  This can be useful
+                    for collaborative in-class labs, course-wide chat rooms, and making miscellanous materials available for
+                    students to experiment with together.
+                </p>
+                <p>
+                    When you create the shared project, everybody who has already created an account
+                    is added as a collaborator to the project.  Whenever you re-open this course,
+                    any students or collaborators on the project that contains this course will be
+                    added to the shared project.
+                </p>
+                <p>
+                    After you create the shared project, you should move the shared project to a members only server
+                    or upgrade it in other ways if you want it to be more stable.
+                </p>
+
+            </div>
+            <br/>
+            <Button onClick={=>@setState(confirm_create:true)} disabled={@state.confirm_create}>
+                <Icon name="plus"/> Create shared project...
+            </Button>
+            {@render_confirm_create()}
+        </div>
+
+    render_confirm_create: ->
+        if @state.confirm_create
+            <Alert bsStyle='warning' style={marginTop:'15px'}>
+                <ButtonToolbar>
+                    <Button bsStyle='warning' onClick={=>@setState(confirm_create:false);@create_shared_project()}>
+                        Create shared project for everybody involved in this class
+                    </Button>
+                    <Button onClick={=>@setState(confirm_create:false)}>
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Alert>
+
+    create_shared_project: ->
+        @props.redux.getActions(@props.name).create_shared_project()
+
 CourseEditor = (name) -> rclass
     displayName : "CourseEditor"
 
@@ -3193,6 +3368,13 @@ CourseEditor = (name) -> rclass
         else
             return <Loading />
 
+    render_shared_project: ->
+        if @props.redux? and @props.settings?
+            <SharedProject redux={@props.redux} name={@props.name}
+                shared_project_id={@props.settings?.get('shared_project_id')}/>
+        else
+            return <Loading />
+
     render_student_header : ->
         n = @props.redux.getStore(@props.name)?.num_students()
         <Tip delayShow=1300
@@ -3219,6 +3401,18 @@ CourseEditor = (name) -> rclass
             </span>
         </Tip>
 
+    render_shared_project_header : ->
+        if @props.settings?.get('shared_project_id')
+            tip = "Shared project that everybody involved in this course may use."
+        else
+            tip = "Create a shared project that everybody in this course may use."
+        <Tip delayShow=1300 title="Shared Project"
+             tip={tip}>
+            <span>
+                <Icon name="users"/> Shared Project
+            </span>
+        </Tip>
+
     render_save_button : ->
         if @props.show_save_button
             <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
@@ -3234,6 +3428,7 @@ CourseEditor = (name) -> rclass
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     render : ->
+        #window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
         <div>
             {@render_save_button()}
             {@render_error()}
@@ -3252,6 +3447,10 @@ CourseEditor = (name) -> rclass
                 <Tab eventKey={'settings'} title={@render_settings_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_settings()}
+                </Tab>
+                <Tab eventKey={'shared_project'} title={@render_shared_project_header()}>
+                    <div style={marginTop:'8px'}></div>
+                    {@render_shared_project()}
                 </Tab>
             </Tabs>
         </div>

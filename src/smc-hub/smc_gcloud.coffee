@@ -1116,6 +1116,7 @@ class VM_Manager
     ###
     require 'c'; vms()
     vms.request(name:'compute8-us', status:'RUNNING', preemtible:true, cb:done())
+    vms.request(name:'compute8-us',status:'TERMINATED',cb:done())
     ###
     request: (opts) =>
         opts = defaults opts,

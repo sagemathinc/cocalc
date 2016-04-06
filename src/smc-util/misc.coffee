@@ -1606,3 +1606,41 @@ exports.has_null_leaf = has_null_leaf = (obj) ->
         if v == null or (typeof(v) == 'object' and has_null_leaf(v))
             return true
     return false
+
+# Peer Grading
+# this function takes a list of students (actually, arbitrary objects)
+# and a number N of the desired number of peers per student.
+# It returns a dictionary, mapping each student to a list of peers.
+exports.peer_grading = (students, N=2) ->
+    if N <= 0
+        throw "Number of peer assigments must be at least 1"
+    if students.length <= N
+        throw "You need at least #{N + 1} students"
+
+    asmnt = {}
+    # make output dict keys sorted like students input array
+    students.forEach((s) -> asmnt[s] = [])
+    # randomize peer assignments
+    s_random = underscore.shuffle(students)
+
+    # the peer groups are selected here. Think of nodes in a circular graph,
+    # and node i is associated with i+1 up to i+N
+    L = students.length
+    for i in [0...L]
+        asmnt[s_random[i]] = (s_random[(i + idx) % L] for idx in [1..N])
+
+    # sort each peer group by the order of the `student` input list
+    for k, v of asmnt
+        asmnt[k] = underscore.sortBy(v, (s) -> students.indexOf(s))
+    return asmnt
+
+# demonstration of the above, for tests see misc-test.coffee
+exports.peer_grading_demo = (S = 10, N = 2) ->
+    peer_grading = exports.peer_grading
+    students = [0...S]
+    students = ("S-#{s}" for s in students)
+    result = peer_grading(students, N=N)
+    console.log("#{S} students graded by #{N} peers")
+    for k, v of result
+        console.log("#{k} ←→ #{v}")
+    return result
