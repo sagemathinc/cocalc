@@ -1629,15 +1629,15 @@ class Client extends EventEmitter
     mesg_create_support_ticket: (mesg) =>
         dbg = @dbg("mesg_create_support_ticket")
         dbg("#{misc.to_json(mesg)}")
-        if not @account_id?
-            err = "You must be signed in to use support related functions."
-            @error_to_client(id:id, error:err)
-            return
+        #if not @account_id?
+        #    err = "You must be signed in to use support related functions."
+        #    @error_to_client(id:mesg.id, error:err)
+        #    return
 
         m = underscore.omit(mesg, 'id', 'event')
         support.create_ticket m, (err, url) =>
             dbg("callback being called with #{err} and url: #{url}")
-            if err
+            if err?
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(

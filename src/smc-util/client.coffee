@@ -1495,9 +1495,11 @@ class exports.Connection extends EventEmitter
 
     create_support_ticket: ({opts, cb}) =>
         @call
-            message: message.create_support_ticket(opts)
-            timeout : 30
-            cb      : (err, resp) ->
+            message      : message.create_support_ticket(opts)
+            timeout      : 20
+            error_event  : true
+            cb           : (err, resp) ->
+                console.log("create_support_ticket:", err, resp)
                 if err
                     cb?(err)
                 else

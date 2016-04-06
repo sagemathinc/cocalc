@@ -16,6 +16,7 @@ DEBUG   = true
 
 async   = require 'async'
 fs      = require 'fs'
+path    = require 'path'
 misc    = require 'smc-util/misc'
 _       = require 'underscore'
 {defaults, required} = misc
@@ -107,8 +108,7 @@ class exports.Support
             tags          : undefined
             account_id    : undefined
             project_id    : undefined
-            filepath      : undefined # path to file (together with project_id → full URL)
-            subscriber    : false
+            location      : undefined # path to file (together with project_id → full URL)
             info          : undefined # additional data dict, like browser/OS
 
         dbg = @dbg("create_ticket")
@@ -117,7 +117,7 @@ class exports.Support
         if not @_zd?
             err = "zendesk not available -- abort"
             dbg(err)
-            opts.cb?(err)
+            @cb?(err)
             return
 
         # data assembly, we need a special formatted user and ticket object
@@ -133,22 +133,19 @@ class exports.Support
                     subscription : null
                     type         : null
 
-        # below the body message, add a link to the project + filepath
+        # below the body message, add a link to the location
         # TODO fix hardcoded URL
-        if opts.project_id?
-            filepath = opts.filepath ? ''
-            filepath = "#{opts.project_id}/#{filepath}"
-            body = opts.body + "\n\nhttps://cloud.sagemath.com/projects/#{filepath}"
+        if opts.location?
+            url  = path.join('https://cloud.sagemath.com/', opts.location)
+            body = opts.body + "\n\n#{url}"
         else
-            body = opts.body + "\n\nNo project_id provided."
-
-        # dbg("opts.filepath: #{opts.filepath}  body: #{body}")
+            body = opts.body + "\n\nNo specific location provided."
 
         # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
         custom_fields =
             account_id: opts.account_id
             project_id: opts.project_id
-            filepath  : opts.filepath
+            location  : opts.location
 
         if opts.info?
             custom_fields.info = JSON.stringify(opts.info)

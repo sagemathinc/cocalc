@@ -40,15 +40,21 @@ class SupportActions extends Actions
     get: (key) =>
         @get_store().get(key)
 
+    reset: =>
+        @init_email_address()
+        @setState
+            state   : ''
+            err     : ''
+
     show: (show) =>
         if show
-            @init_email_address()
+            @reset()
         @setState
             show     : show
 
-    new_ticket: () =>
-        @setState
-            state: ''
+    new_ticket: (evt) =>
+        evt?.preventDefault()
+        @reset()
 
     init_email_address: () =>
         account  = @redux.getStore('account')
@@ -68,26 +74,38 @@ class SupportActions extends Actions
         e = not @get('email_err')?
         return s and b and e
 
-    process_support: (err, url) =>
-        # console.log("callback process_support:", err, url)
-        if not err
-            @setState
-                subject  : ''
-                body     : ''
-                url      : url
-        @setState
-            state  : if err then 'error' else 'created'
-            err    : err
-
     project_id : ->
-        return top_navbar.current_page_id
+        pid = top_navbar.current_page_id
+        if misc.is_valid_uuid_string(pid)
+            return pid
+        else
+            return null
+
+    projects : =>
+        @redux.getStore("projects")
 
     project_title : ->
-        return redux.getStore("projects").get_title(@project_id())
+        if @project_id()?
+            return @projects().get_title(@project_id())
+        else
+            return null
 
+    location : ->
+        window.location.pathname.slice(window.smc_base_url.length)
+
+    # sends off the support request
     support: () =>
         store    = @get_store()
         account  = @redux.getStore('account')
+        project_id = @project_id()
+
+        if misc.is_valid_uuid_string(project_id)
+            project  = @redux.getProjectActions(project_id)
+            upgrades = @projects().get_upgrades_to_project(project_id)
+            console.log("PID", project, upgrades)
+        else
+            project  = undefined
+            upgrades = undefined
 
         tags = []
         # TODO use this to add 'member' or 'free'
@@ -97,6 +115,8 @@ class SupportActions extends Actions
         @setState
             state   : 'creating'
 
+        info = {} # additional data dict, like browser/OS
+
         salvus_client.create_support_ticket
             opts:
                 username     : account.get_fullname()
@@ -104,12 +124,21 @@ class SupportActions extends Actions
                 subject      : store.get('subject')
                 body         : store.get('body') # TODO markdown2html
                 tags         : tags
-                project_id   : @project_id
-                filepath     : store.get('filepath')
-                info         : undefined # additional data dict, like browser/OS
+                project_id   : project_id
+                location     : @location()
+                info         : info
             cb : @process_support
 
-
+    process_support: (err, url) =>
+        console.log("callback process_support:", err, url)
+        if not err?
+            @setState    # only clear subject/boy, if there has been a success!
+                subject  : ''
+                body     : ''
+                url      : url
+        @setState
+            state  : if err? then 'error' else 'created'
+            err    : err ? ''
 
 
 SupportInfo = rclass
@@ -120,17 +149,17 @@ SupportInfo = rclass
         state        : rtypes.string.isRequired
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
-        filepath     : rtypes.string.isRequired
-        email        : rtypes.string.isRequired
-        show_form    : rtypes.bool.isRequired
-        new          : rtypes.func.isRequired
 
     error : () ->
-        <div style={fontWeight:'bold', fontSize: '120%'}>
+        <Alert bsStyle='danger' style={fontWeight:'bold'}>
+            <p>
             Sorry, there has been an error creating the ticket.
             Please email <HelpEmailLink /> directly!
-            <pre>{"ERROR: "} {@props.err}</pre>
-        </div>
+            </p>
+            <p>Error message:
+            <pre>{@props.err}</pre>
+            </p>
+        </Alert>
 
     created : () ->
         if @props.url?.length > 1
@@ -145,17 +174,18 @@ SupportInfo = rclass
           <p style={fontSize:'120%'}>{url}</p>
           <Button bsStyle='success'
               style={marginTop:'3em'}
-              onClick={@props.new}>Create New Ticket</Button>
+              onClick={@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
     default : () ->
-        if @props.filepath? and @props.filepath.length > 0
-            what = ["file ", <code key={1}>{@props.filepath}</code>]
+        title = @props.actions.project_title()
+        if title?
+            what = "the current project \"#{title}\""
         else
-            what = "current project \"#{@props.actions.project_title()}\""
+            what = <code>{@props.actions.location()}</code>
         <div>
             <p>
-                You have a problem in the {what}?
+                You have a problem with {what}?
                 Tell us about it by creating a support ticket.
             </p>
             <p>
@@ -166,18 +196,15 @@ SupportInfo = rclass
         </div>
 
     render : ->
-        if not @props.email?
-            return <p>To get support, you have to specify a valid email address in your account first!</p>
-        else
-            switch @props.state
-                when 'error'
-                    return @error()
-                when 'creating'
-                    return <Loading />
-                when 'created'
-                    return @created()
-                else
-                    return @default()
+        switch @props.state
+            when 'error'
+                return @error()
+            when 'creating'
+                return <Loading />
+            when 'created'
+                return @created()
+            else
+                return @default()
 
 SupportFooter = rclass
     displayName : 'Support-footer'
@@ -212,12 +239,20 @@ SupportForm = rclass
 
     propTypes :
         email     : rtypes.string.isRequired
-        email_err : rtypes.string.isRequired
+        email_err : rtypes.string
         subject   : rtypes.string.isRequired
         body      : rtypes.string.isRequired
         show      : rtypes.bool.isRequired
         submit    : rtypes.func.isRequired
         actions   : rtypes.object.isRequired
+
+    ###
+    shouldComponentUpdate: (nextProps, nextState) =>
+        e = @props.email != nextProps.email
+        s = @props.subject != nextProps.subject
+        b = @props.body != nextProps.body
+        return e or s or b
+    ###
 
     email_change  : ->
         @props.actions.set_email(@refs.email.getValue())
@@ -237,7 +272,6 @@ SupportForm = rclass
             </Alert>
 
         <form>
-            {alert if alert?}
             <Input
                 label       = 'You email address'
                 ref         = 'email'
@@ -246,6 +280,7 @@ SupportForm = rclass
                 bsStyle     = {if ee? then 'warning'}
                 value       = {@props.email}
                 onChange    = {@email_change} />
+            {alert if alert?}
             <Input
                 ref         = 'subject'
                 autoFocus
@@ -281,7 +316,6 @@ Support = rclass
         url         : ''
         err         : ''
         email_err   : ''
-        filepath    : ''
 
     reduxProps :
         support:
@@ -293,7 +327,6 @@ Support = rclass
             url          : rtypes.string
             err          : rtypes.string
             email_err    : rtypes.string
-            filepath     : rtypes.string
 
     open : ->
         @props.actions.show(true)
@@ -302,11 +335,8 @@ Support = rclass
         @props.actions.show(false)
 
     submit : (event) ->
-        event.preventDefault()
+        event?.preventDefault()
         @props.actions.support()
-
-    new : (event) ->
-        @props.actions.new_ticket()
 
     valid : () ->
         @props.actions.valid()
@@ -327,19 +357,15 @@ Support = rclass
                     actions   = {@props.actions}
                     state     = {@props.state}
                     url       = {@props.url}
-                    err       = {@props.err}
-                    filepath  = {@props.filepath}
-                    email     = {@props.email}
-                    new       = {=> @new()}
-                    show_form = {show_form} />
+                    err       = {@props.err} />
                 <SupportForm
+                    actions   = {@props.actions}
                     email     = {@props.email}
                     email_err = {@props.email_err}
                     subject   = {@props.subject}
                     body      = {@props.body}
                     show      = {show_form}
-                    submit    = {(e) => @submit(e)}
-                    actions   = {@props.actions} />
+                    submit    = {(e) => @submit(e)} />
             </Modal.Body>
 
             <SupportFooter
