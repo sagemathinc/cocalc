@@ -301,6 +301,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     when 'file_read_from_project'
                         # handle elsewhere by the code that requests the file
                         return
+                    when 'error'
+                        # ignore -- don't care since handler already gone.
+                        return
                     else
                         write_mesg(message.error(error:"unknown event '#{mesg.event}'"))
             return
@@ -473,7 +476,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                             opts.cb(resp.error)
                         else
                             opts.cb(undefined, resp)
-                # As mentioned above -- there's no else -- if not timeout then 
+                # As mentioned above -- there's no else -- if not timeout then
                 # we do not listen for a response.
 
     ####################################################

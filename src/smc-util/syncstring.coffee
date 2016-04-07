@@ -1164,15 +1164,21 @@ class SyncDoc extends EventEmitter
                     @_save(cb)
 
     _set_save: (x) =>
-        @_syncstring_table.set?(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
+        if @_closed # nothing to do
+            return
+        @_syncstring_table?.set?(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
         return
 
     _set_read_only: (read_only) =>
-        @_syncstring_table.set?(@_syncstring_table.get_one()?.set('read_only', read_only))
+        if @_closed # nothing to do
+            return
+        @_syncstring_table?.set?(@_syncstring_table.get_one()?.set('read_only', read_only))
         return
 
     get_read_only: () =>
-        @_syncstring_table?.get_one()?.get('read_only')
+        if @_closed # nothing to do
+            return
+        return @_syncstring_table?.get_one()?.get('read_only')
 
     wait_until_read_only_known: (cb) =>
         if not @_syncstring_table?

@@ -3038,13 +3038,13 @@ class RethinkDB
                     # no reason for user to ever write the same thing to this table twice
                     uniq = @_user_set_query_unique_writes ?= {}
                     uniq[table] ?= {}
-                    #dbg("uniq = #{misc.to_json(uniq)}")
+                    # dbg("uniq=#{misc.to_json(uniq)}")
                     rep = json_stable_stringify(opts.query)
                     q = misc_node.sha1(rep)
                     if uniq[table][q]
                         dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
                         uniq[table][q] += 1
-                        opts.cb()
+                        opts.cb('unique_writes')
                         return
                     else
                         on_success = () =>
