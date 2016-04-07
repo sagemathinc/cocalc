@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-underscore = require('underscore')
+underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
@@ -27,7 +27,14 @@ misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
+feature         = require('./feature')
 {HelpEmailLink, SiteName} = require('./customize')
+
+STATE =
+    NEW        : 'new'      # new/default/resetted/no problem
+    CREATING   : 'creating' # loading ...
+    CREATED    : 'created'  # ticket created
+    ERROR      : 'error'    # there was a problem
 
 class SupportStore extends Store
 
@@ -50,15 +57,14 @@ class SupportActions extends Actions
     reset: =>
         @init_email_address()
         @set
-            state   : ''
+            state   : STATE.NEW
             err     : ''
-            valid   : true
+            valid   : @check_valid()
 
     show: (show) =>
         if show
             @reset()
-        @set
-            show     : show
+        @set(show: show)
 
     new_ticket: (evt) =>
         evt?.preventDefault()
@@ -109,8 +115,9 @@ class SupportActions extends Actions
 
         if misc.is_valid_uuid_string(project_id)
             project  = @redux.getProjectActions(project_id)
-            upgrades = @projects().get_upgrades_to_project(project_id)
-            console.log("PID", project, upgrades)
+            u = @projects().get_upgrades_to_project(project_id)
+            # console.log("PID", project, upgrades)
+            upgrades = _.mapObject(u, (v, k) -> _.values(v).reduce((a,b)->a+b))
         else
             project  = undefined
             upgrades = undefined
@@ -120,10 +127,13 @@ class SupportActions extends Actions
         account.get_total_upgrades()
         # tags.push(if TEST then 'member' else 'free')
 
-        @set
-            state   : 'creating'
+        @set(state: STATE.CREATING)
 
-        info = {} # additional data dict, like browser/OS
+        info =  # additional data dict, like browser/OS
+            browser    : feature.get_browser()
+            user_agent : navigator.userAgent
+        if upgrades?
+            info = misc.merge(info, upgrades)
 
         salvus_client.create_support_ticket
             opts:
@@ -144,7 +154,7 @@ class SupportActions extends Actions
                 body     : ''
                 url      : url
         @set
-            state  : if err? then 'error' else 'created'
+            state  : if err? then STATE.ERROR else STATE.CREATED
             err    : err ? ''
 
 
@@ -163,9 +173,8 @@ SupportInfo = rclass
             Sorry, there has been an error creating the ticket.
             Please email <HelpEmailLink /> directly!
             </p>
-            <p>Error message:
+            <p>Error message:</p>
             <pre>{@props.err}</pre>
-            </p>
         </Alert>
 
     created : () ->
@@ -186,10 +195,12 @@ SupportInfo = rclass
 
     default : () ->
         title = @props.actions.project_title()
+        loc   = @props.actions.location()
         if title?
-            what = "the current project \"#{title}\""
+            fn = loc.slice(53) # / projects / uuid / files
+            what = [<code key={0}>{fn}</code>, " in project \"#{title}\""]
         else
-            what = <code>{@props.actions.location()}</code>
+            what = <code>{loc}</code>
         <div>
             <p>
                 You have a problem with {what}?
@@ -204,11 +215,11 @@ SupportInfo = rclass
 
     render : ->
         switch @props.state
-            when 'error'
+            when STATE.ERROR
                 return @error()
-            when 'creating'
+            when STATE.CREATING
                 return <Loading />
-            when 'created'
+            when STATE.CREATED
                 return @created()
             else
                 return @default()
@@ -252,14 +263,6 @@ SupportForm = rclass
         show      : rtypes.bool.isRequired
         submit    : rtypes.func.isRequired
         actions   : rtypes.object.isRequired
-
-    ###
-    shouldComponentUpdate: (nextProps, nextState) =>
-        e = @props.email != nextProps.email
-        s = @props.subject != nextProps.subject
-        b = @props.body != nextProps.body
-        return e or s or b
-    ###
 
     email_change  : ->
         @props.actions.set_email(@refs.email.getValue())
@@ -309,8 +312,6 @@ SupportForm = rclass
 Support = rclass
     displayName : 'Support-main'
 
-    mixins: [ImmutablePureRenderMixin]
-
     propTypes :
         actions : rtypes.object.isRequired
 
@@ -319,11 +320,11 @@ Support = rclass
         email       : ''
         subject     : ''
         body        : ''
-        state       : ''
+        state       : STATE.NEW
         url         : ''
         err         : ''
         email_err   : ''
-        valid       : true
+        valid       : false
 
     reduxProps :
         support:
@@ -331,7 +332,7 @@ Support = rclass
             email        : rtypes.string
             subject      : rtypes.string
             body         : rtypes.string
-            state        : rtypes.string # '' ←→ {creating → created|error}
+            state        : rtypes.string
             url          : rtypes.string
             err          : rtypes.string
             email_err    : rtypes.string
@@ -353,7 +354,7 @@ Support = rclass
     render : () ->
         show_form = false
 
-        if (not @props.state?) or @props.state == ''
+        if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
 
         <Modal show={@props.show} onHide={@close}>

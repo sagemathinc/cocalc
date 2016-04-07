@@ -54,11 +54,17 @@ exports.IS_MOBILE = exports.isMobile.any()
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
+$.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0
 $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
+$.browser.safari  = not $.browser.chrome and user_agent.indexOf('safari') > 0
+$.browser.ie      = not $.browser.chrome and user_agent.indexOf('windows') > 0
+$.browser.blink   = ($.browser.chrome || $.browser.opera) && !!window.CSS
 
-$.browser.safari = not $.browser.chrome and user_agent.indexOf('safari') > 0
-
-$.browser.ie = not $.browser.chrome and user_agent.indexOf('windows') > 0
+exports.get_browser = () ->
+    for k, v of $.browser
+        if v
+            return k
+    return null
 
 # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
 if not navigator.cookieEnabled
@@ -70,4 +76,3 @@ if not navigator.cookieEnabled
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
-    
