@@ -32,6 +32,8 @@
 
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 
+{ShowSupportLink} = require('./support')
+
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
 
@@ -496,10 +498,15 @@ HelpPage = rclass
                         <SiteName/> <SiteDescription/>
                     </h3>
 
-                    <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%'}>
-                        <Icon name='envelope'/><Space/><Space/> Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
-                        not hesitate</strong> to immediately <HelpEmailLink text='email us'/>. We want to know if anything is broken! <b>Include
-                        a link (the address in your browser) to any relevant project or document.</b>
+                    <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%', fontSize: '110%', textAlign: 'center'}>
+                        <Icon name='medkit'/><Space/><Space/>
+                        <strong>In case of any problems <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
+                        <br/>
+                        We want to know if anything is broken!
+                        <br/>
+                        <Icon name='envelope'/><Space/><Space/> You can also send us and email to <HelpEmailLink />.
+                        <br/>
+                        Do not forget to include a link (the URL address in your browser) to the relevant project or document.
                     </div>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />

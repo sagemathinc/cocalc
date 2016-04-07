@@ -423,4 +423,29 @@ $targ = $support.find('.react-target')
 render_project_support($targ[0], redux)
 $support.find("a").click () ->
     # path = that.editor?.active_tab?.filename ? ''
+    exports.show()
+
+# project wide public API
+
+exports.ShowSupportLink = rclass
+    displayName : 'ShowSupportLink'
+
+    propTypes :
+        text : rtypes.string
+
+    getDefaultProps : ->
+        text : 'support ticket'
+
+    show: (evt) ->
+        evt.preventDefault()
+        redux.getActions('support').show(true)
+
+    render : ->
+        <Redux redux={redux}>
+            <a onClick={@show} href='#' style={cursor: 'pointer'}>
+                {@props.text}
+            </a>
+        </Redux>
+
+exports.show = ->
     redux.getActions('support').show(true)
