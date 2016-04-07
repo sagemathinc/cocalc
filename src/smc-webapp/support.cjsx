@@ -28,6 +28,7 @@ misc_page       = require('./misc_page')
 {top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 feature         = require('./feature')
+{markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName} = require('./customize')
 
 STATE =
@@ -71,16 +72,20 @@ class SupportActions extends Actions
         @reset()
 
     init_email_address: () =>
-        account  = @redux.getStore('account')
-        email    = account.get_email_address()
-        @set_email(email)
+        if not @get('email')?.length > 0
+            account  = @redux.getStore('account')
+            email    = account.get_email_address()
+            email    = email ? ''
+            @set_email(email)
 
     set_email: (email) =>
         @set(email: email)
-        if misc.is_valid_email_address(email)
-            @set(email_err : null)
+        if email?.length == 0
+            @set(email_err: 'Please enter a valid email address above.')
+        else if misc.is_valid_email_address(email)
+            @set(email_err: null)
         else
-            @set(email_err : "Email address invalid!")
+            @set(email_err: 'Email address is invalid!')
 
     check_valid: () =>
         s = @get('subject')?.trim() isnt ''
@@ -109,14 +114,14 @@ class SupportActions extends Actions
 
     # sends off the support request
     support: () =>
-        store    = @get_store()
-        account  = @redux.getStore('account')
+        account    = @redux.getStore('account')
         project_id = @project_id()
 
         if misc.is_valid_uuid_string(project_id)
             project  = @redux.getProjectActions(project_id)
             u = @projects().get_upgrades_to_project(project_id)
-            # console.log("PID", project, upgrades)
+            # console.log("PID", project, u)
+            # sum up upgrades for each category
             upgrades = _.mapObject(u, (v, k) -> _.values(v).reduce((a,b)->a+b))
         else
             project  = undefined
@@ -132,15 +137,17 @@ class SupportActions extends Actions
         info =  # additional data dict, like browser/OS
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
+            mobile     : feature.get_mobile()
         if upgrades?
             info = misc.merge(info, upgrades)
 
         salvus_client.create_support_ticket
             opts:
                 username     : account.get_fullname()
-                email_address: account.get_email_address()
-                subject      : store.get('subject')
-                body         : store.get('body') # TODO markdown2html
+                email_address: @get('email')
+                subject      : @get('subject')
+                body         : @get('body')
+                #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
                 project_id   : project_id
                 location     : @location()
@@ -188,9 +195,11 @@ SupportInfo = rclass
               Save this link for future reference:
           </p>
           <p style={fontSize:'120%'}>{url}</p>
-          <Button bsStyle='success'
-              style={marginTop:'3em'}
-              onClick={@props.actions.new_ticket}>Create New Ticket</Button>
+          <Button
+              bsStyle  = 'success'
+              style    = {marginTop:'3em'}
+              tabIndex = 4
+              onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
     default : () ->
@@ -198,13 +207,13 @@ SupportInfo = rclass
         loc   = @props.actions.location()
         if title?
             fn = loc.slice(53) # / projects / uuid / files
-            what = [<code key={0}>{fn}</code>, " in project \"#{title}\""]
+            what = ['with ', <code key={1}>{fn}</code>, " in project \"#{title}\""]
         else
-            what = <code>{loc}</code>
+            what = ["at ", <code key={1}>{loc}</code>]
         <div>
             <p>
-                You have a problem with {what}?
-                Tell us about it by creating a support ticket.
+                You have a problem {what}?
+                Tell us more about it by creating a support ticket.
             </p>
             <p>
                 After successfully submitting it,
@@ -235,25 +244,25 @@ SupportFooter = rclass
 
     render : ->
         if @props.show_form
-            btn = <Button bsStyle='primary'
-                          onClick={@props.submit}
-                          disabled={not @props.valid}>
+            btn = <Button bsStyle  = 'primary'
+                          tabIndex = 4
+                          onClick  = {@props.submit}
+                          disabled = {not @props.valid}>
                        <Icon name='medkit' /> Get Support
                    </Button>
         else
             btn = <span/>
 
         <Modal.Footer>
-            <Button bsStyle='default' onClick={@props.close}>Close</Button>
+            <Button
+                tabIndex  = 5
+                bsStyle   ='default'
+                onClick   = {@props.close}>Close</Button>
             {btn}
         </Modal.Footer>
 
 SupportForm = rclass
     displayName : 'Support-form'
-
-    getDefaultProps : ->
-        show        : true
-        email_err   : ''
 
     propTypes :
         email     : rtypes.string.isRequired
@@ -283,9 +292,10 @@ SupportForm = rclass
 
         <form>
             <Input
-                label       = 'You email address'
+                label       = 'Your email address'
                 ref         = 'email'
                 type        = 'text'
+                tabIndex    = 1
                 placeholder = 'your_email@address.com'
                 bsStyle     = {if ee? then 'warning'}
                 value       = {@props.email}
@@ -295,6 +305,7 @@ SupportForm = rclass
                 ref         = 'subject'
                 autoFocus
                 type        = 'text'
+                tabIndex    = 2
                 label       = 'Message'
                 placeholder = "Subject ..."
                 value       = {@props.subject}
@@ -302,6 +313,7 @@ SupportForm = rclass
             <Input
                 ref         = 'body'
                 type        = 'textarea'
+                tabIndex    = 3
                 placeholder = 'Describe the problem ...'
                 rows        = 6
                 value       = {@props.body}

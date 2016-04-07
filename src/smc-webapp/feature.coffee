@@ -66,6 +66,12 @@ exports.get_browser = () ->
             return k
     return null
 
+exports.get_mobile = () ->
+    for k, v of exports.isMobile
+        if v()
+            return k
+    return null
+
 # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
 if not navigator.cookieEnabled
     $(".smc-cookie-warning").show()

@@ -12,7 +12,7 @@ https://github.com/blakmatrix/node-zendesk
 ###
 
 # if true, no real tickets are created
-DEBUG   = true
+DEBUG   = process.env.SMC_TEST_ZENDESK ? false
 
 async   = require 'async'
 fs      = require 'fs'
@@ -109,7 +109,7 @@ class exports.Support
             account_id    : undefined
             project_id    : undefined
             location      : undefined # path to file (together with project_id → full URL)
-            info          : undefined # additional data dict, like browser/OS
+            info          : {}        # additional data dict, like browser/OS
 
         dbg = @dbg("create_ticket")
         # dbg("opts = #{misc.to_json(opts)}")
@@ -139,16 +139,18 @@ class exports.Support
             url  = path.join('https://cloud.sagemath.com/', opts.location)
             body = opts.body + "\n\n#{url}"
         else
-            body = opts.body + "\n\nNo specific location provided."
+            body = opts.body + "\n\nNo location provided."
 
         # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
         custom_fields =
             account_id: opts.account_id
             project_id: opts.project_id
             location  : opts.location
+            browser   : opts.info.browser ? 'unknown'
+            mobile    : opts.info.mobile  ? 'false'
 
-        if opts.info?
-            custom_fields.info = JSON.stringify(opts.info)
+        opts.info = _.omit(opts.info, 'browser', 'mobile')
+        custom_fields.info = JSON.stringify(opts.info)
 
         tags = opts.tags ? []
 
