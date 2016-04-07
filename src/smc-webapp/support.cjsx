@@ -137,7 +137,7 @@ class SupportActions extends Actions
         info =  # additional data dict, like browser/OS
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
-            mobile     : feature.get_mobile()
+            mobile     : feature.get_mobile() ? false
         if upgrades?
             info = misc.merge(info, upgrades)
 
@@ -156,7 +156,7 @@ class SupportActions extends Actions
 
     process_support: (err, url) =>
         if not err?
-            @set    # only clear subject/boy, if there has been a success!
+            @set    # only clear subject/body, if there has been a success!
                 subject  : ''
                 body     : ''
                 url      : url
@@ -217,8 +217,8 @@ SupportInfo = rclass
             </p>
             <p>
                 After successfully submitting it,
-                you{"'"}ll receive a ticket number and a link to the ticket.
-                Keep it to stay in contact with us!
+                you{"'"}ll receive a a link to your ticket.
+                Keep it save in order to stay in contact with us!
             </p>
         </div>
 
@@ -418,11 +418,11 @@ init_redux = (redux) ->
 init_redux(redux)
 
 # hooking this up to the website
-$support = $('#smc-top_navbar-support')
+
+$support = $('.navbar a.smc-top_navbar-support')
 $targ = $support.find('.react-target')
 render_project_support($targ[0], redux)
-$support.find("a").click () ->
-    # path = that.editor?.active_tab?.filename ? ''
+$support.click () ->
     exports.show()
 
 # project wide public API
@@ -438,7 +438,7 @@ exports.ShowSupportLink = rclass
 
     show: (evt) ->
         evt.preventDefault()
-        redux.getActions('support').show(true)
+        exports.show()
 
     render : ->
         <Redux redux={redux}>
