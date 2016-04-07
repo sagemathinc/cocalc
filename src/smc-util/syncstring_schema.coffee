@@ -125,7 +125,7 @@ schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_i
 
 schema.patches =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time]
-    unique_writes: true   # there is no reason for a user to write the same record twice
+    unique_writes: true   # there is no reason for a user to write exactly the same record twice
     fields:
         id       :
             type : 'compound key [string_id, time]'
