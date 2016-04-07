@@ -247,7 +247,8 @@ SAGE_PIP_PACKAGES = [
     'filterpy',
     'control',
     'yattag',
-    'pyyaml'
+    'pyyaml',
+    'pygsl'  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
