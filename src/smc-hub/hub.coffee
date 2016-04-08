@@ -201,8 +201,8 @@ class Client extends EventEmitter
                 event          : 'changefeeds'
                 changefeed_ids : @_query_changefeeds ? {}
 
-        THROTTLE_CHANGEFEED_S = 5
-        CHANGEFEED_INTERVAL_S = 60
+        THROTTLE_CHANGEFEED_S = 60
+        CHANGEFEED_INTERVAL_S = 120
         # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
         @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
         # send out periodically

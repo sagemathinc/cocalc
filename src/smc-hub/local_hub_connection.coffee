@@ -89,8 +89,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         changefeed_ids : @_query_changefeeds ? {}
                     sock.write_mesg('json', mesg)
 
-        THROTTLE_CHANGEFEED_S = 5
-        CHANGEFEED_INTERVAL_S = 45
+        THROTTLE_CHANGEFEED_S = 60
+        CHANGEFEED_INTERVAL_S = 120
         # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
         @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
         # send out periodically
