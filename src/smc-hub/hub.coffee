@@ -1574,8 +1574,8 @@ class Client extends EventEmitter
                         # also, assume changefeed got messed up, so cancel it.
                         database.user_query_cancel_changefeed(id : mesg_id)
                 else
-                    #if Math.random() <= .1  # for testing -- force forgetting about changefeed with probability 10%.
-                    #    delete @_query_changefeeds[mesg_id]
+                    ##if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    ##    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -1621,6 +1621,7 @@ class Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
                         delete @_query_changefeeds?[mesg.id]
+                        @push_changefeed_ids()
 
     mesg_query_get_changefeed_ids: (mesg) =>
         mesg.changefeed_ids = @_query_changefeeds ? {}

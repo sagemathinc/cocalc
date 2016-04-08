@@ -199,8 +199,9 @@ class SyncTable extends EventEmitter
         @_client_listeners.disconnected = disconnected
 
         @_client.on 'changefeed_ids', (changefeed_ids) =>
+            #@_client.dbg("changfeed('#{@_table}')")("got #{misc.to_json(changefeed_ids)}")
             if @_state == 'connected' and not changefeed_ids[@_id]
-                console.warn("changfeed('#{@_table}') closed on server -- reconnecting")
+                @_client.dbg("changfeed('#{@_table}')")("closed on server -- reconnecting")
                 delete @_state
                 @_reconnect()
 

@@ -5,6 +5,7 @@ LocalHub
 async   = require('async')
 uuid    = require('node-uuid')
 winston = require('winston')
+underscore = require('underscore')
 
 message = require('smc-util/message')
 misc_node = require('smc-util-node/misc_node')
@@ -76,6 +77,24 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @call_callbacks = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
+
+        # We push to the project a map of all valid changefeeds:
+        #  (1) whenever this changes
+        #  (2) periodically
+        push_changefeed_ids = () =>
+            @local_hub_socket (err, sock) =>
+                if not err
+                    mesg =
+                        event          : 'changefeeds'
+                        changefeed_ids : @_query_changefeeds ? {}
+                    sock.write_mesg('json', mesg)
+
+        THROTTLE_CHANGEFEED_S = 5
+        CHANGEFEED_INTERVAL_S = 45
+        # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
+        @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
+        # send out periodically
+        @_push_changefeeds_interval = setInterval(@push_changefeed_ids, CHANGEFEED_INTERVAL_S*1000)
 
     project: (cb) =>
         if @_project?
@@ -196,6 +215,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         if mesg.changes
             @_query_changefeeds ?= {}
             @_query_changefeeds[mesg.id] = true
+            @push_changefeed_ids()
         mesg_id = mesg.id
         @database.user_query
             project_id : @project_id
@@ -207,11 +227,14 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     dbg("project_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
+                        @push_changefeed_ids()
                     write_mesg(message.error(error:err))
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
+                    #if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    #    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -236,6 +259,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         mesg.resp = resp
                         write_mesg(mesg)
                         delete @_query_changefeeds?[mesg.id]
+                        @push_changefeed_ids()
 
     mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
         mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
