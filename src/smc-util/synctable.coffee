@@ -197,6 +197,13 @@ class SyncTable extends EventEmitter
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
+
+        @_client.on 'changefeed_ids', (changefeed_ids) =>
+            if @_state == 'connected' and not changefeed_ids[@_id]
+                console.warn("changfeed('#{@_table}') closed on server -- reconnecting")
+                delete @_state
+                @_reconnect()
+
         return
 
     get: (arg) =>
@@ -452,7 +459,7 @@ class SyncTable extends EventEmitter
         #Use this to test fix_if_no_update_soon:
         #    if Math.random() <= .5
         #        query = []
-        @_fix_if_no_update_soon()
+        #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
@@ -467,6 +474,9 @@ class SyncTable extends EventEmitter
                     @_save(cb)
                 else
                     cb?(err)
+
+    ###
+    Disabled -- checking changefeed_id's should be better.
 
     # We call _fix_if_no_update_soon whenever we successfully saved something
     # since we must get back some
@@ -504,6 +514,7 @@ class SyncTable extends EventEmitter
             clearTimeout(broken_timer)
         # If we get anything from changfeed, call cancel.
         @once('before-change', cancel)
+    ###
 
     save: (cb) =>
         if @_state == 'closed'

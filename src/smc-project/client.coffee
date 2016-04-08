@@ -230,6 +230,8 @@ class exports.Client extends EventEmitter
                 delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
             f(mesg)
             return true
+        else if mesg.event == 'changefeeds'
+            @emit('changefeed_ids', mesg.changefeed_ids)
         else
             dbg("no callback")
             return false
