@@ -196,13 +196,14 @@ class Client extends EventEmitter
         # We push to the client a map of all valid changefeeds:
         #  (1) whenever this changes
         #  (2) periodically
-        push_changefeed_ids = () =>
+        _push_changefeed_ids = () =>
             @push_to_client
                 event          : 'changefeeds'
                 changefeed_ids : @_query_changefeeds ? {}
+        push_changefeed_ids = () => setTimeout(_push_changefeed_ids, 5000)
 
         THROTTLE_CHANGEFEED_S = 60
-        CHANGEFEED_INTERVAL_S = 120
+        CHANGEFEED_INTERVAL_S = 180
         # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
         @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
         # send out periodically
@@ -273,6 +274,7 @@ class Client extends EventEmitter
         @query_cancel_all_changefeeds()
         @closed = true
         @emit('close')
+        delete @push_changefeed_ids
         @compute_session_uuids = []
         c = clients[@conn.id]
         delete clients[@conn.id]

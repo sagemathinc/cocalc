@@ -202,6 +202,7 @@ class SyncTable extends EventEmitter
             #@_client.dbg("changfeed('#{@_table}')")("got #{misc.to_json(changefeed_ids)}")
             if @_state == 'connected' and not changefeed_ids[@_id]
                 @_client.dbg("changfeed('#{@_table}')")("closed on server -- reconnecting")
+                @_client.query_cancel(id:@_id) # just in case
                 delete @_state
                 @_reconnect()
 

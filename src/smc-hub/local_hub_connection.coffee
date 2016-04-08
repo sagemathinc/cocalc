@@ -78,19 +78,23 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
+    init_changefeed_ids: () =>
+        if @push_changefeed_ids?
+            return
         # We push to the project a map of all valid changefeeds:
         #  (1) whenever this changes
         #  (2) periodically
-        push_changefeed_ids = () =>
+        _push_changefeed_ids = () =>
             @local_hub_socket (err, sock) =>
                 if not err
                     mesg =
                         event          : 'changefeeds'
                         changefeed_ids : @_query_changefeeds ? {}
                     sock.write_mesg('json', mesg)
+        push_changefeed_ids = () => setTimeout(_push_changefeed_ids, 5000)
 
         THROTTLE_CHANGEFEED_S = 60
-        CHANGEFEED_INTERVAL_S = 120
+        CHANGEFEED_INTERVAL_S = 180
         # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
         @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
         # send out periodically
@@ -188,6 +192,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
         @_sockets_by_client_id = {}
+        if @push_changefeed_ids?
+            delete @push_changefeed_ids
+            clearInterval(@_push_changefeeds_interval)
 
     free_resources_for_client_id: (client_id) =>
         v = @_sockets_by_client_id[client_id]
@@ -388,6 +395,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 for c in @_local_hub_socket_queue
                     c(err)
             else
+                @init_changefeed_ids()  # inform local hub of changefeeds periodically
+                
                 socket.on 'mesg', (type, mesg) =>
                     switch type
                         when 'blob'
