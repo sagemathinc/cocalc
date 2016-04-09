@@ -79,6 +79,12 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("getting deployed running project")
 
     init_changefeed_ids: () =>
+        # CRITICAL: I just realized that due to multiple hubs the projects will get confused
+        # keep canceling changefeeds if multiple hubs are connected to the project.  NOT GOOD.
+        # So... make it a no-op and return.
+        @push_changefeed_ids = () ->
+        return
+
         if @push_changefeed_ids?
             return
         # We push to the project a map of all valid changefeeds:
@@ -396,7 +402,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     c(err)
             else
                 @init_changefeed_ids()  # inform local hub of changefeeds periodically
-                
+
                 socket.on 'mesg', (type, mesg) =>
                     switch type
                         when 'blob'
