@@ -116,30 +116,40 @@ class SupportActions extends Actions
     support: () =>
         account    = @redux.getStore('account')
         project_id = @project_id()
+        project    = @projects()?.get_project(project_id)
+
+        @set(state: STATE.CREATING)
 
         if misc.is_valid_uuid_string(project_id)
-            project  = @redux.getProjectActions(project_id)
             u = @projects().get_upgrades_to_project(project_id)
             # console.log("PID", project, u)
             # sum up upgrades for each category
-            upgrades = _.mapObject(u, (v, k) -> _.values(v).reduce((a,b)->a+b))
+            proj_upgrades = _.mapObject(u,
+                (v, k) -> _.values(v).reduce((a,b)->a+b))
+            proj_settings = @projects().get_project(project_id).settings
+            quotas = misc.map_sum(proj_upgrades, proj_settings)
         else
-            project  = undefined
-            upgrades = undefined
+            quotas = undefined
 
         tags = []
-        # TODO use this to add 'member' or 'free'
-        account.get_total_upgrades()
-        # tags.push(if TEST then 'member' else 'free')
 
-        @set(state: STATE.CREATING)
+        # all upgrades the user has available
+        # that's a sum of membership benefits (see schema.coffee)
+        upgrades = account.get_total_upgrades()
+        if upgrades? and _.values(upgrades).reduce((a,b)->a+b) > 0
+            tags.push('member')
+        else
+            tags.push('free')
 
         info =  # additional data dict, like browser/OS
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
             mobile     : feature.get_mobile() ? false
+            internet   : proj_upgrades?.network? ? false
+            hostname   : project?.host?.host ? 'unknown'
+
         if upgrades?
-            info = misc.merge(info, upgrades)
+            info = misc.merge(info, quotas)
 
         salvus_client.create_support_ticket
             opts:
@@ -149,7 +159,6 @@ class SupportActions extends Actions
                 body         : @get('body')
                 #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
-                project_id   : project_id
                 location     : @location()
                 info         : info
             cb : @process_support
@@ -206,7 +215,7 @@ SupportInfo = rclass
         title = @props.actions.project_title()
         loc   = @props.actions.location()
         if title?
-            fn = loc.slice(53) # / projects / uuid / files
+            fn = loc.slice(46) # / projects / uuid /
             what = ['with ', <code key={1}>{fn}</code>, " in project \"#{title}\""]
         else
             what = ["at ", <code key={1}>{loc}</code>]

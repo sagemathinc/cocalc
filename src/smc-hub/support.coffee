@@ -107,8 +107,7 @@ class exports.Support
             body          : required  # html or md formatted text
             tags          : undefined
             account_id    : undefined
-            project_id    : undefined
-            location      : undefined # path to file (together with project_id → full URL)
+            location      : undefined # URL
             info          : {}        # additional data dict, like browser/OS
 
         dbg = @dbg("create_ticket")
@@ -146,10 +145,12 @@ class exports.Support
             account_id: opts.account_id
             project_id: opts.project_id
             location  : opts.location
-            browser   : opts.info.browser ? 'unknown'
-            mobile    : opts.info.mobile  ? 'false'
+            browser   : opts.info.browser  ? 'unknown'
+            mobile    : opts.info.mobile   ? 'false'
+            internet  : opts.info.internet ? 'unknown'
+            hostname  : opts.info.hostname ? 'unknown'
 
-        opts.info = _.omit(opts.info, 'browser', 'mobile')
+        opts.info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname')
         custom_fields.info = JSON.stringify(opts.info)
 
         tags = opts.tags ? []

@@ -974,7 +974,6 @@ message
     body         : required  # html or md formatted text
     tags         : undefined # a list of tags, like ['member']
     account_id   : undefined
-    project_id   : undefined
     location     : undefined # from the URL, to know what the requester is talking about
     info         : undefined # additional data dict, like browser/OS
 
