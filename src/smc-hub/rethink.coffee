@@ -2956,6 +2956,10 @@ class RethinkDB
             winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
+                if y.heartbeat_interval?
+                    # stop the heartbeat interval timer.
+                    clearInterval(y.heartbeat_interval)
+                    delete y.heartbeat_interval
             async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
@@ -3196,7 +3200,7 @@ class RethinkDB
                     cb()
 
     _query_parse_options: (db_query, options) =>
-        limit = err = undefined
+        limit = err = heartbeat = undefined
         for x in options
             for name, value of x
                 switch name
@@ -3210,9 +3214,13 @@ class RethinkDB
                             value = @r.desc(value.slice(1))
                         # TODO: could optimize with an index
                         db_query = db_query.orderBy(value)
+                    when 'heartbeat'
+                        x = parseInt(value)
+                        if x > 0
+                            heartbeat = x
                     else
                         err:"unknown option '#{name}'"
-        return {db_query:db_query, err:err, limit:limit}
+        return {db_query:db_query, err:err, limit:limit, heartbeat:heartbeat}
 
     _primary_key_query: (primary_key, query) =>
         if query[primary_key]? and query[primary_key] != null
@@ -3622,7 +3630,7 @@ class RethinkDB
             table      : required
             query      : required
             multi      : required
-            options    : required   # used for initial query; **IGNORED** by changefeed!
+            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n}, which ensures that *something* is sent every n minutes, in case no changes are coming out of the changefeed. This is an additional measure in case the client somehow doesn't get a "this changefeed died" message.
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
@@ -3643,6 +3651,8 @@ class RethinkDB
             dbg = @dbg("user_get_query(project_id=#{opts.project_id}, table=#{opts.table})")
         else
             dbg = @dbg("user_get_query(anonymous, table=#{opts.table})")
+
+        dbg("options=#{misc.to_json(opts.options)}")
 
         if not opts.changes
             @_user_query_stats.get_query
@@ -3932,7 +3942,8 @@ class RethinkDB
 
                 # Parse option part of the query
                 db_query_no_opts = db_query
-                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+                {db_query, limit, heartbeat, err} = @_query_parse_options(db_query, opts.options)
+                dbg("heartbeat = #{heartbeat}")
                 if err
                     cb(err); return
 
@@ -3966,7 +3977,9 @@ class RethinkDB
                     # By using process.nextTick, we let node.js handle other work
                     # during this time.
                     _changefeed_cb_queue = []
+                    last_changefeed_cb_call = new Date()
                     changefeed_cb = (err, x) ->
+                        last_changefeed_cb_call = new Date()
                         if _changefeed_cb_queue.length > 0
                             _changefeed_cb_queue.push([err, x])
                             #winston.debug("USING CHANGEFEED QUEUE: #{_changefeed_cb_queue.length}")
@@ -4002,6 +4015,16 @@ class RethinkDB
 
                             winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
                             changefeed_state = 'initializing'
+
+                            if heartbeat
+                                winston.debug("FEED - setup heartbeat timer on '#{opts.table}' for feed '#{changefeed_id}'")
+                                # This is to ensure changefeed_cb is called at least once every heartbeat minutes.
+                                process_heartbeat = () =>
+                                    #winston.debug("processing heartbeat timer on '#{opts.table}', #{new Date() - last_changefeed_cb_call}, #{1000*heartbeat}")
+                                    if new Date() - last_changefeed_cb_call >= 60*1000*heartbeat
+                                        changefeed_cb(undefined, {}) # empty message
+                                feed.heartbeat_interval = setInterval(process_heartbeat, 60*1000*heartbeat)
+
                             feed.each (err, x) =>
                                 if not err
                                     @_query_set_defaults(client_query, x.new_val, misc.keys(opts.query))
@@ -4011,6 +4034,7 @@ class RethinkDB
                                     @user_query_cancel_changefeed(id:changefeed_id)
                                 #dbg("query feed #{changefeed_id} update -- #{misc.to_json(x)}")
                                 changefeed_cb(err, x)
+
                             if killfeed?
                                 winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
                                 # Setup the killfeed, which if it sees any activity results in the

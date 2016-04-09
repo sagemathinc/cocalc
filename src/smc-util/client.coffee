@@ -1550,9 +1550,12 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined
+            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
             timeout : 30
             cb      : undefined
+        if opts.options? and not misc.is_array(opts.options)
+            opts.cb("options must be an array")
+            return
 
         err = validate_client_query(opts.query, @account_id)
         if err
