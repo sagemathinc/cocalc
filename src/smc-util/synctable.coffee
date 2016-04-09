@@ -314,7 +314,7 @@ class SyncTable extends EventEmitter
                 if not @_reconnect_timeout?
                     @_reconnect_timeout = 3
                 else
-                    @_reconnect_timeout = Math.max(3, Math.min(20+Math.random(), 1.4*@_reconnect_timeout))
+                    @_reconnect_timeout = Math.max(5, Math.min(120+Math.random(), 1.4*@_reconnect_timeout))
                 dbg("didn't work -- try again in #{@_reconnect_timeout} seconds")
                 @_waiting_to_reconnect = true
                 setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), @_reconnect_timeout*1000 )
