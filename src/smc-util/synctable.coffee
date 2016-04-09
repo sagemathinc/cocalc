@@ -197,6 +197,15 @@ class SyncTable extends EventEmitter
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
+
+        @_client.on 'changefeed_ids', (changefeed_ids) =>
+            #@_client.dbg("changfeed('#{@_table}')")("got #{misc.to_json(changefeed_ids)}")
+            if @_state == 'connected' and not changefeed_ids[@_id]
+                @_client.dbg("changfeed('#{@_table}')")("closed on server -- reconnecting")
+                @_client.query_cancel(id:@_id) # just in case
+                delete @_state
+                @_reconnect()
+
         return
 
     get: (arg) =>
@@ -373,7 +382,7 @@ class SyncTable extends EventEmitter
                     if @_state == 'closed'
                         # nothing to do
                         return
-                    #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
+                    # console.log("changefeed '#{@_table}' produced: #{err}, #{misc.to_json(resp)}")
                     # changefeed
                     if err
                         # were connected, but got an error, e.g., disconnect from server, so switch
@@ -448,6 +457,11 @@ class SyncTable extends EventEmitter
         if query.length == 0
             cb?()
             return
+        #console.log("query=#{misc.to_json(query)}")
+        #Use this to test fix_if_no_update_soon:
+        #    if Math.random() <= .5
+        #        query = []
+        #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
@@ -456,11 +470,53 @@ class SyncTable extends EventEmitter
                     console.warn("_save('#{@_table}') error: #{err}")
                 else
                     @emit('saved', saved_objs)
+
                 if not err and not at_start.equals(@_value_local)
                     # keep saving until table doesn't change *during* the save
                     @_save(cb)
                 else
                     cb?(err)
+
+    ###
+    Disabled -- checking changefeed_id's should be better.
+
+    # We call _fix_if_no_update_soon whenever we successfully saved something
+    # since we must get back some
+    # update from the server via the changfeed within a reasonable
+    # amount of time.  If we don't, then something weird happened,
+    # and we kill the connection and reconnect.  There's no "normal"
+    # known case -- except very slow network -- where this should happen,
+    # but due to vagaries of the internet it will sometimes.
+    # Instead of periodically checking for validity of all changefeeds
+    # via heartbeat with the hub, we do something caused by activity
+    # instead (or maybe -- later -- in addition).
+    _fix_if_no_update_soon: () =>
+        if @_state != 'connected'
+            # If not connected, no point in doing this check.
+            return
+        # This fix_broken gets called in case no changes come back from the server
+        # within the given wait period.
+        fix_broken = () =>
+            @removeListener('before-change', cancel)  # stop listening for a change -- we already gave up
+            if @_state != 'connected'  # if not connected, something is already trying to fix the problem
+                return
+            # OK, let's do it:
+            console.warn("FIXING broken changefeed('#{@_table}')")
+            if @_id?
+                # cancel any outstanding changefeed for this table, if possible.
+                @_client.query_cancel(id:@_id)
+                delete @_id
+            # Now try to reconnect.
+            delete @_state
+            @_reconnect()
+        # Try to fix broken changefeed if we don't get anything new in 20s.
+        broken_timer = setTimeout(fix_broken, 20000)
+        cancel = =>
+            # Received something from changefeed -- no need to fix anything.
+            clearTimeout(broken_timer)
+        # If we get anything from changfeed, call cancel.
+        @once('before-change', cancel)
+    ###
 
     save: (cb) =>
         if @_state == 'closed'

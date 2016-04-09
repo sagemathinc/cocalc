@@ -392,7 +392,7 @@ In /etc/sysctl.conf, put:
 
     sudo su
     umask 022
-    pip install datasift bokeh twitter ctop macs2
+    pip install datasift bokeh twitter ctop macs2 pygsl
 
 # System-wide git trac
 
