@@ -253,13 +253,15 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             return x
 
         # start the shared project running (if it is defined)
-        start_shared_project: =>
+        action_shared_project: (action) =>
+            if action not in ['start', 'stop', 'restart']
+                throw Error("action must be start, stop or restart")
             store = get_store()
             return if not store?
             shared_project_id = store.get_shared_project_id()
             if not shared_project_id
                 return  # no shared project
-            redux.getActions('projects').start_project(shared_project_id)
+            redux.getActions('projects')[action+"_project"]?(shared_project_id)
 
         # configure the shared project so that it has everybody as collaborators
         configure_shared_project: =>
@@ -499,14 +501,16 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             redux.getActions('projects').set_project_title(student_project_id, title)
 
         # start projects of all (non-deleted) students running
-        start_all_student_projects: () =>
+        action_all_student_projects: (action) =>
+            if action not in ['start', 'stop', 'restart']
+                throw Error("action must be start, stop or restart")
             get_store()?.get_students().map (student, student_id) =>
                 if not student.get('deleted')
                     # really only start non-deleted students' projects
                     student_project_id = student.get('project_id')
                     if student_project_id?
-                        redux.getActions('projects').start_project(student_project_id)
-            @start_shared_project()
+                        redux.getActions('projects')[action+"_project"](student_project_id)
+            @action_shared_project(action)
 
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
@@ -2608,6 +2612,8 @@ Settings = rclass
         show_students_pay_dialog        : false
         students_pay_when               : @props.settings.get('pay')
         students_pay                    : !!@props.settings.get('pay')
+        confirm_stop_all_projects       : false
+        confirm_start_all_projects      : false
 
     ###
     # Editing title/description
@@ -2792,24 +2798,63 @@ Settings = rclass
     render_start_all_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
-
-        <Panel header={<h4><Icon name='flash'/> Start all student projects</h4>}>
+        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
             <Row>
-                <Col md=6>
-                    <Button bsStyle='primary' onClick={@start_all_student_projects} disabled={n==r or n==0}><Icon name="flash"/> Start all student projects</Button>
+                <Col md=9>
+                    {r} of {n} student projects currently running.
                 </Col>
-                <Col md=6>
-                    <div style={paddingTop: '10px'}>
-                        {r} of {n} student projects are running.
-                    </div>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_start_all_projects:true)} disabled={n==r or n==0 or @state.confirm_start_all_projects}><Icon name="flash"/> Start all...</Button>
+                        <Button onClick={=>@setState(confirm_stop_all_projects:true)} disabled={r==0 or n==0 or @state.confirm_stop_all_projects}><Icon name="hand-stop-o"/> Stop all...</Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
+                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
                 </Col>
             </Row>
             <hr/>
             <span style={color:'#666'}>
-                <p>You may start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.
+                <p>You may start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
                 </p>
             </span>
         </Panel>
+
+    render_confirm_stop_all_projects: ->
+        <Alert bsStyle='warning'>
+            Are you sure you want to stop all student projects (this might be disruptive)?
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@action_all_student_projects('stop')}>
+                    <Icon name='hand-stop-o'/> Stop all
+                </Button>
+                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render_confirm_start_all_projects: ->
+        <Alert bsStyle='info'>
+            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
+            open them.
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@action_all_student_projects('start')}>
+                    <Icon name='flash'/> Start all
+                </Button>
+                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
 
 
     render_delete_all_projects: ->
@@ -2851,8 +2896,8 @@ Settings = rclass
                 changed = true
         return changed
 
-    start_all_student_projects : (e) ->
-        @props.redux.getActions(@props.name).start_all_student_projects()
+    action_all_student_projects: (action) ->
+        @props.redux.getActions(@props.name).action_all_student_projects(action)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">

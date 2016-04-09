@@ -186,7 +186,7 @@ class exports.Connection extends EventEmitter
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
     constructor: (@url) ->
-        @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
+        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -413,6 +413,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when 'version'
                 @emit('new_version', mesg.version)
+            when 'changefeeds'
+                @emit('changefeed_ids', mesg.changefeed_ids)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1583,7 +1585,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             id : required
             cb : undefined
-        @call  # getting a message back with this id cancels listening
+        @call
             message     : message.query_cancel(id:opts.id)
             error_event : true
             timeout     : 30
@@ -1592,7 +1594,7 @@ class exports.Connection extends EventEmitter
     query_get_changefeed_ids: (opts) =>
         opts = defaults opts,
             cb : required
-        @call  # getting a message back with this id cancels listening
+        @call
             message     : message.query_get_changefeed_ids()
             error_event : true
             timeout     : 30
@@ -1600,6 +1602,7 @@ class exports.Connection extends EventEmitter
                 if err
                     opts.cb(err)
                 else
+                    @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
 
 #################################################

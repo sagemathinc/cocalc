@@ -55,6 +55,8 @@ underscore = require('underscore')
 path_module = require('path')
 {EventEmitter} = require('events')
 
+underscore = require('underscore')
+
 # SMC libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
@@ -191,6 +193,22 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
+        # We push to the client a map of all valid changefeeds:
+        #  (1) whenever this changes
+        #  (2) periodically
+        _push_changefeed_ids = () =>
+            @push_to_client
+                event          : 'changefeeds'
+                changefeed_ids : @_query_changefeeds ? {}
+        push_changefeed_ids = () => setTimeout(_push_changefeed_ids, 5000)
+
+        THROTTLE_CHANGEFEED_S = 60
+        CHANGEFEED_INTERVAL_S = 180
+        # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
+        @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
+        # send out periodically
+        @_push_changefeeds_interval = setInterval(@push_changefeed_ids, CHANGEFEED_INTERVAL_S*1000)
+
     touch: (opts={}) =>
         #winston.debug("touch('#{opts.project_id}', '#{opts.path}')")
         if not @account_id  # not logged in
@@ -252,9 +270,11 @@ class Client extends EventEmitter
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
         clearInterval(@_remember_me_interval)
+        clearInterval(@_push_changefeeds_interval)
         @query_cancel_all_changefeeds()
         @closed = true
         @emit('close')
+        delete @push_changefeed_ids
         @compute_session_uuids = []
         c = clients[@conn.id]
         delete clients[@conn.id]
@@ -1536,9 +1556,9 @@ class Client extends EventEmitter
         #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         first = true
         if mesg.changes
-            if not @_query_changefeeds?
-                @_query_changefeeds = {}
+            @_query_changefeeds ?= {}
             @_query_changefeeds[mesg.id] = true
+            @push_changefeed_ids?()
         mesg_id = mesg.id
         database.user_query
             account_id : @account_id
@@ -1550,11 +1570,14 @@ class Client extends EventEmitter
                     dbg("user_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
+                        @push_changefeed_ids?()
                     @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
                         database.user_query_cancel_changefeed(id : mesg_id)
                 else
+                    ##if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    ##    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -1568,7 +1591,7 @@ class Client extends EventEmitter
                     #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds? or @_query_changefeeds.length == 0
+        if not @_query_changefeeds? or misc.len(@_query_changefeeds) == 0
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         v = @_query_changefeeds
@@ -1600,10 +1623,12 @@ class Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
                         delete @_query_changefeeds?[mesg.id]
+                        @push_changefeed_ids?()
 
     mesg_query_get_changefeed_ids: (mesg) =>
-        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        mesg.changefeed_ids = @_query_changefeeds ? {}
         @push_to_client(mesg)
+
 
     ############################################
     # Bulk information about several projects or accounts
