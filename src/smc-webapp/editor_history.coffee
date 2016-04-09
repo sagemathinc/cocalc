@@ -46,7 +46,7 @@ class exports.HistoryEditor extends FileEditor
         @syncstring = salvus_client.sync_string
             project_id : @editor.project_id
             path       : @_path
-        @syncstring.once 'change', =>
+        @syncstring.once 'connected', =>
             @render_slider()
             @syncstring.on 'change', =>
                 @resize_slider()

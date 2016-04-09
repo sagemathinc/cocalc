@@ -470,6 +470,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
             project_id        : required
             filename          : required
             sync_interval     : 1000       # TODO: ignored right now -- no matter what, we won't send sync messages back to the server more frequently than this (in ms)
+            cursors           : false
             cb                : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying
         @project_id  = @opts.project_id
         @filename    = @opts.filename
@@ -477,8 +478,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring = salvus_client.sync_string
             project_id    : @project_id
             path          : @filename
+            cursors       : opts.cursors
 
-        @_syncstring.once 'change', =>
+        @_syncstring.once 'init', =>
             @emit('connect')   # successful connection
             @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
                 opts.cb(err, @)
@@ -551,6 +553,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             id         : id
             project_id : @project_id
             path       : @filename
+            cursors    : true
 
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this

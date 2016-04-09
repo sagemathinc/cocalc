@@ -1517,7 +1517,7 @@ class exports.Connection extends EventEmitter
         return @query(query:x, changes: true)
 
     sync_table: (query, options, debounce_interval=2000) =>
-        return new synctable.SyncTable(query, options, @, debounce_interval)
+        return synctable.sync_table(query, options, @, debounce_interval)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1526,6 +1526,7 @@ class exports.Connection extends EventEmitter
             path              : undefined
             default           : ''
             file_use_interval : 'default'
+            cursors           : false
         opts.client = @
         return new syncstring.SyncString(opts)
 
