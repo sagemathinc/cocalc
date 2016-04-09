@@ -1558,7 +1558,7 @@ class Client extends EventEmitter
         if mesg.changes
             @_query_changefeeds ?= {}
             @_query_changefeeds[mesg.id] = true
-            @push_changefeed_ids()
+            @push_changefeed_ids?()
         mesg_id = mesg.id
         database.user_query
             account_id : @account_id
@@ -1570,7 +1570,7 @@ class Client extends EventEmitter
                     dbg("user_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
-                        @push_changefeed_ids()
+                        @push_changefeed_ids?()
                     @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
@@ -1623,7 +1623,7 @@ class Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
                         delete @_query_changefeeds?[mesg.id]
-                        @push_changefeed_ids()
+                        @push_changefeed_ids?()
 
     mesg_query_get_changefeed_ids: (mesg) =>
         mesg.changefeed_ids = @_query_changefeeds ? {}
