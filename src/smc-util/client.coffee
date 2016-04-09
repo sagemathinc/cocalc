@@ -413,8 +413,6 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when 'version'
                 @emit('new_version', mesg.version)
-            when 'changefeeds'
-                @emit('changefeed_ids', mesg.changefeed_ids)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1554,8 +1552,7 @@ class exports.Connection extends EventEmitter
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
-            opts.cb("options must be an array")
-            return
+            throw Error("options must be an array")
 
         err = validate_client_query(opts.query, @account_id)
         if err

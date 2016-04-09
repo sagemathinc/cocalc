@@ -2956,10 +2956,6 @@ class RethinkDB
             winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
-                if y.heartbeat_interval?
-                    # stop the heartbeat interval timer.
-                    clearInterval(y.heartbeat_interval)
-                    delete y.heartbeat_interval
             async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
@@ -4019,11 +4015,19 @@ class RethinkDB
                             if heartbeat
                                 winston.debug("FEED - setup heartbeat timer on '#{opts.table}' for feed '#{changefeed_id}'")
                                 # This is to ensure changefeed_cb is called at least once every heartbeat minutes.
+                                heartbeat_ms = 60*1000*heartbeat
                                 process_heartbeat = () =>
-                                    #winston.debug("processing heartbeat timer on '#{opts.table}', #{new Date() - last_changefeed_cb_call}, #{1000*heartbeat}")
-                                    if new Date() - last_changefeed_cb_call >= 60*1000*heartbeat
+                                    if not @_change_feeds[changefeed_id]
+                                        # changefeed is canceled
+                                        return
+                                    #winston.debug("processing heartbeat timer on '#{opts.table}', #{new Date() - last_changefeed_cb_call}, #{heartbeat_ms}")
+                                    time_since_last = new Date() - last_changefeed_cb_call
+                                    if time_since_last >= heartbeat_ms
                                         changefeed_cb(undefined, {}) # empty message
-                                feed.heartbeat_interval = setInterval(process_heartbeat, 60*1000*heartbeat)
+                                        setTimeout(process_heartbeat, heartbeat_ms)
+                                    else
+                                        setTimeout(process_heartbeat, heartbeat_ms - time_since_last)
+                                setTimeout(process_heartbeat, heartbeat_ms)
 
                             feed.each (err, x) =>
                                 if not err

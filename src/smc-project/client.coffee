@@ -230,8 +230,6 @@ class exports.Client extends EventEmitter
                 delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
             f(mesg)
             return true
-        else if mesg.event == 'changefeeds'
-            @emit('changefeed_ids', mesg.changefeed_ids)
         else
             dbg("no callback")
             return false
@@ -298,7 +296,7 @@ class exports.Client extends EventEmitter
             timeout : 30            # how long to wait for initial result
             cb      : required
         if opts.options? and not misc.is_array(opts.options)
-            opts.cb("options must be an array")
+            throw Error("options must be an array")
             return
         mesg = message.query
             id             : misc.uuid()

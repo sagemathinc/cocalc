@@ -235,7 +235,7 @@ schema.accounts =
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
-                    standby_timeout_m : 15
+                    standby_timeout_m : 10
                     default_file_sort : 'time'
                 first_name      : ''
                 last_name       : ''

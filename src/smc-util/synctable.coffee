@@ -280,8 +280,8 @@ class SyncTable extends EventEmitter
             # nothing to do
             return
         #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
-        #dbg()
         dbg = =>
+        dbg()
         if not @_client._connected
             # nothing to do -- not connected to server; connecting to server triggers another reconnect later
             dbg("not connected to server")
@@ -843,7 +843,11 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
     #console.log("sync_table #{key}")
     S = synctables[key]
     if S?
-        async.nextTick(->S.emit('connected'))
+        if S._state == 'connected'
+            # same behavior as newly created synctable
+            async.nextTick () ->
+                if S._state == 'connected'
+                    S.emit('connected')
         S._reference_count += 1
         #console.log("sync_table: using cache")
         return S

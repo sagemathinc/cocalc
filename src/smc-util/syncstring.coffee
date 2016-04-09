@@ -729,7 +729,7 @@ class SyncDoc extends EventEmitter
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList()
-        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 1000)
+        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
