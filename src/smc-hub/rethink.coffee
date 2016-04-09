@@ -3044,7 +3044,7 @@ class RethinkDB
                     if uniq[table][q]
                         dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
                         uniq[table][q] += 1
-                        opts.cb('unique_writes')
+                        opts.cb() # CRITICAL -- DO NOT ERROR!  That stops subsequent records being written, leading to data loss
                         return
                     else
                         on_success = () =>
