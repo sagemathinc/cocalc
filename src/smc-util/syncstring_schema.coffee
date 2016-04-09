@@ -176,9 +176,10 @@ schema.patches =
                 db._user_set_query_patches_check(obj, account_id, project_id, cb)
             before_change : (database, old_val, new_val, account_id, cb) ->
                 if old_val?
-                    if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
-                        cb("you may not change the sent time once it is set")
-                        return
+                    # CRITICAL: not allowing this seems to cause a lot of problems
+                    #if old_val.sent and new_val.sent and new_val.sent - 0 != old_val.sent - 0   # CRITICAL: comparing dates here!
+                    #    cb("you may not change the sent time once it is set")
+                    #    return
                     if old_val.user? and new_val.user? and old_val.user != new_val.user
                         cb("you may not change the author of a patch from #{old_val.user} to #{new_val.user}")
                         return
