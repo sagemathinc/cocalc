@@ -468,7 +468,6 @@ class SyncTable extends EventEmitter
             cb?()
             return
 
-        at_start = @_value_local
         changed = @_changes()
 
         # Send our changes to the server.
@@ -497,6 +496,7 @@ class SyncTable extends EventEmitter
         #    if Math.random() <= .5
         #        query = []
         #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
+        last_set = @_last_set  # when set was last called
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
@@ -505,12 +505,16 @@ class SyncTable extends EventEmitter
                     console.warn("_save('#{@_table}') error: #{err}")
                 else
                     @emit('saved', saved_objs)
-
-                if not err and not at_start.equals(@_value_local)
-                    # keep saving until table doesn't change *during* the save
-                    @_save(cb)
-                else
+                if err
                     cb?(err)
+                    return
+                else
+                    if @_last_set != last_set
+                        # keep saving until table doesn't change *during* the save due to user set call
+                        @_save(cb)
+                    else
+                        cb?()
+
 
     ###
     Disabled --
@@ -823,6 +827,7 @@ class SyncTable extends EventEmitter
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
+            @_last_set = new Date() - 0
             @save(cb)
             @emit('change', [id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
         return new_val
