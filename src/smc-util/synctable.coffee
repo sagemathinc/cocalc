@@ -306,11 +306,9 @@ class SyncTable extends EventEmitter
         @_set_fields = []
         # Which fields *must* be included in any set query
         @_required_set_fields = {}
-        @_allowed_set_fields = {}  # and which are *allowed* to be set
         for field in misc.keys(@_query[@_table][0])
             if @_client_query?.set?.fields?[field]?
                 @_set_fields.push(field)
-                @_allowed_set_fields[field] = true
             if @_client_query?.set?.required_fields?[field]?
                 @_required_set_fields[field] = true
 
@@ -469,16 +467,18 @@ class SyncTable extends EventEmitter
             return
 
         changed = @_changes()
+        at_start = @_value_local
 
         # Send our changes to the server.
         query = []
         saved_objs = []
-        for key in misc.keys(changed).sort()  # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        for key in misc.keys(changed).sort()
             c = changed[key]
             obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
             for k in @_set_fields
                 v = c.new_val.get(k)
-                if v? and @_allowed_set_fields[k]
+                if v?
                     if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
                         if immutable.Iterable.isIterable(v)
                             obj[k] = v.toJS()
@@ -496,16 +496,27 @@ class SyncTable extends EventEmitter
         #    if Math.random() <= .5
         #        query = []
         #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
-        last_set = @_last_set  # when set was last called
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
             cb      : (err) =>
                 if err
                     console.warn("_save('#{@_table}') error: #{err}")
+                    cb?(err)
                 else
                     @emit('saved', saved_objs)
-                cb?(err)
+                    # success: each change in the query what committed successfully to the database; we can
+                    # safely set @_value_server (for each value) as long as it didn't change in the meantime.
+                    for k, v of changed
+                        if immutable.is(@_value_server.get(k), v.old_val)  # immutable.is since either could be undefined
+                            #console.log "setting @_value_server[#{k}] =", v.new_val?.toJS()
+                            @_value_server = @_value_server.set(k, v.new_val)
+                    if not at_start.equals(@_value_local)
+                        # keep saving until @_value_local doesn't change *during* the save -- this means
+                        # when saving stops that we guarantee there are no unsaved changes.
+                        @_save(cb)
+                    else
+                        cb?()
 
     ###
     Disabled --
@@ -623,12 +634,21 @@ class SyncTable extends EventEmitter
                     # while we weren't connected, so we know it but the
                     # backend server doesn't, which case we should keep it,
                     # and set conflict=true, so it gets saved to the backend.
-                    # Given that in sync we always want to keep, and basically
-                    # all of the synctables in SMC involve no deleting (just adding to or
-                    # changing fields), we MAKE THE CHOICE that we always keep the
-                    # local value.
-                    # This would be deleting local:  @_value_local = @_value_local.delete(key); changed_keys.push(key)
-                    conflict = true
+
+                    if @_value_local.get(key).equals(@_value_server.get(key))
+                        # The local value for this key was saved to the backend before
+                        # we got disconnected, so there's definitely no need to try
+                        # keep it around, given that the backend no longer has it
+                        # as part of the query.  CRITICAL: This doesn't necessarily mean
+                        # the value was deleted from the database, but instead that
+                        # it doesn't satisfy the synctable query, e.g., it isn't one
+                        # of the 150 most recent file_use notifications, or it isn't
+                        # a patch that is at least as new as the newest snapshot.
+                        #console.log("removing local value: #{key}")
+                        @_value_local = @_value_local.delete(key)
+                        changed_keys.push(key)
+                    else
+                        conflict = true
 
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
@@ -818,7 +838,6 @@ class SyncTable extends EventEmitter
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
-            @_last_set = new Date() - 0
             @save(cb)
             @emit('change', [id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
         return new_val
@@ -889,9 +908,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
             if not options.push?
                 console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
                 options = []
-            options.push({heartbeat:if client.is_project() then 1 else 2})
+            options.push({heartbeat:if client.is_project() then 1 else 4})
     else
-        options = [{heartbeat:if client.is_project() then 1 else 2}]
+        options = [{heartbeat:if client.is_project() then 1 else 4}]
 
     key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
     #console.log("sync_table #{key}")
