@@ -93,11 +93,11 @@ update_smc_version = () ->
     smc_version = require_reload('smc-util/smc-version')
     ver_age_s = (new Date() - smc_version.version * 1000)/1000
     #winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
-    if ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
+    if SMC_VERSION.version and ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
         # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
         return
 
-    if not SMC_VERSION?  # initialization on startup
+    if not SMC_VERSION.version  # initialization on startup
         SMC_VERSION = smc_version
         winston.debug("update_smc_version: initialize -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
     else if not underscore.isEqual(SMC_VERSION, smc_version)
