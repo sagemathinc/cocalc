@@ -306,9 +306,11 @@ class SyncTable extends EventEmitter
         @_set_fields = []
         # Which fields *must* be included in any set query
         @_required_set_fields = {}
+        @_allowed_set_fields = {}  # and which are *allowed* to be set
         for field in misc.keys(@_query[@_table][0])
             if @_client_query?.set?.fields?[field]?
                 @_set_fields.push(field)
+                @_allowed_set_fields[field] = true
             if @_client_query?.set?.required_fields?[field]?
                 @_required_set_fields[field] = true
 
@@ -477,7 +479,7 @@ class SyncTable extends EventEmitter
             obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
             for k in @_set_fields
                 v = c.new_val.get(k)
-                if v?
+                if v? and @_allowed_set_fields[k]
                     if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
                         if immutable.Iterable.isIterable(v)
                             obj[k] = v.toJS()

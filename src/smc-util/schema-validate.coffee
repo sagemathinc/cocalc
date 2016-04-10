@@ -52,7 +52,10 @@ exports.validate_client_query = validate_client_query = (query, account_id) ->
         # Verify that every key of the pattern is in the schema
         f = S.fields[k]
         if f == undefined  # crucial: we don't just need "f?" to be true
-            return warn("not allowed to access key '#{k}' of '#{table}'")
+            if is_set_query
+                return warn("not allowed to set key '#{k}' of '#{table}'")
+            else
+                return warn("not allowed to access key '#{k}' of '#{table}'")
 
     # Fill in any function call parts of the pattern
     for k, f of S.fields
