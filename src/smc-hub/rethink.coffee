@@ -3014,8 +3014,11 @@ class RethinkDB
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
-                opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
-                return
+                if misc.len(opts.options) == 0
+                    opts.options = []  # old clients
+                else
+                    opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
+                    return
             for x in opts.options
                 if x.set?
                     is_set_query = !!x.set
@@ -3045,7 +3048,8 @@ class RethinkDB
                     rep = json_stable_stringify(opts.query)
                     q = misc_node.sha1(rep)
                     if uniq[table][q]
-                        dbg("trying to rewrite entry in unique_writes table #{uniq[table][q]} times -- skipping: query='#{rep}'")
+                        who = if opts.account_id? then "account_id='#{opts.account_id}'" else "project_id='#{opts.project_id}'"
+                        dbg("(#{who}): trying to rewrite entry in unique_writes table for the #{uniq[table][q]} time -- skipping: query='#{rep}'")
                         uniq[table][q] += 1
                         opts.cb() # CRITICAL -- DO NOT ERROR!  That stops subsequent records being written, leading to data loss
                         return
