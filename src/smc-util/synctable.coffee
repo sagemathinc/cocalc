@@ -241,8 +241,6 @@ class SyncTable extends EventEmitter
 
         @_heartbeat_interval = setInterval(check_for_heartbeat, INTERVAL_MS)
 
-
-
     get: (arg) =>
         if not @_value_local?
             return
@@ -891,6 +889,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
             if x.heartbeat?
                 h = x.heartbeat
         if not h?
+            if not options.push?
+                console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
+                options = []
             options.push({heartbeat:if client.is_project() then 1 else 2})
     else
         options = [{heartbeat:if client.is_project() then 1 else 2}]
