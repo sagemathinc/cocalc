@@ -30,10 +30,12 @@ MESG_QUEUE_MAX_COUNT    = 60
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
 # How frequently to check if the smc-util/smc-version.js file has changed.
-SMC_VERSION_CHECK_INTERVAL_S = 15
+SMC_VERSION_CHECK_INTERVAL_S = 20
+#SMC_VERSION_CHECK_INTERVAL_S = 3
 
 # Don't tell users to upgrade until this many minutes after version file updated.
 SMC_VERSION_CHECK_AGE_M = 6
+#SMC_VERSION_CHECK_AGE_M = 0
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
@@ -85,30 +87,23 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-SMC_VERSION = undefined
+require_reload = require('require-reload')(require)  # used to reload the smc-version file properly
+SMC_VERSION    = {version:0, min_client_version:0, min_project_version:0}
 update_smc_version = () ->
-    version_file = SMC_ROOT + '/smc-util/smc-version.js'
-    fs.readFile version_file, (err, data) ->
-        if err
-            winston.debug("update_smc_version: WARNING: Error reading -- #{version_file} -- #{err}")
-        else
-            s = data.toString()
-            i = s.indexOf('=')
-            j = s.indexOf('\n')
-            if i != -1 and j != -1
-                ver = parseInt(s.slice(i+1,j))
-            ver_age_s = (new Date() - ver*1000)/1000
-            winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
-            if ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
-                # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
-                return
+    smc_version = require_reload('smc-util/smc-version')
+    ver_age_s = (new Date() - smc_version.version * 1000)/1000
+    #winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
+    if ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
+        # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
+        return
 
-            if not SMC_VERSION?  # initialization on startup
-                SMC_VERSION = ver
-            else if ver != SMC_VERSION
-                SMC_VERSION = ver
-                winston.debug("update_smc_version: SMC_VERSION=#{SMC_VERSION}")
-                send_client_version_updates()
+    if not SMC_VERSION?  # initialization on startup
+        SMC_VERSION = smc_version
+        winston.debug("update_smc_version: initialize -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
+    else if not underscore.isEqual(SMC_VERSION, smc_version)
+        SMC_VERSION = smc_version
+        winston.debug("update_smc_version: update -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
+        send_client_version_updates()
 
 init_smc_version = () ->
     update_smc_version()
@@ -119,7 +114,7 @@ init_smc_version = () ->
 send_client_version_updates = () ->
     winston.debug("SMC_VERSION changed -- sending updates to clients")
     for id, c of clients
-        if c.smc_version < SMC_VERSION
+        if c.smc_version < SMC_VERSION.version
             c.push_version_update()
 
 misc_node = require('smc-util-node/misc_node')
@@ -156,6 +151,7 @@ clients = require('./clients').get_clients()
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
+        @_when_connected = new Date()
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
@@ -1318,11 +1314,21 @@ class Client extends EventEmitter
     mesg_version: (mesg) =>
         @smc_version = mesg.version
         winston.debug("client._version=#{mesg.version}")
-        if mesg.version < SMC_VERSION
+        if mesg.version < SMC_VERSION.version
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:SMC_VERSION))
+        @push_to_client(message.version(version:SMC_VERSION.version, min_version:SMC_VERSION.min_client_version))
+        if SMC_VERSION.min_client_version and @smc_version and @smc_version < SMC_VERSION.min_client_version
+            # Client is running an unsupported bad old version.
+            # Brutally disconnect client!  It's critical that they upgrade, since they are
+            # causing problems or have major buggy code.
+            if new Date() - @_when_connected <= 30000
+                # If they just connected, kill the connection instantly
+                @conn.end()
+            else
+                # Wait 1 minute to give them a chance to save data...
+                setTimeout((()=>@conn.end()), 60000)
 
     ################################################
     # Administration functionality

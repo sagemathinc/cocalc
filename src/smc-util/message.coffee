@@ -648,8 +648,9 @@ message
 #############################################
 # client <---> hub
 message
-    event   : 'version'
-    version : undefined    # gets filled in by the hub
+    event       : 'version'
+    version     : undefined    # gets filled in by the hub
+    min_version : undefined    # if given, then client version must be at least min_version to be allowed to connect.
 
 #############################################
 #

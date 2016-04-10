@@ -375,8 +375,11 @@ $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
 ################################################
 # Version number check
 ################################################
-salvus_client.on 'new_version', ->
+salvus_client.on 'new_version', (ver) ->
     $(".salvus_client_version_warning").show()
+    if ver.min_version > salvus_client.version()
+        $(".salvus_client_min_version_warning").show()
+        $(".salvus_client_version_warning").find(".fa-times").remove()
 
 $(".salvus_client_version_warning").draggable().css('position','fixed').find(".fa-times").click () ->
     $(".salvus_client_version_warning").hide()
