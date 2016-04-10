@@ -4032,6 +4032,14 @@ class RethinkDB
                             feed.each (err, x) =>
                                 if not err
                                     @_query_set_defaults(client_query, x.new_val, misc.keys(opts.query))
+
+                                    ###
+                                    if Math.random() <= .1  # FOR TESTING!
+                                        winston.debug("FEED #{changefeed_id} (table='#{opts.table}') -- simulating silent loss ")
+                                        delete @_change_feeds[changefeed_id]
+                                        feed.close()
+                                        return
+                                    ###
                                 else
                                     # feed is broken
                                     winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")

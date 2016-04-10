@@ -339,7 +339,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
-            @dbg("local_hub_socket: re-using existing socket")
+            #@dbg("local_hub_socket: re-using existing socket")
             cb(undefined, @_socket)
             return
 
