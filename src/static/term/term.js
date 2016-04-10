@@ -915,6 +915,10 @@ Terminal.prototype.refresh = function(start, end) {
     attr = this.defAttr;
     i = 0;
 
+    if (typeof line === "undefined" || line === null) {
+        /* I added this since sometimes "line.length" below raises an exception crashing everything. */
+        continue;
+    }
     var w = Math.min(width, line.length);
 
     /*

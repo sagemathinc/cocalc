@@ -449,13 +449,14 @@ STATES:
 
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
-        opts = defaults opts,
+        @_opts = opts = defaults opts,
             save_interval     : 1500
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
             path              : required   # path of the file corresponding to the doc
             client            : required
+            cursors           : false      # if true, also provide cursor tracking functionality
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
@@ -489,14 +490,15 @@ class SyncDoc extends EventEmitter
 
             @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
 
-        # Initialize throttled functions
-        set_cursor_locs = (locs) =>
-            x =
-                id   : [@_string_id, @_user_id]
-                locs : locs
-                time : @_client.server_time()
-            @_cursors?.set(x,'none')
-        @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
+        if opts.cursors
+            # Initialize throttled cursors functions
+            set_cursor_locs = (locs) =>
+                x =
+                    id   : [@_string_id, @_user_id]
+                    locs : locs
+                    time : @_client.server_time()
+                @_cursors?.set(x,'none')
+            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
     # Used for internal debug logging
     dbg: (f) ->
@@ -633,7 +635,7 @@ class SyncDoc extends EventEmitter
 
         @_syncstring_table = @_client.sync_table(query)
 
-        @_syncstring_table.once 'change', =>
+        @_syncstring_table.once 'connected', =>
             @_handle_syncstring_update()
             @_syncstring_table.on('change', @_handle_syncstring_update)
             async.series([
@@ -658,6 +660,7 @@ class SyncDoc extends EventEmitter
                     cb(err)
                 else
                     @emit('change')
+                    @emit('connected')
                     cb()
             )
 
@@ -726,7 +729,7 @@ class SyncDoc extends EventEmitter
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList()
-        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 1000)
+        @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, undefined, 1000)
         @_patches_table.once 'connected', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
@@ -740,9 +743,6 @@ class SyncDoc extends EventEmitter
             # ensure that any outstanding save is done
             @_patches_table.save () =>
                 @_check_for_timestamp_collision(t)
-
-        #@_patches_table.on 'connected', (server_value) =>
-        #@_patches_table.on 'disconnected', =>
 
         @_patches_table.on 'saved', (data) =>
             @_handle_offline(data)
@@ -758,6 +758,9 @@ class SyncDoc extends EventEmitter
             # only the users care about cursors.
             cb()
         else
+            if not @_opts.cursors
+                cb()
+                return
             query =
                 cursors :
                     string_id : @_string_id
@@ -765,7 +768,7 @@ class SyncDoc extends EventEmitter
                     locs   : null
                     time   : null
             @_cursors = @_client.sync_table(query)
-            @_cursors.once 'change', =>
+            @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
                 # which tracks positions of cursors by account_id:
                 @_cursor_map = immutable.Map()
@@ -796,7 +799,7 @@ class SyncDoc extends EventEmitter
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
-    # NOTE: no-op if only one user!
+    # NOTE: no-op if only one user or cursors not enabled for this doc
     set_cursor_locs: (locs) =>
         if @_users.length <= 2
             # Don't bother in special case when only one user (plus the project -- for 2 above!)
@@ -804,10 +807,10 @@ class SyncDoc extends EventEmitter
             # own cursors - just other user's cursors.  This simple optimization will save tons
             # of bandwidth, since many files are never opened by more than one user.
             return
-        @_throttled_set_cursor_locs(locs)
+        @_throttled_set_cursor_locs?(locs)
         return
 
-    # returns immutable.js map from account_id to list of cursor positions
+    # returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.
     get_cursors: =>
         return @_cursor_map
 
@@ -914,7 +917,7 @@ class SyncDoc extends EventEmitter
         x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set obj, 'none' , (err) =>
             if not err
-                # Only save the snapshot time in the database after the set in the patches table was confirmed as a
+                # CRITICAL: Only save the snapshot time in the database after the set in the patches table was confirmed as a
                 # success -- otherwise if the user refreshes their browser (or visits later) they lose all their early work!
                 @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time})
                 @_last_snapshot = time
@@ -1083,7 +1086,7 @@ class SyncDoc extends EventEmitter
                 if x.save?.state == 'requested'
                     if not @_patch_list?
                         # requested to save, but we haven't even loaded the document yet -- when we do, then save.
-                        @once 'change', =>
+                        @once 'connected', =>
                             @_save_to_disk()
                     else
                         @_save_to_disk()
@@ -1311,6 +1314,7 @@ class exports.SyncString extends SyncDoc
             save_interval     : undefined
             file_use_interval : undefined
             default           : ''
+            cursors           : false      # if true, also provide cursor tracking ability
         super
             string_id         : opts.id
             client            : opts.client
@@ -1318,6 +1322,7 @@ class exports.SyncString extends SyncDoc
             path              : opts.path
             save_interval     : opts.save_interval
             file_use_interval : opts.file_use_interval
+            cursors           : opts.cursors
             doc               : new StringDocument(opts.default)
 
 

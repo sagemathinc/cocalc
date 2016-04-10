@@ -42,6 +42,9 @@ def install_webapp():
     cmd("cd wizard && make")
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)
+    # update term.min.js
+    cmd("cd static/term; ./compile")
+    # update static react
     cmd("update_react_static")
     print("Building production webpack -- this will take about 3 minutes")
     cmd("npm run webpack-production")

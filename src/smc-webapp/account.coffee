@@ -74,7 +74,7 @@ signed_in = (mesg) ->
         # wait until account settings get loaded, then show target page
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
-        redux.getTable('account')._table.once 'change', ->
+        redux.getTable('account')._table.once 'connected', ->
             load_app ->
                 require('./history').load_target(window.smc_target)
                 window.smc_target = ''
