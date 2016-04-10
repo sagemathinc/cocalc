@@ -505,16 +505,7 @@ class SyncTable extends EventEmitter
                     console.warn("_save('#{@_table}') error: #{err}")
                 else
                     @emit('saved', saved_objs)
-                if err
-                    cb?(err)
-                    return
-                else
-                    if @_last_set != last_set
-                        # keep saving until table doesn't change *during* the save due to user set call
-                        @_save(cb)
-                    else
-                        cb?()
-
+                cb?(err)
 
     ###
     Disabled --
