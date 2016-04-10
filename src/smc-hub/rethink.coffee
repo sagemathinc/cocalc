@@ -3014,8 +3014,11 @@ class RethinkDB
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
-                opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
-                return
+                if misc.len(opts.options) == 0
+                    opts.options = []  # old clients
+                else
+                    opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
+                    return
             for x in opts.options
                 if x.set?
                     is_set_query = !!x.set
