@@ -2965,7 +2965,7 @@ class RethinkDB
             account_id : undefined
             project_id : undefined
             query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!; can use set:true or set:false to force get or set query
+            options    : []         # used for initial query; **IGNORED** by changefeed!; can use [{set:true}] or [{set:false}] to force get or set query
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         dbg = @dbg("user_query(...)")
@@ -3013,12 +3013,15 @@ class RethinkDB
             multi = false
         is_set_query = undefined
         if opts.options?
+            if not misc.is_array(opts.options)
+                opts.cb("options (=#{misc.to_json(opts.options)}) must be an array")
+                return
             for x in opts.options
                 if x.set?
                     is_set_query = !!x.set
             options = (x for x in opts.options when not x.set?)
         else
-            options = undefined
+            options = []
         if typeof(query) == "object"
             query = misc.deep_copy(query)
             obj_key_subs(query, subs)
@@ -3707,9 +3710,15 @@ class RethinkDB
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
         if client_query.get.all?.options?
-            for k, v of client_query.get.all.options
-                if not opts.options[k]?
-                    opts.options[k] = v
+            # complicated since options is a list of {opt:val} !
+            user_options = {}
+            for x in opts.options
+                for y, z of x
+                    user_options[y] = true
+            for x in client_query.get.all.options
+                for y, z of x
+                    if not user_options[y]
+                        opts.options.push(x)
 
         result = undefined
         db_query = @table(SCHEMA[opts.table].virtual ? opts.table)

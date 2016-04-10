@@ -878,7 +878,6 @@ class SyncTable extends EventEmitter
             fail_timer = setTimeout(fail, 1000*opts.timeout)
         return
 
-
 synctables = {}
 
 exports.sync_table = (query, options, client, debounce_interval=2000) ->
