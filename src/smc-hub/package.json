@@ -38,6 +38,7 @@
     "pdfkit": "^0.7.1",
     "primus": "^4.0.1",
     "read": "^1.0.5",
+    "require-reload": "^0.2.2",
     "rethinkdb": "^2.2.0",
     "rimraf": "^2.4.4",
     "sendgrid": "^1.9.2",
