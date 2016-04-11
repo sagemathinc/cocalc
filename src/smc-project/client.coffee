@@ -269,12 +269,13 @@ class exports.Client extends EventEmitter
             if opts.timeout
                 dbg("configure timeout")
                 fail = () =>
+                    dbg("failed")
                     delete @_hub_callbacks[opts.message.id]
                     opts.cb?("timeout after #{opts.timeout}s")
                 timer = setTimeout(fail, opts.timeout*1000)
             opts.message.id ?= misc.uuid()
             cb = @_hub_callbacks[opts.message.id] = (resp) =>
-                #dbg("got response: #{json(resp)}")
+                #dbg("got response: #{misc.trunc(json(resp),400)}")
                 if timer?
                     clearTimeout(timer)
                     timer = undefined
@@ -291,9 +292,12 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             query   : required      # a query (see schema.coffee)
             changes : undefined     # whether or not to create a changefeed
-            options : undefined     # options to the query (e.g., limits, sorting)
+            options : undefined     # options to the query, e.g., [{limit:5}, {heartbeat:2}] )
             timeout : 30            # how long to wait for initial result
             cb      : required
+        if opts.options? and not misc.is_array(opts.options)
+            throw Error("options must be an array")
+            return
         mesg = message.query
             id             : misc.uuid()
             query          : opts.query
@@ -358,13 +362,13 @@ class exports.Client extends EventEmitter
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000) =>
-        return new synctable.SyncTable(query, options, @, debounce_interval)
+        return synctable.sync_table(query, options, @, debounce_interval)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,
         #    query             : required
         #    options           : undefined
         #    debounce_interval : 2000
-        #return new synctable.SyncTable(opts.query, opts.options, @, opts.debounce_interval)
+        #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
 
     # Get the synchronized string with the given path.
     sync_string: (opts) =>

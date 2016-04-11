@@ -129,9 +129,11 @@ to_key = (x) ->
         return x
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval=2000) ->
+    constructor: (@_query, @_options, @_client, @_debounce_interval, @_key) ->
         @_init_query()
         @_init()
+        @_created = new Date()
+        @_init_heartbeat()
 
     # Return string key used in the immutable map in which this table is stored.
     to_key: (x) =>
@@ -197,7 +199,47 @@ class SyncTable extends EventEmitter
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
+
         return
+
+    _init_heartbeat: () =>
+        if not @_options?
+            return
+        heartbeat = undefined
+        for x in @_options
+            if x.heartbeat
+                heartbeat = x.heartbeat
+                break
+        if not heartbeat
+            return
+
+        # While connected, we expect to get at least one update from the
+        # backend (possibly empty) every heartbeat minutes.  If we don't
+        # this strongly suggests a message saying that the changefeed is
+        # broken somehow got dropped/ignored/lost.   This heartbeat
+        # entirely *supposed* to be a backup in case of lost messages.
+        # However, until everything is perfect, it is critical that
+        # we have this!
+        INTERVAL_MS = 60*1000*heartbeat
+
+        last_changefeed_update = new Date()
+        @on 'before-change', () ->
+            last_changefeed_update = new Date()
+            #@_client.dbg("changfeed('#{@_table}')")("last_changefeed_update=#{last_changefeed_update}")
+
+        check_for_heartbeat = () =>
+            if @_state != 'connected'
+                # nothing to do -- we don't expect to get heartbeats when not connected
+                return
+            #@_client.dbg("changfeed('#{@_table}')")("checking heartbeat")
+            if new Date() - last_changefeed_update > 1.5*INTERVAL_MS
+                # we should have got something from the server, but didn't.
+                @_client.dbg("changfeed('#{@_table}')")("no heartbeats -- reconnecting")
+                @_client.query_cancel(id:@_id) # just in case
+                delete @_state
+                @_reconnect()
+
+        @_heartbeat_interval = setInterval(check_for_heartbeat, INTERVAL_MS)
 
     get: (arg) =>
         if not @_value_local?
@@ -278,8 +320,8 @@ class SyncTable extends EventEmitter
             # nothing to do
             return
         #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
-        #dbg()
         dbg = =>
+        dbg()
         if not @_client._connected
             # nothing to do -- not connected to server; connecting to server triggers another reconnect later
             dbg("not connected to server")
@@ -305,7 +347,7 @@ class SyncTable extends EventEmitter
                 if not @_reconnect_timeout?
                     @_reconnect_timeout = 3
                 else
-                    @_reconnect_timeout = Math.max(3, Math.min(20+Math.random(), 1.4*@_reconnect_timeout))
+                    @_reconnect_timeout = Math.max(5, Math.min(120+Math.random(), 1.4*@_reconnect_timeout))
                 dbg("didn't work -- try again in #{@_reconnect_timeout} seconds")
                 @_waiting_to_reconnect = true
                 setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), @_reconnect_timeout*1000 )
@@ -373,7 +415,7 @@ class SyncTable extends EventEmitter
                     if @_state == 'closed'
                         # nothing to do
                         return
-                    #console.log("changefeed #{@_table} produced: #{err}, #{misc.to_json(resp)}")
+                    # console.log("changefeed '#{@_table}' produced: #{err}, #{misc.to_json(resp)}")
                     # changefeed
                     if err
                         # were connected, but got an error, e.g., disconnect from server, so switch
@@ -424,13 +466,14 @@ class SyncTable extends EventEmitter
             cb?()
             return
 
-        at_start = @_value_local
         changed = @_changes()
+        at_start = @_value_local
 
         # Send our changes to the server.
         query = []
         saved_objs = []
-        for key in misc.keys(changed).sort()  # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        # sort so that behavior is more predictable = faster (e.g., sync patches are in order); the keys are strings so default sort is fine
+        for key in misc.keys(changed).sort()
             c = changed[key]
             obj = {"#{@_primary_key}":key}   # NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
             for k in @_set_fields
@@ -448,19 +491,73 @@ class SyncTable extends EventEmitter
         if query.length == 0
             cb?()
             return
+        #console.log("query=#{misc.to_json(query)}")
+        #Use this to test fix_if_no_update_soon:
+        #    if Math.random() <= .5
+        #        query = []
+        #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
             cb      : (err) =>
                 if err
                     console.warn("_save('#{@_table}') error: #{err}")
+                    cb?(err)
                 else
                     @emit('saved', saved_objs)
-                if not err and not at_start.equals(@_value_local)
-                    # keep saving until table doesn't change *during* the save
-                    @_save(cb)
-                else
-                    cb?(err)
+                    # success: each change in the query what committed successfully to the database; we can
+                    # safely set @_value_server (for each value) as long as it didn't change in the meantime.
+                    for k, v of changed
+                        if immutable.is(@_value_server.get(k), v.old_val)  # immutable.is since either could be undefined
+                            #console.log "setting @_value_server[#{k}] =", v.new_val?.toJS()
+                            @_value_server = @_value_server.set(k, v.new_val)
+                    if not at_start.equals(@_value_local)
+                        # keep saving until @_value_local doesn't change *during* the save -- this means
+                        # when saving stops that we guarantee there are no unsaved changes.
+                        @_save(cb)
+                    else
+                        cb?()
+
+    ###
+    Disabled --
+
+    # We call _fix_if_no_update_soon whenever we successfully saved something
+    # since we must get back some
+    # update from the server via the changfeed within a reasonable
+    # amount of time.  If we don't, then something weird happened,
+    # and we kill the connection and reconnect.  There's no "normal"
+    # known case -- except very slow network -- where this should happen,
+    # but due to vagaries of the internet it will sometimes.
+    # Instead of periodically checking for validity of all changefeeds
+    # via heartbeat with the hub, we do something caused by activity
+    # instead (or maybe -- later -- in addition).
+    _fix_if_no_update_soon: () =>
+        if @_state != 'connected'
+            # If not connected, no point in doing this check.
+            return
+        # This fix_broken gets called in case no changes come back from the server
+        # within the given wait period.
+        fix_broken = () =>
+            @removeListener('before-change', cancel)  # stop listening for a change -- we already gave up
+            if @_state != 'connected'  # if not connected, something is already trying to fix the problem
+                return
+            # OK, let's do it:
+            console.warn("FIXING broken changefeed('#{@_table}')")
+            if @_id?
+                # cancel any outstanding changefeed for this table, if possible.
+                @_client.query_cancel(id:@_id)
+                delete @_id
+            # Now try to reconnect.
+            delete @_state
+            @_reconnect()
+        # Try to fix broken changefeed if we don't get anything new in 20s.
+        broken_timer = setTimeout(fix_broken, 20000)
+        cancel = =>
+            # Received something from changefeed -- no need to fix anything.
+            clearTimeout(broken_timer)
+        # If we get anything from changfeed, call cancel.
+        @once('before-change', cancel)
+    ###
 
     save: (cb) =>
         if @_state == 'closed'
@@ -537,12 +634,21 @@ class SyncTable extends EventEmitter
                     # while we weren't connected, so we know it but the
                     # backend server doesn't, which case we should keep it,
                     # and set conflict=true, so it gets saved to the backend.
-                    # Given that in sync we always want to keep, and basically
-                    # all of the synctables in SMC involve no deleting (just adding to or
-                    # changing fields), we MAKE THE CHOICE that we always keep the
-                    # local value.
-                    # This would be deleting local:  @_value_local = @_value_local.delete(key); changed_keys.push(key)
-                    conflict = true
+
+                    if @_value_local.get(key).equals(@_value_server.get(key))
+                        # The local value for this key was saved to the backend before
+                        # we got disconnected, so there's definitely no need to try
+                        # keep it around, given that the backend no longer has it
+                        # as part of the query.  CRITICAL: This doesn't necessarily mean
+                        # the value was deleted from the database, but instead that
+                        # it doesn't satisfy the synctable query, e.g., it isn't one
+                        # of the 150 most recent file_use notifications, or it isn't
+                        # a patch that is at least as new as the newest snapshot.
+                        #console.log("removing local value: #{key}")
+                        @_value_local = @_value_local.delete(key)
+                        changed_keys.push(key)
+                    else
+                        conflict = true
 
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
@@ -739,6 +845,10 @@ class SyncTable extends EventEmitter
     close: =>
         if @_state == 'closed'
             return
+        # decrement the reference to this synctable
+        if global_cache_decref(@)
+            # not zero -- so don't close it yet -- still in use by multiple clients.
+            return
         # do a last attempt at a save (so we don't lose data), then really close.
         @_save () =>
             @removeAllListeners()
@@ -751,6 +861,9 @@ class SyncTable extends EventEmitter
                 @_client.removeListener(e, f)
             @_client_listeners = {}
             @_state = 'closed'
+            if @_heartbeat_interval?
+                clearInterval(@_heartbeat_interval)
+                delete @_heartbeat_interval
 
     # wait until some function of this synctable is truthy
     # (this is exactly the same code as in the rethink.coffee SyncTable!)
@@ -782,7 +895,51 @@ class SyncTable extends EventEmitter
             fail_timer = setTimeout(fail, 1000*opts.timeout)
         return
 
-exports.SyncTable = SyncTable
+synctables = {}
+
+exports.sync_table = (query, options, client, debounce_interval=2000) ->
+
+    if options?
+        h = undefined
+        for x in options
+            if x.heartbeat?
+                h = x.heartbeat
+        if not h?
+            if not options.push?
+                console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
+                options = []
+            options.push({heartbeat:if client.is_project() then 1 else 4})
+    else
+        options = [{heartbeat:if client.is_project() then 1 else 4}]
+
+    key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
+    #console.log("sync_table #{key}")
+    S = synctables[key]
+    if S?
+        if S._state == 'connected'
+            # same behavior as newly created synctable
+            async.nextTick () ->
+                if S._state == 'connected'
+                    S.emit('connected')
+        S._reference_count += 1
+        #console.log("sync_table: using cache")
+        return S
+    else
+        #console.log("sync_table: making new one")
+        S = synctables[key] = new SyncTable(query, options, client, debounce_interval, key)
+        S._reference_count = 1
+        return S
+
+global_cache_decref = (S) ->
+    if S._reference_count?
+        S._reference_count -= 1
+        if S._reference_count <= 0
+            delete synctables[S._key]
+            return false  # not in use
+        else
+            return true   # still in use
+
+#window.synctables = synctables
 
 
 ###

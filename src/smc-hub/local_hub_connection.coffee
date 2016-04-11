@@ -5,6 +5,7 @@ LocalHub
 async   = require('async')
 uuid    = require('node-uuid')
 winston = require('winston')
+underscore = require('underscore')
 
 message = require('smc-util/message')
 misc_node = require('smc-util-node/misc_node')
@@ -212,6 +213,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         # also, assume changefeed got messed up, so cancel it.
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
+                    #if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    #    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -301,6 +304,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     when 'file_read_from_project'
                         # handle elsewhere by the code that requests the file
                         return
+                    when 'error'
+                        # ignore -- don't care since handler already gone.
+                        return
                     else
                         write_mesg(message.error(error:"unknown event '#{mesg.event}'"))
             return
@@ -333,7 +339,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
-            @dbg("local_hub_socket: re-using existing socket")
+            #@dbg("local_hub_socket: re-using existing socket")
             cb(undefined, @_socket)
             return
 
@@ -473,7 +479,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                             opts.cb(resp.error)
                         else
                             opts.cb(undefined, resp)
-                # As mentioned above -- there's no else -- if not timeout then 
+                # As mentioned above -- there's no else -- if not timeout then
                 # we do not listen for a response.
 
     ####################################################
