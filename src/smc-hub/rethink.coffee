@@ -578,6 +578,8 @@ class RethinkDB
             (cb) =>
                 dbg("Ensure table durability configuration is as specified in the schema")
                 f = (name, cb) =>
+                    if SCHEMA[name].virtual
+                        cb(); return
                     query = @db.table(name).config()
                     query.pluck('durability').run (err, x) =>
                         if err
@@ -589,15 +591,11 @@ class RethinkDB
                                 query.update(durability:durability).run(cb)
                             else
                                 cb()
-                @db.tableList().run (err, x) =>
-                    if err
-                        cb(err)
-                    else
-                        async.map(x, f, cb)
+                async.mapLimit(misc.keys(SCHEMA), MAP_LIMIT, f, cb)
             (cb) =>
                 dbg("Ensure indexes are as specified in the schema")
                 f = (name, cb) =>
-                    indexes = misc.deep_copy(SCHEMA[name].indexes)  # sutff gets deleted out of indexes below!
+                    indexes = misc.deep_copy(SCHEMA[name].indexes)  # stuff gets deleted out of indexes below!
                     if not indexes or SCHEMA[name].virtual
                         cb(); return
                     table = @table(name)

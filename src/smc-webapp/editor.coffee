@@ -1581,8 +1581,8 @@ class CodeMirrorEditor extends FileEditor
                 indentWithTabs          : not opts.spaces_instead_of_tabs
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
-                cursorScrollMargin      : 7
-                viewportMargin          : 30
+                cursorScrollMargin      : 6
+                viewportMargin          : 125
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
