@@ -833,14 +833,6 @@ class SyncDoc extends EventEmitter
             cb?()
             return value
 
-        # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
-        # (if it is running) to open the syncstring (if closed), and hence be aware that the client
-        # is requesting a save.  This is important if the client and database have changes not
-        # saved to disk, and the project stopped listening for activity on this syncstring due
-        # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
-        # errors.
-        @touch()
-
         # compute transformation from _last to live -- exactly what we did
         patch = make_patch(@_last, value)
         @_last = value
@@ -1260,6 +1252,14 @@ class SyncDoc extends EventEmitter
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
         else if @_client.is_user()
+            # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
+            # (if it is running) to open the syncstring (if closed), and hence be aware that the client
+            # is requesting a save.  This is important if the client and database have changes not
+            # saved to disk, and the project stopped listening for activity on this syncstring due
+            # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
+            # errors.
+            @touch()
+
             #dbg("user - request to write to disk file")
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
