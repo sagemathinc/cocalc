@@ -660,6 +660,12 @@ exports.commands =
                         print(MyClass(5))
                         """
     sage:
+        sagemathdoc:
+            url: 'http://doc.sagemath.org/'
+        sagemathtutorial:
+            url: 'http://doc.sagemath.org/html/en/tutorial/index.html'
+        sagemathreference:
+            url: 'http://doc.sagemath.org/html/en/reference/index.html'
         help:
             wrap:
                 left  : "help("
@@ -1321,7 +1327,11 @@ initialize_sage_python_r_toolbar = () ->
     help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
         [
             ["General help", "#help"],
-            ["Magic mode commands", "#magics"]
+            ["Magic mode commands", "#magics"],
+            ["SageMath Documentation"],
+            ["Overview", "#sagemathdoc"],
+            ["Tutorial", "#sagemathtutorial"],
+            ["Reference", "#sagemathreference"]
         ]]
     add_menu(system_bar, help_list)
     ## MAYBE ADD THESE in another menu:
