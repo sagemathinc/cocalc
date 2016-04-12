@@ -149,7 +149,7 @@ class SupportActions extends Actions
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
             mobile     : feature.get_mobile() ? false
-            internet   : proj_upgrades?.network? ? false
+            internet   : proj_upgrades?.network? ? 'unknown'
             hostname   : project?.host?.host ? 'unknown'
             course     : course ? 'no'
 
@@ -226,7 +226,7 @@ SupportInfo = rclass
             what = "You have a problem or question?"
         <div>
             <p>
-                {what}
+                {what} {" "}
                 Please tell us more about it by creating a support ticket.
             </p>
             <p>

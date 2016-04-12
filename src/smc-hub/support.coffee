@@ -140,7 +140,7 @@ class exports.Support
             project_id: opts.project_id
             location  : opts.location
             browser   : opts.info.browser  ? 'unknown'
-            mobile    : opts.info.mobile   ? 'false'
+            mobile    : opts.info.mobile   ? 'unknown'
             internet  : opts.info.internet ? 'unknown'
             hostname  : opts.info.hostname ? 'unknown'
             course    : opts.info.course   ? 'unknown'
@@ -158,7 +158,7 @@ class exports.Support
             body = opts.body + "\n\nNo location provided."
 
         if misc.is_valid_uuid_string(custom_fields.course)
-            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{opts.info.course}"
+            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{custom_fields.course}"
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =
