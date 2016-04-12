@@ -374,11 +374,9 @@ Support = rclass
         event?.preventDefault()
         @props.actions.support()
 
-    valid : () ->
-        @props.actions.valid()
-
     render : () ->
         show_form = false
+        @props.actions.check_valid()
 
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
