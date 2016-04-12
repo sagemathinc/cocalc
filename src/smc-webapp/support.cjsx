@@ -149,7 +149,7 @@ class SupportActions extends Actions
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
             mobile     : feature.get_mobile() ? false
-            internet   : proj_upgrades?.network? ? 'unknown'
+            internet   : (quotas?.network ? 0) > 0
             hostname   : project?.host?.host ? 'unknown'
             course     : course ? 'no'
 
