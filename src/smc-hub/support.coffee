@@ -114,7 +114,7 @@ class exports.Support
         # dbg("opts = #{misc.to_json(opts)}")
 
         if not @_zd?
-            err = "zendesk not available -- abort"
+            err = "Support ticket backend is not available."
             dbg(err)
             @cb?(err)
             return
@@ -132,13 +132,7 @@ class exports.Support
                     subscription : null
                     type         : null
 
-        # below the body message, add a link to the location
-        # TODO fix hardcoded URL
-        if opts.location?
-            url  = path.join('https://cloud.sagemath.com/', opts.location)
-            body = opts.body + "\n\n#{url}"
-        else
-            body = opts.body + "\n\nNo location provided."
+        tags = opts.tags ? []
 
         # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
         custom_fields =
@@ -149,11 +143,22 @@ class exports.Support
             mobile    : opts.info.mobile   ? 'false'
             internet  : opts.info.internet ? 'unknown'
             hostname  : opts.info.hostname ? 'unknown'
+            course    : opts.info.course   ? 'unknown'
 
-        opts.info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname')
+        # getting rid of those fields, which we have picked above -- keeps extra fields.
+        opts.info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname', 'course')
         custom_fields.info = JSON.stringify(opts.info)
 
-        tags = opts.tags ? []
+        # below the body message, add a link to the location
+        # TODO fix hardcoded URL
+        if opts.location?
+            url  = path.join('https://cloud.sagemath.com/', opts.location)
+            body = opts.body + "\n\n#{url}"
+        else
+            body = opts.body + "\n\nNo location provided."
+
+        if misc.is_valid_uuid_string(custom_fields.course)
+            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{opts.info.course}"
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =

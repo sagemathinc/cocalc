@@ -141,12 +141,17 @@ class SupportActions extends Actions
         else
             tags.push('free')
 
+        course = @projects()?.get_course_info(project_id)?.get('project_id')
+        if course?
+            tags.push('student')
+
         info =  # additional data dict, like browser/OS
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
             mobile     : feature.get_mobile() ? false
             internet   : proj_upgrades?.network? ? false
             hostname   : project?.host?.host ? 'unknown'
+            course     : course ? 'no'
 
         if upgrades?
             info = misc.merge(info, quotas)
@@ -201,7 +206,7 @@ SupportInfo = rclass
         <div style={textAlign:'center'}>
           <p>
               Ticket has been created successfully.
-              Save this link for future reference:
+              Keep this link in order to stay in contact with us:
           </p>
           <p style={fontSize:'120%'}>{url}</p>
           <Button
@@ -213,16 +218,16 @@ SupportInfo = rclass
 
     default : () ->
         title = @props.actions.project_title()
-        loc   = @props.actions.location()
         if title?
-            fn = loc.slice(46) # / projects / uuid /
-            what = ['with ', <code key={1}>{fn}</code>, " in project \"#{title}\""]
+            loc  = @props.actions.location()
+            fn   = loc.slice(47) # / projects / uuid /
+            what = "You have a problem with \"#{fn}\" in project \"#{title}\"?"
         else
-            what = ["at ", <code key={1}>{loc}</code>]
+            what = "You have a problem or question?"
         <div>
             <p>
-                You have a problem {what}?
-                Tell us more about it by creating a support ticket.
+                {what}
+                Please tell us more about it by creating a support ticket.
             </p>
             <p>
                 After successfully submitting it,

@@ -168,7 +168,6 @@ SUPPORT_LINKS =
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues'
         link : 'Github issue tracker'
-        text : '(you may also email help@sagemath.com)'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
@@ -500,13 +499,13 @@ HelpPage = rclass
 
                     <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%', fontSize: '110%', textAlign: 'center'}>
                         <Icon name='medkit'/><Space/><Space/>
-                        <strong>In case of any problems <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
+                        <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
                         <br/>
                         We want to know if anything is broken!
                         <br/>
-                        <Icon name='envelope'/><Space/><Space/> You can also send us and email to <HelpEmailLink />.
+                        <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
                         <br/>
-                        Do not forget to include a link (the URL address in your browser) to the relevant project or document.
+                        In such an email, please include the URL link to the relevant project or document.
                     </div>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
