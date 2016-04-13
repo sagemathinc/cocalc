@@ -120,10 +120,11 @@ class exports.Support
             return
 
         # data assembly, we need a special formatted user and ticket object
+        # name: must be at least one character, even " " is causing errors
         # https://developer.zendesk.com/rest_api/docs/core/users
         user =
             user:
-                name         : opts.username ? opts.email_address
+                name         : if opts.username?.trim?().length > 0 then opts.username else opts.email_address
                 email        : opts.email_address
                 verified     : false  # if true: an email is sent to verify the email address and informed to get account
                 external_id  : opts.account_id ? null
@@ -182,6 +183,9 @@ class exports.Support
                     @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
                         if err
                             dbg("create_or_update user error: #{misc.to_json(err)}")
+                            if err.result?.type? == "Buffer"
+                                err_msg = err.result.data.map((c) -> String.fromCharCode(c)).join('')
+                                dbg("create_or_update zendesk message: #{err_msg}")
                             cb(err); return
                         # result = { "id": int, "url": "https://…json", "name": …, "email": "…", "created_at": "…", "updated_at": "…", … }
                         # dbg(JSON.stringify(result, null, 2, true))

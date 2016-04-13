@@ -156,9 +156,11 @@ class SupportActions extends Actions
         if upgrades?
             info = misc.merge(info, quotas)
 
+        name = account.get_fullname()
+        name = if name?.trim?().length > 0 then name else null
         salvus_client.create_support_ticket
             opts:
-                username     : account.get_fullname()
+                username     : name
                 email_address: @get('email')
                 subject      : @get('subject')
                 body         : @get('body')
