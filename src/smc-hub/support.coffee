@@ -167,7 +167,7 @@ class exports.Support
         # below the body message, add a link to the location
         # TODO fix hardcoded URL
         if opts.location?
-            url  = path.join('https://cloud.sagemath.com/', opts.location)
+            url  = "https://" + path.join('cloud.sagemath.com/', opts.location)
             body = opts.body + "\n\n#{url}"
         else
             body = opts.body + "\n\nNo location provided."
