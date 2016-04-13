@@ -197,7 +197,7 @@ class exports.Support
                     @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
                         if err
                             dbg("create_or_update user error: #{misc.to_json(err)}")
-                            if err.result?.type? == "Buffer"
+                            if err.result?.type == "Buffer"
                                 err_msg = err.result.data.map((c) -> String.fromCharCode(c)).join('')
                                 dbg("create_or_update zendesk message: #{err_msg}")
                             cb(err); return
