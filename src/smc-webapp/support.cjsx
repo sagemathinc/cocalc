@@ -115,6 +115,7 @@ class SupportActions extends Actions
     # sends off the support request
     support: () =>
         account    = @redux.getStore('account')
+        account_id = account.get_account_id() # null if not authenticated
         project_id = @project_id()
         project    = @projects()?.get_project(project_id)
 
@@ -146,6 +147,7 @@ class SupportActions extends Actions
             tags.push('student')
 
         info =  # additional data dict, like browser/OS
+            project_id : project_id
             browser    : feature.get_browser()
             user_agent : navigator.userAgent
             mobile     : feature.get_mobile() ? false
@@ -167,6 +169,7 @@ class SupportActions extends Actions
                 #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
                 location     : @location()
+                account_id   : account_id
                 info         : info
             cb : @process_support
 

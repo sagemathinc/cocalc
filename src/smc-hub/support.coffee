@@ -150,14 +150,14 @@ class exports.Support
             info      : 31647558
 
         custom_fields = [
-            {id: cus_fld_id.account_id, value: opts.account_id}
-            {id: cus_fld_id.project_id, value: opts.project_id}
-            {id: cus_fld_id.location  , value: opts.location}
-            {id: cus_fld_id.browser   , value: opts.info.browser  ? 'unknown'}
-            {id: cus_fld_id.mobile    , value: opts.info.mobile   ? 'unknown'}
-            {id: cus_fld_id.internet  , value: opts.info.internet ? 'unknown'}
-            {id: cus_fld_id.hostname  , value: opts.info.hostname ? 'unknown'}
-            {id: cus_fld_id.course    , value: opts.info.course   ? 'unknown'}
+            {id: cus_fld_id.account_id, value: opts.account_id      ? ''}
+            {id: cus_fld_id.project_id, value: opts.info.project_id ? ''}
+            {id: cus_fld_id.location  , value: opts.location        ? ''}
+            {id: cus_fld_id.browser   , value: opts.info.browser    ? 'unknown'}
+            {id: cus_fld_id.mobile    , value: opts.info.mobile     ? 'unknown'}
+            {id: cus_fld_id.internet  , value: opts.info.internet   ? 'unknown'}
+            {id: cus_fld_id.hostname  , value: opts.info.hostname   ? 'unknown'}
+            {id: cus_fld_id.course    , value: opts.info.course     ? 'unknown'}
         ]
 
         # getting rid of those fields, which we have picked above -- keeps extra fields.
