@@ -71,17 +71,29 @@ primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
 
-STEPS = ['assignment', 'collect', 'return_graded']
-previous_step = (step) ->
+STEPS = (peer) ->
+    if peer
+        return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'return_graded']
+    else
+        return ['assignment', 'collect', 'return_graded']
+
+previous_step = (step, peer) ->
     switch step
         when 'collect'
             return 'assignment'
         when 'return_graded'
-            return 'collect'
+            if peer
+                return 'peer_collect'
+            else
+                return 'collect'
         when 'assignment'
             return
+        when 'peer_assignment'
+            return 'collect'
+        when 'peer_collect'
+            return 'peer_assignment'
         else
-            console.log("BUG! previous_step('#{step}')")
+            console.warn("BUG! previous_step('#{step}')")
 
 step_direction = (step) ->
     switch step
@@ -91,8 +103,12 @@ step_direction = (step) ->
             return 'from'
         when 'return_graded'
             return 'to'
+        when 'peer_assignment'
+            return 'to'
+        when 'peer_collect'
+            return 'from'
         else
-            console.log("BUG! step_direction('#{step}')")
+            console.warn("BUG! step_direction('#{step}')")
 
 step_verb = (step) ->
     switch step
@@ -102,8 +118,12 @@ step_verb = (step) ->
             return 'collect'
         when 'return_graded'
             return 'return'
+        when 'peer_assignment'
+            return 'assign'
+        when 'peer_collect'
+            return 'collect'
         else
-            console.log("BUG! step_verb('#{step}')")
+            console.warn("BUG! step_verb('#{step}')")
 
 step_ready = (step, n) ->
     switch step
@@ -113,6 +133,11 @@ step_ready = (step, n) ->
             return if n >1 then ' who have already received it' else ' who has already received it'
         when 'return_graded'
             return ' whose work you have graded'
+        when 'peer_assignment'
+            return ' for peer grading'
+        when 'peer_collect'
+            return ' who should have peer graded it'
+
 
 syncdbs = {}
 exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
@@ -739,37 +764,6 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             cb         : cb
                 ], finish)
 
-        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_from_all_students: (assignment, new_only) =>
-            id = @set_activity(desc:"Copying assignment from all students #{if new_only then 'from whom we have not already copied it' else ''}")
-            error = (err) =>
-                @clear_activity(id)
-                @set_error("copy from student: #{err}")
-            store = get_store()
-            if not @_store_is_initialized()
-                return error("store not yet initialized")
-            if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
-            errors = ''
-            f = (student_id, cb) =>
-                if not store.last_copied(previous_step('collect'), assignment, student_id, true)
-                    cb(); return
-                if new_only and store.last_copied('collect', assignment, student_id, true)
-                    cb(); return
-                n = misc.mswalltime()
-                @copy_assignment_from_student(assignment, student_id)
-                get_store().wait
-                    until : => store.last_copied('collect', assignment, student_id) >= n
-                    cb    : (err) =>
-                        if err
-                            errors += "\n #{err}"
-                        cb()
-            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
-                if errors
-                    error(errors)
-                else
-                    @clear_activity(id)
-
         # Copy the graded files for the given assignment_id back to the student in a -graded folder.
         # If the store is initialized and the student and assignment both exist,
         # then calling this action will result in this getting set in the store:
@@ -841,11 +835,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
-            if not assignment = store.get_assignment(assignment)
+            if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
                 return error("no assignment")
             errors = ''
+            peer = assignment.get('peer_grade')?.get('enabled')
             f = (student_id, cb) =>
-                if not store.last_copied(previous_step('return_graded'), assignment, student_id, true)
+                if not store.last_copied(previous_step('return_graded', peer), assignment, student_id, true)
                     # we never collected the assignment from this student
                     cb(); return
                 if not store.has_grade(assignment, student_id)
@@ -977,36 +972,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 finish(err)
             )
 
-        # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-        copy_assignment_to_all_students: (assignment, new_only) =>
-            id = @set_activity(desc:"Copying assignments to all students #{if new_only then 'who have not already received it' else ''}")
-            error = (err) =>
-                @clear_activity(id)
-                err="copy to student: #{err}"
-                @set_error(err)
-            store = get_store()
-            if not @_store_is_initialized()
-                return error("store not yet initialized")
-            if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
-            errors = ''
-            f = (student_id, cb) =>
-                if new_only and store.last_copied('assignment', assignment, student_id, true)
-                    cb(); return
-                n = misc.mswalltime()
-                @copy_assignment_to_student(assignment, student_id)
-                store.wait
-                    until : => store.last_copied('assignment', assignment, student_id) >= n
-                    cb    : (err) =>
-                        if err
-                            errors += "\n #{err}"
-                        cb()
 
-            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
-                if errors
-                    error(errors)
-                else
-                    @clear_activity(id)
 
         copy_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
@@ -1023,6 +989,62 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     @peer_collect_from_student(assignment_id, student_id)
                 else
                     @set_error("copy_assignment -- unknown type: #{type}")
+
+        # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
+        copy_assignment_to_all_students: (assignment, new_only) =>
+            desc = "Copying assignments to all students #{if new_only then 'who have not already received it' else ''}"
+            short_desc = "copy to student"
+            @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc)
+
+        # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
+        copy_assignment_from_all_students: (assignment, new_only) =>
+            desc = "Copying assignment from all students #{if new_only then 'from whom we have not already copied it' else ''}"
+            short_desc = "copy from student"
+            @_action_all_students(assignment, new_only, @copy_assignment_from_student, 'collect', desc, short_desc)
+
+        peer_copy_to_all_students: (assignment, new_only) =>
+            desc = "Copying assignments for peer grading to all students #{if new_only then 'who have not already received their copy' else ''}"
+            short_desc = "copy to student for peer grading"
+            @_action_all_students(assignment, new_only, @peer_copy_to_student, 'peer_assignment', desc, short_desc)
+
+        peer_collect_from_all_students: (assignment, new_only) =>
+            desc = "Copying peer graded assignments from all students #{if new_only then 'from whom we have not already copied it' else ''}"
+            short_desc = "copy peer grading from students"
+            @_action_all_students(assignment, new_only, @peer_collect_from_student, 'peer_collect', desc, short_desc)
+
+        _action_all_students: (assignment, new_only, action, step, desc, short_desc) =>
+            id = @set_activity(desc:desc)
+            error = (err) =>
+                @clear_activity(id)
+                err="#{short_desc}: #{err}"
+                @set_error(err)
+            store = get_store()
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not assignment = store.get_assignment(assignment)
+                return error("no assignment")
+            errors = ''
+            peer = assignment.get('peer_grade')?.get('enabled')
+            prev_step = previous_step(step, peer)
+            f = (student_id, cb) =>
+                if prev_step? and not store.last_copied(prev_step, assignment, student_id, true)
+                    cb(); return
+                if new_only and store.last_copied(step, assignment, student_id, true)
+                    cb(); return
+                n = misc.mswalltime()
+                action(assignment, student_id)
+                store.wait
+                    until : => store.last_copied(step, assignment, student_id) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
+
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
+                if errors
+                    error(errors)
+                else
+                    @clear_activity(id)
 
         # Copy the collected folders from some students to the given student for peer grading.
         peer_copy_to_student: (assignment, student) =>
@@ -1396,6 +1418,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             assignment = @get_assignment(assignment)
             student = @get_student(student)
             student_id = student.get('student_id')
+            status = @get_assignment_status(assignment)
             info =                         # RHS -- important to be undefined if no info -- assumed in code
                 last_assignment      : assignment.get('last_assignment')?.get(student_id)?.toJS()
                 last_collect         : assignment.get('last_collect')?.get(student_id)?.toJS()
@@ -1404,6 +1427,8 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 last_return_graded   : assignment.get('last_return_graded')?.get(student_id)?.toJS()
                 student_id           : student_id
                 assignment_id        : assignment.get('assignment_id')
+                peer_assignment      : (status.not_collect + status.not_assignment == 0) and status.collect != 0
+                peer_collect         : status.not_peer_assignment? and status.not_peer_assignment == 0
             return info
 
 
@@ -1425,12 +1450,18 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             #
             # Compute and return an object that has fields (deleted students are ignored)
             #
-            #  assigned      - number of students who have received assignment
-            #  not_assigned  - number of students who have NOT received assignment
-            #  collected     - number of students from whom we have collected assignment
-            #  not_collected - number of students from whom we have NOT collected assignment but we sent it to them
-            #  returned      - number of students to whom we've returned assignment
-            #  not_returned  - number of students to whom we've NOT returned assignment but we collected it from them
+            #  assignment          - number of students who have received assignment
+            #  not_assignment      - number of students who have NOT received assignment
+            #  collect             - number of students from whom we have collected assignment
+            #  not_collect         - number of students from whom we have NOT collected assignment but we sent it to them
+            #  peer_assignment     - number of students who have received peer assignment
+            #                        (only present if peer grading enabled; similar for peer below)
+            #  not_peer_assignment - number of students who have NOT received peer assignment
+            #  peer_collect        - number of students from whom we have collected peer grading
+            #  not_peer_collect    - number of students from whome we have NOT collected peer grading
+            #  return_graded       - number of students to whom we've returned assignment
+            #  not_return_graded   - number of students to whom we've NOT returned assignment
+            #                        but we collected it from them *and* assigned a grade
             #
             # This function caches its result and only recomputes values when the store changes,
             # so it should be safe to call in render.
@@ -1438,33 +1469,41 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             if not @_assignment_status?
                 @_assignment_status = {}
                 @on 'change', =>
-                    delete @_assignment_status.cache
-            if @_assignment_status.cache?
-                return @_assignment_status.cache
+                    @_assignment_status = {}
             assignment = @get_assignment(assignment)
             if not assignment?
                 return undefined
+
+            assignment_id = assignment.get('assignment_id')
+            if @_assignment_status[assignment_id]?
+                return @_assignment_status[assignment_id]
+
             students = @get_student_ids(deleted:false)
             if not students?
                 return undefined
+
+            # Is peer grading enabled?
+            peer = assignment.get('peer_grade')?.get('enabled')
+
             info = {}
-            for t in STEPS
+            for t in STEPS(peer)
                 info[t] = 0
                 info["not_#{t}"] = 0
             for student_id in students
                 previous = true
-                for t in STEPS
+                for t in STEPS(peer)
                     x = assignment.get("last_#{t}")?.get(student_id)
                     if x? and not x.get('error')
                         previous = true
                         info[t] += 1
                     else
-                        # add one but only if the previous step *was* done (and in the case of returning, they have a grade)
+                        # add one only if the previous step *was* done (and in
+                        # the case of returning, they have a grade)
                         if previous and (t!='return_graded' or @has_grade(assignment, student_id))
                             info["not_#{t}"] += 1
                         previous = false
 
-            @_assignment_status.cache = info
+            @_assignment_status[assignment_id] = info
             return info
 
     redux.createStore(the_redux_name, CourseStore)
@@ -2160,7 +2199,7 @@ StudentAssignmentInfo = rclass
         if @state[key]
             v = []
             v.push <Button key="copy_confirm" bsStyle="danger" onClick={=>@setState("#{key}":false);copy()}>
-                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, {name.toLowerCase()} again
+                <Icon name="share-square-o" rotate={"180" if name.indexOf('ollect')!=-1}/> Yes, {name.toLowerCase()} again
             </Button>
             v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
                  Cancel
@@ -2170,7 +2209,7 @@ StudentAssignmentInfo = rclass
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
                 <Tip title={name} placement={placement}
                     tip={<span>{copy_tip}</span>}>
-                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> {name}...
+                    <Icon name='share-square-o' rotate={"180" if name.indexOf('ollect')!=-1}/> {name}...
                 </Tip>
             </Button>
 
@@ -2205,7 +2244,7 @@ StudentAssignmentInfo = rclass
             placement = 'left'
         <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
             <Button onClick={copy} bsStyle={'primary'}>
-                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
+                <Icon name="share-square-o" rotate={"180" if name.indexOf('ollect')!=-1}/> {name}
             </Button>
         </Tip>
 
@@ -2272,8 +2311,8 @@ StudentAssignmentInfo = rclass
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
                            "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
-                    {@render_peer_assign(info)  if peer_grade}
-                    {@render_peer_collect(info) if peer_grade}
+                    {@render_peer_assign(info)  if peer_grade and info.peer_assignment}
+                    {@render_peer_collect(info) if peer_grade and info.peer_collect}
                     {if show_grade_col then @render_grade(info, width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
@@ -2355,8 +2394,6 @@ Assignment = rclass
         x =
             more : false
             confirm_delete : false
-        for step in STEPS
-            x["copy_confirm_#{step}"] = false
         return x
 
     render_due : ->
@@ -2402,46 +2439,76 @@ Assignment = rclass
         if not status?
             return <Loading key='loading_more'/>
         v = []
-        v.push <Row key='header1'>
-            <Col md=5 key='buttons'>
-                <ButtonToolbar key='buttons'>
-                    {@render_open_button()}
-                    {@render_assign_button(status)}
-                    {@render_collect_button(status)}
-                    {@render_return_button(status)}
-                </ButtonToolbar>
+
+        bottom =
+            borderBottom  : '1px solid grey'
+            paddingBottom : '15px'
+            marginBottom  : '15px'
+        v.push <Row key='header3' style={bottom}>
+            <Col md=2>
+                {@render_open_button()}
             </Col>
-            <Col md=4 style={fontSize:'14px'} key='due'>
-                {@render_due()}
-            </Col>
-            <Col md=3 key='delete'>
+            <Col md=10>
                 <Row>
-                    <Col md=7>
-                        {@render_peer_button()}
+                    <Col md=6 style={fontSize:'14px'} key='due'>
+                        {@render_due()}
                     </Col>
-                    <Col md=5>
-                        {@render_delete_button()}
+                    <Col md=6 key='delete'>
+                        <Row>
+                            <Col md=7>
+                                {@render_peer_button()}
+                            </Col>
+                            <Col md=5>
+                                <span className='pull-right'>
+                                    {@render_delete_button()}
+                                </span>
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
             </Col>
         </Row>
-        v.push <Row key='header2-copy'>
-            <Col md=12>
-                {@render_copy_confirms(status)}
-            </Col>
-        </Row>
+
         if @state.configure_peer
-            v.push <Row key='header2-peer' style={marginTop:'10px'}>
-                <Col md=12>
+            v.push <Row key='header2-peer' style={bottom}>
+                <Col md=10 mdOffset=2>
                     {@render_configure_peer()}
                 </Col>
             </Row>
         if @state.confirm_delete
-            v.push <Row key='header2-delete' style={marginTop:'10px'}>
-                <Col md=12>
+            v.push <Row key='header2-delete' style={bottom}>
+                <Col md=10 mdOffset=2>
                     {@render_confirm_delete()}
                 </Col>
             </Row>
+
+        peer = @props.assignment.get('peer_grade')?.get('enabled')
+        if peer
+            width = 2
+        else
+            width = 3
+        buttons = []
+        for name in STEPS(peer)
+            b = @["render_#{name}_button"](status)
+            if b?
+                if name == 'return_graded'
+                    buttons.push(<Col md={width} key='filler'></Col>)
+                buttons.push(<Col md={width} key={name}>{b}</Col>)
+
+        v.push <Row key='header-control'>
+            <Col md=10 mdOffset=2 key='buttons'>
+                <Row>
+                    {buttons}
+                </Row>
+            </Col>
+        </Row>
+
+        v.push <Row key='header2-copy'>
+            <Col md=10 mdOffset=2>
+                {@render_copy_confirms(status)}
+            </Col>
+        </Row>
+
         return v
 
     render_more : ->
@@ -2456,10 +2523,6 @@ Assignment = rclass
             </Col>
         </Row>
 
-    assign_assignment : ->
-        # assign assignment to all (non-deleted) students
-        @props.redux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
-
     open_assignment_path : ->
         @props.redux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
@@ -2471,7 +2534,7 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assign_button : ->
+    render_assignment_button : ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
         <Button key='assign'
                 bsStyle  = {bsStyle}
@@ -2479,12 +2542,13 @@ Assignment = rclass
                 disabled = {@state.copy_confirm}>
             <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
                  tip="Copy the files for this assignment from this project to all other student projects.">
-                <Icon name="share-square-o" /> Assign to...
+                <Icon name="share-square-o" /> Assign...
             </Tip>
         </Button>
 
     render_copy_confirms : (status) ->
-        for step in STEPS
+        steps = STEPS(@props.assignment.get('peer_grade')?.get('enabled'))
+        for step in steps
             if @state["copy_confirm_#{step}"]
                 @render_copy_confirm(step, status)
 
@@ -2507,6 +2571,10 @@ Assignment = rclass
                 actions.copy_assignment_to_all_students(@props.assignment, new_only)
             when 'collect'
                 actions.copy_assignment_from_all_students(@props.assignment, new_only)
+            when 'peer_assignment'
+                actions.peer_copy_to_all_students(@props.assignment, new_only)
+            when 'peer_collect'
+                actions.peer_collect_from_all_students(@props.assignment, new_only)
             when 'return_graded'
                 actions.return_assignment_to_all_students(@props.assignment, new_only)
             else
@@ -2530,9 +2598,13 @@ Assignment = rclass
             when 'assignment'
                 return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'collect'
-                return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, you work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
                 return "This will rereturn all of the graded files to them."
+            when 'peer_assignment'
+                return 'This will recopy all of the files to them.  CAUTION: if there is a file a student has also worked on grading, their work will get copied to a backup file ending in a tilde, or possibly be only available in snapshots.'
+            when 'peer_collect'
+                return 'This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.'
 
     render_copy_confirm_overwrite_all : (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
@@ -2563,32 +2635,96 @@ Assignment = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    collect_assignment : ->
-        # assign assignment to all (non-deleted) students
-        @props.redux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
-
     render_collect_tip : (warning) ->
         <span key='normal'>
-            You may collect an assignment from all of your students by clicking here.
+            Collect an assignment from all of your students.
             (There is currently no way to schedule collection at a specific time; instead, collection happens when you click the button.)
         </span>
 
-    render_collect_button : ->
-        # disable the button if nothing ever assigned
-        disabled = (@props.assignment.get('last_assignment')?.size ? 0) == 0
-        if not disabled
-            if (@props.assignment.get('last_collect')?.size ? 0) == 0
-                bsStyle = 'primary'
-            else
-                bsStyle = 'warning'
+    render_collect_button : (status) ->
+        if status.assignment == 0
+            # no button if nothing ever assigned
+            return
+        if status.collect > 0
+            # Have already collected something
+            bsStyle = 'warning'
+        else
+            bsStyle = 'primary'
         <Button key='collect'
                 onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
-                disabled = {disabled or @state.copy_confirm}
+                disabled = {@state.copy_confirm}
                 bsStyle={bsStyle} >
             <Tip
                 title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
                 tip = {@render_collect_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" rotate="180" /> Collect from...
+                <Icon name="share-square-o" rotate={"180"} /> Collect...
+            </Tip>
+        </Button>
+
+    render_peer_assign_tip : (warning) ->
+        <span key='normal'>
+            Send copies of collected homework out to all students for peer grading.
+        </span>
+
+    render_peer_assignment_button: (status) ->
+        # Render the "Peer Assign..." button in the top row, for peer assigning to all
+        # students in the course.
+        if not status.peer_assignment?
+            # not peer graded
+            return
+        if status.not_collect + status.not_assignment > 0
+            # collect everything before peer grading
+            return
+        if status.collect == 0
+            # nothing to peer assign
+            return
+        if status.peer_assignment == 0
+            # haven't peer-assigned anything yet
+            bsStyle = 'primary'
+        else
+            # warning, since we have assigned already and this may overwrite
+            bsStyle = 'warning'
+        <Button key='peer-assign'
+                onClick  = {=>@setState(copy_confirm_peer_assignment:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}
+                bsStyle  = {bsStyle} >
+            <Tip
+                title={<span>Peer Assign: <Icon name='users' /> You <Icon name='long-arrow-right' /> <Icon name='user-secret'/> Students</span>}
+                tip = {@render_peer_assign_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" /> Peer Assign...
+            </Tip>
+        </Button>
+
+    render_peer_collect_tip : (warning) ->
+        <span key='normal'>
+            Collect the peer grading that your students did.
+        </span>
+
+    render_peer_collect_button: (status) ->
+        # Render the "Peer Collect..." button in the top row, for collecting peer grading from all
+        # students in the course.
+        if not status.peer_collect?
+            return
+        if status.peer_assignment == 0
+            # haven't even peer assigned anything -- so nothing to collect
+            return
+        if status.not_peer_assignment > 0
+            # everybody must have received peer assignment, or collecting isn't allowed
+            return
+        if status.peer_collect == 0
+            # haven't peer-collected anything yet
+            bsStyle = 'primary'
+        else
+            # warning, since we have already collected and this may overwrite
+            bsStyle = 'warning'
+        <Button key='peer-collect'
+                onClick  = {=>@setState(copy_confirm_peer_collect:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}
+                bsStyle  = {bsStyle} >
+            <Tip
+                title={<span>Peer Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                tip = {@render_peer_collect_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" rotate="180"/> Peer Collect...
             </Tip>
         </Button>
 
@@ -2596,26 +2732,30 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
-    render_return_button : (status) ->
-        # Disable the button if nothing collected.
-        disabled = (@props.assignment.get('last_collect')?.size ? 0) == 0
-        if not disabled
-            # Disable the button if nobody to return to
-            disabled = status["not_return_graded"] == 0
-        if not disabled
-            if (@props.assignment.get("last_return_graded")?.size ? 0) > 0
-                bsStyle = "warning"
-            else
-                bsStyle = "primary"
-            <Button key='return'
-                onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
-                disabled = {disabled or @state.copy_confirm}
-                bsStyle  = {bsStyle} >
-                <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                     tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
-                    <Icon name="share-square-o" /> Return to...
-                </Tip>
-            </Button>
+    render_return_graded_button : (status) ->
+        if status.collect == 0
+            # No button if nothing collected.
+            return
+        if status.peer_collect? and status.peer_collect == 0
+            # Peer grading enabled, but we didn't collect anything yet
+            return
+        if status.not_return_graded == 0 and status.return_graded == 0
+            # Nothing unreturned and ungraded yet and also nothing returned yet
+            return
+        if status.return_graded > 0
+            # Have already returned some
+            bsStyle = "warning"
+        else
+            bsStyle = "primary"
+        <Button key='return'
+            onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
+            disabled = {@state.copy_confirm}
+            bsStyle  = {bsStyle} >
+            <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                 tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
+                <Icon name="share-square-o" /> Return...
+            </Tip>
+        </Button>
 
     delete_assignment : ->
         @props.redux.getActions(@props.name).delete_assignment(@props.assignment)
@@ -2670,24 +2810,20 @@ Assignment = rclass
         @set_peer_grade(due_date : date)
 
     render_configure_peer_due: (config) ->
-        <Row>
-            <Col xs=4 style={marginTop:'8px', color:'#666'}>
-                <Tip placement='top' title="Set the due date"
+        label = <Tip placement='top' title="Set the due date"
                     tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading.">
                     Due
-                </Tip>
-            </Col>
-            <Col xs=8>
-                <DateTimePicker
-                    value     = {config.due_date ? misc.server_days_ago(-7)}
-                    on_change = {@peer_due_change}
-                />
-            </Col>
-        </Row>
+        </Tip>
+        <LabeledRow label_cols=6 label={label}>
+            <DateTimePicker
+                value     = {config.due_date ? misc.server_days_ago(-7)}
+                on_change = {@peer_due_change}
+            />
+        </LabeledRow>
 
     render_configure_peer_number: (config) ->
         store = @props.redux.getStore(@props.name)
-        <LabeledRow label='Number of students who will grade each assignment'>
+        <LabeledRow label_cols=6 label='Number of students who will grade each assignment'>
             <NumberInput
                 on_change = {(n) => @set_peer_grade(number : n)}
                 min       = 1
@@ -2698,7 +2834,7 @@ Assignment = rclass
     render_configure_grading_guidelines: (config) ->
         store = @props.redux.getStore(@props.name)
         <div style={marginTop:'10px'}>
-            <LabeledRow label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.'>
+            <LabeledRow label_cols=6 label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
                 <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
                     <MarkdownInput
                         rows          = 16
@@ -2713,10 +2849,12 @@ Assignment = rclass
     render_configure_peer: ->
         config = @props.assignment.get('peer_grade')?.toJS() ? {}
         <Alert bsStyle='warning'>
-            <h3>Configure peer grading</h3>
+            <h3><Icon name="users"/> Peer grading</h3>
 
             <span style={color:'#666'}>
-                (add description here)
+                Use peer grading to randomly (and anonymously) redistribute
+                collected homework to your students, so that they can grade
+                it for you.
             </span>
 
             {@render_configure_peer_checkbox(config)}
@@ -3109,7 +3247,7 @@ Settings = rclass
             </ButtonToolbar>
             <hr/>
             <span style={color:"#666"}>
-                You may export all the grades you have recorded
+                Export all the grades you have recorded
                 for students in your course to a csv or Python file.
             </span>
         </Panel>
@@ -3206,7 +3344,7 @@ Settings = rclass
             </Row>
             <hr/>
             <span style={color:'#666'}>
-                <p>You may start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
+                <p>Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
                 </p>
             </span>
         </Panel>
@@ -3489,7 +3627,7 @@ Settings = rclass
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between student projects.</p>
+                <p>Add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between student projects.</p>
 
                 <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
             </div>
@@ -3605,7 +3743,7 @@ Settings = rclass
         if @state.students_pay
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc(@state.students_pay_when)}</span>
         else
-            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
+            <span>Require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
 
 
     render_require_students_pay: ->
@@ -3701,7 +3839,7 @@ SharedProject = rclass
         <div>
             <div style={color:'#444'}>
                 <p>
-                    You may <i>optionally</i> create a single common shared project, which everybody -- students and all collaborators
+                    <i>Optionally</i> create a single common shared project, which everybody -- students and all collaborators
                     on this project (your TAs and other instructors) -- will have <b>write</b> access to.  This can be useful
                     for collaborative in-class labs, course-wide chat rooms, and making miscellanous materials available for
                     students to experiment with together.
@@ -3859,7 +3997,7 @@ CourseEditor = (name) -> rclass
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     render : ->
-        #window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
+        window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
         <div>
             {@render_save_button()}
             {@render_error()}

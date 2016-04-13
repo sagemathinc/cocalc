@@ -369,15 +369,20 @@ exports.LabeledRow = LabeledRow = rclass
     displayName : 'Misc-LabeledRow'
 
     propTypes :
-        label : rtypes.any.isRequired
-        style : rtypes.object
+        label      : rtypes.any.isRequired
+        style      : rtypes.object
+        label_cols : rtypes.number    # number between 1 and 11 (default: 4)
+
+    getDefaultProps : ->
+        label_cols : 4
 
     render : ->
+
         <Row style={@props.style}>
-            <Col xs=4>
+            <Col xs={@props.label_cols}>
                 {@props.label}
             </Col>
-            <Col xs=8>
+            <Col xs={12-@props.label_cols}>
                 {@props.children}
             </Col>
         </Row>
