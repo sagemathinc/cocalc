@@ -136,19 +136,33 @@ class exports.Support
         tags = opts.tags ? []
 
         # https://sagemathcloud.zendesk.com/agent/admin/ticket_fields
-        custom_fields =
-            account_id: opts.account_id
-            project_id: opts.project_id
-            location  : opts.location
-            browser   : opts.info.browser  ? 'unknown'
-            mobile    : opts.info.mobile   ? 'unknown'
-            internet  : opts.info.internet ? 'unknown'
-            hostname  : opts.info.hostname ? 'unknown'
-            course    : opts.info.course   ? 'unknown'
+        # Also, you have to read the API info (way more complex than you might think!)
+        # https://developer.zendesk.com/rest_api/docs/core/tickets#setting-custom-field-values
+        cus_fld_id =
+            account_id: 31614628
+            project_id: 30301277
+            location  : 30301287
+            browser   : 31647548
+            mobile    : 31647578
+            internet  : 31665978
+            hostname  : 31665988
+            course    : 31764067
+            info      : 31647558
+
+        custom_fields = [
+            {id: cus_fld_id.account_id, value: opts.account_id}
+            {id: cus_fld_id.project_id, value: opts.project_id}
+            {id: cus_fld_id.location  , value: opts.location}
+            {id: cus_fld_id.browser   , value: opts.info.browser  ? 'unknown'}
+            {id: cus_fld_id.mobile    , value: opts.info.mobile   ? 'unknown'}
+            {id: cus_fld_id.internet  , value: opts.info.internet ? 'unknown'}
+            {id: cus_fld_id.hostname  , value: opts.info.hostname ? 'unknown'}
+            {id: cus_fld_id.course    , value: opts.info.course   ? 'unknown'}
+        ]
 
         # getting rid of those fields, which we have picked above -- keeps extra fields.
-        opts.info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname', 'course')
-        custom_fields.info = JSON.stringify(opts.info)
+        remaining_info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname', 'course')
+        custom_fields.push(id: cus_fld_id.info, value: JSON.stringify(remaining_info))
 
         # below the body message, add a link to the location
         # TODO fix hardcoded URL
@@ -158,8 +172,8 @@ class exports.Support
         else
             body = opts.body + "\n\nNo location provided."
 
-        if misc.is_valid_uuid_string(custom_fields.course)
-            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{custom_fields.course}"
+        if misc.is_valid_uuid_string(opts.info.course)
+            body += "\n\nCourse: https://cloud.sagemath.com/projects/#{opts.info.course}"
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =
