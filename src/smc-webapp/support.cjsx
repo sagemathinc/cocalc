@@ -369,6 +369,9 @@ Support = rclass
             email_err    : rtypes.string
             valid        : rtypes.bool
 
+    componentWillReceiveProps : (newProps) ->
+        newProps.actions.check_valid()
+
     open : ->
         @props.actions.show(true)
 
@@ -381,7 +384,6 @@ Support = rclass
 
     render : () ->
         show_form = false
-        @props.actions.check_valid()
 
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
