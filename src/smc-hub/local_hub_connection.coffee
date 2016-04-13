@@ -78,28 +78,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
-    init_changefeed_ids: () =>
-        if @push_changefeed_ids?
-            return
-        # We push to the project a map of all valid changefeeds:
-        #  (1) whenever this changes
-        #  (2) periodically
-        _push_changefeed_ids = () =>
-            @local_hub_socket (err, sock) =>
-                if not err
-                    mesg =
-                        event          : 'changefeeds'
-                        changefeed_ids : @_query_changefeeds ? {}
-                    sock.write_mesg('json', mesg)
-        push_changefeed_ids = () => setTimeout(_push_changefeed_ids, 5000)
-
-        THROTTLE_CHANGEFEED_S = 60
-        CHANGEFEED_INTERVAL_S = 180
-        # don't send too frequently (e.g., not every time when a burst of changefeeds are created)
-        @push_changefeed_ids = underscore.throttle(push_changefeed_ids, THROTTLE_CHANGEFEED_S*1000)
-        # send out periodically
-        @_push_changefeeds_interval = setInterval(@push_changefeed_ids, CHANGEFEED_INTERVAL_S*1000)
-
     project: (cb) =>
         if @_project?
             cb(undefined, @_project)
@@ -192,9 +170,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
         @_sockets_by_client_id = {}
-        if @push_changefeed_ids?
-            delete @push_changefeed_ids
-            clearInterval(@_push_changefeeds_interval)
 
     free_resources_for_client_id: (client_id) =>
         v = @_sockets_by_client_id[client_id]
@@ -222,7 +197,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         if mesg.changes
             @_query_changefeeds ?= {}
             @_query_changefeeds[mesg.id] = true
-            @push_changefeed_ids()
         mesg_id = mesg.id
         @database.user_query
             project_id : @project_id
@@ -234,7 +208,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     dbg("project_query error: #{misc.to_json(err)}")
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
-                        @push_changefeed_ids()
                     write_mesg(message.error(error:err))
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
@@ -266,7 +239,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         mesg.resp = resp
                         write_mesg(mesg)
                         delete @_query_changefeeds?[mesg.id]
-                        @push_changefeed_ids()
 
     mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
         mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
@@ -367,7 +339,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
-            @dbg("local_hub_socket: re-using existing socket")
+            #@dbg("local_hub_socket: re-using existing socket")
             cb(undefined, @_socket)
             return
 
@@ -395,8 +367,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 for c in @_local_hub_socket_queue
                     c(err)
             else
-                @init_changefeed_ids()  # inform local hub of changefeeds periodically
-                
                 socket.on 'mesg', (type, mesg) =>
                     switch type
                         when 'blob'

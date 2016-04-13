@@ -235,7 +235,7 @@ schema.accounts =
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
-                    standby_timeout_m : 15
+                    standby_timeout_m : 10
                     default_file_sort : 'time'
                 first_name      : ''
                 last_name       : ''
@@ -412,7 +412,7 @@ schema.file_access_log =
 schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
-    #unique_writes: true   # there is no reason for a user to write the same record twice
+    unique_writes: true   # there is no reason for a user to write the same record twice
     fields:
         id          : true
         project_id  : true
@@ -430,7 +430,7 @@ schema.file_use =
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
-                options : [{order_by : '-last_edited'}, {limit : 150}]  # limit is kind of arbitrary; not sure what to do.
+                options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
             fields :
                 id          : null
                 project_id  : null

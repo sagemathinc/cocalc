@@ -412,9 +412,7 @@ class exports.Connection extends EventEmitter
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when 'version'
-                @emit('new_version', mesg.version)
-            when 'changefeeds'
-                @emit('changefeed_ids', mesg.changefeed_ids)
+                @emit('new_version', {version:mesg.version, min_version:mesg.min_version})
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1517,7 +1515,7 @@ class exports.Connection extends EventEmitter
         return @query(query:x, changes: true)
 
     sync_table: (query, options, debounce_interval=2000) =>
-        return new synctable.SyncTable(query, options, @, debounce_interval)
+        return synctable.sync_table(query, options, @, debounce_interval)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1526,6 +1524,7 @@ class exports.Connection extends EventEmitter
             path              : undefined
             default           : ''
             file_use_interval : 'default'
+            cursors           : false
         opts.client = @
         return new syncstring.SyncString(opts)
 
@@ -1549,10 +1548,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined
+            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
             timeout : 30
             cb      : undefined
-
+        if opts.options? and not misc.is_array(opts.options)
+            throw Error("options must be an array")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)

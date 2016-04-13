@@ -165,7 +165,7 @@ handle_client = (socket, mesg) ->
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
-                socket.write_mesg('json', err)
+                    socket.write_mesg('json', err)
     catch e
         winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 

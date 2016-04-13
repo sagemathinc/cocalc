@@ -65,6 +65,8 @@ src/dev/smc/rethinkdb_data/
 src/dev/laptop/rethinkdb_data/
 
 
+src/static/term/term.min.js
+
 src/static/primus/primus-engine.js
 src/static/primus/primus-engine.min.js
 src/restart_hub
