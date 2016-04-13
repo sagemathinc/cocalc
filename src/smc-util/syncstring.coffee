@@ -16,9 +16,19 @@ RethinkDB-backed time-log database-based synchronized editing
 # How big of files can be opened
 MAX_FILE_SIZE_MB = 4
 
-# Touch syncstring every so often so that it stays opened in the local hub,
+# Client -- when it has this syncstring open and connected -- will touch the
+# syncstring every so often so that it stays opened in the local hub,
 # when the local hub is running.
 TOUCH_INTERVAL_M = 10
+
+# How often the local hub will autosave this file to disk if it has it open and
+# there are unsaved changes.  This is very important since it ensures that a user that
+# edits a file but doesn't click "Save" and closes their browser (right after their edits
+# have gone to the databse), still has their file saved to disk soon.  This is important,
+# e.g., for homework getting collected and not missing the last few changes.  It turns out
+# this is what people expect!
+# Set to 0 to disable. (But don't do that.)
+LOCAL_HUB_AUTOSAVE_S = 30
 
 # If the client becomes disconnected from the backend for more than this long
 # the---on reconnect---do extra work to ensure that all snapshots are up to
@@ -500,6 +510,9 @@ class SyncDoc extends EventEmitter
                 @_cursors?.set(x,'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
+        if @_client.is_project()
+            @init_project_autosave()
+
     # Used for internal debug logging
     dbg: (f) ->
         return @_client.dbg("SyncString.#{f}:")
@@ -508,6 +521,15 @@ class SyncDoc extends EventEmitter
     # time specified, gives the version right now.
     version: (time) =>
         return @_patch_list.value(time)
+
+    # Make it so the local hub project will automatically save the file to disk periodically.
+    init_project_autosave: () =>
+        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
+            return
+        f = () =>
+            if @has_unsaved_changes()
+                @_save_to_disk()
+        @_project_autosave = setInterval(f, LOCAL_HUB_AUTOSAVE_S*1000)
 
     # account_id of the user who made the edit at
     # the given point in time.
@@ -594,6 +616,9 @@ class SyncDoc extends EventEmitter
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
             delete @_periodically_touch
+        if @_project_autosave?
+            clearInterval(@_project_autosave)
+            delete @_project_autosave
         delete @_cursor_throttled
         delete @_cursor_map
         delete @_users

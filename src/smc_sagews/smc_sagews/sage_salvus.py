@@ -1590,22 +1590,37 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 def cython(code=None, **kwds):
     """
-    Block decorator to easily include Cython code in the Salvus notebook.
+    Block decorator to easily include Cython code in SageMathCloud worksheets.
 
-    Just put %cython at the top of a cell, and the rest is compiled as Cython code.
-    You can pass options to cython by typing "%cython(... var=value...)" instead.
+    Put %cython at the top of a cell, and the rest of that cell is compiled as
+    Cython code and made directly available to use in other cells.
 
-    This is a wrapper around Sage's cython function, whose docstring is:
+    You can pass options to cython by typing "%cython(... var=value...)"
+    instead of just "%cython".
+
+    If you give the option silent=True (not the default) then this won't
+    print what functions get globally defined as a result of evaluating code.
+
+    This is a wrapper around Sage's own cython function, whose
+    docstring is below:
+
+    ORIGINAL DOCSTRING:
+
     """
     if code is None:
         return lambda code: cython(code, **kwds)
-    import sage.misc.misc
-    path = sage.misc.misc.tmp_dir()
+    from sage.misc.temporary_file import tmp_dir
+    path = tmp_dir()
     filename = os.path.join(path, 'a.pyx')
     open(filename, 'w').write(code)
 
-    if 'annotate' not in kwds:
+    silent = kwds.get('silent', False)
+    if 'silent' in kwds:
+        del kwds['silent']
+
+    if 'annotate' not in kwds and not silent:
         kwds['annotate'] = True
+
     import sage.misc.cython
     modname, path = sage.misc.cython.cython(filename, **kwds)
 
@@ -1616,9 +1631,16 @@ def cython(code=None, **kwds):
     	del sys.path[0]
 
     import inspect
+    defined = []
     for name, value in inspect.getmembers(module):
-        if not name.startswith('_'):
+        if not name.startswith('_') and name != 'init_memory_functions':
             salvus.namespace[name] = value
+            defined.append(name)
+    if not silent:
+        if defined:
+            print "Defined %s"%(', '.join(defined))
+        else:
+            print "No functions defined."
 
     files = os.listdir(path)
     html_filename = None
@@ -1627,8 +1649,7 @@ def cython(code=None, **kwds):
         if ext.startswith('.html') and '_pyx_' in base:
             html_filename = os.path.join(path, n)
     if html_filename is not None:
-        html_url = salvus.file(html_filename, raw=True, show=False)
-        salvus.html("<a href='%s' target='_new' class='btn btn-small' style='margin-top: 1ex'>Auto-generated code... &nbsp;<i class='fa fa-external-link'></i></a>"%html_url)
+        salvus.file(html_filename, raw=True, show=True, text="Auto-generated code...")
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 
