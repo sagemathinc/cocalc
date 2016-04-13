@@ -707,7 +707,8 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             assignment = store.get_assignment(assignment)
             if assignment.getIn(['peer_grade', 'map'])?
                 return  # nothing to do
-            map = misc.peer_grading(store.get_student_ids())
+            N = assignment.getIn(['peer_grade','number']) ? 1
+            map = misc.peer_grading(store.get_student_ids(), N)
             @set_peer_grade(assignment, map:map)
 
         # Copy the files for the given assignment_id from the given student to the
@@ -3997,7 +3998,7 @@ CourseEditor = (name) -> rclass
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     render : ->
-        window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
+        #window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
         <div>
             {@render_save_button()}
             {@render_error()}
