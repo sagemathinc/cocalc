@@ -126,7 +126,6 @@ class exports.Support
             user:
                 name         : if opts.username?.trim?().length > 0 then opts.username else opts.email_address
                 email        : opts.email_address
-                verified     : false  # if true: an email is sent to verify the email address and informed to get account
                 external_id  : opts.account_id ? null
                 # manage custom_fields here: https://sagemathcloud.zendesk.com/agent/admin/user_fields
                 custom_fields:
