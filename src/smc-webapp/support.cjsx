@@ -130,7 +130,8 @@ class SupportActions extends Actions
             proj_settings = @projects().get_project(project_id).settings
             quotas = misc.map_sum(proj_upgrades, proj_settings)
         else
-            quotas = undefined
+            proj_upgrades = null
+            quotas = {}
 
         tags = []
 
@@ -141,6 +142,9 @@ class SupportActions extends Actions
             tags.push('member')
         else
             tags.push('free')
+
+        if proj_upgrades? and _.values(proj_upgrades).reduce((a,b)->a+b) > 0
+            tags.push('upgraded')
 
         course = @projects()?.get_course_info(project_id)?.get('project_id')
         if course?
@@ -154,9 +158,7 @@ class SupportActions extends Actions
             internet   : (quotas?.network ? 0) > 0
             hostname   : project?.host?.host ? 'unknown'
             course     : course ? 'no'
-
-        if upgrades?
-            info = misc.merge(info, quotas)
+            quotas     : JSON.stringify(quotas)
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null

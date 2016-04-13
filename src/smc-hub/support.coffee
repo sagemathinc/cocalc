@@ -128,9 +128,9 @@ class exports.Support
                 email        : opts.email_address
                 external_id  : opts.account_id ? null
                 # manage custom_fields here: https://sagemathcloud.zendesk.com/agent/admin/user_fields
-                custom_fields:
-                    subscription : null
-                    type         : null
+                #custom_fields:
+                #    subscription : null
+                #    type         : null
 
         tags = opts.tags ? []
 
@@ -146,6 +146,7 @@ class exports.Support
             internet  : 31665978
             hostname  : 31665988
             course    : 31764067
+            quotas    : 31758818
             info      : 31647558
 
         custom_fields = [
@@ -157,10 +158,11 @@ class exports.Support
             {id: cus_fld_id.internet  , value: opts.info.internet   ? 'unknown'}
             {id: cus_fld_id.hostname  , value: opts.info.hostname   ? 'unknown'}
             {id: cus_fld_id.course    , value: opts.info.course     ? 'unknown'}
+            {id: cus_fld_id.quotas    , value: opts.info.quotas     ? 'unknown'}
         ]
 
         # getting rid of those fields, which we have picked above -- keeps extra fields.
-        remaining_info = _.omit(opts.info, 'browser', 'mobile', 'internet', 'hostname', 'course')
+        remaining_info = _.omit(opts.info, _.keys(cus_fld_id))
         custom_fields.push(id: cus_fld_id.info, value: JSON.stringify(remaining_info))
 
         # below the body message, add a link to the location
