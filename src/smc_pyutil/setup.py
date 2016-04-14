@@ -10,6 +10,15 @@ def readme():
 
 from setuptools import setup
 
+# CRITICAL!
+# -s tells python to not load the user's "site" packages in ~/.local
+# otherwise, setuptool's startup scripts do not work, if there is a conflicting
+# setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
+# setting sys.executable changes the she-bang #!... at the top of these scripts
+# credits to http://stackoverflow.com/a/17329493
+import sys
+sys.executable = '/usr/bin/python -s'
+
 setup(
     name             = 'smc_pyutil',
     version          = '1.0',
