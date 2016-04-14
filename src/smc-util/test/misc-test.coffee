@@ -1201,3 +1201,11 @@ describe "peer grading", ->
                         v.indexOf(s) for _, v of asmnt,
                         (x) -> x != -1).length
                     expect(c).toEqual n
+
+describe "sum", ->
+    it "adds up an array", ->
+        expect(misc.sum([1,2,3])).toEqual 6
+    it "works with empty arrays", ->
+        expect(misc.sum([])).toEqual 0
+    it "has an option to set a start", ->
+        expect(misc.sum([-1,5], start=-5)).toEqual -1

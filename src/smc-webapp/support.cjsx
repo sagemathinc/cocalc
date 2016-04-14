@@ -125,8 +125,7 @@ class SupportActions extends Actions
             u = @projects().get_upgrades_to_project(project_id)
             # console.log("PID", project, u)
             # sum up upgrades for each category
-            proj_upgrades = _.mapObject(u,
-                (v, k) -> _.values(v).reduce((a,b)->a+b))
+            proj_upgrades = _.mapObject(u, (v, k) -> misc.sum(_.values(v)))
             proj_settings = @projects().get_project(project_id).settings
             quotas = misc.map_sum(proj_upgrades, proj_settings)
         else
@@ -138,12 +137,12 @@ class SupportActions extends Actions
         # all upgrades the user has available
         # that's a sum of membership benefits (see schema.coffee)
         upgrades = account.get_total_upgrades()
-        if upgrades? and _.values(upgrades).reduce((a,b)->a+b) > 0
+        if upgrades? and misc.sum(_.values(upgrades)) > 0
             tags.push('member')
         else
             tags.push('free')
 
-        if proj_upgrades? and _.values(proj_upgrades).reduce((a,b)->a+b) > 0
+        if proj_upgrades? and misc.sum(_.values(proj_upgrades)) > 0
             tags.push('upgraded')
 
         course = @projects()?.get_course_info(project_id)?.get('project_id')
