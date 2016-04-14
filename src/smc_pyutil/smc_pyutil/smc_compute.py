@@ -363,7 +363,7 @@ class Project(object):
     def dev_env(self):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
-        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
+        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=os.environ['HOME'])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
@@ -759,14 +759,14 @@ class Project(object):
             self.makedirs(abspath)
 
     def copy_path(self,
-                  path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+                  path,                          # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
                   target_hostname = 'localhost', # list of hostnames (foo or foo:port) to copy files to
-                  target_project_id = "",      # project_id of destination for files; must be open on destination machine
-                  target_path     = None,   # path into project; defaults to path above.
-                  overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
-                  delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
-                  backup          = False,# if True, create backup files with a tilde
-                  exclude_history = False,# if True, don't copy .sage-history files.
+                  target_project_id = "",        # project_id of destination for files; must be open on destination machine
+                  target_path     = None,        # path into project; defaults to path above.
+                  overwrite_newer = False,       # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+                  delete_missing  = False,       # if True, delete files in dest path not in source, **including** newer files
+                  backup          = False,       # if True, create backup files with a tilde
+                  exclude_history = False,       # if True, don't copy .sage-history files.
                   timeout         = None,
                   bwlimit         = None,
                  ):
@@ -828,9 +828,16 @@ class Project(object):
             if socket.gethostname() == target_hostname:
                 # we *have* to do this, due to the firewall!
                 target_hostname = 'localhost'
-            w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
-                 src_abspath,
-                 "%s:%s"%(target_hostname, target_abspath)]
+            if self._dev:
+                # In local dev mode everything is as the same account on the same machine,
+                # so we just use rsync without ssh.
+                w = [src_abspath, target_abspath]
+            else:
+                # Full mode -- different users so we use ssh between different machines.
+                # However, in a cloud environment StrictHostKeyChecking is painful to manage.
+                w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+                     src_abspath,
+                     "%s:%s"%(target_hostname, target_abspath)]
             if exclude_history:
                 exclude = self._exclude('', extras=['*.sage-history'])
             else:

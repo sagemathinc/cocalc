@@ -717,13 +717,14 @@ class Salvus(object):
         from graphics import graph_to_d3_jsonable
         self._send_output(id=self._id, d3={"viewer":"graph", "data":graph_to_d3_jsonable(g, **kwds)})
 
-    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False, text=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
 
         If show=True (the default), the browser will show the file,
         or provide a clickable link to it if there is no way to show it.
+        If text is also given that will be used instead of the path to the file.
 
         If show=False, this function returns an object T such that
         T.url (or str(t)) is a string of the form "/blobs/filename?uuid=the_uuid"
@@ -769,7 +770,7 @@ class Salvus(object):
             url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
-                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events, done=done)
+                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show, 'text':text}, events=events, done=done)
                 return
             else:
                 return TemporaryURL(url=url, ttl=0)
@@ -789,7 +790,7 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- %s"%mesg['error'])
 
         self._flush_stdio()
-        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events, done=done)
+        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show, 'text':text}, events=events, done=done)
         if not show:
             info = self.project_info()
             url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)

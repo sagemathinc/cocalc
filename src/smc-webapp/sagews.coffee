@@ -1360,7 +1360,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                         console.log("unknown or unimplemented event -- #{event}")
 
                     else
-                        output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
+                        if val.text
+                            text = val.text
+                        else
+                            text = "#{val.filename} (temporary link)"
+                        output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{text}</a> "))
 
         if mesg.javascript? and @allow_javascript_eval()
             (() =>

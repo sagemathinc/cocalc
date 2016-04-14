@@ -1313,8 +1313,8 @@ exports.get_array_range = (arr, value1, value2) ->
         [index1, index2] = [index2, index1]
     return arr[index1..index2]
 
-# Specific easy to read and describe amount of time before right now
-# Use negative input for _after now.
+# Specific, easy to read: describe amount of time before right now
+# Use negative input for after now (i.e., in the future).
 exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
@@ -1634,7 +1634,7 @@ exports.peer_grading = (students, N=2) ->
         asmnt[k] = underscore.sortBy(v, (s) -> students.indexOf(s))
     return asmnt
 
-# demonstration of the above, for tests see misc-test.coffee
+# demonstration of the above; for tests see misc-test.coffee
 exports.peer_grading_demo = (S = 10, N = 2) ->
     peer_grading = exports.peer_grading
     students = [0...S]

@@ -16,9 +16,19 @@ RethinkDB-backed time-log database-based synchronized editing
 # How big of files can be opened
 MAX_FILE_SIZE_MB = 4
 
-# Touch syncstring every so often so that it stays opened in the local hub,
+# Client -- when it has this syncstring open and connected -- will touch the
+# syncstring every so often so that it stays opened in the local hub,
 # when the local hub is running.
 TOUCH_INTERVAL_M = 10
+
+# How often the local hub will autosave this file to disk if it has it open and
+# there are unsaved changes.  This is very important since it ensures that a user that
+# edits a file but doesn't click "Save" and closes their browser (right after their edits
+# have gone to the databse), still has their file saved to disk soon.  This is important,
+# e.g., for homework getting collected and not missing the last few changes.  It turns out
+# this is what people expect!
+# Set to 0 to disable. (But don't do that.)
+LOCAL_HUB_AUTOSAVE_S = 30
 
 # If the client becomes disconnected from the backend for more than this long
 # the---on reconnect---do extra work to ensure that all snapshots are up to
@@ -478,6 +488,10 @@ class SyncDoc extends EventEmitter
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
+            else
+                if @_client.is_project()
+                    # CRITICAL: do not start autosaving this until syncstring is initialized!
+                    @init_project_autosave()
 
         if opts.file_use_interval and @_client.is_user()
             is_chat = misc.filename_extension(@_path) == 'sage-chat'
@@ -508,6 +522,15 @@ class SyncDoc extends EventEmitter
     # time specified, gives the version right now.
     version: (time) =>
         return @_patch_list.value(time)
+
+    # Make it so the local hub project will automatically save the file to disk periodically.
+    init_project_autosave: () =>
+        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
+            return
+        f = () =>
+            if @hash_of_saved_version()? and @has_unsaved_changes()
+                @_save_to_disk()
+        @_project_autosave = setInterval(f, LOCAL_HUB_AUTOSAVE_S*1000)
 
     # account_id of the user who made the edit at
     # the given point in time.
@@ -594,6 +617,9 @@ class SyncDoc extends EventEmitter
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
             delete @_periodically_touch
+        if @_project_autosave?
+            clearInterval(@_project_autosave)
+            delete @_project_autosave
         delete @_cursor_throttled
         delete @_cursor_map
         delete @_users
@@ -832,6 +858,7 @@ class SyncDoc extends EventEmitter
             #dbg("nothing changed so nothing to save")
             cb?()
             return value
+
         # compute transformation from _last to live -- exactly what we did
         patch = make_patch(@_last, value)
         @_last = value
@@ -1251,6 +1278,14 @@ class SyncDoc extends EventEmitter
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
         else if @_client.is_user()
+            # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
+            # (if it is running) to open the syncstring (if closed), and hence be aware that the client
+            # is requesting a save.  This is important if the client and database have changes not
+            # saved to disk, and the project stopped listening for activity on this syncstring due
+            # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
+            # errors.
+            @touch()
+
             #dbg("user - request to write to disk file")
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
