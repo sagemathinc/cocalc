@@ -77,6 +77,9 @@ Ansible:  ansible-playbook all-install.yaml --tags=install
 
 Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
+# Cantera system-wide
+
+apt-add-repository ppa:speth/cantera; apt-get update; apt-get install cantera-python cantera-python3 cantera-dev
 
 # Python3-related packages of interest
 
@@ -256,6 +259,7 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
      ],
      "display_name": "R"
     }
+
 
 
 
