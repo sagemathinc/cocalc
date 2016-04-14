@@ -267,6 +267,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # end project query support code
     #
 
+    local_hub_version: (version) ->
+        winston.debug("GOT VERSION MESSAGE: version=#{version}")
+
     # handle incoming JSON messages from the local_hub
     handle_mesg: (mesg, socket) =>
         @dbg("local_hub --> hub: received mesg: #{misc.trunc(misc.to_json(mesg), 250)}")
@@ -277,6 +280,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
             clients.push_to_client(mesg)
+            return
+        if mesg.event == 'version'
+            @local_hub_version(mesg.version)
             return
         if mesg.id?
             f = @call_callbacks[mesg.id]
