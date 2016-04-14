@@ -488,6 +488,10 @@ class SyncDoc extends EventEmitter
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
+            else
+                if @_client.is_project()
+                    # CRITICAL: do not start autosaving this until syncstring is initialized!
+                    @init_project_autosave()
 
         if opts.file_use_interval and @_client.is_user()
             is_chat = misc.filename_extension(@_path) == 'sage-chat'
@@ -510,9 +514,6 @@ class SyncDoc extends EventEmitter
                 @_cursors?.set(x,'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, 2000)
 
-        if @_client.is_project()
-            @init_project_autosave()
-
     # Used for internal debug logging
     dbg: (f) ->
         return @_client.dbg("SyncString.#{f}:")
@@ -527,7 +528,7 @@ class SyncDoc extends EventEmitter
         if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
             return
         f = () =>
-            if @has_unsaved_changes()
+            if @hash_of_saved_version()? and @has_unsaved_changes()
                 @_save_to_disk()
         @_project_autosave = setInterval(f, LOCAL_HUB_AUTOSAVE_S*1000)
 
