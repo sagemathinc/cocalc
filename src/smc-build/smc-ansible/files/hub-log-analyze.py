@@ -24,6 +24,9 @@ pat_blocked      = re.compile(r'BLOCKED for (\d+)ms')
 pat_changefeeds  = re.compile(r'num_feeds=(\d+)\schangefeeds')
 # client=sWBADKByX5l4xBPcAAL8: [48 mesg_time_ms]  [37 mesg_avg_ms] -- mesg.id=01f5cee3-9bfb-4cc9-bb1e-cf83798eb732
 pat_mesg_time    = re.compile(r'\[(\d+) mesg_time_ms\]')
+# see https://github.com/sagemathinc/smc/issues/507
+pat_error1       = re.compile(r'.*error calling compute server -- error writing to socket -- socket no.*')
+pat_hub_fn       = re.compile(r'hub(\d+).log')
 
 #def tail(fn, lines=5000):
 #    import subprocess as sp
@@ -92,8 +95,9 @@ if __name__=="__main__":
         ts_first_query  = None
         ts_last_query   = None
         query_count     = 0
+        error1_count    = 0
 
-        for ts, line in grep(tail(fn), "concurrent", "BLOCKED", "FEED",  "mesg_time_ms"):
+        for ts, line in grep(tail(fn), "concurrent", "BLOCKED", "FEED",  "mesg_time_ms", "error"):
             if "BLOCKED" in line:
                 b = pat_blocked.findall(line)
                 if len(b) > 0:
@@ -128,6 +132,11 @@ if __name__=="__main__":
                     ts_last_query = ts
                     query_count += 1
 
+            elif "error" in line:
+                err = pat_error1.match(line)
+                if err:
+                    error1_count += 1
+
         concurrent   = max(concs)           if concs else 0
         modified     = float(sum(modifs))   if modifs else 0.0
         ms_median    = median(mss)          if mss else 0.0
@@ -161,6 +170,13 @@ if __name__=="__main__":
             data.append(make_data("hub_modified", modified_per_min, kind="sum", host=HOST, logfile=logfile))
             # print("qps: %f [ms]" % qps)
 
+        hub_no = pat_hub_fn.findall(logfile)
+        if len(hub_no) > 0:
+            hub_no = hub_no[0]
+            if error1_count > 10:
+                print("error1_count: %s → restarting hub %s" % (error1_count, hub_no))
+                os.system('/home/salvus/smc/src/restart_hub %s' % hub_no)
+
         # END: for loop over logfiles
 
     # submit everything at once, because there is a daily quota limit of the API
@@ -169,5 +185,3 @@ if __name__=="__main__":
     #cmd = '/usr/bin/python $HOME/custom_metric/record_metric.py hub_concurrent host=$(hostname) logfile=%s %d' % (os.path.basename(fn), concurrent)
     #print(cmd)
     #os.system(cmd)
-
-
