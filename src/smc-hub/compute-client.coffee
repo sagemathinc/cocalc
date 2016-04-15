@@ -1007,10 +1007,17 @@ class ProjectClient extends EventEmitter
             cb      : (err, resp) =>
                 if err
                     dbg("error calling compute server -- #{err}")
-                    # For heavily loaded systems, an error as above can happen a lot.
+                    # CRITICAL: For heavily loaded systems, an error as above can happen a lot.
                     # The server will get removed when the connection itself closes.
-                    # So do not remove from cache like I hade here!!
-                    ## NO -- @compute_server.remove_from_cache(host:@host)
+                    # So do not remove from cache except in some cases (not for every
+                    # possible err message).  Removing from the cache willy nilly in all cases
+                    # results in a huge number of connections from the hub to compute
+                    # servers, which crashes everything.
+                    if err.indexOf('error writing to socket') != -1
+                        # See https://github.com/sagemathinc/smc/issues/507
+                        # Experience suggests that when we get this error, it gets stuck like this
+                        # and never goes away -- in this case we want to try again with a new connection.
+                        @compute_server.remove_from_cache(host:@host)
                     opts.cb(err)
                 else
                     dbg("got response #{misc.to_safe_str(resp)}")
