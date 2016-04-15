@@ -5,6 +5,7 @@ LocalHub
 async   = require('async')
 uuid    = require('node-uuid')
 winston = require('winston')
+underscore = require('underscore')
 
 message = require('smc-util/message')
 misc_node = require('smc-util-node/misc_node')
@@ -68,8 +69,18 @@ exports.all_local_hubs = () ->
             v.push(h)
     return v
 
+smc_version = undefined
+init_smc_version = () ->
+    smc_version = require('./hub-version')
+    smc_version.on 'change', () ->
+        winston.debug("local_hub_connection (smc_version changed) -- checking on clients")
+        for x in exports.all_local_hubs()
+            x.restart_if_version_too_old()
+
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
+        if not smc_version?  # module being used -- make sure smc_version is initialized
+            init_smc_version()
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
@@ -155,6 +166,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @query_cancel_all_changefeeds()
         delete @address  # so we don't continue trying to use old address
         delete @_status
+        delete @smc_version  # so when client next connects we ignore version checks until they tell us their version
         try
             @_socket?.end()
             winston.debug("free_resources: closed main local_hub socket")
@@ -212,6 +224,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         # also, assume changefeed got messed up, so cancel it.
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
+                    #if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    #    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -264,6 +278,50 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # end project query support code
     #
 
+    # local hub just told us its version.  Record it.  Restart project if hub version too old.
+    local_hub_version: (version) =>
+        winston.debug("local_hub_version: version=#{version}")
+        @smc_version = version
+        @restart_if_version_too_old()
+
+    # If our known version of the project is too old compared to the
+    # current min_project_version in smcu-util/smc-version, then
+    # we restart the project, which updates the code to the latest
+    # version.  Only restarts the project if we have an open control
+    # socket to it.
+    # Please make damn sure to update the project code on the compute
+    # server before updating the version, or the project will be
+    # forced to restart and it won't help!
+    restart_if_version_too_old: () =>
+        if not @_socket?
+            # not connected at all -- just return
+            return
+        if not @smc_version?
+            # client hasn't told us their version yet
+            return
+        if smc_version.min_project_version <= @smc_version
+            # the project is up to date
+            return
+        if @_restart_goal_version == smc_version.min_project_version
+            # We already restarted the project in an attempt to update it to this version
+            # and it didn't get updated.  Don't try again until @_restart_version is cleared, since
+            # we don't want to lock a user out of their project due to somebody forgetting
+            # to update code on the compute server!  It could also be that the project just
+            # didn't finish restarting.
+            return
+
+        winston.debug("restart_if_version_too_old(#{@project_id}): #{@smc_version}, #{smc_version.min_project_version}")
+        # record some stuff so that we don't keep trying to restart the project constantly
+        ver = @_restart_goal_version = smc_version.min_project_version # version which we tried to get to
+        f = () =>
+            if @_restart_goal_version == ver
+                delete @_restart_goal_version
+        setTimeout(f, 15*60*1000)  # don't try again for at least 15 minutes.
+
+        @dbg("restart_if_version_too_old -- restarting since #{smc_version.min_project_version} > #{@smc_version}")
+        @restart (err) =>
+            @dbg("restart_if_version_too_old -- done #{err}")
+
     # handle incoming JSON messages from the local_hub
     handle_mesg: (mesg, socket) =>
         @dbg("local_hub --> hub: received mesg: #{misc.trunc(misc.to_json(mesg), 250)}")
@@ -274,6 +332,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
             clients.push_to_client(mesg)
+            return
+        if mesg.event == 'version'
+            @local_hub_version(mesg.version)
             return
         if mesg.id?
             f = @call_callbacks[mesg.id]
@@ -336,7 +397,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
-            @dbg("local_hub_socket: re-using existing socket")
+            #@dbg("local_hub_socket: re-using existing socket")
             cb(undefined, @_socket)
             return
 
@@ -383,6 +444,17 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     c(undefined, socket)
 
                 @_socket = socket
+
+                # Finally, we wait a bit to see if the version gets sent from
+                # the client.  If not, we set it to 0, which will cause a restart,
+                # which will upgrade to a new version that sends versions.
+                # TODO: This code can be deleted after all projects get restarted.
+                check_version_received = () =>
+                    if @_socket? and not @smc_version?
+                        @smc_version = 0
+                        @restart_if_version_too_old()
+                setTimeout(check_version_received, 60*1000)
+
             cancel_connecting()
 
     # Get a new connection to the local_hub,

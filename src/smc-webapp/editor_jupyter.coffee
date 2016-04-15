@@ -801,6 +801,7 @@ class JupyterNotebook extends EventEmitter
         syncdoc.synchronized_string
             project_id : @project_id
             filename   : @syncdb_filename
+            cursors    : true
             cb         : (err, s) =>
                 @syncstring = s
                 cb(err)

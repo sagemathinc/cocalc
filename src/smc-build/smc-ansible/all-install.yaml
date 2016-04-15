@@ -701,3 +701,35 @@
 
   - name: 'update-alternativs for mpich binary'
     alternatives: name=mpi path=/usr/include/mpich
+
+# PYPY
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: pypy
+
+  tasks:
+
+  - name: 'pypy repository'
+    apt_repository: repo='ppa:pypy/ppa'
+
+  - name: 'install pypy'
+    apt: state=latest name=pypy
+
+# Cantera
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: cantera
+
+  tasks:
+
+  - name: 'Cantera repository'
+    apt_repository: repo='ppa:speth/cantera'
+
+  - name: 'install Cantera'
+    apt: state=latest name={{ item }}
+    with_items:
+    - cantera-python
+    - cantera-python3
+    - cantera-dev

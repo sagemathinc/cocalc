@@ -235,7 +235,7 @@ schema.accounts =
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
-                    standby_timeout_m : 15
+                    standby_timeout_m : 10
                     default_file_sort : 'time'
                 first_name      : ''
                 last_name       : ''
@@ -430,7 +430,7 @@ schema.file_use =
             all :
                 cmd     : 'getAll'
                 args    : ['all_projects_read', index:'project_id']
-                options : [{order_by : '-last_edited'}, {limit : 150}]  # limit is kind of arbitrary; not sure what to do.
+                options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
             fields :
                 id          : null
                 project_id  : null

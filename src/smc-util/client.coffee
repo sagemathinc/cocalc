@@ -186,7 +186,7 @@ class exports.Connection extends EventEmitter
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
     constructor: (@url) ->
-        @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
+        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -412,7 +412,7 @@ class exports.Connection extends EventEmitter
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when 'version'
-                @emit('new_version', mesg.version)
+                @emit('new_version', {version:mesg.version, min_version:mesg.min_version})
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1515,7 +1515,7 @@ class exports.Connection extends EventEmitter
         return @query(query:x, changes: true)
 
     sync_table: (query, options, debounce_interval=2000) =>
-        return new synctable.SyncTable(query, options, @, debounce_interval)
+        return synctable.sync_table(query, options, @, debounce_interval)
 
     sync_string: (opts) =>
         opts = defaults opts,
@@ -1524,6 +1524,7 @@ class exports.Connection extends EventEmitter
             path              : undefined
             default           : ''
             file_use_interval : 'default'
+            cursors           : false
         opts.client = @
         return new syncstring.SyncString(opts)
 
@@ -1547,10 +1548,11 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             changes : undefined
-            options : undefined
+            options : undefined    # if given must be an array of objects, e.g., [{heartbeat:3}, {limit:5}]
             timeout : 30
             cb      : undefined
-
+        if opts.options? and not misc.is_array(opts.options)
+            throw Error("options must be an array")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
@@ -1570,7 +1572,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             id : required
             cb : undefined
-        @call  # getting a message back with this id cancels listening
+        @call
             message     : message.query_cancel(id:opts.id)
             error_event : true
             timeout     : 30
@@ -1579,7 +1581,7 @@ class exports.Connection extends EventEmitter
     query_get_changefeed_ids: (opts) =>
         opts = defaults opts,
             cb : required
-        @call  # getting a message back with this id cancels listening
+        @call
             message     : message.query_get_changefeed_ids()
             error_event : true
             timeout     : 30
@@ -1587,6 +1589,7 @@ class exports.Connection extends EventEmitter
                 if err
                     opts.cb(err)
                 else
+                    @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
 
 #################################################

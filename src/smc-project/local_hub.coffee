@@ -27,9 +27,10 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 require('coffee-script/register')
 
-message   = require('smc-util/message')
-misc      = require('smc-util/misc')
-misc_node = require('smc-util-node/misc_node')
+message     = require('smc-util/message')
+misc        = require('smc-util/misc')
+smc_version = require('smc-util/smc-version')
+misc_node   = require('smc-util-node/misc_node')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -178,11 +179,15 @@ handle_mesg = (socket, mesg, handler) ->
         when 'hello'
             # No action -- this is used by the hub to send an initial control message that has no effect, so that
             # we know this socket will be used for control messages.
-            winston.debug("hello from hub")
+            winston.debug("hello from hub -- sending back our version = #{smc_version.version}")
+            socket.write_mesg('json', message.version(version:smc_version.version))
         else
             if mesg.id?
+                # only respond with error if there is an id -- otherwise response has no meaning.
                 err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")
-            socket.write_mesg('json', err)
+                socket.write_mesg('json', err)
+            else
+                winston.debug("Dropping unknown mesg type '#{mesg.event}'")
 
 
 ###
