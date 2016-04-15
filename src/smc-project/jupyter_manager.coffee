@@ -10,7 +10,7 @@ message   = require('smc-util/message')
 
 # Either give valid information about the port, etc., or cb(undefined, {status:'stopped'}).
 # Never actually returns error as first output.
-jupyter_status = (info, cb) ->
+jupyter_status = (cb) ->
     misc_node.execute_code
         command     : "smc-jupyter"
         args        : ['status']
@@ -42,47 +42,47 @@ jupyter_start = (cb) ->
                     status = misc.from_json(out.stdout)
                     if not status?.port
                         err = "unable to start -- no port; status=#{misc.to_json(out)}"
-                    if status?.status != 'running'
-                        err = "jupyter server not running -- status=#{misc.to_json(out)}"
                 catch e
                     err = "error parsing smc-jupyter startup output -- #{e}, {misc.to_json(out)}"
             cb(err, status)
 
 jupyter_port_queue = []
 exports.jupyter_port = (socket, mesg) ->
-    winston.debug("jupyter_port")
+    dbg = (m) -> winston.debug("jupyter_port: #{m}")
+    dbg()
     jupyter_port_queue.push({socket:socket, mesg:mesg})
     if jupyter_port_queue.length > 1
+        dbg("already #{jupyter_port_queue.length} requests -- return immediately")
         return
     status = undefined
     async.series([
         (cb) ->
-            winston.debug("checking jupyter status")
+            dbg("checking jupyter status")
             jupyter_status (err, _status) ->
                 status = _status
+                dbg("got status=#{misc.to_json(status)}")
                 cb(err)
         (cb) ->
-            if status.status == 'running'
+            if status?.port
+                dbg("already running; nothing more to do")
                 cb()
                 return
-            winston.debug("not running, so start it running")
+            dbg("not running, so start it running")
             jupyter_start (err, _status) ->
                 status = _status
+                dbg("after starting, got status=#{misc.to_json(status)}")
                 cb(err)
     ], (err) ->
-        if err
-            error = "error starting Jupyter -- #{err}"
-            for x in jupyter_port_queue
-                err_mesg = message.error
-                    id    : x.mesg.id
-                    error : error
-                x.socket.write_mesg('json', err_mesg)
-        else
-            port = status.port
-            for x in jupyter_port_queue
+        dbg("finished; (err=#{err}); now sending resp")
+        for x in jupyter_port_queue
+            if err
+                resp  = message.error
+                     id    : x.mesg.id
+                     error : "error starting jupyter -- #{err}"
+            else
                 resp = message.jupyter_port
-                    port : port
                     id   : x.mesg.id
-                x.socket.write_mesg('json', resp)
-            jupyter_port_queue = []
+                    port : status.port
+            x.socket.write_mesg('json', resp)
+        jupyter_port_queue = []
     )

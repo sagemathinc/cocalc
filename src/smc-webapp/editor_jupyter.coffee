@@ -146,8 +146,8 @@ class JupyterWrapper extends EventEmitter
                 return
             innerHTML = @frame?.document?.body?.innerHTML
 
-            if @frame.$?
-                @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+            #if @frame.$?
+            #    @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
             if (new Date() - start >= max_time_ms) or (innerHTML? and innerHTML.indexOf('<h1>504 Gateway Time-out</h1>') != -1)
                 @state = 'error'
@@ -831,7 +831,7 @@ class JupyterNotebook extends EventEmitter
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        @notebook.css('opacity',0.3)  # nearly -- invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
+        @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
             @notebook.css('opacity',1)
             if err
