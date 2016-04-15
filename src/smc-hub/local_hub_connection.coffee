@@ -453,6 +453,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     if @_socket? and not @smc_version?
                         @smc_version = 0
                         @restart_if_version_too_old()
+                setTimeout(check_version_received, 60*1000)
 
             cancel_connecting()
 
