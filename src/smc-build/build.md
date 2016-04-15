@@ -77,6 +77,9 @@ Ansible:  ansible-playbook all-install.yaml --tags=install
 
 Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
+# Cantera system-wide
+
+apt-add-repository ppa:speth/cantera; apt-get update; apt-get install cantera-python cantera-python3 cantera-dev
 
 # Python3-related packages of interest
 
@@ -99,6 +102,10 @@ unset SAGE_ROOT
 unset LD_LIBRARY_PATH
 /usr/bin/python2 "$@"
 ```
+
+# Install the pair-based-crypto library system-wide
+
+cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz; cd
 
 # SAGE
 
@@ -256,6 +263,7 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
      ],
      "display_name": "R"
     }
+
 
 
 
