@@ -145,6 +145,10 @@ class JupyterWrapper extends EventEmitter
                 setTimeout(f, 250)
                 return
             innerHTML = @frame?.document?.body?.innerHTML
+
+            if @frame.$?
+                @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+
             if (new Date() - start >= max_time_ms) or (innerHTML? and innerHTML.indexOf('<h1>504 Gateway Time-out</h1>') != -1)
                 @state = 'error'
                 @error = 'timeout loading'
@@ -179,7 +183,7 @@ class JupyterWrapper extends EventEmitter
                     @emit('ready')
                     cb()
                 else
-                    # not yet connected, so try again shortly
+                    console.log 'not yet connected, so try again shortly'
                     setTimeout(f, 250)
         f()
 
@@ -827,7 +831,7 @@ class JupyterNotebook extends EventEmitter
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
+        @notebook.css('opacity',0.3)  # nearly -- invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
             @notebook.css('opacity',1)
             if err
@@ -878,7 +882,12 @@ class JupyterNotebook extends EventEmitter
         if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
-                @dom.draw_other_cursors(account_id, locs)
+                try
+                    @dom.draw_other_cursors(account_id, locs)
+                catch err
+                    # This can happen during initialization in some edge cases,
+                    # where Jupyter itself raises an exception.  So just ignore it
+                    # (no cursor appearing temporarily is harmless).
 
     _handle_dom_change: () =>
         #dbg()
@@ -912,6 +921,9 @@ class JupyterNotebook extends EventEmitter
             return
         last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
+            if not @dom.ready
+                # there is nothing we can do regarding setting it if the document is broken/closed.
+                return
             live = @syncstring.live()
             if last_syncstring != live
                 last_syncstring = live
