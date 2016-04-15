@@ -179,7 +179,7 @@ handle_mesg = (socket, mesg, handler) ->
         when 'hello'
             # No action -- this is used by the hub to send an initial control message that has no effect, so that
             # we know this socket will be used for control messages.
-            winston.debug("hello from hub")
+            winston.debug("hello from hub -- sending back our version = #{smc_version.version}")
             socket.write_mesg('json', message.version(version:smc_version.version))
         else
             if mesg.id?

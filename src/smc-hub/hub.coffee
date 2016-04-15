@@ -79,15 +79,14 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-
+smc_version = {}
 init_smc_version = () ->
-    require('hub-version').on ''
-
-send_client_version_updates = () ->
-    winston.debug("SMC_VERSION changed -- sending updates to clients")
-    for id, c of clients
-        if c.smc_version < SMC_VERSION.version
-            c.push_version_update()
+    smc_version = require('./hub-version')
+    smc_version.on 'change', (version) ->
+        winston.debug("smc_version changed -- sending updates to clients")
+        for id, c of clients
+            if c.smc_version < version.version
+                c.push_version_update()
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -1285,13 +1284,13 @@ class Client extends EventEmitter
     ################################################
     mesg_version: (mesg) =>
         @smc_version = mesg.version
-        winston.debug("client._version=#{mesg.version}")
-        if mesg.version < SMC_VERSION.version
+        winston.debug("client.smc_version=#{mesg.version}")
+        if mesg.version < smc_version.version
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:SMC_VERSION.version, min_version:SMC_VERSION.min_client_version))
-        if SMC_VERSION.min_client_version and @smc_version and @smc_version < SMC_VERSION.min_client_version
+        @push_to_client(message.version(version:smc_version.version, min_version:smc_version.min_browser_version))
+        if smc_version.min_browser_version and @smc_version and @smc_version < smc_version.min_browser_version
             # Client is running an unsupported bad old version.
             # Brutally disconnect client!  It's critical that they upgrade, since they are
             # causing problems or have major buggy code.
