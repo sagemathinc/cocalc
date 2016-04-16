@@ -1058,7 +1058,7 @@ project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
         throw Error('project page should not get rendered until after user sign-in and account info is set')
-    return !!project.deleted == deleted and !!project.users[account_id]?.hide == hidden
+    return !!project.deleted == deleted and !!project.users?[account_id]?.hide == hidden
 
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'
