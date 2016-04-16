@@ -484,6 +484,7 @@ exports.SearchInput = rclass
     propTypes :
         placeholder     : rtypes.string
         default_value   : rtypes.string
+        value           : rtypes.string
         on_change       : rtypes.func    # called on_change(value) each time the search input changes
         on_submit       : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
         on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
@@ -541,7 +542,7 @@ exports.SearchInput = rclass
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}
-                value       = {@state.value}
+                value       = {@props.value ? @state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
                 onKeyDown   = {@keydown}
