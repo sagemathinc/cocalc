@@ -95,6 +95,8 @@ it has a lot of (fast) disk space at some point.
 
 Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
 
+    apt-get install software-properties-common && add-apt-repository ppa:vbernat/haproxy-1.6 && apt-get update && apt-get install haproxy
+
     sudo su
     apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev
 
