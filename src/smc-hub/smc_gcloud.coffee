@@ -438,6 +438,8 @@ class VM
     # Make a copy of this VM, but with a different name.
     # external static ip addresses won't be copied, nor will mounted disks whose name doesn't start with
     # the name of the source machine.
+    # WARNING: I've not tested this in anything but the simpler case of the same zone and one single disk.
+    # However, it was written to work in general.
     copy: (opts) =>
         opts = defaults opts,
             name         : required     # new machine name

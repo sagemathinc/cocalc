@@ -9,7 +9,7 @@ from __future__ import print_function
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, SageMathCloud Authors
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -293,6 +293,43 @@ def rewrite_stats():
         else:
             sleep(.1)
 
+
+def space_usage():
+    stats = r.db('rethinkdb').table('stats')
+    q = stats.has_fields('storage_engine')\
+        .pluck('server', 'table', {'storage_engine': {'disk' :'space_usage'}})
+
+    totals = defaultdict(lambda : 0.)
+
+    print('{:24s}   {:9s}       {:8s}     {:8s}    {:4s}    {:8s}     {:8s}'\
+          .format('table', 'server', 'data', 'garbage', '%', 'meta', 'prealloc'))
+    for d in sorted(q.run(), key = lambda d : (d['table'], d['server'])):
+        server   = d['server']
+        table    = d['table']
+        space    = d['storage_engine']['disk']['space_usage']
+        data     = space['data_bytes'] / 2**23
+        garbage  = space['garbage_bytes'] / 2**23
+        ratio    = 100. * garbage / (data + garbage)
+        meta     = space['metadata_bytes'] / 2**23
+        prealloc = space['preallocated_bytes'] / 2**23
+        print('{0[table]:<24s} @ {0[server]:<9s}: '
+              '{data:>8.2f}MiB  {garbage:>8.2f}MiB  {ratio:>4.1f}%  {meta:>8.2f}MiB  {prealloc:>8.2f}MiB'.format(d, **locals()))
+
+        totals[server] += data
+    pprint(totals)
+
+def connections():
+    """
+    Shows the current network configuration of the cluster
+    """
+    conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
+    for x in conns:
+        dbs = sorted(filter(lambda n : n.startswith('db'), x['network']['connected_to'].keys()))
+        print('%s: %s' % (x['name'], dbs))
+    print()
+    for x in conns:
+        dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
+        print('%s: %s' % (x['name'], dbs))
 
 # This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
