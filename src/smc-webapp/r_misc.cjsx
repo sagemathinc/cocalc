@@ -497,6 +497,10 @@ exports.SearchInput = rclass
     getInitialState : ->
         value : @props.default_value
 
+    componentWillReceiveProps : (new_props) ->
+        if new_props.value
+            @setState(value : new_props.value)
+
     componentDidMount : ->
         if @props.autoSelect
             @refs.input.getInputDOMNode().select()
@@ -542,7 +546,7 @@ exports.SearchInput = rclass
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}
-                value       = {@props.value ? @state.value}
+                value       = {@state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
                 onKeyDown   = {@keydown}
