@@ -498,7 +498,7 @@ exports.SearchInput = rclass
         value : @props.default_value
 
     componentWillReceiveProps : (new_props) ->
-        if new_props.value
+        if new_props.value?
             @setState(value : new_props.value)
 
     componentDidMount : ->
