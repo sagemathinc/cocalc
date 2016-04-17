@@ -1427,6 +1427,8 @@ class Monitor(object):
         """
         Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
+
+        NOTE: now that we use cloudflare this test is no longer possible.
         """
         ans = []
         import urllib2, ssl
@@ -1457,7 +1459,7 @@ class Monitor(object):
             'dns'         : self.dns(),
             'load'        : self.load(),
             'hub'         : self.hub(),
-            'stats'       : self.stats(),
+            #'stats'       : self.stats(),  # disabled due to using cloudflare.
             'compute'     : self.compute(),
             'nettest'     : self.nettest(),
             'database'    : self.database()
@@ -1499,9 +1501,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        print "STATS"
-        for x in all['stats'][:n]:
-            print x
+        #print "STATS"
+        #for x in all['stats'][:n]:
+        #    print x
 
         print "COMPUTE"
         vcompute = all['compute']
