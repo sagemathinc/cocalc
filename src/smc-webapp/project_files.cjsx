@@ -1400,7 +1400,7 @@ ProjectFilesSearch = rclass
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path)
-                @props.actions.setState(file_search : '', page_number: 0)
+                @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file(path: new_path)
             @props.actions.set_file_search('')
@@ -1415,7 +1415,7 @@ ProjectFilesSearch = rclass
             <SearchInput
                 autoFocus autoSelect
                 placeholder   = 'Filename'
-                default_value = {@props.file_search}
+                value = {@props.file_search}
                 on_change     = {@props.actions.set_file_search}
                 on_submit     = {@search_submit}
             />
