@@ -47,6 +47,11 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     router.use(body_parser.urlencoded({ extended: true }))
 
+    # http://expressjs.com/en/guide/using-middleware.html
+    app.use (req, res, cb) ->
+        res.setHeader('Cache-Control', "private, max-age=0, no-cache")
+        cb()
+
     # The /static content
     router.use('/static',   express.static(STATIC_PATH, {hidden:true}))
     router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))

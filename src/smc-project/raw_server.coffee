@@ -52,6 +52,10 @@ exports.start_raw_server = (opts) ->
             base = "#{base_url}/#{project_id}/raw/"
             winston.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
+            raw_server.use (req, res, cb) ->
+                res.setHeader('Cache-Control', "private, max-age=0, no-cache")
+                cb()
+
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
