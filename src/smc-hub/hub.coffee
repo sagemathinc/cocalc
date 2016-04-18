@@ -1610,10 +1610,6 @@ class Client extends EventEmitter
     mesg_create_support_ticket: (mesg) =>
         dbg = @dbg("mesg_create_support_ticket")
         dbg("#{misc.to_json(mesg)}")
-        #if not @account_id?
-        #    err = "You must be signed in to use support related functions."
-        #    @error_to_client(id:mesg.id, error:err)
-        #    return
 
         m = underscore.omit(mesg, 'id', 'event')
         support.create_ticket m, (err, url) =>
@@ -1623,6 +1619,22 @@ class Client extends EventEmitter
             else
                 @push_to_client(
                     message.support_ticket_url(id:mesg.id, url: url))
+
+    # retrieves the support tickets the user with the current account_id
+    mesg_get_support_tickets: (mesg) =>
+        dbg = @dbg("mesg_get_support_tickets")
+        dbg("#{misc.to_json(mesg)}")
+        if not @account_id
+            err = "You must be signed in to use support related functions."
+            @error_to_client(id:mesg.id, error:err)
+            return
+
+        support.get_support_tickets @account_id, (err, tickets) =>
+            if err?
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(
+                    message.support_tickets(id:mesg.id, tickets: tickets))
 
     ######################################################
     #Stripe-integration billing code

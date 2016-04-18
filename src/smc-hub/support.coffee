@@ -97,6 +97,45 @@ class exports.Support
             dbg(JSON.stringify(body, null, 2, true))
             cb?(body)
 
+    get_support_tickets: (account_id, cb) ->
+        dbg = @dbg("get_support_tickets")
+        dbg("args: #{account_id}")
+        if not @_zd?
+            err = "Support ticket backend is not available."
+            dbg(err)
+            @cb?(err)
+            return
+
+        query_zendesk = (account_id, cb) =>
+            # zendesk query, looking for tickets tagged with the account_id
+            # https://support.zendesk.com/hc/en-us/articles/203663226
+            q = "type:ticket fieldvalue:#{account_id}"
+            dbg("query = #{q}")
+            @_zd.search.query q, (err, req, result) =>
+                if err
+                    cb(err); return
+                cb(null, result)
+
+        process_result = (raw, cb) =>
+            # post-processing zendesk list
+            dbg("raw = #{JSON.stringify(raw, null, 2, true)}")
+            tickets = []
+            for r in raw
+                t = _.pick(r, 'id', 'subject', 'description', 'created_at', 'status')
+                t.url = "https://sagemathcloud.zendesk.com/requests/#{t.id}"
+                tickets.push(t)
+            cb(null, tickets)
+
+        async.waterfall([
+            async.apply(query_zendesk, account_id)
+            process_result
+        ], (err, tickets) =>
+            if err
+                cb?(err)
+            else
+                cb?(null, tickets)
+        )
+
     # mapping of incoming data from SMC to the API of Zendesk
     # https://developer.zendesk.com/rest_api/docs/core/tickets#create-ticket
     create_ticket: (opts, @cb) ->

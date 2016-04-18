@@ -966,7 +966,7 @@ message
 #############
 # Support Tickets → right now going through Zendesk
 #############
-message
+message # client → hub
     event        : 'create_support_ticket'
     id           : undefined
     username     : undefined
@@ -978,10 +978,20 @@ message
     location     : undefined # from the URL, to know what the requester is talking about
     info         : undefined # additional data dict, like browser/OS
 
-message
+message # client ← hub
     event        : 'support_ticket_url'
     id           : undefined
     url          : required
+
+message # client → hub
+    event        : 'get_support_tickets'
+    id           : undefined
+    # no account_id, that's known by the hub
+
+message # client ← hub
+    event        : 'support_tickets'
+    id           : undefined
+    tickets      : required  # json-list
 
 #############
 # Queries directly to the database (sort of like Facebook's GraphQL)
