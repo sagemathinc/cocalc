@@ -27,14 +27,6 @@ MESG_QUEUE_MAX_COUNT    = 60
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
-# How frequently to check if the smc-util/smc-version.js file has changed.
-SMC_VERSION_CHECK_INTERVAL_S = 20
-#SMC_VERSION_CHECK_INTERVAL_S = 3
-
-# Don't tell users to upgrade until this many minutes after version file updated.
-SMC_VERSION_CHECK_AGE_M = 6
-#SMC_VERSION_CHECK_AGE_M = 0
-
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
@@ -94,44 +86,14 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-require_reload = require('require-reload')(require)  # used to reload the smc-version file properly
-SMC_VERSION    = {version:null, min_client_version:null, min_project_version:null}
-WEBAPP_VERSION = null
-
-update_smc_version = () ->
-    smc_version = require_reload('smc-util/smc-version')
-    ver_age_s = (new Date() - smc_version.version * 1000)/1000
-    #winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
-    if SMC_VERSION.version and ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
-        # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
-        return
-
-    misc_node.get_smc_webapp_version (err, webapp_version) ->
-        if err?
-            winston.error("no smc webapp version no available due to #{err}")
-            WEBAPP_VERSION = null
-
-        if not SMC_VERSION.version  # initialization on startup
-            SMC_VERSION = smc_version
-            winston.debug("update_smc_version: initialize -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
-
-        else if not underscore.isEqual(SMC_VERSION, smc_version)
-            SMC_VERSION = smc_version
-            winston.debug("update_smc_version: update -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
-            send_client_version_updates()
-
-
+smc_version = {}
 init_smc_version = () ->
-    update_smc_version()
-    # update periodically, so we can inform users of new version without having
-    # to actually restart the server.
-    setInterval(update_smc_version, SMC_VERSION_CHECK_INTERVAL_S*1000)
-
-send_client_version_updates = () ->
-    winston.debug("SMC_VERSION changed -- sending updates to clients")
-    for id, c of clients
-        if c.smc_version < underscore.min(SMC_VERSION.version, WEBAPP_VERSION)
-            c.push_version_update()
+    smc_version = require('./hub-version')
+    smc_version.on 'change', (version) ->
+        winston.debug("smc_version changed -- sending updates to clients")
+        for id, c of clients
+            if c.smc_version < version.version
+                c.push_version_update()
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -1326,13 +1288,13 @@ class Client extends EventEmitter
     ################################################
     mesg_version: (mesg) =>
         @smc_version = mesg.version
-        winston.debug("client._version=#{mesg.version}")
-        if mesg.version < SMC_VERSION.version
+        winston.debug("client.smc_version=#{mesg.version}")
+        if mesg.version < smc_version.version
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:SMC_VERSION.version, min_version:SMC_VERSION.min_client_version))
-        if SMC_VERSION.min_client_version and @smc_version and @smc_version < SMC_VERSION.min_client_version
+        @push_to_client(message.version(version:smc_version.version, min_version:smc_version.min_browser_version))
+        if smc_version.min_browser_version and @smc_version and @smc_version < smc_version.min_browser_version
             # Client is running an unsupported bad old version.
             # Brutally disconnect client!  It's critical that they upgrade, since they are
             # causing problems or have major buggy code.
@@ -2232,7 +2194,7 @@ path_activity = (opts) ->
 # Create the Primus realtime socket server
 ##############################
 primus_server = undefined
-init_primus_server = (http_server) ->
+init_<_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
@@ -3114,7 +3076,7 @@ init_compute_server = (cb) ->
 
 update_primus = (cb) ->
     misc_node.execute_code
-        command : path_module.join(SMC_ROOT, 'webapp-lib/primus/update_primus')
+        command : path_module.join(SMC_ROOT, WEBAPP_LIB, '/primus/update_primus')
         cb      : cb
 
 #############################################

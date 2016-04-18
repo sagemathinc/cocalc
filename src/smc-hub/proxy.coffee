@@ -78,21 +78,6 @@ exports.init_http_proxy_server = (opts) ->
                             dbg("account_id=#{account_id}, email_address=#{email_address}")
                             cb()
             (cb) ->
-                if not email_address?
-                    cb(); return
-                dbg("check if user is banned")
-                database.is_banned_user
-                    email_address : email_address
-                    cb            : (err, is_banned) ->
-                        if err
-                            cb(err); return
-                        if is_banned
-                            dbg("delete this auth key, since banned users are a waste of space.")
-                            database.delete_remember_me(hash : hash)
-                            cb('banned')
-                        else
-                            cb()
-            (cb) ->
                 dbg("check if user has #{opts.type} access to project")
                 if opts.type == 'write'
                     access.user_has_write_access_to_project
@@ -222,14 +207,16 @@ exports.init_http_proxy_server = (opts) ->
                                 host = project.host
                                 cb()
             (cb) ->
-                # determine the port
+                #dbg("determine the port")
                 if type == 'port'
                     if port_number == "jupyter"
+                        dbg("determine jupyter_server_port")
                         jupyter_server_port
                             project_id     : project_id
                             compute_server : compute_server
                             database       : database
                             cb             : (err, jupyter_port) ->
+                                dbg("got jupyter_port=#{jupyter_port}, err=#{err}")
                                 if err
                                     cb(err)
                                 else
@@ -323,7 +310,7 @@ exports.init_http_proxy_server = (opts) ->
                     dbg("used cached proxy object: #{misc.walltime(tm)}")
                 else
                     dbg("make a new proxy server connecting to this remote location")
-                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:0)
+                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:3000)
                     # and cache it.
                     proxy_cache[t] = proxy
                     dbg("created new proxy: #{misc.walltime(tm)}")
