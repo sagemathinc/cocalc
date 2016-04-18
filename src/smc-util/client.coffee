@@ -1504,6 +1504,17 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp.url)
 
+    get_support_tickets : (cb) =>
+        @call
+            message      : message.get_support_tickets()
+            timeout      : 20
+            error_event  : true
+            cb           : (err, tickets) ->
+                if err
+                    cb?(err)
+                else
+                    cb?(undefined, tickets.tickets)
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>

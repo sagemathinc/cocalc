@@ -118,7 +118,7 @@ class exports.Support
 
         process_result = (raw, cb) =>
             # post-processing zendesk list
-            dbg("raw = #{JSON.stringify(raw, null, 2, true)}")
+            # dbg("raw = #{JSON.stringify(raw, null, 2, true)}")
             tickets = []
             for r in raw
                 t = _.pick(r, 'id', 'subject', 'description', 'created_at', 'status')

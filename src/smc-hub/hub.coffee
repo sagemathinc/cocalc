@@ -1633,6 +1633,7 @@ class Client extends EventEmitter
             if err?
                 @error_to_client(id:mesg.id, error:err)
             else
+                dbg("tickets: #{misc.to_json(tickets)}")
                 @push_to_client(
                     message.support_tickets(id:mesg.id, tickets: tickets))
 
