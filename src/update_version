@@ -4,7 +4,7 @@ import argparse, os, time
 
 TARGET = os.path.join(os.environ['SALVUS_ROOT'], "smc-util/smc-version.js")
 
-def write_version_file(force_client=False, force_project=False):
+def write_version_file(force_browser=False, force_project=False):
     # Create version file, based on the current time
     now = int(time.time())
     v = []
@@ -23,15 +23,15 @@ def write_version_file(force_client=False, force_project=False):
                     v.append(a)
                     return
 
-    min_ver(force_client, 'client')
+    min_ver(force_browser, 'browser')
     min_ver(force_project, 'project')
     open(TARGET,'w').write('\n'.join(v) + '\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Update SMC version number')
-    parser.add_argument('--client',  help='Browser clients will be required to update before they can do anything', action='store_true', default=False)
+    parser.add_argument('--browser',  help='Browser clients will be required to update before they can do anything', action='store_true', default=False)
     parser.add_argument('--project', help='Project clients will be required to update before they can do anything', action='store_true', default=False)
     args = parser.parse_args()
-    write_version_file(args.client, args.project)
+    write_version_file(args.browser, args.project)
 
 
