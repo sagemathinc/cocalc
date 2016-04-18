@@ -22,7 +22,7 @@
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
-{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
+{Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {top_navbar}    = require('./top_navbar')
@@ -202,25 +202,29 @@ exports.SupportPage = rclass
             support_ticket_error : rtypes.string
 
     render_header : ->
-        <Row>
-            <Col md=1>ID</Col>
-            <Col md=1>Status</Col>
-            <Col md=3>Subject</Col>
-            <Col md=6>Description</Col>
-            <Col md=2></Col>
-        </Row>
+        if @props.support_tickets.length > 0
+            <Row style={fontWeight:"bold"}>
+                <Col md=1>ID</Col>
+                <Col md=1>Status</Col>
+                <Col md=3>Subject</Col>
+                <Col md=5>Description</Col>
+                <Col md=2></Col>
+            </Row>
+        else if @props.support_tickets?.length == 0
+            <Row>
+                <Col md=12>You do not have any support tickets.</Col>
+            </Row>
 
     open : (ticket_id) ->
         window.alert("open #{ticket_id}")
 
-    render_list : (tickets) ->
-
-        for i, ticket of tickets
+    render_body : ->
+        for i, ticket of @props.support_tickets
             <Row id={i}>
                 <Col md=1>{ticket.id}</Col>
                 <Col md=1>{ticket.status}</Col>
                 <Col md=3>{ticket.subject}</Col>
-                <Col md=6>{ticket.description}</Col>
+                <Col md=5><Markdown value={ticket.description} /></Col>
                 <Col md=2>
                     <Button bsStyle="info" onClick={=> @open(ticket.id)}>
                         Open {ticket.id}
@@ -228,15 +232,26 @@ exports.SupportPage = rclass
                 </Col>
             </Row>
 
-    render : ->
+    render_table : ->
         if not @props.support_tickets?
-            return <Loading />
+            return <div style={minHeight:"65vh", textAlign:"center"}>
+                        <Loading />
+                   </div>
 
+        <div style={minHeight:"65vh"} md=12>
+            {@render_header()}
+            {@render_body()}
+        </div>
+
+    render : ->
         <div>
-            <Col style={minHeight:"65vh"} md=12>
-                {@render_header()}
-                {@render_list(@props.support_tickets)}
-            </Col>
+            <h2>Support tickets</h2>
+            <div>
+                Check the status of your support tickets
+                or create a new <exports.ShowSupportLink />.
+            </div>
+            <hr/>
+            {@render_table()}
             <Footer/>
         </div>
 
