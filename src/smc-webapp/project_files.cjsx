@@ -379,7 +379,7 @@ NoFiles = rclass
     # TODO: Make better help text
     render_help_alert : ->
         last_folder_index = @props.file_search?.lastIndexOf('/')
-        if @props.file_search?.indexOf('\\') != -1
+        if @props.file_search? and @props.file_search.indexOf('\\') != -1
             <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
                 Warning: \ is an illegal character
             </Alert>
