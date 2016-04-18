@@ -22,7 +22,7 @@
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
-{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
+{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {top_navbar}    = require('./top_navbar')
@@ -37,8 +37,8 @@ STATE =
     CREATED    : 'created'  # ticket created
     ERROR      : 'error'    # there was a problem
 
-class SupportStore extends Store
 
+class SupportStore extends Store
 
 class SupportActions extends Actions
 
@@ -54,6 +54,13 @@ class SupportActions extends Actions
         fields = ['email_err', 'subject', 'body']
         if u.intersection(u.keys(update), fields).length > 0
             @check_valid()
+
+    load_support_tickets : () ->
+        salvus_client.get_support_tickets (err, tickets) =>
+            console.log("tickets: #{misc.to_json(tickets)}")
+            @setState
+                support_ticket_error : err
+                support_tickets      : tickets
 
     reset: =>
         @init_email_address()
@@ -184,6 +191,54 @@ class SupportActions extends Actions
             state  : if err? then STATE.ERROR else STATE.CREATED
             err    : err ? ''
 
+
+
+exports.SupportPage = rclass
+    displayName : "SupportPage"
+
+    reduxProps :
+        support:
+            support_tickets      : rtypes.array
+            support_ticket_error : rtypes.string
+
+    render_header : ->
+        <Row>
+            <Col md=1>ID</Col>
+            <Col md=1>Status</Col>
+            <Col md=3>Subject</Col>
+            <Col md=6>Description</Col>
+            <Col md=2></Col>
+        </Row>
+
+    open : (ticket_id) ->
+        window.alert("open #{ticket_id}")
+
+    render_list : (tickets) ->
+
+        for i, ticket of tickets
+            <Row id={i}>
+                <Col md=1>{ticket.id}</Col>
+                <Col md=1>{ticket.status}</Col>
+                <Col md=3>{ticket.subject}</Col>
+                <Col md=6>{ticket.description}</Col>
+                <Col md=2>
+                    <Button bsStyle="info" onClick={=> @open(ticket.id)}>
+                        Open {ticket.id}
+                    </Button>
+                </Col>
+            </Row>
+
+    render : ->
+        if not @props.support_tickets?
+            return <Loading />
+
+        <div>
+            <Col style={minHeight:"65vh"} md=12>
+                {@render_header()}
+                {@render_list(@props.support_tickets)}
+            </Col>
+            <Footer/>
+        </div>
 
 SupportInfo = rclass
     displayName : 'Support-info'

@@ -119,14 +119,6 @@ class AccountActions extends Actions
                     # or blead into the next login somehow.
                     window.location.reload(false)
 
-    load_support_tickets : () ->
-        salvus_client.get_support_tickets (err, tickets) =>
-            console.log("tickets: #{misc.to_json(tickets)}")
-            @setState
-                support_ticket_error : err
-                support_tickets      : tickets
-
-
 # Register account actions
 actions = redux.createActions('account', AccountActions)
 

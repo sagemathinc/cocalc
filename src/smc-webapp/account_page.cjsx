@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 {AccountSettingsTop} = require('./r_account')
 {BillingPageRedux} = require('./billing')
 {UpgradesPage} = require('./r_upgrades')
-{SupportPage}  = require('./r_support')
+{SupportPage}  = require('./support')
 {Icon} = require('./r_misc')
 browser = require('./browser')
 
@@ -55,7 +55,7 @@ AccountPage = rclass
             when 'billing'
                 @props.redux.getActions('billing')?.update_customer()
             when 'support'
-                @props.redux.getActions('account')?.load_support_tickets()
+                @props.redux.getActions('support')?.load_support_tickets()
         @props.redux.getActions('account').setState(active_page: key)
         window.history.pushState('', '', window.smc_base_url + "/settings/#{key}")
 
