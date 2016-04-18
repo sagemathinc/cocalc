@@ -181,8 +181,11 @@ handle_mesg = (socket, mesg, handler) ->
             winston.debug("hello from hub")
         else
             if mesg.id?
+                # only respond with error if there is an id -- otherwise response has no meaning.
                 err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")
-            socket.write_mesg('json', err)
+                socket.write_mesg('json', err)
+            else
+                winston.debug("Dropping unknown mesg type '#{mesg.event}'")
 
 
 ###

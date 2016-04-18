@@ -18,13 +18,13 @@ class exports.Evaluator
             eval_inputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 input : null
-        @_inputs = @string._client.sync_table(query, {}, 500)
+        @_inputs = @string._client.sync_table(query, undefined, 500)
 
         query =
             eval_outputs :
                 id    : [@string._string_id, misc.server_seconds_ago(30)]
                 output : null
-        @_outputs = @string._client.sync_table(query, {}, 500)
+        @_outputs = @string._client.sync_table(query, undefined, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
         if @string._client.is_project()

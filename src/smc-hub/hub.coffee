@@ -28,10 +28,12 @@ MESG_QUEUE_MAX_COUNT    = 60
 MESG_QUEUE_MAX_SIZE_MB  = 7
 
 # How frequently to check if the smc-util/smc-version.js file has changed.
-SMC_VERSION_CHECK_INTERVAL_S = 15
+SMC_VERSION_CHECK_INTERVAL_S = 20
+#SMC_VERSION_CHECK_INTERVAL_S = 3
 
 # Don't tell users to upgrade until this many minutes after version file updated.
 SMC_VERSION_CHECK_AGE_M = 6
+#SMC_VERSION_CHECK_AGE_M = 0
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
@@ -46,21 +48,22 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # node.js -- builtin libraries
-net     = require('net')
-assert  = require('assert')
-fs      = require('fs')
-path_module = require('path')
+net            = require('net')
+assert         = require('assert')
+fs             = require('fs')
+path_module    = require('path')
 {EventEmitter} = require('events')
+mime           = require('mime')
 
-# mime library
-mime = require('mime')
-misc_node = require('smc-util-node/misc_node')
+# smc path configurations (shared with webpack)
+misc_node      = require('smc-util-node/misc_node')
+SMC_ROOT       = misc_node.SMC_ROOT
+SALVUS_HOME    = misc_node.SALVUS_HOME
+OUTPUT_DIR     = misc_node.OUTPUT_DIR
+STATIC_PATH    = path_module.join(SALVUS_HOME, OUTPUT_DIR)
+WEBAPP_LIB     = misc_node.WEBAPP_LIB
 
-SMC_ROOT        = misc_node.SMC_ROOT
-SALVUS_HOME     = misc_node.SALVUS_HOME
-OUTPUT_DIR      = misc_node.OUTPUT_DIR
-STATIC_PATH     = path_module.join(SALVUS_HOME, OUTPUT_DIR)
-WEBAPP_LIB      = misc_node.WEBAPP_LIB
+underscore = require('underscore')
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -91,23 +94,32 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-SMC_VERSION = undefined
+require_reload = require('require-reload')(require)  # used to reload the smc-version file properly
+SMC_VERSION    = {version:null, min_client_version:null, min_project_version:null}
+WEBAPP_VERSION = null
+
 update_smc_version = () ->
-    misc_node.get_smc_version (err, ver) ->
+    smc_version = require_reload('smc-util/smc-version')
+    ver_age_s = (new Date() - smc_version.version * 1000)/1000
+    #winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
+    if SMC_VERSION.version and ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
+        # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
+        return
+
+    misc_node.get_smc_webapp_version (err, webapp_version) ->
         if err?
-            winston.error("no SMC_VERSION available due to #{err}")
-        if not SMC_VERSION?  # initialization on startup
-            SMC_VERSION = ver
-            winston.debug("update_smc_version: initializing SMC_VERSION=#{SMC_VERSION}")
-        else if ver != SMC_VERSION
-            ver_age_s = (new Date() - ver*1000)/1000
-            winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
-            if ver_age_s <= SMC_VERSION_CHECK_AGE_M * 60
-                # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
-                return
-            SMC_VERSION = ver
-            winston.debug("update_smc_version: updating SMC_VERSION=#{SMC_VERSION}")
+            winston.error("no smc webapp version no available due to #{err}")
+            WEBAPP_VERSION = null
+
+        if not SMC_VERSION.version  # initialization on startup
+            SMC_VERSION = smc_version
+            winston.debug("update_smc_version: initialize -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
+
+        else if not underscore.isEqual(SMC_VERSION, smc_version)
+            SMC_VERSION = smc_version
+            winston.debug("update_smc_version: update -- SMC_VERSION=#{misc.to_json(SMC_VERSION)}")
             send_client_version_updates()
+
 
 init_smc_version = () ->
     update_smc_version()
@@ -118,7 +130,7 @@ init_smc_version = () ->
 send_client_version_updates = () ->
     winston.debug("SMC_VERSION changed -- sending updates to clients")
     for id, c of clients
-        if c.smc_version < SMC_VERSION
+        if c.smc_version < underscore.min(SMC_VERSION.version, WEBAPP_VERSION)
             c.push_version_update()
 
 to_json = misc.to_json
@@ -152,6 +164,7 @@ clients = require('./clients').get_clients()
 #############################################################
 class Client extends EventEmitter
     constructor: (@conn) ->
+        @_when_connected = new Date()
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
@@ -1314,11 +1327,21 @@ class Client extends EventEmitter
     mesg_version: (mesg) =>
         @smc_version = mesg.version
         winston.debug("client._version=#{mesg.version}")
-        if mesg.version < SMC_VERSION
+        if mesg.version < SMC_VERSION.version
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:SMC_VERSION))
+        @push_to_client(message.version(version:SMC_VERSION.version, min_version:SMC_VERSION.min_client_version))
+        if SMC_VERSION.min_client_version and @smc_version and @smc_version < SMC_VERSION.min_client_version
+            # Client is running an unsupported bad old version.
+            # Brutally disconnect client!  It's critical that they upgrade, since they are
+            # causing problems or have major buggy code.
+            if new Date() - @_when_connected <= 30000
+                # If they just connected, kill the connection instantly
+                @conn.end()
+            else
+                # Wait 1 minute to give them a chance to save data...
+                setTimeout((()=>@conn.end()), 60000)
 
     ################################################
     # Administration functionality
@@ -1534,8 +1557,7 @@ class Client extends EventEmitter
         #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         first = true
         if mesg.changes
-            if not @_query_changefeeds?
-                @_query_changefeeds = {}
+            @_query_changefeeds ?= {}
             @_query_changefeeds[mesg.id] = true
         mesg_id = mesg.id
         database.user_query
@@ -1553,6 +1575,8 @@ class Client extends EventEmitter
                         # also, assume changefeed got messed up, so cancel it.
                         database.user_query_cancel_changefeed(id : mesg_id)
                 else
+                    ##if Math.random() <= .3  # for testing -- force forgetting about changefeed with probability 10%.
+                    ##    delete @_query_changefeeds[mesg_id]
                     if mesg.changes and not first
                         resp = result
                         resp.id = mesg_id
@@ -1566,7 +1590,7 @@ class Client extends EventEmitter
                     #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds? or @_query_changefeeds.length == 0
+        if not @_query_changefeeds? or misc.len(@_query_changefeeds) == 0
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         v = @_query_changefeeds
@@ -1600,8 +1624,9 @@ class Client extends EventEmitter
                         delete @_query_changefeeds?[mesg.id]
 
     mesg_query_get_changefeed_ids: (mesg) =>
-        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        mesg.changefeed_ids = @_query_changefeeds ? {}
         @push_to_client(mesg)
+
 
     ############################################
     # Bulk information about several projects or accounts

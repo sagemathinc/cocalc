@@ -85,6 +85,8 @@ child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
 
+SMC_VERSION   = require('smc-util/smc-version').version
+
 git_head      = child_process.execSync("git rev-parse HEAD")
 GIT_REV       = git_head.toString().trim()
 TITLE         = 'SageMathCloud'

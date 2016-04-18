@@ -2,7 +2,7 @@
 # (e.g. minified jquery isn't properly being detected, etc.)
 
 # this loads the "traditional" js files via webpack.config.coffee
-# it doesn't minify them (so you have to!), etc.
+# it doesn't minify them (so you have to!) – but webpack in production mode optimizes everything
 # evals them right into the global context
 # TODO switch to npm packaging
 
@@ -50,7 +50,7 @@ require("script!jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js
 require("script!pnotify/jquery.pnotify.min.js")
 
 # XTerm terminal emulator
-require("script!term/term.min.js")
+require("script!term/term.js")
 require("script!term/color_themes.js")
 
 # LaTeX log parser

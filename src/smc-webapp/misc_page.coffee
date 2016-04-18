@@ -979,6 +979,13 @@ exports.define_codemirror_extensions = () ->
                 how = EDIT_COMMANDS[mode1][cmd]
 
             done = false
+
+            # this is an abuse, but having external links to the documentation is good
+            if how?.url?
+                tab = window.open(how.url, '_blank')
+                tab.focus()
+                done = true
+
             if how?.wrap?
                 if how.strip?
                     # Strip out any tags/wrapping from conflicting modes.

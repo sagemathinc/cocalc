@@ -44,6 +44,8 @@ def install_webapp():
         cmd("cd %s; npm install"%path)
     # react static step must come *before* webpack step
     cmd("update_react_static")
+    # update term.js
+    cmd("cd webapp-lib/term; ./compile")
     print("Building production webpack -- grab a coffee, this will take about 5 minutes")
     cmd("npm run webpack-production")
 

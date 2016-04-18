@@ -81,6 +81,7 @@ codemirror_associations =
     cljs   : 'text/x-clojure'
     cljc   : 'text/x-clojure'
     edn    : 'text/x-clojure'
+    elm    : 'text/x-elm'
     cjsx   : 'text/cjsx'
     coffee : 'coffeescript'
     css    : 'css'
@@ -1580,8 +1581,8 @@ class CodeMirrorEditor extends FileEditor
                 indentWithTabs          : not opts.spaces_instead_of_tabs
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
-                cursorScrollMargin      : 7
-                viewportMargin          : 100
+                cursorScrollMargin      : 6
+                viewportMargin          : 125
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}

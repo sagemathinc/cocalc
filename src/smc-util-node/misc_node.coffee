@@ -144,6 +144,11 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
     socket.on('data', socket._listen_for_mesg)
 
     socket.write_mesg = (type, data, cb) ->  # cb(err)
+        if not data?
+            # uncomment this to get a traceback to see what might be causing this...
+            #throw Error("write_mesg(type='#{type}': data must be defined")
+            cb?("write_mesg(type='#{type}': data must be defined")
+            return
         send = (s) ->
             buf = new Buffer(4)
             # This line was 4 hours of work.  It is absolutely
@@ -173,7 +178,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                 assert(data.blob?, "data object *must* have a blob attribute")
                 send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
             else
-                cb("unknown message type '#{type}'")
+                cb?("unknown message type '#{type}'")
 
     # Wait until we receive exactly *one* message of the given type
     # with the given id, then call the callback with that message.
@@ -859,11 +864,11 @@ run_jQuery = (cb) ->
     else
         jquery_file = fs.readFileSync("../#{exports.WEBAPP_LIB}/jquery/jquery.min.js", "utf-8")
         require("jsdom").env
-          html: "<html></html>",
-          src: [jquery_file],
-          done: (err, window) ->
-            _jQuery_cached = window.$
-            cb(_jQuery_cached)
+            html: "<html></html>",
+            src: [jquery_file],
+            done: (err, window) ->
+                _jQuery_cached = window.$
+                cb(_jQuery_cached)
 
 
 exports.sanitize_html = (html, cb) ->
@@ -871,7 +876,7 @@ exports.sanitize_html = (html, cb) ->
         cb($("<div>").html(html).html())
 
 # common configuration for webpack and hub
-# inside the project, there is no salvus_home set, and the code below can't work anyways?
+# inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?
 if exports.SALVUS_HOME?
     # this is the directory where webpack builds everything
     exports.OUTPUT_DIR = "static"
@@ -894,33 +899,16 @@ if exports.SALVUS_HOME?
     # this is where the webapp and the jupyter notebook should get mathjax from
     exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
 
-# *** SMC_VERSION from smc-version.js file
+# smc webapp version. when compiling with webpack, the smc-version file is read
+# and its version compiled into the resulting js webpack
+# the assets.js file does contain machine readable meta-data about the webpack
 
-version_file = SMC_ROOT + '/smc-util/smc-version.js'
+webapp_version_file = path.join(SMC_ROOT, exports.OUTPUT_DIR,  'assets.json')
 
-process_smc_version_file = (data, cb) ->
-    s = data.toString()
-    i = s.indexOf('=')
-    j = s.indexOf('\n')
-    if i != -1 and j != -1
-        ver = parseInt(s.slice(i+1,j))
-        cb?(undefined, ver)
-    else
-        err = "parsing error (fix the smc-version.js file!)"
-        cb?(err)
-    if not cb?
-        return [err, ver]
-
-# reads and extracts the SMC_VERSION, which is written to the smc-version.js file
-exports.get_smc_version = (cb) ->
-    fs.readFile version_file, (err, data) ->
+exports.get_smc_webapp_version = (cb) ->
+    fs.readFile webapp_version_file, (err, data) ->
         if err
-            winston.warning("get_smc_version: WARNING: Error reading -- #{version_file} -- #{err}")
+            winston.warn("get_smc_webapp_version: error reading -- #{webapp_version_file} -- #{err}")
             cb(err)
         else
-            process_smc_version_file(data, cb)
-
-# sync version of the above -- I have no idea how to use cb for global variables in webpack.config
-exports.get_smc_version_sync = ->
-    data = fs.readFileSync(version_file)
-    return process_smc_version_file(data)
+            cb(data)

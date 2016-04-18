@@ -76,7 +76,7 @@ class VM
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
         @_vm = @gcloud._gce.zone(@zone).vm(@name)
 
-    dbg: (f) -> @gcloud.dbg("vm.#{f}")
+    dbg: (f) -> @gcloud.dbg("vm(name='#{@name}').#{f}")
 
     show: =>
         @get_metadata(cb:console.log)
@@ -411,13 +411,18 @@ class VM
         meta.source = meta.source.slice(0,i+7) + zone + meta.source.slice(j)
         return
 
+    _mutate_disk_name: (meta, name) =>
+        i = meta.source.lastIndexOf('/')
+        meta.source = meta.source.slice(0,i+1) + name
+        return
+
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
     # is to exit this process.
     keep_running: (opts={}) =>
         opts = defaults opts,
             interval_s : 30
-        dbg = @dbg("keep_running(name='#{@name}', interval_s=#{opts.interval_s})")
+        dbg = @dbg("keep_running(interval_s=#{opts.interval_s})")
         dbg()
         check = () =>
             dbg('check')
@@ -429,6 +434,97 @@ class VM
                             cb : (err) =>
                                 dbg("result of start -- #{err}")
         setInterval(check, opts.interval_s*1000)
+
+    # Make a copy of this VM, but with a different name.
+    # external static ip addresses won't be copied, nor will mounted disks whose name doesn't start with
+    # the name of the source machine.
+    copy: (opts) =>
+        opts = defaults opts,
+            name         : required     # new machine name
+            preemptible  : undefined    # whether or not copied VM is preemptible
+            type         : undefined    # the new VM machine's type
+            zone         : undefined    # which zone to copy VM to
+            boot_size_GB : undefined    # size in GB of boot disk of copy (can make larger)
+            start        : true         # leave machine started after copy, even if it was off
+            cb           : undefined
+        dbg = @dbg("copy(name='#{opts.name}')")
+        dbg(misc.to_json(misc.copy_without(opts, ['cb'])))
+        if opts.name == @name
+            opts.cb("must specify a different name")
+            return
+
+        # These options will get passed into create_vm below:
+        create_opts =
+            name : opts.name
+
+        # This gets set to the metadata for the machine below:
+        data = undefined
+
+        async.series([
+            (cb) =>
+                dbg('get vm metadata')
+                @get_metadata
+                    cb : (err, x) =>
+                        data = x; cb(err)
+            (cb) =>
+                create_opts.preemptible = opts.preemptible ? data.scheduling.preemptible
+                create_opts.type        = opts.type        ? filename(data.machineType)
+                create_opts.zone        = opts.zone        ? filename(data.zone)
+                create_opts.storage     = opts.storage     ? @_storage(data)
+                create_opts.tags        = data.tags?.items ? []
+
+                # If there is an external interface, we make the copy have one, though
+                # it will NOT be a static one
+                create_opts.external    = data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP?
+
+                # check name constraint on disks
+                for disk in data.disks
+                    if disk.mode == 'READ_WRITE' and not misc.startswith(filename(disk.source), @name)
+                        cb("all READ_WRITE disks must start with '#{@name}' but '#{filename(disk.source)}' does not")
+                        return
+
+                create_opts.disks = []
+                f = (disk, cb) =>
+                    if disk.mode != 'READ_WRITE'
+                        # make absolutely no change at all
+                        if create_opts.zone == filename(data.zone) # same zone
+                            create_opts.disks.push(disk)
+                        cb()
+                        return
+                    # read-write disk
+                    src_name = filename(disk.source)
+                    new_name = opts.name + src_name.slice(@name.length)
+                    dbg("copying a disk: '#{src_name}' --> '#{new_name}'")
+                    @gcloud.disk(zone:filename(data.zone), name:src_name).copy
+                        name     : new_name
+                        zone     : create_opts.zone
+                        size_GB  : if disk.boot and opts.boot_size_GB then opts.boot_size_GB
+                        cb       : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                if create_opts.zone != filename(data.zone)
+                                    @_mutate_disk_zone(disk, create_opts.zone)
+                                @_mutate_disk_name(disk, new_name)
+                                create_opts.disks.push(disk)
+                                cb()
+
+                async.map(data.disks, f, cb)
+            (cb) =>
+                dbg("Create copy machine with options #{misc.to_json(create_opts)}")
+                create_opts.cb = cb
+                @gcloud.create_vm(create_opts)
+            (cb) =>
+                if data.status == 'RUNNING' or opts.start
+                    cb(); return
+                dbg("Stop machine")
+                @gcloud.vm(name: opts.name).stop(cb:cb)
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else
+                opts.cb?(undefined, @gcloud.vm(name: opts.name))
+        )
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
@@ -468,8 +564,8 @@ class Disk
             type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
             zone      : undefined
             cb        : required
-        dbg = @dbg("reconfigure(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
-        dbg()
+        dbg = @dbg("change()")
+        dbg(misc.to_json(misc.copy_without(opts, ['cb'])))
         if not opts.size_GB? and not opts.type? and not opts.zone?
             dbg("nothing to do")
             opts.cb()
@@ -1116,6 +1212,7 @@ class VM_Manager
     ###
     require 'c'; vms()
     vms.request(name:'compute8-us', status:'RUNNING', preemtible:true, cb:done())
+    vms.request(name:'compute8-us',status:'TERMINATED',cb:done())
     ###
     request: (opts) =>
         opts = defaults opts,
@@ -1314,6 +1411,8 @@ class VM_Manager
             return
         if @_rule3(data)
             return
+        if @_rule4(data)
+            return
 
     _rule0: (data) =>
         if data.gce_status == 'TERMINATED' and data.requested_status == 'RUNNING'
@@ -1345,8 +1444,16 @@ class VM_Manager
         if data.gce_status == 'RUNNING' and data.requested_status == 'RUNNING' and \
                   data.requested_preemptible and not data.gce_preemptible and data.gce_created <= misc.minutes_ago(@_switch_back_to_preemptible_m)
             dbg = @_dbg("rule3('#{data.name}')")
-            dbg("switch running instance from non-pre-empt to preempt")
+            dbg("switch running instance from non-preempt to preempt")
             @_action(data, 'preemptible', 'rule3')
+            return true
+
+    _rule4: (data) =>
+        if data.gce_status == 'RUNNING' and data.requested_status == 'RUNNING' and \
+                  not data.requested_preemptible and data.gce_preemptible
+            dbg = @_dbg("rule4('#{data.name}')")
+            dbg("switch running instance from preempt to non-preempt")
+            @_action(data, 'non-preemptible', 'rule4')
             return true
 
     _action: (data, action, type, cb) =>

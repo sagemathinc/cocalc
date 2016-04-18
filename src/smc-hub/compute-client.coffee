@@ -188,13 +188,12 @@ class ComputeServerClient
         return (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
 
     ###
-    # get info about server and add to database
+    Get info about server and add to database
 
-        require('smc-hub/compute-client').compute_server(db_hosts:['localhost'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
-
-        require('smc-hub/compute-client').compute_server(db_hosts:['db0'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-us', cb:(e)->console.log("done",e)))
-
-         require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);s.add_server(host:os.hostname(), cb:(e)->console.log("done",e)))
+        require 'c'; compute_server()
+        s.add_server(host:'compute8-us', cb:done())
+        s.add_server(host:'compute8-us', cb:done(), experimental:true)
+        s.add_server(host:os.hostname(), cb:done())
     ###
     add_server: (opts) =>
         opts = defaults opts,

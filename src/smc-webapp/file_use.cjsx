@@ -271,11 +271,25 @@ class FileUseStore extends Store
             y.search = @_search(y)
             @_process_users(y)
             v.push(y)
-        v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
+        w0 = []
+        w1 = []
+        w2 = []
+        for a in v
+            if a.notify and a.is_unread
+                w0.push(a)
+            else if a.show_chat and a.is_unread
+                w1.push(a)
+            else
+                w2.push(a)
+        c = (a,b) -> misc.cmp(b.last_edited, a.last_edited)
+        w0.sort(c)
+        w1.sort(c)
+        w2.sort(c)
+        v = w0.concat(w1.concat(w2))
         @_cache =
-            sorted_file_use_list : v
+            sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
-            notify_count         : (x for x in v when x.notify).length
+            notify_count                   : (x for x in v when x.notify).length
         return v
 
     # See above for the definition of unread and unseen.
