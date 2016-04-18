@@ -146,10 +146,9 @@ class JupyterWrapper extends EventEmitter
                 return
             innerHTML = @frame?.document?.body?.innerHTML
 
-            #if @frame.$?
-            #    @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-
-            if (new Date() - start >= max_time_ms) or (innerHTML? and (innerHTML.indexOf('<h1>502 Bad Gateway</h1>') != -1 or innerHTML.indexOf('<span class="cf-error-code">502</span>') != -1))
+            # this is DANGEROUS -- a notebook might contain this same string and we would thus never be able to load it.  
+            # I *need* a better way to detect errors when loading.
+            if (new Date() - start >= max_time_ms) or (innerHTML? and (innerHTML.indexOf('<h1>502 Bad Gateway</h1>') != -1 or innerHTML.indexOf('cf-error-details') != -1))
                 @state = 'error'
                 @error = 'timeout loading'
                 cb(@error)
