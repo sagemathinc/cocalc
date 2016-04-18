@@ -138,7 +138,7 @@ class JupyterWrapper extends EventEmitter
         # wait until connected -- iT is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
-        max_time_ms = 20*1000 # try for up to 20s
+        max_time_ms = 10*1000 # try for up to this long
         f = () =>
             @frame ?= window.frames[@iframe_uuid]
             if not @frame
@@ -149,7 +149,7 @@ class JupyterWrapper extends EventEmitter
             #if @frame.$?
             #    @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
-            if (new Date() - start >= max_time_ms) or (innerHTML? and innerHTML.indexOf('<h1>504 Gateway Time-out</h1>') != -1)
+            if (new Date() - start >= max_time_ms) or (innerHTML? and (innerHTML.indexOf('<h1>502 Bad Gateway</h1>') != -1 or innerHTML.indexOf('<span class="cf-error-code">502</span>') != -1)
                 @state = 'error'
                 @error = 'timeout loading'
                 cb(@error)
