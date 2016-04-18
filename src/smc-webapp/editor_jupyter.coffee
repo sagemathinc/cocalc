@@ -149,7 +149,7 @@ class JupyterWrapper extends EventEmitter
             #if @frame.$?
             #    @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
-            if (new Date() - start >= max_time_ms) or (innerHTML? and (innerHTML.indexOf('<h1>502 Bad Gateway</h1>') != -1 or innerHTML.indexOf('<span class="cf-error-code">502</span>') != -1)
+            if (new Date() - start >= max_time_ms) or (innerHTML? and (innerHTML.indexOf('<h1>502 Bad Gateway</h1>') != -1 or innerHTML.indexOf('<span class="cf-error-code">502</span>') != -1))
                 @state = 'error'
                 @error = 'timeout loading'
                 cb(@error)
