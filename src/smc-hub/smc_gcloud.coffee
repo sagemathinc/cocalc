@@ -267,6 +267,7 @@ class VM
             zone         : undefined    # which zone VM is located in
             storage      : undefined    # string; set to 'read_write' to provide access to google cloud storage; '' for no access
             boot_size_GB : undefined    # size in GB of boot disk
+            boot_type    : undefined    # type of boot disk: 'pd-standard' or 'pd-ssd'; if not given, don't change
             start        : undefined    # leave machine started after change, even if it was off
             cb           : undefined
         dbg = @dbg("change(#{misc.to_json(misc.map_without_undefined(misc.copy_with(opts, ['cb'])))})")
@@ -275,6 +276,7 @@ class VM
         changes = {}
         no_change = false
         external = undefined
+        boot_disk_name = undefined
         async.series([
             (cb) =>
                 dbg('get vm metadata to see what needs to be changed')
@@ -311,22 +313,25 @@ class VM
                     changes.zone = opts.zone
                 if opts.storage? and @_storage(data) != opts.storage
                     changes.storage = opts.storage
-                if not opts.boot_size_GB?
+                if not opts.boot_size_GB? and not opts.boot_type?
                     cb(); return
                 boot_disk = undefined
                 for x in data.disks
                     if x.boot
-                        boot_disk = @gcloud.disk(name: filename(x.source))
+                        boot_disk_name = filename(x.source)
+                        boot_disk = @gcloud.disk(name: boot_disk_name)
                         break
                 if not boot_disk?
                     cb(); return  # is this possible
-                boot_disk.get_size_GB
-                    cb : (err, size_GB) =>
+                boot_disk.get_metadata
+                    cb : (err, data) =>
                         if err
                             cb(err)
                         else
-                            if size_GB != opts.boot_size_GB
-                                changes.size_GB = opts.boot_size_GB
+                            if opts.boot_size_GB? and parseInt(data.sizeGb) != opts.boot_size_GB
+                                changes.boot_size_GB = opts.boot_size_GB
+                            if opts.boot_type?    and filename(data.type) != opts.boot_type
+                                changes.boot_type    = opts.boot_type
                             cb()
             (cb) =>
                 dbg("determined changes=#{misc.to_json(changes)}")
@@ -351,7 +356,7 @@ class VM
                     cb(); return
                 if not changes.zone
                     cb(); return
-                dbg("move disks to new zone")
+                dbg("move non-boot disks to new zone")
                 f = (disk, cb) =>
                     dbg("moving disk '#{disk}'")
                     d = @gcloud.disk(name:disk, zone:@zone)
@@ -364,7 +369,19 @@ class VM
                             d.delete
                                 cb : cb
                     ], cb)
-                async.map((filename(x.source) for x in data.disks), f, cb)
+                async.map((filename(x.source) for x in data.disks when not x.boot), f, cb)
+            (cb) =>
+                if no_change
+                    cb(); return
+                if boot_disk_name? and (changes.boot_size_GB? or changes.boot_type? or changes.zone?)
+                    dbg("change the size, type, location of the boot disk")
+                    @gcloud.disk(name:boot_disk_name, zone:changes.zone).change
+                        size_GB : changes.boot_size_GB
+                        type    : changes.boot_type
+                        zone    : changes.zone
+                        cb      : cb
+                else
+                    cb()
             (cb) =>
                 if no_change
                     cb(); return

@@ -125,7 +125,7 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, @server_url, @filename, @read_only, @project_id, cb) ->
+    constructor: (@element, @server_url, @filename, @read_only, @project_id, timeout, cb) ->
         @blobs = {}
         @blobs_pending = {}
         @state = 'loading'
@@ -138,7 +138,7 @@ class JupyterWrapper extends EventEmitter
         # wait until connected -- iT is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
-        max_time_ms = 20*1000 # try for up to 20s
+        max_time_ms = timeout*1000 # try for up to this long
         f = () =>
             @frame ?= window.frames[@iframe_uuid]
             if not @frame
@@ -146,12 +146,10 @@ class JupyterWrapper extends EventEmitter
                 return
             innerHTML = @frame?.document?.body?.innerHTML
 
-            #if @frame.$?
-            #    @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-
-            if (new Date() - start >= max_time_ms) or (innerHTML? and innerHTML.indexOf('<h1>504 Gateway Time-out</h1>') != -1)
+            if new Date() - start >= max_time_ms
                 @state = 'error'
                 @error = 'timeout loading'
+                console.log 'Jupyter -- timeout loading'
                 cb(@error)
             else
                 # NOTE: we can't use '@nb.events.one "notebook_loaded.Notebook"', since we can't attach
@@ -183,8 +181,8 @@ class JupyterWrapper extends EventEmitter
                     @emit('ready')
                     cb()
                 else
-                    console.log 'not yet connected, so try again shortly'
-                    setTimeout(f, 250)
+                    console.log 'Jupyter -- not yet fully connected'
+                    setTimeout(f, 1000)
         f()
 
     dbg: (f) =>
@@ -831,6 +829,8 @@ class JupyterNotebook extends EventEmitter
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
+        @_init_dom_timeout ?= 3
+        @_init_dom_timeout = Math.min(1.5*@_init_dom_timeout, 20)
         @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
             @notebook.css('opacity',1)
@@ -842,7 +842,7 @@ class JupyterNotebook extends EventEmitter
                     # DOM gets extra info about @read_only status of file from jupyter notebook server.
                     @read_only = true
                 cb()
-        @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, done)
+        @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, @_init_dom_timeout, done)
 
     init_buttons: () =>
         # info button
