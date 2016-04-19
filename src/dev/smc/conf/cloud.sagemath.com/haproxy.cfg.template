@@ -40,9 +40,10 @@ backend hub
 
 backend proxy
     balance leastconn
-    cookie SMCSERVERID2 insert nocache
+    cookie SMCSERVERID3 insert nocache
     option httpclose
-    timeout server 7s
+    timeout server 3s
+    retries 10
 
     #server proxy0a web0:5001 cookie server:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
     #server proxy0b web0:5003 cookie server:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
