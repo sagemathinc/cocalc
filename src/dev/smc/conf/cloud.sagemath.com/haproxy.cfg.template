@@ -30,7 +30,7 @@ backend static
 
 backend hub
     balance leastconn
-    cookie SMCSERVERID3 insert nocache
+    cookie SMCSERVERID3 insert nocache  # this specific cookie is also referenced in client_browser.coffee -- and also below for the proxy (more efficient to have same process do both)
     option httpclose
     timeout server 7s
     option httpchk /alive
@@ -40,7 +40,7 @@ backend hub
 
 backend proxy
     balance leastconn
-    cookie SMCSERVERID3 insert nocache
+    cookie SMCSERVERID3 insert nocache      # this specific cookie is also referenced in client_browser.coffee!
     option httpclose
     timeout server 3s
     retries 10
