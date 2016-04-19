@@ -344,18 +344,21 @@ NoFiles = rclass
 
     displayName : 'ProjectFiles-NoFiles'
 
+    getDefaultProps : ->
+        file_search : ''
+
     # Go to the new file tab if there is no file search
     handle_click : ->
-        if not @props.file_search?.length > 0
+        if @props.file_search.length == 0
             @props.actions.set_focused_page('project-new-file')
-        else if @props.file_search?[@props.file_search.length - 1] == '/'
+        else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
             @props.create_file()
 
     # Returns the full file_search text in addition to the default extension if applicable
     full_path_text : ->
-        if @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
+        if @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
           ext = "sagews"
         if ext and @props.file_search.slice(-1) isnt '/'
             "#{@props.file_search}.#{ext}"
@@ -364,7 +367,7 @@ NoFiles = rclass
 
     # Text for the large create button
     button_text : ->
-        if not @props.file_search?.length > 0
+        if @props.file_search.length == 0
             "Create or upload files..."
         else
             "Create #{@full_path_text()}"
@@ -378,13 +381,13 @@ NoFiles = rclass
 
     # TODO: Make better help text
     render_help_alert : ->
-        last_folder_index = @props.file_search?.lastIndexOf('/')
-        if @props.file_search? and @props.file_search.indexOf('\\') != -1
+        last_folder_index = @props.file_search.lastIndexOf('/')
+        if @props.file_search.indexOf('\\') != -1
             <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
                 Warning: \ is an illegal character
             </Alert>
         # Non-empty search and there is a file divisor ('/')
-        else if @props.file_search?.length > 0 and last_folder_index > 0
+        else if @props.file_search.length > 0 and last_folder_index > 0
             <Alert style={marginTop: '10px'} bsStyle='info'>
                 {@render_help_text(last_folder_index)}
             </Alert>
@@ -432,7 +435,7 @@ NoFiles = rclass
                 <hr/>
                 {@render_create_button() if not @props.public_view}
                 {@render_help_alert()}
-                {@render_file_type_selection() if @props.file_search?.length > 0}
+                {@render_file_type_selection() if @props.file_search.length > 0}
             </Col>
             <Col sm=2>
             </Col>
@@ -457,6 +460,9 @@ FileListing = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+
+    getDefaultProps : ->
+        file_search : ''
 
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -1373,7 +1379,7 @@ ProjectFilesSearch = rclass
         file_search : ''
 
     render_help_info : ->
-        if @props.file_search?.length > 0 and @props.files_displayed
+        if @props.file_search.length > 0 and @props.files_displayed
             firstFolderPosition = @props.file_search.indexOf('/')
             if @props.file_search == '/'
                 text = "Showing all folders in this directory"
@@ -1404,7 +1410,7 @@ ProjectFilesSearch = rclass
             else
                 @props.actions.open_file(path: new_path)
             @props.actions.set_file_search('')
-        else if not @props.files_displayed and @props.file_search?.length > 0
+        else if not @props.files_displayed and @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
                 @props.create_folder()
             else
@@ -1448,7 +1454,7 @@ ProjectFilesNew = rclass
         </MenuItem>
 
     on_menu_item_clicked : (ext) ->
-        if not @props.file_search?.length > 0
+        if @props.file_search.length == 0
             # Tell state to render an error in file search
             @props.actions.setState(file_creation_error : "You must enter file name above to create it")
         else
@@ -1456,9 +1462,9 @@ ProjectFilesNew = rclass
 
     # Go to new file tab if no file is specified
     on_create_button_clicked : ->
-        if not @props.file_search?.length > 0
+        if @props.file_search.length == 0
             @props.actions.set_focused_page('project-new-file')
-        else if @props.file_search?[@props.file_search.length - 1] == '/'
+        else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
             @props.create_file()
@@ -1511,6 +1517,7 @@ ProjectFiles = (name) -> rclass
 
     getDefaultProps : ->
         page_number : 0
+        file_search : ''
 
     previous_page : ->
         if @props.page_number > 0
@@ -1520,7 +1527,7 @@ ProjectFiles = (name) -> rclass
         @props.actions.setState(page_number : @props.page_number + 1)
 
     create_file : (ext) ->
-        if not ext? and @props.file_search?.lastIndexOf('.') <= @props.file_search?.lastIndexOf('/')
+        if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
             ext = "sagews"
         @props.actions.create_file
             name         : @props.file_search
