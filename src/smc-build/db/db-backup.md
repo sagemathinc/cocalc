@@ -7,12 +7,6 @@ Remarks about how I configured db-backup.
     sudo apt-get install dpkg-dev
     git clone ...
 
-## ZFS
-
-    apt-get install zfsutils-linux
-    zpool create data -f /dev/sdb
-    zfs set compression=lz4 data
-
 
 ## Install RethinkDB
 
@@ -29,38 +23,17 @@ Remarks about how I configured db-backup.
 
 ## Setup bup (and scripts)
 
-    sudo zfs create data/bup
-    sudo chown salvus. /data/bup
-    sudo apt-get install bup
-    sudo zfs set compression=off data/bup
-
-    salvus@db-backup:/data/bup$ more update
-    export BUP_DIR=/data/bup
-    bup init
-    bup index /data/rethinkdb
-    bup save /data/rethinkdb -n master
-    salvus@db-backup:/data/bup$ more push_to_gcloud
-    #!/usr/bin/env python
-    import os
-    os.chdir('/data/bup')
-
-    def cmd(s):
-        print s
-        if os.system(s):
-            raise RuntimeError
-
-    t = "gs://smc-db-backup/db-backup/bup-raw"
-
-    cmd("time gsutil -m rsync -r objects/ %s/objects/"%t)
-    # Upload everything else.  Here using -c is VERY important.
-    for x in os.listdir('.'):
-        if x != 'objects' and os.path.isdir(x):
-            cmd("time gsutil -m  rsync -c -r %s/ %s/%s/"%(x, t, x))
-
-    cmd("time gsutil -m  rsync -c ./ %s"%t)
+    mkdir data/bup
+    chown salvus. /data/bup
+    apt-get install bup
 
 ## Other
 
 Getting backfill status:
 
     db.r.db("rethinkdb").table("jobs").filter(type:'backfill', info:{destination_server:'backup'}).run((e,t)->global.t=t)
+
+Then check up:
+
+    db.r.db("rethinkdb").table("jobs").filter(type:'backfill', info:{destination_server:'backup'}).run((e,s)->global.s=s)
+    a = ([i,s[i].info.table, s[i].info.progress - t[i].info.progress, s[i].info.source_server] for i in [0...t.length] when s[i].info.progress != t[i].info.progress)
