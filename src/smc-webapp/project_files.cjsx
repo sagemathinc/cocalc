@@ -386,6 +386,10 @@ NoFiles = rclass
             <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
                 Warning: \ is an illegal character
             </Alert>
+        else if @props.file_search.indexOf('/') == 0
+            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: Names cannot begin with /
+            </Alert>
         # Non-empty search and there is a file divisor ('/')
         else if @props.file_search.length > 0 and last_folder_index > 0
             <Alert style={marginTop: '10px'} bsStyle='info'>
