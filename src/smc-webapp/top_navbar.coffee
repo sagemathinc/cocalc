@@ -394,6 +394,7 @@ last_reconnect_clicks = []
 
 $("a[href=#salvus-connection-reconnect]").click () ->
     salvus_client._fix_connection(true)
+    return false
 
 last_ping_time = ''
 
