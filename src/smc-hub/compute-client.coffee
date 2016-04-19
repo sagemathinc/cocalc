@@ -881,7 +881,7 @@ class ProjectClient extends EventEmitter
         # good way to "garbage collect" ProjectClient objects, due to the async complexity of
         # everything.
         db.synctable
-            idle_timeout_s : 60*5    # 5 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
+            idle_timeout_s : 60*12    # 12 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
             query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
