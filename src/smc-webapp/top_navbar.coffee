@@ -393,22 +393,7 @@ $(".salvus-connection-status").click () ->
 last_reconnect_clicks = []
 
 $("a[href=#salvus-connection-reconnect]").click () ->
-    now = new Date().getTime()
-    past = misc.minutes_ago(1)
-    # clear cookie, if trying more than 5 times in the last minute
-    c = last_reconnect_clicks
-    del_cookie = (c.length >= 5) and (c[c.length - 5] > past)
-    # limit number of reconnections to 1 per minute
-    if del_cookie or (c.length == 0) or (c[c.length - 1] < past)
-        console.log("salvus_client._fix_connection(delcookie=%s)", del_cookie)
-        salvus_client._fix_connection(del_cookie)
-        last_reconnect_clicks = []
-    last_reconnect_clicks.push(now)
-    # simulate a bounded stack
-    while last_reconnect_clicks.length > 10
-        last_reconnect_clicks.shift()
-    return false
-
+    salvus_client._fix_connection(true)
 
 last_ping_time = ''
 

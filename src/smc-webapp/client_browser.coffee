@@ -229,9 +229,8 @@ class Connection extends client.Connection
 
     _fix_connection: (delete_cookies) =>
         if delete_cookies
-            console.log("websocket -- deleting cookies")
-            document.cookie = 'SMCSERVERID2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            console.log("websocket -- deleting haproxy cookies")
+            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         console.log("websocket --_fix_connection... ")
         @_conn.end()
         @_conn.open()
