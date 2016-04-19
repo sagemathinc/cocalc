@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
+# Ensure that the environment is setup; in particular, SMC_DB_HOSTS is defined
+. $HOME/.smc-conf
 
+# This is what might go in crontab
 # 30 0 * * * /home/salvus/salvus/salvus/scripts/sync_stripe > /home/salvus/.sync_stripe.log 2>/home/salvus/.sync_stripe.err
- 
+
 cd $HOME/smc/src
 . smc-env
-hub --stripe_sync --database_nodes=db0,db1,db2,db3,db4,db5
+hub --stripe_sync --database_nodes=$SMC_DB_HOSTS
