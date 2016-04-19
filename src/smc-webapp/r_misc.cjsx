@@ -488,6 +488,7 @@ exports.SearchInput = rclass
     propTypes :
         placeholder     : rtypes.string
         default_value   : rtypes.string
+        value           : rtypes.string
         on_change       : rtypes.func    # called on_change(value) each time the search input changes
         on_submit       : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
         on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
@@ -499,6 +500,10 @@ exports.SearchInput = rclass
 
     getInitialState : ->
         value : @props.default_value
+
+    componentWillReceiveProps : (new_props) ->
+        if new_props.value?
+            @setState(value : new_props.value)
 
     componentDidMount : ->
         if @props.autoSelect
