@@ -25,7 +25,7 @@
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
-{FileTypeSelector} = require('./project_new')
+{FileTypeSelector}    = require('./project_new')
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -143,8 +143,8 @@ FileRow = rclass
         @props.bordered != next.border
 
     render_icon : ->
-        ext  = misc.filename_extension(@props.name)
-        name = file_associations[ext]?.icon ? 'file'
+        ext   = misc.filename_extension(@props.name)
+        name  = file_associations[ext]?.icon ? 'file'
         style =
             color         : if @props.mask then '#bbbbbb'
             verticalAlign : 'sub'
@@ -344,12 +344,12 @@ DirectoryRow = rclass
 
 NoFiles = rclass
     propTypes :
-        actions     : rtypes.object.isRequired
+        actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
-        public_view : rtypes.bool
-        file_search : rtypes.string
-        current_path: rtypes.string
+        public_view   : rtypes.bool
+        file_search   : rtypes.string
+        current_path  : rtypes.string
 
     displayName : 'ProjectFiles-NoFiles'
 
@@ -462,18 +462,18 @@ FileListing = rclass
     displayName : 'ProjectFiles-FileListing'
 
     propTypes :
-        listing       : rtypes.array.isRequired
-        file_map      : rtypes.object.isRequired
-        file_search   : rtypes.string
+        listing             : rtypes.array.isRequired
+        file_map            : rtypes.object.isRequired
+        file_search         : rtypes.string
+        checked_files       : rtypes.object
+        current_path        : rtypes.string
+        page_number         : rtypes.number
+        page_size           : rtypes.number
+        public_view         : rtypes.bool
+        actions             : rtypes.object.isRequired
+        create_folder       : rtypes.func.isRequired
+        create_file         : rtypes.func.isRequired
         selected_file_index : rtypes.number
-        checked_files : rtypes.object
-        current_path  : rtypes.string
-        page_number   : rtypes.number
-        page_size     : rtypes.number
-        public_view   : rtypes.bool
-        actions       : rtypes.object.isRequired
-        create_folder : rtypes.func.isRequired
-        create_file   : rtypes.func.isRequired
 
     getDefaultProps : ->
         file_search : ''
@@ -1468,9 +1468,9 @@ ProjectFilesNew = rclass
     displayName : 'ProjectFiles-ProjectFilesNew'
 
     propTypes :
-        file_search  : rtypes.string.isRequired
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
+        file_search   : rtypes.string.isRequired
+        current_path  : rtypes.string
+        actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
 
@@ -1534,15 +1534,15 @@ ProjectFiles = (name) -> rclass
         account :
             other_settings : rtypes.immutable
         "#{name}" :
-            current_path       : rtypes.string
-            activity           : rtypes.object
-            page_number        : rtypes.number
-            file_action        : rtypes.string
-            file_search        : rtypes.string
-            show_hidden        : rtypes.bool
-            sort_by_time       : rtypes.bool
-            error              : rtypes.string
-            checked_files      : rtypes.immutable
+            current_path        : rtypes.string
+            activity            : rtypes.object
+            page_number         : rtypes.number
+            file_action         : rtypes.string
+            file_search         : rtypes.string
+            show_hidden         : rtypes.bool
+            sort_by_time        : rtypes.bool
+            error               : rtypes.string
+            checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
 
@@ -1701,18 +1701,18 @@ ProjectFiles = (name) -> rclass
             </div>
         else if listing?
             <FileListing
-                listing       = {listing}
-                selected_file_index = {@props.selected_file_index}
-                page_size     = {@file_listing_page_size()}
-                page_number   = {@props.page_number}
-                file_map      = {file_map}
-                file_search   = {@props.file_search}
-                checked_files = {@props.checked_files}
-                current_path  = {@props.current_path}
-                public_view   = {public_view}
-                actions       = {@props.actions}
-                create_file   = {@create_file}
-                create_folder = {@create_folder} />
+                listing             = {listing}
+                page_size           = {@file_listing_page_size()}
+                page_number         = {@props.page_number}
+                file_map            = {file_map}
+                file_search         = {@props.file_search}
+                checked_files       = {@props.checked_files}
+                current_path        = {@props.current_path}
+                public_view         = {public_view}
+                actions             = {@props.actions}
+                create_file         = {@create_file}
+                create_folder       = {@create_folder}
+                selected_file_index = {@props.selected_file_index} />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
@@ -1771,16 +1771,16 @@ ProjectFiles = (name) -> rclass
             <Row>
                 <Col sm=3>
                     <ProjectFilesSearch
-                        key                = {@props.current_path}
-                        file_search        = {@props.file_search}
-                        actions            = {@props.actions}
-                        current_path       = {@props.current_path}
-                        selected_file      = {visible_listing?[@props.selected_file_index]}
-                        selected_file_index= {@props.selected_file_index}
+                        key                 = {@props.current_path}
+                        file_search         = {@props.file_search}
+                        actions             = {@props.actions}
+                        current_path        = {@props.current_path}
+                        selected_file       = {visible_listing?[@props.selected_file_index]}
+                        selected_file_index = {@props.selected_file_index}
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}
-                        create_file        = {@create_file}
-                        create_folder      = {@create_folder} />
+                        create_file         = {@create_file}
+                        create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
                 <Col sm={if public_view then 6 else 4}>
