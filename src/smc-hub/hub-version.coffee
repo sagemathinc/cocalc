@@ -46,9 +46,16 @@ class Version extends EventEmitter
         #                     module has changed.
         # check_age_m      -- Don't tell browser clients to upgrade until this
         #                     many minutes after version file updated.
-        for k, v of sanity_check(require('smc-util/smc-version'))
-            @[k] = v
+        # initialization: short-circuit the @update check
+        @set_smc_version(@load_smc_version())
         @_check = setInterval(@update, @check_interval_s*1000)
+
+    load_smc_version: =>
+        return sanity_check(require_reload('smc-util/smc-version'))
+
+    set_smc_version: (smc_version) =>
+        for k, v of smc_version
+            @[k] = v
 
     close: =>
         if @_check?
@@ -56,21 +63,20 @@ class Version extends EventEmitter
             delete @_check
 
     update: =>
-        smc_version = require_reload('smc-util/smc-version')
+        smc_version = @load_smc_version()
         if not smc_version.version
             # not using versions
             return
         ver_age_s = (new Date() - smc_version.version * 1000)/1000
-        #winston.debug("ver_age_s=#{ver_age_s}, SMC_VERSION_CHECK_AGE_M*60=#{SMC_VERSION_CHECK_AGE_M*60}")
+        # winston.debug("ver_age_s=#{ver_age_s}, CHECK_AGE_M*60=#{CHECK_AGE_M*60}")
         if ver_age_s <= @check_age_m * 60
             # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
             return
-        if not underscore.isEqual(@version, smc_version)
-            ver = sanity_check(require('smc-util/smc-version'))
-            for k, v of ver
-                @[k] = v
+        if not underscore.isEqual(@version, smc_version.version)
+            # we have a new version: updating the instance fields and emitting it to listeners
+            @set_smc_version(smc_version)
             winston.debug("update_smc_version: update -- #{misc.to_json(smc_version)}")
-            @emit('change', ver)
+            @emit('change', smc_version)
 
 # export a single version object
 module.exports = new Version()

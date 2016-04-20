@@ -89,6 +89,7 @@ REGISTER_INTERVAL_S = 45   # every 45 seconds
 smc_version = {}
 init_smc_version = () ->
     smc_version = require('./hub-version')
+    # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     smc_version.on 'change', (version) ->
         winston.debug("smc_version changed -- sending updates to clients")
         for id, c of clients
