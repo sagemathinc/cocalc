@@ -15,6 +15,6 @@ require("datetimepicker/bootstrap-datetimepicker.min.css")
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')
 
-# info for next step in startup sequence
+# info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?
     window.smcLoadStatus("Loading JavaScript libraries ...")

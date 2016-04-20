@@ -2,11 +2,9 @@
 # (e.g. minified jquery isn't properly being detected, etc.)
 
 # this loads the "traditional" js files via webpack.config.coffee
-# it doesn't minify them (so you have to!) – but webpack in production mode optimizes everything
-# evals them right into the global context
+# it doesn't minify them – but webpack in production mode optimizes everything as a whole
+# and evals them right into the global context
 # TODO switch to npm packaging
-
-# loaded from ./webapp-lib
 
 require("script!primus/primus-engine.min.js")
 
@@ -40,7 +38,7 @@ require("script!bootstrap-3.3.0/js/bootstrap.min.js")
 # Bootbox: usable dialogs for bootstrap
 require("script!bootbox/bootbox.min.js")
 
-# Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch 
+# Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
 require("script!bootstrap-switch/bootstrap-switch.min.js")
 
 # Bootstrap Colorpicker Plugin
@@ -87,5 +85,5 @@ require("react-widgets/lib/DateTimePicker")
 require("md5")
 require("./smc-webapp/codemirror/codemirror.coffee")
 
-# after "vendors", the real deal starts
+# after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...")
