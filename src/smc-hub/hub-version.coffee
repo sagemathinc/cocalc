@@ -18,11 +18,31 @@ CHECK_INTERVAL_S = 10
 CHECK_AGE_M = 6
 #CHECK_AGE_M = 0
 
-{EventEmitter} = require('events')
-winston        = require('winston')
-require_reload = require('require-reload')(require)  # used to reload the smc-version file properly
-underscore     = require('underscore')
-misc           = require('smc-util/misc')
+{EventEmitter}  = require('events')
+path            = require('path')
+fs              = require('fs')
+winston         = require('winston')
+require_reload  = require('require-reload')(require)  # used to reload the smc-version file properly
+underscore      = require('underscore')
+misc            = require('smc-util/misc')
+misc_node       = require('smc-util-node/misc_node')
+
+# smc webapp version: when compiling with webpack, the smc-version file is read by webpack.config
+# and its `version` compiled into the resulting javascript and also stored in the assets.js file.
+# In the `metadata` entry, it does contain the version, build date, build timestamp, and git revision.
+# Here, we are only interested in the `version`, to compare it with the version of smc-version.
+
+get_smc_webapp_version = ->
+    webapp_version_file = path.join(misc_node.SMC_ROOT, misc_node.OUTPUT_DIR, 'assets.json')
+    try
+        data = JSON.parse(fs.readFileSync(webapp_version_file))
+        webapp_ver = data.metadata?.version ? 0
+        # winston.debug("get_smc_webapp_version: #{webapp_ver}")
+        return webapp_ver
+    catch err
+        winston.warn("get_smc_webapp_version: error reading -- #{webapp_version_file} -- #{err}")
+        return 0
+
 
 # Do a sanity check on the ver object to make sure it doesn't make it impossible
 # for clients to update.  (I'm just imaging future me doing some stupid editing of
@@ -32,8 +52,12 @@ sanity_check = (ver) ->
     ver.version             ?= 0
     ver.min_browser_version ?= 0
     ver.min_project_version ?= 0
-    # The min version shouldn't be bigger than the actual version (which is the
-    # newest the client can update to).
+    ver.webapp_version      ?= 0
+    # the browser can only update to the latest available code
+    if ver.webapp_version < ver.min_browser_version
+        ver.min_browser_version = ver.webapp_version
+    # The min version shouldn't be bigger than the actual version
+    # (which is the newest the client can update to).
     if ver.version < ver.min_browser_version
         ver.min_browser_version = ver.version
     if ver.version < ver.min_project_version
@@ -51,7 +75,9 @@ class Version extends EventEmitter
         @_check = setInterval(@update, @check_interval_s*1000)
 
     load_smc_version: =>
-        return sanity_check(require_reload('smc-util/smc-version'))
+        ver                = require_reload('smc-util/smc-version')
+        ver.webapp_version = get_smc_webapp_version()
+        return sanity_check(ver)
 
     set_smc_version: (smc_version) =>
         for k, v of smc_version

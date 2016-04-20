@@ -898,17 +898,3 @@ if exports.SALVUS_HOME?
     exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
     # this is where the webapp and the jupyter notebook should get mathjax from
     exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
-
-# smc webapp version. when compiling with webpack, the smc-version file is read
-# and its version compiled into the resulting js webpack
-# the assets.js file does contain machine readable meta-data about the webpack
-
-webapp_version_file = path.join(SMC_ROOT, exports.OUTPUT_DIR,  'assets.json')
-
-exports.get_smc_webapp_version = (cb) ->
-    fs.readFile webapp_version_file, (err, data) ->
-        if err
-            winston.warn("get_smc_webapp_version: error reading -- #{webapp_version_file} -- #{err}")
-            cb(err)
-        else
-            cb(data)
