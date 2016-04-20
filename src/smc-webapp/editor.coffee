@@ -400,6 +400,8 @@ define_codemirror_sagews_mode = () ->
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
     ###
+    # ATTN: if that's ever going to be re-activated again,
+    # this needs to be require("script!...") in the spirit of webpack
     $.get '/static/codemirror-extra/data/sage-completions.txt', (data) ->
         s = data.split('\n')
         sagews_hint = (editor) ->

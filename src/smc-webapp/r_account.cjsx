@@ -1244,8 +1244,10 @@ password_score = (password) ->
             return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
     else
         zxcvbn = 'loading'
-        $.getScript '/static/zxcvbn/zxcvbn.js', () =>
-            zxcvbn = window.zxcvbn
+        require.ensure [], =>
+            zxcvbn = require("script!zxcvbn/zxcvbn.js")
+            # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
+            #    zxcvbn = window.zxcvbn
     return
 
 

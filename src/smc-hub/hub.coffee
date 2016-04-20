@@ -2195,7 +2195,7 @@ path_activity = (opts) ->
 # Create the Primus realtime socket server
 ##############################
 primus_server = undefined
-init_<_server = (http_server) ->
+init_primus_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =

@@ -54,7 +54,7 @@ exports.init_express_http_server = (opts) ->
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
     webpackHeaderControl = (res, path) ->
-        if not dev  # ... unless in dev mode
+        if not opts.dev  # ... unless in dev mode
             timeout = ms('100 days') # more than a year would be invalid
             res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
             res.setHeader("Expires", new Date(Date.now() + timeout).toUTCString());
