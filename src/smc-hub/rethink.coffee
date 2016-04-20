@@ -4601,7 +4601,7 @@ synctable_changefeed_count = 0
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, @_idle_timeout_s, cb) ->
-        @_id = misc.uuid().slice(0,8) # purely to make logging easier
+        @_id = misc.uuid().slice(0,8)    # purely to make logging easier
         @_table = query_table(@_query)   # undefined if can't determine
         dbg = @_dbg('constructor')
         dbg("query=#{@_query}")
@@ -4619,13 +4619,15 @@ class SyncTable extends EventEmitter
         @_idle_timeout_interval = setInterval(@_disconnect_if_idle, 15000)
 
     _disconnect_if_idle: =>
-        if new Date() - @_last_activity > 1000*@_idle_timeout_s
-            @close(true) # true = keep listeners
+        if not @_closed and (new Date() - @_last_activity > 1000*@_idle_timeout_s)
+            @_dbg("_disconnect_if_idle")('disconnecting...')
+            @close(true) # true = keep event listeners
 
     _reconnect: (cb) =>
         misc.retry_until_success
             start_delay : 3000
-            max_time    : 1000*60*30   # give up after 30m
+            max_time    : 1000*60*60   # by default, give up attempting to reconnect after 1 hour
+            max_delay   : 30000
             f           : @_init_db
             cb          : cb
 
@@ -4644,14 +4646,14 @@ class SyncTable extends EventEmitter
         if @_closed
             #dbg("closed so connecting")
             @_connecting = [opts.cb]
-            @_init_idle_timeout()
             @_value = immutable.Map({})
-            @on('disconnect', @_reconnect)
+            @on('disconnect', @connect)
             @_reconnect (err) =>
                 if not err
                     @_closed = false
                     synctable_changefeed_count += 1
                     @_dbg('connect')("connected [#{synctable_changefeed_count} synctable-changefeeds]")
+                    @_init_idle_timeout()
                 v = @_connecting
                 delete @_connecting
                 #dbg("got connection (err=#{err}), len(v)=#{v.length}")
@@ -4682,12 +4684,16 @@ class SyncTable extends EventEmitter
         if @_closed  # nothing further to do
             dbg("already closed")
             return
+        dbg("closing...")
         if not keep_listeners
             @removeAllListeners()
+        else
+            @removeListener('disconnect', @connect)
         @_closed = true
         @_feed?.close()
-        clearInterval(@_idle_timeout_interval)
-        delete @_idle_timeout_interval
+        if @_idle_timeout_interval?
+            clearInterval(@_idle_timeout_interval)
+            delete @_idle_timeout_interval
         delete @_feed
         delete @_value
         delete @_last_activity
@@ -4765,14 +4771,15 @@ class SyncTable extends EventEmitter
                 cb(undefined, immutable.fromJS(t))
 
     # Creates a changefeed that updates @_value on changes and emits a 'disconnect' event
-    # on db failure;
-    # calls cb once the feed is running; cb(err) if can't setup changfeed.
+    # on db failure;  calls cb once the feed is running; cb(err) if can't setup changfeed.
     _init_changefeed: (cb) =>
         dbg = @_dbg("_init_changefeed")
         dbg()
         delete @_state
         dbg("trying to initialize changefeed")
-        @_feed?.close()
+        if @_feed?
+            @_feed.close()
+            delete @_feed
         @_query.changes(includeInitial:false, includeStates:false).run (err, feed) =>
             if err
                 dbg("failed to start changefeed -- changes query failed: #{err}")
@@ -4786,9 +4793,8 @@ class SyncTable extends EventEmitter
                         # a changefeed might send a little more information after it was closed; ignore it.
                         return
                     if err
-                        feed.close()
-                        delete @_feed
-                        @emit('disconnect')
+                        @close(true)
+                        @emit('disconnect')  # causes attempt to reconnect
                     else
                         if change.new_val?
                             # change or new
