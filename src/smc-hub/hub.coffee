@@ -82,6 +82,7 @@ REGISTER_INTERVAL_S = 45   # every 45 seconds
 smc_version = {}
 init_smc_version = () ->
     smc_version = require('./hub-version')
+    # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     smc_version.on 'change', (version) ->
         winston.debug("smc_version changed -- sending updates to clients")
         for id, c of clients
@@ -3157,6 +3158,17 @@ init_stripe = (cb) ->
         cb?(err)
     )
 
+# Delete expired data from the database.
+delete_expired = (cb) ->
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, cb:cb)
+        (cb) ->
+            database.delete_expired
+                count_only : false
+                cb         : cb
+    ], cb)
+
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
@@ -3416,6 +3428,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
+    .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
     .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -3445,6 +3458,10 @@ if program._name.slice(0,3) == 'hub'
     else if program.stripe_dump
         console.log("Stripe dump")
         stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
+    else if program.delete_expired
+        delete_expired (err) ->
+            winston.debug("DONE", err)
+            process.exit()
     else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')

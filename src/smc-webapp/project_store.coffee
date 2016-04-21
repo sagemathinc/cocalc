@@ -43,7 +43,7 @@ masked_file_exts =
     'cs'   : ['exe']
     'tex'  : 'aux bbl blg fdb_latexmk glo idx ilg ind lof log nav out snm synctex.gz toc xyc'.split(' ')
 
-BAD_FILENAME_CHARACTERS       = '\\/'
+BAD_FILENAME_CHARACTERS       = '\\'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
@@ -232,6 +232,7 @@ class ProjectActions extends Actions
             page_number            : 0
             file_action            : undefined
             most_recent_file_click : undefined
+            create_file_alert      : false
 
     # Update the directory listing cache for the given path
     set_directory_files : (path, sort_by_time, show_hidden) =>
@@ -594,14 +595,20 @@ class ProjectActions extends Actions
             on_empty     : undefined
 
         name = opts.name
+        if (name == ".." or name == ".") and not opts.ext?
+            opts.on_error?("Cannot create a file named . or ..")
+            return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
             opts.on_download?(true)
             @new_file_from_web name, opts.current_path, () =>
                 opts.on_download?(false)
             return
         if name[name.length - 1] == '/'
-            @create_folder(name, opts.current_path, opts.on_error)
-            return
+            if not opts.ext?
+                @create_folder(name, opts.current_path, opts.on_error)
+                return
+            else
+                name = name.slice(0, name.length - 1)
         p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
         if not p
             return
@@ -782,8 +789,10 @@ class ProjectStore extends Store
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
-            if t == '/'
+            if t[t.length - 1] == '/'
                 if not is_dir
+                    return false
+                else if s.indexOf(t.slice(0, -1)) == -1
                     return false
             else if s.indexOf(t) == -1
                 return false

@@ -881,7 +881,7 @@ class ProjectClient extends EventEmitter
         # good way to "garbage collect" ProjectClient objects, due to the async complexity of
         # everything.
         db.synctable
-            idle_timeout_s : 60*5    # 5 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
+            idle_timeout_s : 60*10    # 10 minutes -- should be long enough for any single operation; but short enough that connections get freed up.
             query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
@@ -1013,7 +1013,7 @@ class ProjectClient extends EventEmitter
                     # possible err message).  Removing from the cache willy nilly in all cases
                     # results in a huge number of connections from the hub to compute
                     # servers, which crashes everything.
-                    if err.indexOf('error writing to socket') != -1
+                    if "#{err}".indexOf('error writing to socket') != -1
                         # See https://github.com/sagemathinc/smc/issues/507
                         # Experience suggests that when we get this error, it gets stuck like this
                         # and never goes away -- in this case we want to try again with a new connection.
@@ -1186,6 +1186,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
             cb   : required
+        @_synctable?.connect()
         if @host and @_state != 'closed'
             # already opened
             opts.cb()
@@ -1261,6 +1262,7 @@ class ProjectClient extends EventEmitter
             set_quotas : true   # if true, also sets all quotas (in parallel with start)
             cb         : required
         dbg = @dbg("start")
+        @_synctable?.connect()
         if @_state == 'running'
             dbg("already running")
             if opts.set_quotas
@@ -1314,6 +1316,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             set_quotas : true
             cb         : required
+        @_synctable?.connect()
         dbg = @dbg("restart")
         dbg("get state")
         state = undefined
@@ -1348,6 +1351,7 @@ class ProjectClient extends EventEmitter
     close: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_synctable?.connect()
         args = []
         dbg = @dbg("close()")
         dbg()
@@ -1368,6 +1372,7 @@ class ProjectClient extends EventEmitter
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
             cb : undefined  # cb(err, state='opened' or 'running')
+        @_synctable?.connect()
         state = undefined
         dbg = @dbg("ensure_opened_or_running")
         async.series([
@@ -1396,6 +1401,7 @@ class ProjectClient extends EventEmitter
     ensure_running: (opts) =>
         opts = defaults opts,
             cb : undefined
+        @_synctable?.connect()
         state = undefined
         dbg = @dbg("ensure_running")
         async.series([
@@ -1427,6 +1433,7 @@ class ProjectClient extends EventEmitter
     ensure_closed: (opts) =>
         opts = defaults opts,
             cb     : undefined
+        @_synctable?.connect()
         dbg = @dbg("ensure_closed()")
         state = undefined
         async.series([
@@ -1456,6 +1463,7 @@ class ProjectClient extends EventEmitter
 
     # Determine whether or not a storage request is currently running for this project
     is_storage_request_running: () =>
+        @_synctable?.connect()
         x = @_synctable.getIn([@project_id, 'storage_request'])
         if not x?
             return false
@@ -1517,6 +1525,7 @@ class ProjectClient extends EventEmitter
             target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
             force  : false     # ignored for now
             cb     : required
+        @_synctable?.connect()
         dbg = @dbg("move(target:'#{opts.target}')")
         if opts.target? and @host == opts.target
             dbg("project is already at target -- not moving")
@@ -1578,6 +1587,7 @@ class ProjectClient extends EventEmitter
     stop: (opts) =>
         opts = defaults opts,
             cb     : required
+        @_synctable?.connect()
         @dbg("stop")("will kill all processes")
         async.series([
             (cb) =>
@@ -1734,6 +1744,7 @@ class ProjectClient extends EventEmitter
         if @_address_cbs?
             @_address_cbs.push(opts.cb)
             return
+        @_synctable?.connect()
         @_address_cbs = [opts.cb]
         dbg = @dbg("address")
         dbg()
