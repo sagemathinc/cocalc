@@ -690,13 +690,14 @@ class RethinkDB
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
-    # db._error_thresh=100000; db.delete_expired(count_only:false, cb:done())
+    # db._error_thresh=100000; db.delete_expired(count_only:false, repeat_until_done: true, cb:done())
     #
     delete_expired: (opts) =>
         opts = defaults opts,
-            count_only : true              # if true, only count the number of blobs that would be deleted
-            limit : undefined  # only this many
-            table : undefined  # only this table
+            count_only        : true  # if true, only count the number of blobs that would be deleted
+            limit             : 100   # only this many
+            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunck is getting deleted
+            table             : undefined  # only this table
             repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
             cb    : required
         dbg = @dbg("delete_expired(...)")
@@ -722,7 +723,7 @@ class RethinkDB
                     cb()
                 else
                     if opts.limit and opts.repeat_until_done
-                        f(table, cb)
+                        setTimeout(( -> f(table, cb)), 1000 * opts.throttle_s)
                     else
                         cb()
 
@@ -730,7 +731,7 @@ class RethinkDB
             tables = [opts.table]
         else
             tables = (k for k, v of SCHEMA when v.indexes?.expire?)
-        async.map(tables, f, opts.cb)
+        async.mapSeries(tables, f, opts.cb)
 
     ###
     # Tables for loging things that happen
