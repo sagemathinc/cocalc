@@ -162,6 +162,8 @@
     - wget
     - xfsprogs
     - zlib1g-dev
+    - asymptote
+    - pdf2svg
 
 # Critical to get rid of certain packages that just cause trouble
 - hosts: all

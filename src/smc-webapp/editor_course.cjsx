@@ -62,7 +62,7 @@ schema = require('smc-util/schema')
 
 {NoUpgrades} = require('./project_settings')
 
-PARALLEL_LIMIT = 3  # number of async things to do in parallel
+PARALLEL_LIMIT = 5  # number of async things to do in parallel
 
 redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
@@ -361,7 +361,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             cb("store not defined"); return
                         store.wait
                             until   : (store) => store.get_student(student_id)
-                            timeout : 30
+                            timeout : 60
                             cb      : cb
                     (cb) =>
                         @create_student_project(student_id)
@@ -370,7 +370,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             cb("store not defined"); return
                         store.wait
                             until   : (store) => store.get_student(student_id).get('project_id')
-                            timeout : 30
+                            timeout : 60
                             cb      : cb
                 ], cb)
             id = @set_activity(desc:"Creating #{students.length} student projects (do not close this until done)")
@@ -854,8 +854,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 n = misc.mswalltime()
                 @return_assignment_to_student(assignment, student_id)
                 store.wait
-                    until : => store.last_copied('return_graded', assignment, student_id) >= n
-                    cb    : (err) =>
+                    timeout : 60*15
+                    until   : => store.last_copied('return_graded', assignment, student_id) >= n
+                    cb      : (err) =>
                         if err
                             errors += "\n #{err}"
                         cb()
@@ -1035,8 +1036,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 n = misc.mswalltime()
                 action(assignment, student_id)
                 store.wait
-                    until : => store.last_copied(step, assignment, student_id) >= n
-                    cb    : (err) =>
+                    timeout : 60*15
+                    until   : => store.last_copied(step, assignment, student_id) >= n
+                    cb      : (err) =>
                         if err
                             errors += "\n #{err}"
                         cb()

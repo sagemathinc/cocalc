@@ -3433,6 +3433,7 @@ class Terminal extends FileEditor
                     if @element.is(":visible")
                         @show()
                     @console.set_session(session)
+                    @opts.session_uuid = session.session_uuid
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename
@@ -3449,9 +3450,13 @@ class Terminal extends FileEditor
 
 
     _get: () =>  # TODO
-        return 'history saving not yet implemented'
+        return @opts.session_uuid ? ''
 
     _set: (content) =>  # TODO
+
+    save: (cb) =>
+        # DO nothing -- a no-op for now (no notion of history... YET!)
+        cb?()
 
     focus: () =>
         @console?.focus()

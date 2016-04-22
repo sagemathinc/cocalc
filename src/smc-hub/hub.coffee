@@ -3131,8 +3131,9 @@ delete_expired = (cb) ->
             connect_to_database(error:99999, cb:cb)
         (cb) ->
             database.delete_expired
-                count_only : false
-                cb         : cb
+                count_only        : false
+                repeat_until_done : true
+                cb                : cb
     ], cb)
 
 stripe_sync = (dump_only, cb) ->
