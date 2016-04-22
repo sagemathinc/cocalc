@@ -399,6 +399,10 @@ NoFiles = rclass
             <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
                 Warning: Names cannot begin with /
             </Alert>
+        else if ['.', '..'].indexOf(@props.file_search) > -1
+            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: Cannot create a file named . or ..
+            </Alert>
         # Non-empty search and there is a file divisor ('/')
         else if @props.file_search.length > 0 and last_folder_index > 0
             <Alert style={marginTop: '10px'} bsStyle='info'>
