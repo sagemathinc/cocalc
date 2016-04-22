@@ -19,6 +19,7 @@
 - hosts: db:web
   become: yes
   gather_facts: no
+  tags : db
 
   tasks:
 
