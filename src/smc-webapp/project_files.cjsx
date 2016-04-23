@@ -25,7 +25,7 @@
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
-{FileTypeSelector}    = require('./project_new')
+{FileTypeSelector, NewFileButton} = require('./project_new')
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -438,7 +438,16 @@ NoFiles = rclass
     render_file_type_selection : ->
         <div>
             <h4 style={color:"#666"}>Or select a file type</h4>
-            <FileTypeSelector create_file={@props.create_file} create_folder={@props.create_folder} />
+            <FileTypeSelector create_file={@props.create_file} create_folder={@props.create_folder} >
+                <Row>
+                    <Col sm=12>
+                        <Tip title='Create a Chatroom'  placement='right'  icon='comment'
+                            tip='Create a chatroom for chatting with other collaborators on this project.'>
+                            <NewFileButton icon='comment' name='Chatroom' on_click={@props.create_file} ext='sage-chat' />
+                        </Tip>
+                    </Col>
+                </Row>
+            </FileTypeSelector>
         </div>
 
     render : ->
