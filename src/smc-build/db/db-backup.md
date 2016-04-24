@@ -8,6 +8,10 @@ Remarks about how I configured db-backup.
     git clone ...
 
 
+## Recreating it
+
+    g.create_vm(name:'db-backup', disks:['db-backup', 'db-backup-rethinkdb', 'db-backup-bup'], type:'n1-highmem-4', preemptible : true, cb:done(), storage:'read_write', tags:['db'])
+
 ## Install RethinkDB
 
 - Install following https://www.rethinkdb.com/docs/install/ubuntu/
