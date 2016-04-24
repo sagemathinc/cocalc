@@ -1583,20 +1583,20 @@ exports.ignored_storage_requests = (opts) ->
     opts = defaults opts,
         age_m : 10
         cb    : required
-    dbg = (m) => winston.debug("ignored_storage_requests: #{m}")
+    dbg = (m) -> winston.debug("ignored_storage_requests: #{m}")
     dbg()
     db = undefined
     v = undefined
     async.series([
-        (cb) =>
+        (cb) ->
             dbg("connect to database")
             require('smc-hub/rethink').rethinkdb
                 hosts : misc.random_choice(DB)
                 pool  : 1
-                cb    : (err, _db) =>
+                cb    : (err, _db) ->
                     db = _db
                     cb(err)
-        (cb) =>
+        (cb) ->
             dbg("doing query")
             # Projects...
             q = db.table('projects')
@@ -1618,6 +1618,72 @@ exports.ignored_storage_requests = (opts) ->
     ], (err) ->
         opts.cb(err, v)
     )
+
+###
+
+If the storage servers get messed up for some reason, run this.  It'll ensure all projects
+that should have been saved for the last day are saved:
+
+    require 'c'; (require 'smc-hub/storage').save_projects_with_ignored_save_requests(age_m:60*24, limit:10, cb:done(), dry_run:false)
+
+###
+exports.save_projects_with_ignored_save_requests = (opts) ->
+    opts = defaults opts,
+        age_m   : 10
+        limit   : 5
+        dry_run : true
+        cb      : undefined
+    dbg = (m) -> winston.debug("save_projects_with_ignored_save_requests: #{m}")
+    dbg()
+    db = undefined
+    compute_server = undefined
+    v  = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            require('smc-hub/rethink').rethinkdb
+                hosts : DB
+                pool  : 10
+                cb    : (err, _db) ->
+                    db = _db
+                    cb(err)
+        (cb) ->
+            dbg("get projects with ignored save requests")
+            exports.ignored_storage_requests
+                age_m : opts.age_m
+                cb    : (err, z) ->
+                    if err
+                        cb(err)
+                    else
+                        v = (x for x in z when x.storage_request.action == 'save')
+                        cb()
+        (cb) ->
+            if opts.dry_run or v.length == 0
+                cb()
+                return
+            require('./compute-client').compute_server
+                database : db
+                cb       : (err, x) ->
+                    if err
+                        cb(err)
+                    else
+                        compute_server = x
+                        cb()
+        (cb) ->
+            if opts.dry_run
+                dbg("would save #{v.length} projects")
+                cb()
+                return
+            f = (x, cb) ->
+                compute_server.project
+                    project_id : x.project_id
+                    cb         : (err, project) ->
+                        if err
+                            cb(err)
+                        else
+                            project.save(cb:cb)
+            async.mapLimit(v, opts.limit, f, cb)
+    ], (err) => opts.cb?(err))
 
 ###########################
 # Command line interface
