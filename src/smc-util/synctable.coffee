@@ -908,9 +908,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
             if not options.push?
                 console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
                 options = []
-            options.push({heartbeat:if client.is_project() then 1 else 4})
+            options.push({heartbeat:if client.is_project() then 5 else 10})
     else
-        options = [{heartbeat:if client.is_project() then 1 else 4}]
+        options = [{heartbeat:if client.is_project() then 5 else 10}]
 
     key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
     #console.log("sync_table #{key}")

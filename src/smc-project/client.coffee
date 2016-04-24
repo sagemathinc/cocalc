@@ -18,8 +18,9 @@ as a resut.
 ###
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
-# not active for this long (must be at least 5 minutes)
-SYNCSTRING_MAX_AGE_M = 15
+# not active for this long (should be at least 5 minutes)
+SYNCSTRING_MAX_AGE_M = 7
+#SYNCSTRING_MAX_AGE_M = .2 # TESTING
 
 ## SYNCSTRING_MAX_AGE_M = 1 # for debugging
 
