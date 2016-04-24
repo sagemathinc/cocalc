@@ -16,5 +16,5 @@
     cron: name="hub.log analyze"
           state=present
           user=salvus
-          job="$HOME/bin/hub-log-analyze.py $HOME/logs/hub*.log"
+          job="$HOME/bin/hub-log-analyze.py $HOME/logs/hub?.log"
     tags: "cron"

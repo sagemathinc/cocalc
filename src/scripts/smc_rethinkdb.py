@@ -92,6 +92,11 @@ for t in r.table_list().run():
     globals()[t] = r.table(t)
     # print(t, end=", ")
 
+# system tables
+rdb = r.db("rethinkdb")
+for t in rdb.table_list().run():
+    globals()['r_%s' % t] = rdb.table(t)
+
 # Library Functions ###
 _print = print
 

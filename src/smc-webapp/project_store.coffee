@@ -287,6 +287,22 @@ class ProjectActions extends Actions
             delete @_set_directory_files_lock[_key] # done!
         )
 
+    # Increases the selected file index by 1
+    # Assumes undefined state to be identical to 0
+    increment_selected_file_index : ->
+        current_index = @get_store().get('selected_file_index') ? 0
+        @setState(selected_file_index : current_index + 1)
+
+    # Decreases the selected file index by 1.
+    # Guaranteed to never set below 0.
+    decrement_selected_file_index : ->
+        current_index = @get_store().get('selected_file_index')
+        if current_index? and current_index > 0
+            @setState(selected_file_index : current_index - 1)
+
+    reset_selected_file_index : ->
+        @setState(selected_file_index : 0)
+
     # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click : (file) =>
         @setState(most_recent_file_click : file)
