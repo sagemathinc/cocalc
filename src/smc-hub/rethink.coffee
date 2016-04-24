@@ -691,21 +691,22 @@ class RethinkDB
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
     # db._error_thresh=100000; db.delete_expired(count_only:false, repeat_until_done: true, cb:done())
-    #
+    # db._error_thresh=100000; db.delete_expired(count_only:false, limit:0, cb:done())
+
     delete_expired: (opts) =>
         opts = defaults opts,
             count_only        : true  # if true, only count the number of blobs that would be deleted
             limit             : 100   # only this many
-            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunck is getting deleted
+            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunk is deleted
             table             : undefined  # only this table
-            repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
+            repeat_until_done : false  # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
             cb    : required
         dbg = @dbg("delete_expired(...)")
         dbg()
         f = (table, cb) =>
             dbg("table='#{table}'")
             query = @table(table).between(new Date(0),new Date(), index:'expire')
-            if opts.limit?
+            if opts.limit
                 query = query.limit(opts.limit)
             start = new Date()
             if opts.count_only
