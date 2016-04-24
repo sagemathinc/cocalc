@@ -6,7 +6,7 @@
   tasks:
 
   - name: "install per-user security limits"
-    copy: src="files/compute-security-limits.conf"
-          dest="/etc/security/limits.d/99-smc.cfg"
-          owner=root group=root mode=644
+    template: src="files/compute-security-limits.conf"
+              dest="/etc/security/limits.d/99-smc.cfg"
+              owner=root group=root mode=644
     tags: "install"

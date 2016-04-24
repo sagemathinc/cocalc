@@ -690,21 +690,23 @@ class RethinkDB
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
-    # db._error_thresh=100000; db.delete_expired(count_only:false, cb:done())
-    #
+    # db._error_thresh=100000; db.delete_expired(count_only:false, repeat_until_done: true, cb:done())
+    # db._error_thresh=100000; db.delete_expired(count_only:false, limit:0, cb:done())
+
     delete_expired: (opts) =>
         opts = defaults opts,
-            count_only : true              # if true, only count the number of blobs that would be deleted
-            limit : undefined  # only this many
-            table : undefined  # only this table
-            repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
+            count_only        : true  # if true, only count the number of blobs that would be deleted
+            limit             : 100   # only this many
+            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunk is deleted
+            table             : undefined  # only this table
+            repeat_until_done : false  # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
             cb    : required
         dbg = @dbg("delete_expired(...)")
         dbg()
         f = (table, cb) =>
             dbg("table='#{table}'")
             query = @table(table).between(new Date(0),new Date(), index:'expire')
-            if opts.limit?
+            if opts.limit
                 query = query.limit(opts.limit)
             start = new Date()
             if opts.count_only
@@ -722,7 +724,7 @@ class RethinkDB
                     cb()
                 else
                     if opts.limit and opts.repeat_until_done
-                        f(table, cb)
+                        setTimeout(( -> f(table, cb)), 1000 * opts.throttle_s)
                     else
                         cb()
 
@@ -730,7 +732,7 @@ class RethinkDB
             tables = [opts.table]
         else
             tables = (k for k, v of SCHEMA when v.indexes?.expire?)
-        async.map(tables, f, opts.cb)
+        async.mapSeries(tables, f, opts.cb)
 
     ###
     # Tables for loging things that happen
@@ -2727,8 +2729,9 @@ class RethinkDB
         opts = defaults opts,
             limit    : 10000     # number of blobs to backup
             path     : required  # path where [timestamp].tar file is placed
-            throttle : 1         # wait this many seconds between pulling blobs from database
+            throttle : 0         # wait this many seconds between pulling blobs from database
             repeat_until_done : 0 # if positive keeps re-call'ing this function until no more results to backup (pauses this many seconds between)
+            map_limit: 5
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
         join    = require('path').join
@@ -2767,7 +2770,7 @@ class RethinkDB
                             else
                                 dbg("blob is expired, so nothing to be done, ever.")
                                 cb()
-                async.mapLimit(v, 2, f, cb)
+                async.mapLimit(v, opts.map_limit, f, cb)
             (cb) =>
                 dbg("successfully wrote all blobs to files; now make tarball")
                 misc_node.execute_code
@@ -2793,7 +2796,7 @@ class RethinkDB
                 opts.cb?(err)
             else
                 dbg("done")
-                if opts.repeat_until_done and to_remove.length > 0
+                if opts.repeat_until_done and to_remove.length == opts.limit 
                     f = () =>
                         @backup_blobs_to_tarball(opts)
                     setTimeout(f, opts.repeat_until_done*1000)
@@ -2810,7 +2813,7 @@ class RethinkDB
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
-            throttle  : 1                  # wait this many seconds between uploads
+            throttle  : 0                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false

@@ -95,7 +95,7 @@ ProjectNewHeader = rclass
                 actions    = {@props.actions} />
         </h1>
 
-NewFileButton = rclass
+exports.NewFileButton = NewFileButton = rclass
     displayName : 'ProjectNew-ProjectNewFileButton'
 
     mixins : [ImmutablePureRenderMixin]
@@ -114,6 +114,7 @@ NewFileButton = rclass
     render : ->
         <Button onClick={@on_click}  style={marginRight:'5px'} >
             <Icon name={@props.icon} /> {@props.name}
+            {@props.children}
         </Button>
 
 NewFileDropdown = rclass
@@ -138,6 +139,8 @@ NewFileDropdown = rclass
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
+# Use Rows and Cols to append more buttons to this class.
+# Could be changed to auto adjust to a list of pre-defined button names.
 exports.FileTypeSelector = FileTypeSelector = rclass
     proptypes :
         create_file : rtypes.func.required
@@ -145,8 +148,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         styles : rtypes.object
 
     render : ->
+        row_style =
+            marginBottom:'8px'
         <div>
-            <Row style={marginBottom:'8px'}>
+            <Row style={row_style}>
                 <Col sm=6>
                     <Tip icon='file-code-o' title='SageMath Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='file-code-o' name='SageMath Worksheet' on_click={@props.create_file} ext='sagews' />
@@ -169,7 +174,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     </Tip>
                 </Col>
             </Row>
-            <Row style={marginBottom:'8px'}>
+            <Row style={row_style}>
                 <Col sm=6>
                     <Tip title='LaTeX Document'   icon='file-excel-o'
                         tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
@@ -191,6 +196,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     </Tip>
                 </Col>
             </Row>
+            {@props.children}
         </div>
 
 ProjectNew = (name) -> rclass
@@ -282,25 +288,26 @@ ProjectNew = (name) -> rclass
                     </form>
                     {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
-                    <FileTypeSelector create_file={@create_file} create_folder={@create_folder}/>
-                    <Row>
-                        <Col sm=6>
-                            <Tip title='Download files from the Internet'  icon = 'cloud'
-                                tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
-                                <NewFileButton
-                                    icon     = 'cloud'
-                                    name     = {"Download from Internet #{@blocked()}"}
-                                    on_click = {@create_file}
-                                    loading  = {@state.downloading} />
-                            </Tip>
-                        </Col>
-                        <Col sm=6>
-                            <Tip title='Create a Chatroom'  placement='left'  icon='comment'
-                                tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
-                            </Tip>
-                        </Col>
-                    </Row>
+                    <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
+                        <Row>
+                            <Col sm=6>
+                                <Tip title='Download files from the Internet'  icon = 'cloud'
+                                    tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
+                                    <NewFileButton
+                                        icon     = 'cloud'
+                                        name     = {"Download from Internet #{@blocked()}"}
+                                        on_click = {@create_file}
+                                        loading  = {@state.downloading} />
+                                </Tip>
+                            </Col>
+                            <Col sm=6>
+                                <Tip title='Create a Chatroom'  placement='left'  icon='comment'
+                                    tip='Create a chatroom for chatting with other collaborators on this project.'>
+                                    <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
+                                </Tip>
+                            </Col>
+                        </Row>
+                    </FileTypeSelector>
                 </Col>
             </Row>
         </div>
