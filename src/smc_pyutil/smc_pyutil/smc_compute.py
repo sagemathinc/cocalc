@@ -36,7 +36,7 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+import errno, hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
 
 from subprocess import Popen, PIPE
 
@@ -333,9 +333,11 @@ class Project(object):
             if not self._dev:
                 os.chown(self.project_path, self.uid, self.uid)
 
-    def remove_old_sagemathcloud_path(self):
-        # temporary -- once we go through and delete all these from all live projects, don't have to have this.
-        p = os.path.join(self.project_path, '.sagemathcloud')
+    def remove_snapshots_path(self):
+        """
+        Remove the ~/.snapshots path
+        """
+        p = os.path.join(self.project_path, '.snapshots')
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
 
@@ -361,18 +363,23 @@ class Project(object):
     def dev_env(self):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
-        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
+        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=os.environ['HOME'])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
+        os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
+        # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
+        # the hub is running
+        os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares):
-        self.remove_old_sagemathcloud_path()  # temporary
+    def start(self, cores, memory, cpu_shares, base_url):
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
-
+        self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
+
+        os.environ['SMC_BASE_URL'] = base_url
 
         if self._dev:
             self.dev_env()
@@ -412,13 +419,14 @@ class Project(object):
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
+        self.remove_snapshots_path()
 
-    def restart(self, cores, memory, cpu_shares):
+    def restart(self, cores, memory, cpu_shares, base_url):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start(cores, memory, cpu_shares)
+        self.start(cores, memory, cpu_shares, base_url)
 
     def get_memory(self, s):
         try:
@@ -428,7 +436,7 @@ class Project(object):
         except:
             log("error running memory command")
 
-    def status(self, timeout=60):
+    def status(self, timeout=60, base_url=''):
         log = self._log("status")
         s = {}
 
@@ -450,6 +458,7 @@ class Project(object):
                     self.get_memory(s)
                 except:
                     log("error running status command")
+                    s['state'] = 'broken'
             return s
 
         if self._single:
@@ -489,9 +498,10 @@ class Project(object):
                 self.get_memory(s)
             except:
                 log("error running status command")
+                s['state'] = 'broken'
         return s
 
-    def state(self, timeout=60):
+    def state(self, timeout=60, base_url=''):
         log = self._log("state")
 
         if (self._dev or self._single) and not os.path.exists(self.project_path):
@@ -515,6 +525,7 @@ class Project(object):
                         s['state'] = 'running'
                 except Exception, err:
                     log("error running status command -- %s", err)
+                    s['state'] = 'broken'
             return s
 
         if not os.path.exists(self.project_path):  # would have to be full tiered storage mode
@@ -537,6 +548,7 @@ class Project(object):
                     s['state'] = 'running'
             except Exception, err:
                 log("error running status command -- %s", err)
+                s['state'] = 'broken'
         return s
 
     def _exclude(self, prefix='', extras=[]):
@@ -575,6 +587,23 @@ class Project(object):
         result = {}
         if not hidden:
             listdir = [x for x in listdir if not x.startswith('.')]
+
+        # Just as in git_ls.py, we make sure that all filenames can be encoded via JSON.
+        # Users sometimes make some really crazy filenames that can't be so encoded.
+        # It's better to just not show them, than to show a horendous error.
+        try:
+            json.dumps(listdir)
+        except:
+            # Throw away filenames that can't be json'd, since they can't be JSON'd below,
+            # which would totally lock user out of their listings.
+            listdir = []
+            for x in os.listdir('.'):
+                try:
+                    json.dumps(x)
+                    listdir.append(x)
+                except:
+                    pass
+
 
         # Get list of (name, timestamp) pairs
         all = [(name, get_file_mtime(name)) for name in listdir]
@@ -709,7 +738,11 @@ class Project(object):
                             raise
                     if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
                         return
-                os.mkdir(name, 0700)
+                try:
+                    os.mkdir(name, 0700)
+                except OSError, e:
+                    if e.errno != errno.EEXIST:
+                        raise
                 if not self._dev:
                     os.chown(name, self.uid, self.uid)
             makedirs(path)
@@ -726,14 +759,14 @@ class Project(object):
             self.makedirs(abspath)
 
     def copy_path(self,
-                  path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+                  path,                          # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
                   target_hostname = 'localhost', # list of hostnames (foo or foo:port) to copy files to
-                  target_project_id = "",      # project_id of destination for files; must be open on destination machine
-                  target_path     = None,   # path into project; defaults to path above.
-                  overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
-                  delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
-                  backup          = False,# if True, create backup files with a tilde
-                  exclude_history = False,# if True, don't copy .sage-history files.
+                  target_project_id = "",        # project_id of destination for files; must be open on destination machine
+                  target_path     = None,        # path into project; defaults to path above.
+                  overwrite_newer = False,       # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+                  delete_missing  = False,       # if True, delete files in dest path not in source, **including** newer files
+                  backup          = False,       # if True, create backup files with a tilde
+                  exclude_history = False,       # if True, don't copy .sage-history files.
                   timeout         = None,
                   bwlimit         = None,
                  ):
@@ -795,9 +828,16 @@ class Project(object):
             if socket.gethostname() == target_hostname:
                 # we *have* to do this, due to the firewall!
                 target_hostname = 'localhost'
-            w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
-                 src_abspath,
-                 "%s:%s"%(target_hostname, target_abspath)]
+            if self._dev:
+                # In local dev mode everything is as the same account on the same machine,
+                # so we just use rsync without ssh.
+                w = [src_abspath, target_abspath]
+            else:
+                # Full mode -- different users so we use ssh between different machines.
+                # However, in a cloud environment StrictHostKeyChecking is painful to manage.
+                w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+                     src_abspath,
+                     "%s:%s"%(target_hostname, target_abspath)]
             if exclude_history:
                 exclude = self._exclude('', extras=['*.sage-history'])
             else:
@@ -832,7 +872,7 @@ def main():
         return Project(**kwds)
 
     # This is a generic parser for all subcommands that operate on a collection of projects.
-    # It's ugly, but it massively reduces t`he amount of code.
+    # It's ugly, but it massively reduces the amount of code.
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
@@ -876,15 +916,18 @@ def main():
     parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_start.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_status.add_argument("--base_url", help="ignored", type=str, default='')
 
     f(parser_status)
 
     parser_state = subparsers.add_parser('state', help='get state of project')  # {state:?}
     parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    parser_state.add_argument("--base_url", help="ignored", type=str, default='')
     f(parser_state)
 
 
@@ -920,6 +963,7 @@ def main():
     parser_restart.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_restart.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_restart.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_restart.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_restart)
 
     # directory listing

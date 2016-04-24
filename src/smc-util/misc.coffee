@@ -248,6 +248,26 @@ exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
+exports.is_valid_sha1_string = (s) ->
+    return typeof(s) == 'string' and s.length == 40 and /[a-fA-F0-9]{40}/i.test(s)
+
+# Compute a uuid v4 from the Sha-1 hash of data.
+# If on backend, use the version in misc_node, which is faster.
+sha1 = require('sha1')
+exports.uuidsha1 = (data) ->
+    s = sha1(data)
+    i = -1
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
+        i += 1
+        switch c
+            when 'x'
+                return s[i]
+            when 'y'
+                # take 8 + low order 3 bits of hex number.
+                return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
+    )
+
+
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
@@ -464,6 +484,23 @@ exports.meta_file = (path, ext) ->
     if p.head != ''
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
+
+# Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
+# For example:
+#    .example.ipynb.sage-jupyter --> example.ipynb
+#    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
+#    .foo.txt.sage-chat --> foo.txt
+#    tmp/.foo.txt.sage-chat --> tmp/foo.txt
+
+exports.original_path = (path) ->
+    s = exports.path_split(path)
+    if s.tail[0] != '.' or s.tail.indexOf('.sage-') == -1
+        return path
+    ext = exports.filename_extension(s.tail)
+    x = s.tail.slice((if s.tail[0] == '.' then 1 else 0),   s.tail.length - (ext.length+1))
+    if s.head != ''
+        x = s.head + '/' + x
+    return x
 
 
 # "foobar" --> "foo..."
@@ -831,6 +868,7 @@ exports.async_debounce = (opts) ->
         #console.log("finished running -- calling #{callbacks.length} callbacks", callbacks)
         for cb in callbacks
             cb?(err)
+        callbacks = []  # ensure these callbacks don't get called again
         #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
         if state.next_callbacks.length > 0 and not state.timer?
             # new cb requests came in since when we started, so call when we next can.
@@ -1134,7 +1172,7 @@ exports.cmp_Date = (a,b) ->
 exports.timestamp_cmp = (a,b,field='timestamp') ->
     return -exports.cmp_Date(a[field], b[field])
 
-timestamp_cmp0 = (a,b) ->
+timestamp_cmp0 = (a,b,field='timestamp') ->
     return exports.cmp_Date(a[field], b[field])
 
 #####################
@@ -1275,15 +1313,41 @@ exports.get_array_range = (arr, value1, value2) ->
         [index1, index2] = [index2, index1]
     return arr[index1..index2]
 
-# Specific easy to read and describe amount of time before right now
-# Use negative input for _after now.
+# Specific, easy to read: describe amount of time before right now
+# Use negative input for after now (i.e., in the future).
 exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
-exports.weeks_ago        = (d)  -> exports.days_ago(7*d)
-exports.months_ago       = (d)  -> exports.days_ago(30.5*d)
+exports.weeks_ago        = (w)  -> exports.days_ago(7*w)
+exports.months_ago       = (m)  -> exports.days_ago(30.5*m)
+
+if localStorage?
+    # Versions of the above, but give the relevant point in time but
+    # on the *server*.  These are only available in the web browser.
+    exports.server_time             = ()   -> new Date(new Date() - (parseFloat(localStorage.clock_skew) ? 0))
+    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - (parseFloat(localStorage.clock_skew) ? 0))
+    exports.server_seconds_ago      = (s)  -> exports.server_milliseconds_ago(1000*s)
+    exports.server_minutes_ago      = (m)  -> exports.server_seconds_ago(60*m)
+    exports.server_hours_ago        = (h)  -> exports.server_minutes_ago(60*h)
+    exports.server_days_ago         = (d)  -> exports.server_hours_ago(24*d)
+    exports.server_weeks_ago        = (w)  -> exports.server_days_ago(7*w)
+    exports.server_months_ago       = (m)  -> exports.server_days_ago(30.5*m)
+else
+    # On the server, these functions are aliased to the functions above, since
+    # we assume that the server clocks are sufficiently accurate.  Providing
+    # these functions makes it simpler to write code that runs on both the
+    # frontend and the backend.
+    exports.server_time             = -> new Date()
+    exports.server_milliseconds_ago = exports.milliseconds_ago
+    exports.server_seconds_ago      = exports.seconds_ago
+    exports.server_minutes_ago      = exports.minutes_ago
+    exports.server_hours_ago        = exports.hours_ago
+    exports.server_days_ago         = exports.days_ago
+    exports.server_weeks_ago        = exports.weeks_ago
+    exports.server_months_ago       = exports.months_ago
+
 
 # Specific easy to read and describe point in time before another point in time tm.
 # (The following work exactly as above if the second argument is excluded.)
@@ -1296,6 +1360,11 @@ exports.days_before         = (d, tm)  -> exports.hours_before(24*d, tm)
 exports.weeks_before        = (d, tm)  -> exports.days_before(7*d, tm)
 exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 
+# time this many seconds in the future (or undefined)
+exports.expire_time = (s) ->
+    if s then new Date((new Date() - 0) + s*1000)
+
+exports.YEAR = new Date().getFullYear()
 
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
@@ -1416,6 +1485,15 @@ exports.map_without_undefined = map_without_undefined = (map) ->
 exports.should_open_in_foreground = (e) ->
     return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)
 
+# Like Python's enumerate
+exports.enumerate = (v) ->
+    i = 0
+    w = []
+    for x in v
+        w.push([i,x])
+        i += 1
+    return w
+
 # escape everything in a regex
 exports.escapeRegExp = escapeRegExp = (str) ->
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
@@ -1424,12 +1502,14 @@ exports.escapeRegExp = escapeRegExp = (str) ->
 smileys_definition = [
     [':-)',          "😁"],
     [':-(',          "😞"],
-    ['<3',           "♡"],
+    ['<3',           "♡",             null, '\\b'],
     [':shrug:',      "¯\\\\_(ツ)_/¯"],
-    ['o_o',          "סּ_\סּ"],
-    [':-p',          "😛"],
+    ['o_o',          "סּ_\סּ",         '\\b', '\\b'],
+    [':-p',          "😛",            null, '\\b'],
     ['>_<',          "😆"],
-    ['^^',           "😄"],
+    ['^^',           "😄",            '^',   '\S'],
+    ['^^ ',          "😄 "],
+    [' ^^',          " 😄"],
     [';-)',          "😉"],
     ['-_-',          "😔"],
     [':-\\',         "😏"],
@@ -1440,7 +1520,12 @@ smileys_definition = [
 smileys = []
 
 for smiley in smileys_definition
-    smileys.push([RegExp(escapeRegExp(smiley[0]), 'g'), smiley[1]])
+    s = escapeRegExp(smiley[0])
+    if smiley[2]?
+        s = smiley[2] + s
+    if smiley[3]?
+        s = s + smiley[3]
+    smileys.push([RegExp(s, 'g'), smiley[1]])
 
 exports.smiley = (opts) ->
     opts = exports.defaults opts,
@@ -1458,7 +1543,7 @@ exports.smiley = (opts) ->
 _ = underscore
 
 exports.smiley_strings = () ->
-    return _.map(smileys_definition, _.first)
+    return _.filter(_.map(smileys_definition, _.first), (x) -> ! _.contains(['^^ ', ' ^^'], x))
 
 # converts an array to a "human readable" array
 exports.to_human_list = (arr) ->
@@ -1471,7 +1556,20 @@ exports.to_human_list = (arr) ->
         return ""
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings())
-# END smileys
+
+exports.history_path = (path) ->
+    p = exports.path_split(path)
+    return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
+
+# This is a convenience function to provide as a callback when working interactively.
+exports.done = () ->
+    start_time = new Date()
+    return (args...) ->
+        try
+            s = JSON.stringify(args)
+        catch
+            s = args
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
 
 smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time = new Date().getTime() / 1000.0
 
@@ -1481,7 +1579,12 @@ exports.log = () ->
     dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last)
     # support for string interpolation for the actual console.log
     [msg, args...] = Array.prototype.slice.call(arguments)
-    console.log_original("[#{t} Δ #{dt}] #{msg}", args...)
+    prompt = "[#{t} Δ #{dt}]"
+    if _.isString(msg)
+        prompt = "#{prompt} #{msg}"
+        console.log_original(prompt, args...)
+    else
+        console.log_original(prompt, msg, args...)
     smc_logger_timestamp_last = smc_logger_timestamp
 
 if not exports.RUNNING_IN_NODE and window?
@@ -1496,3 +1599,48 @@ exports.console_init_filename = (fn) ->
     if x.head == ''
         return x.tail
     return [x.head, x.tail].join("/")
+
+
+exports.has_null_leaf = has_null_leaf = (obj) ->
+    for k, v of obj
+        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
+            return true
+    return false
+
+# Peer Grading
+# this function takes a list of students (actually, arbitrary objects)
+# and a number N of the desired number of peers per student.
+# It returns a dictionary, mapping each student to a list of peers.
+exports.peer_grading = (students, N=2) ->
+    if N <= 0
+        throw "Number of peer assigments must be at least 1"
+    if students.length <= N
+        throw "You need at least #{N + 1} students"
+
+    asmnt = {}
+    # make output dict keys sorted like students input array
+    students.forEach((s) -> asmnt[s] = [])
+    # randomize peer assignments
+    s_random = underscore.shuffle(students)
+
+    # the peer groups are selected here. Think of nodes in a circular graph,
+    # and node i is associated with i+1 up to i+N
+    L = students.length
+    for i in [0...L]
+        asmnt[s_random[i]] = (s_random[(i + idx) % L] for idx in [1..N])
+
+    # sort each peer group by the order of the `student` input list
+    for k, v of asmnt
+        asmnt[k] = underscore.sortBy(v, (s) -> students.indexOf(s))
+    return asmnt
+
+# demonstration of the above; for tests see misc-test.coffee
+exports.peer_grading_demo = (S = 10, N = 2) ->
+    peer_grading = exports.peer_grading
+    students = [0...S]
+    students = ("S-#{s}" for s in students)
+    result = peer_grading(students, N=N)
+    console.log("#{S} students graded by #{N} peers")
+    for k, v of result
+        console.log("#{k} ←→ #{v}")
+    return result

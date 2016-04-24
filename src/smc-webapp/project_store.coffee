@@ -26,8 +26,8 @@ immutable  = require('immutable')
 # At most this many of the most recent log messages for a project get loaded:
 MAX_PROJECT_LOG_ENTRIES = 5000
 
-misc     = require('smc-util/misc')
-diffsync = require('diffsync')
+misc      = require('smc-util/misc')
+{MARKERS} = require('smc-util/sagews')
 
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
@@ -43,7 +43,7 @@ masked_file_exts =
     'cs'   : ['exe']
     'tex'  : 'aux bbl blg fdb_latexmk glo idx ilg ind lof log nav out snm synctex.gz toc xyc'.split(' ')
 
-BAD_FILENAME_CHARACTERS       = '\\/'
+BAD_FILENAME_CHARACTERS       = '\\'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
@@ -232,6 +232,7 @@ class ProjectActions extends Actions
             page_number            : 0
             file_action            : undefined
             most_recent_file_click : undefined
+            create_file_alert      : false
 
     # Update the directory listing cache for the given path
     set_directory_files : (path, sort_by_time, show_hidden) =>
@@ -285,6 +286,22 @@ class ProjectActions extends Actions
             @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
         )
+
+    # Increases the selected file index by 1
+    # Assumes undefined state to be identical to 0
+    increment_selected_file_index : ->
+        current_index = @get_store().get('selected_file_index') ? 0
+        @setState(selected_file_index : current_index + 1)
+
+    # Decreases the selected file index by 1.
+    # Guaranteed to never set below 0.
+    decrement_selected_file_index : ->
+        current_index = @get_store().get('selected_file_index')
+        if current_index? and current_index > 0
+            @setState(selected_file_index : current_index - 1)
+
+    reset_selected_file_index : ->
+        @setState(selected_file_index : 0)
 
     # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click : (file) =>
@@ -594,14 +611,20 @@ class ProjectActions extends Actions
             on_empty     : undefined
 
         name = opts.name
+        if (name == ".." or name == ".") and not opts.ext?
+            opts.on_error?("Cannot create a file named . or ..")
+            return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
             opts.on_download?(true)
             @new_file_from_web name, opts.current_path, () =>
                 opts.on_download?(false)
             return
         if name[name.length - 1] == '/'
-            @create_folder(name, opts.current_path, opts.on_error)
-            return
+            if not opts.ext?
+                @create_folder(name, opts.current_path, opts.on_error)
+                return
+            else
+                name = name.slice(0, name.length - 1)
         p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
         if not p
             return
@@ -697,8 +720,8 @@ class ProjectActions extends Actions
                     filename = filename.slice(2)
                 context = line.slice(i + 1)
                 # strip codes in worksheet output
-                if context.length > 0 and context[0] == diffsync.MARKERS.output
-                    i = context.slice(1).indexOf(diffsync.MARKERS.output)
+                if context.length > 0 and context[0] == MARKERS.output
+                    i = context.slice(1).indexOf(MARKERS.output)
                     context = context.slice(i + 2, context.length - 1)
 
                 search_results.push
@@ -738,7 +761,7 @@ class ProjectActions extends Actions
             else
                 cmd = "grep -I -H #{ins} #{search_query} *"
 
-        cmd += " | grep -v #{diffsync.MARKERS.cell}"
+        cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
         max_output  = 110 * max_results  # just in case
 
@@ -782,8 +805,10 @@ class ProjectStore extends Store
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
-            if t == '/'
+            if t[t.length - 1] == '/'
                 if not is_dir
+                    return false
+                else if s.indexOf(t.slice(0, -1)) == -1
                     return false
             else if s.indexOf(t) == -1
                 return false
@@ -845,7 +870,7 @@ class ProjectStore extends Store
         listing = listing.toJS()
 
         # TODO: make this store update when account store updates.
-        if @redux.getStore('account')?.state?.other_settings?.mask_files
+        if @redux.getStore('account')?.getIn(["other_settings", "mask_files"])
             @_compute_file_masks(listing)
 
         if path == '.snapshots'

@@ -1,6 +1,6 @@
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 #DESC_FONT = "'Roboto Mono','monospace'"
@@ -49,8 +49,9 @@ Passports = rclass
     render_strategy : (name) ->
         if name is 'email'
             return
-        <a href={"/auth/#{name}"} key={name}>
-            <Icon size='2x' name='stack' href={"/auth/#{name}"}>
+        url = "#{window.smc_base_url}/auth/#{name}"
+        <a href={url} key={name}>
+            <Icon size='2x' name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
                 <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
             </Icon>
@@ -315,8 +316,9 @@ LANDING_PAGE_CONTENT =
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
-    <iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
-    </iframe>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/AEKOjac9obk" frameBorder="0" allowFullScreen></iframe>
+    #<iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
+    #</iframe>
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
@@ -429,16 +431,6 @@ RememberMe = () ->
     </div>
 
 
-LandingPageFooter = rclass
-    displayName : "LandingPageFooter"
-
-    mixins: [ImmutablePureRenderMixin]
-
-    render: ->
-        <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
-        SageMath, Inc. &middot; <a target="_blank" href="/policies/index.html">Policies</a> &middot; <a target="_blank" href="/policies/terms.html">Terms of Service</a> &middot; <HelpEmailLink />
-        </div>
-
 exports.LandingPage = rclass
     propTypes:
         actions : rtypes.object.isRequired
@@ -485,7 +477,7 @@ exports.LandingPage = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs" style=marginTop:'60px'>
+                    <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
                         <SMC_Commercial />
                     </Col>
                     <Col sm=5>
@@ -503,7 +495,7 @@ exports.LandingPage = rclass
                     </Col>
                 </Row>
                 <SagePreview />
-                <LandingPageFooter />
+                <Footer/>
             </div>
         else
             <RememberMe />

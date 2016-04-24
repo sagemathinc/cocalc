@@ -3,7 +3,7 @@
 #    SageMathCloud: A collaborative web-based interface to                    #
 #                   Sage, IPython, LaTeX and the Terminal.                    #
 #                                                                             #
-#    Copyright (C) 2015, The Authors of SageMathCloud                         #
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.                               #
 #                                                                             #
 #    This program is free software: you can redistribute it and/or modify     #
 #    it under the terms of the GNU General Public License as published by     #
@@ -21,6 +21,7 @@
 ###############################################################################
 
 misc = require('../misc.coffee')
+underscore = require('underscore')
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together
@@ -974,7 +975,8 @@ describe "timestamp_cmp", ->
     it "correctly compares timestamps", ->
         tcmp(a, b).should.eql 1
         tcmp(b, a).should.eql -1
-        tcmp(a, a).should.eql 0
+        # sometimes, that's -0 instead of 0
+        assert.strictEqual(tcmp(a, a), 0)
 
     it "handles missing timestamps gracefully", ->
         tcmp(a, {}).should.eql -1
@@ -1167,3 +1169,35 @@ describe "human readable list", ->
         arr = ["a", ["foo", "bar"], 99]
         exp = 'a, foo,bar and 99'
         thl(arr).should.be.eql exp
+
+describe "peer grading", ->
+    peer_grading = misc.peer_grading
+    it "sometimes throws errors", ->
+        expect(-> peer_grading([1,2,3], N=0)).toThrow()
+        expect(-> peer_grading([1,2,3], N=1)).toNotThrow()
+        expect(-> peer_grading([1,2,3], N=2)).toNotThrow()
+        expect(-> peer_grading([1,2,3], N=3)).toThrow()
+        expect(-> peer_grading([1,2,3], N=4)).toThrow()
+
+    it "generates proper peer lists", ->
+        for n in [1..5]
+            for s in [(n+1)...20]
+                students = ("S_#{i}" for i in [0...s])
+                asmnt = peer_grading(students, N=n)
+
+                expect(students).toEqual misc.keys(asmnt)
+                expect(misc.keys(asmnt).length).toEqual s
+
+                for k, v of asmnt
+                    # check student not assigned to him/herself
+                    assert v.indexOf(k) == -1
+                    # check all assigments have N students ...
+                    assert v.length == n
+                    # ... and do not contain duplicates
+                    assert underscore.uniq(v).length == v.length
+                # and each student has to grade n times
+                for s in students
+                    c = underscore.filter(
+                        v.indexOf(s) for _, v of asmnt,
+                        (x) -> x != -1).length
+                    expect(c).toEqual n

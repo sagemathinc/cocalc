@@ -42,6 +42,9 @@ def install_webapp():
     cmd("cd wizard && make")
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)
+    # update term.min.js
+    cmd("cd static/term; ./compile")
+    # update static react
     cmd("update_react_static")
     print("Building production webpack -- this will take about 3 minutes")
     cmd("npm run webpack-production")
@@ -87,7 +90,7 @@ def main():
     parser_project = subparsers.add_parser('project', help='install project server code system-wide')
     parser_project.set_defaults(func = lambda *args: install_project())
 
-    parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers')
+    parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node')
     parser_all.add_argument("--compute", default=False, action="store_const", const=True)
     parser_all.add_argument("--web", default=False, action="store_const", const=True)
     parser_all.set_defaults(func = lambda args: install_all(compute=args.compute, web=args.web))

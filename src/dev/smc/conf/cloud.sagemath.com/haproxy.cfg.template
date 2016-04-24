@@ -1,0 +1,69 @@
+global
+    tune.ssl.default-dh-param 2048
+
+resolvers dns
+     nameserver dns1 169.254.169.254:53
+     nameserver dns2 10.240.0.1:53
+     resolve_retries       3
+     timeout retry         1s
+     hold valid            10s
+
+defaults
+    log     global
+    mode    http
+    option  httplog
+    option  forwardfor
+    option  http-server-close
+    timeout connect 5000ms
+    timeout client  5000ms
+    timeout server  5000ms
+    timeout tunnel  120s
+
+    stats   enable
+    stats   uri     /haproxy
+    stats   realm   Haproxy\    Statistics
+
+backend static
+    balance roundrobin
+    timeout server 5s
+    #server nginx0 web0:8080 maxconn 10000 check resolvers dns 
+
+backend hub
+    balance leastconn
+    cookie SMCSERVERID3 insert nocache  # this specific cookie is also referenced in client_browser.coffee -- and also below for the proxy (more efficient to have same process do both)
+    option httpclose
+    timeout server 7s
+    option httpchk /alive
+
+    #server hub0a web0:5000 cookie server:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
+    #server hub0b web0:5002 cookie server:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+
+backend proxy
+    balance leastconn
+    cookie SMCSERVERID3 insert nocache      # this specific cookie is also referenced in client_browser.coffee!
+    option httpclose
+    timeout server 3s
+    retries 10
+
+    #server proxy0a web0:5001 cookie server:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
+    #server proxy0b web0:5003 cookie server:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+
+frontend https
+    bind    *:443 ssl crt /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
+    reqadd  X-Forwarded-Proto:\ https
+    timeout client 20s
+    # replace "/policies/" with "/static/policies/" at the beginning of any request path.
+    reqrep ^([^\ :]*)\ /policies/(.*)     \1\ /static/policies/\2
+    acl         is_static path_beg /static
+    use_backend static if is_static
+    acl         is_hub path_beg /hub /cookies /blobs /invoice /upload /alive /auth /stats /registration /projects /help /settings /customize /base_url.js
+    use_backend hub if is_hub
+    acl         is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/port
+    acl         is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/raw
+    use_backend proxy if is_proxy
+    default_backend static
+
+frontend http
+    bind    *:80
+    #redirect scheme https if !{ ssl_fc }
+    redirect location https://cloud.sagemath.com

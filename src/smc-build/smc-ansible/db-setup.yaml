@@ -1,0 +1,12 @@
+---
+- hosts: db
+  become: true
+  gather_facts: no
+
+  tasks:
+
+  # https://github.com/rethinkdb/rethinkdb/issues/5708#issuecomment-213623649
+  - name: 'enable core dumps'
+    template: src="files/db-limits.conf"
+              dest="/etc/security/limits.d/99-smc.cfg"
+              owner=root group=root mode=644

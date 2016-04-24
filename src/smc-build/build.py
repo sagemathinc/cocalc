@@ -246,7 +246,10 @@ SAGE_PIP_PACKAGES = [
     'pyparsing',
     'filterpy',
     'control',
-    'yattag'
+    'yattag',
+    'pyyaml',
+    'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
+    'charm-crypto'   # depends on installing libpbc to /usr system-wide, which is done in build.md
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -307,10 +310,14 @@ R_PACKAGES = [
     'agricolae',
     'nortest',
     'forecast',
-    'gplots'
+    'gplots',
+    'Hmisc',
+    'survey'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
+    'buckygen',
+    'benzene',
     #'chomp',
     'database_cremona_ellcurve',
     'database_odlyzko_zeta',
@@ -671,7 +678,7 @@ class BuildSage(object):
             # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
             # break Sage (i.e. lots of doctests fail, etc.).
             e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
-            self.cmd("%s pip install %s --no-deps %s"%(e, '--upgrade' if upgrade else '', package))
+            self.cmd("%s pip install %s --no-deps --ignore-installed %s"%(e, '--upgrade' if upgrade else '', package))
 
         for package in SAGE_PIP_PACKAGES_DEPS:
             log.info("** Installing/upgrading %s **"%package)

@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('./r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
 
 {SiteName} = require('./customize')
 
@@ -332,7 +332,7 @@ AccountSettings = rclass
             login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
-                <Button href={"/auth/#{@state.add_strategy_link}"} target="_blank"
+                <Button href={"#{window.smc_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
                     <Icon name="external-link" /> Link my {name} account
                 </Button>
@@ -609,7 +609,6 @@ EDITOR_SETTINGS_CHECKBOXES =
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
-    track_revisions           : 'record history of changes when editing files'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
 
 EditorSettingsCheckboxes = rclass
@@ -1211,6 +1210,7 @@ exports.AccountSettingsTop = rclass
                     <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
+            <Footer/>
         </div>
 
 STRATEGIES = ['email']

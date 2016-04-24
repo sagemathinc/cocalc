@@ -75,6 +75,8 @@ exports.update_snapshots = (opts) ->
             # determine which snapshots we need to make
             now = new Date()
             for name, interval of INTERVALS
+                if opts[name] <= 0 # not making any of these
+                    continue
                 # Is there a snapshot with the given name that is within the given
                 # interval of now?  If not, make snapshot.
                 v = (s for s in snapshots when misc.endswith(s, '-'+name))

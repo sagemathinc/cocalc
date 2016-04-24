@@ -11,3 +11,12 @@ html = require('./top_navbar.html') + require('./account.html') + require('./mis
 html = '<div class="page-container">' + html + '</div>'
 
 $('body').append(html)
+
+
+# TODO this below could work but doesn't. Project page is rendered below the footer
+# that explains, why sometimes there is a gap above the tabs of a project ...
+# Attach footer to all pages
+#{React, ReactDOM} = require('./smc-react')
+#{Footer} = require("./r_misc")
+#$('body').append("<footer id='footer'></footer>")
+#ReactDOM.render(React.createElement(Footer), document.getElementById("footer"))

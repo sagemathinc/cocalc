@@ -53,7 +53,8 @@ LogSearch = rclass
         @props.actions.setState(search:'', page:0)
 
     render_clear_button : ->
-        <Button onClick={@clear_and_focus_input}>
+        s = if @props.search?.length > 0 then 'warning' else "default"
+        <Button onClick={@clear_and_focus_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
@@ -260,7 +261,7 @@ LogEntry = rclass
             <Col sm=11>
                 {@render_user()}<Space/>
                 {@render_desc()}<Space/>
-                <TimeAgo style={style} date={@props.time} />
+                <TimeAgo style={style} date={@props.time} popover={true} />
             </Col>
         </Row>
 

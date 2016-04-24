@@ -33,6 +33,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
+                        require('./top_navbar').top_navbar.switch_to_page('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -66,6 +67,7 @@ class AccountActions extends Actions
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
                         ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                        require('./top_navbar').top_navbar.switch_to_page('projects')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
