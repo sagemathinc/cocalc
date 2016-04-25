@@ -49,6 +49,6 @@ exports.start = (opts) ->
     the_clients  = opts.clients
     the_host     = opts.host
     the_port     = opts.port
-    the_interval = opts.interval_s * 1000
+    the_interval = opts.interval_s
     register_hub()
-    setInterval(register_hub, the_interval)
+    setInterval(register_hub, the_interval*1000)

@@ -1006,6 +1006,8 @@ class RethinkDB
                 query.update({first_name: 'Deleted', last_name:'User', email_address_before_delete:email_address}).run(cb)
             (cb) =>
                 query.replace(@r.row.without('email_address')).run(cb)
+            (cb) =>
+                query.replace(@r.row.without('passports')).run(cb)
         ], opts.cb)
 
     # determine if the account exists and if so returns the account id; otherwise returns undefined.
@@ -2796,7 +2798,7 @@ class RethinkDB
                 opts.cb?(err)
             else
                 dbg("done")
-                if opts.repeat_until_done and to_remove.length == opts.limit 
+                if opts.repeat_until_done and to_remove.length == opts.limit
                     f = () =>
                         @backup_blobs_to_tarball(opts)
                     setTimeout(f, opts.repeat_until_done*1000)
