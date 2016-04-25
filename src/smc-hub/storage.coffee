@@ -43,8 +43,8 @@ NOTES:
 BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
 DB = ['db0', 'db1', 'db2', 'db3', 'db4', 'db5']  # default database nodes
 
-if process.env.USER != 'root'
-    console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
+#if process.env.USER != 'root'
+#    console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
 
 {join}      = require('path')
 fs          = require('fs')
@@ -1464,7 +1464,7 @@ start_server = (cb) ->
 
 
 ###
-Watch are storage_request activity.
+Watch for storage_request activity.
 ###
 exports.activity = (opts) ->
     new Activity(opts)
@@ -1571,12 +1571,125 @@ class Activity
         f()
         return
 
+
+# Return the storage requests (from the last age_m minutes) that are being ignored.
+# If this gets big then something is **terribly wrong**, e.g., a storage server isn't
+# working.  This must get fixed, since otherwise user projects won't get saved to
+# longterm storage, new projects can't be created/opened, etc.  This function below
+# gives the same thing as `activity.ignored()` would give above, but is a faster more
+# direct query (rather than setting up a changefeed, etc.).  It's something that should
+# be done periodically as part of monitoring.
+exports.ignored_storage_requests = (opts) ->
+    opts = defaults opts,
+        age_m : 10
+        cb    : required
+    dbg = (m) -> winston.debug("ignored_storage_requests: #{m}")
+    dbg()
+    db = undefined
+    v = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            require('smc-hub/rethink').rethinkdb
+                hosts : misc.random_choice(DB)
+                pool  : 1
+                cb    : (err, _db) ->
+                    db = _db
+                    cb(err)
+        (cb) ->
+            dbg("doing query")
+            # Projects...
+            q = db.table('projects')
+            # ... that had a storage request recently (in the last age_m minutes)...
+            q = q.between(misc.minutes_ago(opts.age_m), db.r.maxval, index:'storage_request_requested')
+            # the fields we care about are:
+            FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
+            q = q.pluck(FIELDS...)
+            # and we only want the ignored requests...
+            # First, get the ones with a request at all
+            # return (x for x in @list() when x.storage_request?.requested? and not x.storage_request?.finished and not x.storage_request?.started)
+            q = q.hasFields(storage_request:{requested:true})
+            # And the ones that haven't started and haven't finished
+            q = q.filter(db.r.row.hasFields(storage_request:{started:true}).not())
+            q = q.filter(db.r.row.hasFields(storage_request:{finished:true}).not())
+            q.run (err, x) ->
+                v = x
+                cb(err)
+    ], (err) ->
+        opts.cb(err, v)
+    )
+
+###
+
+If the storage servers get messed up for some reason, run this.  It'll ensure all projects
+that should have been saved for the last day are saved:
+
+    require 'c'; (require 'smc-hub/storage').save_projects_with_ignored_save_requests(age_m:60*24, limit:10, cb:done(), dry_run:false)
+
+###
+exports.save_projects_with_ignored_save_requests = (opts) ->
+    opts = defaults opts,
+        age_m   : 10
+        limit   : 5
+        dry_run : true
+        cb      : undefined
+    dbg = (m) -> winston.debug("save_projects_with_ignored_save_requests: #{m}")
+    dbg()
+    db = undefined
+    compute_server = undefined
+    v  = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            require('smc-hub/rethink').rethinkdb
+                hosts : DB
+                pool  : 10
+                cb    : (err, _db) ->
+                    db = _db
+                    cb(err)
+        (cb) ->
+            dbg("get projects with ignored save requests")
+            exports.ignored_storage_requests
+                age_m : opts.age_m
+                cb    : (err, z) ->
+                    if err
+                        cb(err)
+                    else
+                        v = (x for x in z when x.storage_request.action == 'save')
+                        cb()
+        (cb) ->
+            if opts.dry_run or v.length == 0
+                cb()
+                return
+            require('./compute-client').compute_server
+                database : db
+                cb       : (err, x) ->
+                    if err
+                        cb(err)
+                    else
+                        compute_server = x
+                        cb()
+        (cb) ->
+            if opts.dry_run
+                dbg("would save #{v.length} projects")
+                cb()
+                return
+            f = (x, cb) ->
+                compute_server.project
+                    project_id : x.project_id
+                    cb         : (err, project) ->
+                        if err
+                            cb(err)
+                        else
+                            project.save(cb:cb)
+            async.mapLimit(v, opts.limit, f, cb)
+    ], (err) => opts.cb?(err))
+
 ###########################
 # Command line interface
 ###########################
 
 program     = require('commander')
-daemon      = require('start-stop-daemon')
 
 LOGS = join(process.env.HOME, 'logs')
 program.usage('[start/stop/restart/status] [options]')
@@ -1587,6 +1700,7 @@ program.usage('[start/stop/restart/status] [options]')
 
 main = () ->
     winston.debug("running as a deamon")
+    daemon = require('start-stop-daemon')
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")

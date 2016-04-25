@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+cd $SMC_ROOT
+coffee -e "require('smc-hub/storage').ignored_storage_requests(cb:(e,t)->console.log(t.length);process.exit(e))"
