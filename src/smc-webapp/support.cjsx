@@ -21,7 +21,7 @@
 
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, Input, Well, Alert, Modal} = require('react-bootstrap')
+{Col, Row, Button, Input, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
@@ -36,6 +36,16 @@ STATE =
     CREATING   : 'creating' # loading ...
     CREATED    : 'created'  # ticket created
     ERROR      : 'error'    # there was a problem
+
+cmp_tickets = (t1, t2) ->
+    key = 'updated_at'
+    e1 = t1[key] # an iso date string is lexicographically sortable
+    e2 = t2[key]
+    if e1 < e2
+        return -1
+    else if e1 > e2
+        return 1
+    return 0
 
 
 class SupportStore extends Store
@@ -57,7 +67,9 @@ class SupportActions extends Actions
 
     load_support_tickets : () ->
         salvus_client.get_support_tickets (err, tickets) =>
-            console.log("tickets: #{misc.to_json(tickets)}")
+            # console.log("tickets: #{misc.to_json(tickets)}")
+            # sort by .updated_at
+            tickets = tickets.sort(cmp_tickets)
             @setState
                 support_ticket_error : err
                 support_tickets      : tickets
@@ -203,55 +215,78 @@ exports.SupportPage = rclass
 
     render_header : ->
         if @props.support_tickets.length > 0
-            <Row style={fontWeight:"bold"}>
-                <Col md=1>ID</Col>
-                <Col md=1>Status</Col>
-                <Col md=3>Subject</Col>
-                <Col md=5>Description</Col>
-                <Col md=2></Col>
-            </Row>
-        else if @props.support_tickets?.length == 0
-            <Row>
-                <Col md=12>You do not have any support tickets.</Col>
-            </Row>
+            <tr style={fontWeight:"bold"}>
+                <th>Ticket</th>
+                <th>Status</th>
+            </tr>
+        else if @props.support_tickets.length > 0
+            <tr>
+                <td>
+                    You do not have any support tickets.
+                </td>
+            </tr>
 
     open : (ticket_id) ->
         window.alert("open #{ticket_id}")
 
     render_body : ->
         for i, ticket of @props.support_tickets
-            <Row id={i}>
-                <Col md=1>{ticket.id}</Col>
-                <Col md=1>{ticket.status}</Col>
-                <Col md=3>{ticket.subject}</Col>
-                <Col md=5><Markdown value={ticket.description} /></Col>
-                <Col md=2>
-                    <Button bsStyle="info" onClick={=> @open(ticket.id)}>
-                        Open {ticket.id}
+            style = switch ticket.status
+                when 'open' or 'new'
+                    'warning'
+                when 'closed'
+                    'success'
+                else
+                    'info'
+
+            <tr key={i} className="#{style}">
+                <td><h4>{ticket.subject}</h4>
+                    <div style={fontSize:"85%", fontStyle:'italic', color:'#555'}>
+                        created: {ticket.created_at}
+                        {' '}&mdash;{' '}
+                        last update: {ticket.updated_at}
+                    </div>
+                    <div style={maxHeight:"10em", "overflowY":"auto"}>
+                        <Markdown value={ticket.description} />
+                    </div>
+                </td>
+                <td>
+                    <br/>
+                    <Button bsStyle="#{style}" onClick={=> @open(ticket.id)}>
+                        {ticket.status.toUpperCase()}
+                        <br/>
+                        Go to {ticket.id}
                     </Button>
-                </Col>
-            </Row>
+                </td>
+            </tr>
 
     render_table : ->
         if not @props.support_tickets?
-            return <div style={minHeight:"65vh", textAlign:"center"}>
+            return <div style={textAlign:"center"}>
                         <Loading />
                    </div>
 
-        <div style={minHeight:"65vh"} md=12>
-            {@render_header()}
-            {@render_body()}
-        </div>
+        <Table responsive>
+            <thead>
+                {@render_header()}
+            </thead>
+            <tbody>
+                {@render_body()}
+            </tbody>
+        </Table>
 
     render : ->
         <div>
             <h2>Support tickets</h2>
             <div>
-                Check the status of your support tickets
-                or create a new <exports.ShowSupportLink />.
+                Check the status of your support tickets.<br/>
+                To report an issue, navigate to the file in question
+                and click the <Icon name='medkit' /> button in the top right corner.
             </div>
             <hr/>
-            {@render_table()}
+            <div style={minHeight:"65vh"}>
+                {@render_table()}
+            </div>
             <Footer/>
         </div>
 
@@ -297,18 +332,24 @@ SupportInfo = rclass
         if title?
             loc  = @props.actions.location()
             fn   = loc.slice(47) # / projects / uuid /
-            what = "You have a problem with \"#{fn}\" in project \"#{title}\"?"
+            what = """
+                   If you have a problem or question with \"#{fn}\" in project \"#{title}\",
+                   create a support ticket.
+                   """
         else
-            what = "You have a problem or question?"
+            what = """
+                   If you have a problem with a specific project or file,
+                   close this dialog, navigate to it, and then open it again.
+                   Otherwise, please go ahead.
+                   """
         <div>
             <p>
-                {what} {" "}
-                Please tell us more about it by creating a support ticket.
+                {what}
             </p>
             <p>
-                After successfully submitting it,
-                you{"'"}ll receive a a link to your ticket.
-                Keep it save in order to stay in contact with us!
+                You{"'"}ll get a link to your ticket.
+                Keep it save until you receive an email
+                and check its status in "support" in your account settings.
             </p>
         </div>
 
@@ -391,6 +432,10 @@ SupportForm = rclass
                 value       = {@props.email}
                 onChange    = {@email_change} />
             {alert if alert?}
+            <div style={color:'#999'}>
+                Please make sure your email address is correct.
+            </div>
+            <Space />
             <Input
                 ref         = 'subject'
                 autoFocus

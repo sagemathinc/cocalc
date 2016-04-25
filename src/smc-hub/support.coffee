@@ -121,7 +121,7 @@ class exports.Support
             # dbg("raw = #{JSON.stringify(raw, null, 2, true)}")
             tickets = []
             for r in raw
-                t = _.pick(r, 'id', 'subject', 'description', 'created_at', 'status')
+                t = _.pick(r, 'id', 'subject', 'description', 'created_at', 'updated_at', 'status')
                 t.url = "https://sagemathcloud.zendesk.com/requests/#{t.id}"
                 tickets.push(t)
             cb(null, tickets)

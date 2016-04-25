@@ -963,8 +963,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='host' label='Host'>
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
-            If your project is not working, create a <ShowSupportLink />, or email <HelpEmailLink/> and include the following URL:
-            <URLBox />
+            If your project is not working, please create a <ShowSupportLink />.
             <hr />
             {@ssh_notice()}
         </ProjectSettingsPanel>
