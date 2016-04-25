@@ -1358,8 +1358,9 @@ class FileEditor extends EventEmitter
         else
             if not @_has_uncommitted_changes? or @_has_uncommitted_changes != val
                 if val and not @_show_uncommitted_warning_timeout
-                    @_show_uncommitted_warning_timeout = true
-                    setTimeout((()=>@_show_uncommitted_warning()), 12000)
+                    #@_show_uncommitted_warning_timeout = true
+                    #setTimeout((()=>@_show_uncommitted_warning()), 12000)
+                    # DO NOTHING FOR NOW -- needs more work to be reliable
                 else
                     @_when_had_no_uncommitted_changes = new Date()  # when we last knew for a fact there are no uncommitted changes
                     @uncommitted_element?.hide()
