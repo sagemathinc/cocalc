@@ -692,7 +692,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
             omit_lines = {}
-            @_syncstring.get_cursors().map (x, _) =>
+            @_syncstring.get_cursors()?.map (x, _) =>
                 x.get('locs')?.map (loc) =>
                     y = loc.get('y')
                     if y?
