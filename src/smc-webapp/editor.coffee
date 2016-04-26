@@ -2045,7 +2045,7 @@ class CodeMirrorEditor extends FileEditor
         @uncommitted_element = @element.find(".smc-uncommitted")
 
     init_history_button: () =>
-        if redux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if not @opts.public_access and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
