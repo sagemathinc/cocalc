@@ -558,7 +558,12 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this
         # slow down the user while they are typing.
-        update_unsaved_uncommitted_changes = underscore.debounce((=>@_update_unsaved_uncommitted_changes()), 1000)
+        f = () =>
+            if @_update_unsaved_uncommitted_changes()
+                # Check again in 5s no matter what if there are uncommitted changes, since otherwise
+                # there could be a stuck notification saying there are uncommitted changes.
+                setTimeout(f, 5000)
+        update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
@@ -640,7 +645,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         x = @codemirror.getValue()
         @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(x))
-        @editor.has_uncommitted_changes(@_syncstring.has_uncommitted_changes() or x != @_syncstring.get())
+        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.get()
+        @editor.has_uncommitted_changes(uncommitted_changes)
+        return uncommitted_changes
 
     _update_read_only: =>
         @editor.set_readonly_ui(@_syncstring.get_read_only())
