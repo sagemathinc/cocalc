@@ -18,8 +18,16 @@ as a resut.
 ###
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
-# not active for this long (must be at least 5 minutes)
-SYNCSTRING_MAX_AGE_M = 15
+# not active for this long (should be at least 5 minutes).
+SYNCSTRING_MAX_AGE_M = 7
+#SYNCSTRING_MAX_AGE_M = .2 # TESTING
+
+# CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
+# syncstrings, since they also maintain the sage session, put output into the
+# syncstring, etc.  It's critical that those only close when the user explicitly
+# kills them, or the project is closed.
+NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
+    sagews : true   # only sagews for now.
 
 ## SYNCSTRING_MAX_AGE_M = 1 # for debugging
 
@@ -154,8 +162,9 @@ class exports.Client extends EventEmitter
                     dbg("opening syncstring '#{path}' with id '#{string_id}'")
                     @_open_syncstrings[string_id] = @sync_string(path:path)
         for string_id, val of @_open_syncstrings
-            if not keys[string_id]
-                dbg("closing syncstring '#{val._path}' with id '#{string_id}'")
+            path = val._path
+            if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
+                dbg("closing syncstring '#{path}' with id '#{string_id}'")
                 val.close()
                 delete @_open_syncstrings[string_id]
 

@@ -1346,11 +1346,33 @@ class FileEditor extends EventEmitter
         else
             if not @_has_unsaved_changes? or @_has_unsaved_changes != val
                 if val
-                    @_when_had_no_unsaved_changes = new Date()  # when we last knew for a fact there are no unsaved changes
                     @save_button.removeClass('disabled')
                 else
+                    @_when_had_no_unsaved_changes = new Date()  # when we last knew for a fact there are no unsaved changes
                     @save_button.addClass('disabled')
             @_has_unsaved_changes = val
+
+    # commited means "not saved to the database/server", whereas save above
+    # means "saved to *disk*".
+    has_uncommitted_changes: (val) =>
+        if not val?
+            return @_has_uncommitted_changes
+        else
+            @_has_uncommitted_changes = val
+            if val
+                if not @_show_uncommitted_warning_timeout?
+                    # We have not already started a timer, so start one -- if we do not here otherwise, show
+                    # the warning in 10s.
+                    @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 10000)
+            else
+                if @_show_uncommitted_warning_timeout?
+                    clearTimeout(@_show_uncommitted_warning_timeout)
+                    delete @_show_uncommitted_warning_timeout
+                @uncommitted_element?.hide()
+
+    _show_uncommitted_warning: () =>
+        delete @_show_uncommitted_warning_timeout
+        @uncommitted_element?.show()
 
     focus: () => # TODO in derived class
 
@@ -1483,6 +1505,7 @@ class CodeMirrorEditor extends FileEditor
         @element.data('editor', @)
 
         @init_save_button()
+        @init_uncommitted_element()
         @init_history_button()
         @init_edit_buttons()
 
@@ -2020,8 +2043,11 @@ class CodeMirrorEditor extends FileEditor
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
+    init_uncommitted_element: () =>
+        @uncommitted_element = @element.find(".smc-uncommitted")
+
     init_history_button: () =>
-        if redux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if not @opts.public_access and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
@@ -2032,7 +2058,7 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        @save_button.icon_spin(start:true, delay:5000)
+        @save_button.icon_spin(start:true, delay:8000)
         @editor.save @filename, (err) =>
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
@@ -3573,6 +3599,9 @@ class FileEditorWrapper extends FileEditor
 
     has_unsaved_changes: (val) =>
         return @wrapped?.has_unsaved_changes?(val)
+
+    has_uncommitted_changes: (val) =>
+        return @wrapped?.has_uncommitted_changes?(val)
 
     _get: () =>
         # TODO

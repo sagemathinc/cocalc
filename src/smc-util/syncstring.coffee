@@ -558,15 +558,20 @@ class SyncDoc extends EventEmitter
     touch: (min_age_m=5) =>
         if @_client.is_project()
             return
-        last_active = @_syncstring_table?.get_one().get('last_active')
-        if not last_active? or last_active <= misc.server_minutes_ago(min_age_m)
-            @_client.query
-                query :
-                    syncstrings :
-                        string_id   : @_string_id
-                        project_id  : @_project_id
-                        path        : @_path
-                        last_active : misc.server_time()
+        if min_age_m > 0
+            # if min_age_m is 0 always do it immediately; if > 0 check what it was:
+            last_active = @_syncstring_table?.get_one().get('last_active')
+            # if not defined or not set recently, do it.
+            if not (not last_active? or last_active <= misc.server_minutes_ago(min_age_m))
+                return
+        # Now actually do the set.
+        @_client.query
+            query :
+                syncstrings :
+                    string_id   : @_string_id
+                    project_id  : @_project_id
+                    path        : @_path
+                    last_active : misc.server_time()
 
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
@@ -644,7 +649,7 @@ class SyncDoc extends EventEmitter
         if not @_closed
             cb("already connected")
             return
-        @touch()   # critical to do a quick initial touch so file gets opened on the backend
+        @touch(0)   # critical to do a quick initial touch so file gets opened on the backend
         query =
             syncstrings :
                 string_id         : @_string_id
@@ -670,10 +675,10 @@ class SyncDoc extends EventEmitter
                 (cb) =>
                     @_closed = false
                     if @_client.is_user() and not @_periodically_touch?
-                        @touch()
+                        @touch(1)
                         # touch every few minutes while syncstring is open, so that backend local_hub
                         # (if open) keeps its side open
-                        @_periodically_touch = setInterval(@touch, 1000*60*TOUCH_INTERVAL_M)
+                        @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
                     if @_client.is_project()
                         @_load_from_disk_if_newer(cb)
                     else
@@ -1219,7 +1224,10 @@ class SyncDoc extends EventEmitter
             cb    : cb
 
     # Returns true if the current live version of this document has a different hash
-    # than the version mostly recently saved to disk.
+    # than the version mostly recently saved to disk.  I.e., if there are changes
+    # that have not yet been **saved to disk**.  See the other function
+    # has_uncommitted_changes below for determining whether there are changes
+    # that haven't been commited to the database yet.
     has_unsaved_changes: () =>
         return misc.hash_string(@get()) != @hash_of_saved_version()
 
@@ -1238,18 +1246,25 @@ class SyncDoc extends EventEmitter
             return
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
-            @_syncstring_table.wait
-                until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
-                timeout : 30
-                cb      : (err) =>
-                    #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")
-                    if err
-                        #dbg("got err waiting: #{err}")
-                    else
-                        err = @_syncstring_table.get_one().getIn(['save', 'error'])
-                        #if err
-                        #dbg("got result but there was an error: #{err}")
-                    cb(err)
+            f = (cb) =>
+                @_syncstring_table.wait
+                    until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
+                    timeout : 5
+                    cb      : (err) =>
+                        #dbg("done waiting -- now save.state is '#{@_syncstring_table.get_one().getIn(['save','state'])}'")
+                        if err
+                            #dbg("got err waiting: #{err}")
+                        else
+                            err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                            #if err
+                            #    dbg("got result but there was an error: #{err}")
+                        if err
+                            @touch(0) # touch immediately to ensure backend pays attention.
+                        cb(err)
+            misc.retry_until_success
+                f         : f
+                max_tries : 5
+                cb        : cb
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
@@ -1328,6 +1343,12 @@ class SyncDoc extends EventEmitter
             @_doc.set(new_remote)
             @emit('change')
 
+    # Return true if there are changes to this syncstring that have not been
+    # committed to the database (with the commit acknowledged).  This does not
+    # mean the file has been written to disk; however, it does mean that it
+    # safe for the user to close their browser.
+    has_uncommitted_changes: () =>
+        return @_patches_table?.has_uncommitted_changes()
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.
