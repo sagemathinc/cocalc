@@ -1356,17 +1356,21 @@ class FileEditor extends EventEmitter
         if not val?
             return @_has_uncommitted_changes
         else
-            if not @_has_uncommitted_changes? or @_has_uncommitted_changes != val
-                if val
-                    setTimeout((()=>@_show_uncommitted_warning()), 3500)
-                else
-                    @_when_had_no_uncommitted_changes = new Date()  # when we last knew for a fact there are no uncommitted changes
-                    @uncommitted_element?.hide()
-                @_has_uncommitted_changes = val
+            @_has_uncommitted_changes = val
+            if val
+                if not @_show_uncommitted_warning_timeout?
+                    # We have not already started a timer, so start one -- if we do not here otherwise, show
+                    # the warning in 10s.
+                    @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 10000)
+            else
+                if @_show_uncommitted_warning_timeout?
+                    clearTimeout(@_show_uncommitted_warning_timeout)
+                    delete @_show_uncommitted_warning_timeout
+                @uncommitted_element?.hide()
 
     _show_uncommitted_warning: () =>
-        if new Date() - (@_when_had_no_uncommitted_changes ? 0) >= 3000
-            @uncommitted_element?.show()
+        delete @_show_uncommitted_warning_timeout
+        @uncommitted_element?.show()
 
     focus: () => # TODO in derived class
 
@@ -2041,7 +2045,7 @@ class CodeMirrorEditor extends FileEditor
         @uncommitted_element = @element.find(".smc-uncommitted")
 
     init_history_button: () =>
-        if redux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if not @opts.public_access and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
