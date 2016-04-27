@@ -30,6 +30,7 @@ import time
 import sys
 from oauth2client import file
 from apiclient.discovery import build
+from datetime import datetime, timedelta
 import httplib2
 from pytz import utc
 from dateutil.parser import parse as dtparse
@@ -43,32 +44,50 @@ import yaml
 
 # global variables (don't change them)
 PROJECT_ID = "137606465756" # sage-math-inc
-CUSTOM_METRIC_DOMAIN = "custom.cloudmonitoring.googleapis.com"
+# Monitoring API V3: "custom.googleapis.com/YOUR_METRIC_NAME"
+CUSTOM_METRIC_DOMAIN = "custom.googleapis.com"
 
-# CUSTOM_METRIC_NAME = "test"
 
-
-def get_service():
+def get_service(creds_fn = None):
     # To obtain the `service`, one needs to have working creds.dat credentials
     # if it doesn't work, go back to the smc project and re-run the "auth.py"
 
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-    storage = file.Storage(os.path.join(this_dir, 'creds.dat'))
+    if creds_fn is None:
+        this_dir = os.path.dirname(os.path.realpath(__file__))
+        print("this_dir: %s" % this_dir)
+        creds_fn = os.path.join(this_dir, 'creds.dat')
+    storage = file.Storage(creds_fn)
     credentials = storage.get()
     if credentials is None or credentials.invalid:
         raise Exception("Someone has to run $ python auth.py --noauth_local_webserver")
 
     # Create an httplib2.Http object to handle our HTTP requests and authorize it with our good Credentials.
     http = credentials.authorize(httplib2.Http())
-    service = build(serviceName="cloudmonitoring", version="v2beta2", http=http)
-
+    #service = build(serviceName="cloudmonitoring", version="v2beta2", http=http)
+    service = build(serviceName="monitoring", version="v3", http=http)
     return service
 
+def format_rfc3339(datetime_instance=None):
+    """Formats a datetime per RFC 3339.
+    """
+    return datetime_instance.isoformat("T") + "Z"
+
+
+def get_ago(minutes = 0):
+    start_time = datetime.utcnow() - timedelta(minutes=minutes)
+    return format_rfc3339(start_time)
+
+
+def get_now():
+    # Return now
+    return format_rfc3339(datetime.utcnow())
+
+get_timestamp_rfc3339 = get_now
 
 def make_data(name, value, **kwargs):
 
     # The current timestamp, used for start&end in the timeseries
-    now_rfc3339 = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    now_rfc3339 = get_timestamp_rfc3339()
 
     timeseries_descriptor = {
         "project": PROJECT_ID,
