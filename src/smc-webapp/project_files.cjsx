@@ -1591,7 +1591,10 @@ ProjectFiles = (name) -> rclass
         @props.actions.setState(file_creation_error : e)
 
     create_folder : ->
-        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
+        @props.actions.create_folder
+            name         : @props.file_search
+            current_path : @props.current_path
+            on_error     : ((a) => setState(error: a))
         @props.actions.setState(file_search : '', page_number: 0)
 
     render_paging_buttons : (num_pages) ->

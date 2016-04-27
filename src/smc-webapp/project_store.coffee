@@ -587,7 +587,14 @@ class ProjectActions extends Actions
             s = "#{s}.#{ext}"
         return s
 
-    create_folder : (name, current_path, on_error) =>
+    create_folder : (opts) =>
+        opts = defaults opts,
+            name         : undefined
+            current_path : undefined
+            on_error     : undefined
+
+        {name, current_path, on_error} = opts
+
         if name[name.length - 1] == '/'
             name = name.slice(0, -1)
         p = @path(name, current_path, undefined, undefined, on_error)
@@ -621,7 +628,10 @@ class ProjectActions extends Actions
             return
         if name[name.length - 1] == '/'
             if not opts.ext?
-                @create_folder(name, opts.current_path, opts.on_error)
+                @create_folder
+                    name          : name
+                    current_path  : opts.current_path
+                    on_error      : opts.on_error
                 return
             else
                 name = name.slice(0, name.length - 1)
