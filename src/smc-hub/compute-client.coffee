@@ -926,7 +926,7 @@ class ProjectClient extends EventEmitter
                     cb()
                     return
                 # assign a storage server, if there are any
-                hosts = @compute_server.storage_servers.get().keySeq().toJS()
+                hosts = @compute_server.storage_servers.get()?.keySeq().toJS() ? []
                 if hosts.length == 0
                     dbg('no storage servers')
                     cb()
