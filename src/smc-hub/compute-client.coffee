@@ -1609,7 +1609,7 @@ class ProjectClient extends EventEmitter
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
-        if @compute_server.storage_servers.get().size == 0
+        if (@compute_server.storage_servers.get()?.size ? 0) == 0
             dbg('no storage servers -- so all _storage_requests trivially done')
             opts.cb?()
             return
