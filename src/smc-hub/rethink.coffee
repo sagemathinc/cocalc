@@ -112,7 +112,8 @@ class RethinkDB
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
-            concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_warn  : 150  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_error : 200  # if nonzero, and this many queries at once, any query instantly fails!
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -126,6 +127,7 @@ class RethinkDB
         @_error_thresh     = opts.error
         @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
+        @_concurrent_error = opts.concurrent_error
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
         @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
@@ -309,6 +311,16 @@ class RethinkDB
                         that._concurrent_queries ?= 0
                         that._concurrent_queries += 1
 
+                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
+                        if that._concurrent_queries > that._concurrent_warn
+                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
+
+                        if that._concurrent_error and that._concurrent_queries > that._concurrent_error
+                            winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
+                            that._concurrent_queries -= 1
+                            cb("concurrent_error")
+                            return
+
                         # choose a random connection
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
@@ -333,9 +345,6 @@ class RethinkDB
                         if that._error_thresh
                             error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
-                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
-                        if that._concurrent_queries > that._concurrent_warn
-                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
                             report_time = ->
                                 that._concurrent_queries -= 1
