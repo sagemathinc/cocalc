@@ -113,7 +113,7 @@ class RethinkDB
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
-            concurrent_error : 600  # if nonzero, and this many queries at once, any query instantly fails!
+            concurrent_error : 1000  # if nonzero, and this many queries at once, any query instantly fails!
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -446,6 +446,31 @@ class RethinkDB
             query = query.union(db.table(opts.tables[i]))
         query.changes(includeInitial:false).run (err, feed) =>
             feed.each(opts.cb)
+
+    # Wait until the table is ready for queries.
+    # NOTE:
+    wait_until_ready_for_writes: (opts) =>
+        opts = defaults opts,
+            table     : required     # string -- name of a table
+            timeout_s : 30
+            cache     : true         # if true, cache success for 10s; this is more efficient, but means SMC will stop responding properly during a failure for a few seconds.
+            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
+        last = (@_wait_until_ready_for_writes_last ?= {})
+        if opts.cache and (last[opts.table]? and new Date() - last[opts.table] < 10000)
+            opts.cb()
+            return
+        d = (@_wait_until_ready_for_writes ?= {})
+        if not d[opts.table]?
+            d[opts.table] = [opts.cb]
+        else
+            d[opts.table].push(opts.cb)
+            return
+        @table(opts.table).wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+            if not err and opts.cache
+                last[opts.table] = new Date()
+            for cb in d[opts.table]
+                cb(err)
+            delete d[opts.table]
 
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
@@ -3737,7 +3762,8 @@ class RethinkDB
                         opts.options.push(x)
 
         result = undefined
-        db_query = @table(SCHEMA[opts.table].virtual ? opts.table)
+        table_name = SCHEMA[opts.table].virtual ? opts.table
+        db_query = @table(table_name)
         opts.this = @
 
         # The killfeed below is only used when changes is true in case of tricky queries that depend
@@ -3759,7 +3785,9 @@ class RethinkDB
                 ## cb(); return # to disable
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
-                    db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
+                    @wait_until_ready_for_writes
+                        table   : table_name
+                        cb      : cb
                 else
                     cb()
             (cb) =>
@@ -3840,21 +3868,23 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
-                                                    if err
-                                                        e = misc.to_json(err)
-                                                        if e.indexOf("Did you just reshard?") != -1
-                                                            # give it time so we do not overload the server
-                                                            setTimeout((()=>cb(err)), 10000)
+                                        @wait_until_ready_for_writes
+                                            table : 'projects'
+                                            cb    : (err) =>
+                                                if err
+                                                    cb(err)
+                                                else
+                                                    @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
+                                                        if err
+                                                            e = misc.to_json(err)
+                                                            if e.indexOf("Did you just reshard?") != -1
+                                                                # give it time so we do not overload the server
+                                                                setTimeout((()=>cb(err)), 10000)
+                                                            else
+                                                                cb(err)
                                                         else
-                                                            cb(err)
-                                                    else
-                                                        killfeed = feed
-                                                        cb()
+                                                            killfeed = feed
+                                                            cb()
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -3874,21 +3904,23 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
-                                                    if err
-                                                        e = misc.to_json(err)
-                                                        if e.indexOf("Did you just reshard?") != -1
-                                                            # give it time so we do not overload the server
-                                                            setTimeout((()=>cb(err)), 10000)
+                                        @wait_until_ready_for_writes
+                                            table : 'projects'
+                                            cb    : (err) =>
+                                                if err
+                                                    cb(err)
+                                                else
+                                                    @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
+                                                        if err
+                                                            e = misc.to_json(err)
+                                                            if e.indexOf("Did you just reshard?") != -1
+                                                                # give it time so we do not overload the server
+                                                                setTimeout((()=>cb(err)), 10000)
+                                                            else
+                                                                cb(err)
                                                         else
-                                                            cb(err)
-                                                    else
-                                                        killfeed = feed
-                                                        cb()
+                                                            killfeed = feed
+                                                            cb()
                                     else
                                         cb()
                     else if typeof(x) == 'function'
