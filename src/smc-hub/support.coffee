@@ -268,7 +268,7 @@ class exports.Support
             if err
                 @cb?(err)
             else
-                url = "https://sagemathcloud.zendesk.com/requests/#{ticket_id}"
+                url = misc.ticket_id_to_ticket_url(ticket_id)
                 @cb?(null, url)
         )
 

@@ -1647,3 +1647,7 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
     for k, v of result
         console.log("#{k} ←→ #{v}")
     return result
+
+# converts ticket number to support ticket url (currently zendesk)
+exports.ticket_id_to_ticket_url = (tid) ->
+    return "https://sagemathcloud.zendesk.com/requests/#{tid}"

@@ -47,6 +47,16 @@ cmp_tickets = (t1, t2) ->
         return 1
     return 0
 
+date2str = (d) ->
+    try
+        if _.isString(d)
+            d = new Date(d)
+        dstr = d.toISOString().slice(0, 10)
+        tstr = d.toLocaleTimeString()
+        return "#{dstr} #{tstr}"
+    catch e
+        console.warn("support/date2str: could not convert #{d}")
+        return '?'
 
 class SupportStore extends Store
 
@@ -227,7 +237,9 @@ exports.SupportPage = rclass
             </tr>
 
     open : (ticket_id) ->
-        window.alert("open #{ticket_id}")
+        url = misc.ticket_id_to_ticket_url(ticket_id)
+        tab = window.open(url, '_blank')
+        tab.focus()
 
     render_body : ->
         for i, ticket of @props.support_tickets
@@ -241,10 +253,10 @@ exports.SupportPage = rclass
 
             <tr key={i} className="#{style}">
                 <td><h4>{ticket.subject}</h4>
-                    <div style={fontSize:"85%", fontStyle:'italic', color:'#555'}>
-                        created: {ticket.created_at}
+                    <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
+                        created: {date2str(ticket.created_at)}
                         {' '}&mdash;{' '}
-                        last update: {ticket.updated_at}
+                        last update: {date2str(ticket.updated_at)}
                     </div>
                     <div style={maxHeight:"10em", "overflowY":"auto"}>
                         <Markdown value={ticket.description} />
@@ -332,24 +344,25 @@ SupportInfo = rclass
         if title?
             loc  = @props.actions.location()
             fn   = loc.slice(47) # / projects / uuid /
-            what = """
-                   If you have a problem or question with \"#{fn}\" in project \"#{title}\",
-                   create a support ticket.
-                   """
+            what = <p>
+                       If you have a problem or question with "{fn}" in
+                       project "{title}", please create a support ticket.
+                   </p>
         else
-            what = """
-                   If you have a problem with a specific project or file,
-                   close this dialog, navigate to it, and then open it again.
-                   Otherwise, please go ahead.
-                   """
+            what = <p>
+                       If you have a problem with a specific project or file,
+                       close this dialog, navigate to it, and then click on
+                       {" "}<Icon name='medkit' />{" "}
+                       in the top right corner to open it again.
+                       Otherwise, please go ahead.
+                   </p>
         <div>
+            {what}
             <p>
-                {what}
-            </p>
-            <p>
-                You{"'"}ll get a link to your ticket.
-                Keep it save until you receive an email
-                and check its status in "support" in your account settings.
+                After submitting a ticket, you{"'"}ll get a link to it.
+                Keep it save until you receive a confirmation email.
+                You can also check the status of your ticket under "Support"
+                in your account settings.
             </p>
         </div>
 

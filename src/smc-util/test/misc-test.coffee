@@ -1209,3 +1209,13 @@ describe "sum", ->
         expect(misc.sum([])).toEqual 0
     it "has an option to set a start", ->
         expect(misc.sum([-1,5], start=-5)).toEqual -1
+
+describe "ticket_id_to_ticket_url", ->
+    t2t = misc.ticket_id_to_ticket_url
+    it "converts a number or string to an url", ->
+        x = t2t(123)
+        x.should.match /^http/
+        x.should.match /123/
+        y = t2t("123")
+        y.should.match /^http/
+        y.should.match /123/
