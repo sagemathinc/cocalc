@@ -20,6 +20,7 @@ node_modules
 *.sass-cache
 
 src/static/
+src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html
 
 src/page/temp
