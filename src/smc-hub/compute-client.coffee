@@ -1085,7 +1085,7 @@ class ProjectClient extends EventEmitter
                 opts.cb(undefined, state_obj())
             return
 
-        STATE_UPDATE_INTERVAL_S = 10  # always update after this many seconds
+        STATE_UPDATE_INTERVAL_S = 30  # always update db after this many seconds, no matter what
         if opts.force or not @_state_time? or new Date() - (@_last_state_update ? 0) >= 1000*STATE_UPDATE_INTERVAL_S
             dbg("calling remote compute server for state")
             @_action
@@ -1098,9 +1098,9 @@ class ProjectClient extends EventEmitter
                         opts.cb(err)
                     else
                         dbg("got '#{misc.to_json(resp)}'")
-                        if @_state != resp.state or @_state_time != resp.time or @_state_error != resp.state_error
+                        if @_state != resp.state or @_state_error != resp.state_error or (resp.time - @_state_time >= 1000*STATE_UPDATE_INTERVAL_S)
                             # Set the latest info about state that we got in the database so that
-                            # clients and other hubs no about it.
+                            # clients and other hubs know about it.
                             @_state = resp.state; @_state_time = resp.time; @_state_error = resp.state_error
                             @_set_state
                                 state      : resp.state
@@ -1646,7 +1646,7 @@ class ProjectClient extends EventEmitter
                 else
                     cb()
             (cb) =>
-                dbg("update database with *request* to '#{opts.action}' -- this causes storage server to doing something")
+                dbg("update database with *request* to '#{misc.to_json(opts.action)}' -- this causes storage server to doing something")
                 @compute_server.database.set_project_storage_request
                     project_id : @project_id
                     action     : opts.action

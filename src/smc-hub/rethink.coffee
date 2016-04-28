@@ -3573,7 +3573,7 @@ class RethinkDB
             # to do any action with the project.
             @project_action
                 project_id     : new_val.project_id
-                action_request : new_val.action_request
+                action_request : misc.copy_with(new_val.action_request, ['action', 'time'])
                 cb         : (err) =>
                     dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
             cb()
