@@ -221,7 +221,8 @@ class GCE(object):
     def create_all_boot_snapshots(self):
         v = []
 
-        for i in [0,1,2,3,4,5,'-backup']:
+        #for i in [0,1,2,3,4,5,'-backup']:
+        for i in [0,1,2,3,4,5]:
             v.append(('db', i))
 
         for name in self.dev_instances():
@@ -297,7 +298,7 @@ class GCE(object):
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
         # database backup disk
-        self.create_data_snapshot(node='-backup', prefix='db', zone=zone, devel=False)
+        #self.create_data_snapshot(node='-backup', prefix='db', zone=zone, devel=False)
 
         for i in range(6):
             log("snapshotting storage%s storage data"%i)
