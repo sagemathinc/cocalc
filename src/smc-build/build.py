@@ -312,7 +312,8 @@ R_PACKAGES = [
     'forecast',
     'gplots',
     'Hmisc',
-    'survey'
+    'survey',
+    'maps'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
