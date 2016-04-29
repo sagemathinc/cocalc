@@ -450,6 +450,7 @@ class RethinkDB
     # Wait until the table is ready for queries.
     # NOTE:
     wait_until_ready_for_writes: (opts) =>
+        ##opts.cb(); return # DISABLE
         opts = defaults opts,
             table     : required     # string -- name of a table
             timeout_s : 30
