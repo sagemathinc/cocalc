@@ -468,9 +468,10 @@ class RethinkDB
         @table(opts.table).wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
             if not err and opts.cache
                 last[opts.table] = new Date()
-            for cb in d[opts.table]
-                cb(err)
+            v = d[opts.table]
             delete d[opts.table]
+            for cb in v
+                cb(err)
 
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
