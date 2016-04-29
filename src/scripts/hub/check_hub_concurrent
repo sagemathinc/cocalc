@@ -1,1 +1,1 @@
-tail -f $HOME/logs/hub*.log |grep -a concurrent 
+tail -f $HOME/logs/hub*.log |grep -a concurrent | cut -d[ -f2
