@@ -336,6 +336,57 @@ def connections():
         dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
         print('%s: %s' % (x['name'], dbs))
 
+def read_write_stats(N = 10, B = 2):
+    """
+    Tabulates some read/write stats per table
+    """
+    from collections import Counter
+    from time import sleep
+    c_wps = Counter()
+    c_rps = Counter()
+    print("taking {} samples in {}s intervals".format(N, B))
+    for i in range(N):
+        wps_t = {}
+        rps_t = {}
+        print("sample {}".format(i))
+        for t in r_stats.filter(r.row['id'][0] == "table").pluck("table", "query_engine").run():
+            name = t["table"]
+            wps = t["query_engine"]["written_docs_per_sec"]
+            rps = t["query_engine"]['read_docs_per_sec']
+            if wps > 10 or rps > 10:
+                print("{0:<30s} wps: {1:10.2f} rps: {2:10.2f}".format(name, wps, rps))
+            wps_t[name] = wps
+            rps_t[name] = rps
+        c_wps.update(wps_t)
+        c_rps.update(rps_t)
+        sleep(B)
+
+    print("{:30s}    reads/s     writes/s".format(""))
+    sum_r = sum_w = 0
+    for name in sorted(c_wps.keys(), key = lambda n : - c_wps[n] - c_rps[n]):
+        rps = c_rps[name] / N
+        sum_r += rps
+        wps = c_wps[name] / N
+        sum_w += wps
+        print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
+    print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
+
+def live(table = 'projects', max_time = 15, filter_str = None):
+    """
+    Watch queries in real-time.
+    * table: the table of interest (e.g. 'patches', 'projects', 'syncstrings', ...)
+    * max_time: show only queries below that in seconds (otherwise, you get changefeeds)
+    * filter_str: an additional string for filtering the queries.
+      e.g. a project uuid via live(filter_str='369491f1')
+    """
+    q = r_jobs.filter({'type':'query'})
+    q = q.filter(r.row['duration_sec'] < max_time)
+    q = q.filter(r.row["info"]["query"].match(r'table\("%s"' % table))
+    if filter_str is not None:
+        q = q.filter(r.row["info"]["query"].match(filter_str))
+    for x in q.changes()['new_val']['info'].run():
+        print(x['query'])
+
 # This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
 

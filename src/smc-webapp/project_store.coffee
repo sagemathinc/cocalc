@@ -208,7 +208,7 @@ class ProjectActions extends Actions
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
                 @foreground_project()
-                @set_current_path(path)
+                @set_current_path(path, update_file_listing=true)
                 @set_focused_page('project-file-listing')
 
     set_focused_page : (page) =>
@@ -216,15 +216,16 @@ class ProjectActions extends Actions
         # influence what is displayed
         @_project().display_tab(page)
 
-    set_current_path : (path) =>
+    set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
         p = @_project()
         @setState
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
-        @set_directory_files(path)
-        @set_all_files_unchecked()
+        if update_file_listing
+            @set_directory_files(path)
+            @set_all_files_unchecked()
 
     set_file_search : (search) =>
         @setState
@@ -606,7 +607,7 @@ class ProjectActions extends Actions
             cb   : (err) =>
                 if not err and switch_over
                     #TODO reporting of errors...
-                    @set_current_path(p)
+                    @set_current_path(p, update_file_listing=true)
                     @set_focused_page('project-file-listing')
 
     create_file : (opts) =>
