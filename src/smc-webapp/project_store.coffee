@@ -592,8 +592,9 @@ class ProjectActions extends Actions
             name         : undefined
             current_path : undefined
             on_error     : undefined
+            switch_over  : true       # Whether or not to switch to the new folder
 
-        {name, current_path, on_error} = opts
+        {name, current_path, on_error, switch_over} = opts
 
         if name[name.length - 1] == '/'
             name = name.slice(0, -1)
@@ -603,7 +604,7 @@ class ProjectActions extends Actions
         @ensure_directory_exists
             path : p
             cb   : (err) =>
-                if not err
+                if not err and switch_over
                     #TODO reporting of errors...
                     @set_current_path(p)
                     @set_focused_page('project-file-listing')
@@ -616,6 +617,7 @@ class ProjectActions extends Actions
             on_download  : undefined
             on_error     : undefined
             on_empty     : undefined
+            switch_over  : true       # Whether or not to switch to the new file
 
         name = opts.name
         if (name == ".." or name == ".") and not opts.ext?
@@ -658,7 +660,7 @@ class ProjectActions extends Actions
             cb          : (err, output) =>
                 if err
                     opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
-                else
+                else if opts.switch_over
                     @set_focused_page('project-editor')
                     tab = @create_editor_tab(filename:p, content:'')
                     @display_editor_tab(path: p)
