@@ -10,3 +10,13 @@
     template: src="files/db-limits.conf"
               dest="/etc/security/limits.d/99-smc.cfg"
               owner=root group=root mode=644
+
+
+# Note: The above is only for newly started processes and children.
+# To set process limits for running processes, use prlimit, which
+# unfortunately doesn't read from that file. So that has to be done manually:
+#
+# SET:
+# ps -u rethinkdb  h -opid | xargs -I{} sudo prlimit --pid {} --core=10000000
+# GET + grepping:
+# ps -u rethinkdb  h -opid | xargs -I{} sudo prlimit --pid {} | grep core

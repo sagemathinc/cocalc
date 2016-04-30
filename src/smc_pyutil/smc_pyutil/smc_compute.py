@@ -373,6 +373,7 @@ class Project(object):
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
     def start(self, cores, memory, cpu_shares, base_url):
+        self.remove_smc_path()   # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
         self.remove_snapshots_path()

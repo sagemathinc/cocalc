@@ -371,6 +371,22 @@ def read_write_stats(N = 10, B = 2):
         print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
     print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
 
+def live(table = 'projects', max_time = 15, filter_str = None):
+    """
+    Watch queries in real-time.
+    * table: the table of interest (e.g. 'patches', 'projects', 'syncstrings', ...)
+    * max_time: show only queries below that in seconds (otherwise, you get changefeeds)
+    * filter_str: an additional string for filtering the queries.
+      e.g. a project uuid via live(filter_str='369491f1')
+    """
+    q = r_jobs.filter({'type':'query'})
+    q = q.filter(r.row['duration_sec'] < max_time)
+    q = q.filter(r.row["info"]["query"].match(r'table\("%s"' % table))
+    if filter_str is not None:
+        q = q.filter(r.row["info"]["query"].match(filter_str))
+    for x in q.changes()['new_val']['info'].run():
+        print(x['query'])
+
 # This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.
 
