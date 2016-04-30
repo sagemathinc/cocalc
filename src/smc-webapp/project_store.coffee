@@ -407,9 +407,20 @@ class ProjectActions extends Actions
 
     copy_files : (opts) =>
         opts = defaults opts,
-            src  : required
+            src  : required     # Should be an array of source paths
             dest : required
             id   : undefined
+
+        # If files start with a -, make them interpretable by rsync
+        validate = (src_path) ->
+            if src_path[0] == '-'
+                "./#{src_path}"
+            else
+                src_path
+
+        # Ensure that src files are not interpreted as an option to rsync
+        opts.src = opts.src.map(validate)
+
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
         @log
