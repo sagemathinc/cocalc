@@ -1224,7 +1224,10 @@ class SyncDoc extends EventEmitter
             cb    : cb
 
     # Returns true if the current live version of this document has a different hash
-    # than the version mostly recently saved to disk.
+    # than the version mostly recently saved to disk.  I.e., if there are changes
+    # that have not yet been **saved to disk**.  See the other function
+    # has_uncommitted_changes below for determining whether there are changes
+    # that haven't been commited to the database yet.
     has_unsaved_changes: () =>
         return misc.hash_string(@get()) != @hash_of_saved_version()
 
@@ -1340,6 +1343,12 @@ class SyncDoc extends EventEmitter
             @_doc.set(new_remote)
             @emit('change')
 
+    # Return true if there are changes to this syncstring that have not been
+    # committed to the database (with the commit acknowledged).  This does not
+    # mean the file has been written to disk; however, it does mean that it
+    # safe for the user to close their browser.
+    has_uncommitted_changes: () =>
+        return @_patches_table?.has_uncommitted_changes()
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.

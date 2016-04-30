@@ -558,7 +558,12 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this
         # slow down the user while they are typing.
-        update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 1000)
+        f = () =>
+            if @_update_unsaved_uncommitted_changes()
+                # Check again in 5s no matter what if there are uncommitted changes, since otherwise
+                # there could be a stuck notification saying there are uncommitted changes.
+                setTimeout(f, 5000)
+        update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
@@ -579,7 +584,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
                 @codemirror1.clearHistory()
 
-                update_unsaved_changes()
+                update_unsaved_uncommitted_changes()
                 @_update_read_only()
 
                 @_init_cursor_activity()
@@ -590,7 +595,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
-                    update_unsaved_changes()
+                    update_unsaved_uncommitted_changes()
                     @_update_read_only()
 
                 @_syncstring.on 'before-change', =>
@@ -612,7 +617,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @save_state_debounce()
-                    update_unsaved_changes()
+                    update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
@@ -628,10 +633,21 @@ class SynchronizedDocument2 extends SynchronizedDocument
     _has_unsaved_changes: =>
         if not @codemirror?
             return false
+        # This is potentially VERY expensive!!!
         return @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
 
-    _update_unsaved_changes: =>
-        @editor.has_unsaved_changes(@_has_unsaved_changes())
+    _has_uncommitted_changes: =>
+        # WARNING: potentially expensive to do @codemirror.getValue().
+        return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.get()
+
+    _update_unsaved_uncommitted_changes: =>
+        if not @codemirror?
+            return
+        x = @codemirror.getValue()
+        @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(x))
+        uncommitted_changes = @_syncstring.has_uncommitted_changes() or x != @_syncstring.get()
+        @editor.has_uncommitted_changes(uncommitted_changes)
+        return uncommitted_changes
 
     _update_read_only: =>
         @editor.set_readonly_ui(@_syncstring.get_read_only())
@@ -665,7 +681,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         @_syncstring.set(@codemirror.getValue())
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
-            @_update_unsaved_changes()
+            @_update_unsaved_uncommitted_changes()
             if err
                 cb(err)
             else
@@ -676,7 +692,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
             omit_lines = {}
-            @_syncstring.get_cursors().map (x, _) =>
+            @_syncstring.get_cursors()?.map (x, _) =>
                 x.get('locs')?.map (loc) =>
                     y = loc.get('y')
                     if y?
