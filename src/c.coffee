@@ -17,7 +17,7 @@ global.done = misc.done
 db = undefined
 get_db = (cb) ->
     if db?
-        cb(undefined, db)  # HACK -- might not really be initialized yet!
+        cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
         db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:1, cb:cb)
@@ -168,3 +168,34 @@ global.active_students = (cb) ->
 
 console.log("active_students() -- stats about student course projects during the last 30 days")
 
+last_backup_refill = undefined
+global.backfill = (server='backup') ->
+    db.r.db("rethinkdb").table("jobs").filter(type:'backfill', info:{destination_server:server}).run (e,t) ->
+        if t.length == 0
+            console.log("done")
+            return
+        num = t.length
+        if last_backup_refill?.num? and t.length < last_backup_refill.num
+            for i in [t.length...last_backup_refill.num]
+                t.push({info:{progress:1}})
+        complete = ((a.info.progress for a in t).reduce (x,y)-> x+y)/t.length * 100
+        console.log("progress: #{complete}% complete")
+        console.log("tasks:    #{num}")
+        now = new Date() - 0
+        if last_backup_refill?
+            elapsed = now - last_backup_refill.time
+            how_much_per_ms = (complete - last_backup_refill.complete)/elapsed
+            est_ms = (100 - complete)/how_much_per_ms
+            console.log("est time remaining: #{est_ms/1000/60} minutes")
+        last_backup_refill = {time:now, complete:complete, num:t.length}
+
+
+global.save = (obj, filename) ->
+    if filename.slice(filename.length - 5) != '.json'
+        filename += '.json'
+    fs.writeFileSync(filename, JSON.stringify(obj))
+
+global.load = (filename) ->
+    if filename.slice(filename.length - 5) != '.json'
+        filename += '.json'
+    JSON.parse(fs.readFileSync(filename))

@@ -112,7 +112,8 @@ class RethinkDB
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
-            concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_error : 1000  # if nonzero, and this many queries at once, any query instantly fails!
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -126,6 +127,7 @@ class RethinkDB
         @_error_thresh     = opts.error
         @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
+        @_concurrent_error = opts.concurrent_error
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
         @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
@@ -309,6 +311,16 @@ class RethinkDB
                         that._concurrent_queries ?= 0
                         that._concurrent_queries += 1
 
+                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
+                        if that._concurrent_queries > that._concurrent_warn
+                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
+
+                        if that._concurrent_error and that._concurrent_queries > that._concurrent_error
+                            winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
+                            that._concurrent_queries -= 1
+                            cb("concurrent_error")
+                            return
+
                         # choose a random connection
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
@@ -333,9 +345,6 @@ class RethinkDB
                         if that._error_thresh
                             error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
-                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
-                        if that._concurrent_queries > that._concurrent_warn
-                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
                             report_time = ->
                                 that._concurrent_queries -= 1
@@ -437,6 +446,33 @@ class RethinkDB
             query = query.union(db.table(opts.tables[i]))
         query.changes(includeInitial:false).run (err, feed) =>
             feed.each(opts.cb)
+
+    # Wait until the table is ready for queries.
+    # NOTE:
+    wait_until_ready_for_writes: (opts) =>
+        ##opts.cb(); return # DISABLE
+        opts = defaults opts,
+            table     : required     # string -- name of a table
+            timeout_s : 30
+            cache     : true         # if true, cache success for 10s; this is more efficient, but means SMC will stop responding properly during a failure for a few seconds.
+            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
+        last = (@_wait_until_ready_for_writes_last ?= {})
+        if opts.cache and (last[opts.table]? and new Date() - last[opts.table] < 10000)
+            opts.cb()
+            return
+        d = (@_wait_until_ready_for_writes ?= {})
+        if not d[opts.table]?
+            d[opts.table] = [opts.cb]
+        else
+            d[opts.table].push(opts.cb)
+            return
+        @table(opts.table).wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+            if not err and opts.cache
+                last[opts.table] = new Date()
+            v = d[opts.table]
+            delete d[opts.table]
+            for cb in v
+                cb(err)
 
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
@@ -691,21 +727,22 @@ class RethinkDB
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     #
     # db._error_thresh=100000; db.delete_expired(count_only:false, repeat_until_done: true, cb:done())
-    #
+    # db._error_thresh=100000; db.delete_expired(count_only:false, limit:0, cb:done())
+
     delete_expired: (opts) =>
         opts = defaults opts,
             count_only        : true  # if true, only count the number of blobs that would be deleted
             limit             : 100   # only this many
-            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunck is getting deleted
+            throttle_s        : 5     # if repeat_until_done and limit set, waits this many secs until the next chunk is deleted
             table             : undefined  # only this table
-            repeat_until_done : false # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
+            repeat_until_done : false  # if true and limit set, keeps re-calling delete until nothing gets deleted -- useful to do deletes in many small chunks instead of one big one, to better tell when done, and stop when server load increases.
             cb    : required
         dbg = @dbg("delete_expired(...)")
         dbg()
         f = (table, cb) =>
             dbg("table='#{table}'")
             query = @table(table).between(new Date(0),new Date(), index:'expire')
-            if opts.limit?
+            if opts.limit
                 query = query.limit(opts.limit)
             start = new Date()
             if opts.count_only
@@ -1005,6 +1042,8 @@ class RethinkDB
                 query.update({first_name: 'Deleted', last_name:'User', email_address_before_delete:email_address}).run(cb)
             (cb) =>
                 query.replace(@r.row.without('email_address')).run(cb)
+            (cb) =>
+                query.replace(@r.row.without('passports')).run(cb)
         ], opts.cb)
 
     # determine if the account exists and if so returns the account id; otherwise returns undefined.
@@ -2728,8 +2767,9 @@ class RethinkDB
         opts = defaults opts,
             limit    : 10000     # number of blobs to backup
             path     : required  # path where [timestamp].tar file is placed
-            throttle : 1         # wait this many seconds between pulling blobs from database
+            throttle : 0         # wait this many seconds between pulling blobs from database
             repeat_until_done : 0 # if positive keeps re-call'ing this function until no more results to backup (pauses this many seconds between)
+            map_limit: 5
             cb    : undefined # cb(err, '[timestamp].tar')
         dbg     = @dbg("backup_blobs_to_tarball(limit=#{opts.limit},path='#{opts.path}')")
         join    = require('path').join
@@ -2768,7 +2808,7 @@ class RethinkDB
                             else
                                 dbg("blob is expired, so nothing to be done, ever.")
                                 cb()
-                async.mapLimit(v, 2, f, cb)
+                async.mapLimit(v, opts.map_limit, f, cb)
             (cb) =>
                 dbg("successfully wrote all blobs to files; now make tarball")
                 misc_node.execute_code
@@ -2794,7 +2834,7 @@ class RethinkDB
                 opts.cb?(err)
             else
                 dbg("done")
-                if opts.repeat_until_done and to_remove.length > 0
+                if opts.repeat_until_done and to_remove.length == opts.limit
                     f = () =>
                         @backup_blobs_to_tarball(opts)
                     setTimeout(f, opts.repeat_until_done*1000)
@@ -2811,7 +2851,7 @@ class RethinkDB
             bucket    : BLOB_GCLOUD_BUCKET # name of bucket
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
-            throttle  : 1                  # wait this many seconds between uploads
+            throttle  : 0                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then recalls this function until nothing gets uploaded.
             errors    : {}                 # used to accumulate errors
             remove    : false
@@ -3569,7 +3609,7 @@ class RethinkDB
             # to do any action with the project.
             @project_action
                 project_id     : new_val.project_id
-                action_request : new_val.action_request
+                action_request : misc.copy_with(new_val.action_request, ['action', 'time'])
                 cb         : (err) =>
                     dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
             cb()
@@ -3724,7 +3764,8 @@ class RethinkDB
                         opts.options.push(x)
 
         result = undefined
-        db_query = @table(SCHEMA[opts.table].virtual ? opts.table)
+        table_name = SCHEMA[opts.table].virtual ? opts.table
+        db_query = @table(table_name)
         opts.this = @
 
         # The killfeed below is only used when changes is true in case of tricky queries that depend
@@ -3746,7 +3787,9 @@ class RethinkDB
                 ## cb(); return # to disable
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
-                    db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
+                    @wait_until_ready_for_writes
+                        table   : table_name
+                        cb      : cb
                 else
                     cb()
             (cb) =>
@@ -3827,21 +3870,23 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
-                                                    if err
-                                                        e = misc.to_json(err)
-                                                        if e.indexOf("Did you just reshard?") != -1
-                                                            # give it time so we do not overload the server
-                                                            setTimeout((()=>cb(err)), 10000)
+                                        @wait_until_ready_for_writes
+                                            table : 'projects'
+                                            cb    : (err) =>
+                                                if err
+                                                    cb(err)
+                                                else
+                                                    @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
+                                                        if err
+                                                            e = misc.to_json(err)
+                                                            if e.indexOf("Did you just reshard?") != -1
+                                                                # give it time so we do not overload the server
+                                                                setTimeout((()=>cb(err)), 10000)
+                                                            else
+                                                                cb(err)
                                                         else
-                                                            cb(err)
-                                                    else
-                                                        killfeed = feed
-                                                        cb()
+                                                            killfeed = feed
+                                                            cb()
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -3861,21 +3906,23 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
-                                                    if err
-                                                        e = misc.to_json(err)
-                                                        if e.indexOf("Did you just reshard?") != -1
-                                                            # give it time so we do not overload the server
-                                                            setTimeout((()=>cb(err)), 10000)
+                                        @wait_until_ready_for_writes
+                                            table : 'projects'
+                                            cb    : (err) =>
+                                                if err
+                                                    cb(err)
+                                                else
+                                                    @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:5).run (err, feed) =>
+                                                        if err
+                                                            e = misc.to_json(err)
+                                                            if e.indexOf("Did you just reshard?") != -1
+                                                                # give it time so we do not overload the server
+                                                                setTimeout((()=>cb(err)), 10000)
+                                                            else
+                                                                cb(err)
                                                         else
-                                                            cb(err)
-                                                    else
-                                                        killfeed = feed
-                                                        cb()
+                                                            killfeed = feed
+                                                            cb()
                                     else
                                         cb()
                     else if typeof(x) == 'function'

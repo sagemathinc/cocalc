@@ -7,9 +7,6 @@ from os.path import join
 from pytz import utc
 from datetime import datetime, timedelta
 
-# NOTE: It's better if /backup is a btrfs filesystem mounted using /etc/fstab line like this:
-# UUID=f52862ce-abdb-44ae-aea5-f649dfadc32b /tmp btrfs compress-force=lzo,noatime,nobootwait 0 2
-
 # so works in crontab
 os.environ['PATH']='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/home/salvus/google-cloud-sdk/bin/'
 
@@ -142,8 +139,11 @@ def dump_blobs():
 
 
 def backup(args):
-    exclude = [x.strip() for x in args.exclude.split(',')]
-    T = [x for x in tables() if x not in exclude]
+    if args.include:
+        T = args.include.split(',')
+    else:
+        exclude = [x.strip() for x in args.exclude.split(',')]
+        T = [x for x in tables() if x not in exclude]
     if args.table_fields is not None:
         import ast
         table_fields = ast.literal_eval(args.table_fields)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--target",
                         dest="target",
-                        default="admin0-1",
+                        default="admin0-3",
                         help="The name of the default target directory on GCS in the bucket.")
 
     parser.add_argument("--exclude",
@@ -184,6 +184,12 @@ if __name__ == "__main__":
                         default="",
                         type=str,
                         help="don't backup comma separated list tables here.")
+
+    parser.add_argument("--include",
+                        dest="include",
+                        default="",
+                        type=str,
+                        help="if anything given, only backup comma separated list tables given here.")
 
     parser.add_argument("--table-fields",
                         dest="table_fields",

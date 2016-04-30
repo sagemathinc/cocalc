@@ -141,6 +141,15 @@ class SyncTable extends EventEmitter
             x = x.get(@_primary_key).toJS()
         return to_key(x)
 
+    # Return true if there are changes to this synctable that
+    # have NOT been confirmed as saved to the backend database.
+    has_uncommitted_changes: () =>
+        if not @_value_server? and not @_value_local?
+            return false
+        if @_value_local? and not @_value_server?
+            return true
+        return not @_value_server.equals(@_value_local)
+
     _init: () =>
         # Any listeners on the client that we should remove when closing this table.
         @_client_listeners = {}
@@ -908,9 +917,9 @@ exports.sync_table = (query, options, client, debounce_interval=2000) ->
             if not options.push?
                 console.warn("bug -- options (=#{misc.to_json(options)}) must be an array")
                 options = []
-            options.push({heartbeat:if client.is_project() then 1 else 4})
+            options.push({heartbeat:if client.is_project() then 5 else 10})
     else
-        options = [{heartbeat:if client.is_project() then 1 else 4}]
+        options = [{heartbeat:if client.is_project() then 5 else 10}]
 
     key = json_stable_stringify(query:query, options:options, debounce_interval:debounce_interval)
     #console.log("sync_table #{key}")
