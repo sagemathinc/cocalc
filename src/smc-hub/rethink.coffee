@@ -2899,6 +2899,43 @@ class RethinkDB
                         dbg("done : #{misc.to_json(opts.errors)}")
                         opts.cb(if misc.len(opts.errors) > 0 then opts.errors)
 
+    blob_maintenance: (opts) =>
+        opts = defaults opts,
+            path              : '/backup/blobs'
+            map_limit         : 2
+            blobs_per_tarball : 10000
+            throttle          : 0
+            cb                : undefined
+        dbg = @dbg("blob_maintenance()")
+        dbg()
+        async.series([
+            (cb) =>
+                dbg("backup_blobs_to_tarball")
+                @backup_blobs_to_tarball
+                    throttle          : opts.throttle
+                    limit             : opts.blobs_per_tarball
+                    path              : opts.path
+                    map_limit         : opts.map_limit
+                    repeat_until_done : 5
+                    cb                : cb
+            (cb) =>
+                dbg("copy_all_blobs_to_gcloud")
+                errors = {}
+                @copy_all_blobs_to_gcloud
+                    limit               : 1000
+                    repeat_until_done_s : 5
+                    errors              : errors
+                    remove              : true
+                    map_limit           : opts.map_limit
+                    throttle            : opts.throttle
+                    cb                  : (err) =>
+                        if misc.len(errors) > 0
+                            dbg("errors! #{misc.to_json(errors)}")
+                        cb(err)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
     touch_blob: (opts) =>
         opts = defaults opts,
             uuid : required
