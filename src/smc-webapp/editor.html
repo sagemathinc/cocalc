@@ -478,8 +478,11 @@ Editor for files in a project
                 <i class="fa fa-history"></i>
                 TimeTravel
             </span>
-            <a href="#file" class="btn btn-info pull-right" style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Open original file"><i class="fa fa-file-code-o"></i> Open File</a>
-            <a href="#all" class="btn btn-default pull-right hide" data-toggle="tooltip" data-placement="bottom" title="Load complete history"><i class="fa fa-floppy-o"></i> Load All History </a>
+            <span class="btn-group pull-right">
+                <a href="#file" class="btn btn-info " style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Open original file"><i class="fa fa-file-code-o"></i> Open File</a>
+                <a href="#all" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Load complete history"><i class="fa fa-floppy-o"></i> Load All History </a>
+                <a href="#revert" class="btn btn-warning " style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
+            </span>
             <span class="salvus-editor-history-control-button-container btn-group" style="margin-left:1em">
                 <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
                 <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
