@@ -1347,6 +1347,26 @@ exports.define_codemirror_extensions = () ->
                 opts.cb?()
                 return false
 
+    # Find pos {line:line, ch:ch} of first line that contains the
+    # string s, or returns undefined if no single line contains s.
+    # Should be much faster than calling getLine or getValue.
+    CodeMirror.defineExtension 'find_in_line', (s) ->
+        line = undefined
+        ch   = undefined
+        i = 0
+        @eachLine (z) ->
+            ch = z.text.indexOf(s)
+            if ch != -1
+                line = i
+                return true  # undocumented - calling false stops iteration
+            i += 1
+            return false
+        if line?
+            return {line:line, ch:ch}
+
+    # Natural analogue of getLine, which codemirror doesn't have for some reason
+    #CodeMirror.defineExtension 'setLine', (n, value) ->
+    #    @replaceRange()
 
 FONT_FACES = buttonbar.FONT_FACES
 
