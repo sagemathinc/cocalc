@@ -75,7 +75,7 @@ PathSegmentLink = rclass
         fontSize : '18px'
 
     handle_click : ->
-        @props.actions.set_current_path(@props.path)
+        @props.actions.set_current_path(@props.path, update_file_listing=true)
         @props.actions.set_url_to_path(@props.path)
 
     render_link : ->
@@ -260,7 +260,7 @@ DirectoryRow = rclass
 
     handle_click : ->
         path = misc.path_to_file(@props.current_path, @props.name)
-        @props.actions.set_current_path(path)
+        @props.actions.set_current_path(path, update_file_listing=true)
         @props.actions.set_file_search('')
         @props.actions.set_url_to_path(path)
 
@@ -537,7 +537,7 @@ FileListing = rclass
     handle_parent : (e) ->
         e.preventDefault()
         path = misc.path_split(@props.current_path).head
-        @props.actions.set_current_path(path)
+        @props.actions.set_current_path(path, update_file_listing=true)
         @props.actions.set_url_to_path(path)
 
     parent_directory : ->
@@ -1438,7 +1438,7 @@ ProjectFilesSearch = rclass
         if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
-                @props.actions.set_current_path(new_path)
+                @props.actions.set_current_path(new_path, update_file_listing=true)
                 @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file(path: new_path)

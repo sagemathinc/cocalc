@@ -1381,7 +1381,6 @@ class exports.SyncString extends SyncDoc
             cursors           : opts.cursors
             doc               : new StringDocument(opts.default)
 
-
     set: (value) ->
         @_doc.set(value)
 

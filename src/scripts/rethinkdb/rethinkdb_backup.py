@@ -49,22 +49,23 @@ def dump_tables(tables, table_fields = None):
 
     table_fields is a dictionary, mapping from to table name to the list of fields to export (whitelist)
     """
-    export_cmd = "time rethinkdb export --clients 1 --password-file /home/salvus/smc/src/data/secrets/rethinkdb -d tmp -c %s " % DB_HOST
+    import random
+    dump="dump%s"%random.random()
+    export_cmd = "time rethinkdb export --clients 1 --password-file /home/salvus/smc/src/data/secrets/rethinkdb -d tmp/%s -c %s " % (dump, DB_HOST)
     if isinstance(tables, basestring):
         tables = [tables]
-    shutil.rmtree('tmp', ignore_errors=True)
-    shutil.rmtree('tmp_part', ignore_errors=True)
+    shutil.rmtree('tmp/'+dump, ignore_errors=True)
     t = ' '.join(['-e smc.%s'%table for table in tables])
     cmd(export_cmd + t)
-    cmd("mkdir -p data/smc; mv -v tmp/smc/* data/smc/")
+    cmd("mkdir -p data/smc; mv -v tmp/%s/smc/* data/smc/"%dump)
 
     if table_fields is not None:
         for table, fields in table_fields.items():
-            shutil.rmtree('tmp', ignore_errors=True)
-            shutil.rmtree('tmp_part', ignore_errors=True)
             f = ','.join(fields)
             cmd(export_cmd + "-e smc.%s --fields %s" % (table, f))
-            cmd("mkdir -p data/smc; mv -v tmp/smc/* data/smc/")
+            cmd("mkdir -p data/smc; mv -v tmp/%s/smc/* data/smc/"%dump)
+    shutil.rmtree('tmp/'+dump, ignore_errors=True)
+
 
 
 def upload_to_gcs(gs_url):

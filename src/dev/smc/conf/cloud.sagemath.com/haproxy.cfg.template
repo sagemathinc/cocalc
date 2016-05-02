@@ -35,8 +35,10 @@ backend hub
     timeout server 7s
     option httpchk /alive
 
-    #server hub0a web0:5000 cookie server:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
-    #server hub0b web0:5002 cookie server:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+    #server hub0a web0:5000 cookie server1:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
+    #server hub0b web0:5002 cookie server1:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+    #server hub0c web0:5004 cookie server1:web0:5004 check inter 4000 maxconn 1000 resolvers dns 
+    #server hub0d web0:5006 cookie server1:web0:5006 check inter 4000 maxconn 1000 resolvers dns 
 
 backend proxy
     balance leastconn
@@ -45,8 +47,10 @@ backend proxy
     timeout server 3s
     retries 10
 
-    #server proxy0a web0:5001 cookie server:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
-    #server proxy0b web0:5003 cookie server:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+    #server proxy0a web0:5001 cookie server1:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
+    #server proxy0b web0:5003 cookie server1:web0:5002 check inter 4000 maxconn 1000 resolvers dns 
+    #server proxy0c web0:5005 cookie server1:web0:5004 check inter 4000 maxconn 1000 resolvers dns 
+    #server proxy0d web0:5007 cookie server1:web0:5006 check inter 4000 maxconn 1000 resolvers dns 
 
 frontend https
     bind    *:443 ssl crt /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem no-sslv3

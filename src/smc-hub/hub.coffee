@@ -3029,6 +3029,7 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
+        pool  : 100
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
@@ -3048,6 +3049,7 @@ connect_to_database = (opts) ->
             database    : program.keyspace
             password    : password
             error       : opts.error
+            pool        : opts.pool
             cb          : opts.cb
 
 # client for compute servers
@@ -3132,12 +3134,20 @@ init_stripe = (cb) ->
 delete_expired = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, cb:cb)
+            connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             database.delete_expired
                 count_only        : false
                 repeat_until_done : true
                 cb                : cb
+    ], cb)
+
+blob_maintenance = (cb) ->
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            database.blob_maintenance(cb:cb)
     ], cb)
 
 stripe_sync = (dump_only, cb) ->
@@ -3391,6 +3401,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
     .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
+    .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
     .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -3422,6 +3433,10 @@ if program._name.slice(0,3) == 'hub'
         stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
     else if program.delete_expired
         delete_expired (err) ->
+            winston.debug("DONE", err)
+            process.exit()
+    else if program.blob_maintenance
+        blob_maintenance (err) ->
             winston.debug("DONE", err)
             process.exit()
     else if program.add_user_to_project
