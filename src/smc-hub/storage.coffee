@@ -1297,7 +1297,8 @@ process_update = (tasks, database, project) ->
             else
                 delete storage_request.err
             update_db (err) ->
-                dbg("ERROR: failed to record finishing the storage request - #{err}")
+                if err
+                    dbg("ERROR: failed to record finishing the storage request - #{err}")
                 # Still, we are done so we set this in tasks, so we don't block on doing one later, once
                 # things time out in the database.
                 tasks[project.project_id] = false
