@@ -485,9 +485,8 @@ exports.SearchInput = rclass
         placeholder     : rtypes.string
         default_value   : rtypes.string
         value           : rtypes.string
-        on_change       : rtypes.func    # called on_change(value) each time the search input changes
-        on_submit       : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
-        on_ctrl_enter   : rtypes.func    # called on_ctrl_enter(value) when the enter key is hit while pressing ctrl
+        on_change       : rtypes.func    # called on_change(value, get_opts()) each time the search input changes
+        on_submit       : rtypes.func    # called on_submit(value, get_opts()) when the search input is submitted (by hitting enter)
         on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
@@ -496,7 +495,11 @@ exports.SearchInput = rclass
         clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
 
     getInitialState : ->
-        value : @props.default_value
+        value     : @props.default_value
+        ctrl_down : false
+
+    get_opts : ->
+        ctrl_down : @state.ctrl_down
 
     componentWillReceiveProps : (new_props) ->
         if new_props.value?
@@ -518,16 +521,16 @@ exports.SearchInput = rclass
 
     set_value : (value) ->
         @setState(value:value)
-        @props.on_change?(value)
+        @props.on_change?(value, @get_opts())
 
     submit : (e) ->
         e?.preventDefault()
-        @props.on_change?(@state.value)
-        @props.on_submit?(@state.value)
+        @props.on_change?(@state.value, @get_opts())
+        @props.on_submit?(@state.value, @get_opts())
         if @props.clear_on_submit
             @setState(value:'')
 
-    keyDown : (e) ->
+    key_down : (e) ->
         switch e.keyCode
             when 27
                 @escape()
@@ -535,9 +538,17 @@ exports.SearchInput = rclass
                 @props.on_down?()
             when 38
                 @props.on_up?()
-            when 13 # Enter Key
-                if e.ctrlKey
-                    @props.on_ctrl_enter?(@state.value)
+            when 17
+                @setState(ctrl_down : true)
+
+    key_up : (e) ->
+        switch e.keyCode
+            when 17
+                @setState(ctrl_down : false)
+            when 13
+                # Some machine-browser combos don't register keyPress
+                # when ctrl is depressed and enter is pressed.
+                @submit(e)
 
     escape : ->
         @props.on_escape?(@state.value)
@@ -553,7 +564,8 @@ exports.SearchInput = rclass
                 value       = {@state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
-                onKeyDown   = {@keyDown}
+                onKeyDown   = {@key_down}
+                onKeyUp     = {@key_up}
             />
         </form>
 

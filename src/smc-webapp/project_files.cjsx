@@ -1433,28 +1433,25 @@ ProjectFilesSearch = rclass
     dismiss_alert : ->
         @props.actions.setState(file_creation_error : '')
 
-    search_submit: ->
+    search_submit: (value, opts) ->
         if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path, update_file_listing=true)
                 @props.actions.setState(page_number: 0)
             else
-                @props.actions.open_file(path: new_path)
-            @props.actions.set_file_search('')
-        else if not @props.files_displayed and @props.file_search.length > 0
+                @props.actions.open_file
+                    path: new_path
+                    foreground : not opts.ctrl_down
+            if not opts.ctrl_down
+                @props.actions.set_file_search('')
+                @props.actions.reset_selected_file_index()
+        else if @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
-                @props.create_folder()
+                @props.create_folder(not opts.ctrl_down)
             else
-                @props.create_file()
-        @props.actions.reset_selected_file_index()
-
-    ctrl_enter : ->
-        if not @props.selected_file and not @props.files_displayed and @props.file_search.length > 0
-            if @props.file_search[@props.file_search.length - 1] == '/'
-                @props.create_folder(false)
-            else
-                @props.create_file(null, false)
+                @props.create_file(null, not opts.ctrl_down)
+            @props.actions.reset_selected_file_index()
 
     on_up_press : () ->
         if @props.selected_file_index > 0
@@ -1464,8 +1461,9 @@ ProjectFilesSearch = rclass
         if @props.selected_file_index < @props.num_files_displayed - 1
             @props.actions.increment_selected_file_index()
 
-    on_change : (search) ->
-        @props.actions.reset_selected_file_index()
+    on_change : (search, opts) ->
+        if not opts.ctrl_down
+            @props.actions.reset_selected_file_index()
         @props.actions.set_file_search(search)
 
     render : ->
@@ -1476,7 +1474,6 @@ ProjectFilesSearch = rclass
                 value         = {@props.file_search}
                 on_change     = {@on_change}
                 on_submit     = {@search_submit}
-                on_ctrl_enter = {@ctrl_enter}
                 on_up         = {@on_up_press}
                 on_down       = {@on_down_press}
             />
