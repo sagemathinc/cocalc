@@ -921,13 +921,15 @@ class JupyterNotebook extends EventEmitter
             return
         last_syncstring = @syncstring.live()
         handle_syncstring_change = () =>
-            if not @dom.ready
+            #console.log 'handle_syncstring_change'
+            if @dom.state != 'ready'
                 # there is nothing we can do regarding setting it if the document is broken/closed.
                 return
             live = @syncstring.live()
             if last_syncstring != live
                 last_syncstring = live
                 # It really did change.
+                #console.log("syncstring changed to '#{live}'")
                 # Get current state of the DOM.  We do this even if not "dirty" -- we always get,
                 # just to be absolutely sure, as this is critical to get right to avoid any data loss.
                 if @dom.get(true) != live
@@ -960,6 +962,7 @@ class JupyterNotebook extends EventEmitter
         # save our current state before accepting those changes.  Or local
         # work will be lost.
         @syncstring._syncstring.on "before-change", =>
+            #console.log("syncstring before-change")
             # CRITICAL: We also *only* do this if there wasn't a parse error
             # when *last* set'ing.  This avoids the horrendously painful situation
             # where every client tries to "fix" a JSON parse error at once, which

@@ -10,6 +10,8 @@ but for all the web[n] hosts that exist.
 
 import os
 
+#EXCLUDE=['web6']
+
 def host_exists(hostname):
     """
     Return true if and only if hostname resolves and is pingable.
@@ -20,7 +22,8 @@ def web_hosts(bound=20):
     """
     Return all web hosts of the form web[n] that exists for n<bound.
     """
-    return ["web%s"%n for n in range(bound) if host_exists("web%s"%n)]
+    v = ["web%s"%n for n in range(bound) if host_exists("web%s"%n)]
+    return [x for x in v if x not in EXCLUDE]
 
 def gen_haproxy():
     hosts = web_hosts()

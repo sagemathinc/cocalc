@@ -121,10 +121,23 @@ class exports.HistoryEditor extends FileEditor
             @set_doc(@goto_revision(@revision_num - 1))
             return false
 
-        @element.find("a[href=#file]").click () =>
+        open_file = () =>
             @editor.project_page.open_file
                 path       : @_open_file_path
                 foreground : true
+
+        @element.find("a[href=#file]").click(open_file)
+
+        @element.find("a[href=#revert]").click () =>
+            if not @revision_num?
+                return
+            time  = @syncstring?.all_versions()?[@revision_num]
+            if not time?
+                return
+            @syncstring.set(@syncstring.version(time))
+            @syncstring.save()
+            open_file()
+            @syncstring.emit('change')
 
     set_doc: (time) ->
         if not time?
