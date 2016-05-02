@@ -1434,7 +1434,6 @@ ProjectFilesSearch = rclass
         @props.actions.setState(file_creation_error : '')
 
     search_submit: ->
-        # TODO: Add visual indication that a file is selected at all.
         if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
@@ -1449,6 +1448,13 @@ ProjectFilesSearch = rclass
             else
                 @props.create_file()
         @props.actions.reset_selected_file_index()
+
+    ctrl_enter : ->
+        if not @props.selected_file and not @props.files_displayed and @props.file_search.length > 0
+            if @props.file_search[@props.file_search.length - 1] == '/'
+                @props.create_folder(false)
+            else
+                @props.create_file(null, false)
 
     on_up_press : () ->
         if @props.selected_file_index > 0
@@ -1470,6 +1476,7 @@ ProjectFilesSearch = rclass
                 value         = {@props.file_search}
                 on_change     = {@on_change}
                 on_submit     = {@search_submit}
+                on_ctrl_enter = {@ctrl_enter}
                 on_up         = {@on_up_press}
                 on_down       = {@on_down_press}
             />
@@ -1576,7 +1583,7 @@ ProjectFiles = (name) -> rclass
     next_page : ->
         @props.actions.setState(page_number : @props.page_number + 1)
 
-    create_file : (ext) ->
+    create_file : (ext, switch_over=true) ->
         if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
             ext = "sagews"
         @props.actions.create_file
@@ -1585,14 +1592,25 @@ ProjectFiles = (name) -> rclass
             current_path : @props.current_path
             on_download  : ((a) => @setState(download: a))
             on_error     : @handle_creation_error
+            switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
+        if not switch_over
+            # WARNING: Uses old way of refreshing file listing
+            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     handle_creation_error : (e) ->
         @props.actions.setState(file_creation_error : e)
 
-    create_folder : ->
-        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
+    create_folder : (switch_over=true) ->
+        @props.actions.create_folder
+            name         : @props.file_search
+            current_path : @props.current_path
+            on_error     : ((a) => setState(error: a))
+            switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
+        if not switch_over
+            # WARNING: Uses old way of refreshing file listing
+            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     render_paging_buttons : (num_pages) ->
         if num_pages > 1
