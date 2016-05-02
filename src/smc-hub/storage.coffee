@@ -1273,17 +1273,19 @@ process_update = (tasks, database, project) ->
     query = database.table('projects').get(project.project_id)
     storage_request = project.storage_request
     action = storage_request.action
-    update_db = () ->
-        query.update(storage_request:database.r.literal(storage_request)).run()
+    update_db = (cb) ->
+        query.update(storage_request:database.r.literal(storage_request)).run(cb)
     opts =
         database   : database
         project_id : project.project_id
+        cb_async   : null
         cb         : (err) ->
-            tasks[project.project_id] = false
             storage_request.finished = new Date()
             if err
                 storage_request.err = err
-            update_db()
+            update_db () ->
+                tasks[project.project_id] = false
+                cb_async?()
     func = err = undefined
     switch action
         when 'save'
@@ -1312,13 +1314,17 @@ process_update = (tasks, database, project) ->
         dbg(err)
         storage_request.finished = new Date()
         storage_request.err = err
-        update_db()
+        update_db(() ->)
     else
         dbg("doing action '#{action}'")
         tasks[project.project_id] = true
         storage_request.started = new Date()
-        update_db()
-        func(opts)
+        async.series([
+            (cb) -> update_db(cb)
+            (cb) ->
+                opts.cb_async = cb
+                func(opts)
+        ])
 
 start_server = (cb) ->
     host = os.hostname()
