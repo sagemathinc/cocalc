@@ -690,8 +690,8 @@ class JupyterWrapper extends EventEmitter
 
 
 
-exports.jupyter_notebook = (editor, filename, opts) ->
-    return (new JupyterNotebook(editor, filename, opts)).element
+exports.jupyter_notebook = (wrapper, filename, opts) ->
+    return (new JupyterNotebook(wrapper, filename, opts)).element
 
 class JupyterNotebook extends EventEmitter
     constructor: (@editor, @filename, opts={}) ->
