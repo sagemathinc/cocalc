@@ -90,7 +90,7 @@ SYNCSTRING_PORT = 6001
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com,monitoring@sagemath.com', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='monitoring@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'smc/src/data/secrets/salvusmath_email_password')
@@ -1427,6 +1427,8 @@ class Monitor(object):
         """
         Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
+
+        NOTE: now that we use cloudflare this test is no longer possible.
         """
         ans = []
         import urllib2, ssl
@@ -1450,6 +1452,17 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def ignored_storage_requests(self):
+        try:
+            n = int(os.popen('ignored_storage_requests').read().strip())
+        except:
+            n = 10000
+        if n > 10:
+            status = 'down'
+        else:
+            status = 'up'
+        return [{"ignored_storage_requests":n, 'status':status}]
+
     def all(self):
         return {
             'timestamp'   : time.time(),
@@ -1457,10 +1470,11 @@ class Monitor(object):
             'dns'         : self.dns(),
             'load'        : self.load(),
             'hub'         : self.hub(),
-            'stats'       : self.stats(),
+            #'stats'       : self.stats(),  # disabled due to using cloudflare.
             'compute'     : self.compute(),
             'nettest'     : self.nettest(),
-            'database'    : self.database()
+            'database'    : self.database(),
+            'storage'     : self.ignored_storage_requests()
         }
 
     def down(self, all):
@@ -1499,9 +1513,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        print "STATS"
-        for x in all['stats'][:n]:
-            print x
+        #print "STATS"
+        #for x in all['stats'][:n]:
+        #    print x
 
         print "COMPUTE"
         vcompute = all['compute']
@@ -1509,13 +1523,17 @@ class Monitor(object):
         for x in all['compute'][:n]:
             print x
 
+        if 'storage' in all:
+            print "IGNORED_STORAGE_REQUESTS"
+            print all['storage'][0]['ignored_storage_requests']
+
     def _go(self):
         all = self.all()
         self.print_status(all=all)
         down = self.down(all=all)
         m = ''
         if len(down) > 0:
-                m += "The following are down: %s"%down
+            m += "The following are down: %s"%down
         for x in all['load']:
             if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x

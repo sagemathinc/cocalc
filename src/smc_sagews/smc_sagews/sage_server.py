@@ -230,14 +230,14 @@ class Message(object):
                file         = None,
                raw_input    = None,
                obj          = None,
-               done         = None,
                once         = None,
                hide         = None,
                show         = None,
-               auto         = None,
                events       = None,
                clear        = None,
-               delete_last  = None):
+               delete_last  = None,
+               done         = False   # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
+              ):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
@@ -268,7 +268,6 @@ class Message(object):
         if once is not None: m['once'] = once
         if hide is not None: m['hide'] = hide
         if show is not None: m['show'] = show
-        if auto is not None: m['auto'] = auto
         if events is not None: m['events'] = events
         if clear is not None: m['clear'] = clear
         if delete_last is not None: m['delete_last'] = delete_last
@@ -718,13 +717,14 @@ class Salvus(object):
         from graphics import graph_to_d3_jsonable
         self._send_output(id=self._id, d3={"viewer":"graph", "data":graph_to_d3_jsonable(g, **kwds)})
 
-    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False, text=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
 
         If show=True (the default), the browser will show the file,
         or provide a clickable link to it if there is no way to show it.
+        If text is also given that will be used instead of the path to the file.
 
         If show=False, this function returns an object T such that
         T.url (or str(t)) is a string of the form "/blobs/filename?uuid=the_uuid"
@@ -770,7 +770,7 @@ class Salvus(object):
             url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
-                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events, done=done)
+                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show, 'text':text}, events=events, done=done)
                 return
             else:
                 return TemporaryURL(url=url, ttl=0)
@@ -790,7 +790,7 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- %s"%mesg['error'])
 
         self._flush_stdio()
-        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events, done=done)
+        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show, 'text':text}, events=events, done=done)
         if not show:
             info = self.project_info()
             url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
@@ -1117,7 +1117,8 @@ class Salvus(object):
             m['placeholder'] = unicode8(placeholder)
         self._send_output(raw_input=m, id=self._id)
         typ, mesg = self.message_queue.next_mesg()
-        if typ == 'json' and mesg['event'] == 'codemirror_sage_raw_input':
+        #log("raw_input got message typ='%s', mesg='%s'"%(typ, mesg))
+        if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
             m['value'] = mesg['value'] # as unicode!
@@ -1136,7 +1137,7 @@ class Salvus(object):
                         value = type(str(value))
             return value
         else:
-            raise KeyboardInterrupt("raw_input interrupted by another action")
+            raise KeyboardInterrupt("raw_input interrupted by another action: event='%s' (expected 'sage_raw_input')"%mesg['event'])
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -1155,13 +1156,6 @@ class Salvus(object):
         """
         self._check_component(component)
         self._send_output(self._id, show=component)
-
-    def auto(self, state=True):
-        """
-        Set whether or not the current cells is automatically executed when
-        the Sage process restarts.
-        """
-        self._send_output(self._id, auto=state)
 
     def notify(self, **kwds):
         """
@@ -1453,13 +1447,13 @@ def session(conn):
                             code          = mesg['code'],
                             data          = mesg.get('data',None),
                             cell_id       = mesg.get('cell_id',None),
-                            preparse      = mesg['preparse'],
+                            preparse      = mesg.get('preparse',True),
                             message_queue = mq)
                 except Exception, err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
-                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
+                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
             else:

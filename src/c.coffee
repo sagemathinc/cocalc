@@ -7,23 +7,17 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
+async = require('async')
+
 db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
 
-misc = require('smc-util/misc')
-
-global.done = () ->
-    start_time = new Date()
-    return (args...) ->
-        try
-            s = JSON.stringify(args)
-        catch
-            s = args
-        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
+global.misc = require('smc-util/misc')
+global.done = misc.done
 
 db = undefined
 get_db = (cb) ->
     if db?
-        cb(undefined, db)  # HACK -- might not really be initialized yet!
+        cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
         db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:1, cb:cb)
@@ -99,23 +93,31 @@ global.delete_account = (email) ->
                         done("SUCCESS!")
 console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
 
+DEFAULT_CLOSE_DAYS = 50
 
-global.close_unused_projects = (host) ->
+global.close_unused_projects = (host, cb) ->
+    cb ?= done()
     require('smc-hub/compute-client').compute_server
         db_hosts : db_hosts
         cb       : (err, s)->
             if err
-                done("FAIL -- #{err}")
+                cb("FAIL -- #{err}")
                 return
             s.close_open_unused_projects
                 dry_run      : false
-                min_age_days : 50
+                min_age_days : DEFAULT_CLOSE_DAYS
                 max_age_days : 1000
                 threads      : 2
                 host         : host
-                cb           : done()
+                cb           : cb
 
-console.log("close_unused_projects('hostname') -- close all projects on that host not used in the last 60 days")
+console.log("close_unused_projects('hostname') -- closes all projects on that host not used in the last #{DEFAULT_CLOSE_DAYS} days")
+
+global.close_unused_free_projects = () ->
+    free = [0..3].map((n) -> "compute#{n}-us")
+    async.mapSeries(free, global.close_unused_projects, done())
+
+console.log("close_unused_free_projects() -- closes all projects on all free hosts not used in the last #{DEFAULT_CLOSE_DAYS} days")
 
 global.active_students = (cb) ->
     cb ?= done()
@@ -166,3 +168,34 @@ global.active_students = (cb) ->
 
 console.log("active_students() -- stats about student course projects during the last 30 days")
 
+last_backup_refill = undefined
+global.backfill = (server='backup') ->
+    db.r.db("rethinkdb").table("jobs").filter(type:'backfill', info:{destination_server:server}).run (e,t) ->
+        if t.length == 0
+            console.log("done")
+            return
+        num = t.length
+        if last_backup_refill?.num? and t.length < last_backup_refill.num
+            for i in [t.length...last_backup_refill.num]
+                t.push({info:{progress:1}})
+        complete = ((a.info.progress for a in t).reduce (x,y)-> x+y)/t.length * 100
+        console.log("progress: #{complete}% complete")
+        console.log("tasks:    #{num}")
+        now = new Date() - 0
+        if last_backup_refill?
+            elapsed = now - last_backup_refill.time
+            how_much_per_ms = (complete - last_backup_refill.complete)/elapsed
+            est_ms = (100 - complete)/how_much_per_ms
+            console.log("est time remaining: #{est_ms/1000/60} minutes")
+        last_backup_refill = {time:now, complete:complete, num:t.length}
+
+
+global.save = (obj, filename) ->
+    if filename.slice(filename.length - 5) != '.json'
+        filename += '.json'
+    fs.writeFileSync(filename, JSON.stringify(obj))
+
+global.load = (filename) ->
+    if filename.slice(filename.length - 5) != '.json'
+        filename += '.json'
+    JSON.parse(fs.readFileSync(filename))

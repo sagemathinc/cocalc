@@ -95,7 +95,7 @@ ProjectNewHeader = rclass
                 actions    = {@props.actions} />
         </h1>
 
-NewFileButton = rclass
+exports.NewFileButton = NewFileButton = rclass
     displayName : 'ProjectNew-ProjectNewFileButton'
 
     mixins : [ImmutablePureRenderMixin]
@@ -114,6 +114,7 @@ NewFileButton = rclass
     render : ->
         <Button onClick={@on_click}  style={marginRight:'5px'} >
             <Icon name={@props.icon} /> {@props.name}
+            {@props.children}
         </Button>
 
 NewFileDropdown = rclass
@@ -137,6 +138,66 @@ NewFileDropdown = rclass
         <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
+
+# Use Rows and Cols to append more buttons to this class.
+# Could be changed to auto adjust to a list of pre-defined button names.
+exports.FileTypeSelector = FileTypeSelector = rclass
+    proptypes :
+        create_file : rtypes.func.required
+        create_folder : rtypes.func.required
+        styles : rtypes.object
+
+    render : ->
+        row_style =
+            marginBottom:'8px'
+        <div>
+            <Row style={row_style}>
+                <Col sm=6>
+                    <Tip icon='file-code-o' title='SageMath Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='file-code-o' name='SageMath Worksheet' on_click={@props.create_file} ext='sagews' />
+                    </Tip>
+                    <Tip icon='file-code-o' title='Jupyter Notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                        <NewFileButton icon='file-code-o' name='Jupyter Notebook' on_click={@props.create_file} ext={'ipynb'}} />
+                    </Tip>
+                </Col>
+                <Col sm=6>
+                    <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
+                        <NewFileDropdown create_file={@props.create_file} />
+                    </Tip>
+                    <span style={marginRight:'5px'}></span>
+                    <Tip
+                        title='Folder'  placement='left' icon='folder-open-o'
+                        tip='Create a folder in which to store and organize your files.  SageMathCloud provides a full featured filesystem.' >
+                        <NewFileButton
+                            icon='folder-open-o' name='Folder'
+                            on_click={@props.create_folder} />
+                    </Tip>
+                </Col>
+            </Row>
+            <Row style={row_style}>
+                <Col sm=6>
+                    <Tip title='LaTeX Document'   icon='file-excel-o'
+                        tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
+                        <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@props.create_file} ext='tex' />
+                    </Tip>
+                    <Tip title='Terminal'  icon='terminal'
+                        tip="Create a command line terminal.  SageMathCloud includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
+                        <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
+                    </Tip>
+                    <Tip title='Task List'   icon='tasks'
+                        tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
+                        <NewFileButton icon='tasks' name='Task List' on_click={@props.create_file} ext='tasks' />
+                    </Tip>
+                </Col>
+                <Col sm=6>
+                    <Tip title='Manage a Course'  placement='left'  icon='graduation-cap'
+                        tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
+                        <NewFileButton icon='graduation-cap' name='Manage a Course' on_click={@props.create_file} ext='course' />
+                    </Tip>
+                </Col>
+            </Row>
+            {@props.children}
+        </div>
 
 ProjectNew = (name) -> rclass
     displayName : 'ProjectNew'
@@ -214,7 +275,7 @@ ProjectNew = (name) -> rclass
                 <Col sm=3>
                     <h4><Icon name='plus' /> Create a new file or directory</h4>
                 </Col>
-                <Col sm=8>
+                <Col sm=9>
                     <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
                     <form onSubmit={@submit}>
                         <Input
@@ -227,69 +288,26 @@ ProjectNew = (name) -> rclass
                     </form>
                     {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
-                    <Row style={marginBottom:'8px'}>
-                        <Col sm=6>
-                            <Tip icon='file-code-o' title='SageMath Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                                <NewFileButton icon='file-code-o' name='SageMath Worksheet' on_click={@create_file} ext='sagews' />
-                            </Tip>
-                            <Tip icon='file-code-o' title='Jupyter Notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                                <NewFileButton icon='file-code-o' name='Jupyter Notebook' on_click={@create_file} ext={'ipynb'}} />
-                            </Tip>
-                        </Col>
-                        <Col sm=6>
-                            <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
-                                <NewFileDropdown create_file={@create_file} />
-                            </Tip>
-                            <span style={marginRight:'5px'}></span>
-                            <Tip
-                                title='Folder'  placement='left' icon='folder-open-o'
-                                tip='Create a folder in which to store and organize your files.  SageMathCloud provides a full featured filesystem.' >
-                                <NewFileButton
-                                    icon='folder-open-o' name='Folder'
-                                    on_click={@create_folder} />
-                            </Tip>
-                        </Col>
-                    </Row>
-                    <Row style={marginBottom:'8px'}>
-                        <Col sm=6>
-                            <Tip title='LaTeX Document'   icon='file-excel-o'
-                                tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
-                                <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@create_file} ext='tex' />
-                            </Tip>
-                            <Tip title='Terminal'  icon='terminal'
-                                tip="Create a command line terminal.  SageMathCloud includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
-                                <NewFileButton icon='terminal' name='Terminal' on_click={@create_file} ext='term' />
-                            </Tip>
-                            <Tip title='Task List'   icon='tasks'
-                                tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
-                                <NewFileButton icon='tasks' name='Task List' on_click={@create_file} ext='tasks' />
-                            </Tip>
-                        </Col>
-                        <Col sm=6>
-                            <Tip title='Manage a Course'  placement='left'  icon='graduation-cap'
-                                tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
-                                <NewFileButton icon='graduation-cap' name='Manage a Course' on_click={@create_file} ext='course' />
-                            </Tip>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=6>
-                            <Tip title='Download files from the Internet'  icon = 'cloud'
-                                tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
-                                <NewFileButton
-                                    icon     = 'cloud'
-                                    name     = {"Download from Internet #{@blocked()}"}
-                                    on_click = {@create_file}
-                                    loading  = {@state.downloading} />
-                            </Tip>
-                        </Col>
-                        <Col sm=6>
-                            <Tip title='Create a Chatroom'  placement='left'  icon='comment'
-                                tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
-                            </Tip>
-                        </Col>
-                    </Row>
+                    <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
+                        <Row>
+                            <Col sm=6>
+                                <Tip title='Download files from the Internet'  icon = 'cloud'
+                                    tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
+                                    <NewFileButton
+                                        icon     = 'cloud'
+                                        name     = {"Download from Internet #{@blocked()}"}
+                                        on_click = {@create_file}
+                                        loading  = {@state.downloading} />
+                                </Tip>
+                            </Col>
+                            <Col sm=6>
+                                <Tip title='Create a Chatroom'  placement='left'  icon='comment'
+                                    tip='Create a chatroom for chatting with other collaborators on this project.'>
+                                    <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
+                                </Tip>
+                            </Col>
+                        </Row>
+                    </FileTypeSelector>
                 </Col>
             </Row>
         </div>

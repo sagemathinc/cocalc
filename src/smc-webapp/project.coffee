@@ -214,33 +214,6 @@ class ProjectPage
         @project = redux.getStore('projects').get_project(@project_id)
         cb?()
 
-    ########################################
-    # Launch open sessions
-    ########################################
-
-    # TODO -- not used right now -- just use init_file_sessions only -- delete this.
-    init_open_sessions: (cb) =>
-        salvus_client.project_session_info
-            project_id: @project_id
-            cb: (err, mesg) =>
-                if err
-                    alert_message(type:"error", message:"Error getting open sessions -- #{err}")
-                    cb?(err)
-                    return
-                #console.log(mesg)
-                if not (mesg? and mesg.info?)
-                    cb?()
-                    return
-
-                async.series([
-                    (cb) =>
-                        @init_console_sessions(mesg.info.console_sessions, cb)
-                    (cb) =>
-                        @init_sage_sessions(mesg.info.sage_sessions, cb)
-                    (cb) =>
-                        @init_file_sessions(mesg.info.file_sessions, cb)
-                ], (err) => cb?(err))
-
     init_sortable_editor_tabs: () =>
         @container.find(".nav.projects").sortable
             axis                 : 'x'

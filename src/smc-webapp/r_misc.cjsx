@@ -21,7 +21,7 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
 Combobox = require('react-widgets/lib/Combobox')
@@ -374,15 +374,20 @@ exports.LabeledRow = LabeledRow = rclass
     displayName : 'Misc-LabeledRow'
 
     propTypes :
-        label : rtypes.any.isRequired
-        style : rtypes.object
+        label      : rtypes.any.isRequired
+        style      : rtypes.object
+        label_cols : rtypes.number    # number between 1 and 11 (default: 4)
+
+    getDefaultProps : ->
+        label_cols : 4
 
     render : ->
+
         <Row style={@props.style}>
-            <Col xs=4>
+            <Col xs={@props.label_cols}>
                 {@props.label}
             </Col>
-            <Col xs=8>
+            <Col xs={12-@props.label_cols}>
                 {@props.children}
             </Col>
         </Row>
@@ -447,15 +452,28 @@ exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
     propTypes :
-        placeholder : rtypes.number
+        popover     : rtypes.bool
+        placement   : rtypes.string
 
     getDefaultProps: ->
+        popover   : false
         minPeriod : 45000
+        placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
 
+    render_timeago: (d) ->
+        <TimeAgo date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
+
     render: ->
-        <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
+        d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
+        if @props.popover
+            s = d.toLocaleString()
+            <Tip title={s} id={s} placement={@props.placement}>
+                {@render_timeago(d)}
+            </Tip>
+        else
+            @render_timeago(d)
 
 
 # Important:
@@ -471,6 +489,7 @@ exports.SearchInput = rclass
     propTypes :
         placeholder     : rtypes.string
         default_value   : rtypes.string
+        value           : rtypes.string
         on_change       : rtypes.func    # called on_change(value) each time the search input changes
         on_submit       : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
         on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
@@ -482,6 +501,10 @@ exports.SearchInput = rclass
 
     getInitialState : ->
         value : @props.default_value
+
+    componentWillReceiveProps : (new_props) ->
+        if new_props.value?
+            @setState(value : new_props.value)
 
     componentDidMount : ->
         if @props.autoSelect
@@ -603,7 +626,7 @@ exports.MarkdownInput = rclass
                 </form>
                 <div style={paddingTop:'8px', color:'#666'}>
                     <Tip title='Use Markdown' tip={tip}>
-                        Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
+                        Format using <a href='https://help.github.com/articles/basic-writing-and-formatting-syntax/' target='_blank'>Markdown</a>
                     </Tip>
                 </div>
             </div>
@@ -700,7 +723,7 @@ exports.Tip = Tip = rclass
     propTypes :
         title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         icon      : rtypes.string
@@ -714,15 +737,22 @@ exports.Tip = Tip = rclass
         <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
 
     render_popover : ->
-        <Popover
-            bsSize = {@props.size}
-            title  = {@render_title()}
-            id     = {@props.id ? "tip"}
-            >
-            <span style={wordWrap:'break-word'}>
-                {@props.tip}
-            </span>
-        </Popover>
+        if @props.tip
+            <Popover
+                bsSize = {@props.size}
+                title  = {@render_title()}
+                id     = {@props.id ? "tip"}
+                >
+                <span style={wordWrap:'break-word'}>
+                    {@props.tip}
+                </span>
+            </Popover>
+        else
+            <Tooltip
+                bsSize = {@props.size}
+                id     = {@props.id ? "tip"} >
+                {@render_title()}
+            </Tooltip>
 
     render : ->
         <OverlayTrigger

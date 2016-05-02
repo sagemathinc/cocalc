@@ -108,7 +108,7 @@ class BillingActions extends Actions
                         response = _response
                         cb()
             (cb) =>
-                @_action('create_source', 'Creating a new payment method (sending token to <SiteName/>)', {token:response.id, cb:cb})
+                @_action('create_source', 'Creating a new payment method (sending token)', {token:response.id, cb:cb})
         ], (err) =>
             @setState(action:'', error:err)
             cb?(err)
@@ -373,7 +373,7 @@ AddPaymentMethod = rclass
                 </Col>
             </Row>
             <div style={color:"#666", marginTop:'15px'}>
-                (Using PayPal is also possible -- email <HelpEmailLink/>.)
+                (PayPal or wire transfers are also possible -- email <HelpEmailLink/>.)
             </div>
         </div>
 
@@ -1310,7 +1310,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.smc_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status : ->
         if @props.invoice.paid
@@ -1582,7 +1582,7 @@ BillingPage = rclass
                     purchase or renew your subscriptions.  Without a credit card
                     any current subscriptions will run to completion, but will not renew.
                     If you have any questions about subscriptions or billing (e.g., about
-                    using PayPal instead), please email <HelpEmailLink /> immediately.
+                    using PayPal or wire transfers instead), please email <HelpEmailLink /> immediately.
                 </span>
 
         else if subs == 0

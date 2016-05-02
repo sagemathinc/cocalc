@@ -44,6 +44,7 @@ message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
 {secret_token_filename} = require('./common.coffee')
 
+port_manager = require('./port_manager')
 misc = require('smc-util/misc')
 {to_json, from_json, defaults, required} = misc
 
@@ -72,18 +73,23 @@ if not fs.existsSync(DATA)
 # until this file appears.
 ##################################################################
 
+misc = require('smc-util/misc')
+
+
 secret_token = undefined
-read_token = () ->
-    fs.exists secret_token_filename, (exists) ->
-        if exists
-            try
+
+read_token = (cb) ->
+    f = (cb) ->
+        fs.exists secret_token_filename, (exists) ->
+            if not exists
+                cb("secret token file does not exist")
+            else
                 secret_token = fs.readFileSync(secret_token_filename).toString()
-                winston.debug("Read the secret_token file.")
-            catch e
-                setTimeout(read_token, 250)
-        else
-            # try again in 250ms.
-            setTimeout(read_token, 250)
+                cb()
+    misc.retry_until_success
+        f        : f
+        max_time : 30000
+        cb       : cb
 
 start_session = (socket, mesg) ->
     winston.info "start_session #{to_json(mesg)}"
@@ -159,19 +165,12 @@ handle_client = (socket, mesg) ->
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Console server received an invalid mesg type '#{mesg.event}'")
-                socket.write_mesg('json', err)
+                    socket.write_mesg('json', err)
     catch e
         winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
-    if not secret_token?
-        winston.debug("ignoring incoming connection, since we do not have the secret_token yet.")
-        socket.write('n')
-        socket.write("Unable to accept connection, since console server doesn't yet know the secret token.")
-        socket.end()
-        return
-
     misc_node.unlock_socket socket, secret_token, (err) ->
         if not err
             # Receive a single message:
@@ -181,10 +180,25 @@ server = net.createServer (socket) ->
                 handle_client(socket, mesg)
 
 # Start listening for connections on the socket.
-start_server = () ->
-    read_token()
-    server.listen 0, '127.0.0.1', () ->
-        winston.info "listening on port #{server.address().port}"
-        fs.writeFile(abspath("#{DATA}/console_server.port"), server.address().port)
+start_server = (cb) ->
+    async.series([
+        (cb) ->
+            # read the secret token
+            read_token(cb)
+        (cb) ->
+            # start listening for incoming connections
+            server.listen(0, '127.0.0.1', cb)
+        (cb) ->
+            # write port that we are listening on to port file
+            fs.writeFile(port_manager.port_file('console'), server.address().port, cb)
+    ], (err) ->
+        if err
+            cb(err)
+        else
+            winston.info("listening on port #{server.address().port}")
+            cb()
+    )
 
-start_server()
+start_server (err) ->
+    if err
+        winston.debug("failed to start console server")

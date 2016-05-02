@@ -30,23 +30,19 @@
 ###
 
 {top_navbar} = require('./top_navbar')
-{unsynced_docs} = require('./syncdoc')
+#{unsynced_docs} = require('./syncdoc')
 
 {redux} = require('./smc-react')
 
 window.onbeforeunload = (e) ->
-    mesg = undefined
-    if not unsynced_docs()
-        if redux.getStore('account').get_confirm_close()
-            mesg = "Your data is saved, but you asked for confirmation before leaving SageMathCloud (in account settings)."
-        else
-            return
-
-    e.cancelBubble = true  # e.cancelBubble is supported by IE - this will kill the bubbling process.
-    if not mesg?
-        mesg = "Some documents haven't successfully synchronized with the server yet.  Leaving now may result in lost work."
-    e.returnValue = mesg
-    if e.stopPropagation
-        e.stopPropagation()
-        e.preventDefault()
+    if redux.getStore('account').get_confirm_close()
+        mesg = ""
+    else
+        mesg = undefined
+    if mesg?
+        e.cancelBubble = true  # e.cancelBubble is supported by IE - this will kill the bubbling process.
+        e.returnValue = mesg
+        if e.stopPropagation
+            e.stopPropagation()
+            e.preventDefault()
     return mesg

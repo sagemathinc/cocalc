@@ -9,7 +9,7 @@ from __future__ import print_function
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, SageMathCloud Authors
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -92,6 +92,11 @@ for t in r.table_list().run():
     globals()[t] = r.table(t)
     # print(t, end=", ")
 
+# system tables
+rdb = r.db("rethinkdb")
+for t in rdb.table_list().run():
+    globals()['r_%s' % t] = rdb.table(t)
+
 # Library Functions ###
 _print = print
 
@@ -111,6 +116,9 @@ def time_past(hours=24, days=0):
     """
     now = datetime.utcnow().replace(tzinfo=utc)
     return now - timedelta(days=days, hours=hours)
+
+def days_ago(days=0):
+    return time_past(24 * days)
 
 # Functions Querying RethinkDB Directly ###
 
@@ -185,19 +193,23 @@ def export_accounts(outfn):
                 # data[email] = account
 
 
-def active_courses(days=30):
+def active_courses(days=7):
     # teacher's course IDs of all active student course projects
     teacher_course_ids = projects.has_fields('course')\
-        .filter(r.row["last_edited"] > time_past(days * 24))\
+        .filter(r.row["last_edited"] > days_ago(days))\
             .pluck('course')["course"]["project_id"].distinct().run()
 
     courses = defaultdict(list)
     for tc in projects.get_all(*teacher_course_ids)\
-        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", {"host":"host"}).run():
-        t = 'member' if tc["host"]["host"] >= 'compute4-us' else 'free'
+        .pluck("project_id", "title", "last_edited", 'created', 'description', "users", \
+               "settings", {"host":"host"}).run():
+        if "settings" in tc and tc["settings"].get('member_host', 0) >= 1:
+            proj_type = 'member'
+        else:
+            proj_type = 'free'
         # some courses do not have a created timestamp :-(
         tc["created"] = tc.get("created", datetime.fromtimestamp(0).replace(tzinfo=utc))
-        courses[t].append(tc)
+        courses[proj_type].append(tc)
 
     # e is a (account_id, account_data) pair
     group_order = {"owner": 0, "collaborator": 1}
@@ -286,6 +298,94 @@ def rewrite_stats():
         else:
             sleep(.1)
 
+
+def space_usage():
+    stats = r.db('rethinkdb').table('stats')
+    q = stats.has_fields('storage_engine')\
+        .pluck('server', 'table', {'storage_engine': {'disk' :'space_usage'}})
+
+    totals = defaultdict(lambda : 0.)
+
+    print('{:24s}   {:9s}       {:8s}     {:8s}    {:4s}    {:8s}     {:8s}'\
+          .format('table', 'server', 'data', 'garbage', '%', 'meta', 'prealloc'))
+    for d in sorted(q.run(), key = lambda d : (d['table'], d['server'])):
+        server   = d['server']
+        table    = d['table']
+        space    = d['storage_engine']['disk']['space_usage']
+        data     = space['data_bytes'] / 2**23
+        garbage  = space['garbage_bytes'] / 2**23
+        ratio    = 100. * garbage / (data + garbage)
+        meta     = space['metadata_bytes'] / 2**23
+        prealloc = space['preallocated_bytes'] / 2**23
+        print('{0[table]:<24s} @ {0[server]:<9s}: '
+              '{data:>8.2f}MiB  {garbage:>8.2f}MiB  {ratio:>4.1f}%  {meta:>8.2f}MiB  {prealloc:>8.2f}MiB'.format(d, **locals()))
+
+        totals[server] += data
+    pprint(totals)
+
+def connections():
+    """
+    Shows the current network configuration of the cluster
+    """
+    conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
+    for x in conns:
+        dbs = sorted(filter(lambda n : n.startswith('db'), x['network']['connected_to'].keys()))
+        print('%s: %s' % (x['name'], dbs))
+    print()
+    for x in conns:
+        dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
+        print('%s: %s' % (x['name'], dbs))
+
+def read_write_stats(N = 10, B = 2):
+    """
+    Tabulates some read/write stats per table
+    """
+    from collections import Counter
+    from time import sleep
+    c_wps = Counter()
+    c_rps = Counter()
+    print("taking {} samples in {}s intervals".format(N, B))
+    for i in range(N):
+        wps_t = {}
+        rps_t = {}
+        print("sample {}".format(i))
+        for t in r_stats.filter(r.row['id'][0] == "table").pluck("table", "query_engine").run():
+            name = t["table"]
+            wps = t["query_engine"]["written_docs_per_sec"]
+            rps = t["query_engine"]['read_docs_per_sec']
+            if wps > 10 or rps > 10:
+                print("{0:<30s} wps: {1:10.2f} rps: {2:10.2f}".format(name, wps, rps))
+            wps_t[name] = wps
+            rps_t[name] = rps
+        c_wps.update(wps_t)
+        c_rps.update(rps_t)
+        sleep(B)
+
+    print("{:30s}    reads/s     writes/s".format(""))
+    sum_r = sum_w = 0
+    for name in sorted(c_wps.keys(), key = lambda n : - c_wps[n] - c_rps[n]):
+        rps = c_rps[name] / N
+        sum_r += rps
+        wps = c_wps[name] / N
+        sum_w += wps
+        print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
+    print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
+
+def live(table = 'projects', max_time = 15, filter_str = None):
+    """
+    Watch queries in real-time.
+    * table: the table of interest (e.g. 'patches', 'projects', 'syncstrings', ...)
+    * max_time: show only queries below that in seconds (otherwise, you get changefeeds)
+    * filter_str: an additional string for filtering the queries.
+      e.g. a project uuid via live(filter_str='369491f1')
+    """
+    q = r_jobs.filter({'type':'query'})
+    q = q.filter(r.row['duration_sec'] < max_time)
+    q = q.filter(r.row["info"]["query"].match(r'table\("%s"' % table))
+    if filter_str is not None:
+        q = q.filter(r.row["info"]["query"].match(filter_str))
+    for x in q.changes()['new_val']['info'].run():
+        print(x['query'])
 
 # This class & methods queries the backup, which is a plain `rethinkdb export` dump ###
 # the tricky part is, that not all tables can be loaded into memory at once.

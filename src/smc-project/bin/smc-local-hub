@@ -10,7 +10,10 @@ if not os.path.exists(data):
     os.makedirs(data)
 elif sys.argv[1] == 'start':
     for x in os.listdir(data):
-        os.unlink(os.path.join(data, x))
+        try:
+            os.unlink(os.path.join(data, x))
+        except:
+            pass
 
 path = os.path.split(os.path.realpath(__file__))[0] + '/..'
 target = os.path.abspath(os.path.join(path, 'local_hub.coffee'))

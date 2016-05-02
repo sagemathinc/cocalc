@@ -10,6 +10,7 @@ gce.py create_compute_server --machine_type g1-small  0-devel
 """
 
 import math, os, sys, argparse, json, time
+from pprint import pprint
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
@@ -220,6 +221,7 @@ class GCE(object):
     def create_all_boot_snapshots(self):
         v = []
 
+        #for i in [0,1,2,3,4,5,'-backup']:
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))
 
@@ -261,8 +263,14 @@ class GCE(object):
 
         errors = []
         for disk in info['disks']:
+            # ignore boot disks (would be True)
             if disk.get('boot', False):
                 continue
+            # ignore read-only disks (like for globally mounted data volumes)
+            # they would be snapshotted manually
+            if disk.get('mode', 'READ_WRITE') == 'READ_ONLY':
+                continue
+
             src = disk['source'].split('/')[-1]
             if 'swap' in src: continue
             if 'tmp' in src: continue
@@ -289,6 +297,9 @@ class GCE(object):
         return [f(x['name']) for x in info if x['zone'] == zone and f(x['name'])]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
+        # database backup disk
+        #self.create_data_snapshot(node='-backup', prefix='db', zone=zone, devel=False)
+
         for i in range(6):
             log("snapshotting storage%s storage data"%i)
             self.create_data_snapshot(node=i, prefix='storage', zone=zone, devel=False)

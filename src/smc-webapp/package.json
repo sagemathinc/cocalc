@@ -17,6 +17,7 @@
     "htmlparser": "^1.7.7",
     "immutable": "^3.7.4",
     "jquery.payment": "git://github.com/stripe/jquery.payment.git",
+    "json-stable-stringify": "^1.0.1",
     "marked": "^0.3.3",
     "mathjax": "^2.6.1",
     "md5": "^2.0.0",

@@ -90,6 +90,7 @@
   font-family: serif
   background-color: rgba(255, 255, 255, 0.7)
 
+
 .salvus-editor-recent-files
   margin-bottom: 0em
 
@@ -325,6 +326,9 @@
 .sagews-input-running
   background: #0a0
 
+.sagews-input-waiting
+  background: #DC4437
+
 // Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up.
 // background-color: #f9f9f9;
 //
@@ -483,7 +487,7 @@
   margin-left: 10px
   margin-right: 10px
   > .ui-slider-handle
-    width: 12px
+    width: 16px
     height: 24px
     position: absolute
     top: -8px
@@ -597,3 +601,32 @@ code
 
 .CodeMirror-linewidget
   overflow: hidden
+
+
+/* Used for new sync. */
+.smc-editor-codemirror-cursor
+  position: absolute
+  width: 15em
+  z-index: 5
+
+.smc-editor-codemirror-cursor-inside
+  position : absolute
+  top      : -1.2em
+  left     : -1px
+  height   : 1.2em
+  width    : 1px
+
+.smc-editor-codemirror-cursor-label
+  position    : absolute
+  top         : -2.3em
+  font-size   : 8pt
+  font-family : serif
+  color       : #fff
+
+.smc-uncommitted
+  color            : white
+  background-color : red
+  padding          : 5px
+  border-radius    : 3px
+  margin-left      : 5px
+  margin-right     : -5px

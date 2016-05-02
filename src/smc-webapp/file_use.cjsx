@@ -112,24 +112,6 @@ class FileUseActions extends Actions
             err = misc.to_json(err)
         @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
 
-    # Mark a record (or array of them) x with the given action happening now for this user.
-    # INPUT:
-    #    - x: uuid or array of uuid's of file_use records
-    #    - action: 'read', 'seen', 'edit', 'chat'
-    mark: (x, action) =>
-        if not misc.is_array(x)
-            x = [x]
-        table = @redux.getTable('file_use')
-        account_id = @redux.getStore('account').get_account_id()
-        u = {"#{account_id}":{"#{action}":new Date()}}
-        f = (id, cb) =>
-            table.set {id:id, users:u}, (err)=>
-                if err then err += "(id=#{id}) #{err}"
-                cb(err)
-        async.map x, f, (err) =>
-            if err
-                @record_error("error marking record #{action} -- #{err}")
-
     mark_all: (action) =>
         if action == 'read'
             v = @redux.getStore('file_use').get_all_unread()
@@ -137,16 +119,47 @@ class FileUseActions extends Actions
             v = @redux.getStore('file_use').get_all_unseen()
         else
             @record_error("mark_all: unknown action '#{action}'")
-        @mark((x.id for x in v), action)
+            return
+        for x in v
+            @mark_file(x.project_id, x.path, action, 0, false)
 
-    mark_file: (project_id, path, action) =>
-        table = @redux.getTable('file_use')
+    mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
+        if fix_path
+            path = misc.original_path(path)
+        #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
-        u = {"#{account_id}":{"#{action}":new Date()}}
-        table.set {project_id:project_id, path:path, users:u}, (err)=>
+        if not account_id?
+            # nothing to do -- non-logged in users shouldn't be marking files
+            return
+        if ttl
+            if ttl == 'default'
+                if action == 'chat'
+                    ttl = 10*1000
+                else
+                    ttl = 120*1000
+            #console.log('ttl', ttl)
+            key = "#{project_id}-#{path}-#{action}"
+            @_mark_file_lock ?= {}
+            if @_mark_file_lock[key]
+                return
+            @_mark_file_lock[key] = true
+            setTimeout((()=>delete @_mark_file_lock[key]), ttl)
+
+        table = @redux.getTable('file_use')
+        now   = new Date()
+        obj   =
+            project_id : project_id
+            path       : path
+            users      : {"#{account_id}":{"#{action}":now}}
+        if action == 'edit' or action == 'chat'
+            # Update the overall "last_edited" field for the file; this is used for sorting,
+            # and grabbing only recent files from database for file use notifications.
+            obj.last_edited = now
+        table.set obj, (err)=>
             if err
-                err += "(project_id=#{project_id}, path=#{path}) #{err}"
-                console.warn("FileUseActions.mark_file", err)
+                if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
+                    err += " (project_id=#{project_id}, path=#{path})"
+                    console.warn("FileUseActions.mark_file error: ", err)
 
 class FileUseStore extends Store
     get_errors: =>
@@ -258,11 +271,25 @@ class FileUseStore extends Store
             y.search = @_search(y)
             @_process_users(y)
             v.push(y)
-        v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
+        w0 = []
+        w1 = []
+        w2 = []
+        for a in v
+            if a.notify and a.is_unread
+                w0.push(a)
+            else if a.show_chat and a.is_unread
+                w1.push(a)
+            else
+                w2.push(a)
+        c = (a,b) -> misc.cmp(b.last_edited, a.last_edited)
+        w0.sort(c)
+        w1.sort(c)
+        w2.sort(c)
+        v = w0.concat(w1.concat(w2))
         @_cache =
-            sorted_file_use_list : v
+            sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
-            notify_count         : (x for x in v when x.notify).length
+            notify_count                   : (x for x in v when x.notify).length
         return v
 
     # See above for the definition of unread and unseen.
@@ -284,7 +311,7 @@ open_file_use_entry = (info, redux) ->
     if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    redux.getActions('file_use').mark(info.id, 'read')
+    redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.
@@ -417,7 +444,7 @@ FileUseViewer = rclass
 
     render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read')}>
+            onClick={=>@props.redux.getActions('file_use').mark_all('read'); hide_notification_list()}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 

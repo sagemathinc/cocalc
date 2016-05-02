@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import os, util
+import os, sys, util
+
+path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.insert(0, path)
 
 util.chdir()
 

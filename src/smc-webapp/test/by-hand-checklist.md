@@ -25,7 +25,7 @@ We will make all these tests be automated eventually. For now, at least figure o
 
 - Click on the connection icon (upper right) and make sure the ping time and "Hub Server" are both displayed.
 
-### Acount settings
+### Account settings
 - change first name and last name and see this change appear at top of page, and also in a collaborator's browser (say in project list)
 - change email address
 - change password
