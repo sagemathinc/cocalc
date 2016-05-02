@@ -412,15 +412,15 @@ class ProjectActions extends Actions
             dest : required
             id   : undefined
 
-        # If files start with a -, make them interpretable by rsync
-        validate = (src_path) ->
+        # If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/smc/issues/516)
+        deal_with_leading_dash = (src_path) ->
             if src_path[0] == '-'
-                "./#{src_path}"
+                return "./#{src_path}"
             else
-                src_path
+                return src_path
 
         # Ensure that src files are not interpreted as an option to rsync
-        opts.src = opts.src.map(validate)
+        opts.src = opts.src.map(deal_with_leading_dash)
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
