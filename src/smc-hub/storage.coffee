@@ -1285,7 +1285,7 @@ process_update = (tasks, database, project) ->
                 storage_request.err = err
             update_db () ->
                 tasks[project.project_id] = false
-                cb_async?()
+                opts.cb_async?()
     func = err = undefined
     switch action
         when 'save'
