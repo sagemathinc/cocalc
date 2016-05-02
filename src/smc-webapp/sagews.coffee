@@ -42,7 +42,7 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        #window.w = @
+        window.w = @
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
@@ -773,8 +773,66 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     _process_sage_updates: (cm, start, stop) =>
         dbg = (m) -> console.log("_process_sage_updates: #{m}")
-        #dbg("start=#{start}, stop=#{stop}")
-        return
+        if not cm?
+            cm = @focused_codemirror()
+        if not start?
+            start = 0
+        if not stop?
+            stop = cm.lineCount()-1
+        dbg("start=#{start}, stop=#{stop}")
+        ###
+        What this function does:
+
+            - Ensure that each cell start line is properly marked so it looks like a horizontal
+              line, which can be clicked, and is colored to indicate state.
+
+            - Ensure that each output line is replaced by an output element, with the proper
+              output rendered in it.
+
+        ###
+        for line in [start..stop]
+            x = cm.getLine(line)
+            if not x?
+                continue
+
+            marks = cm.findMarks({line:line, ch:0}, {line:line,ch:x.length})
+            switch x[0]
+                when MARKERS.cell
+                    if marks.length == 0
+                        # create the input mark here
+                        console.log("creating input mark at line #{line}")
+                        input = cell_start_template.clone()
+                        opts =
+                            shared         : false
+                            inclusiveLeft  : false
+                            inclusiveRight : true
+                            atomic         : true
+                            replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
+                        mark = cm.markText({line:line, ch:0}, {line:line, ch:x.length}, opts)
+                        mark.element = input
+
+                when MARKERS.output
+                    if marks.length == 0
+                        # create the output mark here
+                        console.log("creating output mark at line #{line}")
+                        output = output_template.clone()
+                        opts =
+                            shared         : false
+                            inclusiveLeft  : true
+                            inclusiveRight : true
+                            atomic         : true
+                            replacedWith   : output[0]
+                        mark = cm.markText({line:line, ch:0}, {line:line+1, ch:x.length}, opts)
+                        mark.element = input
+                        cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
+                        cm.addLineClass(line, 'text',   'sagews-output-cm-text')
+                        cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
+
+                else
+                    if marks.length > 0
+                        for m in marks
+                            m.clear()
+
 
     _process_sage_updates0: (cm, start, stop) =>
         #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
