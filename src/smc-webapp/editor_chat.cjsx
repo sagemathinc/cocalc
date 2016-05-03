@@ -112,6 +112,7 @@ Message = rclass
         user_map   : rtypes.object
         project_id : rtypes.string    # optional -- improves relative links if given
         file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
+        font_size  : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -148,10 +149,12 @@ Message = rclass
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html(value)
 
+        font_size = "#{@props.font_size}px"
+
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color}>
+                    <ListGroupItem style={background:color; fontSize: font_size}>
                         <Markdown value={value}
                                   project_id={@props.project_id}
                                   file_path={@props.file_path} />
@@ -182,6 +185,7 @@ ChatLog = rclass
         account_id : rtypes.string
         project_id : rtypes.string   # optional -- used to render links more effectively
         file_path  : rtypes.string   # optional -- ...
+        font_size  : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -190,12 +194,13 @@ ChatLog = rclass
         v = {}
         @props.messages.map (mesg, date) =>
             v[date] = <Message key={date}
-                    account_id = {@props.account_id}
-                    user_map   = {@props.user_map}
-                    message    = {mesg}
-                    project_id = {@props.project_id}
-                    file_path  = {@props.file_path}
-                />
+                        account_id = {@props.account_id}
+                        user_map   = {@props.user_map}
+                        message    = {mesg}
+                        project_id = {@props.project_id}
+                        file_path  = {@props.file_path}
+                        font_size  = {@props.font_size}
+                      />
         k = misc.keys(v).sort(misc.cmp_Date)
         return (v[date] for date in k)
 
@@ -215,6 +220,7 @@ ChatRoom = (name) -> rclass
             user_map : rtypes.immutable
         account :
             account_id : rtypes.string
+            font_size  : rtypes.number
         file_use :
             file_use : rtypes.immutable
 
@@ -332,8 +338,13 @@ ChatRoom = (name) -> rclass
             <Row>
                 <Col md={12}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map}
-                                 project_id={@props.project_id} file_path={if @props.path? then misc.path_split(@props.path).head} />
+                        <ChatLog
+                            messages     = {@props.messages}
+                            account_id   = {@props.account_id}
+                            user_map     = {@props.user_map}
+                            project_id   = {@props.project_id}
+                            font_size    = {@props.font_size}
+                            file_path    = {if @props.path? then misc.path_split(@props.path).head} />
                     </Panel>
                 </Col>
             </Row>

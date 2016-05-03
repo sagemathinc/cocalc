@@ -1670,7 +1670,6 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
-        @init_change_event()
         @init_draggable_splits()
 
         if opts.read_only
