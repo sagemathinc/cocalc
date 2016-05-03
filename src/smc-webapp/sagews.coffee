@@ -182,8 +182,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     cell: (line) ->
         return new SynchronizedWorksheetCell(@, line)
-        # NOTE: We do **NOT** cache cells.  The reason is that client code should create
-        # a cell for a specific purpose, then call cell.clear() when done.
+        # CRITICAL: We do **NOT** cache cells.  The reason is that client code should create
+        # a cell for a specific purpose then forget about it as soon as that is done!!!
         # The reason is that at any time new input cell lines can be added in the
         # middle of a cell, and in general the document can change arbitrarily.
         # Keeping a big list of cells in sync with the document would be
@@ -200,7 +200,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if not top? or n < top
                 cell = @cell(n)
                 cells.push(cell)
-                top = cell.get_input_mark()?.find().from.line
+                top = cell.start_line()
         for sel in cm.listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
             n = sel.anchor.line; m = sel.head.line
             if n == m
@@ -221,7 +221,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if not top? or n < top
                 cell = @cell(n)
                 cells.push(cell)
-                top = cell.get_input_mark()?.find().from.line
+                top = cell.start_line()
         n = cm.lineCount() - 1
         while n > 0 and cm.getLine(n)[0] != MARKERS.output # skip empty lines at end so don't create another cell
             n -= 1
@@ -760,8 +760,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         try
             if not opts.cm?
                 @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-                if @editor._split_view
-                    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
+                #if @editor._split_view
+                #    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
             else
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
         catch e
@@ -780,59 +780,102 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if not stop?
             stop = cm.lineCount()-1
         dbg("start=#{start}, stop=#{stop}")
-        ###
-        What this function does:
-
-            - Ensure that each cell start line is properly marked so it looks like a horizontal
-              line, which can be clicked, and is colored to indicate state.
-
-            - Ensure that each output line is replaced by an output element, with the proper
-              output rendered in it.
-
-        ###
         for line in [start..stop]
-            x = cm.getLine(line)
-            if not x?
+            @_process_line(cm, line)
+
+    _process_line: (cm, line) =>
+        ###
+        - Ensure that cell start line is properly marked so it looks like a horizontal
+          line, which can be clicked, and is colored to indicate state.
+
+        - Ensure that cell output line is replaced by an output element, with the proper
+          output rendered in it.
+        ###
+        x = cm.getLine(line)
+        if not x?
+            return
+        marks = cm.findMarks({line:line, ch:0}, {line:line,ch:x.length})
+        if marks.length > 1
+            # There should never be more than 1 mark on a line; if so, clear them call
+            for m in marks
+                m.clear()
+            marks = []
+
+        switch x[0]
+            when MARKERS.cell
+                uuid = x.slice(1,37)
+                if marks.length == 1 and (marks[0].type != 'input' or marks[0].uuid != uuid)
+                    marks[0].clear()
+                    marks = []
+                if marks.length == 0
+                    # create the input mark here
+                    console.log("creating input mark at line #{line}")
+                    input = cell_start_template.clone()
+                    opts =
+                        shared         : false
+                        inclusiveLeft  : false
+                        inclusiveRight : true
+                        atomic         : true
+                        replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
+                    mark = cm.markText({line:line, ch:0}, {line:line, ch:x.length}, opts)
+                    mark.element = input
+                    mark.type = 'input'
+                    mark.uuid = uuid
+
+            when MARKERS.output
+                uuid = x.slice(1,37)
+                if marks.length == 1 and (marks[0].type != 'output' or marks[0].uuid != uuid)
+                    marks[0].clear()
+                    marks = []
+                if marks.length == 0
+                    # create the output mark here
+                    console.log("creating output mark at line #{line}")
+                    output = output_template.clone()
+                    opts =
+                        shared         : false
+                        inclusiveLeft  : true
+                        inclusiveRight : true
+                        atomic         : true
+                        replacedWith   : output[0]
+                    mark = cm.markText({line:line, ch:0}, {line:line, ch:x.length}, opts)
+                    mark.element = output
+                    mark.type = 'output'
+                    mark.uuid = uuid
+                    mark.rendered = ''
+                    marks.push(mark)
+                cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
+                cm.addLineClass(line, 'text',   'sagews-output-cm-text')
+                cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
+                @render_output(marks[0], x.slice(38))
+
+            else
+                # No marks if line doesn't begin with a marker
+                if marks.length > 0
+                    for m in marks
+                        m.clear()
+
+    render_output: (mark, s) =>
+        console.log "render_output, '#{s}'"
+        mark.element.empty()
+        if mark.rendered == s
+            return
+        if s.slice(0, mark.rendered.length) != mark.rendered
+            mark.element.empty()
+            mark.rendered = ''
+        for m in s.slice(mark.rendered.length).split(MARKERS.output)
+            if m.length == 0
                 continue
-
-            marks = cm.findMarks({line:line, ch:0}, {line:line,ch:x.length})
-            switch x[0]
-                when MARKERS.cell
-                    if marks.length == 0
-                        # create the input mark here
-                        console.log("creating input mark at line #{line}")
-                        input = cell_start_template.clone()
-                        opts =
-                            shared         : false
-                            inclusiveLeft  : false
-                            inclusiveRight : true
-                            atomic         : true
-                            replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
-                        mark = cm.markText({line:line, ch:0}, {line:line, ch:x.length}, opts)
-                        mark.element = input
-
-                when MARKERS.output
-                    if marks.length == 0
-                        # create the output mark here
-                        console.log("creating output mark at line #{line}")
-                        output = output_template.clone()
-                        opts =
-                            shared         : false
-                            inclusiveLeft  : true
-                            inclusiveRight : true
-                            atomic         : true
-                            replacedWith   : output[0]
-                        mark = cm.markText({line:line, ch:0}, {line:line+1, ch:x.length}, opts)
-                        mark.element = input
-                        cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
-                        cm.addLineClass(line, 'text',   'sagews-output-cm-text')
-                        cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
-
-                else
-                    if marks.length > 0
-                        for m in marks
-                            m.clear()
-
+            try
+                mesg = misc.from_json(m)
+            catch e
+                console.warn("invalid output message '#{m}'")
+                continue
+            console.log("rendering ", mesg)
+            @process_output_mesg
+                mesg    : mesg
+                element : mark.element
+                mark    : mark
+        mark.rendered = s
 
     _process_sage_updates0: (cm, start, stop) =>
         #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
@@ -1430,35 +1473,28 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{text}</a> "))
 
         if mesg.javascript? and @allow_javascript_eval()
-            (() =>
-             cell      = new Cell(output : opts.element)
-             worksheet = new Worksheet(@)
-             print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
+            cell      = new Cell(output : opts.element)
+            worksheet = new Worksheet(@)
+            print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
 
-             code = mesg.javascript.code
-             async.series([
-                 (cb) =>
-                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1 or mesg.javascript.cjsx
-                         misc_page.load_coffeescript_compiler(cb)
-                     else
-                         cb()
-                 (cb) =>
-                     # DEPRECATED for now -- not useful.
-                     #if mesg.javascript.cjsx
-                     #    code = CoffeeScript.compile(require('coffee-react-transform')(code))
-                     if mesg.javascript.coffeescript
-                         code = CoffeeScript.compile(code)
-                     if mesg.obj?
-                         obj  = JSON.parse(mesg.obj)
-
-                     # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
-                     # Note that there is an allow_javascript document option, which (at some point) users
-                     # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-                     eval(code)
-                     @refresh_soon()
-                     cb()
-             ])
-            )()
+            code = mesg.javascript.code
+            if mesg.obj?
+                obj  = JSON.parse(mesg.obj)
+            else
+                obj = undefined
+            if mesg.javascript.coffeescript
+                if not CoffeeScript?
+                    # DANGER: this is the only async code in process_output_mesg
+                    misc_page.load_coffeescript_compiler () =>
+                        eval(CoffeeScript?.compile(code))
+                else
+                    eval(CoffeeScript?.compile(code))
+            else
+                # The eval below is an intentional cross-site scripting vulnerability
+                # in the fundamental design of SMC.
+                # Note that there is an allow_javascript document option, which (at some point) users
+                # will be able to set.  There is one more instance of eval below in _receive_broadcast.
+                eval(code)
 
         if mesg.show?
             if opts.mark?
@@ -1484,7 +1520,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             when 'output'
                                 cell.set_cell_flag(FLAGS.hide_output)
 
-        # NOTE: Right now the "state object" is a just a list of messages in the output of a cell. It's viewed as something that should get rendered in order, with no dependence between them. Instead alll thoose messages should get fed into one single state object, which then gets rendered each time it changes. React makes that approach easy and efficient. Without react (or something similar) it is basically impossible.  When sage worksheets are rewritten using react, this will change.
+        # NOTE: Right now the "state object" is a just a list of messages in the output of a cell.
+        # It's viewed as something that should get rendered in order, with no dependence between them.
+        # Instead alll thoose messages should get fed into one single state object, which then gets
+        # rendered each time it changes. React makes that approach easy and efficient. Without react
+        # (or something similar) it is basically impossible.  When sage worksheets are rewritten
+        # using react, this will change.
         if mesg.clear
             line = opts.mark.find()?.from.line
             if line?
@@ -1499,8 +1540,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.done
             output.removeClass('sagews-output-running')
             output.addClass('sagews-output-done')
-
-        @refresh_soon()
 
     allow_javascript_eval: () =>
         # TODO: Maybe better would be a button to click that re-renders
@@ -1691,7 +1730,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         return undefined
 
     # Returns start and end lines of the current input block (if line is undefined),
-    # or of the block that contains the given line number.
+    # or of the block that contains the given line number.  This does not chnage
+    # the document.
     current_input_block: (line) =>
         cm = @focused_codemirror()
         if not line?
@@ -2132,11 +2172,11 @@ class ExecutionQueue
         @dbg("push")()
         if @_state == 'closed'
             return
-        uuid = opts.cell.input_uuid()
+        uuid = opts.cell.start_uuid()
         if not uuid? # removed
             return
         for x in @_queue
-            if x.cell.input_uuid() == uuid
+            if x.cell.start_uuid() == uuid
                 return # cell already queued up to run
         if uuid == @_running_uuid
             # currently running
@@ -2175,7 +2215,7 @@ class ExecutionQueue
         if @_queue.length == 0
             return
         x = @_queue.shift()
-        uuid = x.cell.input_uuid()
+        uuid = x.cell.start_uuid()
         if not uuid?
             # cell no longer exists
             @_process()
@@ -2196,134 +2236,59 @@ class ExecutionQueue
 
 class SynchronizedWorksheetCell
     constructor: (@doc, line) ->
-        # Set an id; this is useful to keep track of this cell for this client only;
-        # since input and output cell id can change, need this.
-        @_init(line)
+        # Determine input and end lines of the cell that contains the given line, and
+        # the corresponding uuid's.
+        {start, end} = @doc.current_input_block(line)
+        @cm = @doc.focused_codemirror()
 
-    # remove this cell when it is no longer needed -- like CodeMirror clear method on marks.
-    clear: =>
-        if @_input_mark?
-            @_input_mark.clear()
-            delete @_input_mark
-        if @_output_mark?
-            @_output_mark.clear()
-            delete @_output_mark
-
-    _init: (line) =>
-        # Determine input and end lines of the cell that contains the given line.
-        # Then ensure there is a cell input marker a cell end marker, and get the correspondings
-        # marks so that we can keep track of the extent of the cell.  As long as either marker
-        # is defined, we can compute/define the other one.
-        x = @doc.current_input_block(line)
-        input = x.start
-        end = x.end
-        if not @_input_mark?
-            {marker, created, uuid} = @doc.cell_start_marker(input)
-            @_input_mark = marker
-            @_input_uuid = uuid
-            if created  # just added a new line when creating start marker
-                @doc.process_sage_updates(start:input, stop:input, caller:"SynchronizedWorksheetCell._init")
-                end += 1
-        if not @_output_mark?
-            output_line = @doc.find_output_line(input)
-            cm = @doc.focused_codemirror()
-            if output_line?
-                @_output_mark = @doc.find_output_mark(output_line, cm)
-                @_output_uuid = cm.getLine(output_line).slice(1,37)
-            else
-                @_output_uuid = misc.uuid()
-                s = MARKERS.output + @_output_uuid + MARKERS.output + '\n'
-                if cm.lineCount() <= end+1
-                    # last line of document, so insert new empty line
-                    s = '\n' + s
-                    end += 1
-                cm.replaceRange(s, {line:end+1,ch:0}, {line:end+1,ch:0})
-                @doc.process_sage_updates(start:end, stop:end+1, caller:"SynchronizedWorksheetCell._init")
-                @_output_mark = @doc.find_output_mark(end, cm)
-
-    # Return range of lines containing this cell right now.  Or undefined if cell is gone.
-    #    {from:{line:?,ch:?}, to:{line:?, ch:?}}
-    find: =>
-        loc0 = @get_input_mark()?.find()
-        if not loc0?
-            return
-        loc1 = @get_output_mark()?.find()
-        if not loc1?
-            return
-        return {from:loc0.from, to:loc1.to}
-
-    # Assuming @_input_mark is no longer in the document, attempt to find or create
-    # the input marker for this cell, using the output marker (assuming it exits)
-    _find_input_mark: =>
-        loc = @_output_mark?.find()
-        if not loc?
-            return  # nothing to do -- can't find
-        delete @_input_mark
-        @_init(loc.from.line)
-        return @_input_mark
-
-    # Returns the input mark or undefined; if defined, then the mark is guaranteed to be in
-    # the document, so .find() will return a location.
-    get_input_mark: =>
-        if not @_input_mark?.find()
-            return @_find_input_mark()
+        # Input
+        x = @cm.getLine(start)
+        if x[0] == MARKERS.cell
+            @_start_uuid = x.slice(1,37)
         else
-            return @_input_mark
+            @_start_uuid = misc.uuid()
+            @cm.replaceRange(MARKERS.cell + @_start_uuid + MARKERS.cell + '\n', {line:start, ch:0})
+            end += 1
+        @_start_line = start
+
+        # Output
+        x = @cm.getLine(end)
+        if x[0] == MARKERS.output
+            @_output_uuid = x.slice(1,37)
+            @_end_line = end
+        else
+            @_output_uuid = misc.uuid()
+            s = MARKERS.output + @_output_uuid + MARKERS.output + '\n'
+            if @cm.lineCount() <= end+1
+                # last line of document, so insert new empty line
+                s = '\n' + s
+                end += 1
+            @cm.replaceRange(s, {line:end+1, ch:0})
+            @_end_line = end+1
 
     start_line: =>
-        loc = @_input_mark?.find()
-        if loc?
-            return loc.from.line
-        else
-            return @doc.focused_codemirror().find_in_line(@_input_uuid)?.line
+        if (@cm.getLine(@_start_line)?.indexOf(@_start_uuid) ? -1) != -1
+            return @_start_line
+        return @_start_line = @cm.find_in_line(@_start_uuid)?.line
 
     end_line: =>
-        loc = @_input_mark?.find()
-        if loc?
-            return loc.from.line
-        else
-            return @doc.focused_codemirror().find_in_line(@_output_uuid)?.line
+        if (@cm.getLine(@_end_line)?.indexOf(@_start_uuid) ? -1) != -1
+            return @_end_line
+        return @_end_line = @cm.find_in_line(@_output_uuid)?.line
 
-    _find_output_mark: =>
-        loc = @_input_mark?.find()
-        if not loc?
-            return  # nothing to do -- can't find
-        delete @_output_mark
-        @_init(loc.from.line)
-        return @_output_mark
-
-    # Returns the output mark or undefined; if defined, then the mark is guaranteed to be in
-    # the document, so .find() will return a location.
-    get_output_mark: =>
-        if not @_output_mark?.find()
-            return @_find_output_mark()
-        else
-            return @_output_mark
-
-    get_output_height: =>
-        return @get_output_mark()?.element?.height()
-
-    set_output_min_height: (min_height='') =>
-        if not min_height
-            min_height = ''
-        @get_output_mark()?.element?.css('min-height', min_height)
-
-    input_uuid: =>
-        return @raw_input()?.slice(1,37)
+    start_uuid: =>
+        return @_start_uuid
 
     output_uuid: =>
-        return @raw_output()?.slice(1,37)
+        return @_output_uuid
 
     # generate a new random output uuid and replace the existing one
     new_output_uuid: =>
-        line = @get_output_mark()?.find()?.from.line
+        line = @end_line()
         if not line?
-            line = @end_line()
-            if not line?
-                return
+            return
         output_uuid = misc.uuid()
-        cm = @doc.focused_codemirror()
-        cm.replaceRange(output_uuid, {line:line, ch:1}, {line:line, ch:37})
+        @cm.replaceRange(output_uuid, {line:line, ch:1}, {line:line, ch:37})
         @_output_uuid = output_uuid
         return output_uuid
 
@@ -2335,7 +2300,7 @@ class SynchronizedWorksheetCell
         end   = @end_line()
         if not end?
             return
-        return @doc.focused_codemirror().getRange({line:start+offset,ch:0}, {line:end, ch:0})
+        return @cm.getRange({line:start+offset,ch:0}, {line:end, ch:0})
 
     input: =>
         return @raw_input(1)
@@ -2350,28 +2315,31 @@ class SynchronizedWorksheetCell
 
     # return current content of the output line of this cell as a string (or undefined)
     raw_output: =>
-        loc = @get_output_mark()?.find()
-        if not loc?
-            return
-        return @doc.focused_codemirror().getLine(loc.from.line)
+        return @cm.getLine(loc.from.line)
 
     output: =>
         return (misc.from_json(x) for x in @raw_output().slice(38).split(MARKERS.output) when x)
 
     _get_output: () =>
-        mark = @get_output_mark()
-        loc = mark?.find()
-        cm = @doc.focused_codemirror()
-        if loc?
-            n = loc.from.line
-        else
-            n = @end_line()
-            if not n?
-                console.warn("_get_output: unable to append output message since cell no longer exists")
-                return
-            loc = {from:{line:n,ch:0}, to:{line:n,ch:cm.getLine(n).length}}
-        s  = cm.getLine(n)
-        return {cm: cm, loc: loc, s: s, n: n}
+        n = @end_line()
+        if not n?
+            console.warn("_get_output: unable to append output message since cell no longer exists")
+            return
+        loc = {from:{line:n,ch:0}, to:{line:n,ch:@cm.getLine(n).length}}
+        s  = @cm.getLine(n)
+        return {loc: loc, s: s, n: n}
+
+    output_element: () =>
+        end = @end_line()
+        if not end?
+            return
+        return @cm.findMarksAt({line:end, ch:0})?[0]?.element
+
+    get_output_height: () =>
+        return @output_element()?.height()
+
+    set_output_min_height: (min_height='') =>
+        @output_element()?.css('min-height', min_height)
 
     mesg_to_json: (mesg) =>
         return stringify(misc.copy_without(mesg, ['id', 'event']))
@@ -2383,17 +2351,16 @@ class SynchronizedWorksheetCell
             return
         s = @mesg_to_json(mesg)
         #console.log("append_output_mesg: '#{s}'")
-        {cm, loc, n} = x
+        {loc, n} = x
         t  = MARKERS.output + s
-        cm.replaceRange(t, loc.to, loc.to)
-        @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.append_output_message")
+        @cm.replaceRange(t, loc.to, loc.to)
 
     # Delete the last num output messages in this cell
     delete_last_output: (num) =>
         x = @_get_output()
         if not x?
             return
-        {cm, loc, s, n} = x
+        {loc, s, n} = x
         for _ in misc.range(num)
             i = s.lastIndexOf(MARKERS.output)
             if i == -1
@@ -2401,62 +2368,39 @@ class SynchronizedWorksheetCell
                 return
             s = s.slice(0,i)
         s = s.slice(37)
-        cm.replaceRange(s, {line:loc.from.line, ch:37}, loc.to)
-        @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.delete_last_output")
+        @cm.replaceRange(s, {line:loc.from.line, ch:37}, loc.to)
 
     # For a given list output of messages, set the output of that cell to them.
     set_output: (output=[]) =>
-        loc = @get_output_mark()?.find()
-        cm = @doc.focused_codemirror()
-        if loc?
-            line = loc.from.line
-            ch  = loc.to.ch
-        else
-            line = @end_line()
-            if not line?
-                console.warn("set_output: unable to append output message since cell no longer exists")
-                return
-            ch = cm.getLine(line).length
+        line = @end_line()
+        if not line?
+            console.warn("set_output: unable to append output message since cell no longer exists")
+            return
+        ch = @cm.getLine(line).length
         if output.length == 0 and loc?.to.ch == 38
             # nothing to do -- already empty
             return
         s  = MARKERS.output + (@mesg_to_json(mesg) for mesg in output).join(MARKERS.output)
-        cm.replaceRange(s, {line:line, ch:37}, {line:line, ch:ch})
-        @doc.process_sage_updates(start:line, stop:line, caller:"SynchronizedWorksheetCell.set_output")
+        @cm.replaceRange(s, {line:line, ch:37}, {line:line, ch:ch})
 
     remove_cell_flag: (flag) =>
-        mark = @get_input_mark()
-        if mark?
-            @doc.remove_cell_flag(mark, flag)
-        else
-            n = @start_line()
-            if n?
-                s = @doc.get_input_line_flagstring(n)
-                if s? and flag in s
-                    s = s.replace(new RegExp(flag, "g"), "")
-                    @doc.set_input_line_flagstring(n, s)
+        n = @start_line()
+        if n?
+            s = @doc.get_input_line_flagstring(n)
+            if s? and flag in s
+                s = s.replace(new RegExp(flag, "g"), "")
+                @doc.set_input_line_flagstring(n, s)
 
     set_cell_flag: (flag) =>
-        mark = @get_input_mark()
-        if mark?
-            @doc.set_cell_flag(mark, flag)
-            n = mark.find()?.from?.line
-            if n?
-                @doc.process_sage_updates(start:n, stop:n, caller:"set_cell_flag")
-        else
-            n = @start_line()
-            if n?
-                s = @doc.get_input_line_flagstring(n)
-                if flag not in s
-                    @doc.set_input_line_flagstring(n, s + flag)
+        n = @start_line()
+        if n?
+            s = @doc.get_input_line_flagstring(n)
+            if flag not in s
+                @doc.set_input_line_flagstring(n, s + flag)
 
     # returns a string with the flags in it
     get_cell_flags: =>
-        mark = @get_input_mark()
-        if mark?
-            return @doc.get_cell_flagstring(mark)
-        else
-            return @doc.get_input_line_flagstring(@start_line())
+        return @doc.get_input_line_flagstring(@start_line())
 
     action: (opts={}) =>
         opts = defaults opts,
@@ -2475,7 +2419,6 @@ class SynchronizedWorksheetCell
             else
                 # input is currently visible
                 @set_cell_flag(FLAGS.hide_input)
-            @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_input")
         if opts.toggle_output
             flags = @get_cell_flags()
             if FLAGS.hide_input in flags and not (FLAGS.hide_output in flags)
@@ -2490,7 +2433,6 @@ class SynchronizedWorksheetCell
             else
                 # output is currently visible
                 @set_cell_flag(FLAGS.hide_output)
-            @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_output")
         if opts.delete_output
             if FLAGS.hide_input in @get_cell_flags()
                 # input is currently hidden -- so we do NOT delete output (this confuses people too much)
