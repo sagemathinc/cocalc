@@ -1433,22 +1433,25 @@ ProjectFilesSearch = rclass
     dismiss_alert : ->
         @props.actions.setState(file_creation_error : '')
 
-    search_submit: ->
-        # TODO: Add visual indication that a file is selected at all.
+    search_submit: (value, opts) ->
         if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path, update_file_listing=true)
                 @props.actions.setState(page_number: 0)
             else
-                @props.actions.open_file(path: new_path)
-            @props.actions.set_file_search('')
-        else if not @props.files_displayed and @props.file_search.length > 0
+                @props.actions.open_file
+                    path: new_path
+                    foreground : not opts.ctrl_down
+            if not opts.ctrl_down
+                @props.actions.set_file_search('')
+                @props.actions.reset_selected_file_index()
+        else if @props.file_search.length > 0
             if @props.file_search[@props.file_search.length - 1] == '/'
-                @props.create_folder()
+                @props.create_folder(not opts.ctrl_down)
             else
-                @props.create_file()
-        @props.actions.reset_selected_file_index()
+                @props.create_file(null, not opts.ctrl_down)
+            @props.actions.reset_selected_file_index()
 
     on_up_press : () ->
         if @props.selected_file_index > 0
@@ -1458,8 +1461,9 @@ ProjectFilesSearch = rclass
         if @props.selected_file_index < @props.num_files_displayed - 1
             @props.actions.increment_selected_file_index()
 
-    on_change : (search) ->
-        @props.actions.reset_selected_file_index()
+    on_change : (search, opts) ->
+        if not opts.ctrl_down
+            @props.actions.reset_selected_file_index()
         @props.actions.set_file_search(search)
 
     render : ->
@@ -1576,7 +1580,7 @@ ProjectFiles = (name) -> rclass
     next_page : ->
         @props.actions.setState(page_number : @props.page_number + 1)
 
-    create_file : (ext) ->
+    create_file : (ext, switch_over=true) ->
         if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
             ext = "sagews"
         @props.actions.create_file
@@ -1585,14 +1589,25 @@ ProjectFiles = (name) -> rclass
             current_path : @props.current_path
             on_download  : ((a) => @setState(download: a))
             on_error     : @handle_creation_error
+            switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
+        if not switch_over
+            # WARNING: Uses old way of refreshing file listing
+            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     handle_creation_error : (e) ->
         @props.actions.setState(file_creation_error : e)
 
-    create_folder : ->
-        @props.actions.create_folder(@props.file_search, @props.current_path, (a) => setState(error: a))
+    create_folder : (switch_over=true) ->
+        @props.actions.create_folder
+            name         : @props.file_search
+            current_path : @props.current_path
+            on_error     : ((a) => setState(error: a))
+            switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
+        if not switch_over
+            # WARNING: Uses old way of refreshing file listing
+            @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
     render_paging_buttons : (num_pages) ->
         if num_pages > 1

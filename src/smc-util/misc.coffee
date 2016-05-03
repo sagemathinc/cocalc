@@ -1480,9 +1480,12 @@ exports.map_without_undefined = map_without_undefined = (map) ->
             new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
     return new_map
 
-
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
+    # for react.js synthetic mouse events, where e.which is undefined!
+    if e.constructor.name == 'SyntheticMouseEvent'
+        e = e.nativeEvent
+    #console.log("e: #{e}, e.which: #{e.which}", e)
     return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)
 
 # Like Python's enumerate
@@ -1496,7 +1499,7 @@ exports.enumerate = (v) ->
 
 # escape everything in a regex
 exports.escapeRegExp = escapeRegExp = (str) ->
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
+    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
 
 # smiley-fication of an arbitrary string
 smileys_definition = [

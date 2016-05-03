@@ -1257,33 +1257,53 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
 
 ###
 Listen to database for requested storage actions and do them.  We listen for projects
-that have this host assigned for storage.
+that have this host assigned for storage, and of course do nothing for projects
+that are assigned to a different storage host.
 ###
 process_update = (tasks, database, project) ->
     dbg = (m) -> winston.debug("process_update(project_id=#{project.project_id}): #{m}")
-    project = misc.deep_copy(project)  # avoid any possibility of reference issues!
+
+    project = misc.deep_copy(project)  # avoid any possibility of mutating the project object below.
     if tasks[project.project_id]
-        # definitely already running in this process
+        # definitely already running some task involving this project
         return
+
     if project.storage_request.finished
-        # definitely nothing to do -- it's finished
+        # definitely nothing to do -- it's finished some storage request
         return
+
     dbg(misc.to_json(project))
-    dbg("START something!")
-    query = database.table('projects').get(project.project_id)
+
     storage_request = project.storage_request
-    action = storage_request.action
-    update_db = () ->
-        query.update(storage_request:database.r.literal(storage_request)).run()
+    action = storage_request?.action
+
+    dbg("START storage action #{action} for project #{project.project_id}")
+
+    if not action?
+        dbg("ERROR: action not set -- suspicious -- please investigate")
+        return
+
+    update_db = (cb) ->
+        query = database.table('projects').get(project.project_id)
+        query.update(storage_request:database.r.literal(storage_request)).run(cb)
+
     opts =
         database   : database
         project_id : project.project_id
         cb         : (err) ->
-            tasks[project.project_id] = false
             storage_request.finished = new Date()
             if err
                 storage_request.err = err
-            update_db()
+            else
+                delete storage_request.err
+            update_db (err) ->
+                if err
+                    dbg("ERROR: failed to record finishing the storage request - #{err}")
+                # Still, we are done so we set this in tasks, so we don't block on doing one later, once
+                # things time out in the database.
+                tasks[project.project_id] = false
+
+    # Figure out which storage action to take
     func = err = undefined
     switch action
         when 'save'
@@ -1306,19 +1326,27 @@ process_update = (tasks, database, project) ->
                 opts.host = target
         else
             err = "unknown action '#{action}'"
+
     if not func? and not err
         err = "bug in action handler"
     if err
         dbg(err)
         storage_request.finished = new Date()
         storage_request.err = err
-        update_db()
+        update_db (err) ->
+            dbg("ERROR: failed to record that there was an error doing storage request - #{err}")
     else
         dbg("doing action '#{action}'")
         tasks[project.project_id] = true
-        storage_request.started = new Date()
-        update_db()
-        func(opts)
+        storage_request.started   = new Date()
+        update_db (err) ->
+            if err
+                dbg("ERROR: failed to declare intention to start storage request -- #{err}")
+                # This would happen if the database was down.   After a while this request
+                # will be considered stale and will get ignored, and a new one will be made.
+            else
+                # Now actually do the action...
+                func(opts)
 
 start_server = (cb) ->
     host = os.hostname()
