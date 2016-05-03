@@ -545,10 +545,6 @@ exports.SearchInput = rclass
         switch e.keyCode
             when 17
                 @setState(ctrl_down : false)
-            when 13
-                # Some machine-browser combos don't register keyPress
-                # when ctrl is depressed and enter is pressed.
-                @submit(e)
 
     escape : ->
         @props.on_escape?(@state.value)
