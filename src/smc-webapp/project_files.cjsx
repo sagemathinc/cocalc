@@ -130,6 +130,9 @@ FileRow = rclass
         is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
+        mouse_entered: rtypes.func
+        mouse_exited : rtypes.func
+        index        : rtypes.number
 
     shouldComponentUpdate : (next) ->
         return @props.name != next.name          or
@@ -220,7 +223,7 @@ FileRow = rclass
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row style={row_styles} onMouseEnter={() => @props.mouse_entered(@props.index)} onMouseLeave={() => @props.mouse_exited(@props.index)} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -257,6 +260,20 @@ DirectoryRow = rclass
         is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
+        mouse_entered: rtypes.func
+        mouse_exited : rtypes.func
+        index        : rtypes.number
+
+    shouldComponentUpdate : (next) ->
+            return @props.name != next.name          or
+            @props.display_name != next.display_name or
+            @props.size != next.size                 or
+            @props.time != next.time                 or
+            @props.checked != next.checked           or
+            @props.mask != next.mask                 or
+            @props.public_data != next.public_data   or
+            @props.current_path != next.current_path or
+            @props.bordered != next.border
 
     handle_click : ->
         path = misc.path_to_file(@props.current_path, @props.name)
@@ -317,7 +334,7 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
+        <Row style={row_styles} onMouseEnter={() => @props.mouse_entered(@props.index)} onMouseLeave={() => @props.mouse_exited(@props.index)} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
@@ -488,13 +505,28 @@ FileListing = rclass
         create_file         : rtypes.func.isRequired
         selected_file_index : rtypes.number
 
+    getInitialState : ->
+        hovered_row_index : -1
+
+    mouse_entered : (index) ->
+        @setState(hovered_row_index : index)
+
+    mouse_exited : (index)->
+        @setState(hovered_row_index : -1)
+
     getDefaultProps : ->
         file_search : ''
 
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
-        if checked
+        if index == @state.hovered_row_index
+            # Adjusted grays for percieved darkness
+            if index % 2 == 0
+                color = 'rgb(212, 212, 212)'
+            else
+                color = 'rgb(201, 201, 201)'
+        else if checked
             if index % 2 == 0
                 color = 'rgb(250, 250, 209)'
             else
@@ -503,6 +535,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
+
         apply_border = index == @props.selected_file_index and @props.file_search.length > 0
         if isdir
             return <DirectoryRow
@@ -517,7 +550,10 @@ FileListing = rclass
                 is_public    = {is_public}
                 checked      = {checked}
                 current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                actions      = {@props.actions}
+                mouse_entered= {@mouse_entered}
+                mouse_exited = {@mouse_exited}
+                index        = {index} />
         else
             return <FileRow
                 name         = {name}
@@ -532,7 +568,10 @@ FileListing = rclass
                 checked      = {checked}
                 key          = {index}
                 current_path = {@props.current_path}
-                actions      = {@props.actions} />
+                actions      = {@props.actions}
+                mouse_entered= {@mouse_entered}
+                mouse_exited = {@mouse_exited}
+                index        = {index} />
 
     handle_parent : (e) ->
         e.preventDefault()
