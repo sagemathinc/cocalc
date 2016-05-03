@@ -540,6 +540,8 @@ exports.SearchInput = rclass
                 @props.on_up?()
             when 17
                 @setState(ctrl_down : true)
+            when 13
+                @submit()
 
     key_up : (e) ->
         switch e.keyCode
@@ -551,19 +553,17 @@ exports.SearchInput = rclass
         @set_value('')
 
     render : ->
-        <form onSubmit={@submit}>
-            <Input
-                autoFocus   = {@props.autoFocus}
-                ref         = 'input'
-                type        = 'text'
-                placeholder = {@props.placeholder}
-                value       = {@state.value}
-                buttonAfter = {@clear_search_button()}
-                onChange    = {=>@set_value(@refs.input.getValue())}
-                onKeyDown   = {@key_down}
-                onKeyUp     = {@key_up}
-            />
-        </form>
+        <Input
+            autoFocus   = {@props.autoFocus}
+            ref         = 'input'
+            type        = 'text'
+            placeholder = {@props.placeholder}
+            value       = {@state.value}
+            buttonAfter = {@clear_search_button()}
+            onChange    = {=>@set_value(@refs.input.getValue())}
+            onKeyDown   = {@key_down}
+            onKeyUp     = {@key_up}
+        />
 
 exports.MarkdownInput = rclass
     displayName : 'Misc-MarkdownInput'
