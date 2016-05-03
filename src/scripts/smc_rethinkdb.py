@@ -336,40 +336,57 @@ def connections():
         dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
         print('%s: %s' % (x['name'], dbs))
 
-def read_write_stats(N = 10, B = 2):
+def read_write_stats(N = 10, B = 5, continuous=True):
     """
     Tabulates some read/write stats per table
+    * N: number of samples (if continuous, used for the sharpness of the decay)
+    * B: sleep time (*b*reak) in seconds
+    * continuous: set it to true to sample continusouly with exponential decay (uses N and B)
     """
-    from collections import Counter
+    from collections import Counter, defaultdict
     from time import sleep
-    c_wps = Counter()
-    c_rps = Counter()
-    print("taking {} samples in {}s intervals".format(N, B))
-    for i in range(N):
-        wps_t = {}
-        rps_t = {}
-        print("sample {}".format(i))
+
+    def sample(verbose=True):
+        tps = {}
         for t in r_stats.filter(r.row['id'][0] == "table").pluck("table", "query_engine").run():
             name = t["table"]
             wps = t["query_engine"]["written_docs_per_sec"]
             rps = t["query_engine"]['read_docs_per_sec']
-            if wps > 10 or rps > 10:
-                print("{0:<30s} wps: {1:10.2f} rps: {2:10.2f}".format(name, wps, rps))
-            wps_t[name] = wps
-            rps_t[name] = rps
-        c_wps.update(wps_t)
-        c_rps.update(rps_t)
-        sleep(B)
+            if verbose and (wps > 10 or rps > 10):
+                print("{0:<30s} rps: {1:10.2f}     wps: {2:10.2f}".format(name, rps, wps))
+            tps['wps::' + name] = wps
+            tps['rps::' + name] = rps
+        return tps
 
-    print("{:30s}    reads/s     writes/s".format(""))
-    sum_r = sum_w = 0
-    for name in sorted(c_wps.keys(), key = lambda n : - c_wps[n] - c_rps[n]):
-        rps = c_rps[name] / N
-        sum_r += rps
-        wps = c_wps[name] / N
-        sum_w += wps
-        print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
-    print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
+    def print_summary(data, N = N):
+        print("{:30s}    reads/s     writes/s".format(""))
+        sum_r = sum_w = 0
+        tables = set(k.split('::')[1] for k in data.keys())
+        for name in sorted(tables, key = lambda n : - data['wps::' + n]):
+            rps = data['rps::' + name] / N
+            sum_r += rps
+            wps = data['wps::' + name] / N
+            sum_w += wps
+            print("{0:<30s} {1:10.2f} {2:10.2f}".format(name, rps, wps))
+        print("{:<30s} {:10.2f} {:10.2f}".format("Sum", sum_r, sum_w))
+
+    if continuous:
+        print("continuous mode: exp decay of N={} in {}s intervals: Ctrl-C to stop.".format(N, B))
+        data = {}
+        while True:
+            tps = sample(verbose = False)
+            for k in tps:
+                data[k] = ((N - 1) * data.get(k, tps[k]) + tps[k]) / N
+            print_summary(data, N = 1)
+            sleep(B)
+    else:
+        cnt = Counter()
+        print("taking {} samples in {}s intervals".format(N, B))
+        for i in range(N):
+            print("sample {}".format(i))
+            cnt.update(sample())
+            sleep(B)
+        print_summary(cnt)
 
 def live(table = 'projects', max_time = 15, filter_str = None):
     """
