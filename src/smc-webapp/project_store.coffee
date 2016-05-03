@@ -601,11 +601,10 @@ class ProjectActions extends Actions
 
     create_folder : (opts) =>
         opts = defaults opts,
-            name         : undefined
+            name         : required
             current_path : undefined
             on_error     : undefined
             switch_over  : true       # Whether or not to switch to the new folder
-
         {name, current_path, on_error, switch_over} = opts
 
         if name[name.length - 1] == '/'
