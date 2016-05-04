@@ -42,7 +42,6 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        window.w = @
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
@@ -520,12 +519,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     clear_action_flags: (this_session) =>
         flags = if this_session then ACTION_SESSION_FLAGS else ACTION_FLAGS
-        # Set any running cells to not running.
-        for cm in [@codemirror, @codemirror1]
-            for marker in cm.getAllMarks()
-                if marker.type == MARKERS.cell
-                    for flag in flags
-                        @remove_cell_flag(marker, flag)
+        for cell in @get_all_cells()
+            for flag in flags
+                cell.remove_cell_flag(flag)
 
     kill: (opts={}) =>
         opts = defaults opts,
