@@ -727,7 +727,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             start = 0
         if not stop?
             stop = cm.lineCount()-1
-        context = {}
+        context = {uuids:{}}
         for line in [start..stop]
             @_process_line(cm, line, context)
 
@@ -768,6 +768,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         switch x[0]
             when MARKERS.cell
                 uuid = x.slice(1, 37)
+                if context.uuids[uuid]
+                    # seen this before -- so change it
+                    uuid = misc.uuid()
+                    cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
+                context.uuids[uuid] = true
                 flagstring = x.slice(37, x.length-1)
                 if FLAGS.hide_input in flagstring
                     context.hide = line
@@ -820,6 +825,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             when MARKERS.output
 
                 uuid = x.slice(1,37)
+                if context.uuids[uuid]
+                    # seen this before -- so change it
+                    uuid = misc.uuid()
+                    cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
+                context.uuids[uuid] = true
+
                 if marks.length == 1 and (marks[0].type != 'output' or marks[0].uuid != uuid)
                     marks[0].clear()
                     marks = []
