@@ -1941,15 +1941,26 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # didn't get marked for some reason
             return {marker:undefined, created:true, uuid:uuid}
 
-    remove_cell_flags_from_changeObj: (changeObj, flags) =>
+    # map from uuids in document to true.
+    doc_uuids: () =>
+        uuids = {}
+        @focused_codemirror().eachLine (z) ->
+            if z.text[0] == MARKERS.cell or z.text[0] == MARKERS.output
+                uuids[z.text.slice(1,37)] = true
+            return false
+        return uuids
+
+    remove_cell_flags_from_changeObj: (changeObj, flags, uuids) =>
+        if not uuids?
+            uuids = @doc_uuids()
         # Remove cell flags from *contiguous* text in the changeObj.
         # This is useful for cut/copy/paste.
         # This function modifies changeObj in place.
-        @remove_cell_flags_from_text(changeObj.text, flags)
+        @remove_cell_flags_from_text(changeObj.text, flags, uuids)
         if changeObj.next?
-            @remove_cell_flags_from_changeObj(changeObj.next, flags)
+            @remove_cell_flags_from_changeObj(changeObj.next, flags, uuids)
 
-    remove_cell_flags_from_text: (text, flags) =>
+    remove_cell_flags_from_text: (text, flags, uuids) =>
         # !! The input "text" is an array of strings, one for each line;
         # this function modifies this array in place.
         # Replace all lines of the form
@@ -1960,11 +1971,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # or all flags removed if the second argument is undefined
         for i in [0...text.length]
             s = text[i]
-            if s.length >= 38 and s[0] == MARKERS.cell
-                if flags?
-                    text[i] = s.slice(0,37) + (x for x in s.slice(37,s.length-1) when x not in flags) + MARKERS.cell
-                else
-                    text[i] = s.slice(0,37) + MARKERS.cell
+            if s.length >= 38
+                if s[0] == MARKERS.cell
+                    if flags?
+                        text[i] = s.slice(0,37) + (x for x in s.slice(37,s.length-1) when x not in flags) + MARKERS.cell
+                    else
+                        text[i] = s.slice(0,37) + MARKERS.cell
+                if (s[0] == MARKERS.cell or s[0] == MARKERS.output) and uuids?[text[i].slice(1,37)]
+                    text[i] = text[i][0] + misc.uuid() + text[i].slice(37)
 
     output_elements: () =>
         cm = @editor.codemirror
