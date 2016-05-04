@@ -780,10 +780,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if not stop?
             stop = cm.lineCount()-1
         dbg("start=#{start}, stop=#{stop}")
+        context = {}
         for line in [start..stop]
-            @_process_line(cm, line)
+            @_process_line(cm, line, context)
 
-    _process_line: (cm, line) =>
+    _process_line: (cm, line, context) =>
         ###
         - Ensure that cell start line is properly marked so it looks like a horizontal
           line, which can be clicked, and is colored to indicate state.
@@ -796,14 +797,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return
         marks = cm.findMarks({line:line, ch:0}, {line:line,ch:x.length})
         if marks.length > 1
-            # There should never be more than 1 mark on a line; if so, clear them call
-            for m in marks
+            # There should never be more than 1 mark on a line
+            for m in marks.slice(1)
                 m.clear()
-            marks = []
+            marks = [marks[0]]
 
         switch x[0]
             when MARKERS.cell
-                uuid = x.slice(1,37)
+                uuid = x.slice(1, 37)
+                flagstring = x.slice(37, x.length-1)
+                if FLAGS.hide_input in flagstring
+                    context.hide = line
+                else
+                    delete context.hide
                 if marks.length == 1 and (marks[0].type != 'input' or marks[0].uuid != uuid)
                     marks[0].clear()
                     marks = []
@@ -823,6 +829,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     mark.uuid = uuid
 
             when MARKERS.output
+
                 uuid = x.slice(1,37)
                 if marks.length == 1 and (marks[0].type != 'output' or marks[0].uuid != uuid)
                     marks[0].clear()
@@ -843,20 +850,43 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     mark.uuid = uuid
                     mark.rendered = ''
                     marks.push(mark)
+                    if not @readonly
+                        output.dblclick () =>
+                            # Double click output to toggle input
+                            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
                 cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
                 cm.addLineClass(line, 'text',   'sagews-output-cm-text')
                 cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
                 @render_output(marks[0], x.slice(38))
 
             else
-                # No marks if line doesn't begin with a marker
-                if marks.length > 0
-                    for m in marks
-                        m.clear()
+                if context.hide?
+                    if marks.length > 0 and marks[0].type != 'hide'
+                        marks[0].clear()
+                        marks = []
+                    if marks.length == 0 and context.hide == line - 1
+                        opts =
+                            shared         : true
+                            inclusiveLeft  : true
+                            inclusiveRight : true
+                            atomic         : true
+                            collapsed      : true
+                        end = line+1
+                        while end < cm.lineCount()-1
+                            if cm.getLine(end)[0] != MARKERS.output
+                                end += 1
+                            else
+                                break
+                        mark = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
+                        mark.type = 'hide'
+                        #console.log("hide from #{line} to #{end}")
+                else
+                    #console.log("line #{line}: No marks since line doesn't begin with a marker and not hiding")
+                    if marks.length > 0
+                        for m in marks
+                            m.clear()
 
     render_output: (mark, s) =>
-        console.log "render_output, '#{s}'"
-        mark.element.empty()
         if mark.rendered == s
             return
         if s.slice(0, mark.rendered.length) != mark.rendered
@@ -870,7 +900,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             catch e
                 console.warn("invalid output message '#{m}'")
                 continue
-            console.log("rendering ", mesg)
             @process_output_mesg
                 mesg    : mesg
                 element : mark.element
