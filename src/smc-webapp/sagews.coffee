@@ -105,13 +105,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     @process_sage_updates(caller:"paste")
                     @sync()
 
-            cm.sage_update_queue = []
             cm.on 'change', (instance, changeObj) =>
                 #console.log('changeObj=', changeObj)
                 if changeObj.origin == 'undo' or changeObj.origin == 'redo'
                     return
                 start = changeObj.from.line
-                stop  = changeObj.to.line + changeObj.text.length  # changeObj.text is an array of lines`
+                stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
                 if not @_update_queue_start? or start < @_update_queue_start
                     @_update_queue_start = start
                 if not @_update_queue_stop? or stop > @_update_queue_stop
@@ -182,13 +181,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     process_sage_update_queue: =>
         #console.log("process, start=#{@_update_queue_start}, stop=#{@_update_queue_stop}")
-        if @_update_queue_start?
-            @process_sage_updates
-                start  : @_update_queue_start
-                stop   : @_update_queue_stop
-                caller : 'queue'
-            @_update_queue_start = undefined
-            @_update_queue_stop  = undefined
+        @process_sage_updates
+            start  : @_update_queue_start
+            stop   : @_update_queue_stop
+            caller : 'queue'
+        @_update_queue_start = undefined
+        @_update_queue_stop  = undefined
 
     init_worksheet_buttons: () =>
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
@@ -878,7 +876,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             atomic         : true
                             collapsed      : true
                         end = line+1
-                        while end < cm.lineCount()-1
+                        while end < cm.lineCount()
                             if cm.getLine(end)[0] != MARKERS.output
                                 end += 1
                             else
