@@ -105,26 +105,27 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+SOURCE_MAP    = !! process.env.SOURCE_MAP
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
-console.log "SMC_VERSION = #{SMC_VERSION}"
-console.log "SMC_GIT_REV = #{GIT_REV}"
-console.log "NODE_ENV    = #{NODE_ENV}"
-console.log "BASE_URL    ='#{BASE_URL}'"
-console.log "INPUT       ='#{INPUT}'"
-console.log "OUTPUT      ='#{OUTPUT}'"
+console.log "SMC_VERSION  = #{SMC_VERSION}"
+console.log "SMC_GIT_REV  = #{GIT_REV}"
+console.log "NODE_ENV     = #{NODE_ENV}"
+console.log "BASE_URL     = #{BASE_URL}"
+console.log "INPUT        = #{INPUT}"
+console.log "OUTPUT       = #{OUTPUT}"
 
 # mathjax version → symlink with version info from package.json/version
 MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
 MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
-console.log "MATHJAX_URL  = '#{MATHJAX_URL}'"
-console.log "MATHJAX_ROOT = '#{MATHJAX_ROOT}'"
-console.log "MATHJAX_LIB  = '#{MATHJAX_LIB}'"
+console.log "MATHJAX_URL  = #{MATHJAX_URL}"
+console.log "MATHJAX_ROOT = #{MATHJAX_ROOT}"
+console.log "MATHJAX_LIB  = #{MATHJAX_LIB}"
 
 banner = new webpack.BannerPlugin(
                         """\
@@ -388,7 +389,8 @@ module.exports =
     cache: true
 
     # https://webpack.github.io/docs/configuration.html#devtool
-    devtool: 'cheap-source-map'
+    # don't use cheap-module-eval-source-map produces too large files
+    devtool: if SOURCE_MAP then 'cheap-source-map' else false
 
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
         css  : 'webapp-css.coffee'

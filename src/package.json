@@ -52,9 +52,9 @@
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-watch-map": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
+    "webpack-watch-map": "cd $SALVUS_ROOT; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack --progress --colors",
-    "webpack-clean": "rm -rvf $SALVUS_ROOT/static/webpack",
+    "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
     "clean": "rm -rf node_modules */node_modules static/webpack"
