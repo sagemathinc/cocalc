@@ -1247,6 +1247,9 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if not @_syncstring_table?
+                    cb(true)
+                    return
                 @_syncstring_table.wait
                     until   : (table) -> table.get_one()?.getIn(['save','state']) == 'done'
                     timeout : 5
