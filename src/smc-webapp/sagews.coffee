@@ -760,8 +760,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         try
             if not opts.cm?
                 @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-                #if @editor._split_view
-                #    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
+                if @editor._split_view
+                    @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
             else
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
         catch e
@@ -772,17 +772,33 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @_syncstring.set(after)
 
     _process_sage_updates: (cm, start, stop) =>
-        dbg = (m) -> console.log("_process_sage_updates: #{m}")
+        #dbg = (m) -> console.log("_process_sage_updates: #{m}")
+        #dbg("start=#{start}, stop=#{stop}")
         if not cm?
             cm = @focused_codemirror()
         if not start?
             start = 0
         if not stop?
             stop = cm.lineCount()-1
-        dbg("start=#{start}, stop=#{stop}")
         context = {}
         for line in [start..stop]
             @_process_line(cm, line, context)
+
+    _handle_input_cell_click0: (e, mark) =>
+        @insert_new_cell(mark.find()?.from.line)
+
+    _handle_input_cell_click: (e, mark) =>
+        if IS_MOBILE
+            # It is way too easy to accidentally click on the insert new cell line on mobile.
+            bootbox.confirm "Create new cell?", (result) =>
+                if result
+                    @_handle_input_cell_click0(e, mark)
+                else # what the user really wants...
+                    cm.focus()
+                    cm.setCursor({line:mark.find().from.line+1, ch:0})
+        else
+            @_handle_input_cell_click0(e, mark)
+        return false
 
     _process_line: (cm, line, context) =>
         ###
@@ -815,18 +831,44 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     marks = []
                 if marks.length == 0
                     # create the input mark here
-                    console.log("creating input mark at line #{line}")
+                    #console.log("creating input mark at line #{line}")
                     input = cell_start_template.clone()
                     opts =
                         shared         : false
-                        inclusiveLeft  : false
+                        inclusiveLeft  : true
                         inclusiveRight : true
                         atomic         : true
                         replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
                     mark = cm.markText({line:line, ch:0}, {line:line, ch:x.length}, opts)
+                    marks.push(mark)
                     mark.element = input
                     mark.type = 'input'
                     mark.uuid = uuid
+                    if not @readonly
+                        input.addClass('sagews-input-live')
+                        input.click((e) => @_handle_input_cell_click(e, mark))
+
+                if not @opts.static_viewer
+                    elt = marks[0].element
+                    if FLAGS.waiting in flagstring
+                        elt.data('execute',FLAGS.waiting)
+                        @set_input_state(elt:elt, run_state:'waiting')
+                    else if FLAGS.execute in flagstring
+                        elt.data('execute',FLAGS.execute)
+                        @set_input_state(elt:elt, run_state:'execute')
+                    else if FLAGS.running in flagstring
+                        elt.data('execute',FLAGS.running)
+                        @set_input_state(elt:elt, run_state:'running')
+                    else
+                        # code is not running
+                        elt.data('execute','done')
+                        @set_input_state(elt:elt, run_state:'done')
+                    # set marker of whether or not this cell was evaluated during this session
+                    if FLAGS.this_session in flagstring
+                        @set_input_state(elt:elt, eval_state:true)
+                    else
+                        @set_input_state(elt:elt, eval_state:false)
+
 
             when MARKERS.output
 
@@ -836,7 +878,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     marks = []
                 if marks.length == 0
                     # create the output mark here
-                    console.log("creating output mark at line #{line}")
+                    #console.log("creating output mark at line #{line}")
                     output = output_template.clone()
                     opts =
                         shared         : false
@@ -857,7 +899,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
                 cm.addLineClass(line, 'text',   'sagews-output-cm-text')
                 cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
-                @render_output(marks[0], x.slice(38))
+                @render_output(marks[0], x.slice(38), line)
 
             else
                 if context.hide?
@@ -886,7 +928,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         for m in marks
                             m.clear()
 
-    render_output: (mark, s) =>
+    render_output: (mark, s, line) =>
         if mark.rendered == s
             return
         if s.slice(0, mark.rendered.length) != mark.rendered
@@ -898,157 +940,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             try
                 mesg = misc.from_json(m)
             catch e
-                console.warn("invalid output message '#{m}'")
-                continue
+                #console.warn("invalid output message '#{m}' in line '#{s}' on line #{line}")
+                return
             @process_output_mesg
                 mesg    : mesg
                 element : mark.element
                 mark    : mark
         mark.rendered = s
-
-    _process_sage_updates0: (cm, start, stop) =>
-        #console.log("process_sage_updates(start=#{start}, stop=#{stop}):'#{cm.getValue()}'")
-        if not start?
-            start = 0
-        if not stop?
-            stop = cm.lineCount()-1
-
-        for line in [start..stop]
-            x = cm.getLine(line)
-            if not x?
-                continue
-
-            if x[0] == MARKERS.cell
-                marks = cm.findMarksAt({line:line})
-                if not marks? or marks.length == 0
-                    first_pass = true
-                    @mark_cell_start(cm, line)
-                else
-                    first_pass = false
-                    first = true
-                    for mark in marks
-                        if not first # there should only be one mark
-                            console.warn("found extra mark!", mark)
-                            mark.clear()
-                            continue
-                        first = false
-                        # The mark should only span one line:
-                        #   insertions when applying a patch can unfortunately mess this up,
-                        #   so we have to re-do any that accidentally span multiple lines.
-                        m = mark.find()
-                        if m.from.line != m.to.line
-                            mark.clear()
-                            @mark_cell_start(cm, line)
-                        # CRITICAL: This ends up causing corruption during sync
-                        #else if m.from.ch != 0
-                        #    console.warn("deleting beginning of line", m)
-                        #    cm.replaceRange('', {line:line,ch:0}, m.from)
-                flagstring = x.slice(37, x.length-1)
-                mark = cm.findMarksAt({line:line, ch:0})[0]
-                #console.log("at line=#{line} we have flagstring=#{flagstring}, mark.flagstring=#{mark?.flagstring}")
-                # It's possible mark isn't defined above, in case of some weird file corruption (say
-                # intentionally by the user).  That's why we have "mark?" in the condition below.
-                if mark? and flagstring != mark.flagstring
-                    # only do something if the flagstring changed.
-                    if not mark.flagstring?
-                        mark.flagstring = ''
-                    if not @opts.static_viewer
-                        elt = @elt_at_mark(mark)
-                        if FLAGS.waiting in flagstring
-                            elt.data('execute',FLAGS.waiting)
-                            @set_input_state(elt:elt, run_state:'waiting')
-                        else if FLAGS.execute in flagstring
-                            elt.data('execute',FLAGS.execute)
-                            @set_input_state(elt:elt, run_state:'execute')
-                        else if FLAGS.running in flagstring
-                            elt.data('execute',FLAGS.running)
-                            @set_input_state(elt:elt, run_state:'running')
-                        else
-                            # code is not running
-                            elt.data('execute','done')
-                            @set_input_state(elt:elt, run_state:'done')
-                        # set marker of whether or not this cell was evaluated during this session
-                        if FLAGS.this_session in flagstring
-                            @set_input_state(elt:elt, eval_state:true)
-                        else
-                            @set_input_state(elt:elt, eval_state:false)
-
-                    if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
-                        @hide_input(line)
-                    else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
-                        @show_input(line)
-
-                    if FLAGS.hide_output in flagstring and FLAGS.hide_output not in mark.flagstring
-                        @hide_output(line)
-                    else if FLAGS.hide_output in mark.flagstring and FLAGS.hide_output not in flagstring
-                        @show_output(line)
-
-                    if not first_pass
-                        # During the first pass the output cells haven't been created yet.   So the
-                        # attempts to hide them above fail.  If we set mark.flagstring = flagstring,
-                        # then we won't try again during the second pass.
-                        mark.flagstring = flagstring
-
-            else
-                if x[0] == MARKERS.output
-                    marks = cm.findMarksAt({line:line, ch:1})
-                    if marks.length == 0
-                        @mark_output_line(cm, line)
-                    mark = cm.findMarksAt({line:line, ch:1})[0]
-                    output = @elt_at_mark(mark)
-                    if mark? and output? and not mark.finish_editing? and mark.processed != x
-                        new_output = false
-                        f = (elt, mesg) =>
-                            new_output = true
-                            try
-                                @process_output_mesg
-                                    mesg    : JSON.parse(mesg)
-                                    element : elt
-                                    mark    : mark
-                            catch e
-                                # this means that the output can't be rendered yet (e.g., partial sync)
-                                #console.log(e.stack)
-                                #log("BUG: error rendering output: '#{mesg}' -- #{e}")
-
-                        # This is more complicated than you might think because past messages can
-                        # be modified at any time -- it's not a linear stream.
-                        # appearance of output shows output
-                        output.removeClass('sagews-output-hide')
-                        messages = x.split(MARKERS.output).slice(2) # skip output uuid
-                        elts = output.find(".sagews-output-messages")
-                        outputs = elts.children()
-                        for i in [0...Math.max(messages.length, outputs.length)]
-                            if i >= messages.length
-                                $(outputs[i]).remove()
-                            else if i >= outputs.length
-                                mesg = messages[i]
-                                elt = $("<span>")
-                                elt.data('mesg',mesg)
-                                elts.append(elt)
-                                if mesg.length > 0
-                                    f(elt, mesg)
-                            else
-                                elt = $(outputs[i])
-                                mesg = messages[i]
-                                if elt.data('mesg') != mesg
-                                    elt.empty().data('mesg', mesg)
-                                    if mesg.length > 0
-                                        f(elt, mesg)
-                        mark.processed = x
-
-                else if x.indexOf(MARKERS.output) != -1
-                    #console.log("correcting merge/paste issue with output marker line (line=#{line})")
-                    ch = x.indexOf(MARKERS.output)
-                    cm.replaceRange('\n', {line:line, ch:ch})
-                    @process_sage_updates(start:line, stop:line+2, caller:"fix output")
-                    return
-
-                else if x.indexOf(MARKERS.cell) != -1
-                    #console.log("correcting merge/paste issue with cell marker (line=#{line})")
-                    ch = x.indexOf(MARKERS.cell)
-                    cm.replaceRange('\n', {line:line, ch:ch})
-                    @process_sage_updates(start:line, stop:line+2, caller:"fix input")
-                    return
 
     ##################################################################################
     # Toggle visibility of input/output portions of cells -
