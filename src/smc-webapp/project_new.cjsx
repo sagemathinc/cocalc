@@ -266,7 +266,11 @@ ProjectNew = (name) -> rclass
 
     create_folder : ->
         on_error = (a) => @setState(error: a)
-        @props.actions.create_folder(@state.filename, @props.current_path, on_error)
+        @props.actions.create_folder
+            name         : @state.filename
+            current_path : @props.current_path
+            on_error     : on_error
+            switch_over  : true
 
     render : ->
         <div>
