@@ -117,59 +117,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not @_update_queue_stop? or stop > @_update_queue_stop
                     @_update_queue_stop = stop
                 @process_sage_update_queue()
-                #if @editor._split_view
-                    # TODO: make faster by using change object to determine line range to consider!
-                #    @process_sage_updates
-                #        cm            : instance
-                #        ignore_output : true
-                #        caller: "change"
-
-            # Ensuring cursors never end up *in* lines containing input or output markers, except as
-            # the first character.   Setting the inclusiveLeft/Right options for input markers seems
-            # to be a much nicer way of accomplish nearly the same goal, but messes up undo/redo
-            # badly and makes some natural selections impossibly, which is VERY frustrating.
-            move = (cm, c, eps) ->
-                n = cm.lineCount()
-                single = (c.head.line == c.anchor.line and c.head.ch == c.anchor.ch)
-                if c.head.ch != 0
-                    while is_marked(cm.getLine(c.head.line)[0]) and (eps + c.head.line) >= 0 and (eps+c.head.line < n)
-                        c.head.line += eps
-                        if single
-                            c.anchor.line = c.head.line
-                if not single
-                    # now move the anchor of the selection
-                    while is_marked(cm.getLine(c.anchor.line)[0]) and (eps + c.anchor.line) >= 0 and (eps+c.anchor.line < n)
-                        c.anchor.line += eps
-
-
-            cm.on 'cursorActivity', (cm) =>
-                if cm.name != @focused_codemirror().name
-                    # ignore non-focused editor
-                    return
-                if cm._setValueNoJump   # if true, this is being caused by external setValueNoJump
-                    return
-                sel = cm.listSelections()
-                changed = false
-                i = -1
-                for c in sel
-                    i += 1
-                    x = cm.getLine(c.head.line)
-                    if is_marked(x[0])
-                        changed = true
-                        if cm._last_selections? and sel[0].head.line > cm._last_selections[0].head.line
-                            eps = 1    # moving down
-                        else
-                            eps = -1   # moving up
-                        move(cm, c, eps)
-                        if is_marked(cm.getLine(c.head.line)[0])
-                            # still not valid: must be a top or bottom line -- put in col 0, which is always valid.
-                            c.head.ch = 0
-                        if is_marked(cm.getLine(c.anchor.line)[0])
-                            # still not fixed
-                            c.anchor.ch = 0
-                if changed
-                    cm.setSelections(sel)
-                cm._last_selections = sel
 
     close: =>
         @execution_queue.close()
@@ -835,7 +782,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     input = cell_start_template.clone()
                     opts =
                         shared         : false
-                        inclusiveLeft  : true
+                        inclusiveLeft  : false
                         inclusiveRight : true
                         atomic         : true
                         replacedWith   : input[0] #$("<div style='margin-top: -30px; border: 1px solid red'>")[0]
@@ -902,13 +849,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @render_output(marks[0], x.slice(38), line)
 
             else
+                for b in [MARKERS.cell, MARKERS.output]
+                    i = x.indexOf(MARKERS.cell)
+                    if i != -1
+                        cm.replaceRange('', {line:line,ch:i}, {line:line, ch:x.length})
+                        x = x.slice(0,i)
+
                 if context.hide?
                     if marks.length > 0 and marks[0].type != 'hide'
                         marks[0].clear()
                         marks = []
                     if marks.length == 0 and context.hide == line - 1
                         opts =
-                            shared         : true
+                            shared         : false
                             inclusiveLeft  : true
                             inclusiveRight : true
                             atomic         : true
