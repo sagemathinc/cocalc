@@ -2349,7 +2349,9 @@ reset_password = (email_address, cb) ->
     account_id = undefined
     async.series([
         (cb) ->
-            connect_to_database(cb:cb)
+            connect_to_database
+                pool : 1
+                cb   : cb
         (cb) ->
             database.get_account
                 email_address : email_address
