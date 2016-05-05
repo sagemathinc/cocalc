@@ -1060,8 +1060,12 @@ class JupyterNotebook extends EventEmitter
             @save_button.addClass('disabled')
 
     save: (cb) =>
+        if not @save_button?
+            return
         @save_button.icon_spin(start:true, delay:5000)
         async.parallel [@dom.save, @syncstring.save], (err) =>
+            if not @save_button?
+                return
             @save_button.icon_spin(false)
             @update_save_state()
             cb?(err)
