@@ -245,7 +245,7 @@ exports.SupportPage = rclass
         for i, ticket of @props.support_tickets
             style = switch ticket.status
                 when 'open' or 'new'
-                    'warning'
+                    'danger'
                 when 'closed'
                     'success'
                 else
@@ -429,9 +429,14 @@ SupportForm = rclass
         if not @props.show
             return <div />
 
-        alert = if @props.email_err?.length > 0
+        ee = @props.email_err
+        email_info = if ee?.length > 0
             <Alert bsStyle='danger'>
-                 <div>{@props.email_err}</div>
+                 <div>{ee}</div>
+            </Alert>
+        else
+            <Alert bsStyle='info'>
+                Please make sure the email address is correct.
             </Alert>
 
         <form>
@@ -441,13 +446,10 @@ SupportForm = rclass
                 type        = 'text'
                 tabIndex    = 1
                 placeholder = 'your_email@address.com'
-                bsStyle     = {if ee? then 'warning'}
+                validationState = {if ee?.length > 0 then 'error'}
                 value       = {@props.email}
                 onChange    = {@email_change} />
-            {alert if alert?}
-            <div style={color:'#999'}>
-                Please make sure your email address is correct.
-            </div>
+            {email_info}
             <Space />
             <Input
                 ref         = 'subject'
