@@ -736,3 +736,21 @@
     - cantera-python
     - cantera-python3
     - cantera-dev
+
+# Heroku, see https://toolbelt.heroku.com/debian and read the shellscript
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: heroku
+
+  tasks:
+
+  - name: 'heroku apt keys'
+    apt_key: url='https://toolbelt.heroku.com/apt/release.key' state=present
+  - name: 'heroku apt-repository'
+    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./' state=present
+  - name: "heroku apt-get update"
+    apt:  update_cache=yes
+  - name: "heroku install"
+    apt:  state=latest name=heroku-toolbelt
+
