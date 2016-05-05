@@ -144,8 +144,6 @@ class exports.HistoryEditor extends FileEditor
             return
         val = @syncstring.version(time)
         switch @ext
-            when 'sagews'
-                @view_doc.codemirror.setValue(val)
             when 'ipynb'
                 @view_doc.dom.set(val)
             when 'tasks'
