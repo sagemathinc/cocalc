@@ -11,6 +11,7 @@ but for all the web[n] hosts that exist.
 import os
 
 #EXCLUDE=['web6']
+EXCLUDE=[]
 
 def host_exists(hostname):
     """
@@ -25,8 +26,11 @@ def web_hosts(bound=20):
     v = ["web%s"%n for n in range(bound) if host_exists("web%s"%n)]
     return [x for x in v if x not in EXCLUDE]
 
-def gen_haproxy():
-    hosts = web_hosts()
+def gen_haproxy(x=''):
+    if not x:
+        hosts = web_hosts()
+    else:
+        hosts = [x]
     v = []
     for x in open('haproxy.cfg.template').xreadlines():
         if 'web0' in x:
@@ -42,4 +46,7 @@ def gen_haproxy():
     open('haproxy.cfg','w').write(''.join(v))
 
 if __name__ == "__main__":
-    gen_haproxy()
+    if len(sys.argv) == 1:
+        gen_haproxy()
+    else:
+        gen_haproxy(sys.argv[1])
