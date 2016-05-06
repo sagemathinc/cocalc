@@ -652,7 +652,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         console.log("set quotas for #{project_id}")
                     cb(err)
                 salvus_client.project_set_quotas(x)
-            async.mapLimit store.get_student_project_ids(), 5, f, (err) =>
+            async.mapSeries store.get_student_project_ids(), f, (err) =>
                 if err
                     console.warn("FAIL -- #{err}")
                 else
