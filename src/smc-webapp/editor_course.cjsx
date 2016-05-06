@@ -630,6 +630,34 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
             @set_activity(id:id)
 
+        # Do an admin upgrade to all student projects.  This changes the base quotas for every student
+        # project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do
+        #         .admin_upgrade_all_student_projects(cores:2)
+        # The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
+        admin_upgrade_all_student_projects: (quotas) =>
+            if not redux.getStore('account').get('groups')?.contains('admin')
+                console.warn("must be an admin to upgrade")
+                return
+            store = get_store()
+            if not store?
+                console.warn('unable to get store')
+                return
+            f = (project_id, cb) =>
+                x = misc.copy(quotas)
+                x.project_id = project_id
+                x.cb = (err, mesg) =>
+                    if err or mesg.event == 'error'
+                        console.warn("failed to set quotas for #{project_id} -- #{misc.to_json(mesg)}")
+                    else
+                        console.log("set quotas for #{project_id}")
+                    cb(err)
+                salvus_client.project_set_quotas(x)
+            async.mapLimit store.get_student_project_ids(), 5, f, (err) =>
+                if err
+                    console.warn("FAIL -- #{err}")
+                else
+                    console.log("SUCCESS")
+
         set_student_note: (student, note) =>
             store = get_store()
             return if not store?
@@ -3560,6 +3588,7 @@ Settings = rclass
         account_store = redux.getStore('account')
         if not account_store?
             return <Loading/>
+
         purchased_upgrades = account_store.get_total_upgrades()
         if misc.is_zero_map(purchased_upgrades)
             # user has no upgrades on their account
@@ -3601,7 +3630,31 @@ Settings = rclass
             <hr/>
             {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
             {@render_upgrade_submit_buttons()}
+            {@render_admin_upgrade() if redux.getStore('account').get('groups')?.contains('admin')}
         </Alert>
+
+    save_admin_upgrade: (e) ->
+        e.preventDefault()
+        s = @refs.admin_input.getValue()
+        quotas = JSON.parse(s)
+        console.log("admin upgrade '#{s}' -->", quotas)
+        @props.redux.getActions(@props.name).admin_upgrade_all_student_projects(quotas)
+        return false
+
+    render_admin_upgrade: ->
+        <div>
+            <br/>
+            <hr/>
+            <h3>Admin Upgrade</h3>
+            Enter an Javascript-parseable object and hit enter (see the Javascript console for feedback):
+            <form onSubmit={@save_admin_upgrade}>
+                <Input
+                    ref         = 'admin_input'
+                    type        = 'text'
+                    placeholder = {JSON.stringify(require('smc-util/schema').DEFAULT_QUOTAS)}
+                />
+            </form>
+        </div>
 
     render_upgrade_submit_buttons: ->
         <ButtonToolbar>
