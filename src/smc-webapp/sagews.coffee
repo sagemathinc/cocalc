@@ -42,7 +42,7 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        #window.w = @
+        window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -854,10 +854,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
             else
                 for b in [MARKERS.cell, MARKERS.output]
-                    i = x.indexOf(MARKERS.cell)
+                    i = x.indexOf(b)
                     if i != -1
                         cm.replaceRange('', {line:line,ch:i}, {line:line, ch:x.length})
-                        x = x.slice(0,i)
+                        x = x.slice(0, i)
 
                 if context.hide?
                     if marks.length > 0 and marks[0].type != 'hide'
@@ -2162,7 +2162,13 @@ class SynchronizedWorksheetCell
         # Input
         x = @cm.getLine(start)
         if x[0] == MARKERS.cell
-            @_start_uuid = x.slice(1,37)
+            if misc.is_valid_uuid_string(x.slice(1,37)) and x[x.length-1] == MARKERS.cell
+                # valid input line
+                @_start_uuid = x.slice(1,37)
+            else
+                # replace input line by valid one
+                @_start_uuid = misc.uuid()
+                @cm.replaceRange(MARKERS.cell + @_start_uuid + MARKERS.cell, {line:start, ch:0}, {line:start,ch:x.length})
         else
             @_start_uuid = misc.uuid()
             @cm.replaceRange(MARKERS.cell + @_start_uuid + MARKERS.cell + '\n', {line:start, ch:0})
@@ -2172,7 +2178,13 @@ class SynchronizedWorksheetCell
         # Output
         x = @cm.getLine(end)
         if x[0] == MARKERS.output
-            @_output_uuid = x.slice(1,37)
+            if misc.is_valid_uuid_string(x.slice(1,37)) and x[37] == MARKERS.output
+                # valid output line
+                @_output_uuid = x.slice(1,37)
+            else
+                # replace output line by valid one
+                @_output_uuid = misc.uuid()
+                @cm.replaceRange(MARKERS.output + @_output_uuid + MARKERS.output, {line:end, ch:0}, {line:end, ch:x.length})
             @_end_line = end
         else
             @_output_uuid = misc.uuid()
@@ -2268,10 +2280,9 @@ class SynchronizedWorksheetCell
         if not x?
             return
         s = @mesg_to_json(mesg)
-        #console.log("append_output_mesg: '#{s}'")
-        {loc, n} = x
-        t  = MARKERS.output + s
-        @cm.replaceRange(t, loc.to, loc.to)
+        if x.s[x.s.length-1] != MARKERS.output
+            s  = MARKERS.output + s
+        @cm.replaceRange(s, x.loc.to, x.loc.to)
 
     # Delete the last num output messages in this cell
     delete_last_output: (num) =>
