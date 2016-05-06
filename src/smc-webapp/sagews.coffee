@@ -42,6 +42,8 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
+        #window.w = @
+
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
@@ -88,10 +90,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if changeObj.origin == 'undo'
                     return
                 if changeObj.origin? and changeObj.origin != 'setValue'
-                    line = changeObj.from.line
-                    mark = @find_input_mark(line)
-                    if mark?
-                        @remove_cell_flag(mark, FLAGS.this_session)
+                    @remove_this_session_flags_from_changeObj_range(changeObj)
 
                 if changeObj.origin == 'paste'
                     changeObj.cancel()
@@ -1954,6 +1953,26 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 uuids[z.text.slice(1,37)] = true
             return false
         return uuids
+
+    remove_this_session_from_line: (n) =>
+        s = @get_input_line_flagstring(n)
+        if s? and FLAGS.this_session in s
+            s = s.replace(new RegExp(FLAGS.this_session, "g"), "")
+            @set_input_line_flagstring(n, s)
+
+    remove_this_session_flags_from_range: (start, end) =>
+        {start} = @current_input_block(start)
+        n = start
+        @codemirror.eachLine start, end+1, (line) =>
+            if line.text[0] == MARKERS.cell
+                @remove_this_session_from_line(n)
+            n += 1
+            return false
+
+    remove_this_session_flags_from_changeObj_range: (changeObj) =>
+        @remove_this_session_flags_from_range(changeObj.from.line, changeObj.to.line)
+        if changeObj.next?
+            @remove_cell_flags_from_changeObj(changeObj.next)
 
     remove_cell_flags_from_changeObj: (changeObj, flags, uuids) =>
         if not uuids?
