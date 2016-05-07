@@ -42,7 +42,7 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        window.w = @
+        #window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -61,59 +61,61 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : @opts.cursor_interval
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
-            @process_sage_updates(caller:"constructor")
+            @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+            @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
+
             @status cb: (err, status) =>
                 if not status?.running
                     @execute_auto_cells()
 
-        @init_worksheet_buttons()
-        @init_html_editor_buttons()
+            @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
-
-        @on 'sync', () =>
-            #console.log("sync")
-            @process_sage_update_queue()
-
-        @editor.on 'show', (height) =>
-            @process_sage_updates(caller:"show")
-            @set_all_output_line_classes()
-
-        v = [@codemirror, @codemirror1]
-        for cm in v
-            cm.on 'beforeChange', (instance, changeObj) =>
-                #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
-                # Set the evaluated flag to false for the cell that contains the text
-                # that just changed (if applicable)
-                if changeObj.origin == 'redo'
-                    return
-                if changeObj.origin == 'undo'
-                    return
-                if changeObj.origin? and changeObj.origin != 'setValue'
-                    @remove_this_session_flags_from_changeObj_range(changeObj)
-
-                if changeObj.origin == 'paste'
-                    changeObj.cancel()
-                    # WARNING: The Codemirror manual says "Note: you may not do anything
-                    # from a "beforeChange" handler that would cause changes to the
-                    # document or its visualization."  I think this is OK below though
-                    # since we just canceled the change.
-                    @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
-                    @_apply_changeObj(changeObj)
-                    @process_sage_updates(caller:"paste")
-                    @sync()
-
-            cm.on 'change', (instance, changeObj) =>
-                #console.log('changeObj=', changeObj)
-                if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                    return
-                start = changeObj.from.line
-                stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
-                if not @_update_queue_start? or start < @_update_queue_start
-                    @_update_queue_start = start
-                if not @_update_queue_stop? or stop > @_update_queue_stop
-                    @_update_queue_stop = stop
+            @on 'sync', () =>
+                #console.log("sync")
                 @process_sage_update_queue()
+
+            @editor.on 'show', (height) =>
+                @process_sage_updates(caller:"show")
+                @set_all_output_line_classes()
+
+            @init_worksheet_buttons()
+
+            v = [@codemirror, @codemirror1]
+            for cm in v
+                cm.on 'beforeChange', (instance, changeObj) =>
+                    #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
+                    # Set the evaluated flag to false for the cell that contains the text
+                    # that just changed (if applicable)
+                    if changeObj.origin == 'redo'
+                        return
+                    if changeObj.origin == 'undo'
+                        return
+                    if changeObj.origin? and changeObj.origin != 'setValue'
+                        @remove_this_session_flags_from_changeObj_range(changeObj)
+
+                    if changeObj.origin == 'paste'
+                        changeObj.cancel()
+                        # WARNING: The Codemirror manual says "Note: you may not do anything
+                        # from a "beforeChange" handler that would cause changes to the
+                        # document or its visualization."  I think this is OK below though
+                        # since we just canceled the change.
+                        @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
+                        @_apply_changeObj(changeObj)
+                        @process_sage_updates(caller:"paste")
+                        @sync()
+
+                cm.on 'change', (instance, changeObj) =>
+                    #console.log('changeObj=', changeObj)
+                    if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                        return
+                    start = changeObj.from.line
+                    stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
+                    if not @_update_queue_start? or start < @_update_queue_start
+                        @_update_queue_start = start
+                    if not @_update_queue_stop? or stop > @_update_queue_stop
+                        @_update_queue_stop = stop
+                    @process_sage_update_queue()
+
 
     close: =>
         @execution_queue.close()
@@ -689,6 +691,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cm            : undefined    # only markup changes, etc., using the given editor (uses all visible ones by default)
             pad_bottom    : 10           # ensure there are this many blank lines at bottom of document
             caller        : undefined
+        #console.log("process_sage_updates", @readonly, opts.caller)
         # For each line in the editor (or starting at line start), check if the line
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
@@ -793,7 +796,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         input.addClass('sagews-input-live')
                         input.click((e) => @_handle_input_cell_click(e, mark))
 
-                if not @opts.static_viewer
+                if not @readonly
                     elt = marks[0].element
                     if FLAGS.waiting in flagstring
                         elt.data('execute',FLAGS.waiting)
@@ -819,7 +822,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                 uuid = x.slice(1,37)
                 if context.uuids[uuid]
-                    # seen this before -- so change it
+                    # seen this id before (in a previous cell!) -- so change it
                     uuid = misc.uuid()
                     cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
                 context.uuids[uuid] = true
