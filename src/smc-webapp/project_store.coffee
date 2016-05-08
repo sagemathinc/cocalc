@@ -219,6 +219,8 @@ class ProjectActions extends Actions
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
         p = @_project()
+        if path.slice(0,2) == "./"
+            path = path.slice(2, path.length - 1)
         @setState
             current_path           : path
             page_number            : 0
@@ -609,6 +611,8 @@ class ProjectActions extends Actions
 
         if name[name.length - 1] == '/'
             name = name.slice(0, -1)
+        if name[0] == '-'
+            name = "./#{name}"
         p = @path(name, current_path, undefined, undefined, on_error)
         if p.length == 0
             return
