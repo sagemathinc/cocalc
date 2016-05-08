@@ -189,6 +189,7 @@
     apt: state=present name={{ item }}
     tags:
     - install
+    - install-compute-users
     with_items:
     - asciidoc
     - aspell-*
@@ -199,8 +200,6 @@
     - bindfs
     - bison
     - bowtie2
-    - bowtie2
-    - bowtie2-examples
     - bowtie2-examples
     - bsdtar
     - btrfs-tools
@@ -210,16 +209,12 @@
     - ccache
     - cgmanager
     - cgmanager-utils
-    - cgmanager-utils
     - cgroup-bin
-    - cgroup-bin
-    - cgroup-lite
     - cgroup-lite
     - check
     - checkinstall
     - clang
     - clojure1.6
-    - cmake
     - cmake
     - csh
     - cvs
@@ -230,7 +225,6 @@
     - doxygen
     - dstat
     - emacs
-    - emacs-goodies-el
     - emacs-goodies-el
     - encfs
     - epstool
@@ -288,19 +282,13 @@
     - libavcodec-extra
     - libavformat-dev
     - libboost-all-dev
-    - libboost-all-dev
-    - libboost-python-dev
     - libboost-python-dev
     - libboost-signals-dev
-    - libboost-signals-dev
-    - libc6-i386
     - libc6-i386
     - libcairomm-1.0-dev
     - libcap2-bin
     - libcgal-dev
     - libcgal-dev
-    - libcurl4-openssl-dev
-    - libcurl4-openssl-dev
     - libcurl4-openssl-dev
     - libdc1394-22-dev
     - libedit-dev
@@ -317,9 +305,7 @@
     - libgstreamer0.10-dev
     - libgtk2.0-dev
     - libgtk2.0-dev
-    - libhdf5-cpp-8
     - libhdf5-dev
-    - libhdf5-mpich2-dev
     - libicu-dev
     - libjasper-dev
     - libjemalloc-dev
@@ -327,7 +313,7 @@
     - libjemalloc-dev
     - libjpeg-dev
     - liblz4-tool
-    - libmed1
+    - libmed1v5
     - libmp3lame-dev
     - libncurses5-dev
     - libnetcdf-dev
@@ -356,10 +342,7 @@
     - libxvidcore-dev
     - libzmq-dev
     - linux-tools-common
-    - linux-tools-common
     - linux-tools-generic
-    - linux-tools-generic
-    - llvm
     - llvm
     - lrzip
     - lua5.2
@@ -385,19 +368,16 @@
     - mosh
     - mysql-client
     - ncbi-blast+
-    - ncbi-blast+
     - ncompress
     - netcdf-bin
     - netcdf-doc
     - noweb
     - ocaml
     - ocaml-batteries-included
-    - ocaml-batteries-included
     - ocaml-mode
     - ocaml-native-compilers
     - octave
     - octave-symbolic
-    - opam
     - opam
     - opam-docs
     - opam-docs
@@ -411,6 +391,7 @@
     - plink
     - plink
     - poppler-utils
+    - postgresql-client
     - proofgeneral
     - proofgeneral-doc
     - protobuf-compiler
@@ -422,8 +403,6 @@
     - python-fuse
     - python-h5py
     - python-mode
-    - python-mode
-    - python-numpy
     - python-numpy
     - python-pandas
     - python-pip
@@ -452,7 +431,6 @@
     - root-system-bin
     - ruby-dev
     - samtools
-    - samtools
     - sbcl
     - scilab
     - scons
@@ -466,8 +444,8 @@
     - subversion
     - subversion-tools
     - sysstat
-    - texlive
-    - texlive-*
+    - texlive-lang-all
+    - texlive-full
     - tig
     - tinc
     - tmpreaper
