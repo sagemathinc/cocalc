@@ -36,7 +36,11 @@ immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
 
+{salvus_client} = require('./salvus_client')
+
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+
+TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
         compress :
@@ -343,6 +347,22 @@ DirectoryRow = rclass
             </Col>
         </Row>
 
+TerminalModeDisplay = rclass
+    render : ->
+        <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
+            <Col sm=2>
+            </Col>
+            <Col sm=8>
+                <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: You are in terminal mode.<br/><br/>
+                This was caused by the leading / in your file search. If you would instead like to see just your folders, enter a space in front of the /.<br/>
+                Terminal mode in file listing is experimental and comes with no guarantees about its usability or future existence.
+            </Alert>
+            </Col>
+            <Col sm=2>
+            </Col>
+        </Row>
+
 NoFiles = rclass
     propTypes :
         actions       : rtypes.object.isRequired
@@ -504,7 +524,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
-        apply_border = index == @props.selected_file_index and @props.file_search.length > 0
+        apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -568,7 +588,7 @@ FileListing = rclass
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
     render_no_files : ->
-        if @props.listing.length is 0
+        if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             <NoFiles
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
@@ -578,8 +598,13 @@ FileListing = rclass
                 create_folder = {@props.create_folder}
                 create_file   = {@props.create_file} />
 
+    render_terminal_mode : ->
+        if @props.file_search[0] == TERM_MODE_CHAR
+            <TerminalModeDisplay/>
+
     render : ->
         <Col sm=12>
+            {@render_terminal_mode()}
             {@parent_directory()}
             {@render_rows()}
             {@render_no_files()}
@@ -1442,10 +1467,14 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
+# TODO: Move state into store.
+# Commands such as CD throw a setState error.
+# Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
     displayName : 'ProjectFiles-ProjectFilesSearch'
 
     propTypes :
+        project_id         : rtypes.string.isRequired  # Added by miniterm functionality
         file_search        : rtypes.string
         current_path       : rtypes.string
         actions            : rtypes.object.isRequired
@@ -1461,10 +1490,69 @@ ProjectFilesSearch = rclass
         selected_file_index : 0
         num_files_displayed : 0
 
+    getInitialState : ->  # Miniterm functionality
+        stdout : undefined
+        state  : 'edit'   # 'edit' --> 'run' --> 'edit'
+        error  : undefined
+
+    # Miniterm functionality
+    execute_command : (command) ->
+        @setState
+            stdout : ''
+            error  : ''
+        input = command.trim()
+        if not input
+            return
+        input0 = input + '\necho $HOME "`pwd`"'
+        @setState(state:'run')
+
+        @_id = (@_id ? 0) + 1
+        id = @_id
+        salvus_client.exec
+            project_id : @props.project_id
+            command    : input0
+            timeout    : 10
+            max_output : 100000
+            bash       : true
+            path       : @props.current_path
+            err_on_exit: false
+            cb         : (err, output) =>
+                if @_id != id
+                    # computation was cancelled -- ignore result.
+                    return
+                if err
+                    @setState(error:err, state:'edit')
+                else
+                    if output.stdout
+                        # Find the current path
+                        # after the command is executed, and strip
+                        # the output of "pwd" from the output:
+                        s = output.stdout.trim()
+                        i = s.lastIndexOf('\n')
+                        if i == -1
+                            output.stdout = ''
+                        else
+                            s = s.slice(i+1)
+                            output.stdout = output.stdout.slice(0,i)
+                        i = s.indexOf(' ')
+                        full_path = s.slice(i+1)
+                        if full_path.slice(0,i) == s.slice(0,i)
+                            # only change if in project
+                            path = s.slice(2*i+2)
+                            @props.actions.set_current_path(path, update_file_listing=true)
+                            @props.actions.set_url_to_path(path)
+                    if not output.stderr
+                        # only log commands that worked...
+                        @props.actions.log({event:'termInSearch', input:input})
+                    # WARNING: RENDER ERROR. Move state to redux store
+                    @setState(state:'edit', error:output.stderr, stdout:output.stdout)
+                    if not output.stderr
+                        @props.actions.set_file_search('')
+
     render_help_info : ->
-        if @props.file_search.length > 0 and @props.num_files_displayed > 0
+        if @props.file_search.length > 0 and @props.num_files_displayed > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             firstFolderPosition = @props.file_search.indexOf('/')
-            if @props.file_search == '/'
+            if @props.file_search == ' /'
                 text = "Showing all folders in this directory"
             else if firstFolderPosition == @props.file_search.length - 1
                 text = "Showing folders matching #{@props.file_search.slice(0, @props.file_search.length - 1)}"
@@ -1480,11 +1568,26 @@ ProjectFilesSearch = rclass
                 {@props.file_creation_error}
             </Alert>
 
+    # Miniterm functionality
+    render_output : (x, style) ->
+        if x
+            <pre style=style>
+                <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
+                   href=''
+                   style={right:'5px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
+                       <Icon name='times' />
+                </a>
+                {x}
+            </pre>
+
     dismiss_alert : ->
         @props.actions.setState(file_creation_error : '')
 
     search_submit: (value, opts) ->
-        if @props.selected_file
+        if value[0] == TERM_MODE_CHAR
+            command = value.slice(1, value.length)
+            @execute_command(command)
+        else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path, update_file_listing=true)
@@ -1516,6 +1619,9 @@ ProjectFilesSearch = rclass
             @props.actions.reset_selected_file_index()
         @props.actions.set_file_search(search)
 
+    on_escape : () ->
+        @setState(input: '', stdout:'', error:'')
+
     render : ->
         <span>
             <SearchInput
@@ -1526,9 +1632,14 @@ ProjectFilesSearch = rclass
                 on_submit     = {@search_submit}
                 on_up         = {@on_up_press}
                 on_down       = {@on_down_press}
+                on_escape     = {@on_escape}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
+            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+                {@render_output(@state.error, {color:'darkred', margin:0})}
+                {@render_output(@state.stdout, {margin:0})}
+            </div>
         </span>
 
 ProjectFilesNew = rclass
@@ -1835,7 +1946,7 @@ ProjectFiles = (name) -> rclass
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing(TERM_MODE_CHAR)
 
         file_listing_page_size= @file_listing_page_size()
         if listing?
@@ -1849,6 +1960,7 @@ ProjectFiles = (name) -> rclass
             <Row>
                 <Col sm=3>
                     <ProjectFilesSearch
+                        project_id          = {@props.project_id}
                         key                 = {@props.current_path}
                         file_search         = {@props.file_search}
                         actions             = {@props.actions}
