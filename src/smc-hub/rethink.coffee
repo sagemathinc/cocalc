@@ -113,7 +113,7 @@ class RethinkDB
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
-            concurrent_error : 0  # if nonzero, and this many queries at once, any query instantly fails!
+            concurrent_error : 700  # if nonzero, and this many queries at once, any query fails after a slight delay.
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -318,7 +318,7 @@ class RethinkDB
                         if that._concurrent_error and that._concurrent_queries > that._concurrent_error
                             winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
                             that._concurrent_queries -= 1
-                            cb("concurrent_error")
+                            setTimeout((()=>cb("concurrent_error")), 5*Math.random())
                             return
 
                         # choose a random connection
