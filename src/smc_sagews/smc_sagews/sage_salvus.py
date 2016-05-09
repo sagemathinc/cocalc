@@ -2454,6 +2454,10 @@ def show(*objs, **kwds):
             html(obj.to_html(), hide=False)
         else:
             s = str(sage.misc.latex.latex(obj))
+            if r'\text{\texttt' in s:
+                # In this case the mathjax latex mess is so bad, it is better to just print and give up!
+                print obj
+                return
             # Add anything here that Sage produces and mathjax can't handle, and
             # which people complain about... (obviously, I wish there were a way to
             # know -- e.g., if Sage had a way to tell whether latex it produces
