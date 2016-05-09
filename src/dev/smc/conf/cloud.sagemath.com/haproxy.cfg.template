@@ -44,7 +44,7 @@ backend proxy
     balance leastconn
     cookie SMCSERVERID3 insert nocache      # this specific cookie is also referenced in client_browser.coffee!
     option httpclose
-    timeout server 3s
+    timeout server 7s
     retries 10
 
     #server proxy0a web0:5001 cookie server1:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
@@ -71,3 +71,7 @@ frontend http
     bind    *:80
     #redirect scheme https if !{ ssl_fc }
     redirect location https://cloud.sagemath.com
+
+frontend health
+    bind *:60000
+    monitor-uri /health-check
