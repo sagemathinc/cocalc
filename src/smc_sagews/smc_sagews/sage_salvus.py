@@ -15,6 +15,14 @@
 
 import copy, os, sys, types
 
+try:
+    from pandas import DataFrame
+    def is_dataframe(obj):
+        return isinstance(obj, DataFrame)
+except:
+    def is_dataframe(obj):
+        return False
+
 # This reduces a lot of confusion for Sage worksheets -- people expect
 # to be able to import from the current working directory.
 sys.path.append('.')
@@ -2442,6 +2450,8 @@ def show(*objs, **kwds):
                 return '[%s]'%s
             else:
                 return '(%s)'%s
+        elif is_dataframe(obj):
+            html(obj.to_html(), hide=False)
         else:
             s = str(sage.misc.latex.latex(obj))
             # Add anything here that Sage produces and mathjax can't handle, and
