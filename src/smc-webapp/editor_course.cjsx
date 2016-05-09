@@ -185,6 +185,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             syncdb.save (err) =>
                 @clear_activity(id)
                 @setState(saving:false)
+                @setState(unsaved:syncdb?.has_unsaved_changes())
                 if err
                     @set_error("Error saving -- #{err}")
                     @setState(show_save_button:true)
@@ -219,6 +220,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     t = t.set(x.table, a)
             if cur != t  # something changed
                 @setState(t)
+                @setState(unsaved:syncdb?.has_unsaved_changes())
 
         # PUBLIC API
 
@@ -3946,6 +3948,7 @@ CourseEditor = (name) -> rclass
             students    : rtypes.immutable
             assignments : rtypes.immutable
             settings    : rtypes.immutable
+            unsaved     : rtypes.bool
         users :
             user_map    : rtypes.immutable
         projects :
@@ -4052,14 +4055,35 @@ CourseEditor = (name) -> rclass
     render_title : ->
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
+    show_timetravel: ->
+        @props.redux?.getProjectActions(@props.project_id).open_file
+            path               : misc.history_path(@props.path)
+            foreground         : true
+            foreground_project : true
+
+    save_to_disk: ->
+        @props.redux?.getActions(@props.name).save()
+
+    render_save_timetravel: ->
+        <div style={float:'right', marginRight:'15px'}>
+            <ButtonGroup>
+                <Button onClick={@save_to_disk}    bsStyle='success' disabled={not @props.unsaved}>
+                    <Icon name='save'/>    Save
+                </Button>
+                <Button onClick={@show_timetravel} bsStyle='info'>
+                    <Icon name='history'/> TimeTravel
+                </Button>
+            </ButtonGroup>
+        </div>
+
     render : ->
-        #window.s = {a:@props.redux?.getActions(@props.name), s:@props.redux?.getStore(@props.name)}  # for DEV
         <div>
             {@render_save_button()}
             {@render_error()}
             {@render_activity()}
             {@render_files_button()}
             {@render_title()}
+            {@render_save_timetravel()}
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>

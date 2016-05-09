@@ -1428,7 +1428,6 @@ class FileEditor extends EventEmitter
         content = @val()
         if not content?
             # do not overwrite file in case editor isn't initialized
-            alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
             cb?()
             return
 

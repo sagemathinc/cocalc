@@ -309,6 +309,12 @@ ChatRoom = (name) -> rclass
     show_files : ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
+    show_timetravel: ->
+        @props.redux?.getProjectActions(@props.project_id).open_file
+            path               : misc.history_path(@props.path)
+            foreground         : true
+            foreground_project : true
+
     render : ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -327,6 +333,11 @@ ChatRoom = (name) -> rclass
                               account_id  = {@props.account_id}
                               user_map    = {@props.user_map} />
                     </div>
+                </Col>
+                <Col xs={4}>
+                    <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
+                        <Icon name='history'/> TimeTravel
+                    </Button>
                 </Col>
             </Row>
             <Row>
