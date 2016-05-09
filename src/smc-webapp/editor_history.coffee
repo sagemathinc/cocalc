@@ -73,7 +73,7 @@ class exports.HistoryEditor extends FileEditor
             else
                 @view_doc = codemirror_session_editor(@editor, @filename, opts)
 
-        if @ext in ['course']
+        if @ext in ['course', 'sage-chat']
             @element.find(".salvus-editor-history-no-viewer").show()
             @top_elt = @element.find(".salvus-editor-history-no-viewer")
         else
