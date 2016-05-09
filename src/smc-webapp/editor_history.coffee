@@ -73,6 +73,12 @@ class exports.HistoryEditor extends FileEditor
             else
                 @view_doc = codemirror_session_editor(@editor, @filename, opts)
 
+        if @ext in ['course']
+            @element.find(".salvus-editor-history-no-viewer").show()
+            @top_elt = @element.find(".salvus-editor-history-no-viewer")
+        else
+            @top_elt = @element.find(".salvus-editor-history-slider")
+
         @element.find(".salvus-editor-history-history_editor").append(@view_doc.element)
 
         if @ext == "sagews"
@@ -235,7 +241,7 @@ class exports.HistoryEditor extends FileEditor
         if top == 0
             @element.css('position':'fixed', 'width':'100%')
         @element.show()
-        x = @element.find('.salvus-editor-history-slider')
+        x = @top_elt
         @view_doc.show(top:x.offset().top + x.height() + 15)
         if @ext == 'sagews'
             @worksheet?.process_sage_updates()

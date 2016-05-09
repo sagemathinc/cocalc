@@ -527,11 +527,18 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @removeAllListeners()
         @_closed = true
 
+    has_uncommitted_changes: =>
+        return @_syncstring.has_uncommitted_changes()
+
+    has_unsaved_changes: =>
+        return @_syncstring.has_unsaved_changes()
+
+
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
-            cursor_interval   : 1000   # ignored below right now
-            sync_interval     : 2000   # never send sync messages upstream more often than this
+            cursor_interval : 1000   # ignored below right now
+            sync_interval   : 2000   # never send sync messages upstream more often than this
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -630,13 +637,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @chat_session = chat_session
                     @init_chat()
 
-    _has_unsaved_changes: =>
+    has_unsaved_changes: =>
         if not @codemirror?
             return false
         # This is potentially VERY expensive!!!
         return @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
 
-    _has_uncommitted_changes: =>
+    has_uncommitted_changes: =>
         # WARNING: potentially expensive to do @codemirror.getValue().
         return @_syncstring.has_uncommitted_changes() or @codemirror.getValue() != @_syncstring.get()
 
