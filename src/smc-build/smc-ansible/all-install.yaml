@@ -220,7 +220,6 @@
     - cvs
     - cython
     - dieharder
-    - dieharder
     - dot2tex
     - doxygen
     - dstat
@@ -272,7 +271,6 @@
     - jags
     - jags
     - jekyll
-    - joe
     - joe
     - lbzip2
     - libapr1-dev
@@ -352,7 +350,6 @@
     - m4
     - markdown
     - maven
-    - mc
     - mc
     - meld
     - mercurial
@@ -454,7 +451,6 @@
     - tuareg-mode
     - unison-all
     - unrar-free
-    - unrar-free
     - unzip
     - uuid-dev
     - v4l-utils
@@ -469,7 +465,6 @@
     - x11vnc
     - x264
     - xorg-dev
-    - xpra
     - xpra
     - xvfb
     - yacas
@@ -570,10 +565,8 @@
     - python3-nose2-cov
     - python3-numexpr
     - python3-numpy
-    - python3-numpy
     - python3-oauth
     - python3-openssl
-    - python3-pandas
     - python3-pandas
     - python3-pandocfilters
     - python3-paramiko
@@ -682,6 +675,8 @@
 
   - name: 'update-alternativs for mpich binary'
     alternatives: name=mpi path=/usr/include/mpich
+  - name: correct MPI executor is mpich
+    alternatives: name=mpirun path=/usr/bin/mpirun.mpich
 
 # PYPY
 - hosts: compute
