@@ -923,6 +923,8 @@ exports.define_codemirror_extensions = () ->
                     return 'r'
                 when 'sagews'
                     return 'sage'
+                when 'shell'
+                    return 'shell'
                 else
                     return default_mode
 
@@ -967,7 +969,11 @@ exports.define_codemirror_extensions = () ->
             src0 = src
 
             mode1 = mode
-            how = EDIT_COMMANDS[mode1][cmd]
+            data_for_mode = EDIT_COMMANDS[mode1]
+            if not data_for_mode?
+                console.warn("mode '#{mode1}' is not defined!")
+                return
+            how = data_for_mode[cmd]
             if not how?
                 if mode1 in ['md', 'mediawiki', 'rst']
                     # html fallback for markdown
