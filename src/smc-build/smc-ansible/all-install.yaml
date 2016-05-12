@@ -243,11 +243,12 @@
     - ghc-mod
     - ghc-prof
     - git-svn
+    - glpk-utils
+    - glpk-doc
     - gmsh
     - gnugo
     - golang-go
     - gpicview
-    - grace
     - grace
     - gv
     - h5utils
@@ -296,6 +297,7 @@
     - libgeos++-dev
     - libgeos-dev
     - libglpk-dev
+    - libglpk36
     - libgmp3-dev
     - libgraphviz-dev
     - libgsl0-dev
@@ -398,6 +400,7 @@
     - python-dev
     - python-docutils
     - python-fuse
+    - python-glpk
     - python-h5py
     - python-mode
     - python-numpy
