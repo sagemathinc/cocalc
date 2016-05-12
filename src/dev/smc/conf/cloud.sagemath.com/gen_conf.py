@@ -7,16 +7,33 @@ but for all the web[n] hosts that exist.
 
 (c) William Stein, 2016
 """
-
+import sys
 import os
 
 #EXCLUDE=['web6']
+EXCLUDE=[]
 
 def host_exists(hostname):
     """
     Return true if and only if hostname resolves and is pingable.
     """
     return os.system("ping -c 1 -W 1 '%s' 2>/dev/null 1>/dev/null"%hostname) == 0
+
+def web_hosts_2(bound=9):
+    import subprocess as sp
+    import json
+    cmd = sp.Popen("gcloud compute instances list --filter='name ~ ^web' --format=json",
+                   shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    webs, err = cmd.communicate()
+    try:
+        webs = json.loads(webs)
+        assert len(webs) >= 3
+    except Exception as e:
+        print("ERROR, fallback -- %s" % e)
+        webs = ["web%s"%n for n in range(bound)]
+    # maybe filter additionally on something?
+    names = [w['name'] for w in webs if w['status'] == "RUNNING"]
+    return [name for name in names if name not in EXCLUDE]
 
 def web_hosts(bound=20):
     """
@@ -25,8 +42,11 @@ def web_hosts(bound=20):
     v = ["web%s"%n for n in range(bound) if host_exists("web%s"%n)]
     return [x for x in v if x not in EXCLUDE]
 
-def gen_haproxy():
-    hosts = web_hosts()
+def gen_haproxy(x=''):
+    if not x:
+        hosts = web_hosts()
+    else:
+        hosts = [x]
     v = []
     for x in open('haproxy.cfg.template').xreadlines():
         if 'web0' in x:
@@ -42,4 +62,7 @@ def gen_haproxy():
     open('haproxy.cfg','w').write(''.join(v))
 
 if __name__ == "__main__":
-    gen_haproxy()
+    if len(sys.argv) == 1:
+        gen_haproxy()
+    else:
+        gen_haproxy(sys.argv[1])

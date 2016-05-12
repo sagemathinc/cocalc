@@ -924,6 +924,8 @@ exports.define_codemirror_extensions = () ->
                     return 'r'
                 when 'sagews'
                     return 'sage'
+                when 'shell'
+                    return 'shell'
                 else
                     return default_mode
 
@@ -968,7 +970,11 @@ exports.define_codemirror_extensions = () ->
             src0 = src
 
             mode1 = mode
-            how = EDIT_COMMANDS[mode1][cmd]
+            data_for_mode = EDIT_COMMANDS[mode1]
+            if not data_for_mode?
+                console.warn("mode '#{mode1}' is not defined!")
+                return
+            how = data_for_mode[cmd]
             if not how?
                 if mode1 in ['md', 'mediawiki', 'rst']
                     # html fallback for markdown
@@ -1348,6 +1354,26 @@ exports.define_codemirror_extensions = () ->
                 opts.cb?()
                 return false
 
+    # Find pos {line:line, ch:ch} of first line that contains the
+    # string s, or returns undefined if no single line contains s.
+    # Should be much faster than calling getLine or getValue.
+    CodeMirror.defineExtension 'find_in_line', (s) ->
+        line = undefined
+        ch   = undefined
+        i = 0
+        @eachLine (z) ->
+            ch = z.text.indexOf(s)
+            if ch != -1
+                line = i
+                return true  # undocumented - calling false stops iteration
+            i += 1
+            return false
+        if line?
+            return {line:line, ch:ch}
+
+    # Natural analogue of getLine, which codemirror doesn't have for some reason
+    #CodeMirror.defineExtension 'setLine', (n, value) ->
+    #    @replaceRange()
 
 FONT_FACES = buttonbar.FONT_FACES
 
