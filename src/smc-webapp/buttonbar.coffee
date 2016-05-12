@@ -44,6 +44,18 @@ CONSIDERATIONS:
 exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
 
 exports.commands =
+    shell :
+        comment :
+            wrap :      # TODO: multi-line
+                left  : '# '
+                right : ''
+        set_name_and_email :
+                insert:
+                         """
+                         git config --global user.name ""
+                         git config --global user.email ""
+                         """
+
     tex :
         integral:
                 insert: '$\int_{0}^{\infty} \frac{1}{1+x^2}\,\mathrm{d}x$'
@@ -1321,6 +1333,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Markdown", "#mode_md"],
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
+
         ]]
     add_menu(system_bar, mode_list)
 
@@ -1629,6 +1642,18 @@ initialize_sage_python_r_toolbar = () ->
     add_menu(julia_control, julia_control_entries)
     julia_bar.append(julia_basic)
     julia_bar.append(julia_control)
+
+    # -- sh specific --
+    sh_bar = $(".salvus-editor-sh-edit-buttonbar")
+
+    sh_git = make_bar()
+    sh_git_entries = ["Git", "Basic Git commands",
+                        [
+                            ["Set name and email", "#set_name_and_email", "Set name and email"],
+                        ]]
+    add_menu(sh_git, sh_git_entries)
+    sh_bar.append(sh_git)
+
 
 initialize_sage_python_r_toolbar()
 

@@ -7,7 +7,7 @@ but for all the web[n] hosts that exist.
 
 (c) William Stein, 2016
 """
-
+import sys
 import os
 
 #EXCLUDE=['web6']
@@ -18,6 +18,22 @@ def host_exists(hostname):
     Return true if and only if hostname resolves and is pingable.
     """
     return os.system("ping -c 1 -W 1 '%s' 2>/dev/null 1>/dev/null"%hostname) == 0
+
+def web_hosts_2(bound=9):
+    import subprocess as sp
+    import json
+    cmd = sp.Popen("gcloud compute instances list --filter='name ~ ^web' --format=json",
+                   shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    webs, err = cmd.communicate()
+    try:
+        webs = json.loads(webs)
+        assert len(webs) >= 3
+    except Exception as e:
+        print("ERROR, fallback -- %s" % e)
+        webs = ["web%s"%n for n in range(bound)]
+    # maybe filter additionally on something?
+    names = [w['name'] for w in webs if w['status'] == "RUNNING"]
+    return [name for name in names if name not in EXCLUDE]
 
 def web_hosts(bound=20):
     """

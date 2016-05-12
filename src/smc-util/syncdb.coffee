@@ -56,6 +56,12 @@ class exports.SynchronizedDB extends EventEmitter
             @_live_before_sync = @_doc?.live()  # doc could be deleted when this is called, due to destroy method.
         @_doc.on('sync', @_on_sync)
 
+    has_unsaved_changes: =>
+        return @_doc.has_unsaved_changes()
+
+    has_uncommitted_changes: =>
+        return @_doc.has_uncommitted_changes()
+
     _on_sync: () =>
         if not @_doc?
             return

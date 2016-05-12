@@ -18,6 +18,7 @@ def push_conf_public():
     for t in TARGETS:
         os.system("scp haproxy.cfg %s:/tmp/"%t)
         os.system("ssh %s 'sudo mv /tmp/haproxy.cfg /etc/haproxy/'"%t)
+        os.system("ssh %s 'sudo service haproxy reload'"%t)
 
 def push_conf_private():
     import gen_conf
@@ -29,6 +30,7 @@ def push_conf_private():
         gen_conf.gen_haproxy(host)
         os.system("scp haproxy.cfg %s:/tmp/"%host)
         os.system("ssh %s 'sudo mv /tmp/haproxy.cfg /etc/haproxy/'"%host)
+        os.system("ssh %s 'sudo service haproxy reload'"%host)
 
 
 if __name__ == "__main__":
