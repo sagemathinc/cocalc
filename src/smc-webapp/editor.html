@@ -95,7 +95,7 @@ Editor for files in a project
                             <span class="btn-group salvus-editor-write-only">
                                 <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm">Run</span></a>
                                 <a href="#interrupt" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
-                                <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset; fixes any problem)."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
+                                <a href="#kill" class="btn btn-warning" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                                 <a href="#tab" class="btn btn-info"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
 
                             </span>
@@ -492,6 +492,10 @@ Editor for files in a project
             </span>
         </span>
         <div class="salvus-editor-history-slider">
+        </div>
+
+        <div class="salvus-editor-history-no-viewer hide" style="margin-left:15px">
+            <b>WARNING: </b> History viewer for this file type not implemented, so showing underlying raw file instead.
         </div>
 
         <div class="salvus-editor-history-history_editor"></div>
@@ -1078,6 +1082,9 @@ Editor for files in a project
         <!-- buttonbar.coffee populates the entries -->
     </div>
     <div class="salvus-editor-julia-edit-buttonbar hide" style="margin: 2px">
+        <!-- buttonbar.coffee populates the entries -->
+    </div>
+    <div class="salvus-editor-sh-edit-buttonbar hide" style="margin: 2px">
         <!-- buttonbar.coffee populates the entries -->
     </div>
     <div class="salvus-editor-fricas-edit-buttonbar hide" style="margin: 2px">

@@ -236,7 +236,8 @@ class SortedPatchList extends EventEmitter
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
-                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot and cur.prev == x.prev
+                    # Note: cur.prev and x.prev are Date objects, so must put + before them to convert to numbers and compare.
+                    if underscore.isEqual(cur.patch, x.patch) and cur.user == x.user and cur.snapshot == x.snapshot and +cur.prev == +x.prev
                         # re-inserting exactly the same thing; nothing at all to do
                         continue
                     else
@@ -288,7 +289,7 @@ class SortedPatchList extends EventEmitter
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
         # point in time, use it as a base.
-        if oldest_cached_time? and (not time? or time - 0 >= oldest_cached_time - 0)
+        if oldest_cached_time? and (not time? or +time >= +oldest_cached_time)
             # There is something in the cache, and it is at least as far back in time
             # as the value we want to compute now.
             cache = @_cache.newest_value_at_most(time)
@@ -299,7 +300,7 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
@@ -314,8 +315,8 @@ class SortedPatchList extends EventEmitter
             start = 0
             if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
                 for i in [@_patches.length-1 .. 0]
-                    if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
-                        if force and @_patches[i].time - time == 0
+                    if (not time? or +@_patches[i].time <= +time) and @_patches[i].snapshot?
+                        if force and +@_patches[i].time == +time
                             # If force is true we do NOT want to use the existing snapshot, since
                             # the whole point is to force recomputation of it, as it is wrong.
                             # Instead, we'll use the previous snapshot.
@@ -336,7 +337,7 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                     value = apply_patch(x.patch, value)[0]
                 cache_time = x.time
                 cache_start += 1
@@ -358,7 +359,7 @@ class SortedPatchList extends EventEmitter
         start = 0
         if @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
-                if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
+                if (not time? or +@_patches[i].time <= +time) and @_patches[i].snapshot?
                     # Found a patch with known snapshot that is as old as the time.
                     # This is the base on which we will apply other patches to move forward
                     # to the requested time.
@@ -385,7 +386,7 @@ class SortedPatchList extends EventEmitter
     # TODO: optimization -- this shouldn't be a linear search!!
     patch: (time) =>
         for x in @_patches
-            if x.time - time == 0
+            if +x.time == +time
                 return x
 
     versions: () =>
@@ -406,7 +407,7 @@ class SortedPatchList extends EventEmitter
             console.log("-----------------------------------------------------\n", i, x.user, tm, misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
-            if not x.prev? or @_times[x.prev - 0] or x.prev >= prev_cutoff
+            if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
                 t = apply_patch(x.patch, s)
             else
                 console.log("prev=#{x.prev} missing, so not applying")
@@ -562,7 +563,7 @@ class SyncDoc extends EventEmitter
             # if min_age_m is 0 always do it immediately; if > 0 check what it was:
             last_active = @_syncstring_table?.get_one().get('last_active')
             # if not defined or not set recently, do it.
-            if not (not last_active? or last_active <= misc.server_minutes_ago(min_age_m))
+            if not (not last_active? or +last_active <= +misc.server_minutes_ago(min_age_m))
                 return
         # Now actually do the set.
         @_client.query

@@ -30,7 +30,7 @@ backend static
 
 backend hub
     balance leastconn
-    cookie SMCSERVERID3 insert nocache  # this specific cookie is also referenced in client_browser.coffee -- and also below for the proxy (more efficient to have same process do both)
+    cookie SMCSERVERID3 insert indirect nocache  # this specific cookie is also referenced in client_browser.coffee -- and also below for the proxy (more efficient to have same process do both)
     option httpclose
     timeout server 7s
     option httpchk /alive
@@ -42,9 +42,9 @@ backend hub
 
 backend proxy
     balance leastconn
-    cookie SMCSERVERID3 insert nocache      # this specific cookie is also referenced in client_browser.coffee!
+    cookie SMCSERVERID3 insert indirect nocache      # this specific cookie is also referenced in client_browser.coffee!
     option httpclose
-    timeout server 3s
+    timeout server 7s
     retries 10
 
     #server proxy0a web0:5001 cookie server1:web0:5000 check inter 4000 maxconn 1000 resolvers dns 
@@ -71,3 +71,10 @@ frontend http
     bind    *:80
     #redirect scheme https if !{ ssl_fc }
     redirect location https://cloud.sagemath.com
+
+frontend health
+    bind *:60000
+    acl hub_dead   nbsrv(hub)   lt 1
+    acl proxy_dead nbsrv(proxy) lt 1
+    monitor-uri /health-check
+    monitor fail if hub_dead || proxy_dead

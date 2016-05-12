@@ -1435,7 +1435,6 @@ class FileEditor extends EventEmitter
         content = @val()
         if not content?
             # do not overwrite file in case editor isn't initialized
-            alert_message(type:"error", message:"Editor of '#{filename}' not initialized, so nothing to save.")
             cb?()
             return
 
@@ -2377,6 +2376,10 @@ class CodeMirrorEditor extends FileEditor
         @julia_edit_buttons =  templates.find(".salvus-editor-julia-edit-buttonbar").clone()
         e.append(@julia_edit_buttons)
 
+        # the sh-editing button bar
+        @sh_edit_buttons =  templates.find(".salvus-editor-sh-edit-buttonbar").clone()
+        e.append(@sh_edit_buttons)
+
         @cython_buttons =  templates.find(".salvus-editor-cython-buttonbar").clone()
         e.append(@cython_buttons)
 
@@ -2384,7 +2387,7 @@ class CodeMirrorEditor extends FileEditor
         e.append(@fallback_buttons)
 
         all_edit_buttons = [@textedit_buttons, @codeedit_buttons, @redit_buttons,
-                            @cython_buttons, @julia_edit_buttons, @fallback_buttons]
+                            @cython_buttons, @julia_edit_buttons, @sh_edit_buttons, @fallback_buttons]
 
         # activite the buttons in the bar
         that = @
@@ -2455,6 +2458,8 @@ class CodeMirrorEditor extends FileEditor
                 show_edit_buttons(@cython_buttons, name)
             else if name == "python"  # doesn't work yet, since name=python still
                 show_edit_buttons(@codeedit_buttons, "sage")
+            else if name == "shell"
+                show_edit_buttons(@sh_edit_buttons, name)
             else
                 show_edit_buttons(@fallback_buttons, name)
 
