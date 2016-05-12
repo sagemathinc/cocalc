@@ -9,9 +9,11 @@ set -e
 #set -v
 
 WEBAPP="static"
-ORIGIN="admin0"
-GITURL="salvus@admin0:/home/salvus/webapp.git"
+ORIGIN="${ORIGIN:-admin0}"
+GITURL="${GITURL:-salvus@admin0:/home/salvus/webapp.git}"
 BRANCH="master"
+
+echo "GITURL: $GITURL"
 
 # test if $SMC_ROOT is set
 if [[ ! -d "$SMC_ROOT" ]]; then
