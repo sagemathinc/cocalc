@@ -51,11 +51,280 @@ exports.commands =
                 right : ''
         set_name_and_email :
                 insert:
-                         """
-                         git config --global user.name ""
-                         git config --global user.email ""
-                         """
+                        """
+                        git config --global user.name ""
+                        git config --global user.email ""
+                        """
+        initalize_git :
+                insert: 
+                        """
+                        git init
+                        """  
+        create_gitignore :
+                insert:
+                        """
+                        # A Python Gitignore from https://github.com/github/gitignore/blob/master/Python.gitignore
+                        echo "# SMC files
+                        *sage*
+                        # Byte-compiled / optimized / DLL files
+                        __pycache__/
+                        *.py[cod]
+                        *$py.class
 
+                        # C extensions
+                        *.so
+
+                        # Distribution / packaging
+                        .Python
+                        env/
+                        build/
+                        develop-eggs/
+                        dist/
+                        downloads/
+                        eggs/
+                        .eggs/
+                        lib/
+                        lib64/
+                        parts/
+                        sdist/
+                        var/
+                        *.egg-info/
+                        .installed.cfg
+                        *.egg
+
+                        # PyInstaller
+                        #  Usually these files are written by a python script from a template
+                        #  before PyInstaller builds the exe, so as to inject date/other infos into it.
+                        *.manifest
+                        *.spec
+
+                        # Installer logs
+                        pip-log.txt
+                        pip-delete-this-directory.txt
+
+                        # Unit test / coverage reports
+                        htmlcov/
+                        .tox/
+                        .coverage
+                        .coverage.*
+                        .cache
+                        nosetests.xml
+                        coverage.xml
+                        *,cover
+                        .hypothesis/
+
+                        # Translations
+                        *.mo
+                        *.pot
+
+                        # Django stuff:
+                        *.log
+                        local_settings.py
+
+                        # Flask stuff:
+                        instance/
+                        .webassets-cache
+
+                        # Scrapy stuff:
+                        .scrapy
+
+                        # Sphinx documentation
+                        docs/_build/
+
+                        # PyBuilder
+                        target/
+
+                        # IPython Notebook
+                        .ipynb_checkpoints
+
+                        # pyenv
+                        .python-version
+
+                        # celery beat schedule file
+                        celerybeat-schedule
+
+                        # dotenv
+                        .env
+
+                        # virtualenv
+                        venv/
+                        ENV/
+
+                        # Spyder project settings
+                        .spyderproject
+
+                        # Rope project settings
+                        .ropeproject" >> .gitignore
+                        """
+        clone_local_repo :
+                insert: 
+                        """
+                        git clone /local_repo/
+                        """     
+        clone_remote_repo :
+                insert: 
+                        """
+                        git clone https://github.com/sagemathinc/smc.git
+                        """     
+        add_file_to_repo :
+                insert: 
+                        """
+                        git add afile.py
+                        """     
+        add_all_to_repo :
+                insert: 
+                        """
+                        git add *
+                        """ 
+        diff :
+                insert: 
+                        """
+                        git diff
+                        """
+        commit :
+                insert: 
+                        """
+                        git commit -a -m "commit message"
+                        """ 
+        setup_ssh_for_github :
+                insert: 
+                        """
+                        SSHFILE=~/.ssh/id_rsa
+                        ssh-keygen -t rsa -b 4096 -N "" -C "your_email@example.com" -f $SSHFILE
+                        eval $(ssh-agent -s)
+                        ssh-add ~/.ssh/id_rsa
+                        echo "Below this line is your SSH key"
+                        cat ~/.ssh/id_rsa
+                        # Copy your key below and then follow the instructions at https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/#platform-linux
+                        """ 
+        push_send_changes_to_the_master_branch_of_your_remote_repository :
+                insert:
+                        """
+                        git push origin master
+                        """
+
+        status :
+                insert:
+                        """
+                        git status
+                        """
+
+        connect_to_a_remote_repository :
+                insert:
+                        """
+                        git remote add origin <server>
+                        """
+
+        list_all_currently_configured_remote_repositories :
+                insert:
+                        """
+                        git remote -v
+                        """
+
+        branches_create_a_new_branch_and_switch_to_it :
+                insert:
+                        """
+                        git checkout -b <branchname>
+                        """
+
+        switch_from_one_branch_to_another :
+                insert:
+                        """
+                        git checkout <branchname>
+                        """
+
+        list_all_the_branches_in_your_repo_and_also_tell_you_what_branch_youre_currently_in :
+                insert:
+                        """
+                        git branch
+                        """
+
+        delete_the_feature_branch :
+                insert:
+                        """
+                        git branch -d <branchname>
+                        """
+
+        push_the_branch_to_your_remote_repository_so_others_can_use_it :
+                insert:
+                        """
+                        git push origin <branchname>
+                        """
+
+        push_all_branches_to_your_remote_repository :
+                insert:
+                        """
+                        git push --all origin
+                        """
+
+        delete_a_branch_on_your_remote_repository :
+                insert:
+                        """
+                        git push origin :<branchname>
+                        """
+
+        update_from_the_remote_repository_fetch_and_merge_changes_on_the_remote_server_to_your_working_directory :
+                insert:
+                        """
+                        git pull
+                        """
+
+        to_merge_a_different_branch_into_your_active_branch :
+                insert:
+                        """
+                        git merge <branchname>
+                        """
+
+        view_all_the_merge_conflicts :
+                insert:
+                        """
+                        git diff
+                        """
+
+        git_diff_base_filename :
+                insert:
+                        """
+                        git diff --base <filename>
+                        """
+
+        git_diff_sourcebranch_targetbranch :
+                insert:
+                        """
+                        git diff <sourcebranch> <targetbranch>
+                        """
+
+        after_you_have_manually_resolved_any_conflicts_you_mark_the_changed_file :
+                insert:
+                        """
+                        git add <filename>
+                        git tag 1.0.0 <commitID>
+                        git log
+                        """
+
+        push_all_tags_to_remote_repository :
+                insert:
+                        """
+                        git push --tags origin
+                        """
+
+        undo_local_changes :
+                insert:
+                        """
+                        git checkout -- <filename>
+                        """
+
+        get_rid_of_local_changes :
+                insert:
+                        """
+                        git fetch origin
+                        git reset --hard origin/master
+                        """
+
+        search_search_the_working_directory_for :
+                insert:
+                        """
+                        git grep "foo()"
+                        """
     tex :
         integral:
                 insert: '$\int_{0}^{\infty} \frac{1}{1+x^2}\,\mathrm{d}x$'
@@ -1650,6 +1919,37 @@ initialize_sage_python_r_toolbar = () ->
     sh_git_entries = ["Git", "Basic Git commands",
                         [
                             ["Set name and email", "#set_name_and_email", "Set name and email"],
+                            ["Initalize Git", "#initalize_git", "Initalize Git"],
+                            ["Create an ignore file", "#create_gitignore", "Create an ignore file"],
+                            ["Clone a local repo", "#clone_local_repo", "Clone local repo"],
+                            ["Clone a remote repo", "#clone_remote_repo", "Clone remote repo"],
+                            ["Add a file to the repo", "#add_file_to_repo", "Add file to the repo"],
+                            ["Add all not ignored files to the repo", "#add_all_to_repo", "Add all not ignored files to the repo"],
+                            ["See changes before commiting", "#diff", "See changes before commiting"],
+                            ["Commit your changes", "#commit", "Commit all your changes"],
+                            ["Setup SSH for Github", "#setup_ssh_for_github", "Setup SSH for Github"],
+                            ["Push changes to the master branch of your remote repository", "#push_send_changes_to_the_master_branch_of_your_remote_repository", "Push Send changes to the master branch of your remote repository"],
+                            ["Status", "#status", "Status"],
+                            ["Connect to a remote repository", "#connect_to_a_remote_repository", "Connect to a remote repository"],
+                            ["List remote repos", "#list_all_currently_configured_remote_repositories", "List all currently configured remote repositories"],
+                            ["Create a new branch and switch to it", "#branches_create_a_new_branch_and_switch_to_it", "Branches Create a new branch and switch to it"],
+                            ["Switch from one branch to another", "#switch_from_one_branch_to_another", "Switch from one branch to another"],
+                            ["List branches", "#list_all_the_branches_in_your_repo,_and_also_tell_you_what_branch_you're_currently_in", "List all the branches in your repo, and also tell you what branch you're currently in"],
+                            ["Delete the feature branch", "#delete_the_feature_branch", "Delete the feature branch"],
+                            ["Push the branch to your remote repo", "#push_the_branch_to_your_remote_repository_so_others_can_use_it", "Push the branch to your remote repository, so others can use it"],
+                            ["Push all branches to your remote repository", "#push_all_branches_to_your_remote_repository", "Push all branches to your remote repository"],
+                            ["Delete a branch on your remote repository", "#delete_a_branch_on_your_remote_repository", "Delete a branch on your remote repository"],
+                            ["Update repo", "#update_from_the_remote_repository_fetch_and_merge_changes_on_the_remote_server_to_your_working_directory", "Update from the remote repository Fetch and merge changes on the remote server to your working directory"],
+                            ["To merge a different branch into your active branch", "#to_merge_a_different_branch_into_your_active_branch", "To merge a different branch into your active branch"],
+                            ["View all the merge conflicts", "#view_all_the_merge_conflicts", "View all the merge conflicts"],
+                            ["git diff --base <filename>", "#git_diff_base_filename", "git diff --base <filename>"],
+                            ["git diff <sourcebranch> <targetbranch>", "#git_diff_sourcebranch_targetbranch", "git diff <sourcebranch> <targetbranch>"],
+                            ["Mark the changed file", "#after_you_have_manually_resolved_any_conflicts,_you_mark_the_changed_file", "After you have manually resolved any conflicts, you mark the changed file"],
+                            ["Tag a changeset", "#tags_you_can_use_tagging_to_mark_a_significant_changeset,_such_as_a_release", "You can use tagging to mark a significant changeset, such as a release"],
+                            ["Push all tags to remote repository", "#push_all_tags_to_remote_repository", "Push all tags to remote repository"],
+                            ["Undo local changes", "#undo_local_changes", "Undo local changes"],
+                            ["Get rid of local changes", "#get_rid_of_local_changes", "Drop all your local changes and commits, fetch the latest history from the server and point your local master branch at it"],
+                            ["Search the working directory for foo()", "#search_search_the_working_directory_for", "Search the working directory for foo()"]
                         ]]
     add_menu(sh_git, sh_git_entries)
     sh_bar.append(sh_git)
