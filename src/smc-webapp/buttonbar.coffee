@@ -193,9 +193,9 @@ exports.commands =
                         ssh-keygen -t rsa -b 4096 -N "" -C "your_email@example.com" -f $SSHFILE
                         eval $(ssh-agent -s)
                         ssh-add ~/.ssh/id_rsa
-                        echo "Below this line is your SSH key"
-                        cat ~/.ssh/id_rsa
-                        # Copy your key below and then follow the instructions at https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/#platform-linux
+                        echo "Below this line is your public SSH key"
+                        cat ~/.ssh/id_rsa.pub
+                        # Copy your public key below and follow the instructions at https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/#platform-linux
                         """ 
         push_send_changes_to_the_master_branch_of_your_remote_repository :
                 insert:
