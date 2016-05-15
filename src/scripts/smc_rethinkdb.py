@@ -221,11 +221,13 @@ def active_courses(days=7):
     for hosting, projs in sorted(courses.items()):
         print("<h2>{} Hosting</h2>".format(hosting.title()))
         for p in sorted(projs, key=lambda course: course["created"]):
+            # pprint(p)
+            host = p["host"].get("host", "N/A")
             h3 = '<a href="https://cloud.sagemath.com/projects/{project_id}/">{title}</a>'.format(**p)
             edited = p["last_edited"].isoformat()[:16]
             started = p["created"].isoformat()[:16]
-            print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {host[host]}"\
-                .format(started=started, edited=edited, h3=h3, **p))
+            print("<h3>{h3}</h3><div>created: {started}, last edit: {edited}, host: {hostname}"\
+                .format(started=started, edited=edited, h3=h3, hostname=host, **p))
             print("<div><i>{description}</i></div>".format(**p))
             print("<ul>")
             u = p["users"]
@@ -327,14 +329,18 @@ def connections():
     """
     Shows the current network configuration of the cluster
     """
+    print("DB Nodes")
     conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
-    for x in conns:
+    for x in sorted(conns, key=lambda x : x['name']):
         dbs = sorted(filter(lambda n : n.startswith('db'), x['network']['connected_to'].keys()))
-        print('%s: %s' % (x['name'], dbs))
-    print()
-    for x in conns:
+        print('%8s: %s' % (x['name'], dbs))
+    print(); print("DB Proxies")
+    from collections import defaultdict
+    proxies = defaultdict(lambda : len(proxies))
+    for x in sorted(conns, key=lambda x : x['name']):
         dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
-        print('%s: %s' % (x['name'], dbs))
+        dbs = [proxies[p] for p in dbs]
+        print('%8s: %s' % (x['name'], sorted(dbs)))
 
 def read_write_stats(N = 10, B = 5, continuous=True):
     """
@@ -532,6 +538,6 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] == "courses":
-            active_courses()
+            active_courses(days = 30)
         elif sys.argv[1] == 'rewrite_stats':
             rewrite_stats()
