@@ -3032,23 +3032,12 @@ connect_to_database = (opts) ->
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
         opts.cb(); return
-    # load database password from 'data/secrets/rethink/hub'
-    password_file = "#{SMC_ROOT}/data/secrets/rethink/hub"
-    dbg("reading '#{password_file}'")
-    fs.readFile password_file, (err, password) ->
-        if err
-            winston.debug("warning: no password file -- will only work if there is no password set.")
-            password = undefined
-        else
-            password = password.toString().trim()
-        dbg("got password; now connecting to database")
-        database = rethink.rethinkdb
-            hosts       : program.database_nodes.split(',')
-            database    : program.keyspace
-            password    : password
-            error       : opts.error
-            pool        : opts.pool
-            cb          : opts.cb
+    database = rethink.rethinkdb
+        hosts    : program.database_nodes.split(',')
+        database : program.keyspace
+        error    : opts.error
+        pool     : opts.pool
+        cb       : opts.cb
 
 # client for compute servers
 compute_server = undefined

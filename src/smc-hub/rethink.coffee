@@ -147,16 +147,16 @@ class RethinkDB
                     @_password = opts.password
                     cb()
                 else
-                    dbg("loading password from disk")
                     password_file = rethinkdb_password_filename()
+                    dbg("loading password from '#{password_file}'")
                     fs.exists password_file, (exists) =>
                         if exists
                             fs.readFile password_file, (err, data) =>
                                 if err
                                     cb(err)
                                 else
-                                    dbg("read password from '#{password_file}'")
                                     @_password = data.toString().trim()
+                                    dbg("read password of length #{@_password.length} from '#{password_file}'")
                                     cb()
                         else
                             cb()
