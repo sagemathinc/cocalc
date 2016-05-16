@@ -56,10 +56,10 @@ exports.commands =
                         git config --global user.email ""
                         """
         initalize_git :
-                insert: 
+                insert:
                         """
                         git init
-                        """  
+                        """
         create_gitignore :
                 insert:
                         """
@@ -74,38 +74,40 @@ exports.commands =
                         *.py[cod]" >> .gitignore
                         """
         clone_local_repo :
-                insert: 
+                insert:
                         """
                         git clone ~/local_dir/
-                        """     
+                        """
         clone_remote_repo :
-                insert: 
+                insert:
                         """
                         git clone https://github.com/sagemathinc/smc.git
-                        """     
+                        """
         add_file_to_repo :
-                insert: 
+                insert:
                         """
                         git add afile.py
-                        """     
+                        """
         add_all_to_repo :
-                insert: 
+                insert:
                         """
                         git add *
-                        """ 
+                        """
         diff :
-                insert: 
+                insert:
                         """
                         git diff
                         """
         commit :
-                insert: 
+                insert:
                         """
                         git commit -a -m "commit message"
-                        """ 
-        setup_ssh_for_github :
-                insert: 
                         """
+        setup_ssh_for_github :
+                insert:
+                        """
+                        set -e
+                        mkdir -p ~/.ssh/
                         SSHFILE=~/.ssh/id_rsa
                         ssh-keygen -t rsa -b 4096 -N "" -C "your_email@example.com" -f $SSHFILE
                         eval $(ssh-agent -s)
@@ -113,7 +115,7 @@ exports.commands =
                         echo "Below this line is your public SSH key"
                         cat ~/.ssh/id_rsa.pub
                         # Copy your public key below and follow the instructions at https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/#platform-linux
-                        """ 
+                        """
         push_origin_master :
                 insert:
                         """
@@ -1820,7 +1822,7 @@ initialize_sage_python_r_toolbar = () ->
                             ["Clone a remote repo", "#clone_remote_repo", "Clone remote repo"],
                             ["Add a file to repo", "#add_file_to_repo", "Add file to the repo"],
                             ["Add all files to repo", "#add_all_to_repo", "Add all not ignored files to the repo"],
-                            ["See changes before commiting", "#diff", "See changes before commiting"],
+                            ["See changes before committing", "#diff", "See changes before committing"],
                             ["Commit your changes", "#commit", "Commit all your changes"],
                             ["Setup SSH for Github", "#setup_ssh_for_github", "Setup SSH for Github"],
                             ["Push changes", "#push_origin_master", "Push changes to the master branch of your remote repository"],
