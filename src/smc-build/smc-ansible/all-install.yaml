@@ -149,6 +149,7 @@
     - pandoc
     - par2
     - pkg-config
+    - poppler-utils
     - python-lxml
     - python-psutil
     - python-pylibacl
@@ -243,11 +244,12 @@
     - ghc-mod
     - ghc-prof
     - git-svn
+    - glpk-utils
+    - glpk-doc
     - gmsh
     - gnugo
     - golang-go
     - gpicview
-    - grace
     - grace
     - gv
     - h5utils
@@ -282,6 +284,7 @@
     - libboost-all-dev
     - libboost-python-dev
     - libboost-signals-dev
+    - libbz2-dev
     - libc6-i386
     - libcairomm-1.0-dev
     - libcap2-bin
@@ -296,6 +299,7 @@
     - libgeos++-dev
     - libgeos-dev
     - libglpk-dev
+    - libglpk36
     - libgmp3-dev
     - libgraphviz-dev
     - libgsl0-dev
@@ -398,6 +402,7 @@
     - python-dev
     - python-docutils
     - python-fuse
+    - python-glpk
     - python-h5py
     - python-mode
     - python-numpy

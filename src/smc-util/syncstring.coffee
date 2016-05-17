@@ -771,10 +771,17 @@ class SyncDoc extends EventEmitter
             @_patches_table.on('before-change', => @emit('before-change'))
             cb()
 
+        ###
+        TODO/CRITICAL: We are temporarily disabling same-user collision detection, since this seems to be leading to
+        serious issues involving a feedback loop, which may be way worse than the 1 in a million issue
+        that this addresses.  This only address the *same* accout being used simultaneously on the same file
+        by multiple people which isn't something users should ever do (but they do in big demos).
+
         @_patch_list.on 'overwrite', (t) =>
             # ensure that any outstanding save is done
             @_patches_table.save () =>
                 @_check_for_timestamp_collision(t)
+        ###
 
         @_patches_table.on 'saved', (data) =>
             @_handle_offline(data)

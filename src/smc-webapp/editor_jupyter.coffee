@@ -87,7 +87,7 @@ The states of the editor :
 
 Then something that takes in an object with the above API, and makes it sync.
 
-Idea of how things work.  We view the Jupyter notebook as a block box that
+Idea of how things work.  We view the Jupyter notebook as a black box that
 lives in the DOM, which will tell us when it changes, and from which we can
 get a JSON-able object representation, and we can set it from such a
 representation efficiently without breaking cursors.  Jupyter does *NOT* provide
@@ -266,6 +266,17 @@ class JupyterWrapper extends EventEmitter
         $(@frame.document).find("#menubar").hide()   # instead do this if want to preserve kernel -- find('.nav').hide()
         $(@frame.document).find("#maintoolbar").hide()
         $(@frame.document).find(".current_kernel_logo").hide()
+
+    font_size_set: (font_size) =>
+        # initialization, if necessary
+        if @frame.$(".smc-override").length == 0
+            @frame.$('<style type="text/css" class="smc-override"></style>').appendTo(@frame.$("body"))
+        # notebook: main part, "pre" the code blocks, and pager the "help" window at the bottom
+        @frame.$(".smc-override").html("""
+        #notebook       { font-size: #{font_size}px !important; }
+        .CodeMirror pre { font-size: #{font_size}px !important; }
+        div#pager       { font-size: #{font_size}px !important; }
+        """)
 
     check_dirty: () =>
         if @nb.dirty and @nb.dirty != 'clean'
@@ -461,7 +472,6 @@ class JupyterWrapper extends EventEmitter
                 return
             @emit('cursor', ({x:c.anchor.ch, y:c.anchor.line, i:cell._smc_init_cell_cursor} for c in cm.listSelections()))
         cell._smc_init_cell_cursor = index
-
 
     # Move the cursor with given color to the given pos.
     draw_other_cursors: (account_id, locs) =>
@@ -690,15 +700,17 @@ class JupyterWrapper extends EventEmitter
 
 
 
-exports.jupyter_notebook = (editor, filename, opts) ->
-    return (new JupyterNotebook(editor, filename, opts)).element
+exports.jupyter_notebook = (parent, filename, opts) ->
+    return (new JupyterNotebook(parent, filename, opts)).element
 
 class JupyterNotebook extends EventEmitter
-    constructor: (@editor, @filename, opts={}) ->
+    constructor: (@parent, @filename, opts={}) ->
         opts = @opts = defaults opts,
-            read_only : false
-            mode      : undefined   # ignored
-            cb        : undefined   # optional
+            read_only         : false
+            mode              : undefined   # ignored
+            default_font_size : 14          # set in editor.coffee
+            cb                : undefined   # optional
+        @editor = @parent.editor
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
@@ -763,6 +775,7 @@ class JupyterNotebook extends EventEmitter
                 @init_syncstring_change()
                 @init_dom_events()
                 @init_buttons()
+                @font_size_init()
                 @state = 'ready'
                 if not @read_only and @syncstring.live() == ""
                     # First time to initialize the syncstring, so any images in the jupyter
@@ -865,6 +878,12 @@ class JupyterNotebook extends EventEmitter
         @element.find("a[href=#close]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
+
+        @font_size_decr = @element.find("a[href=#font-size-decrease]").click () =>
+            @font_size_change(-1)
+
+        @font_size_incr = @element.find("a[href=#font-size-increase]").click () =>
+            @font_size_change(1)
 
     init_dom_events: () =>
         @dom.on('info', @info)
@@ -1140,6 +1159,21 @@ class JupyterNotebook extends EventEmitter
         delete @dom
         @state = 'init'
         @load(cb)
+
+    font_size_init: () =>
+        font_size = @parent.local_storage("font_size") ? @opts.default_font_size
+        @dom.font_size_set(font_size)
+        @element.data("font_size", font_size)
+
+    font_size_change: (delta) =>
+        font_size = @element.data("font_size")
+        # console.log("font_size_change #{delta} applied to #{font_size}")
+        if font_size?
+            font_size += delta
+            @dom.font_size_set(font_size)
+            @parent.local_storage("font_size", font_size)
+            @element.data("font_size", font_size)
+
 
     ###
     Used for testing.  Call this to have a "robot" count from 1 up to n

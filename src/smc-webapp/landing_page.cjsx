@@ -11,10 +11,6 @@ misc = require('smc-util/misc')
 images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/05-sky_is_the_limit.png' ]
 # 'static/sagepreview/04-files.png'
 
-$.get window.smc_base_url + "/auth/strategies", (obj, status) ->
-    if status == 'success'
-        redux.getActions('account').setState(strategies : obj)
-
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
