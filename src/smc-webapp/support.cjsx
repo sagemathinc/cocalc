@@ -290,8 +290,8 @@ exports.SupportPage = rclass
     render : ->
         <div>
             <h2>Support tickets</h2>
-            <div>
-                Check the status of your support tickets.<br/>
+            <div style={color:'#666'}>
+                Check the status of your support tickets here.<br/>
                 To report an issue, navigate to the file in question
                 and click the <Icon name='medkit' /> button in the top right corner.
             </div>
@@ -359,8 +359,8 @@ SupportInfo = rclass
         <div>
             {what}
             <p>
-                After submitting a ticket, you{"'"}ll get a link to it.
-                Keep it save until you receive a confirmation email.
+                After submitting a ticket, you{"'"}ll get a link, which you may
+                want to save until you receive a confirmation email.
                 You can also check the status of your ticket under "Support"
                 in your account settings.
             </p>
@@ -519,7 +519,7 @@ Support = rclass
         if (not @props.state?) or @props.state == STATE.NEW
             show_form = true
 
-        <Modal show={@props.show} onHide={@close}>
+        <Modal show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>Support Ticket</Modal.Title>
             </Modal.Header>
