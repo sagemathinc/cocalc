@@ -41,9 +41,9 @@ cmp_tickets = (t1, t2) ->
     key = 'updated_at'
     e1 = t1[key] # an iso date string is lexicographically sortable
     e2 = t2[key]
-    if e1 < e2
+    if e1 > e2
         return -1
-    else if e1 > e2
+    else if e1 < e2
         return 1
     return 0
 
@@ -79,10 +79,15 @@ class SupportActions extends Actions
         salvus_client.get_support_tickets (err, tickets) =>
             # console.log("tickets: #{misc.to_json(tickets)}")
             # sort by .updated_at
-            tickets = tickets.sort(cmp_tickets)
-            @setState
-                support_ticket_error : err
-                support_tickets      : tickets
+            if err?
+                @setState
+                    support_ticket_error : err
+                    support_tickets      : []
+            else
+                tickets = tickets.sort(cmp_tickets)
+                @setState
+                    support_ticket_error : err
+                    support_tickets      : tickets
 
     reset: =>
         @init_email_address()
@@ -214,7 +219,6 @@ class SupportActions extends Actions
             err    : err ? ''
 
 
-
 exports.SupportPage = rclass
     displayName : "SupportPage"
 
@@ -288,6 +292,12 @@ exports.SupportPage = rclass
         </Table>
 
     render : ->
+        if @props.support_ticket_error?.length > 0
+            content = "Error retriving tickets: \
+                      #{@props.support_ticket_error}"
+        else
+            content = @render_table()
+
         <div>
             <h2>Support tickets</h2>
             <div style={color:'#666'}>
@@ -297,7 +307,7 @@ exports.SupportPage = rclass
             </div>
             <hr/>
             <div style={minHeight:"65vh"}>
-                {@render_table()}
+                {content}
             </div>
             <Footer/>
         </div>
