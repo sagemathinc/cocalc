@@ -194,9 +194,13 @@ in ansible:
     ansible compute -m apt -a 'name=libzmq1 state=absent' -become
     ansible compute -m file -a 'src=libzmq.so.3 path=/usr/lib/x86_64-linux-gnu/libzmq.so state=link' -become
 
+prevent apt from installing it again
+
+    ansible compute -m shell -a "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences" -become
+
 test:
 
-    >>> ansible compute -m shell -a 'ls -l /usr/lib/x86_64-linux-gnu/libzmq*' -become
+    ansible compute -m shell -a 'ls -l /usr/lib/x86_64-linux-gnu/libzmq*' -become
 
 should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux-gnu/libzmq.so -> libzmq.so.3`
 

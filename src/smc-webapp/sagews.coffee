@@ -205,9 +205,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @action(execute:false, delete_output:true)
             return false
 
-        buttons.find("a[href=#tab]").click () =>
-            @editor.press_tab_key(@editor.codemirror_with_last_focus)
-            return false
+        if IS_MOBILE
+            buttons.find("a[href=#tab]").click () =>
+                @editor.press_tab_key(@editor.codemirror_with_last_focus)
+                return false
+        else
+            @element.find("a[href=#tab]").hide()
+            @element.find("a[href=#undo]").hide()
+            @element.find("a[href=#redo]").hide()
 
         buttons.find("a[href=#new-html]").click () =>
             cm = @focused_codemirror()
