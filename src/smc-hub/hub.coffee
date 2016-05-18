@@ -3221,6 +3221,26 @@ stripe_sales_tax = (opts) ->
             return
         opts.cb(undefined, misc_node.sales_tax(zip))
 
+
+StatsRecorder = require('./stats-recorder')
+statsRecorder = null
+
+init_stats = (cb) ->
+    if not program.statsfile?
+        cb()
+    # make it absolute, with defaults it will sit next to the hub.log file
+    if program.statsfile[0] != '/'
+        STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
+    # make sure the directory exists
+    dir = require('path').dirname(STATS_FN)
+    if not fs.existsSync(dir)
+        fs.mkdirSync(dir)
+    dbg = (msg) -> winston.info("StatsRecorder: #{msg}")
+    statsRecorder = new StatsRecorder.StatsRecorder(STATS_FN, dbg, cb)
+
+exports.record_stats = record_stats = (key, value, type) ->
+    statsRecorder?.record(key, value, type)
+
 #############################################
 # Start everything running
 #############################################
@@ -3249,12 +3269,17 @@ exports.start_server = start_server = (cb) ->
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
     blocked (ms) ->
+        # filter values > 100 ms
+        if ms > 100
+            record_stats('blocked', ms, type=StatsRecorder.TYPE.DISC)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
     init_smc_version()
 
     async.series([
+        (cb) ->
+            init_stats(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -3348,26 +3373,26 @@ exports.start_server = start_server = (cb) ->
 # Command line admin stuff -- should maybe be moved to another program?
 ###
 add_user_to_project = (project_id, email_address, cb) ->
-     account_id = undefined
-     async.series([
-         # ensure database object is initialized
-         (cb) ->
-             connect_to_database(cb:cb)
-         # find account id corresponding to email address
-         (cb) ->
-             database.account_exists
-                 email_address : email_address
-                 cb            : (err, _account_id) ->
-                     account_id = _account_id
-                     cb(err)
-         # add user to that project as a collaborator
-         (cb) ->
-             database.add_user_to_project
-                 project_id : project_id
-                 account_id : account_id
-                 group      : 'collaborator'
-                 cb         : cb
-     ], cb)
+    account_id = undefined
+    async.series([
+        # ensure database object is initialized
+        (cb) ->
+            connect_to_database(cb:cb)
+        # find account id corresponding to email address
+        (cb) ->
+            database.account_exists
+                email_address : email_address
+                cb            : (err, _account_id) ->
+                    account_id = _account_id
+                    cb(err)
+        # add user to that project as a collaborator
+        (cb) ->
+            database.add_user_to_project
+                project_id : project_id
+                account_id : account_id
+                group      : 'collaborator'
+                cb         : cb
+    ], cb)
 
 
 #############################################
@@ -3381,6 +3406,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
+    .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: "data/logs/stats.json")', String, "data/logs/stats.json")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')

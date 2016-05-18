@@ -49,7 +49,8 @@ def hub_args(server_id):
             os.makedirs(pidpath)
         logfile = "%s/hub%s.log"%(logpath, server_id)
         pidfile = "%s/hub%s.pid"%(pidpath, server_id)
-        s += " --logfile {logfile} --pidfile {pidfile} ".format(logfile=logfile, pidfile=pidfile)
+        statsfile = "%s/stats%s.json"%(logpath, server_id)
+        s += " --logfile {logfile} --pidfile {pidfile} --statsfile {statsfile}".format(logfile=logfile, pidfile=pidfile)
 
     if server_id:
         s += ' --id ' + server_id

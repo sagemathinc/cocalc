@@ -41,6 +41,8 @@ required = defaults.required
 
 {UserQueryStats} = require './user-query-stats'
 
+StatsRecorder    = require('./stats-recorder')
+
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
 
@@ -357,7 +359,15 @@ class RethinkDB
 
                                 # include some extra info about the query -- if it was a write this can be useful for debugging
                                 modified = (x?.inserted ? 0) + (x?.replaced ? 0) + (x?.deleted ? 0)
-                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+                                qtavg = Math.round(@_stats.sum/@_stats.n)
+                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
+
+                                {record_stats} = require('./hub')
+                                record_stats('concurrent', that._concurrent_queries, StatsRecorder.TYPE.CONT)
+                                record_stats('modified',   modified, StatsRecorder.TYPE.SUM)
+                                record_stats('query_time_max', tm, StatsRecorder.TYPE.MAX)
+                                record_stats('query_time_avg', qtavg, StatsRecorder.TYPE.CONT)
+
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
                             if err
@@ -4105,7 +4115,11 @@ class RethinkDB
                                 table         : opts.table
                                 changefeed_id : changefeed_id
 
-                            winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
+                            nb_changefeeds = misc.len(@_change_feeds)
+                            winston.debug("FEED -- there are now num_feeds=#{nb_changefeeds} changefeeds")
+                            {record_stats} = require('./hub')
+                            T = StatsRecorder.TYPE.CONT
+                            record_stats('changefeeds', nb_changefeeds, T)
                             changefeed_state = 'initializing'
 
                             if heartbeat
