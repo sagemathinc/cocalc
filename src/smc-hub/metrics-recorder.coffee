@@ -19,13 +19,14 @@
 #
 ###############################################################################
 
-# This is a small helper class to record real-time statistics and metrics
+# This is a small helper class to record real-time metrics about the hub.
 # It is designed for the hub, such that a local process can easily check its health.
-# it uses a status file to store the metrics -- TODO: also push this to the DB
+# optionally, it stores the metrics to a status file -- TODO: also push this to the DB
 # usage: after init, publish key/value pairs which are then going to be reported
 
 fs         = require('fs')
 underscore = require('underscore')
+misc       = require('smc-util/misc')
 
 
 # some constants
@@ -52,7 +53,7 @@ exports.TYPE = TYPE =
     SUM  : 'contsum'    # like CONT, reduces buffer to sum of values divided by FREQ_s
 
 
-class exports.StatsRecorder
+class exports.MetricsRecorder
     constructor: (@filename, @dbg, cb) ->
         ###
         * @filename: if set, periodically saved there. otherwise use @get.
@@ -72,6 +73,9 @@ class exports.StatsRecorder
 
         # initialization finished
         cb?()
+
+    get: =>
+        return misc.deep_copy(@_data)
 
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.

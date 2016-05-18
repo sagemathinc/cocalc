@@ -3222,10 +3222,10 @@ stripe_sales_tax = (opts) ->
         opts.cb(undefined, misc_node.sales_tax(zip))
 
 
-StatsRecorder = require('./stats-recorder')
-statsRecorder = null
+MetricsRecorder = require('./metrics-recorder')
+metricsRecorder = null
 
-init_stats = (cb) ->
+init_metrics = (cb) ->
     if not program.statsfile?
         cb()
     # make it absolute, with defaults it will sit next to the hub.log file
@@ -3235,11 +3235,11 @@ init_stats = (cb) ->
     dir = require('path').dirname(STATS_FN)
     if not fs.existsSync(dir)
         fs.mkdirSync(dir)
-    dbg = (msg) -> winston.info("StatsRecorder: #{msg}")
-    statsRecorder = new StatsRecorder.StatsRecorder(STATS_FN, dbg, cb)
+    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
+    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, cb)
 
-exports.record_stats = record_stats = (key, value, type) ->
-    statsRecorder?.record(key, value, type)
+exports.record_metric = record_metric = (key, value, type) ->
+    metricsRecorder?.record(key, value, type)
 
 #############################################
 # Start everything running
@@ -3271,7 +3271,7 @@ exports.start_server = start_server = (cb) ->
     blocked (ms) ->
         # filter values > 100 ms
         if ms > 100
-            record_stats('blocked', ms, type=StatsRecorder.TYPE.DISC)
+            record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
@@ -3279,7 +3279,7 @@ exports.start_server = start_server = (cb) ->
 
     async.series([
         (cb) ->
-            init_stats(cb)
+            init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -3310,6 +3310,7 @@ exports.start_server = start_server = (cb) ->
                 stripe         : stripe
                 compute_server : compute_server
                 database       : database
+                metricsRecorder: metricsRecorder
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)

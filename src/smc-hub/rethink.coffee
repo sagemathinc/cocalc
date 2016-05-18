@@ -41,7 +41,7 @@ required = defaults.required
 
 {UserQueryStats} = require './user-query-stats'
 
-StatsRecorder    = require('./stats-recorder')
+MetricsRecorder    = require('./metrics-recorder')
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
@@ -362,11 +362,11 @@ class RethinkDB
                                 qtavg = Math.round(@_stats.sum/@_stats.n)
                                 winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
 
-                                {record_stats} = require('./hub')
-                                record_stats('concurrent', that._concurrent_queries, StatsRecorder.TYPE.CONT)
-                                record_stats('modified',   modified, StatsRecorder.TYPE.SUM)
-                                record_stats('query_time_max', tm, StatsRecorder.TYPE.MAX)
-                                record_stats('query_time_avg', qtavg, StatsRecorder.TYPE.CONT)
+                                {record_metric} = require('./hub')
+                                record_metric('concurrent', that._concurrent_queries, MetricsRecorder.TYPE.CONT)
+                                record_metric('modified',   modified, MetricsRecorder.TYPE.SUM)
+                                record_metric('query_time_max', tm, MetricsRecorder.TYPE.MAX)
+                                record_metric('query_time_avg', qtavg, MetricsRecorder.TYPE.CONT)
 
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
@@ -4117,9 +4117,8 @@ class RethinkDB
 
                             nb_changefeeds = misc.len(@_change_feeds)
                             winston.debug("FEED -- there are now num_feeds=#{nb_changefeeds} changefeeds")
-                            {record_stats} = require('./hub')
-                            T = StatsRecorder.TYPE.CONT
-                            record_stats('changefeeds', nb_changefeeds, T)
+                            {record_metric} = require('./hub')
+                            record_metric('changefeeds', nb_changefeeds, MetricRecorder.TYPE.CONT)
                             changefeed_state = 'initializing'
 
                             if heartbeat
