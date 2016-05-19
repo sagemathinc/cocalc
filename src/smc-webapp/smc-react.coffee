@@ -58,6 +58,7 @@ class Actions
 
 class Store extends EventEmitter
     constructor: (@name, @redux) ->
+        @setMaxListeners(150)
 
     _handle_store_change: (state) =>
         if state != @_last_state
