@@ -122,7 +122,7 @@ class exports.Support
             tickets = []
             for r in raw
                 t = _.pick(r, 'id', 'subject', 'description', 'created_at', 'updated_at', 'status')
-                t.url = "https://sagemathcloud.zendesk.com/requests/#{t.id}"
+                t.url = misc.ticket_id_to_ticket_url(t.id)
                 tickets.push(t)
             cb(null, tickets)
 
@@ -222,7 +222,7 @@ class exports.Support
                 comment:
                     body : body
                 tags   : tags
-                type   : problem
+                type   : "problem"
                 custom_fields: custom_fields
 
         # data assembly finished → creating or updating existing zendesk user, then sending ticket creation
