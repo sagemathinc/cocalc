@@ -228,17 +228,10 @@ exports.SupportPage = rclass
             support_ticket_error : rtypes.string
 
     render_header : ->
-        if @props.support_tickets.length > 0
-            <tr style={fontWeight:"bold"}>
-                <th>Ticket</th>
-                <th>Status</th>
-            </tr>
-        else if @props.support_tickets.length > 0
-            <tr>
-                <td>
-                    You do not have any support tickets.
-                </td>
-            </tr>
+        <tr style={fontWeight:"bold"}>
+            <th>Ticket</th>
+            <th>Status</th>
+        </tr>
 
     open : (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
@@ -248,9 +241,11 @@ exports.SupportPage = rclass
     render_body : ->
         for i, ticket of @props.support_tickets
             style = switch ticket.status
-                when 'open' or 'new'
+                when 'open', 'new'
                     'danger'
                 when 'closed'
+                    'info'
+                when 'solved'
                     'success'
                 else
                     'info'
@@ -258,8 +253,8 @@ exports.SupportPage = rclass
             <tr key={i} className="#{style}">
                 <td><h4>{ticket.subject}</h4>
                     <div style={fontSize:"85%", color:'#555', marginBottom: '1em'}>
-                        created: {date2str(ticket.created_at)}
-                        {' '}&mdash;{' '}
+                        created: {date2str(ticket.created_at)},
+                        {' '}
                         last update: {date2str(ticket.updated_at)}
                     </div>
                     <div style={maxHeight:"10em", "overflowY":"auto"}>
@@ -277,19 +272,22 @@ exports.SupportPage = rclass
             </tr>
 
     render_table : ->
+        divStyle = {textAlign:"center", marginTop: "4em"}
+
         if not @props.support_tickets?
-            return <div style={textAlign:"center"}>
+            return <div style={divStyle}>
                         <Loading />
                    </div>
 
-        <Table responsive>
-            <thead>
-                {@render_header()}
-            </thead>
-            <tbody>
-                {@render_body()}
-            </tbody>
-        </Table>
+        if @props.support_tickets.length > 0
+            <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
+                {# <thead>{@render_header()}</thead>}
+                <tbody>{@render_body()}</tbody>
+            </Table>
+        else
+            <div style={divStyle}>
+                No support tickets found.
+            </div>
 
     render : ->
         if @props.support_ticket_error?.length > 0
@@ -305,7 +303,6 @@ exports.SupportPage = rclass
                 To report an issue, navigate to the file in question
                 and click the <Icon name='medkit' /> button in the top right corner.
             </div>
-            <hr/>
             <div style={minHeight:"65vh"}>
                 {content}
             </div>
@@ -325,6 +322,7 @@ SupportInfo = rclass
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
+            <br/>
             Please email <HelpEmailLink /> directly!
             </p>
             <p>Error message:</p>

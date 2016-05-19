@@ -220,9 +220,9 @@ class exports.Support
             ticket:
                 subject: opts.subject
                 comment:
-                    body: body
-                tags : tags
-                type: "problem"
+                    body : body
+                tags   : tags
+                type   : problem
                 custom_fields: custom_fields
 
         # data assembly finished → creating or updating existing zendesk user, then sending ticket creation
