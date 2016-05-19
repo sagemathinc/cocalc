@@ -11,12 +11,13 @@ HOST="localhost" # testing timeout: "admin1"
 AUTH = open(join(SMC_ROOT, 'data/secrets/rethinkdb')).read().strip()
 now = datetime.utcnow().isoformat()
 
+PATH = "$HOME/bin:$HOME/smc/src:$HOME/smc/src/smc-hub/scripts:$HOME/smc/src/scripts/storage:$HOME/smc/src/scripts/gce:$HOME/smc/src/scripts/hub:$HOME/smc/src/node_modules/.bin/:$HOME/smc/src/data/local/bin:$HOME/smc/src/data/local/sbin:$HOME/smc/src/scripts:$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 def restart_db(err = None):
     print("test failed: restarting")
     os.system('echo "restart at {} - {}" >> ~/.check_rethinkdb_restart.log'\
               .format(now, str(err)))
-    # maybe only restart_db
-    os.system("restart_db; sleep 1; restart_hub_now")
+    os.system("export PATH=\"%s\"; . $HOME/.conf; restart_db; restart_hub_now" % PATH)
     sys.exit()
 
 try:
