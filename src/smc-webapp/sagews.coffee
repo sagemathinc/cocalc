@@ -118,7 +118,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
 
     close: =>
-        @execution_queue.close()
+        @execution_queue?.close()
         super()
 
     _apply_changeObj: (changeObj) =>
@@ -510,7 +510,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             opts.cb?(); return
         @close_on_action()
         t = misc.walltime()
-        @execution_queue.clear()
+        @execution_queue?.clear()
         @clear_action_flags(false)
         async.series([
             (cb) =>
@@ -540,7 +540,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @close_on_action()
         @clear_action_flags(true)
         # Empty the execution queue.
-        @execution_queue.clear()
+        @execution_queue?.clear()
         @process_sage_updates(caller:"kill")
         if opts.restart
             @restart(cb:opts.cb)
