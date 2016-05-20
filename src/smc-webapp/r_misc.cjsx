@@ -327,6 +327,7 @@ exports.NumberInput = NumberInput = rclass
         min       : rtypes.number.isRequired
         max       : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
+        unit      : rtypes.string
         disabled  : rtypes.bool
 
     componentWillReceiveProps : (next_props) ->
@@ -354,6 +355,7 @@ exports.NumberInput = NumberInput = rclass
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render : ->
+        unit = if @props.unit? then "#{@props.unit}" else ''
         <Row>
             <Col xs=6>
                 <form onSubmit={@saveChange}>
@@ -365,7 +367,10 @@ exports.NumberInput = NumberInput = rclass
                         disabled = {@props.disabled} />
                 </form>
             </Col>
-            <Col xs=6>
+            <Col xs=2 className="lighten">
+                {unit}
+            </Col>
+            <Col xs=4>
                 {@render_save_button()}
             </Col>
         </Row>

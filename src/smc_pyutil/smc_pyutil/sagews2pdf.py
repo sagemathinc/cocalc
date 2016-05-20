@@ -21,8 +21,6 @@
 #
 ###############################################################################
 
-
-
 """
 Copyright (c) 2014 -- 2015   The SageMathCloud Authors.
 
@@ -269,6 +267,10 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '\n\n' + r'\noindent\makebox[\linewidth]{\rule{\textwidth}{0.4pt}}' + '\n\n'
         elif tag == 'li':
             self.result += '\\item{'
+        elif tag == 'strong':
+            self.result += '\\textbf{'
+        elif tag == 'em':
+            self.result += '\\textit{'
         elif tag == 'a':
             attrs = dict(attrs)
             if 'href' in attrs:

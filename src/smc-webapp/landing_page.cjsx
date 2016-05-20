@@ -18,10 +18,6 @@ images = [
 ]
 # 'static/sagepreview/04-files.png'
 
-$.get window.smc_base_url + "/auth/strategies", (obj, status) ->
-    if status == 'success'
-        redux.getActions('account').setState(strategies : obj)
-
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
