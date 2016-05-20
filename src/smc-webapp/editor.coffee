@@ -1301,7 +1301,6 @@ class FileEditor extends EventEmitter
         if not @editor?
             return
         @default_font_size = redux.getStore('account').get('font_size')
-        #console.log("FileEditor@default_font_size: #{@default_font_size}")
 
     init_autosave: () =>
         if not @editor?  # object already freed
