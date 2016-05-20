@@ -103,7 +103,7 @@ class exports.Support
         if not @_zd?
             err = "Support ticket backend is not available."
             dbg(err)
-            @cb?(err)
+            cb?(err)
             return
 
         query_zendesk = (account_id, cb) =>
@@ -138,7 +138,7 @@ class exports.Support
 
     # mapping of incoming data from SMC to the API of Zendesk
     # https://developer.zendesk.com/rest_api/docs/core/tickets#create-ticket
-    create_ticket: (opts, @cb) ->
+    create_ticket: (opts, cb) ->
         opts = defaults opts,
             email_address : required  # if there is no email_address in the account, there can't be a ticket!
             username      : undefined
@@ -155,7 +155,7 @@ class exports.Support
         if not @_zd?
             err = "Support ticket backend is not available."
             dbg(err)
-            @cb?(err)
+            cb?(err)
             return
 
         # data assembly, we need a special formatted user and ticket object
@@ -266,10 +266,10 @@ class exports.Support
         ], (err, ticket_id) =>
             # dbg("done! ticket_id: #{ticket_id}, err: #{err}, and callback: #{@cb?}")
             if err
-                @cb?(err)
+                cb?(err)
             else
                 url = misc.ticket_id_to_ticket_url(ticket_id)
-                @cb?(null, url)
+                cb?(null, url)
         )
 
 

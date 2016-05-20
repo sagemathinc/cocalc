@@ -291,8 +291,11 @@ exports.SupportPage = rclass
 
     render : ->
         if @props.support_ticket_error?.length > 0
-            content = "Error retriving tickets: \
-                      #{@props.support_ticket_error}"
+            content = <Alert bsStyle='danger'>
+                          Error retriving tickets: {@props.support_ticket_error}
+                          <br/>
+                          Please contact <HelpEmailLink /> directly!
+                      </Alert>
         else
             content = @render_table()
 
