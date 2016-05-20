@@ -10,3 +10,10 @@ The following little shell scripts all assume they are run from this directory, 
 - `./prod-kube-up.sh`: starts up the production k8s cluster kubeprod
 - `./select-context.sh [kubetest|kubeprod]`: select which cluster kubectl commands apply to.
 - `./kube-down.sh [kubetest|kubeprod]`: completely deletes everything related to this cluster.
+
+
+## Changing the size of a managed instance group manually
+
+Here is how to use the gcloud command line to change the size of a managed instance group manually.  Of course, we'll ultimately use autoscaling.
+
+    gcloud compute instance-groups managed resize kubetest-minion-group --size 3
