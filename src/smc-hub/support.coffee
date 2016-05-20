@@ -237,9 +237,10 @@ class exports.Support
                     @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
                         if err
                             dbg("create_or_update user error: #{misc.to_json(err)}")
-                            if err.result?.type == "Buffer"
-                                err_msg = err.result.data.map((c) -> String.fromCharCode(c)).join('')
-                                dbg("create_or_update zendesk message: #{err_msg}")
+                            err = "#{misc.to_json(misc.from_json(err.result))}"
+                            #if err.result?.type == "Buffer"
+                            #    err = err.result.data.map((c) -> String.fromCharCode(c)).join('')
+                            #    dbg("create_or_update zendesk message: #{err}")
                             cb(err); return
                         # result = { "id": int, "url": "https://…json", "name": …, "email": "…", "created_at": "…", "updated_at": "…", … }
                         # dbg(JSON.stringify(result, null, 2, true))
