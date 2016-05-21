@@ -11,6 +11,7 @@ codemirror.min.js
 *.log
 *.sobj
 .*.sage-backup
+.*.sage-git
 .*.sage-history
 .*.smc-backup
 data/
