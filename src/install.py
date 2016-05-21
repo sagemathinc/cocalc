@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
-import argparse, os, psutil, sys, time
+import argparse, os, sys, time
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
 def nice():
-    os.nice(10)
-    psutil.Process(os.getpid()).ionice(ioclass=psutil.IOPRIO_CLASS_IDLE)
+    try:
+        import psutil  # not available by default (e.g., when building with docker)
+        os.nice(10)
+        psutil.Process(os.getpid()).ionice(ioclass=psutil.IOPRIO_CLASS_IDLE)
+    except:
+        print "WARNING: psutil not available so not re-nicing build of webapp"
 
 def cmd(s):
     t0 = time.time()
