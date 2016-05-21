@@ -93,6 +93,7 @@ TerminalEditor = (name) -> rclass
             filename   : rtypes.string
 
     propTypes :
+        editor     : rtypes.object
         project_id : rtypes.string
         actions    : rtypes.object
 
@@ -100,14 +101,31 @@ TerminalEditor = (name) -> rclass
         # Find the DOM node
         node = $(ReactDOM.findDOMNode(@))
 
+        console.log(@props.editor)
+
         @_terminal = new Console
             element   : node
             title     : "Terminal"
             filename  : @props.filename
             resizable : false
+            editor    : {editor:@props.editor} #Shouldn't be necessary
 
     componentDidMount : ->
         @_init_terminal()
+    #    salvus_client.read_text_file_from_project
+    #        project_id : @props.editor.project_id
+    #        path       : @filename
+    #        cb         : (err, result) =>
+    #            if err
+    #                alert_message(type:"error", message: "Error connecting to console server -- #{err}")
+    #            else
+    #                # New session or connect to session
+    #                if result.content? and result.content.length < 36
+    #                    # empty/corrupted -- messed up by bug in early version of SMC...
+    #                    delete result.content
+    #                @opts = defaults opts,
+    #                    session_uuid : result.content
+    #                @connect_to_server()
 
     render : ->
         <div>
@@ -115,21 +133,22 @@ TerminalEditor = (name) -> rclass
 
 # boilerplate fitting this into SMC below
 render = (opts) ->
-    {redux, project_id, path} = opts
+    {redux, project_id, path, editor} = opts
     name = redux_name(project_id, path)
     C = TerminalEditor(name)
     <Redux redux={redux}>
-        <C redux={redux} name={name} project_id={project_id} path={path}/>
+        <C redux={redux} name={name} project_id={project_id} path={path} editor={editor}/>
     </Redux>
 
 exports.render = (opts) ->
     console.log("editor_terminal: render")
-    {project_id, file_path, dom_node, redux} = opts
+    {project_id, file_path, dom_node, redux, editor} = opts
     init_redux(redux, project_id, file_path)
     pack =
         redux      : redux
         project_id : project_id
         file_path  : file_path
+        editor     : editor
     ReactDOM.render(render(pack), dom_node)
 
 exports.hide = (opts) ->
@@ -138,12 +157,13 @@ exports.hide = (opts) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 
 exports.show = (opts) ->
-    {project_id, file_path, dom_node, redux} = opts
+    {project_id, file_path, dom_node, redux, editor} = opts
     console.log("editor_terminal: show")
     pack =
         redux      : redux
         project_id : project_id
         file_path  : file_path
+        editor     : editor
     ReactDOM.render(render(pack), dom_node)
 
 exports.free = (opts) ->

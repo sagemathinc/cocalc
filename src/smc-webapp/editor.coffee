@@ -4519,6 +4519,7 @@ class ReactTerminal extends FileEditorWrapper
             filename   : @filename
             dom_node   : @element[0]
             redux      : require('./smc-react').redux
+            editor     : @editor
         @wrapped =
             save    : undefined
             destroy : =>
