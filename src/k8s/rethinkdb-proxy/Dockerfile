@@ -13,17 +13,18 @@ RUN \
   source /etc/lsb-release && \
   echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" > /etc/apt/sources.list.d/rethinkdb.list && \
   wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && \
-  apt-get update && apt-get install -y rethinkdb && \
+  apt-get update && apt-get install -y rethinkdb python3 && \
   rm -rf /var/lib/apt/lists/* && \
   mkdir /home/rethinkdb; chown rethinkdb:rethinkdb /home/rethinkdb
 
 # Run proxy server as user rethinkdb, not as user root
 USER rethinkdb
 
-# Run the proxy server
-# NOTE: The database we join *must* have a password, or "--initial-password auto" will break.
+WORKDIR /home/rethinkdb
 
-CMD /usr/bin/rethinkdb proxy --join $JOIN --no-http-admin --initial-password auto --bind all --no-update-check --log-file /home/rethinkdb/rethinkdb.log
+COPY run.py /home/rethinkdb/run.py
+
+CMD /home/rethinkdb/run.py
 
 # Expose only the client port.
 EXPOSE 28015
