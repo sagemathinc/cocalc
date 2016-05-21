@@ -4,6 +4,13 @@ import argparse, os, sys, time
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
+# Only use sudo if not running as root already (this avoids having to install sudo)
+import getpass
+if getpass.getuser() != 'root':
+    SUDO = "sudo "
+else:
+    SUDO = ""
+
 def nice():
     try:
         import psutil  # not available by default (e.g., when building with docker)
@@ -25,19 +32,19 @@ def pull():
     cmd("git pull")
 
 def install_pyutil():
-    cmd("sudo /usr/bin/pip install --upgrade ./smc_pyutil")
+    cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_pyutil")
 
 def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
-    cmd("sudo /usr/bin/pip install --upgrade ./smc_sagews")   # as a fallback
+    cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_sagews")   # as a fallback
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
     for m in './smc-util ./smc-util-node ./smc-project coffee-script forever'.split():
-        cmd("sudo npm --unsafe-perm=true install --upgrade %s -g"%m)
+        cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
-    cmd("sudo /usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
+    cmd(SUDO+"/usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm install"%path)
 
