@@ -1,4 +1,5 @@
-# CRITICAL: I don't know any other way to ensure the permissions are right on the templates than this
+# CRITICAL: I don't know any other way to ensure the permissions are
+# right on the templates than this
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
@@ -17,11 +18,12 @@ from setuptools import setup
 # setting sys.executable changes the she-bang #!... at the top of these scripts
 # credits to http://stackoverflow.com/a/17329493
 import sys
+# MANUALLY disable when doing development!, where we do `pip install --user --upgrade smc_pyutil/`
 sys.executable = '/usr/bin/python -s'
 
 setup(
     name             = 'smc_pyutil',
-    version          = '1.0',
+    version          = '1.1',
     description      = 'SageMathCloud Python Utilities',
     long_description = readme(),
     url              = 'https://github.com/sagemathinc/smc',
