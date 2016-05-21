@@ -97,6 +97,7 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
+    jade   : 'text/x-jade'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'

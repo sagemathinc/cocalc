@@ -285,6 +285,7 @@ class Console extends EventEmitter
         @terminal.on 'title', (title) => @set_title(title)
 
         @reset()
+
         @resize_terminal () =>
 
             # The remote server sends data back to us to display:
@@ -296,12 +297,12 @@ class Console extends EventEmitter
                     @render(data)
 
             @session.on 'reconnecting', () =>
-                #console.log('reconnecting')
+                #console.log('terminal: reconnecting')
                 @element.find(".salvus-console-terminal").css('opacity':'.5')
                 @element.find("a[href=#refresh]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
             @session.on 'reconnect', () =>
-                #console.log("reconnect")
+                #console.log("terminal: reconnect")
                 @element.find(".salvus-console-terminal").css('opacity':'1')
                 @element.find("a[href=#refresh]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
                 @_ignore_mesg = true
@@ -650,9 +651,7 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#refresh]").click () =>
-            if @session?
-                @session.reconnect()
-            @opts.reconnect?()
+            @session?.reconnect()
             return false
 
         @element.find("a[href=#paste]").click () =>
