@@ -130,6 +130,8 @@ class Console extends EventEmitter
 
         @_init_default_settings()
 
+        @_project_actions = smc.redux.getProjectActions(@opts.editor?.editor.project_id)
+
         if @opts.renderer == 'auto'
             if IS_MOBILE
                 # NOT USED !! -- I stopped developing the codemirror-based version long ago; it just doesn't work.
@@ -250,16 +252,9 @@ class Console extends EventEmitter
                             if i == mesg.paths.length
                                 foreground = true
                             if v.file?
-                                @opts.editor?.editor.project_page.open_file(path:v.file, foreground:foreground)
+                                @_project_actions?.open_file(path:v.file, foreground:foreground)
                             if v.directory? and foreground
-                                @opts.editor?.editor.project_page.chdir(v.directory)
-                                @opts.editor?.editor.project_page.display_tab("project-file-listing")
-
-                    when 'open_file'  # not used, but may be running in old projects
-                        @opts.editor?.editor.project_page.open_file(path:mesg.name, foreground:true)
-                    when 'open_directory'   # not used, but may be running in old projects
-                        @opts.editor?.editor.project_page.chdir(mesg.name)
-                        @opts.editor?.editor.project_page.display_tab("project-file-listing")
+                                @_project_actions?.open_directory(v.directory)
             catch e
                 console.log("issue parsing message -- ", e)
 
@@ -667,15 +662,15 @@ class Console extends EventEmitter
             content = initfile_content(@opts.filename)
             {salvus_client} = require('./salvus_client')
             salvus_client.exec
-                    project_id  : @opts.editor?.editor.project_id
-                    command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
-                    bash        : true
-                    err_on_exit : false
-                    cb          : (err, output) =>
-                        if err
-                            alert_message(type:'error', message:"problem creating initfile: #{err}")
-                        else
-                            @opts.editor?.editor.project_page.open_file(path:initfn)
+                project_id  : @opts.editor?.editor.project_id
+                command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
+                bash        : true
+                err_on_exit : false
+                cb          : (err, output) =>
+                    if err
+                        alert_message(type:'error', message:"problem creating initfile: #{err}")
+                    else
+                        @_project_actions?.open_file(path:initfn, foreground:true)
 
     _init_input_line: () =>
         #if not IS_MOBILE

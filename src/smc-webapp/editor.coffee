@@ -949,9 +949,13 @@ class exports.Editor
 
         # These are used *ONLY* for development purposes; it allows us to easily
         # circumvent everything else for testing.
-        if ext == 'dev-codemirror'
-            console.log("dev-codemirror")
-            return new ReactCodemirror(@, filename, content, extra_opts)
+        switch ext
+            when 'dev-codemirror'
+                console.log("dev-codemirror")
+                return new ReactCodemirror(@, filename, content, extra_opts)
+            when 'dev-terminal'
+                console.log("dev-terminal")
+                return new ReactTerminal(@, filename, content, extra_opts)
 
         # Some of the editors below might get the content later and will
         # call @file_options again then.
@@ -4498,6 +4502,39 @@ class ReactCodemirror extends FileEditorWrapper
                 editor_codemirror.show(args...)
         editor_codemirror.render(args...)
 
+class ReactTerminal extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_terminal = require('./editor_terminal')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+
+        args =
+            project_id : @editor.project_id
+            filename   : @filename
+            dom_node   : @element[0]
+            redux      : require('./smc-react').redux
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_terminal.free(args)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_terminal.hide(args)
+            show    : =>
+                editor_terminal.show(args)
+        editor_terminal.render(args)
 
 ###
 # *TEMPLATE* for a react-based editor
