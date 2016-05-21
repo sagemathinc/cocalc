@@ -1,4 +1,10 @@
-# CRITICAL: I don't know any other way to ensure the permissions are right on the templates than this
+###
+# To do development on this, install it locally:
+#   pip install --user --upgrade smc_pyutil/
+###
+
+# CRITICAL: I don't know any other way to ensure the permissions are
+# right on the templates than this
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
@@ -10,18 +16,26 @@ def readme():
 
 from setuptools import setup
 
-# CRITICAL!
-# -s tells python to not load the user's "site" packages in ~/.local
-# otherwise, setuptool's startup scripts do not work, if there is a conflicting
-# setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
-# setting sys.executable changes the she-bang #!... at the top of these scripts
-# credits to http://stackoverflow.com/a/17329493
-import sys
-sys.executable = '/usr/bin/python -s'
+# This checks, if setup.py is run with 'install --user'
+# in that case we assume it is installed for development and do NOT change the python executable.
+# Therefore we want to load the local library via the site.py mechanism.
+# (this mimics http://svn.python.org/projects/python/trunk/Lib/distutils/dist.py, called in setup behind the scenes)
+from distutils.core import Distribution
+d = Distribution()
+d.parse_command_line()
+if 'user' not in d.command_options.get("install", {}).keys():
+    # CRITICAL!
+    # -s tells python to not load the user's "site" packages in ~/.local
+    # otherwise, setuptool's startup scripts do not work, if there is a conflicting
+    # setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
+    # setting sys.executable changes the she-bang #!... at the top of these scripts
+    # credits to http://stackoverflow.com/a/17329493
+    import sys
+    sys.executable = '/usr/bin/python -s'
 
 setup(
     name             = 'smc_pyutil',
-    version          = '1.0',
+    version          = '1.1',
     description      = 'SageMathCloud Python Utilities',
     long_description = readme(),
     url              = 'https://github.com/sagemathinc/smc',

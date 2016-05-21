@@ -97,6 +97,7 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
+    jade   : 'text/x-jade'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -260,6 +261,12 @@ file_associations['sage-git'] =
     opts   : {}
     name   : 'git'
 
+file_associations['sage-template'] =
+    editor : 'template'
+    icon   : 'fa-clone'
+    opts   : {}
+    name   : 'template'
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -317,7 +324,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
     else
         return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git', 'template']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -991,6 +998,8 @@ class exports.Editor
                 editor = new GitEditor(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
+            when 'template'
+                editor = new TemplateEditor(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -4490,3 +4499,34 @@ class ReactCodemirror extends FileEditorWrapper
         editor_codemirror.render(args...)
 
 
+###
+# *TEMPLATE* for a react-based editor
+###
+class TemplateEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        the_editor = require('./editor_template')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                the_editor.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                the_editor.hide(args...)
+            show    : =>
+                the_editor.show(args...)
+        the_editor.render(args...)
