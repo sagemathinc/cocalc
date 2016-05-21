@@ -221,7 +221,8 @@ class GCE(object):
     def create_all_boot_snapshots(self):
         v = []
 
-        #for i in [0,1,2,3,4,5,'-backup']:
+        v.append(('docker-build', ''))
+
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))
 
