@@ -152,6 +152,14 @@ for ext, mode of codemirror_associations
         opts   : {mode:mode}
         name   : name
 
+# noext = means file with no extension but the given name.
+file_associations['noext-Dockerfile'] =
+    editor : 'codemirror'
+    binary : false
+    icon   : 'fa-ship'
+    opts   : {mode:'dockerfile', indent_unit:2, tab_size:2}
+    name   : 'Dockerfile'
+
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'fa-file-excel-o'
@@ -304,7 +312,10 @@ initialize_new_file_type_list = () ->
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
-    if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+    if (file_associations[ext]? and file_associations[ext].icon?)
+        return file_associations[ext].icon
+    else
+        return 'fa-file-o'
 
 PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git']
 
@@ -819,7 +830,10 @@ class exports.Editor
         ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
-        x = file_associations[ext]
+        if ext == ''
+            x = file_associations["noext-#{misc.path_split(filename).tail}"]
+        else
+            x = file_associations[ext]
         if not x?
             x = file_associations['']
         return x
