@@ -246,6 +246,12 @@ file_associations['sage-chat'] =
     opts   : {}
     name   : 'chat'
 
+file_associations['sage-git'] =
+    editor : 'git'
+    icon   : 'fa-git-square'
+    opts   : {}
+    name   : 'git'
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -300,7 +306,7 @@ initialize_new_file_type_list()
 exports.file_icon_class = file_icon_class = (ext) ->
     if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -967,6 +973,8 @@ class exports.Editor
                 editor = new Course(@, filename, content, extra_opts)
             when 'chat'
                 editor = new Chat(@, filename, content, extra_opts)
+            when 'git'
+                editor = new GitEditor(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
             else
@@ -3735,12 +3743,44 @@ class Chat extends FileEditorWrapper
         editor_chat.render(args...)
 
 ###
+# Git repo
+###
+class GitEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_git = require('./editor_git')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_git.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_git.hide(args...)
+            show    : =>
+                editor_git.show(args...)
+        editor_git.render(args...)
+
+###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
 
 class Archive extends FileEditorWrapper
     init_wrapped: () =>
-        editor_archive = require('editor_archive')
+        editor_archive = require('./editor_archive')
         @element = $("<div>")
         @element.css
             'overflow'       : 'auto'
