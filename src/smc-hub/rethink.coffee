@@ -114,6 +114,7 @@ class RethinkDB
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             concurrent_error : 0  # if nonzero, and this many queries at once, any query fails after a slight delay.
+            concurrent_kill  : 3000 # if hit this, process will kill itself
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -127,6 +128,7 @@ class RethinkDB
         @_error_thresh     = opts.error
         @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
+        @_concurrent_kill  = opts.concurrent_kill
         @_concurrent_error = opts.concurrent_error
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
@@ -314,6 +316,9 @@ class RethinkDB
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
+                        if that._concurrent_queries > that._concurrent_kill
+                            winston.debug("rethink: *** concurrent_kill *** CONCURRENT KILL THRESHOLD EXCEEDED!")
+                            process.exit(1)
 
                         if that._concurrent_error and that._concurrent_queries > that._concurrent_error
                             winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
