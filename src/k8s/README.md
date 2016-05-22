@@ -19,6 +19,10 @@ then do
 
 to make whatever is serving from the container stay running but NOT work.
 
+### Watching logs
+
+ - check out https://github.com/johanhaleby/kubetail
+
 ## Troubleshooting misc
 
 ### dial tcp ...:10250: i/o timeout
