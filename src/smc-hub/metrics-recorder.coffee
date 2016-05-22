@@ -30,10 +30,11 @@ misc       = require('smc-util/misc')
 
 
 # some constants
-FREQ_s     = 5    # write stats every FREQ seconds
-DELAY_s    = 5    # with this DELAY seconds initial delay
-DISC_LEN   = 5    # length of queue for recording discrete values
-MAX_BUFFER = 1000 # size of buffered values, which is cleared in the @_update step
+FREQ_s     = 10   # write stats every FREQ seconds
+DELAY_s    = 5    # with an initial delay of DELAY seconds
+DISC_LEN   = 10   # length of queue for recording discrete values
+MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
+
 
 # exponential smoothing, based on linux's load 1-exp(-1) smoothing
 # with compensation for sampling time FREQ_s
@@ -46,7 +47,7 @@ DECAY = [d, Math.pow(d, 5), Math.pow(d, 15)]
 #       disc: discrete, like blocked, will be recorded with timestamp
 #             in a queue of length DISC_LEN
 exports.TYPE = TYPE =
-    LAST : 'last'       # only the most recent value is recorded
+    LAST : 'latest'     # only the most recent value is recorded
     DISC : 'discrete'   # timeseries of length DISC_LEN
     CONT : 'continuous' # continuous with exponential decay
     MAX  : 'contmax'    # like CONT, reduces buffer to max value
@@ -90,43 +91,56 @@ class exports.MetricsRecorder
                 arr[idx + 1] = sval
             return arr
 
-        for key, value of @_stats
+        for key, values of @_stats
+            # if no new value is available, we have to create one for smoothing
+            if not values?.length > 0
+                # fallback to last, unless discrete
+                if @_types[key] != TYPE.DISC
+                    [..., value] = @_data[key]
+                    # in case _data[key] is empty, abort
+                    if not value?
+                        continue
+                    # sum is special case, because of sum/FREQ_s below
+                    if @_types[key] == TYPE.SUM
+                        value *= FREQ_s
+                    # one-element array
+                    values = [value]
+                else
+                    values = []
+
+            # computing the updated value for the @_data entries
             switch @_types[key]
-                when TYPE.CONT, TYPE.MAX
-                    # exponential smoothing, either update with newest value
-                    # or use the latest one
-                    if not value?
-                        [..., value] = @_data[key]
-                        # in case DATA[key] is empty
-                        if not value?
-                            continue
-                    @_data[key] = smooth(value, @_data[key])
+                when TYPE.MAX
+                    @_data[key] = smooth(values[0], @_data[key])
+
+                when TYPE.CONT
+                    # compute the average value (TODO median?)
+                    sum = underscore.reduce(values, ((a, b) -> a+b), 0)
+                    avg = sum / values.length
+                    @_data[key] = smooth(avg, @_data[key])
+
                 when TYPE.SUM
-                    if not value?
-                        [..., value] = @_data[key]
-                        # in case DATA[key] is empty
-                        if not value?
-                            continue
-                    sum = underscore.reduce(value, ((a, b) -> a+b), 0)
+                    # compute the cumulative sum per second (e.g. database modifications)
+                    sum = underscore.reduce(values, ((a, b) -> a+b), 0)
                     sum /= FREQ_s # to get a per 1s value!
                     @_data[key] = smooth(sum, @_data[key])
+
                 when TYPE.DISC
-                    # this is [timestamp, discrete value]
-                    if not value?
-                        continue
+                    # this is a pair [timestamp, discrete value], appended to the data queue
                     queue = @_data[key] ? []
-                    @_data[key] = [queue..., value...][-DISC_LEN..]
+                    @_data[key] = [queue..., values...][-DISC_LEN..]
+
                 when TYPE.LAST
-                    # ... just store it
-                    if not value?
-                        continue
-                    @_data[key] = value
+                    if values?.length > 0
+                        # ... just store the most recent one
+                        @_data[key] = values[0]
+
             # we've consumed the value(s), reset them
-            @_stats[key] = null
+            @_stats[key] = []
 
     # the periodically called publication step
     _publish : (cb) =>
-        @record("now", new Date(), TYPE.LAST)
+        @record("timestamp", new Date(), TYPE.LAST)
         # also record system metrics like cpu, memory, ... ?
         @_update()
         # only if we have a @filename, save it there
@@ -135,27 +149,25 @@ class exports.MetricsRecorder
             fs.writeFile(@filename, json, cb?())
 
     record : (key, value, type = TYPE.CONT) =>
+        # store in @_stats a key → bounded array
         if (@_types[key] ? type) != type
             @dbg("WARNING: you are switching types from #{@_types[key]} to #{type} -- IGNORED")
             return
         @_types[key] = type
         switch type
             when TYPE.LAST
-                @_stats[key] = value
-            when TYPE.CONT
-                # before getting cleared by @_update, it reduces multiple recorded values to the maximum
-                # TODO make this more intelligent.
-                current = @_stats[key] ? Number.NEGATIVE_INFINITY
-                @_stats[key] = Math.max(value, current)
-            when TYPE.SUM
+                @_stats[key] = [value]
+            when TYPE.CONT, TYPE.SUM
                 arr = @_stats[key] ? []
-                @_stats[key] = [arr..., value][-MAX_BUFFER..]
+                @_stats[key] = [arr..., value]
             when TYPE.MAX
                 current = @_stats[key] ? Number.NEGATIVE_INFINITY
-                @_stats[key] = Math.max(value, current)
+                @_stats[key] = [Math.max(value, current)]
             when TYPE.DISC
                 ts = (new Date()).toISOString()
                 arr = @_stats[key] ? []
-                @_stats[key] = [arr..., [ts, value]][-MAX_BUFFER..]
+                @_stats[key] = [arr..., [ts, value]]
             else
                 @dbg?('hub/record_stats: unknown or undefined type #{type}')
+        # avoid overflows
+        @_stats[key] = @_stats[key][-MAX_BUFFER..]

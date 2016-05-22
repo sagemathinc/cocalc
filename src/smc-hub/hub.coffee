@@ -3261,15 +3261,16 @@ MetricsRecorder = require('./metrics-recorder')
 metricsRecorder = null
 
 init_metrics = (cb) ->
-    if not program.statsfile?
-        cb()
-    # make it absolute, with defaults it will sit next to the hub.log file
-    if program.statsfile[0] != '/'
-        STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
-    # make sure the directory exists
-    dir = require('path').dirname(STATS_FN)
-    if not fs.existsSync(dir)
-        fs.mkdirSync(dir)
+    if program.statsfile?
+        # make it absolute, with defaults it will sit next to the hub.log file
+        if program.statsfile[0] != '/'
+            STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
+        # make sure the directory exists
+        dir = require('path').dirname(STATS_FN)
+        if not fs.existsSync(dir)
+            fs.mkdirSync(dir)
+    else
+        STATS_FN = null
     dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
     metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, cb)
 
@@ -3456,7 +3457,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-    .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: "data/logs/stats.json")', String, "data/logs/stats.json")
+    .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')

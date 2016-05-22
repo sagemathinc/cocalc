@@ -363,10 +363,10 @@ class RethinkDB
                                 winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
 
                                 {record_metric} = require('./hub')
-                                record_metric('concurrent', that._concurrent_queries, MetricsRecorder.TYPE.CONT)
-                                record_metric('modified',   modified, MetricsRecorder.TYPE.SUM)
-                                record_metric('query_time_max', tm, MetricsRecorder.TYPE.MAX)
-                                record_metric('query_time_avg', qtavg, MetricsRecorder.TYPE.CONT)
+                                record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
+                                record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
+                                record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
+                                record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
 
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
@@ -4118,7 +4118,7 @@ class RethinkDB
                             nb_changefeeds = misc.len(@_change_feeds)
                             winston.debug("FEED -- there are now num_feeds=#{nb_changefeeds} changefeeds")
                             {record_metric} = require('./hub')
-                            record_metric('changefeeds', nb_changefeeds, MetricRecorder.TYPE.CONT)
+                            record_metric('changefeeds', nb_changefeeds, MetricsRecorder.TYPE.CONT)
                             changefeed_state = 'initializing'
 
                             if heartbeat
