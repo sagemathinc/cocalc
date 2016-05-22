@@ -4,7 +4,7 @@ FROM nginx
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-# So we can source (see http://stackoverflow.com/questions/20635472/using-the-run-instruction-in-a-dockerfile-with-source-does-not-work)
+# So we can source (http://goo.gl/oBPi5G)
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 # Configuration of NGINX
@@ -21,7 +21,7 @@ RUN \
   npm install coffee-script -g
 
 # Grab source code for SMC
-RUN git clone https://github.com/sagemathinc/smc.git
+RUN git clone --depth=1 https://github.com/sagemathinc/smc.git
 
 #CMD bash
 
