@@ -23,12 +23,12 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{salvus_client} = require('./salvus_client')
-{project_page}  = require('./project')
-misc = require('smc-util/misc')
+{salvus_client}      = require('./salvus_client')
+{project_page}       = require('./project')
+misc                 = require('smc-util/misc')
 {required, defaults} = misc
-{html_to_text} = require('./misc_page')
-{alert_message} = require('./alerts')
+{html_to_text}       = require('./misc_page')
+{alert_message}      = require('./alerts')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
@@ -36,7 +36,8 @@ misc = require('smc-util/misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
-{HelpEmailLink} = require('./customize')
+{HelpEmailLink}   = require('./customize')
+{ShowSupportLink} = require('./support')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -635,9 +636,10 @@ UsagePanel = rclass
                 all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
                 actions                      = {@props.actions} />
             <hr />
-            <span style={color:'#666'}>Email <HelpEmailLink /> if
-                you have any questions about upgrading a project.
-                Include the following in your email:
+            <span style={color:'#666'}>If you have any questions about upgrading a project,
+                create a <ShowSupportLink />,
+                or email <HelpEmailLink /> and
+                include the following URL:
                 <URLBox />
             </span>
         </ProjectSettingsPanel>
@@ -961,8 +963,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='host' label='Host'>
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
-            If your project is not working, email <HelpEmailLink/>, and include the following URL:
-            <URLBox />
+            If your project is not working, please create a <ShowSupportLink />.
             <hr />
             {@ssh_notice()}
         </ProjectSettingsPanel>

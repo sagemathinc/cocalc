@@ -97,6 +97,7 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
+    jade   : 'text/x-jade'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -151,6 +152,14 @@ for ext, mode of codemirror_associations
         icon   : 'fa-file-code-o'
         opts   : {mode:mode}
         name   : name
+
+# noext = means file with no extension but the given name.
+file_associations['noext-Dockerfile'] =
+    editor : 'codemirror'
+    binary : false
+    icon   : 'fa-ship'
+    opts   : {mode:'dockerfile', indent_unit:2, tab_size:2}
+    name   : 'Dockerfile'
 
 file_associations['tex'] =
     editor : 'latex'
@@ -246,6 +255,18 @@ file_associations['sage-chat'] =
     opts   : {}
     name   : 'chat'
 
+file_associations['sage-git'] =
+    editor : 'git'
+    icon   : 'fa-git-square'
+    opts   : {}
+    name   : 'git'
+
+file_associations['sage-template'] =
+    editor : 'template'
+    icon   : 'fa-clone'
+    opts   : {}
+    name   : 'template'
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -298,9 +319,12 @@ initialize_new_file_type_list = () ->
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
-    if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+    if (file_associations[ext]? and file_associations[ext].icon?)
+        return file_associations[ext].icon
+    else
+        return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git', 'template']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -813,7 +837,10 @@ class exports.Editor
         ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
-        x = file_associations[ext]
+        if ext == ''
+            x = file_associations["noext-#{misc.path_split(filename).tail}"]
+        else
+            x = file_associations[ext]
         if not x?
             x = file_associations['']
         return x
@@ -967,8 +994,12 @@ class exports.Editor
                 editor = new Course(@, filename, content, extra_opts)
             when 'chat'
                 editor = new Chat(@, filename, content, extra_opts)
+            when 'git'
+                editor = new GitEditor(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
+            when 'template'
+                editor = new TemplateEditor(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -1301,7 +1332,6 @@ class FileEditor extends EventEmitter
         if not @editor?
             return
         @default_font_size = redux.getStore('account').get('font_size')
-        #console.log("FileEditor@default_font_size: #{@default_font_size}")
 
     init_autosave: () =>
         if not @editor?  # object already freed
@@ -3736,12 +3766,44 @@ class Chat extends FileEditorWrapper
         editor_chat.render(args...)
 
 ###
+# Git repo
+###
+class GitEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_git = require('./editor_git')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_git.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_git.hide(args...)
+            show    : =>
+                editor_git.show(args...)
+        editor_git.render(args...)
+
+###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
 
 class Archive extends FileEditorWrapper
     init_wrapped: () =>
-        editor_archive = require('editor_archive')
+        editor_archive = require('./editor_archive')
         @element = $("<div>")
         @element.css
             'overflow'       : 'auto'
@@ -4437,3 +4499,34 @@ class ReactCodemirror extends FileEditorWrapper
         editor_codemirror.render(args...)
 
 
+###
+# *TEMPLATE* for a react-based editor
+###
+class TemplateEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        the_editor = require('./editor_template')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                the_editor.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                the_editor.hide(args...)
+            show    : =>
+                the_editor.show(args...)
+        the_editor.render(args...)

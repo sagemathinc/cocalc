@@ -52,3 +52,7 @@ path-prepend "$HOME/bin"
 path-append  "/projects/data/homer/bin"
 path-append  "/projects/data/weblogo"
 export PATH
+
+# less: setup highlighting when searching for a string
+export LESS_TERMCAP_so=$'\E[;7m'
+export LESS_TERMCAP_se=$'\E[;27m'

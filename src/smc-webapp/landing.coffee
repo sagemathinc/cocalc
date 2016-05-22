@@ -49,6 +49,7 @@ if true
     require('./editor_course')
     require('./r_account.cjsx')
     require('./file_use.cjsx')
+    require('./support.cjsx')
 
 # TODO: temporary -- ensure that the help page is rendered: do this once only on load
 # WE will remove this when we have a proper router.
