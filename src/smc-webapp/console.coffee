@@ -127,10 +127,16 @@ class Console extends EventEmitter
             draggable      : false    # not very good/useful yet.
 
             color_scheme   : undefined
+            project_id     : undefined
 
         @_init_default_settings()
 
-        @_project_actions = smc.redux.getProjectActions(@opts.editor?.editor.project_id)
+        if @opts.project_id
+            project_id = @opts.project_id
+        else
+            project_id = @opts.editor?.editor.project_id
+
+        @_project_actions = smc.redux.getProjectActions(project_id)
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
