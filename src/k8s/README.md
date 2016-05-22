@@ -3,6 +3,21 @@
 
 Write something here about how our k8s deployment works. Basically an overview of the subdirectories here.
 
+## Tips and tricks
+
+For testing that a container is not working, one trick is to connect to the container
+
+    salvus@docker-build: k get pods
+    NAME                                 READY     STATUS    RESTARTS   AGE
+    smc-webapp-static-3907490920-jpm1w   1/1       Running   0          9m
+    salvus@docker-build: k exec -it smc-webapp-static-3907490920-jpm1w bash
+
+then do
+
+    ps ax
+    kill -STOP 1  # etc
+
+to make whatever is serving from the container stay running but NOT work.
 
 ## Troubleshooting misc
 

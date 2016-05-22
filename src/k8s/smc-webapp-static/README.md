@@ -52,3 +52,11 @@ Done
 
     kubectl delete deployment smc-webapp-static
     kubectl delete services smc-webapp-static
+
+## The smc-webapp-static.yaml file
+
+We get the first version of the yaml file that describes the deployment we made above by doing
+
+    kubectl get deployments smc-webapp-static -o yaml --export  > smc-webapp-static.yaml
+
+We then *edit* this file in various ways, e.g,. to add health checks.
