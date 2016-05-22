@@ -103,6 +103,8 @@ class GitActions extends Actions
                     @setState(git_commit_return : JSON.stringify(err) + ' ' + JSON.stringify(output))
                 else
                     @setState(git_commit_return : output.stdout)
+                    @update_status()
+                    @update_diff()
 
     update_status : () =>
         @setState(git_status : 'updating...')
