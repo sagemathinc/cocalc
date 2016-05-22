@@ -103,6 +103,7 @@ class GitActions extends Actions
                     @setState(git_commit_return : JSON.stringify(err) + ' ' + JSON.stringify(output))
                 else
                     @setState(git_commit_return : output.stdout)
+                    @setState(commit_message : '')
                     @update_status()
                     @update_diff()
 
@@ -184,7 +185,9 @@ Git = (name) -> rclass
             ref         = 'commit_message'
             type        = 'text'
             placeholder = 'Commit message'
+
             onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
+            onKeyDown   = {@handle_commit_message_keypress}
         />
 
     render_user_name_input : ->
@@ -193,6 +196,7 @@ Git = (name) -> rclass
             type        = 'text'
             placeholder = {@props.git_user_name ? ''}
             onChange    = {=>@props.actions.setState(git_user_name:@refs.git_user_name.getValue())}
+            onKeyDown   = {@handle_user_name_keypress}
         />
 
     render_user_name_panel : ->
@@ -209,12 +213,25 @@ Git = (name) -> rclass
             {<pre>{@props.git_user_name_return}</pre> if @props.git_user_name_return}
         </Panel>
 
+    handle_user_name_keypress : (e) ->
+        if e.keyCode == 13 and @props.git_name_email != ''
+            @props.actions.set_git_name_email()
+
+    handle_user_email_keypress : (e) ->
+        if e.keyCode == 13 and @props.git_user_email != ''
+            @props.actions.set_git_user_email()
+
+    handle_commit_message_keypress : (e) ->
+        if e.keyCode == 13 and @props.commit_message != ''
+            @props.actions.run_git_commit()
+
     render_user_email_input : ->
         <Input
             ref         = 'git_user_email'
             type        = 'text'
             placeholder = {@props.git_user_email ? ''}
             onChange    = {=>@props.actions.setState(git_user_email:@refs.git_user_email.getValue())}
+            onKeyDown   = {@handle_user_email_keypress}
         />
 
     render_user_email_panel : ->
