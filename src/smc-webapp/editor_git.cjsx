@@ -5,7 +5,7 @@ Git "editor" -- basically an application that let's you interact with git.
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Input, Panel, Row, Col, Tabs, Tab} = require('react-bootstrap')
-{Icon, Space, Tip} = require('./r_misc')
+{Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -168,7 +168,7 @@ Git = (name) -> rclass
         <Tip delayShow=1300
              title="Configuration" tip="This tab lists all ">
             <span>
-                <Icon name="cogs"/> Configuration
+                <Octicon name="settings"/> Configuration
             </span>
         </Tip>
 
@@ -176,7 +176,7 @@ Git = (name) -> rclass
         <Tip delayShow=1300
              title="Commit" tip="This tab lists all ">
             <span>
-                <Icon name="cogs"/> Commit
+                <Octicon name="git-commit"/> Commit
             </span>
         </Tip>
 
@@ -215,7 +215,7 @@ Git = (name) -> rclass
 
     handle_user_name_keypress : (e) ->
         if e.keyCode == 13 and @props.git_name_email != ''
-            @props.actions.set_git_name_email()
+            @props.actions.set_git_user_name()
 
     handle_user_email_keypress : (e) ->
         if e.keyCode == 13 and @props.git_user_email != ''

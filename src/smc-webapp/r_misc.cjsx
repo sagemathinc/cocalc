@@ -133,6 +133,28 @@ exports.Icon = Icon = rclass
             classNames += " #{className}"
         return <i style={style} className={classNames}>{@props.children}</i>
 
+# this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
+exports.Octicon = rclass
+    displayName : 'Octicon'
+
+    propTypes :
+        name   : rtypes.string.isRequired
+        mega   : rtypes.bool
+        spin   : rtypes.bool
+
+    getDefaultProps : ->
+        name : 'flame'
+        mega : false
+        spin : false
+
+    render : ->
+        classNames = ['octicon', "octicon-#{@props.name}"]
+        if @props.spin
+            classNames.push('spin-octicon')
+        if @props.mega
+            classNames.push('mega-octicon')
+        return <span className={classNames.join(' ')} />
+
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
