@@ -70,7 +70,7 @@ LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 PID = os.getpid()
 from datetime import datetime
 def log(*args):
-    #print "logging to %s"%LOGFILE
+    #print("logging to %s"%LOGFILE)
     try:
         debug_log = open(LOGFILE, 'a')
         mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
@@ -146,7 +146,7 @@ class ConnectionJSON(object):
         return self.send_blob(data)
 
     def _recv(self, n):
-        #print "_recv(%s)"%n
+        #print("_recv(%s)"%n)
         for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
             try:
                 #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
@@ -154,7 +154,7 @@ class ConnectionJSON(object):
                 #log("n=%s; received: '%s' of len %s"%(n,r, len(r)))
                 return r
             except socket.error as (errno, msg):
-                #print "socket.error, msg=%s"%msg
+                #print("socket.error, msg=%s"%msg)
                 if errno != 4:
                     raise
         raise EOFError
@@ -174,7 +174,7 @@ class ConnectionJSON(object):
         if s[0] == 'j':
             try:
                 return 'json', json.loads(s[1:])
-            except Exception, msg:
+            except Exception as msg:
                 log("Unable to parse JSON '%s'"%s[1:])
                 raise
 
@@ -305,7 +305,7 @@ def client1(port, hostname):
     conn.send_json(message.start_session())
     typ, mesg = conn.recv()
     pid = mesg['pid']
-    print "PID = %s"%pid
+    print("PID = %s" % pid)
 
     id = 0
     while True:
@@ -322,13 +322,13 @@ def client1(port, hostname):
                     if 'stdout' in mesg:
                         sys.stdout.write(mesg['stdout']); sys.stdout.flush()
                     if 'stderr' in mesg:
-                        print '!  ' + '\n!  '.join(mesg['stderr'].splitlines())
+                        print('!  ' + '\n!  '.join(mesg['stderr'].splitlines()))
                     if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
 
         except KeyboardInterrupt:
-            print "Sending interrupt signal"
+            print("Sending interrupt signal")
             conn2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             conn2.connect((hostname, int(port)))
             conn2 = ConnectionJSON(conn2)
@@ -337,7 +337,7 @@ def client1(port, hostname):
             id += 1
 
     conn.send_json(message.terminate_session())
-    print "\nExiting Sage client."
+    print("\nExiting Sage client.")
 
 class BufferedOutputStream(object):
     def __init__(self, f, flush_size=4096, flush_interval=.1):
@@ -390,14 +390,14 @@ class Namespace(dict):
             self._on_del[x].append(f)
 
     def remove(self, event, x, f):
-        if event == 'change' and self._on_change.has_key(x):
+        if event == 'change' and x in self._on_change:
             v = self._on_change[x]
             i = v.find(f)
             if i != -1:
                 del v[i]
             if len(v) == 0:
                 del self._on_change[x]
-        elif event == 'del' and self._on_del.has_key(x):
+        elif event == 'del' and x in self._on_del:
             v = self._on_del[x]
             i = v.find(f)
             if i != -1:
@@ -408,36 +408,36 @@ class Namespace(dict):
     def __setitem__(self, x, y):
         dict.__setitem__(self, x, y)
         try:
-            if self._on_change.has_key(x):
+            if x in self._on_change:
                 for f in self._on_change[x]:
                     f(y)
-            if self._on_change.has_key(None):
+            if None in self._on_change:
                 for f in self._on_change[None]:
                     f(x, y)
-        except Exception, mesg:
-            print mesg
+        except Exception as mesg:
+            print(mesg)
 
     def __delitem__(self, x):
         try:
-            if self._on_del.has_key(x):
+            if x in self._on_del:
                 for f in self._on_del[x]:
                     f()
-            if self._on_del.has_key(None):
+            if None in self._on_del:
                 for f in self._on_del[None]:
                     f(x)
-        except Exception, mesg:
-            print mesg
+        except Exception as mesg:
+            print(mesg)
         dict.__delitem__(self, x)
 
     def set(self, x, y, do_not_trigger=None):
         dict.__setitem__(self, x, y)
-        if self._on_change.has_key(x):
+        if x in self._on_change:
             if do_not_trigger is None:
                 do_not_trigger = []
             for f in self._on_change[x]:
                 if f not in do_not_trigger:
                     f(y)
-        if self._on_change.has_key(None):
+        if None in self._on_change:
             for f in self._on_change[None]:
                 f(x,y)
 
@@ -865,7 +865,7 @@ class Salvus(object):
 
         Print memory usage after evaluating each cell:
 
-            salvus.cell_postfix('print "%s MB used"%int(get_memory_usage())')
+            salvus.cell_postfix('print("%s MB used"%int(get_memory_usage()))')
 
         Return to normal
 
@@ -885,7 +885,7 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
-        #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
+        #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
@@ -1049,8 +1049,8 @@ class Salvus(object):
 
     def _execute_interact(self, id, vals):
         if id not in sage_salvus.interacts:
-            print "(Evaluate this cell to use this interact.)"
-            #raise RuntimeError, "Error: No interact with id %s"%id
+            print("(Evaluate this cell to use this interact.)")
+            #raise RuntimeError("Error: No interact with id %s"%id)
         else:
             sage_salvus.interacts[id](vals)
 
@@ -1435,7 +1435,7 @@ def session(conn):
         try:
             typ, mesg = mq.next_mesg()
 
-            #print 'INFO:child%s: received message "%s"'%(pid, mesg)
+            #print('INFO:child%s: received message "%s"'%(pid, mesg))
             log("handling message ", truncate_text(unicode8(mesg), 400)[0])
             event = mesg['event']
             if event == 'terminate_session':
@@ -1449,7 +1449,7 @@ def session(conn):
                             cell_id       = mesg.get('cell_id',None),
                             preparse      = mesg.get('preparse',True),
                             message_queue = mq)
-                except Exception, err:
+                except Exception as err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
@@ -1537,7 +1537,7 @@ def serve_connection(conn):
         conn = ConnectionJSON(conn)
         typ, mesg = conn.recv()
         log("Received message %s"%mesg)
-    except Exception, err:
+    except Exception as err:
         log("Error receiving message: %s (connection terminated)"%str(err))
         raise
 
@@ -1696,7 +1696,7 @@ def serve(port, host, extra_imports=False):
                 serve_connection(conn)
 
         # end while
-    except Exception, err:
+    except Exception as err:
         log("Error taking connection: ", err)
         traceback.print_exc(file=sys.stdout)
         #log.error("error: %s %s", type(err), str(err))
@@ -1744,7 +1744,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.daemon and not args.pidfile:
-        print "%s: must specify pidfile in daemon mode"%sys.argv[0]
+        print("%s: must specify pidfile in daemon mode" % sys.argv[0])
         sys.exit(1)
 
     if args.log_level:
