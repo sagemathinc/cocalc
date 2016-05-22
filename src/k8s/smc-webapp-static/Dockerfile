@@ -28,6 +28,9 @@ RUN git clone https://github.com/sagemathinc/smc.git
 # Build webapp
 RUN cd /smc/src && . ./smc-env && ./install.py webapp
 
+# Delete everything except the static site that we want to serve (no point in wasting space)
+RUN mv /smc/src/static /static && rm -rf /smc
+
 # Remove build pre-requisites that are no longer needed for running nginx static server
 RUN \
   apt-get -y remove curl git python python3 python-pip python3-pip python-yaml python-psutil sudo nodejs && \
