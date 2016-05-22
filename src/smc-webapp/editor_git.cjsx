@@ -128,6 +128,17 @@ class GitActions extends Actions
                     @setState(git_diff : '')
                 else
                     @setState(git_diff : output.stdout)
+                    
+    update_log : () =>
+        @setState(git_log : 'updating...')
+        @exec
+            cmd  : "git"
+            args : ['log', '-20']
+            cb   : (err, output) =>
+                if err
+                    @setState(git_log : '')
+                else
+                    @setState(git_log : output.stdout)
 
     set_tab : (tab) =>
         @setState(tab:tab)
@@ -137,6 +148,8 @@ class GitActions extends Actions
         if tab == 'commit'
             @update_status()
             @update_diff()
+        if tab == 'log'
+            @update_log()
 
 
 exports.init_redux = init_redux = (redux, project_id, filename) ->
@@ -160,6 +173,7 @@ Git = (name) -> rclass
             commit_message        : rtypes.string
             git_status            : rtypes.string
             git_diff              : rtypes.string
+            git_log               : rtypes.string
 
     propTypes :
         actions : rtypes.object
@@ -177,6 +191,14 @@ Git = (name) -> rclass
              title="Commit" tip="This tab lists all ">
             <span>
                 <Octicon name="git-commit"/> Commit
+            </span>
+        </Tip>
+        
+    render_log_header : ->
+        <Tip delayShow=1300
+             title="Log" tip="This tab lists all ">
+            <span>
+                <Octicon name="history"/> Log
             </span>
         </Tip>
 
@@ -262,7 +284,24 @@ Git = (name) -> rclass
         <Panel header={head}>
             {<pre>{@props.git_commit_return}</pre> if @props.git_commit_return}
         </Panel>
+    
+    render_log_panel : ->
+        head =
+            <span>
+                git log
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.update_log()}>
+                    Refresh
+                </Button>
+                <Button onClick={=>@props.actions.setState(git_log:'')}>
+                    Clear
+                </Button>
 
+            </span>
+        <Panel header={head}>
+            {<pre>{@props.git_log}</pre> if @props.git_log}
+        </Panel>
+    
     render_status : ->
         head =
             <span>
@@ -319,6 +358,15 @@ Git = (name) -> rclass
                 </Col>
             </Row>
         </div>
+        
+    render_log : ->
+        <div>
+            <Row>
+                <Col sm=12>
+                    {@render_log_panel()}
+                </Col>
+            </Row>
+        </div>
 
     render : ->
         <div>
@@ -331,6 +379,10 @@ Git = (name) -> rclass
                 <Tab eventKey={'commit'} title={@render_commit_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_commit()}
+                </Tab>
+                <Tab eventKey={'log'} title={@render_log_header()}>
+                    <div style={marginTop:'8px'}></div>
+                    {@render_log()}
                 </Tab>
             </Tabs>
 
