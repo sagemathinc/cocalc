@@ -112,6 +112,7 @@ class GitActions extends Actions
                 else
                     @setState(git_commit_return : output.stdout)
                     @setState(commit_message : '')
+                    @refs.commit_message.setValue('')
                     @update_status()
                     @update_diff()
 
