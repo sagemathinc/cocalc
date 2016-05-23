@@ -45,6 +45,17 @@ Read more:
 
 * build.md: how to setup compute nodes.
 * anaconda.md: instructions about setting up Anaconda3.
+
+
+MANUAL STEPS!!
+
+TODO: automate...
+
+- [ ] Install FGA gap packages:
+
+      cd local/gap/gap-4.7.8/pkg/fga
+      wget http://www.gap-system.org/pub/gap/gap4/tar.gz/packages/FGA-1.3.1.tar.gz
+      tar xvf FGA-1.3.1.tar.gz
 """
 
 import logging, os, shutil, subprocess, sys, time, urllib2
