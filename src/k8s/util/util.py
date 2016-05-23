@@ -57,7 +57,13 @@ def gcloud_docker_repo(tag):
 def gcloud_docker_push(name):
     run(['gcloud', 'docker', 'push', name])
 
+def gcloud_most_recent_image(prefix):
+    x = gcloud_images(prefix=prefix)[0]
+    return x['REPOSITORY'] + ':' + x['TAG']
+
 def gcloud_images(prefix=''):
+    if prefix:
+        prefix = gcloud_docker_repo(prefix)
     x = run(['gcloud', 'docker', 'images'], get_output=True)
     i = x.find("REPOSITORY")
     if i == 1:
@@ -73,6 +79,9 @@ def gcloud_images(prefix=''):
 def get_deployments():
     return [x.split()[0] for x in run(['kubectl', 'get', 'deployments'], get_output=True).splitlines()[1:]]
 
+def get_services():
+    return [x.split()[0] for x in run(['kubectl', 'get', 'services'], get_output=True).splitlines()[1:]]
+
 def update_deployment(filename_yaml):
     """
     Create or replace the current kubernetes deployment described by the given file.
@@ -83,7 +92,7 @@ def update_deployment(filename_yaml):
     run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
 
 def stop_deployment(name):
-    run(['kubectl', 'delete', 'deployment', 'smc-webapp-static'])
+    run(['kubectl', 'delete', 'deployment', name])
 
 def secret_names():
     return [x.split()[0] for x in run(['kubectl','get','secrets'], get_output=True).splitlines()[1:]]

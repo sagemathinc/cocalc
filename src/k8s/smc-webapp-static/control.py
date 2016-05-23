@@ -73,6 +73,8 @@ def get_tag(args):
         tag += '-host'
     if args.tag:
         tag += ':' + args.tag
+    elif not args.local:
+        return util.gcloud_most_recent_image(NAME)
     if not args.local:
         tag = util.gcloud_docker_repo(tag)
     return tag
@@ -102,6 +104,9 @@ def run_on_kubernetes(args):
         tmp.write(t.format(image=tag, replicas=args.replicas))
         tmp.flush()
         util.update_deployment(tmp.name)
+    if NAME not in util.get_services():
+        util.run(['kubectl', 'expose', 'deployment', NAME])
+
 
 def stop_on_kubernetes(args):
     util.stop_deployment(NAME)
@@ -121,7 +126,7 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster; you must also call "build -p" to push an image'.format(name=NAME))
-    sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
+    sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-r", "--replicas", default=2, help="number of replicas")
     sub.add_argument("-f", "--full", action="store_true", help="if true, use image built using --full option")
     sub.set_defaults(func=run_on_kubernetes)
