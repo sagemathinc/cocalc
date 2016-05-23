@@ -89,6 +89,14 @@ class GitActions extends Actions
                 else
                     @setState(git_user_email : output.stdout)
 
+    get_current_branch : =>
+        store = @redux.getStore(@name)
+        # git rev-parse --abbrev-ref HEAD
+        @exec
+            cmd  : "smc-git"
+            args : ['current_branch']
+            cb   : (err, output) =>
+                @setState(current_branch : output.stdout)
 
     run_git_commit : =>
         store = @redux.getStore(@name)
@@ -128,7 +136,7 @@ class GitActions extends Actions
                     @setState(git_diff : '')
                 else
                     @setState(git_diff : output.stdout)
-                    
+
     update_log : () =>
         @setState(git_log : 'updating...')
         @exec
@@ -174,6 +182,7 @@ Git = (name) -> rclass
             git_status            : rtypes.string
             git_diff              : rtypes.string
             git_log               : rtypes.string
+            current_branch        : rtypes.string
 
     propTypes :
         actions : rtypes.object
@@ -193,7 +202,7 @@ Git = (name) -> rclass
                 <Octicon name="git-commit"/> Commit
             </span>
         </Tip>
-        
+
     render_log_header : ->
         <Tip delayShow=1300
              title="Log" tip="This tab lists all ">
@@ -284,7 +293,7 @@ Git = (name) -> rclass
         <Panel header={head}>
             {<pre>{@props.git_commit_return}</pre> if @props.git_commit_return}
         </Panel>
-    
+
     render_log_panel : ->
         head =
             <span>
@@ -301,7 +310,7 @@ Git = (name) -> rclass
         <Panel header={head}>
             {<pre>{@props.git_log}</pre> if @props.git_log}
         </Panel>
-    
+
     render_status : ->
         head =
             <span>
@@ -358,12 +367,29 @@ Git = (name) -> rclass
                 </Col>
             </Row>
         </div>
-        
+
     render_log : ->
         <div>
             <Row>
                 <Col sm=12>
                     {@render_log_panel()}
+                </Col>
+            </Row>
+        </div>
+
+    render_branches_header : ->
+        <Tip delayShow=1300
+             title="Branches" tip="This tab lists all ">
+            <span>
+                <Octicon name="git-branch"/> Branches
+            </span>
+        </Tip>
+
+    render_branches : ->
+        <div>
+            <Row>
+                <Col sm=12>
+
                 </Col>
             </Row>
         </div>
@@ -383,6 +409,10 @@ Git = (name) -> rclass
                 <Tab eventKey={'log'} title={@render_log_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_log()}
+                </Tab>
+                <Tab eventKey={'branches'} title={@render_branches_header()}>
+                    <div style={marginTop:'8px'}></div>
+                    {@render_branches()}
                 </Tab>
             </Tabs>
 
