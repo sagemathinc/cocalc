@@ -67,7 +67,7 @@ exports.send_email = send_email = (opts={}) ->
             if email_server?
                 cb(); return
             dbg("starting sendgrid client...")
-            filename = "#{process.env.SALVUS_ROOT}/data/secrets/sendgrid/api_key"
+            filename = "#{process.env.SALVUS_ROOT}/data/secrets/sendgrid"
             fs.readFile filename, 'utf8', (error, api_key) ->
                 if error
                     err = "unable to read the file '#{filename}', which is needed to send emails."

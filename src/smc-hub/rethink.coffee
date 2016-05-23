@@ -108,7 +108,7 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
-            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool
+            pool     : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)

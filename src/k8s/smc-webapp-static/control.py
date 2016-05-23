@@ -91,30 +91,24 @@ def build_docker(args):
         util.gcloud_docker_push(tag)
 
 def images_on_gcloud(args):
-    r = util.gcloud_docker_repo('smc-webapp-static')
-    for x in util.gcloud_images():
-        if x['REPOSITORY'].startswith(r):
-            print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
+    for x in util.gcloud_images(NAME):
+        print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     tag = get_tag(args)
-    t = open(join('conf', 'smc-webapp-static.template.yaml')).read()
+    t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas))
         tmp.flush()
-        if 'smc-webapp-static' in util.get_deployments():
-            util.run(['kubectl', 'replace', '-f', tmp.name])
-        else:
-            util.run(['kubectl', 'create', '-f', tmp.name])
-
+        util.update_deployment(tmp.name)
 
 def stop_on_kubernetes(args):
-    util.run(['kubectl', 'delete', 'deployment', 'smc-webapp-static'])
+    util.stop_deployment(NAME)
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
@@ -126,7 +120,7 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='create/update smc-webapp-static deployment on the currently selected kubernetes cluster; you must also call "build -p" to push an image')
+    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster; you must also call "build -p" to push an image'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-r", "--replicas", default=2, help="number of replicas")
     sub.add_argument("-f", "--full", action="store_true", help="if true, use image built using --full option")
@@ -135,10 +129,8 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('stop', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
 
-    sub = subparsers.add_parser('images', help='list smc-webapp-static tags in gcloud docker repo, from newest to oldest')
+    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
-
-
 
     args = parser.parse_args()
     args.func(args)

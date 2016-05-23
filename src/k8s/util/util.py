@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import os, subprocess, time
+import os, subprocess, time, yaml
 
 join = os.path.join
 
@@ -33,14 +33,23 @@ def run(v, shell=False, path='.', get_output=False):
     return output
 
 # Fast, but relies on stability of gcloud config path (I reversed engineered this).
+# Failed for @hal the first time, so don't use...
+#def get_default_gcloud_project_name():
+#    PATH = join(os.environ['HOME'], '.config', 'gcloud')
+#    active_config = open(join(PATH, 'active_config')).read()
+#    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
+#    i = conf.find("project = ")
+#    if i == -1:
+#        raise RuntimeError
+#    return conf[i:].split('=')[1].strip()
+
+# This works but is very slow and ugly due to parsing output.
 def get_default_gcloud_project_name():
-    PATH = join(os.environ['HOME'], '.config', 'gcloud')
-    active_config = open(join(PATH, 'active_config')).read()
-    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
-    i = conf.find("project = ")
+    a = run(['gcloud', 'info'], get_output=True)
+    i = a.find("project: ")
     if i == -1:
         raise RuntimeError
-    return conf[i:].split('=')[1].strip()
+    return a[i:].split()[1].strip('[]')
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
@@ -48,7 +57,7 @@ def gcloud_docker_repo(tag):
 def gcloud_docker_push(name):
     run(['gcloud', 'docker', 'push', name])
 
-def gcloud_images():
+def gcloud_images(prefix=''):
     x = run(['gcloud', 'docker', 'images'], get_output=True)
     i = x.find("REPOSITORY")
     if i == 1:
@@ -59,7 +68,35 @@ def gcloud_images():
     a = []
     for w in v[1:]:
         a.append(dict(zip(headers, w.split()[:2])))
-    return a
+    return [x for x in a if x['REPOSITORY'].startswith(prefix)]
 
 def get_deployments():
     return [x.split()[0] for x in run(['kubectl', 'get', 'deployments'], get_output=True).splitlines()[1:]]
+
+def update_deployment(filename_yaml):
+    """
+    Create or replace the current kubernetes deployment described by the given file.
+
+    - filename_yaml -- the name of a yaml file that describes a deployment
+    """
+    name = yaml.load(open(filename_yaml).read())['metadata']['name']
+    run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+
+def stop_deployment(name):
+    run(['kubectl', 'delete', 'deployment', 'smc-webapp-static'])
+
+def secret_names():
+    return [x.split()[0] for x in run(['kubectl','get','secrets'], get_output=True).splitlines()[1:]]
+
+def create_secret(name, filename):
+    if name in secret_names():
+        # delete first
+        run(['kubectl', 'delete', 'secret', name])
+    v = ['kubectl', 'create', 'secret', 'generic', name]
+    if os.path.exists(filename):
+        v.append('--from-file='+filename)
+    else:
+        print("WARNING! using fake empty secret for '{name}' -- please properly create '{filename}'".format(
+                name=name, filename=filename))
+        v.append('--from-literal={basename}='.format(basename=os.path.split(filename)[1]))
+    run(v)
