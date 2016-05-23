@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always  # IfNotPresent
         livenessProbe:
           httpGet:
             path: /

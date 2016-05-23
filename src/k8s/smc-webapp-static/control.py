@@ -52,8 +52,8 @@ def build_host(tag):
     with tempfile.TemporaryDirectory() as tmp:
         os.chdir(SCRIPT_PATH)
 
-        # Copy static files over
-        shutil.copytree(join('..', '..', 'static'), join(tmp, 'static'), symlinks=True)
+        # Copy static files over, resolving symlinks
+        util.run(['rsync', '-axvL', join('..', '..', 'static') + '/', join(tmp, 'static') + '/'])
 
         # Copy Docker and conf files over
         shutil.copyfile(join('image-host', 'Dockerfile'), join(tmp, 'Dockerfile'))

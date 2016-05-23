@@ -41,6 +41,8 @@ def get_tag(args):
     tag = NAME
     if args.tag:
         tag += ':' + args.tag
+    elif not args.local:
+        return util.gcloud_most_recent_image(NAME)
     if not args.local:
         tag = util.gcloud_docker_repo(tag)
     return tag
@@ -63,6 +65,10 @@ def run_on_kubernetes(args):
         tmp.write(t.format(image=tag, replicas=args.replicas))
         tmp.flush()
         util.update_deployment(tmp.name)
+
+    if NAME not in util.get_services():
+        util.run(['kubectl', 'expose', 'deployment', NAME])
+
 
 def stop_on_kubernetes(args):
     util.stop_deployment(NAME)

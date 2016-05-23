@@ -57,6 +57,8 @@ def install_webapp():
     cmd("cd static/term; ./compile")
     # update static react
     cmd("update_react_static")
+    # update primus - so client has it.
+    install_primus()
     print("Building production webpack -- this will take about 3 minutes")
     cmd("npm run webpack-production")
 

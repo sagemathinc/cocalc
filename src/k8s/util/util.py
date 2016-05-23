@@ -92,7 +92,8 @@ def update_deployment(filename_yaml):
     run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
 
 def stop_deployment(name):
-    run(['kubectl', 'delete', 'deployment', name])
+    if name in get_deployments():
+        run(['kubectl', 'delete', 'deployment', name])
 
 def secret_names():
     return [x.split()[0] for x in run(['kubectl','get','secrets'], get_output=True).splitlines()[1:]]
