@@ -15,6 +15,9 @@ redux_lib = require('redux')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
+exports.COLOR =
+    BG_RED: '#d9534f' # the red bootstrap color of the button background
+
 # We do this so this module can be used without having to include all the
 # project-store related functionality.  When it gets loaded, it will set the
 # project_store module below.  This is purely a potential lazy loading optimization.
@@ -55,6 +58,7 @@ class Actions
 
 class Store extends EventEmitter
     constructor: (@name, @redux) ->
+        @setMaxListeners(150)
 
     _handle_store_change: (state) =>
         if state != @_last_state

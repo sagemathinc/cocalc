@@ -118,7 +118,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
 
     close: =>
-        @execution_queue.close()
+        @execution_queue?.close()
         super()
 
     _apply_changeObj: (changeObj) =>
@@ -205,9 +205,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @action(execute:false, delete_output:true)
             return false
 
-        buttons.find("a[href=#tab]").click () =>
-            @editor.press_tab_key(@editor.codemirror_with_last_focus)
-            return false
+        if IS_MOBILE
+            buttons.find("a[href=#tab]").click () =>
+                @editor.press_tab_key(@editor.codemirror_with_last_focus)
+                return false
+        else
+            @element.find("a[href=#tab]").hide()
+            @element.find("a[href=#undo]").hide()
+            @element.find("a[href=#redo]").hide()
 
         buttons.find("a[href=#new-html]").click () =>
             cm = @focused_codemirror()
@@ -505,7 +510,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             opts.cb?(); return
         @close_on_action()
         t = misc.walltime()
-        @execution_queue.clear()
+        @execution_queue?.clear()
         @clear_action_flags(false)
         async.series([
             (cb) =>
@@ -535,7 +540,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @close_on_action()
         @clear_action_flags(true)
         # Empty the execution queue.
-        @execution_queue.clear()
+        @execution_queue?.clear()
         @process_sage_updates(caller:"kill")
         if opts.restart
             @restart(cb:opts.cb)

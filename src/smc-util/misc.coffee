@@ -1440,6 +1440,9 @@ exports.map_diff = (a, b) ->
         c[k] ?= -v
     return c
 
+# arithmetic sum of an array
+exports.sum = (arr, start=0) -> underscore.reduce(arr, ((a, b) -> a+b), start)
+
 # replace map in place by the result of applying f to each
 # element of the codomain of the map.  Also return the modified map.
 exports.apply_function_to_map_values = apply_function_to_map_values = (map, f) ->
@@ -1647,3 +1650,7 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
     for k, v of result
         console.log("#{k} ←→ #{v}")
     return result
+
+# converts ticket number to support ticket url (currently zendesk)
+exports.ticket_id_to_ticket_url = (tid) ->
+    return "https://sagemathcloud.zendesk.com/requests/#{tid}"

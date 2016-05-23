@@ -6,6 +6,7 @@ misc = require('smc-util/misc')
 {AccountSettingsTop} = require('./r_account')
 {BillingPageRedux} = require('./billing')
 {UpgradesPage} = require('./r_upgrades')
+{SupportPage}  = require('./support')
 {Icon} = require('./r_misc')
 browser = require('./browser')
 
@@ -39,6 +40,7 @@ AccountPage = rclass
             terminal                : rtypes.object
             evaluate_key            : rtypes.string
             autosave                : rtypes.number
+            font_size               : rtypes.number
             editor_settings         : rtypes.object
             other_settings          : rtypes.object
             profile                 : rtypes.object
@@ -50,8 +52,11 @@ AccountPage = rclass
         redux   : rtypes.object.isRequired
 
     handle_select : (key) ->
-        if key == 'billing'
-            @props.redux.getActions('billing')?.update_customer()
+        switch key
+            when 'billing'
+                @props.redux.getActions('billing')?.update_customer()
+            when 'support'
+                @props.redux.getActions('support')?.load_support_tickets()
         @props.redux.getActions('account').setState(active_page: key)
         window.history.pushState('', '', window.smc_base_url + "/settings/#{key}")
 
@@ -60,6 +65,11 @@ AccountPage = rclass
             redux           = {@props.redux}
             stripe_customer = {@props.stripe_customer}
             project_map     = {@props.project_map} />
+
+    render_support : ->
+        <Redux redux={redux}>
+            <SupportPage />
+        </Redux>
 
     render_account_settings : ->
         <AccountSettingsTop
@@ -74,6 +84,7 @@ AccountPage = rclass
             terminal        = {@props.terminal}
             evaluate_key    = {@props.evaluate_key}
             autosave        = {@props.autosave}
+            font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
             other_settings  = {@props.other_settings}
             profile         = {@props.profile}
@@ -110,6 +121,9 @@ AccountPage = rclass
                 </Tab>
                 <Tab eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
                     {@render_upgrades() if @props.active_page == 'upgrades'}
+                </Tab>
+                <Tab eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
+                    {@render_support() if @props.active_page == 'support'}
                 </Tab>
             </Tabs> if logged_in}
         </Grid>

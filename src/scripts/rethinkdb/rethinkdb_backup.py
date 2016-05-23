@@ -51,7 +51,7 @@ def dump_tables(tables, table_fields = None):
     """
     import random
     dump="dump%s"%random.random()
-    export_cmd = "time rethinkdb export --clients 1 --password-file /home/salvus/smc/src/data/secrets/rethinkdb -d tmp/%s -c %s " % (dump, DB_HOST)
+    export_cmd = "time rethinkdb export --clients 3 --password-file /home/salvus/smc/src/data/secrets/rethinkdb -d tmp/%s -c %s " % (dump, DB_HOST)
     if isinstance(tables, basestring):
         tables = [tables]
     shutil.rmtree('tmp/'+dump, ignore_errors=True)

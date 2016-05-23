@@ -81,6 +81,7 @@ CodeMirror.defineMode "tasks", (config) ->
 class TaskList
     constructor : (@editor, @filename, @element, @opts) ->
         @project_id = @editor?.editor.project_id
+        @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
@@ -814,6 +815,7 @@ class TaskList
             desc = "<del>#{desc}</del>"
 
         e = task.element.find(".salvus-task-desc")
+        e.css({fontSize: "#{@default_font_size ? 14}px"})
 
         e.html(desc)
         if has_mathjax

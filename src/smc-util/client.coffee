@@ -92,6 +92,7 @@ class Session extends EventEmitter
             return  # do *NOT* do cb?() yet!
 
         if @_reconnect_lock
+            #console.warn('reconnect: lock')
             cb?("reconnect: hit lock")
             return
 
@@ -107,7 +108,6 @@ class Session extends EventEmitter
                     params       : @params
                 timeout : 7
                 cb      : (err, reply) =>
-                    delete @_reconnect_lock
                     if err
                         cb(err); return
                     switch reply.event
@@ -127,9 +127,13 @@ class Session extends EventEmitter
                         else
                             cb("bug in hub")
         misc.retry_until_success
-            max_time : 20000
+            max_time : 15000
+            factor   : 1.3
             f        : f
-            cb       : (err) => cb?(err)
+            cb       : (err) =>
+                #console.log("reconnect('#{@session_uuid}'): finished #{err}")
+                delete @_reconnect_lock
+                cb?(err)
 
     terminate_session: (cb) =>
         @conn.call
@@ -1490,6 +1494,30 @@ class exports.Connection extends EventEmitter
                 description   : opts.description
             error_event : true
             cb          : opts.cb
+
+    # Support Tickets
+
+    create_support_ticket: ({opts, cb}) =>
+        @call
+            message      : message.create_support_ticket(opts)
+            timeout      : 20
+            error_event  : true
+            cb           : (err, resp) ->
+                if err
+                    cb?(err)
+                else
+                    cb?(undefined, resp.url)
+
+    get_support_tickets : (cb) =>
+        @call
+            message      : message.get_support_tickets()
+            timeout      : 20
+            error_event  : true
+            cb           : (err, tickets) ->
+                if err
+                    cb?(err)
+                else
+                    cb?(undefined, tickets.tickets)
 
     # Queries directly to the database (sort of like Facebook's GraphQL)
 

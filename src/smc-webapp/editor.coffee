@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014--2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -97,6 +97,7 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
+    jade   : 'text/x-jade'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -151,6 +152,14 @@ for ext, mode of codemirror_associations
         icon   : 'fa-file-code-o'
         opts   : {mode:mode}
         name   : name
+
+# noext = means file with no extension but the given name.
+file_associations['noext-Dockerfile'] =
+    editor : 'codemirror'
+    binary : false
+    icon   : 'fa-ship'
+    opts   : {mode:'dockerfile', indent_unit:2, tab_size:2}
+    name   : 'Dockerfile'
 
 file_associations['tex'] =
     editor : 'latex'
@@ -246,6 +255,18 @@ file_associations['sage-chat'] =
     opts   : {}
     name   : 'chat'
 
+file_associations['sage-git'] =
+    editor : 'git'
+    icon   : 'fa-git-square'
+    opts   : {}
+    name   : 'git'
+
+file_associations['sage-template'] =
+    editor : 'template'
+    icon   : 'fa-clone'
+    opts   : {}
+    name   : 'template'
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -298,9 +319,12 @@ initialize_new_file_type_list = () ->
 initialize_new_file_type_list()
 
 exports.file_icon_class = file_icon_class = (ext) ->
-    if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
+    if (file_associations[ext]? and file_associations[ext].icon?)
+        return file_associations[ext].icon
+    else
+        return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git', 'template']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -813,7 +837,10 @@ class exports.Editor
         ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
-        x = file_associations[ext]
+        if ext == ''
+            x = file_associations["noext-#{misc.path_split(filename).tail}"]
+        else
+            x = file_associations[ext]
         if not x?
             x = file_associations['']
         return x
@@ -967,8 +994,12 @@ class exports.Editor
                 editor = new Course(@, filename, content, extra_opts)
             when 'chat'
                 editor = new Chat(@, filename, content, extra_opts)
+            when 'git'
+                editor = new GitEditor(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
+            when 'template'
+                editor = new TemplateEditor(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -1296,6 +1327,12 @@ class FileEditor extends EventEmitter
     is_active: () =>
         return @editor? and @editor._active_tab_filename == @filename
 
+    # call it, to set the @default_font_size from the account settings
+    init_font_size: () =>
+        if not @editor?
+            return
+        @default_font_size = redux.getStore('account').get('font_size')
+
     init_autosave: () =>
         if not @editor?  # object already freed
             return
@@ -1610,9 +1647,9 @@ class CodeMirrorEditor extends FileEditor
                 options.matchTags = {bothTags: true}
 
             if opts.code_folding
-                 extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
-                 options.foldGutter  = true
-                 options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+                extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
+                options.foldGutter  = true
+                options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
@@ -1655,6 +1692,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
+        @init_font_size() # get the @default_font_size
         @restore_font_size()
 
         @_split_view = @local_storage("split_view")
@@ -1872,10 +1910,14 @@ class CodeMirrorEditor extends FileEditor
                 @print()
 
     restore_font_size: () =>
+        # we set the font_size from local storage
+        # or fall back to the default from the account settings
         for i, cm of [@codemirror, @codemirror1]
             size = @local_storage("font_size#{i}")
             if size?
                 @set_font_size(cm, size)
+            else if @default_font_size?
+                @set_font_size(cm, @default_font_size)
 
     set_font_size: (cm, size) =>
         if size > 1
@@ -2110,10 +2152,7 @@ class CodeMirrorEditor extends FileEditor
 
     # hide/show the second linked codemirror editor, depending on whether or not it's enabled
     _show_extra_codemirror_view: () =>
-        if @_split_view
-            $(@codemirror1.getWrapperElement()).show()
-        else
-            $(@codemirror1.getWrapperElement()).hide()
+        $(@codemirror1.getWrapperElement()).toggle(@_split_view)
 
     _show_codemirror_editors: (height, width) =>
         # console.log("_show_codemirror_editors: #{width} x #{height}")
@@ -2318,7 +2357,7 @@ class CodeMirrorEditor extends FileEditor
         console.log "wizard insert:", lang, code
         cm = @focused_codemirror()
         line = cm.getCursor().line
-        @syncdoc.insert_new_cell(line)
+        @syncdoc?.insert_new_cell(line)
         cm.replaceRange("%#{lang}\n#{code}", {line : line+1, ch:0})
         @syncdoc?.sync()
 
@@ -3727,12 +3766,44 @@ class Chat extends FileEditorWrapper
         editor_chat.render(args...)
 
 ###
+# Git repo
+###
+class GitEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_git = require('./editor_git')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_git.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_git.hide(args...)
+            show    : =>
+                editor_git.show(args...)
+        editor_git.render(args...)
+
+###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
 
 class Archive extends FileEditorWrapper
     init_wrapped: () =>
-        editor_archive = require('editor_archive')
+        editor_archive = require('./editor_archive')
         @element = $("<div>")
         @element.css
             'overflow'       : 'auto'
@@ -3765,7 +3836,10 @@ jupyter = require('./editor_jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
-        @element = jupyter.jupyter_notebook(@editor, @filename, @opts)
+        @init_font_size() # get the @default_font_size
+        # console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
+        @opts.default_font_size = @default_font_size
+        @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
 class JupyterNBViewer extends FileEditorWrapper
@@ -4425,3 +4499,34 @@ class ReactCodemirror extends FileEditorWrapper
         editor_codemirror.render(args...)
 
 
+###
+# *TEMPLATE* for a react-based editor
+###
+class TemplateEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        the_editor = require('./editor_template')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                the_editor.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                the_editor.hide(args...)
+            show    : =>
+                the_editor.show(args...)
+        the_editor.render(args...)

@@ -3245,28 +3245,48 @@ Settings = rclass
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
-        # TODO: actually learn CSV format... (e.g., what if comma in path)
-        content = "Student Name,"
-        content += (assignment.get('path') for assignment in assignments).join(',') + '\n'
+        # CSV definition: http://edoceo.com/utilitas/csv-file-format
+        # i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
+        timestamp  = (new Date()).toISOString()
+        content = "# Course '#{@props.settings.get('title')}'\n"
+        content += "# exported #{timestamp}\n"
+        content += "Name,Email,"
+        content += ("\"#{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
-            grades = ("'#{store.get_grade(assignment, student) ? ''}'" for assignment in assignments).join(',')
-            line = store.get_student_name(student) + "," + grades
+            grades = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            name   = "\"#{store.get_student_name(student)}\""
+            email  = "\"#{store.get_student_email(student) ? ''}\""
+            line   = [name, email, grades].join(',')
             content += line + '\n'
         @write_file(@path('csv'), content)
 
     save_grades_to_py : ->
-        content = "assignments = ['Assignment 1', 'Assignment 2']\nstudents=[\n    {'name':'Foo Bar', 'grades':[85,37]},\n    {'name':'Bar None', 'grades':[15,50]}\n]\n"
+        ###
+        example:
+        course = 'title'
+        exported = 'iso date'
+        assignments = ['Assignment 1', 'Assignment 2']
+        students=[
+            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37]},
+            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
+        ]
+        ###
+        timestamp = (new Date()).toISOString()
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
-        # TODO: actually learn CSV format... (e.g., what if comma in path)
-        content = "assignments = ["
+        content = "course = '#{@props.settings.get('title')}'\n"
+        content += "exported = '#{timestamp}'\n"
+        content += "assignments = ["
         content += ("'#{assignment.get('path')}'" for assignment in assignments).join(',') + ']\n'
 
         content += 'students = [\n'
         for student in store.get_sorted_students()
             grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
-            line = "    {'name':'#{store.get_student_name(student)}', 'grades':[#{grades}]},"
+            name   = store.get_student_name(student)
+            email  = store.get_student_email(student)
+            email  = if email? then "'#{email}'" else 'None'
+            line   = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)

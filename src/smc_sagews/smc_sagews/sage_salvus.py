@@ -2454,7 +2454,7 @@ def show(*objs, **kwds):
             html(obj.to_html(), hide=False)
         else:
             s = str(sage.misc.latex.latex(obj))
-            if r'\text{\texttt' in s:
+            if r'\text{\texttt' in s and 'tikzpicture' not in s:
                 # In this case the mathjax latex mess is so bad, it is better to just print and give up!
                 print obj
                 return

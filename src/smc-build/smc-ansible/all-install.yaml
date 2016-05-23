@@ -149,6 +149,7 @@
     - pandoc
     - par2
     - pkg-config
+    - poppler-utils
     - python-lxml
     - python-psutil
     - python-pylibacl
@@ -283,6 +284,7 @@
     - libboost-all-dev
     - libboost-python-dev
     - libboost-signals-dev
+    - libbz2-dev
     - libc6-i386
     - libcairomm-1.0-dev
     - libcap2-bin

@@ -30,18 +30,18 @@ exit-anaconda () {
 
 # show banner only in "i" == "interactive mode" (i.e. safe for running bash scripts)
 if [[ $- =~ i  && `whoami` != "root"  && `whoami` != "salvus" ]]; then
-   echo "┌──────────────────────────────────────────────────────────────────────────────────┐"
-   echo "│                Welcome to the SageMathCloud Terminal Environment                 │"
-   echo "│                                                                                  │"
-   echo "│ Software: sage, R, ipython, gap, gp, git, latexmk, isympy, java, julia, octave,  │"
-   echo "│ vim, emacs, nano, gcc, clang, pdflatex, xetex, node, convert, mc, htop, atop, ...│"
-   echo "│                                                        ┌─────────────────────────┤"
-   echo "│ Anaconda Python environment:  anaconda3                │ Usage: type command in  │"
-   echo "│    ... and to exit Anaconda:  exit-anaconda            │ then hit the return key │"
-   echo "│                                                        └─────────────────────────┤"
-   echo "│ Learn about the Linux Bash terminal:    http://ryanstutorials.net/linuxtutorial/ │"
-   echo "│ Are there any problems or is something missing?    email us at help@sagemath.com │"
-   echo "└──────────────────────────────────────────────────────────────────────────────────┘"
+   echo "             ┌───────────────────────────────────────────────────┐              "
+   echo "┌────────────┤ Welcome to the SageMathCloud Terminal Environment ├─────────────┐"
+   echo "│            └───────────────────────────────────────────────────┘             │"
+   echo "│ Software: sage R ipython gap gp git latexmk isympy java julia octave python3 │"
+   echo "│ vim emacs nano joe gcc clang ocaml pdflatex xetex node convert mc htop atop …│"
+   echo "│                                                    ┌─────────────────────────┤"
+   echo "│ Anaconda Python [continuum.io]: anaconda3          │ Usage: type command and │"
+   echo "│                ... and exit it:  exit-anaconda     │ then hit the return key │"
+   echo "│                                                    └─────────────────────────┤"
+   echo "│ Learn about the Linux terminal:     http://ryanstutorials.net/linuxtutorial/ │"
+   echo "│ Experiencing any problems or is something missing?   email help@sagemath.com │"
+   echo "└──────────────────────────────────────────────────────────────────────────────┘"
    echo ""
 fi
 
@@ -52,3 +52,7 @@ path-prepend "$HOME/bin"
 path-append  "/projects/data/homer/bin"
 path-append  "/projects/data/weblogo"
 export PATH
+
+# less: setup highlighting when searching for a string
+export LESS_TERMCAP_so=$'\E[;7m'
+export LESS_TERMCAP_se=$'\E[;27m'

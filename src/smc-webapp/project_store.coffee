@@ -191,6 +191,8 @@ class ProjectActions extends Actions
                             @_project().open_file(path:opts.path, foreground:opts.foreground)
                             if opts.chat
                                 @_project().show_editor_chat_window(opts.path)
+                            if opts.foreground
+                                @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
         return
 
     foreground_project : =>
