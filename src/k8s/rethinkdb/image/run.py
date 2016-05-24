@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import json, os, socket, subprocess as sub
+import json, os, requests, socket, subprocess
+
+# (Inspired by https://github.com/rosskukulinski/kubernetes-rethinkdb-cluster/blob/master/image/run.sh)
 
 def get_service(service):
     """
     Get in json format the kubernetes information about the given service.
-
-    (Based on https://github.com/rosskukulinski/kubernetes-rethinkdb-cluster/blob/master/image/run.sh)
     """
     if not os.environ['KUBERNETES_SERVICE_HOST']:
         return None
@@ -15,13 +15,8 @@ def get_service(service):
                      POD_NAMESPACE=os.environ.get('POD_NAMESPACE', 'default'),
                      service=service)
     token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
-    # TODO: use the Python3's http.client lib natively
-    # 1. https://docs.python.org/3/library/http.client.html#http.client.HTTPSConnection
-    # 2. https://docs.python.org/3/library/http.client.html#http.client.HTTPConnection.request
-    cmd='curl -s {URL} --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt --header "Authorization: Bearer {token}"'
-    cmd = cmd.format(URL=URL, token=token)
-    x = sub.Popen(cmd, stdout=sub.PIPE, shell=True).stdout.read().decode()
-    return json.loads(x)
+    headers={'Authorization':'Bearer {token}'.format(token=token)}
+    return requests.get(URL, headers=headers, verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt').json()
 
 def get_replicas():
     """
@@ -47,7 +42,7 @@ def start_rethinkdb():
         v.append("--join")
         v.append(ip)
     print(" ".join(v))
-    sub.call(v)
+    subprocess.call(v)
 
 if __name__ == "__main__":
     start_rethinkdb()

@@ -31,12 +31,11 @@ spec:
         name: rethinkdb-proxy
         terminationMessagePath: /dev/termination-log
         env:
-        - name: JOIN
-          value: {join}
         - name: INITIAL_PASSWORD
           value: {initial_password}
         ports:
         - containerPort: 28015
-          name: driver-port
+          hostPort: 28015
+          protocol: TCP
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

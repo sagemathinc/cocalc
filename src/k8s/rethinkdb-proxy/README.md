@@ -9,11 +9,10 @@ Build the image
 
 Then run it:
 
-    ./control.py run --tag 0  --replicas 3 --join [name/ip of a rethinkdb node somewhere]
-
+    ./control.py run --tag 0
 
 ### TODO:
 
-E.g., for testing with no password, I ran rethinkdb internally, then found the ip of a node with `kubectl describe pod ...`, and pointed at that.  Pointing at a service doesn't work at all.
+With no password:
 
-    ./control.py run -tag 0  --replicas 3 --no-password --join 10.244.2.3
+    ./control.py run -tag 0  --replicas 3 --no-password

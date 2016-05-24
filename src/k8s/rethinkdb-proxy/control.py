@@ -40,8 +40,7 @@ def run_on_kubernetes(args):
         initial_password = '"yes"'
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image=tag, replicas=args.replicas,
-                           join=args.join, initial_password=initial_password))
+        tmp.write(t.format(image=tag, replicas=args.replicas, initial_password=initial_password))
         tmp.flush()
         util.update_deployment(tmp.name)
 
@@ -67,9 +66,8 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
-    sub.add_argument("-j", "--join", help="name of a running rethinkdb machine to join")
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
-    sub.add_argument("-r", "--replicas", default=3, help="number of replicas") # todo -- need to run as daemon-- one on each node for best HA
+    sub.add_argument("-r", "--replicas", default=3, help="number of replicas")
     sub.add_argument("-n", "--no-password", action="store_true", help="use if main rethinkdb database has no password (obviously very insecure situation!)")
 
     sub.set_defaults(func=run_on_kubernetes)
