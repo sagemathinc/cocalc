@@ -9,11 +9,14 @@ MAINTAINER William Stein <wstein@sagemath.com>
 
 # Install RethinkDB.
 RUN \
-  apt-get update && apt-get install -y curl && \
+  apt-get update && apt-get install -y wget && \
   source /etc/lsb-release && \
   echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" > /etc/apt/sources.list.d/rethinkdb.list && \
-  curl https://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && \
-  apt-get update && apt-get install -y rethinkdb python3 python3-requests
+  wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && \
+  apt-get update && apt-get install -y rethinkdb python3 python3-requests && \
+  apt-get remove -y wget && \
+  apt-get autoremove -y && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY run.py /run.py
 

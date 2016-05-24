@@ -33,7 +33,7 @@ RUN \
   export PATH=$GOPATH/bin:$PATH && \
   CGO_ENABLED=0 GOOS=linux godep go build -a -installsuffix cgo -ldflags '-w' \
   -o service_loadbalancer ./service_loadbalancer.go ./loadbalancer_log.go && \
-  apt-get remove -y golang git && \
+  apt-get remove -y golang git curl && \
   apt-get autoremove -y && \
   rm -rf /kubernetes-contrib
 

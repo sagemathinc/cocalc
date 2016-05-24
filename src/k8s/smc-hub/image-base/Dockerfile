@@ -8,8 +8,8 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # Install the deps for building and running the hub.
 RUN \
   apt-get update && \
-  apt-get install -y curl git python make g++ sudo && \
-  curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
+  apt-get install -y wget git python make g++ sudo && \
+  wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs
 
 # Grab an initial version of the source code for SMC

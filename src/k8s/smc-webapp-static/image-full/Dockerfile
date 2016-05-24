@@ -15,8 +15,8 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 # Install Node.js and other prerequs for building the static content.
 RUN \
   apt-get update && \
-  apt-get install -y curl && \
-  curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
+  apt-get install -y wget && \
+  wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs git python python-yaml make && \
   npm install coffee-script -g
 
@@ -33,7 +33,7 @@ RUN mv /smc/src/static /static && rm -rf /smc
 
 # Remove build pre-requisites that are no longer needed for running nginx static server
 RUN \
-  apt-get -y remove curl git python python3 python-pip python3-pip python-yaml python-psutil sudo nodejs && \
+  apt-get -y remove wget git python python3 python-pip python3-pip python-yaml python-psutil sudo nodejs && \
   apt-get -y autoremove
 
 CMD ["nginx", "-g", "daemon off;"]

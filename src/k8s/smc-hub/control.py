@@ -17,7 +17,7 @@ import util
 # maybe be smc-webapp-static#sha1hash, which makes switching between versions easy, etc.
 NAME='smc-hub'
 
-def build(tag, pull, upgrade):
+def build(tag, rebuild, upgrade):
     """
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
@@ -32,7 +32,7 @@ def build(tag, pull, upgrade):
 
     # Next build smc-hub, which depends on smc-hub-base.
     v = ['sudo', 'docker', 'build', '-t', tag]
-    if pull:  # will cause a git pull to happen
+    if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH,'image'))
@@ -49,7 +49,7 @@ def get_tag(args):
 
 def build_docker(args):
     tag = get_tag(args)
-    build(tag, args.pull, args.upgrade)
+    build(tag, args.rebuild, args.upgrade)
     if not args.local:
         util.gcloud_docker_push(tag)
 
@@ -88,8 +88,8 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", default="", help="tag for this build")
-    sub.add_argument("-p", "--pull", action="store_true",
-                     help="repull latest hub source code from git and install any dependencies")
+    sub.add_argument("-r", "--rebuild", action="store_true",
+                     help="re-pull latest hub source code from git and install any dependencies")
     sub.add_argument("-u", "--upgrade", action="store_true",
                      help="re-install the base Ubuntu packages")
     sub.add_argument("-l", "--local", action="store_true",

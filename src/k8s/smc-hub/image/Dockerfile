@@ -16,7 +16,7 @@ RUN \
 # available when running the hub in production (e.g., having a compiler could
 # result in an exploit...). This doesn't save space, but may improve security.
 RUN \
-  SUDO_FORCE_REMOVE=yes apt-get remove -y curl git make g++ sudo && \
+  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
   apt-get autoremove -y
 
 # Launch the hub server
