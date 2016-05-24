@@ -1,80 +1,40 @@
 # RethinkDB on Kubernetes
 
-Build the image and push to gcloud
+Build the image and push to gcloud:
 
     ./control.py -r --tag=my_tag
 
-Create the rethinkdb deployments for each machine:
+Create the rethinkdb deployments for each machine (which creates peristent disks automatically):
 
-    ./control.py run 0 --tag=my_tag
-    # WAIT before doing this so join works
-    ./control.py run 1 --tag=my_tag
-    ./control.py run 2 --tag=my_tag
+    ./control.py run 0
 
-Forward the admin interface from a rethinkdb node to localhost:8080 on your kubectl client:
+Add additional nodes (wait a little before doing this so join works):
+
+    ./control.py run 1
+    ./control.py run 2
+
+View the web admin interface:
 
     ./control.py admin
 
+Get a bash shell on a node
 
-** TODO BELOW **
+    ./control.py bash -n=1
 
-### Disks
+## Specifying the disk size and type
 
-Creating two GCE disks, which we will mount to provide persistent storage for two rethinkdb server nodes:
+You can instead make the persistent disk a 15GB SSD instead:
 
-    gcloud compute disks create --size=10GB --zone=us-central1-c kubetest-rethinkdb-0 kubetest-rethinkdb-1
+    ./control.py run --size=15 --type=ssd 3
 
-### Services
+You can increase (but not decrease) the size of an existing disk. This *will* live-resize everything automatically, assuming ssh you can ssh to the minions:
 
-The cluster service is critical since it allows newly added rethinkdb nodes to find each other:
+    ./control.py run --size=15
 
-    kubectl create -f conf/cluster.yaml
+You can't change from standard to ssd.
 
-The driver service makes it so other nodes in the cluster can connect to rethinkdb:
-
-    kubectl create -f conf/driver.yaml
-
-
-
-
-----
-
-## Development Notes
 
 ### References
 
-This seems useful: https://github.com/rosskukulinski/kubernetes-rethinkdb-cluster
+This was helpful: https://github.com/rosskukulinski/kubernetes-rethinkdb-cluster
 
-
-
-### Kubernetes (getting the yaml)
-
-(Manual inspiration)
-
-Build for GCE repo and upload there -- do this in the image directory:
-
-    export VER=0.12; export PROJECT=sage-math-inc
-    docker build -t gcr.io/$PROJECT/rethinkdb:$VER . && gcloud docker push gcr.io/$PROJECT/rethinkdb:$VER
-
-Run on GCE as a deployment:
-
-    kubectl run rethinkdb --image=gcr.io/$PROJECT/rethinkdb:$VER --port=80
-
-Done
-
-    kubectl delete deployment rethinkdb
-
-## The rethinkdb-template.yaml file
-
-We get the first version of the yaml file that describes the deployment we made above by doing
-
-    kubectl get deployments rethinkdb -o yaml --export  > rethinkdb.yaml
-
-We then *edit* this file in various ways, e.g., to add persistent disks, health checks, etc.  To test:
-
-    kubectl replace -f rethinkdb.yaml
-
-The service yaml:
-
-    kubectl expose rethinkdb
-    kubectl get services -o yaml --export  rethinkdb > service.yaml

@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import os, requests, subprocess, time, yaml
+import json, os, requests, subprocess, time, yaml
 
 join = os.path.join
 
@@ -93,6 +93,15 @@ def get_deployments():
 def get_services():
     return [x.split()[0] for x in run(['kubectl', 'get', 'services'], get_output=True).splitlines()[1:]]
 
+def update_service(filename_yaml):
+    """
+    Create or replace the current kubernetes service described by the given file (which should only have one service in it).
+
+    - filename_yaml -- the name of a yaml file that describes a deployment
+    """
+    name = yaml.load(open(filename_yaml).read())['metadata']['name']
+    run(['kubectl', 'replace' if name in get_services() else 'create', '-f', filename_yaml])
+
 def update_deployment(filename_yaml):
     """
     Create or replace the current kubernetes deployment described by the given file.
@@ -152,3 +161,83 @@ def get_pods(**selector):
         return []
     headings = v[0].split()
     return [dict(zip(headings,x.split())) for x in v[1:]]
+
+def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None):
+    """
+    Ensure that there is a persistent disk with the given name.
+    If not, create the disk with the given size and type.
+
+    If the disk already exists and is smaller than the given size,
+    we will attempt to enlarge it to that size (which can be done even live!).
+    The disk will never be shrunk, and the type will not be changed.
+    """
+    v = run(['gcloud', 'compute', 'disks', 'list', name], get_output=True).splitlines()
+    print(v)
+    if len(v) <= 1:
+        # create disk
+        w = ['gcloud', 'compute', 'disks', 'create', name,
+             '--size', "{size}GB".format(size=size),
+             '--type', "pd-{type}".format(type=disk_type)]
+        resize = False
+    else:
+        # try to increase size of disk
+        if int(v[1].split()[2]) < size:
+            w = ['gcloud', '--quiet', 'compute', 'disks', 'resize', name,
+                 '--size', "{size}GB".format(size=size)]
+            resize = True
+        else:
+            return
+    if zone:
+        w.append('--zone')
+        w.append(zone)
+    run(w)
+
+    if resize:
+        resizefs_disk(name)
+
+def resizefs_disk(name):
+    host = get_instance_with_disk(name)
+    if host:
+        print("ssh into {host}, determine mount point of {name}, and do resize2fs".format(host=host, name=name))
+        v = run_on(host, "sudo df | grep {name}".format(name=name), get_output=True).split()
+        if len(v) > 0:
+            run_on(host, ['sudo', 'resize2fs', v[0]])
+    else:
+        print("disk {name} not mounted".format(name=name))
+
+def run_on(host, cmd, *args, **kwds):
+    v = ['ssh', '-o', 'StrictHostKeyChecking=no', host]
+    if isinstance(cmd, list):
+        v = v + cmd
+    else:
+        v = ' '.join(v) + ' ' + cmd
+    return run(v, *args, **kwds)
+
+def get_instance_with_disk(name):
+    """
+    If disk with given name is mounted on (at least) one instance,
+    return one with it mounted; otherwise, return None.
+
+    Raises exception if disk does not exist at all.
+    """
+    x = json.loads(run(['gcloud', '--format=json', 'compute', 'disks', 'describe', name], get_output=True))
+    if not 'users' in x:
+        return
+    users = x['users']
+    if len(users) <= 0:
+        return
+    return users[0].split('/')[-1]
+
+def exec_bash(**selector):
+    """
+    Run bash on the first Running pod that matches the given selector.
+    """
+    v = get_pods(**selector)
+    print(v)
+    v = [x for x in v if x['STATUS'] == 'Running']
+    if len(v) == 0:
+        print("No running matching pod %s"%selector)
+    else:
+        run(['kubectl', 'exec', '-it', v[0]['NAME'], 'bash'])
+
+

@@ -38,17 +38,33 @@ def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
+def ensure_persistent_disk_exists(context, number, size, disk_type):
+    name = "{context}-rethinkdb-{number}".format(context=context, number=number)
+    util.ensure_persistent_disk_exists(name, size=size, disk_type=disk_type)
+
+def ensure_services_exist():
+    v = util.get_services()
+    for s in ['driver', 'cluster']:
+        n = 'rethinkdb-'+s
+        if n not in v:
+            filename = join('conf', s + '.yaml')
+            print("creating service defined in '{filename}'".format(filename=filename))
+            util.update_service(filename)
+
 def run_on_kubernetes(args):
+    ensure_services_exist()
+    return
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME)
     context = util.get_kube_context()
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     for number in args.number:
+        ensure_persistent_disk_exists(context, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
             tmp.write(t.format(image=tag, number=number, context=context))
             tmp.flush()
             util.update_deployment(tmp.name)
-            
+
 def forward_admin(args):
     if args.number == -1:
         v = util.get_pods(db='rethinkdb')
@@ -61,6 +77,10 @@ def forward_admin(args):
         fwd = "ssh -L 8080:localhost:8080 salvus@{ip}".format(ip=util.external_ip())
         print("{dashes}Type this on your laptop, then visit http://localhost:8080\n\n    {fwd}{dashes}".format(fwd=fwd,dashes='\n\n'+'-'*70+'\n\n'))
         util.run(['kubectl', 'port-forward', v[0]['NAME'], '8080:8080'])
+
+def bash(args):
+    util.exec_bash(db='rethinkdb', instance=args.number)
+
 
 def stop_on_kubernetes(args):
     for number in args.number:
@@ -79,13 +99,19 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
-    sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
+    sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
+    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
+    sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('admin', help='forward port for an admin interface to localhost')
     sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_admin)
+
+    sub = subparsers.add_parser('bash', help='get a bash shell on the given rethinkdb pod')
+    sub.add_argument('-n', '--number', type=int, default=0, help='pod number')
+    sub.set_defaults(func=bash)
 
     sub = subparsers.add_parser('stop', help='stop running nodes')
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='+')
