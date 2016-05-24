@@ -110,3 +110,14 @@ def create_secret(name, filename):
                 name=name, filename=filename))
         v.append('--from-literal={basename}='.format(basename=os.path.split(filename)[1]))
     run(v)
+
+
+def get_tag(args, name):
+    tag = name
+    if args.tag:
+        tag += ':' + args.tag
+    elif not args.local:
+        return gcloud_most_recent_image(name)
+    if not args.local:
+        tag = gcloud_docker_repo(tag)
+    return tag
