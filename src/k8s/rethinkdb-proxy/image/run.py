@@ -24,7 +24,7 @@ def start_rethinkdb_proxy():
 
     cluster_info = get_service('rethinkdb-cluster')
     if 'subsets' in cluster_info:
-        for x in cluster_info['subsets'][0]['addresses']:
+        for x in cluster_info['subsets'][0].get('addresses', []):
             v.append('--join')
             v.append(x['ip'])
 

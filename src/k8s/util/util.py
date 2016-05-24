@@ -51,6 +51,9 @@ def get_default_gcloud_project_name():
         raise RuntimeError
     return a[i:].split()[1].strip('[]')
 
+def get_kube_context():
+    return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
+
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
 

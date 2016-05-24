@@ -26,7 +26,7 @@ def get_replicas():
     d = get_service('rethinkdb-cluster')
     if d is None:  # not in kubernetes
         return []
-    return [x['ip'] for x in d['subsets'][0]['addresses']]
+    return [x['ip'] for x in d['subsets'][0].get('addresses',[])]
 
 def other_replicas():
     our_ip = socket.gethostbyname(socket.gethostname())

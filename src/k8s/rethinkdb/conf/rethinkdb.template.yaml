@@ -51,5 +51,5 @@ spec:
       volumes:
       - gcePersistentDisk:
           fsType: ext4
-          pdName: kubetest-rethinkdb-{number}
+          pdName: {context}-rethinkdb-{number}
         name: rethinkdb-storage
