@@ -35,7 +35,6 @@ spec:
           value: {initial_password}
         ports:
         - containerPort: 28015
-          hostPort: 28015
           protocol: TCP
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
