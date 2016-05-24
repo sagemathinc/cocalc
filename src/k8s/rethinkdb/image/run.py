@@ -37,7 +37,8 @@ def start_rethinkdb():
         os.makedirs('/data')
     os.chdir('/data')
     NAME = socket.gethostname().split('-')[0]
-    v = ['rethinkdb', '--bind', 'all', '--no-http-admin', '--server-name', NAME]
+    # CRITICAL: http admin interface **Must** oly be on 127.0.0.1 to avoid potential security issues!
+    v = ['rethinkdb', '--bind-cluster', 'all', '--bind-driver', 'all', '--bind-http', '127.0.0.1', '--server-name', NAME]
     for ip in other_replicas():
         v.append("--join")
         v.append(ip)

@@ -2,9 +2,17 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import os, subprocess, time, yaml
+import os, requests, subprocess, time, yaml
 
 join = os.path.join
+
+def external_ip():
+    """
+    The external ip address of the node o which this code is run.
+    """
+    url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"
+    headers = {"Metadata-Flavor":"Google"}
+    return requests.get(url, headers=headers).content.decode()
 
 def run(v, shell=False, path='.', get_output=False):
     t = time.time()
@@ -114,7 +122,6 @@ def create_secret(name, filename):
         v.append('--from-literal={basename}='.format(basename=os.path.split(filename)[1]))
     run(v)
 
-
 def get_tag(args, name):
     tag = name
     if args.tag:
@@ -124,3 +131,24 @@ def get_tag(args, name):
     if not args.local:
         tag = gcloud_docker_repo(tag)
     return tag
+
+def get_pods(**selector):
+    """
+    Return all pods that match the given selector, e.g.
+
+        get_pods(db='rethikdb', instance=0)
+
+    returns a list of objects like this:
+
+        [{'READY': '1/1',
+          'STATUS': 'Running',
+          'NAME': 'rethinkdb0-1345666166-u06zx',
+          'RESTARTS': '0',
+          'AGE': '35m'}]
+    """
+    s = ','.join(["{k}={v}".format(k=k,v=v) for k, v in selector.items()])
+    v = run(['kubectl', 'get', 'pods', '--selector', s], get_output=True).splitlines()
+    if len(v) == 0:
+        return []
+    headings = v[0].split()
+    return [dict(zip(headings,x.split())) for x in v[1:]]

@@ -33,7 +33,7 @@ spec:
           instance : "{number}"
     spec:
       containers:
-      - image: gcr.io/sage-math-inc/rethinkdb:0.12
+      - image: {image}
         imagePullPolicy: Always # IfNotPresent
         name: rethinkdb0
         ports:

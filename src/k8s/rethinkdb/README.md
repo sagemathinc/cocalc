@@ -1,8 +1,25 @@
 # RethinkDB on Kubernetes
 
-## Instructions to use
+Build the image and push to gcloud
+
+    ./control.py -r --tag=my_tag
+
+Create the rethinkdb deployments for each machine:
+
+    ./control.py run 0 --tag=my_tag
+    # WAIT before doing this so join works
+    ./control.py run 1 --tag=my_tag
+    ./control.py run 2 --tag=my_tag
+
+Forward the admin interface from a rethinkdb node to localhost:8080 on your kubectl client:
+
+    ./control.py admin
+
+
+** TODO BELOW **
 
 ### Disks
+
 Creating two GCE disks, which we will mount to provide persistent storage for two rethinkdb server nodes:
 
     gcloud compute disks create --size=10GB --zone=us-central1-c kubetest-rethinkdb-0 kubetest-rethinkdb-1
@@ -17,12 +34,10 @@ The driver service makes it so other nodes in the cluster can connect to rethink
 
     kubectl create -f conf/driver.yaml
 
-### Create the rethinkdb deployments
 
-    ./control.py run 0
-    sleep 30
-    ./control.py run 1
 
+
+----
 
 ## Development Notes
 

@@ -48,6 +48,19 @@ def run_on_kubernetes(args):
             tmp.write(t.format(image=tag, number=number, context=context))
             tmp.flush()
             util.update_deployment(tmp.name)
+            
+def forward_admin(args):
+    if args.number == -1:
+        v = util.get_pods(db='rethinkdb')
+    else:
+        v = util.get_pods(db='rethinkdb', instance=args.number)
+    v = [x for x in v if x['STATUS'] == 'Running']
+    if len(v) == 0:
+        print("rethinkdb node number #{args.number} not available")
+    else:
+        fwd = "ssh -L 8080:localhost:8080 salvus@{ip}".format(ip=util.external_ip())
+        print("{dashes}Type this on your laptop, then visit http://localhost:8080\n\n    {fwd}{dashes}".format(fwd=fwd,dashes='\n\n'+'-'*70+'\n\n'))
+        util.run(['kubectl', 'port-forward', v[0]['NAME'], '8080:8080'])
 
 def stop_on_kubernetes(args):
     for number in args.number:
@@ -69,6 +82,10 @@ if __name__ == '__main__':
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
     sub.set_defaults(func=run_on_kubernetes)
+
+    sub = subparsers.add_parser('admin', help='forward port for an admin interface to localhost')
+    sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
+    sub.set_defaults(func=forward_admin)
 
     sub = subparsers.add_parser('stop', help='stop running nodes')
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='+')
