@@ -133,7 +133,7 @@ class Connection extends client.Connection
 
     # ATTN use @reset_idle, not this one here (see constructor above)
     _idle_reset: =>
-        console.log("idle: _idle_reset got called")
+        # console.log("idle: _idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
         @emit('idle', 'active')
 
