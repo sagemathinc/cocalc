@@ -65,7 +65,7 @@ def forward_admin(args):
         v = util.get_pods(db='rethinkdb', instance=args.number)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
-        print("rethinkdb node number #{args.number} not available")
+        print("rethinkdb node {number} not available".format(args.number))
     else:
         fwd = "ssh -L 8080:localhost:8080 salvus@{ip}".format(ip=util.external_ip())
         print("{dashes}Type this on your laptop, then visit http://localhost:8080\n\n    {fwd}{dashes}".format(fwd=fwd,dashes='\n\n'+'-'*70+'\n\n'))
@@ -76,8 +76,10 @@ def bash(args):
 
 
 def stop_on_kubernetes(args):
+    delete_services()
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
+
 
 def create_password(args):
     """
@@ -127,6 +129,12 @@ def load_password(args):
         raise RuntimeError("the password filename must be named 'rethinkdb'")
     util.create_secret('rethinkdb-password', path)
 
+def delete_services():
+    services = util.get_services()
+    for n in ['cluster', 'driver']:
+        s = 'rethinkdb-' + n
+        if s in services:
+            util.run(['kubectl', 'delete', 'service', s])
 
 def external(args):
     """
@@ -140,11 +148,7 @@ def external(args):
     x = yaml.dump([{'ip':ip} for ip in ips]).replace('-','    -')
     t = open(join('conf', 'external.template.yaml')).read().format(ips=x)
 
-    services = util.get_services()
-    for n in ['cluster', 'driver']:
-        s = 'rethinkdb-' + n
-        if s in services:
-            util.run(['kubectl', 'delete', 'service', s])
+    delete_services()
 
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t)
@@ -187,7 +191,7 @@ if __name__ == '__main__':
     sub.set_defaults(func=bash)
 
     sub = subparsers.add_parser('stop', help='stop running nodes')
-    sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='+')
+    sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
     sub.set_defaults(func=stop_on_kubernetes)
 
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))

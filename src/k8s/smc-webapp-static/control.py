@@ -66,15 +66,16 @@ def rebuild_host_static():
     util.run('. ./smc-env && ./install.py webapp', shell=True, path=join(SCRIPT_PATH, '..', '..'))
 
 def get_tag(args):
-    tag = NAME
+    name = NAME
     if args.full:
-        tag += '-full'
+        name += '-full'
     else:
-        tag += '-host'
+        name += '-host'
+    tag = name
     if args.tag:
         tag += ':' + args.tag
     elif not args.local:
-        return util.gcloud_most_recent_image(NAME)
+        return util.gcloud_most_recent_image(name)
     if not args.local:
         tag = util.gcloud_docker_repo(tag)
     return tag
