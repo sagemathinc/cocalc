@@ -3061,7 +3061,7 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        pool  : 100
+        pool  : 50
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this

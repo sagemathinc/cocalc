@@ -80,3 +80,5 @@ src/smc_sagews/build/*
 .eggs
 logs
 pids
+
+.gitignore

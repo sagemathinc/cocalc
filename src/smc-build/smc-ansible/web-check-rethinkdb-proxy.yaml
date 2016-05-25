@@ -17,7 +17,7 @@
   # don't change the cron name entry, it's used to identify it!
   - name: "install crontab check rethinkdb proxy"
     cron: name="check rethinkdb proxy"
-          state=present
+          state=absent
           user=salvus
           job="$HOME/bin/check_rethinkdb_proxy.py > ~/.check_rethinkdb_proxy.run 2>&1"
     tags: "cron"

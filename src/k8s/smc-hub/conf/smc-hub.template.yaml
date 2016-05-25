@@ -5,13 +5,13 @@ metadata:
     deployment.kubernetes.io/revision: "1"
   generation: 2
   labels:
-    run: hub
-  name: hub
+    run: smc-hub
+  name: smc-hub
 spec:
-  replicas: 1
+  replicas: {replicas}
   selector:
     matchLabels:
-      run: hub
+      run: smc-hub
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -20,23 +20,33 @@ spec:
   template:
     metadata:
       labels:
-        run: hub
+        run: smc-hub
     spec:
       containers:
-      - image: gcr.io/sage-math-inc/hub:prod-0.21
-        imagePullPolicy: Always
-        name: hub
+      - image: {image}
+        imagePullPolicy: Always # IfNotPresent
+        name: smc-hub
         ports:
         - containerPort: 5000
           protocol: TCP
         - containerPort: 5001
           protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /alive
+            port: 5000
+            scheme: HTTP
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
           readOnly: true
         - name: secret-sendgrid
           mountPath: /secrets/sendgrid/
+          readOnly: true
+        - name: secret-zendesk
+          mountPath: /secrets/zendesk/
           readOnly: true
       volumes:
         - name: secret-rethinkdb
@@ -45,3 +55,6 @@ spec:
         - name: secret-sendgrid
           secret:
             secretName: sendgrid-api-key
+        - name: secret-zendesk
+          secret:
+            secretName: zendesk-api-key

@@ -124,16 +124,16 @@ class Connection extends client.Connection
     # periodically check if the user hasn't been active
     _idle_check: =>
         now = (new Date()).getTime()
-        #console.log("idle: checking idle #{@_idle_time} < #{now}")
+        # console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
             true
         else
             false
 
-    # ATTN use @reset_idle, not this one here (defined in constructor)
+    # ATTN use @reset_idle, not this one here (see constructor above)
     _idle_reset: =>
-        # console.log("idle: idle_reset got called")
+        # console.log("idle: _idle_reset got called")
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
         @emit('idle', 'active')
 
