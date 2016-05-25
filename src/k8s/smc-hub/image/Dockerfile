@@ -19,7 +19,7 @@ RUN \
   SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
   apt-get autoremove -y
 
-# Launch the hub server
+# Launch the hub server listening on all interfaces
 CMD \
   cd /smc/src && \
   . ./smc-env && \

@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy:  IfNotPresent
+        imagePullPolicy: Always # IfNotPresent
         name: smc-hub
         ports:
         - containerPort: 5000
@@ -36,6 +36,7 @@ spec:
             path: /alive
             port: 5000
             scheme: HTTP
+          initialDelaySeconds: 15
           timeoutSeconds: 1
         volumeMounts:
         - name: secret-rethinkdb

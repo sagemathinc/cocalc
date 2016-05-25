@@ -53,6 +53,15 @@ def stop_on_kubernetes(args):
 def expose(args):
     util.run(['kubectl', 'expose', 'deployment', NAME])
 
+def forward_test(args):
+    v = util.get_pods(run='rethinkdb-proxy')
+    v = [x for x in v if x['STATUS'] == 'Running']
+    if len(v) == 0:
+        print("No rethinkdb-proxy nodes available")
+    else:
+        print("\n\nYou may connect to rethinkdb on localhost:\n\n")
+        util.run(['kubectl', 'port-forward', v[0]['NAME'], '28015:28015'])
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -69,8 +78,10 @@ if __name__ == '__main__':
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-r", "--replicas", default=3, help="number of replicas")
     sub.add_argument("-n", "--no-password", action="store_true", help="use if main rethinkdb database has no password (obviously very insecure situation!)")
-
     sub.set_defaults(func=run_on_kubernetes)
+
+    sub = subparsers.add_parser('test', help='forward 28015 port from some pod to localhost for testing purposes')
+    sub.set_defaults(func=forward_test)
 
     sub = subparsers.add_parser('stop', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
