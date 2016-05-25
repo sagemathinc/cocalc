@@ -85,6 +85,55 @@ def stop_on_kubernetes(args):
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
 
+def create_password(args):
+    """
+    Change the rethinkdb admin password.
+    """
+    host = util.get_pod_ip(db='rethinkdb')
+    if not host:
+        raise RuntimeError("no running rethinkdb servers, so can't change password")
+
+    path = args.path
+    if not os.path.exists(path):
+        os.makedirs(path)
+    elif not os.path.isdir(path):
+        raise RuntimeError('path must be a directory')
+
+    new_password = util.random_password(63)
+
+    name = 'rethinkdb-password'
+
+    # Get the current RethinkDB password from Kubernetes
+    old_password = util.get_secret(name).get('rethinkdb', None)
+    if old_password:
+        if input("Password already set.  Are you sure you want to change it?  type 'YES'") != 'YES':
+            raise RuntimeError("NOT changing password")
+    if old_password == '':
+        old_password = None
+
+    # Write the new password to disk (better to have it so if we set it below and die then at least it isn't lost!)
+    open(os.path.join(path, 'rethinkdb'), 'w').write(new_password)
+
+    # Set the new password in rethinkdb
+    import rethinkdb as r
+    conn = r.connect(host=host, auth_key=old_password)
+    r.db('rethinkdb').table('users').get('admin').update({'password': new_password}).run(conn)
+
+    # Load the new password into Kubernetes
+    util.create_secret(name, path)
+
+def load_password(args):
+    """
+    Load the admin password into Kubernetes from disk
+    """
+    path = args.path
+    if not os.path.isdir(path):
+        raise RuntimeError('path must be a directory')
+    if not os.path.exists(os.path.join(path, 'rethinkdb')):
+        raise RuntimeError("the password filename must be named 'rethinkdb'")
+    util.create_secret('rethinkdb-password', path)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -108,6 +157,14 @@ if __name__ == '__main__':
     sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_admin)
 
+    sub = subparsers.add_parser('create-password', help='create or regenerate the rethinkdb admin password (both in the database and in k8s)')
+    sub.add_argument('path', type=str, help='path to directory that will contain the new password in a file "rethinkdb"')
+    sub.set_defaults(func=create_password)
+
+    sub = subparsers.add_parser('load-password', help='load the rethinkdb admin password into k8s from a file on disk')
+    sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "rethinkdb"')
+    sub.set_defaults(func=load_password)
+
     sub = subparsers.add_parser('bash', help='get a bash shell on the given rethinkdb pod')
     sub.add_argument('-n', '--number', type=int, default=0, help='pod number')
     sub.set_defaults(func=bash)
@@ -118,6 +175,8 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
+
+
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

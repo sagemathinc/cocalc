@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import json, os, requests, subprocess, time, yaml
+import base64, json, os, requests, subprocess, time, yaml
 
 join = os.path.join
 
@@ -145,7 +145,7 @@ def get_pods(**selector):
     """
     Return all pods that match the given selector, e.g.
 
-        get_pods(db='rethikdb', instance=0)
+        get_pods(db='rethinkdb', instance=0)
 
     returns a list of objects like this:
 
@@ -161,6 +161,17 @@ def get_pods(**selector):
         return []
     headings = v[0].split()
     return [dict(zip(headings,x.split())) for x in v[1:]]
+
+def get_pod_ip(**selector):
+    """
+    Return ip address of a pod that match the given selector, if there are any.  Otherwise, returns None.
+    """
+    for x in get_pods(**selector):
+        if x['STATUS'] == 'Running':
+            s = json.loads(run(['kubectl', 'get', 'pods', x['NAME'], '-o', 'json'], get_output=True))
+            return s['status']['podIP']
+    return None
+
 
 def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None):
     """
@@ -240,4 +251,17 @@ def exec_bash(**selector):
     else:
         run(['kubectl', 'exec', '-it', v[0]['NAME'], 'bash'])
 
+def get_secrets():
+    return [x.split()[0] for x in run(['kubectl', 'get', 'secrets'], get_output=True).splitlines()[1:]]
 
+def get_secret(name):
+    if name not in get_secrets():
+        return {}
+    else:
+        d = {}
+        for k, v in json.loads(run(['kubectl', 'get', 'secrets', name, '-o', 'json'], get_output=True))['data'].items():
+            d[k] = base64.b64decode(v)
+        return d
+
+def random_password(n=31):
+    return base64.b64encode(os.urandom(n)).decode()[:n]

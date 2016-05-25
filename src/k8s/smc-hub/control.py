@@ -77,7 +77,6 @@ def secrets(args):
     path = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
     if not os.path.exists(path):
         os.makedirs(path)
-    util.create_secret('rethinkdb-password', join(path, 'rethinkdb'))
     util.create_secret('sendgrid-api-key',   join(path, 'sendgrid'))
     util.create_secret('zendesk-api-key',    join(path, 'zendesk'))
 
@@ -107,7 +106,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
 
-    sub = subparsers.add_parser('secrets', help='load secrets needed by the {name} pods'.format(name=NAME))
+    sub = subparsers.add_parser('secrets', help="load sendgrid and zendesk api-key's, which must be in files named 'sendgrid' and 'zendesk' in '{path}'".format(path=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))))
     sub.set_defaults(func=secrets)
 
     args = parser.parse_args()
