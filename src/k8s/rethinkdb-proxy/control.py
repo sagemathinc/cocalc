@@ -55,7 +55,7 @@ def forward_test(args):
     if len(v) == 0:
         print("No rethinkdb-proxy nodes available")
     else:
-        print("\n\nYou may connect to rethinkdb on localhost:\n\n")
+        print("\n\nYou may connect to rethinkdb-proxy on localhost:\n\n")
         util.run(['kubectl', 'port-forward', v[0]['NAME'], '28015:28015'])
 
 if __name__ == '__main__':

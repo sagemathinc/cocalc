@@ -68,13 +68,13 @@ def gcloud_docker_repo(tag):
 def gcloud_docker_push(name):
     run(['gcloud', 'docker', 'push', name])
 
-def gcloud_most_recent_image(prefix):
-    x = gcloud_images(prefix=prefix)[0]
+def gcloud_most_recent_image(name):
+    x = gcloud_images(name)[0]
     return x['REPOSITORY'] + ':' + x['TAG']
 
-def gcloud_images(prefix=''):
-    if prefix:
-        prefix = gcloud_docker_repo(prefix)
+def gcloud_images(name=''):
+    if name:
+        name = gcloud_docker_repo(name)
     x = run(['gcloud', 'docker', 'images'], get_output=True)
     i = x.find("REPOSITORY")
     if i == 1:
@@ -85,7 +85,7 @@ def gcloud_images(prefix=''):
     a = []
     for w in v[1:]:
         a.append(dict(zip(headers, w.split()[:2])))
-    return [x for x in a if x['REPOSITORY'].startswith(prefix)]
+    return [x for x in a if x['REPOSITORY'] == name]
 
 def get_deployments():
     return [x.split()[0] for x in run(['kubectl', 'get', 'deployments'], get_output=True).splitlines()[1:]]

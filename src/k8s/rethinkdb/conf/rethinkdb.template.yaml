@@ -33,7 +33,7 @@ spec:
           instance : "{number}"
     spec:
       containers:
-      - image: {image}
+      - image: "{image}"
         imagePullPolicy: Always # IfNotPresent
         name: rethinkdb0
         ports:
@@ -42,14 +42,27 @@ spec:
         - containerPort: 29015
           name: cluster-port
         terminationMessagePath: /dev/termination-log
+        livenessProbe:
+          exec:
+            command:
+            - /health.py
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
         volumeMounts:
         - mountPath: /data
           name: rethinkdb-storage
+        - mountPath: /secrets/rethinkdb/
+          name: secret-rethinkdb
+          readOnly: true
+      volumes:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       volumes:
-      - gcePersistentDisk:
+      - name: rethinkdb-storage
+        gcePersistentDisk:
           fsType: ext4
           pdName: {context}-rethinkdb-{number}
-        name: rethinkdb-storage
+      - name: secret-rethinkdb
+        secret:
+          secretName: rethinkdb-password
