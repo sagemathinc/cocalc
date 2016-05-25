@@ -108,7 +108,6 @@ def run_on_kubernetes(args):
     if NAME not in util.get_services():
         util.run(['kubectl', 'expose', 'deployment', NAME])
 
-
 def stop_on_kubernetes(args):
     util.stop_deployment(NAME)
 
@@ -131,6 +130,8 @@ if __name__ == '__main__':
     sub.add_argument("-r", "--replicas", default=2, help="number of replicas")
     sub.add_argument("-f", "--full", action="store_true", help="if true, use image built using --full option")
     sub.set_defaults(func=run_on_kubernetes)
+
+    util.add_autoscale_parser(NAME, subparsers)
 
     sub = subparsers.add_parser('stop', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)

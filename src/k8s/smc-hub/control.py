@@ -111,6 +111,8 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('secrets', help="load sendgrid and zendesk api-key's, which must be in files named 'sendgrid' and 'zendesk' in '{path}'".format(path=SECRETS))
     sub.set_defaults(func=secrets)
 
+    util.add_autoscale_parser(NAME, subparsers)
+
     args = parser.parse_args()
     if hasattr(args, 'func'):
         args.func(args)

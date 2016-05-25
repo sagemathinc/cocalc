@@ -251,8 +251,11 @@ def exec_bash(**selector):
     else:
         run(['kubectl', 'exec', '-it', v[0]['NAME'], 'bash'])
 
+def get_resources(resource_type):
+    return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]
+
 def get_secrets():
-    return [x.split()[0] for x in run(['kubectl', 'get', 'secrets'], get_output=True).splitlines()[1:]]
+    return get_resources('secrets')
 
 def get_secret(name):
     if name not in get_secrets():
@@ -265,3 +268,34 @@ def get_secret(name):
 
 def random_password(n=31):
     return base64.b64encode(os.urandom(n)).decode()[:n]
+
+def get_pod_autoscalers():
+    return get_resources('horizontalpodautoscalers')
+
+def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
+    if deployment in get_pod_autoscalers():
+        run(['kubectl', 'delete', 'hpa', deployment])
+    v = ['kubectl', 'autoscale', 'deployment']
+    if min is not None:
+        v.append("--min")
+        v.append(str(min))
+    if max is not None:
+        v.append("--max")
+        v.append(str(max))
+    if cpu_percent is not None:
+        v.append("--cpu-percent")
+        v.append(str(cpu_percent))
+    v.append(deployment)
+    run(v)
+
+
+def add_autoscale_parser(name, subparsers):
+    sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
+    sub.add_argument("--min",  default=None, help="MINPODS")
+    sub.add_argument("--max", help="MAXPODS (required and must be at least 1)")
+    sub.add_argument("--cpu-percent", default=None, help="CPU")
+    def f(args):
+        autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
+    sub.set_defaults(func=f)
+
+

@@ -84,6 +84,8 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('expose', help='make deployment publicly visible via a public load balancer')
     sub.set_defaults(func=expose)
 
+    util.add_autoscale_parser(NAME, subparsers)
+
     args = parser.parse_args()
     if hasattr(args, 'func'):
         args.func(args)
