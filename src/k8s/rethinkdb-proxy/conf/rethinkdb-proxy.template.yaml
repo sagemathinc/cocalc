@@ -36,5 +36,11 @@ spec:
         ports:
         - containerPort: 28015
           protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - /health.py
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
