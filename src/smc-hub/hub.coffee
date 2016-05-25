@@ -2787,7 +2787,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                                 err = "invalid old password"
                                 database.log
                                     event : 'change_password'
-                                    value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:err}
+                                    value :
+                                        email_address     :mesg.email_address
+                                        client_ip_address :client_ip_address
+                                        message            :err
                                 cb(err)
                             else
                                 cb()
@@ -2891,30 +2894,28 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 #   * a given ip address can send at most 100 password reset request per minute
 #   * a given ip can send at most 250 per hour
 #############################################################################
-forgot_password = (mesg, client_ip_address, push_to_client) ->
-    if mesg.event != 'forgot_password'
-        push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
-        return
 
+# forgot-password activity for requesting a token in an email for a given email address
+forgot_password_impl = exports.forgot_password_impl = (email_address, client_ip_address, cb) ->
     # This is an easy check to save work and also avoid empty email_address, which causes trouble below
-    if not misc.is_valid_email_address(mesg.email_address)
-        push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
+    if not misc.is_valid_email_address(email_address)
+        cb("Invalid email address.")
         return
 
-    mesg.email_address = misc.lower_email_address(mesg.email_address)
+    email_address = misc.lower_email_address(email_address)
 
     id = null
     async.series([
         (cb) ->
             # Record this password reset attempt in our database
             database.record_password_reset_attempt
-                email_address : mesg.email_address
+                email_address : email_address
                 ip_address    : client_ip_address
                 cb            : cb
         (cb) ->
             # POLICY 1: We limit the number of password resets that an email address can receive
             database.count_password_reset_attempts
-                email_address : mesg.email_address
+                email_address : email_address
                 age_s         : 60*60  # 1 hour
                 cb            : (err, count) ->
                     if err
@@ -2950,12 +2951,12 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         cb()
         (cb) ->
             database.account_exists
-                email_address : mesg.email_address
+                email_address : email_address
                 cb : (err, exists) ->
                     if err
                         cb(err)
                     else if not exists
-                        cb("No account with e-mail address #{mesg.email_address}")
+                        cb("No account with e-mail address #{email_address}")
                     else
                         cb()
         (cb) ->
@@ -2963,65 +2964,73 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
             # put entry in the password_reset uuid:value table with ttl of
             # 1 hour, and send an email
             database.set_password_reset
-                email_address : mesg.email_address
+                email_address : email_address
                 ttl           : 60*60
                 cb            : (err, _id) ->
                     id = _id; cb(err)
         (cb) ->
-            # send an email to mesg.email_address that has a password reset link
+            # send an email to `email_address` that has a password reset link
+            # link = "https://cloud.sagemath.com#forgot-#{id}"
+            link = "https://cloud.sagemath.com/v1/password_reset/#{id}"
             body = """
-                <div>Hello,</div>
-                <div>&nbsp;</div>
-                <div>
-                Somebody just requested to change the password of your SageMathCloud account.
-                If you requested this password change, please click this link:</div>
-                <div>&nbsp;</div>
-                <div style="text-align: center;">
-                <span style="font-size:12px;"><b>
-                  <a href="https://cloud.sagemath.com#forgot-#{id}">https://cloud.sagemath.com#forgot-#{id}</a>
-                </b></span>
-                </div>
-                <div>&nbsp;</div>
-                <div>If you don't want to change your password, ignore this message.</div>
-                <div>&nbsp;</div>
-                <div>In case of problems, email
-                <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
-                (or just reply to this email).
-                <div>&nbsp;</div>
-                """
+            <div>Hello,</div>
+            <div>&nbsp;</div>
+            <div>
+            Somebody just requested to change the password of your SageMathCloud account.
+            If you requested this password change, please click this link:</div>
+            <div>&nbsp;</div>
+            <div style="text-align: center;">
+            <span style="font-size:12px;"><b>
+              <a href="#{link}">#{link}</a>
+            </b></span>
+            </div>
+            <div>&nbsp;</div>
+            <div>If you don't want to change your password, ignore this message.</div>
+            <div>&nbsp;</div>
+            <div>In case of problems, email
+            <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
+            (or just reply to this email).
+            <div>&nbsp;</div>
+            """
 
             send_email
                 subject : 'SageMathCloud Password Reset'
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
-                to      : mesg.email_address
+                to      : email_address
                 category: "password_reset"
                 cb      : cb
+
     ], (err) ->
+        cb(err)
+    )
+
+# this is the entry point for webapp UI ←→ hub requests
+forgot_password = (mesg, client_ip_address, push_to_client) ->
+    if mesg.event != 'forgot_password'
+        push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
+        return
+
+    forgot_password_impl mesg.email_address, client_ip_address, (err) ->
         if err
             push_to_client(message.forgot_password_response(id:mesg.id, error:err))
         else
             push_to_client(message.forgot_password_response(id:mesg.id))
-    )
 
 
-
-reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
-    if mesg.event != 'reset_forgot_password'
-        push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
-        return
-
+# implementation of the forgot-password action to set the password
+reset_forgot_password_impl = exports.reset_forgot_password_impl = (token, new_password, cb) ->
     email_address = account_id = db = null
 
     async.series([
         (cb) ->
             # Verify password is valid and compute its hash.
-            [valid, reason] = is_valid_password(mesg.new_password)
+            [valid, reason] = is_valid_password(new_password)
             if not valid
                 cb(reason); return
             # Check that request is still valid
             database.get_password_reset
-                id : mesg.reset_code
+                id   : token
                 cb   : (err, x) ->
                     if err
                         cb(err)
@@ -3041,18 +3050,27 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
             # Make the change
             database.change_password
                 account_id    : account_id
-                password_hash : auth.password_hash(mesg.new_password)
+                password_hash : auth.password_hash(new_password)
                 cb            : (err, account) ->
                     if err
                         cb(err)
                     else
                         # only allow successful use of this reset token once
                         database.delete_password_reset
-                            id : mesg.reset_code
+                            id : token
                             cb : cb
     ], (err) ->
-        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
+        cb(err)
     )
+
+# this is the entry point for webapp UI ←→ hub requests
+reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
+    if mesg.event != 'reset_forgot_password'
+        push_to_client(message.error(id:mesg.id, error:"incorrect message event type: #{mesg.event}"))
+        return
+
+    reset_forgot_password_impl mesg.reset_code, mesg.new_password, (err) ->
+        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
 
 ###
 Connect to database
