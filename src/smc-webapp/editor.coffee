@@ -4503,7 +4503,7 @@ class ReactCodemirror extends FileEditorWrapper
         editor_codemirror.render(args...)
 
 class ReactTerminal extends FileEditorWrapper
-    init_wrapped: () =>
+    init_wrapped: (editor) =>
         editor_terminal = require('./editor_terminal')
         @element = $("<div>")
         @element.css
@@ -4515,11 +4515,11 @@ class ReactTerminal extends FileEditorWrapper
             bottom             : 0
 
         args =
-            project_id : @editor.project_id
+            project_id : editor.project_id
             filename   : @filename
             dom_node   : @element[0]
             redux      : require('./smc-react').redux
-            editor     : @editor
+#            editor     : {editor : editor} # WTF this is complete garbage
         @wrapped =
             save    : undefined
             destroy : =>

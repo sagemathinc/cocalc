@@ -132,11 +132,11 @@ class Console extends EventEmitter
         @_init_default_settings()
 
         if @opts.project_id
-            project_id = @opts.project_id
+            @project_id = @opts.project_id
         else
-            project_id = @opts.editor?.editor.project_id
+            @project_id = @opts.editor?.editor.project_id
 
-        @_project_actions = smc.redux.getProjectActions(project_id)
+        @_project_actions = smc.redux.getProjectActions(@project_id)
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
