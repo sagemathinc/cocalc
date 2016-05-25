@@ -17,6 +17,8 @@ import util
 # maybe be smc-webapp-static#sha1hash, which makes switching between versions easy, etc.
 NAME='smc-hub'
 
+SECRETS = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
+
 def build(tag, rebuild, upgrade):
     """
     Build Docker container by installing and building everything inside the container itself, and
@@ -74,7 +76,7 @@ def stop_on_kubernetes(args):
     util.stop_deployment(NAME)
 
 def secrets(args):
-    path = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
+    path = SECRETS
     if not os.path.exists(path):
         os.makedirs(path)
     util.create_secret('sendgrid-api-key',   join(path, 'sendgrid'))
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
 
-    sub = subparsers.add_parser('secrets', help="load sendgrid and zendesk api-key's, which must be in files named 'sendgrid' and 'zendesk' in '{path}'".format(path=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))))
+    sub = subparsers.add_parser('secrets', help="load sendgrid and zendesk api-key's, which must be in files named 'sendgrid' and 'zendesk' in '{path}'".format(path=SECRETS))
     sub.set_defaults(func=secrets)
 
     args = parser.parse_args()

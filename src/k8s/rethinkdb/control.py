@@ -2,12 +2,6 @@
 """
 Basic script to do a little bit toward automating creating rethinkdb cluster.
 
-TODO:
-
- - automatic creation of PD
- - template conf/rethinkdb-template.yaml, e.g,. kubetest is hard coded now?
- - creating the other two services in conf/
- - auto create service rethinkdb-cluster to make non-containerized external database available inside k8s cluster
 """
 
 
@@ -134,6 +128,29 @@ def load_password(args):
     util.create_secret('rethinkdb-password', path)
 
 
+def external(args):
+    """
+    Configure external service (without selectors) and endpoints so the rethinkdb-driver
+    and rethinkdb-cluster services point outside the k8s cluster.
+    This makes it possible to use an external rethinkdb database without having
+    to change anything else.
+    """
+    import socket, yaml
+    ips = [socket.gethostbyname(host) for host in args.instances]
+    x = yaml.dump([{'ip':ip} for ip in ips]).replace('-','    -')
+    t = open(join('conf', 'external.template.yaml')).read().format(ips=x)
+
+    services = util.get_services()
+    for n in ['cluster', 'driver']:
+        s = 'rethinkdb-' + n
+        if s in services:
+            util.run(['kubectl', 'delete', 'service', s])
+
+    with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
+        tmp.write(t)
+        tmp.flush()
+        util.run(['kubectl', 'create', '-f', tmp.name])
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -176,7 +193,9 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
 
-
+    sub = subparsers.add_parser('external', help='create service that is external to kubernetes')
+    sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')
+    sub.set_defaults(func=external)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

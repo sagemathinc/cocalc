@@ -33,7 +33,7 @@ def start_rethinkdb_proxy():
 
     # CRITICAL: The database we join *must* have a password, or "--initial-password auto" will break.
     # That's why we open and read the rethinkdb password.
-    if open('/secrets/rethinkdb/rethinkdb').read():
+    if open('/secrets/rethinkdb/rethinkdb').read().strip():
         v.append('--initial-password')
         v.append('auto')
 
