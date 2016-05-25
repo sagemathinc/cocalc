@@ -30,9 +30,6 @@ spec:
         imagePullPolicy: Always
         name: rethinkdb-proxy
         terminationMessagePath: /dev/termination-log
-        env:
-        - name: INITIAL_PASSWORD
-          value: {initial_password}
         ports:
         - containerPort: 28015
           protocol: TCP
@@ -42,5 +39,13 @@ spec:
             - /health.py
           initialDelaySeconds: 15
           timeoutSeconds: 1
+        volumeMounts:
+        - name: secret-rethinkdb
+          mountPath: /secrets/rethinkdb/
+          readOnly: true
+      volumes:
+        - name: secret-rethinkdb
+          secret:
+            secretName: rethinkdb-password
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

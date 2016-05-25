@@ -24,12 +24,16 @@ def start_rethinkdb_proxy():
 
     cluster_info = get_service('rethinkdb-cluster')
     if 'subsets' in cluster_info:
+        if len(cluster_info['subsets']) == 0:
+            print("Nothing to join -- giving up.")
+            return
         for x in cluster_info['subsets'][0].get('addresses', []):
             v.append('--join')
             v.append(x['ip'])
 
-    if os.environ.get('INITIAL_PASSWORD', False):
-        # NOTE: The database we join *must* have a password, or "--initial-password auto" will break.
+    # CRITICAL: The database we join *must* have a password, or "--initial-password auto" will break.
+    # That's why we open and read the rethinkdb password.
+    if open('/secrets/rethinkdb/rethinkdb').read():
         v.append('--initial-password')
         v.append('auto')
 

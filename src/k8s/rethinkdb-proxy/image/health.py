@@ -8,7 +8,10 @@ to the database on localhost at all.
 
 def is_healthy():
     try:
-        rethinkdb.connect(host='localhost', timeout=2)
+        auth_key = open('/secrets/rethinkdb/rethinkdb').read().strip()
+        if not auth_key:
+            auth_key = None
+        rethinkdb.connect(host='localhost', timeout=2, auth_key=auth_key)
         return True
     except:
         return False
