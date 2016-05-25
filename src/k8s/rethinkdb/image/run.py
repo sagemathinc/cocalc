@@ -42,6 +42,10 @@ def start_rethinkdb():
     for ip in other_replicas():
         v.append("--join")
         v.append(ip)
+    if open('/secrets/rethinkdb/rethinkdb').read():
+        # Just in case we don't have a password already, but there is one set.
+        v.append('--initial-password')
+        v.append('auto')
     print(" ".join(v))
     subprocess.call(v)
 
