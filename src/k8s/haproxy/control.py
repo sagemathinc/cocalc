@@ -73,10 +73,6 @@ def expose(args):
     util.run(['kubectl', 'expose', 'deployment', NAME, '--type=LoadBalancer'])
     print("Type 'kubectl get services haproxy' in about 2 minutes to see the external IP address.")
 
-def bash(args):
-    util.exec_bash(args.number, run='haproxy')
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -109,10 +105,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('expose', help='make deployment publicly visible via a public load balancer')
     sub.set_defaults(func=expose)
 
-    sub = subparsers.add_parser('bash', help='get a bash shell on n-th haproxy node')
-    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
-    sub.set_defaults(func=bash)
-
+    util.add_bash_parser(NAME, subparsers)
     util.add_autoscale_parser(NAME, subparsers)
 
     args = parser.parse_args()

@@ -296,6 +296,12 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
+def add_bash_parser(name, subparsers):
+    def f(args):
+        exec_bash(args.number, run=name)
+    sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
+    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
+    sub.set_defaults(func=f)
 
 def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment')

@@ -126,6 +126,7 @@ if __name__ == '__main__':
                     default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets')))
     sub.set_defaults(func=lambda args: load_secret('zendisk',args))
 
+    util.add_bash_parser(NAME, subparsers)
     util.add_autoscale_parser(NAME, subparsers)
 
     args = parser.parse_args()
