@@ -126,7 +126,7 @@ class DevTerminalActions extends Actions
 
     increment_font_size: ->
         console.log('increment_font_size being called')
-        @set_state('font_size':(@get_store.get('font_size') + 1))
+        @set_state('font_size':(@get_store().get('font_size') + 1))
 
     decrement_font_size: ->
         console.log('decrement_font_size being called')
@@ -134,8 +134,8 @@ class DevTerminalActions extends Actions
     reconnect: ->
         console.log('reconnect being called')
 
-    pause_terminal: ->
-        console.log('pause_terminal being called')
+    toggle_pause: ->
+        console.log('toggle_pause being called')
 
     open_history_file: ->
         console.log('open_history_file being called')
@@ -169,32 +169,37 @@ TerminalEditor = (name) -> rclass
     getDefaultProps : ->
       font_size : 12
 
+    getInitialState : ->
+        paused : false
+
     _init_terminal : ->
         # Find the DOM node
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         console.log("THIS IS THE EDITOR:", @props.editor)
 
         @_terminal = new Console
-            element   : node
-            title     : "Terminal"
-            filename  : @props.filename
-            resizable : false
-            project_id: @props.project_id
-            editor    : @props.editor
-            rows      : 80
-            cols      : 120
+            element     : node
+            title       : "Terminal"
+            filename    : @props.filename
+            resizable   : false
+            project_id  : @props.project_id
+            editor      : @props.editor
+            on_pause    : @toggle_pause
+            on_unpause  : @toggle_pause
             font :
-              size: @props.font_size
+                size    : @props.font_size
 
     componentDidMount : ->
         @_init_terminal()
         @props.actions.connect_terminal((session) => @_terminal.set_session(session); console.log("THIS IS THE SESSION: ", session))
 
+    # Works
     increase_font_size : ->
         console.log("Increase font size")
         @_terminal._increase_font_size()
-        @props.actions.increment_font_size() # Passed back down through props
+        #@props.actions.increment_font_size() # Passed back down through props
 
+    # Works
     decrease_font_size : ->
         console.log("Decrease font size")
         @_terminal._decrease_font_size()
@@ -202,11 +207,16 @@ TerminalEditor = (name) -> rclass
 
     reconnect : ->
         console.log("Reconnecting")
-        #@props.actions.reconnect()
+        @_terminal.session?.reconnect()
 
-    pause_terminal : ->
+    # Works
+    toggle_pause : (e) ->
         console.log("Pausing Terminal")
-        #@props.actions.pause_terminal()
+        if e   # Was triggered from button, not from @_terminal
+            @_terminal._on_pause_button_clicked(e)
+        @setState
+            paused : not @state.paused
+        #@props.actions.toggle_pause()
 
     open_history_file : ->
         console.log("Opening history file")
@@ -233,8 +243,8 @@ TerminalEditor = (name) -> rclass
                             <Icon name={'refresh'} />
                         </Button>
 
-                        <Button onClick={@pause_terminal} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'pause'} />
+                        <Button onClick={@toggle_pause} bsSize="small" style={marginLeft:'0px'} bsStyle={if @state.paused then 'success'} >
+                            <Icon name={if @state.paused then 'play' else 'pause'} />
                         </Button>
 
                         <Button onClick={@open_history_file} bsSize="small" style={marginLeft:'0px'}>

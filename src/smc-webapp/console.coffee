@@ -127,7 +127,9 @@ class Console extends EventEmitter
             draggable      : false    # not very good/useful yet.
 
             color_scheme   : undefined
-            project_id     : undefined
+            project_id     : undefined # Provided in editor_terminal
+            on_pause       : undefined # Called after pause_rendering is called
+            on_unpause     : undefined # Called after unpause_rendering is called
 
         @_init_default_settings()
 
@@ -393,6 +395,7 @@ class Console extends EventEmitter
             f()
         else
             setTimeout(f, 500)
+        @opts.on_pause?()
 
     unpause_rendering: () =>
         if not @_rendering_is_paused
@@ -405,19 +408,27 @@ class Console extends EventEmitter
         # current selection instead of the post-render empty version.
         setTimeout(f, 0)
         @element.find("a[href=#pause]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
+        @opts.on_unpause?()
 
     #######################################################################
     # Private Methods
     #######################################################################
 
+    _on_pause_button_clicked : (e) =>
+        if @_rendering_is_paused
+            @unpause_rendering()
+        else
+            @pause_rendering(true)
+        return false
+
     _init_rendering_pause: () =>
 
-        btn = @element.find("a[href=#pause]").click (e) =>
-            if @_rendering_is_paused
-                @unpause_rendering()
-            else
-                @pause_rendering(true)
-            return false
+        btn = @element.find("a[href=#pause]").click  (e) =>
+          if @_rendering_is_paused
+              @unpause_rendering()
+          else
+              @pause_rendering(true)
+          return false
 
         e = @element.find(".salvus-console-terminal")
 
