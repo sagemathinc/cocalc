@@ -44,6 +44,7 @@ net            = require('net')
 assert         = require('assert')
 fs             = require('fs')
 path_module    = require('path')
+underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
 
@@ -73,7 +74,6 @@ access = require('./access')
 
 local_hub_connection = require('./local_hub_connection')
 hub_projects         = require('./projects')
-
 hub_proxy            = require('./proxy')
 
 # express http server -- serves some static/dynamic endpoints
@@ -1609,6 +1609,40 @@ class Client extends EventEmitter
                     @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
 
     ######################################################
+    # Support Tickets → Zendesk
+    ######################################################
+
+    mesg_create_support_ticket: (mesg) =>
+        dbg = @dbg("mesg_create_support_ticket")
+        dbg("#{misc.to_json(mesg)}")
+
+        m = underscore.omit(mesg, 'id', 'event')
+        support.create_ticket m, (err, url) =>
+            dbg("callback being called with #{err} and url: #{url}")
+            if err?
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(
+                    message.support_ticket_url(id:mesg.id, url: url))
+
+    # retrieves the support tickets the user with the current account_id
+    mesg_get_support_tickets: (mesg) =>
+        dbg = @dbg("mesg_get_support_tickets")
+        dbg("#{misc.to_json(mesg)}")
+        if not @account_id
+            err = "You must be signed in to use support related functions."
+            @error_to_client(id:mesg.id, error:err)
+            return
+
+        support.get_support_tickets @account_id, (err, tickets) =>
+            if err?
+                @error_to_client(id:mesg.id, error:err)
+            else
+                dbg("tickets: #{misc.to_json(tickets)}")
+                @push_to_client(
+                    message.support_tickets(id:mesg.id, tickets: tickets))
+
+    ######################################################
     #Stripe-integration billing code
     ######################################################
     ensure_fields: (mesg, fields) =>
@@ -3031,7 +3065,7 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        pool  : 100
+        pool  : 50
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
@@ -3225,6 +3259,13 @@ stripe_sales_tax = (opts) ->
             return
         opts.cb(undefined, misc_node.sales_tax(zip))
 
+support = undefined
+init_support = (cb) ->
+    {Support} = require('./support')
+    support = new Support cb: (err, s) =>
+        support = s
+        cb(err)
+
 #############################################
 # Start everything running
 #############################################
@@ -3277,6 +3318,8 @@ exports.start_server = start_server = (cb) ->
                 cb()
         (cb) ->
             init_stripe(cb)
+        (cb) ->
+            init_support(cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->

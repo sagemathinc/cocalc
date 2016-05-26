@@ -965,6 +965,36 @@ message
     description : required
 
 #############
+# Support Tickets → right now going through Zendesk
+#############
+message # client → hub
+    event        : 'create_support_ticket'
+    id           : undefined
+    username     : undefined
+    email_address: required  # if there is no email_address in the account, there can't be a ticket! (for now)
+    subject      : required  # like an email subject
+    body         : required  # html or md formatted text
+    tags         : undefined # a list of tags, like ['member']
+    account_id   : undefined
+    location     : undefined # from the URL, to know what the requester is talking about
+    info         : undefined # additional data dict, like browser/OS
+
+message # client ← hub
+    event        : 'support_ticket_url'
+    id           : undefined
+    url          : required
+
+message # client → hub
+    event        : 'get_support_tickets'
+    id           : undefined
+    # no account_id, that's known by the hub
+
+message # client ← hub
+    event        : 'support_tickets'
+    id           : undefined
+    tickets      : required  # json-list
+
+#############
 # Queries directly to the database (sort of like Facebook's GraphQL)
 #############
 

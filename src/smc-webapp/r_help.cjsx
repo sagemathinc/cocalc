@@ -32,6 +32,8 @@
 
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 
+{ShowSupportLink} = require('./support')
+
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
 #{SMC_ICON_URL} = require('./misc_page')
@@ -169,7 +171,6 @@ SUPPORT_LINKS =
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues'
         link : 'Github issue tracker'
-        text : '(you may also email help@sagemath.com)'
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
@@ -488,35 +489,41 @@ HelpPage = rclass
 
     render : ->
         <Row>
-            <Col sm=12>
-                <Well>
-                    <h3>
-                        <div style={display: 'inline-block', \
-                                    backgroundImage: "url('#{SMC_ICON_URL}')", \
-                                    backgroundSize: 'contain', \
-                                    backgroundColor: SAGE_LOGO_COLOR}
-                              className='img-rounded pull-right help-smc-logo' ></div>
-                        <SiteName/> <SiteDescription/>
-                    </h3>
+            <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+                <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
+                    <Icon name='medkit'/><Space/><Space/>
+                    <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
+                    <br/>
+                    We want to know if anything is broken!
+                    <hr/>
+                    <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
+                    <br/>
+                    In such an email, please include the URL link to the relevant project or file.
+                </div>
 
-                    <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%'}>
-                        <Icon name='envelope'/><Space/><Space/> Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
-                        not hesitate</strong> to immediately <HelpEmailLink text='email us'/>. We want to know if anything is broken! <b>Include
-                        a link (the address in your browser) to any relevant project or document.</b>
-                    </div>
+                <h3>
+                    <div style={display: 'inline-block', \
+                                backgroundImage: "url('#{SMC_ICON_URL}')", \
+                                backgroundSize: 'contain', \
+                                backgroundColor: SAGE_LOGO_COLOR}
+                          className='img-rounded pull-right help-smc-logo' ></div>
+                    <SiteName/> <SiteDescription/>
+                </h3>
 
-                    <HelpPageSupportSection support_links={SUPPORT_LINKS} />
+                <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                    <Redux redux={redux}>
-                        <HelpPageUsageSection />
-                    </Redux>
+                <Redux redux={redux}>
+                    <HelpPageUsageSection />
+                </Redux>
 
-                    <HelpPageAboutSection />
+                <HelpPageAboutSection />
 
-                    <HelpPageGettingStartedSection />
-                </Well>
+                <HelpPageGettingStartedSection />
             </Col>
-            <Footer/>
+            <Col sm=1 md=2 xsHidden></Col>
+            <Col xs=12 sm=12 md=12>
+                <Footer/>
+            </Col>
         </Row>
 
 exports.render_help_page = () ->

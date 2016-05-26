@@ -1,31 +1,33 @@
-For testing locally
+# smc-hub deployment
 
-    docker build -t smc-hub . && docker run -P -it smc-hub
+### Building image, pushing to gcloud, and running the deployment
 
-For building and pushing to private GCP repo:
+To load the rethinkdb, sendgrid, and zendesk secrets into kubernetes (if you don't have the right files in src/data/secrets, empty secrets are included), so that the deployment works.
 
-    export VER=prod-0.2 && docker build -t gcr.io/sage-math-inc/hub:$VER . && gcloud docker push gcr.io/sage-math-inc/hub:$VER
+    ./control.py secrets
 
-We first did this to get a template for the yaml: `kubectl run hub --image=gcr.io/sage-math-inc/hub:$VER --port=5000`
+To build the images and push to gcloud:
 
-But now do this:
+    ./control.py build --tag=my_tag
 
-    kubectl create -f hub.yaml
+To then start the deployment running on kubernetes:
 
-And expose the services:
+    ./control.py run --tag=my_tag
 
-    kubectl expose deployment hub
+### Updating the image
 
-Scale it up:
+To update the images using the latest master git repo (pull means pull from git):
 
-    kubectl scale deployment hub --replicas=4
+    ./control.py build --pull --tag=my_ver
 
-Delete it:
+To rebuild everything from scratch, including reinstalling packages from apt:
 
-    kubectl delete deployment hub
+    ./control.py build --upgrade --tag=my_tag
 
 
-Also the secrets used by the hub:
+### Development
 
-    kubectl create secret generic rethinkdb-password --from-file=rethinkdb
-    kubectl create secret generic sendgrid-api-key --from-file=api-key
+To build the Docker images locally (and not push):
+
+    ./control.py build --local
+

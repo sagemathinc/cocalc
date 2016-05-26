@@ -254,6 +254,7 @@ class ProjectPage
 
             t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
             name = target
+
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
 
@@ -316,7 +317,6 @@ class ProjectPage
                     that.container.find(".project-search-form-input").focus()
                 tab.onblur = ->
                     require('./project_search').unmount(that.container.find(".smc-react-project-search")[0])
-
 
         for item in @container.find(".file-pages").children()
             t = $(item)

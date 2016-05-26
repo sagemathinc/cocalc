@@ -301,7 +301,7 @@ $.fn.extend
 
 $("#salvus-help").top_navbar
     id      : "salvus-help"
-    label   : "Help"
+    label   : "About"
     icon    : 'fa-question-circle'
     pull_right : true
     close   : false

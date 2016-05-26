@@ -69,7 +69,7 @@ class ChatActions extends Actions
                 event     : "chat"
                 payload   : {content: mesg}
             where :
-                date: new Date()
+                date: salvus_client.server_time()
         @syncdb.save()
 
     set_input: (input) =>
