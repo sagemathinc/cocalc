@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False):
+def run(v, shell=False, path='.', get_output=False, env=None):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -26,9 +26,9 @@ def run(v, shell=False, path='.', get_output=False):
         os.chdir(path)
     print(cmd)
     if shell:
-        kwds = {'shell':True, 'executable':'/bin/bash'}
+        kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
     else:
-        kwds = {}
+        kwds = {'env':env}
     if get_output:
         print(kwds)
         output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
@@ -292,7 +292,7 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
 def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
     sub.add_argument("--min",  default=None, help="MINPODS")
-    sub.add_argument("--max", help="MAXPODS (required and must be at least 1)")
+    sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
     sub.add_argument("--cpu-percent", default=None, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
