@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
 
-"""
-
-TODO:
-
- - version every container based on the sha1 of the last commit; the static/webpack/ build should hae
-   a file that contains this, when the webpack build succeeds, and also a warning file if it
-   fails. Probably hsy already implemented that.
-
- -
-"""
-
 import os, shutil, sys, tempfile
 join = os.path.join
 
-# Boilerplate to ensure we are in the directory fo this path and make the util module available.
+# Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
