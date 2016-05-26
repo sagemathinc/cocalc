@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False):
+def run(v, shell=False, path='.', get_output=False, env=None):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -26,9 +26,9 @@ def run(v, shell=False, path='.', get_output=False):
         os.chdir(path)
     print(cmd)
     if shell:
-        kwds = {'shell':True, 'executable':'/bin/bash'}
+        kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
     else:
-        kwds = {}
+        kwds = {'env':env}
     if get_output:
         print(kwds)
         output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
@@ -115,11 +115,8 @@ def stop_deployment(name):
     if name in get_deployments():
         run(['kubectl', 'delete', 'deployment', name])
 
-def secret_names():
-    return [x.split()[0] for x in run(['kubectl','get','secrets'], get_output=True).splitlines()[1:]]
-
 def create_secret(name, filename):
-    if name in secret_names():
+    if name in get_secrets():
         # delete first
         run(['kubectl', 'delete', 'secret', name])
     v = ['kubectl', 'create', 'secret', 'generic', name]
@@ -130,6 +127,11 @@ def create_secret(name, filename):
                 name=name, filename=filename))
         v.append('--from-literal={basename}='.format(basename=os.path.split(filename)[1]))
     run(v)
+
+def ensure_secret_exists(name, basename):
+    if name not in get_secrets():
+        run(['kubectl', 'create', 'secret', 'generic', name,
+         '--from-literal={basename}='.format(basename=basename)])
 
 def get_tag(args, name):
     tag = name
@@ -292,7 +294,7 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
 def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
     sub.add_argument("--min",  default=None, help="MINPODS")
-    sub.add_argument("--max", help="MAXPODS (required and must be at least 1)")
+    sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
     sub.add_argument("--cpu-percent", default=None, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
