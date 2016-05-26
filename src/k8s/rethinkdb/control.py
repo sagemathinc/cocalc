@@ -47,6 +47,7 @@ def ensure_services_exist():
 
 def run_on_kubernetes(args):
     ensure_services_exist()
+    util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME)
     context = util.get_kube_context()
