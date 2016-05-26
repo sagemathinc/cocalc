@@ -79,6 +79,28 @@ def create_cluster(args):
 
     env.update(os.environ)
     util.run(join(CLUSTER, 'kube-up.sh'), env=env)
+    update_firewall()
+
+def update_firewall():
+    """
+    We manually modify the firewall so that the rule default-default-internal only allows traffic
+    from k8s clusters, and not everything.  By default kube-up.sh creates the firewall and allows
+    traffic from everything inside the GCE project to everything... which is **BAD** since
+    the compute projects would then be able to connect directly to the database, and could otherwise
+    cause trouble (e.g., DOS).  Of course, the database has along random password, but still.
+    So we change the tags for this firewall rule to all tags starting in k8s.
+    """
+    # see http://stackoverflow.com/questions/37047089/fastest-way-to-fetch-tags-and-status-of-gce-instances
+    tags = []
+    for x in util.run(['gcloud', 'compute', 'instances', 'list', '--format', 'table(tags.list())'], get_output=True).splitlines():
+        v = x.split("items=")
+        if len(v) > 1:
+            for t in eval(v[-1]):
+                tags.append(t)
+    tags = set(tags)
+    tags = [x for x in tags if x.startswith('k8s-')]
+    util.run(['gcloud', 'compute', 'firewall-rules', 'update', 'default-default-internal',
+              '--target-tags', ','.join(tags)])
 
 def select_cluster(args):
     print('selecting ', args.name)
@@ -91,12 +113,11 @@ def delete_cluster(args):
     select_cluster(args)
 
     env = {
-        'KUBE_GCE_INSTANCE_PREFIX' : 'k8s-'+args.name
+        'KUBE_GCE_INSTANCE_PREFIX' : 'k8s-'+args.name,
+        'KUBE_GCE_ZONE'            : args.zone
     }
     env.update(os.environ)
     util.run(join(CLUSTER, 'kube-down.sh'), env=env)
-    print("WARNING: delete is flaky; if you saw errors above, just run delete again (and again)")
-    print("WARNING: also manually check that the master node and its disk is really deleted.")
 
 def autoscale_cluster(args):
     if args.min_nodes is not None and args.max_nodes < args.min_nodes:
@@ -127,9 +148,9 @@ if __name__ == '__main__':
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("name",               type=str,              help="name of the cluster")
     sub.add_argument("--zone",             default="us-central1-c", help="zone of the cluster")
-    sub.add_argument("--master-size",      default="g1-small",    help="node VM type")
+    sub.add_argument("--master-size",      default="n1-standard-1",    help="node VM type")
     sub.add_argument("--master-disk-size", default=10, type=int,  help="size of master disks")
-    sub.add_argument("--node-size",        default="g1-small",    help="node VM type")
+    sub.add_argument("--node-size",        default="n1-standard-1",    help="node VM type")
     sub.add_argument("--node-ssd",         action="store_true",   help="use SSD's on the nodes")
     sub.add_argument("--node-disk-size",   default=30, type=int,  help="size of node disks")
     sub.add_argument("--min-nodes",        default=2, type=int,   help="min number of nodes")
@@ -144,6 +165,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('delete', help='delete k8s cluster')
     sub.add_argument('name', type=str, help='name of the cluster to delete')
+    sub.add_argument("--zone", default="us-central1-c", help="zone of the cluster")
     sub.set_defaults(func=delete_cluster)
 
     sub = subparsers.add_parser('autoscale', help='autoscale the nodes')

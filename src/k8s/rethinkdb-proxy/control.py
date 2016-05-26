@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
-    sub.add_argument("-r", "--replicas", default=3, help="number of replicas")
+    sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('test', help='forward 28015 port from some pod to localhost for testing purposes')
