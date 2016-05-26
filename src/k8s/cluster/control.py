@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('create', help='create k8s cluster',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument("name",               type=str,              help="name of the cluster", nargs='?')
+    sub.add_argument("name",               type=str,              help="name of the cluster")
     sub.add_argument("--zone",             default="us-central1-c", help="zone of the cluster")
     sub.add_argument("--master-size",      default="g1-small",    help="node VM type")
     sub.add_argument("--master-disk-size", default=10, type=int,  help="size of master disks")
@@ -139,22 +139,22 @@ if __name__ == '__main__':
     sub.set_defaults(func=create_cluster)
 
     sub = subparsers.add_parser('select', help='select a given cluster')
-    sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)', nargs='?')
+    sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)')
     sub.set_defaults(func=select_cluster)
 
     sub = subparsers.add_parser('delete', help='delete k8s cluster')
-    sub.add_argument('name', type=str, help='name of the cluster to delete', nargs='?')
+    sub.add_argument('name', type=str, help='name of the cluster to delete')
     sub.set_defaults(func=delete_cluster)
 
     sub = subparsers.add_parser('autoscale', help='autoscale the nodes')
-    sub.add_argument('name', type=str, help='name of the cluster to rescale', nargs='?')
+    sub.add_argument('name', type=str, help='name of the cluster to rescale')
     sub.add_argument("--max-nodes",   type=int,     help="max number of nodes -- required and must be at least 1")
     sub.add_argument("--min-nodes",   type=int, default=None, help="minimum number of nodes")
     sub.add_argument("--cpu-percent", type=int, default=None, help="target average cpu percentage (number between 1 and 100)")
     sub.set_defaults(func=autoscale_cluster)
 
     sub = subparsers.add_parser('resize', help='set the number of nodes')
-    sub.add_argument('name', type=str, help='name of the cluster to rescale', nargs='?')
+    sub.add_argument('name', type=str, help='name of the cluster to rescale')
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
     sub.set_defaults(func=resize_cluster)
 

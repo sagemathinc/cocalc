@@ -22,23 +22,29 @@ def run(v, shell=False, path='.', get_output=False, env=None):
     else:
         cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
     if path != '.':
+        cur = os.path.abspath(os.curdir)
         print('chdir %s'%path)
         os.chdir(path)
-    print(cmd)
-    if shell:
-        kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
-    else:
-        kwds = {'env':env}
-    if get_output:
-        print(kwds)
-        output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
-    else:
-        if subprocess.call(v, **kwds):
-            raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
-        output = None
-    seconds = time.time() - t
-    print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
-    return output
+    try:
+        print(cmd)
+        if shell:
+            kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
+        else:
+            kwds = {'env':env}
+        if get_output:
+            print(kwds)
+            output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
+        else:
+            if subprocess.call(v, **kwds):
+                raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
+            output = None
+        seconds = time.time() - t
+        print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+        return output
+    finally:
+        if path != '.':
+            os.chdir(cur)
+
 
 # Fast, but relies on stability of gcloud config path (I reversed engineered this).
 # Failed for @hal the first time, so don't use...
@@ -241,7 +247,7 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_bash(**selector):
+def exec_bash(i=0, **selector):
     """
     Run bash on the first Running pod that matches the given selector.
     """
@@ -251,7 +257,7 @@ def exec_bash(**selector):
     if len(v) == 0:
         print("No running matching pod %s"%selector)
     else:
-        run(['kubectl', 'exec', '-it', v[0]['NAME'], 'bash'])
+        run(['kubectl', 'exec', '-it', v[i]['NAME'], 'bash'])
 
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]

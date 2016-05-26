@@ -34,6 +34,7 @@ def images_on_gcloud(args):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def run_on_kubernetes(args):
+    ensure_ssl()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME)
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
@@ -46,14 +47,35 @@ def run_on_kubernetes(args):
 def stop_on_kubernetes(args):
     util.stop_deployment(NAME)
 
-def ssl(args):
-    path = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
+def ensure_ssl():
+    if 'ssl-cert' not in util.get_secrets():
+        # generate a self-signed cert and load, so at least things work
+        with tempfile.TemporaryDirectory() as tmp:
+            util.run(['openssl', 'req', '-new', '-x509', '-nodes', '-out', 'server.crt',
+                      '-keyout', 'server.key',
+                      '-subj', '/C=US/ST=WA/L=WA/O=Network/OU=IT Department/CN=sagemath'], path=tmp)
+            s  = open(join(tmp, 'server.crt')).read() + open(join(tmp, 'server.key')).read()
+            open(join(tmp, 'nopassphrase.pem'),'w').write(s)
+            util.create_secret('ssl-cert', tmp)
+
+def load_ssl(args):
+    path = args.path
     if not os.path.exists(path):
         os.makedirs(path)
-    util.create_secret('ssl-cert', join(path, 'sagemath.com', 'nopassphrase.pem'))
+    if not os.path.isdir(path):
+        raise RuntimeError("path='{path}' must be a directory".format(path=path))
+    pem = join(path,'nopassphrase.pem')
+    if not os.path.exists(pem):
+        raise RuntimeError("'{pem}' must exist".format(pem=pem))
+    util.create_secret('ssl-cert', path)
 
 def expose(args):
     util.run(['kubectl', 'expose', 'deployment', NAME, '--type=LoadBalancer'])
+    print("Type 'kubectl get services haproxy' in about 2 minutes to see the external IP address.")
+
+def bash(args):
+    util.exec_bash(args.number, run='haproxy')
+
 
 if __name__ == '__main__':
     import argparse
@@ -78,11 +100,18 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
 
-    sub = subparsers.add_parser('ssl', help='load data/secrets/sagemath.com/nopassphrase.pem needed for ssl by the {name} pods'.format(name=NAME))
-    sub.set_defaults(func=ssl)
+    sub = subparsers.add_parser('load-ssl', help='load the ssl cert into k8s from disk',
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub.add_argument('--path', type=str, help='path to directory that contains the file nopassphrase.pem',
+                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets', 'sagemath.inc')))
+    sub.set_defaults(func=load_ssl)
 
     sub = subparsers.add_parser('expose', help='make deployment publicly visible via a public load balancer')
     sub.set_defaults(func=expose)
+
+    sub = subparsers.add_parser('bash', help='get a bash shell on n-th haproxy node')
+    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
+    sub.set_defaults(func=bash)
 
     util.add_autoscale_parser(NAME, subparsers)
 
