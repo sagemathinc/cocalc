@@ -135,7 +135,7 @@ class JupyterWrapper extends EventEmitter
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
         @element.html('').append(@iframe)
-        # wait until connected -- iT is ***critical*** to wait until
+        # wait until connected -- it is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
         max_time_ms = timeout*1000 # try for up to this long
@@ -221,6 +221,9 @@ class JupyterWrapper extends EventEmitter
         # all always seems to cause a dialog to pop up, even if the user doesn't want one according to smc's
         # own prefs.
         @frame.window.onbeforeunload = null
+        # when active, periodically reset the idle timeout time in client_browser
+        console.log 'iframe', @iframe
+        @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
 
     monkey_patch_ui: () =>
         # Proper file rename with sync not supported yet (but will be -- TODO;
@@ -1259,7 +1262,7 @@ class JupyterNBViewer
             # callback, run after "load" event below this line
             @iframe.load ->
                 # could become undefined due to other things happening...
-                @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.reset_idle)
+                @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
         @element.css(top:@editor.editor_top_position())

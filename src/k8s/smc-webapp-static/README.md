@@ -1,37 +1,50 @@
 # smc-webapp-static
 
-## Purpose
-
 smc-webapp-static uses nginx to serve static HTML/Javascript/etc. content to browser clients.
 
-## Build docker image for local testing
+## How to use control.py
 
-This builds, but using cache of anything built so far, so good for development:
+### 1. Build an image
 
-    docker build -t smc-webapp-static .
+To build `../../src/static` on this computer and package up what is there in an nginx container, and upload it to the gcloud docker repo for your project:
 
-To build from scratch without any caching
+    ./control.py build -r -t your_tag
 
-    time docker build --no-cache -t smc-webapp-static .
+If you change `../../src/static` in any way, you can package and upload it again without rebuilding:
 
-## Kubernetes
+    ./control.py build -t your_second_tag
 
-The manual steps are roughly as follows, but we will fully automate this.
+### 2. Deploy on your current kubernetes cluster
 
-Build for GCE repo and upload there:
+Start a kubernetes deployment (with health checks and everything):
 
-    export VER=0.1
-    export PROJECT=sage-math-inc
+    ./control.py run -t your_tag
 
-    docker build -t gcr.io/$PROJECT/smc-webapp-static:$VER . && gcloud docker push gcr.io/$PROJECT/smc-webapp-static:$VER
+To switch to a different tagged build (made above) -- this will switch the cluster over live:
 
-Run on GCE as a deployment
+    ./control.py run -t your_secong_tag
 
-    kubectl run smc-webapp-static --image=gcr.io/$PROJECT/smc-webapp-static:$VER --port=80
+To scale up to 5 replicas:
 
-And scale it up:
+    ./control.py run -t your_secong_tag -r 5
 
-    kubectl scale deployment smc-webapp-static --replicas=3
+To stop the Kubernetes Deployment
+
+    ./control.py stop
+
+## What is here
+
+- `./control.py` command line Python script for doing everything cleanly
+
+- `image-host` - Docker-related files for host-based build
+
+- `image-full` - Docker-related files for self-contained full  build
+
+- `conf/default.conf` - nginx configuration
+
+- `conf/smc-webapp-static.template.yaml` - k8s template script to create the deployment
+
+## Old stuff -- todo
 
 Make smc-webapp-static visible inside the cluster, so our internal haproxy will pick it up:
 
@@ -48,15 +61,3 @@ Then if making externally visible, in about 2 minutes, the ip will appear in the
 
 Visiting http://the-ip  should show the static SMC website, but of course without any websocket connection.
 
-Done
-
-    kubectl delete deployment smc-webapp-static
-    kubectl delete services smc-webapp-static
-
-## The smc-webapp-static.yaml file
-
-We get the first version of the yaml file that describes the deployment we made above by doing
-
-    kubectl get deployments smc-webapp-static -o yaml --export  > smc-webapp-static.yaml
-
-We then *edit* this file in various ways, e.g,. to add health checks.
