@@ -33,6 +33,11 @@ def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
+def expose():
+    if NAME not in util.get_services():
+        util.run(['kubectl', 'expose', 'deployment', NAME, '--type=LoadBalancer'])
+        print("Type 'kubectl get services haproxy' in about 2 minutes to see the external IP address.")
+
 def run_on_kubernetes(args):
     ensure_ssl()
     args.local = False # so tag is for gcloud
@@ -44,6 +49,7 @@ def run_on_kubernetes(args):
                         pull_policy=util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
+    expose()
 
 def stop_on_kubernetes(args):
     util.stop_deployment(NAME)
@@ -69,10 +75,6 @@ def load_ssl(args):
     if not os.path.exists(pem):
         raise RuntimeError("'{pem}' must exist".format(pem=pem))
     util.create_secret('ssl-cert', path)
-
-def expose(args):
-    util.run(['kubectl', 'expose', 'deployment', NAME, '--type=LoadBalancer'])
-    print("Type 'kubectl get services haproxy' in about 2 minutes to see the external IP address.")
 
 if __name__ == '__main__':
     import argparse
@@ -103,9 +105,6 @@ if __name__ == '__main__':
     sub.add_argument('--path', type=str, help='path to directory that contains the file nopassphrase.pem',
                     default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets', 'sagemath.inc')))
     sub.set_defaults(func=load_ssl)
-
-    sub = subparsers.add_parser('expose', help='make deployment publicly visible via a public load balancer')
-    sub.set_defaults(func=expose)
 
     util.add_bash_parser(NAME, subparsers)
     util.add_autoscale_parser(NAME, subparsers)
