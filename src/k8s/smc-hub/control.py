@@ -66,7 +66,8 @@ def run_on_kubernetes(args):
     tag = get_tag(args)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image=tag, replicas=args.replicas))
+        tmp.write(t.format(image=tag, replicas=args.replicas,
+                               pull_policy=util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
 
@@ -106,9 +107,10 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
+    sub.add_argument("-f", "--force", default="", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
-    sub = subparsers.add_parser('stop', help='delete the deployment')
+    sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
 
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))

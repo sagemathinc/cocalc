@@ -55,7 +55,8 @@ def run_on_kubernetes(args):
     for number in args.number:
         ensure_persistent_disk_exists(context, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image=tag, number=number, context=context))
+            tmp.write(t.format(image=tag, number=number, context=context,
+                               pull_policy=util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
 
@@ -75,9 +76,23 @@ def forward_admin(args):
 def bash(args):
     util.exec_bash(db='rethinkdb', instance=args.number)
 
+def all_node_numbers():
+    n = len('rethinkdb')
+    v = []
+    for x in util.get_deployments():
+        print(x)
+        if x.startswith(NAME):
+            m = x[n:]
+            try:
+                v.append(int(m))
+            except:
+                pass
+    return v
 
-def stop_on_kubernetes(args):
+def delete(args):
     delete_services()
+    if len(args.number) == 0:
+        args.number = all_node_numbers()
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
 
@@ -171,6 +186,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
+    sub.add_argument("-f", "--force", default="", help="force reload image in k8s")
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
     sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.set_defaults(func=run_on_kubernetes)
@@ -191,9 +207,9 @@ if __name__ == '__main__':
     sub.add_argument('-n', '--number', type=int, default=0, help='pod number')
     sub.set_defaults(func=bash)
 
-    sub = subparsers.add_parser('stop', help='stop running nodes')
+    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
-    sub.set_defaults(func=stop_on_kubernetes)
+    sub.set_defaults(func=delete)
 
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)

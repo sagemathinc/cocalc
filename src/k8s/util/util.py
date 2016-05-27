@@ -312,4 +312,8 @@ def add_autoscale_parser(name, subparsers):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)
 
-
+def pull_policy(args):
+    if args.force:
+        return 'Always'
+    else:
+        return 'IfNotPresent'
