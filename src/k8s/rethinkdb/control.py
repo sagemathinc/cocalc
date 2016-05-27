@@ -63,7 +63,7 @@ def run_on_kubernetes(args):
 def forward_admin(args):
     port = 8080
     fwd = "ssh -L {port}:localhost:{port} salvus@{ip}".format(port=port, ip=util.external_ip())
-    mesg = "{dashes}Type this on your laptop, then visit http://localhost:{port}\n\n    {fwd}{dashes}".format(port=port, fwd=fwd)
+    mesg = "Type this on your laptop, then visit http://localhost:{port}\n\n    {fwd}".format(port=port, fwd=fwd)
     forward_port(args, 8080, mesg)
 
 def forward_db(args):
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
-    sub.add_argument("-f", "--force", default="", help="force reload image in k8s")
+    sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
     sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.set_defaults(func=run_on_kubernetes)

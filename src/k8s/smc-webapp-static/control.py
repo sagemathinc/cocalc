@@ -118,7 +118,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster; you must also call "build -p" to push an image'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
-    sub.add_argument("-f", "--force", default="", help="force reload image in k8s")
+    sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument("--full", action="store_true", help="if true, use image built using --full option")
     sub.set_defaults(func=run_on_kubernetes)
 
