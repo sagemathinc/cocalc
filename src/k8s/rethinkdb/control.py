@@ -10,6 +10,7 @@ join = os.path.join
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
@@ -46,6 +47,8 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
+    if len(args.number) == 0:
+        args.number = [0]
     ensure_services_exist()
     util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     args.local = False # so tag is for gcloud
@@ -55,29 +58,51 @@ def run_on_kubernetes(args):
     for number in args.number:
         ensure_persistent_disk_exists(context, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image=tag, number=number, context=context))
+            tmp.write(t.format(image=tag, number=number, context=context,
+                               pull_policy=util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
 
 def forward_admin(args):
+    port = 8080
+    fwd = "ssh -L {port}:localhost:{port} salvus@{ip}".format(port=port, ip=util.external_ip())
+    mesg = "Type this on your laptop, then visit http://localhost:{port}\n\n    {fwd}".format(port=port, fwd=fwd)
+    forward_port(args, 8080, mesg)
+
+def forward_db(args):
+    forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+
+def forward_port(args, port, mesg):
     if args.number == -1:
         v = util.get_pods(db='rethinkdb')
     else:
         v = util.get_pods(db='rethinkdb', instance=args.number)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
-        print("rethinkdb node {number} not available".format(args.number))
-    else:
-        fwd = "ssh -L 8080:localhost:8080 salvus@{ip}".format(ip=util.external_ip())
-        print("{dashes}Type this on your laptop, then visit http://localhost:8080\n\n    {fwd}{dashes}".format(fwd=fwd,dashes='\n\n'+'-'*70+'\n\n'))
-        util.run(['kubectl', 'port-forward', v[0]['NAME'], '8080:8080'])
+        raise RuntimeError("rethinkdb node {number} not available".format(args.number))
+    print("{dashes}{mesg}{dashes}".format(mesg=mesg, dashes='\n\n'+'-'*70+'\n\n'))
+    util.run(['kubectl', 'port-forward', v[0]['NAME'], '{port}:{port}'.format(port=port)])
 
 def bash(args):
     util.exec_bash(db='rethinkdb', instance=args.number)
 
+def all_node_numbers():
+    n = len('rethinkdb')
+    v = []
+    for x in util.get_deployments():
+        print(x)
+        if x.startswith(NAME):
+            m = x[n:]
+            try:
+                v.append(int(m))
+            except:
+                pass
+    return v
 
-def stop_on_kubernetes(args):
+def delete(args):
     delete_services()
+    if len(args.number) == 0:
+        args.number = all_node_numbers()
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
 
@@ -169,15 +194,20 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
-    sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
+    sub.add_argument('number', type=int, help='which node or nodes to run', nargs='*')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
+    sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
     sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.set_defaults(func=run_on_kubernetes)
 
-    sub = subparsers.add_parser('admin', help='forward port for an admin interface to localhost')
+    sub = subparsers.add_parser('forward-admin', help='forward port for an admin interface to localhost')
     sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_admin)
+
+    sub = subparsers.add_parser('forward-db', help='forward database to localhost so you can directly connect')
+    sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
+    sub.set_defaults(func=forward_db)
 
     sub = subparsers.add_parser('create-password', help='create or regenerate the rethinkdb admin password (both in the database and in k8s)')
     sub.add_argument('path', type=str, help='path to directory that will contain the new password in a file "rethinkdb"')
@@ -191,9 +221,9 @@ if __name__ == '__main__':
     sub.add_argument('-n', '--number', type=int, default=0, help='pod number')
     sub.set_defaults(func=bash)
 
-    sub = subparsers.add_parser('stop', help='stop running nodes')
+    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
-    sub.set_defaults(func=stop_on_kubernetes)
+    sub.set_defaults(func=delete)
 
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)

@@ -14,6 +14,7 @@ def get_service(service):
                      service=service)
     token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
     headers={'Authorization':'Bearer {token}'.format(token=token)}
+    print("Getting k8s information about '{service}' from '{URL}'".format(service=service, URL=URL))
     return requests.get(URL, headers=headers, verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt').json()
 
 def start_rethinkdb_proxy():

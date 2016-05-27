@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: Always #IfNotPresent
+        imagePullPolicy: {pull_policy}
         name: haproxy
         livenessProbe:
           httpGet:

@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
       - image: "{image}"
-        imagePullPolicy: Always # IfNotPresent
+        imagePullPolicy: {pull_policy}
         name: rethinkdb0
         ports:
         - containerPort: 28015

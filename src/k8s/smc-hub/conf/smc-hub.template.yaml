@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: Always # IfNotPresent
+        imagePullPolicy: {pull_policy}
         name: smc-hub
         ports:
         - containerPort: 5000

@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: Always
+        imagePullPolicy: {pull_policy}
         name: rethinkdb-proxy
         terminationMessagePath: /dev/termination-log
         ports:
