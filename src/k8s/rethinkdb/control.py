@@ -61,17 +61,24 @@ def run_on_kubernetes(args):
             util.update_deployment(tmp.name)
 
 def forward_admin(args):
+    port = 8080
+    fwd = "ssh -L {port}:localhost:{port} salvus@{ip}".format(port=port, ip=util.external_ip())
+    mesg = "{dashes}Type this on your laptop, then visit http://localhost:{port}\n\n    {fwd}{dashes}".format(port=port, fwd=fwd)
+    forward_port(args, 8080, mesg)
+
+def forward_db(args):
+    forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+
+def forward_port(args, port, mesg):
     if args.number == -1:
         v = util.get_pods(db='rethinkdb')
     else:
         v = util.get_pods(db='rethinkdb', instance=args.number)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
-        print("rethinkdb node {number} not available".format(args.number))
-    else:
-        fwd = "ssh -L 8080:localhost:8080 salvus@{ip}".format(ip=util.external_ip())
-        print("{dashes}Type this on your laptop, then visit http://localhost:8080\n\n    {fwd}{dashes}".format(fwd=fwd,dashes='\n\n'+'-'*70+'\n\n'))
-        util.run(['kubectl', 'port-forward', v[0]['NAME'], '8080:8080'])
+        raise RuntimeError("rethinkdb node {number} not available".format(args.number))
+    print("{dashes}{mesg}{dashes}".format(mesg=mesg, dashes='\n\n'+'-'*70+'\n\n'))
+    util.run(['kubectl', 'port-forward', v[0]['NAME'], '{port}:{port}'.format(port=port)])
 
 def bash(args):
     util.exec_bash(db='rethinkdb', instance=args.number)
@@ -191,9 +198,13 @@ if __name__ == '__main__':
     sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.set_defaults(func=run_on_kubernetes)
 
-    sub = subparsers.add_parser('admin', help='forward port for an admin interface to localhost')
+    sub = subparsers.add_parser('forward-admin', help='forward port for an admin interface to localhost')
     sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_admin)
+
+    sub = subparsers.add_parser('forward-db', help='forward database to localhost so you can directly connect')
+    sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
+    sub.set_defaults(func=forward_db)
 
     sub = subparsers.add_parser('create-password', help='create or regenerate the rethinkdb admin password (both in the database and in k8s)')
     sub.add_argument('path', type=str, help='path to directory that will contain the new password in a file "rethinkdb"')
