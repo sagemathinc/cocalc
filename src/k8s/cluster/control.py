@@ -142,6 +142,8 @@ def run_all(args):
     x = util.get_deployments()
     for name in ['rethinkdb0', 'rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
         if name not in x:
+            if name == 'rethinkdb0':
+                name = 'rethinkdb'
             print('\n******\nRUNNING {name}\n******\n'.format(name=name))
             util.run([join(SCRIPT_PATH,'..',name,'control.py'), 'run'])
 
