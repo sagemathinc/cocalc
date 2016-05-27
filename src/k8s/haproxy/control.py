@@ -10,6 +10,7 @@ join = os.path.join
 
 # Boilerplate to ensure we are in the directory fo this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 

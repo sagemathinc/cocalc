@@ -10,6 +10,7 @@ join = os.path.join
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
@@ -46,6 +47,8 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
+    if len(args.number) == 0:
+        args.number = [0]
     ensure_services_exist()
     util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     args.local = False # so tag is for gcloud
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
-    sub.add_argument('number', type=int, help='which node or nodes to run', nargs='+')
+    sub.add_argument('number', type=int, help='which node or nodes to run', nargs='*')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')

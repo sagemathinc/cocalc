@@ -14,6 +14,7 @@ if not os.path.exists(CLUSTER):
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
@@ -137,6 +138,13 @@ def resize_cluster(args):
     util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', 'k8s-'+args.name+'-minion-group',
          '--size', str(args.size)])
 
+def run_all(args):
+    x = util.get_deployments()
+    for name in ['rethinkdb0', 'rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
+        if name not in x:
+            print('\n******\nRUNNING {name}\n******\n'.format(name=name))
+            util.run([join(SCRIPT_PATH,'..',name,'control.py'), 'run'])
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
@@ -180,6 +188,10 @@ if __name__ == '__main__':
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
     sub.set_defaults(func=resize_cluster)
 
+    sub = subparsers.add_parser('run', help="starts all deployments running in the current cluster")
+    sub.set_defaults(func=run_all)
+
     args = parser.parse_args()
-    args.func(args)
+    if hasattr(args, 'func'):
+        args.func(args)
 
