@@ -166,6 +166,17 @@ class RethinkDB
                             cb()
             (cb) =>
                 @_init_native(cb)
+            (cb) =>
+                # create schema if @_database does not exist.
+                @r.dbList().run (err, v) =>
+                    if err
+                        cb(err)
+                    else
+                        if @_database not in v
+                            @db = @r.db(@_database)
+                            @update_schema(cb:cb)
+                        else
+                            cb()
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{to_json(err)}")
