@@ -55,9 +55,10 @@ exports.TYPE = TYPE =
 
 
 class exports.MetricsRecorder
-    constructor: (@filename, @dbg, cb) ->
+    constructor: (@filename, @dbg, @collect, cb) ->
         ###
         * @filename: if set, periodically saved there. otherwise use @get.
+        * @collect: call this function on every _update
         * @dbg: e.g. reporting via winston or whatever
         ###
         # stores the current state of the statistics
@@ -81,6 +82,8 @@ class exports.MetricsRecorder
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update : ->
+        @collect?()
+
         smooth = (new_value, arr) ->
             arr ?= []
             arr[0] = new_value

@@ -3272,7 +3272,13 @@ init_metrics = (cb) ->
     else
         STATS_FN = null
     dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
-    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, cb)
+    {number_of_clients} = require('./hub_register')
+    collect = () ->
+        try
+            record_metric('nb_clients', number_of_clients(), MetricsRecorder.TYPE.CONT)
+        catch err
+
+    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, collect, cb)
 
 # use record_metric to update its state
 
