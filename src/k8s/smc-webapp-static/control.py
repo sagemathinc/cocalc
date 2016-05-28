@@ -16,51 +16,29 @@ NAME='smc-webapp-static'
 def test_mesg(tag):
     print("Test locally by doing 'docker run -P {tag}' then check 'docker ps -l' for the port and connect to it.".format(tag=tag))
 
-def build_full(tag, rebuild):
+def build_base(rebuild=False):
+    v = ['sudo', 'docker', 'build', '-t', 'smc-webapp-static-base']
+    if rebuild:
+        v.append("--no-cache")
+    v.append('.')
+    util.run(v, path='image-base')
+
+def build(tag, rebuild):
     """
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
     """
-    # Temporary directory where we do the  build
-    with tempfile.TemporaryDirectory() as tmp:
-        os.chdir(SCRIPT_PATH)
-        # Copy Docker and conf files over
-        shutil.copyfile(join('image-full', 'Dockerfile'), join(tmp, 'Dockerfile'))
-        shutil.copyfile(join('conf', 'default.conf'), join(tmp, 'default.conf'))
-        # Run Docker build
-        v = ['sudo', 'docker', 'build', '-t', tag]
-        if rebuild:
-            v.append("--no-cache")
-        v.append('.')
-        util.run(v, path=tmp)
+    build_base(False)  # ensure base image exists
 
-def build_host(tag):
-    """
-    Build Docker container using files in ../../static/ on host.
-    """
-    # Temporary directory where we do the  build
-    with tempfile.TemporaryDirectory() as tmp:
-        os.chdir(SCRIPT_PATH)
-
-        # Copy static files over, resolving symlinks
-        util.run(['rsync', '-axvL', join('..', '..', 'static') + '/', join(tmp, 'static') + '/'])
-
-        # Copy Docker and conf files over
-        shutil.copyfile(join('image-host', 'Dockerfile'), join(tmp, 'Dockerfile'))
-        shutil.copyfile(join('conf', 'default.conf'), join(tmp, 'default.conf'))
-
-        # Run Docker build
-        util.run(['sudo', 'docker', 'build', '-t', tag, '--no-cache', '.'], path=tmp)
-
-def rebuild_host_static():
-    util.run('. ./smc-env && ./install.py webapp', shell=True, path=join(SCRIPT_PATH, '..', '..'))
+    # Build image we will deploy on top of base
+    v = ['sudo', 'docker', 'build', '-t', tag]
+    if rebuild:
+        v.append("--no-cache")
+    v.append('.')
+    util.run(v, path='image')
 
 def get_tag(args):
     name = NAME
-    if args.full:
-        name += '-full'
-    else:
-        name += '-host'
     tag = name
     if args.tag:
         tag += ':' + args.tag
@@ -72,27 +50,23 @@ def get_tag(args):
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
-    if args.rebuild and not args.full:
-        rebuild_host_static()
-    if args.full:
-        build_full(tag, args.rebuild)
-    else:
-        build_host(tag)
+    if args.rebuild_all:
+        build_base(True)
+    build(tag, args.rebuild)
     if args.local:
         test_mesg(tag)
     else:
         util.gcloud_docker_push(tag)
 
 def images_on_gcloud(args):
-    v = sum([[x for x in util.gcloud_images(NAME+'-'+k)] for k in ['full', 'host']], [])
     print('-'*70 + '\n')
-    for x in v:
+    for x in util.gcloud_images(NAME):
         print("%-20s%-60s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
     print('\n')
 
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
-    tag = util.get_tag(args, NAME, build_full)
+    tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas,
@@ -113,8 +87,8 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", default="", help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true",
-                     help="rebuild everything without caching")
-    sub.add_argument("-f", "--full", action="store_true", help="if not given, use ../../static; if given, builds container by creating static content as part of Docker build process")
+                     help="update to latest version of SMC from master")
+    sub.add_argument("--rebuild_all", action="store_true", help="rebuild everything including base image")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
@@ -123,9 +97,7 @@ if __name__ == '__main__':
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
-    sub.add_argument("--full", action="store_true", help="if true, use image built using --full option")
     sub.set_defaults(func=run_on_kubernetes)
-
 
     sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)

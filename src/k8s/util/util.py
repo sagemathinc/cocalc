@@ -210,13 +210,14 @@ def get_tag(args, name, build=None):
         tag += ':' + args.tag
     elif not args.local:
         t = gcloud_most_recent_image(name)
-        if t is None and build is not None:
-            # There are no images, and there is a function to build one, so we
-            # build it and push it to gcloud.
+        if t is None:
             from argparse import Namespace
             tag = get_tag(Namespace(tag='init', local=False), name)
-            build(tag, True)
-            gcloud_docker_push(tag)
+            if build is not None:
+                # There are no images, and there is a function to build one, so we
+                # build it and push it to gcloud.
+                build(tag, True)
+                gcloud_docker_push(tag)
             return tag
         else:
             return t
