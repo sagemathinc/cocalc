@@ -69,7 +69,6 @@ setup(
             'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
             'smc-top              = smc_pyutil.smc_top:main',
             'smc-git              = smc_pyutil.smc_git:main',
-            'smc-copy-code-structure = smc_pyutil.smc_copy_code_structure:main',
         ]
     },
     include_package_data = True
