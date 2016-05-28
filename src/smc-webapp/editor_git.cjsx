@@ -4,7 +4,7 @@ Git "editor" -- basically an application that let's you interact with git.
 ###
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{Button, Input, Form, Panel, Row, Col, Tabs, Tab} = require('react-bootstrap')
+{Button, Input, Form, Panel, Row, Col, Tabs, Tab, DropdownButton, MenuItem} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
@@ -183,11 +183,18 @@ class GitActions extends Actions
                 else
                     @setState(git_status : output.stdout)
 
-    update_diff : () =>
+    update_diff : =>
+        store = @redux.getStore(@name)
+        
+        if store
+            console.log('file to diff',store.get('file_to_diff'))
+            args = if store.get('file_to_diff') then ['diff', store.get('file_to_diff')] else ['diff']
+        else
+            args = ['diff']
         @setState(git_diff : 'updating...')
         @exec
             cmd  : "git"
-            args : ['diff']
+            args : args
             cb   : (err, output) =>
                 if err
                     @setState(git_diff : '')
@@ -332,6 +339,7 @@ Git = (name) -> rclass
             git_changed_tracked_files : rtypes.array
             git_changed_untracked_files : rtypes.array
             checked_files : rtypes.object
+            file_to_diff          : rtypes.string
 
     propTypes :
         actions : rtypes.object
@@ -513,10 +521,22 @@ Git = (name) -> rclass
             {<pre>{@props.git_status}</pre> if @props.git_status}
         </Panel>
 
+    render_diff_files : ->
+        if @props.git_changed_tracked_files
+            for file, idx in @props.git_changed_tracked_files
+                console.log(idx)
+                <MenuItem key={idx} eventKey="{file}" onSelect={(e)=>console.log(JSON.stringify(e.target));@props.actions.setState(file_to_diff:e.target.text);@props.actions.update_diff()}>{file}</MenuItem>
+
     render_diff : ->
         head =
             <span>
                 git diff
+                <Space/> <Space/>
+                <DropdownButton title='file' id='files_to_diff'
+                  
+                >
+                    {@render_diff_files()}
+                </DropdownButton>
                 <Space/> <Space/>
                 <Button onClick={=>@props.actions.update_diff()}>
                     Refresh
