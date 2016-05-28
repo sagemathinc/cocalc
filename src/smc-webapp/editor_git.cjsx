@@ -405,6 +405,7 @@ Git = (name) -> rclass
                 <Input
                     ref         = 'commit_message'
                     type        = 'text'
+                    value       = {@props.commit_message ? ''}
                     placeholder = {@props.commit_message ? 'Commit message'}
                     onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
                     onKeyDown   = {@handle_commit_message_keypress}
