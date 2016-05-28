@@ -20,7 +20,7 @@ NAME='smc-hub'
 
 SECRETS = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
 
-def build(tag, rebuild, upgrade=False):
+def build(tag, rebuild, upgrade=False, commit=None):
     """
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
@@ -35,14 +35,19 @@ def build(tag, rebuild, upgrade=False):
 
     # Next build smc-hub, which depends on smc-hub-base.
     v = ['sudo', 'docker', 'build', '-t', tag]
+    if commit:
+        v.append("--build-arg")
+        v.append("commit={commit}".format(commit=commit))
     if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH,'image'))
 
 def build_docker(args):
+    if args.commit:
+        args.tag += ('-' if args.tag else '') + args.commit[:6]
     tag = util.get_tag(args, NAME)
-    build(tag, args.rebuild, args.upgrade)
+    build(tag, args.rebuild, args.upgrade, args.commit)
     if not args.local:
         util.gcloud_docker_push(tag)
 
@@ -87,6 +92,8 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-c", "--commit", default='',
+                     help="build a particular sha1 commit; the commit is automatically appended to the tag")
     sub.add_argument("-r", "--rebuild", action="store_true",
                      help="re-pull latest hub source code from git and install any dependencies")
     sub.add_argument("-u", "--upgrade", action="store_true",

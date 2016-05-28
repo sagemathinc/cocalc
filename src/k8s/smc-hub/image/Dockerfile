@@ -2,10 +2,13 @@ FROM smc-hub-base
 
 USER root
 
-# Pull latest source code for SMC
-RUN cd /smc && git pull
+# Which commit to checkout and build.
+ARG commit=HEAD
 
-# Rebuild hub -- this uses npm to update any dependencies, or install anything newly required.
+# Pull latest source code for SMC and checkout requested commit (or HEAD)
+RUN cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
+
+# Rebuild hub -- this uses npm to update any dependencies, or install anything required.
 RUN \
   cd /smc/src && \
   . ./smc-env && \

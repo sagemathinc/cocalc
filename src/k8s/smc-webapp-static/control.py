@@ -53,7 +53,7 @@ def get_tag(args):
 
 def build_docker(args):
     if args.commit:
-        args.tag = args.commit
+        args.tag += ('-' if args.tag else '') + args.commit[:6]
     tag = util.get_tag(args, NAME)
     if args.rebuild_all:
         build_base(True)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     sub.add_argument("-t", "--tag", default="", help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="update to latest version of SMC from master")
     sub.add_argument("-c", "--commit", default='',
-                     help="build a particular sha1 commit; the tag will be set to this commit")
+                     help="build a particular sha1 commit;  the commit is automatically appended to the tag")
     sub.add_argument("--rebuild_all", action="store_true", help="rebuild everything including base image")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
