@@ -55,7 +55,7 @@ def get_default_gcloud_project_name():
     i = conf.find("project = ")
     if i == -1:
         return get_default_gcloud_project_name_fallback()
-    return conf[i:].split('=')[1].strip()
+    return conf[i:].split('=')[1].split()[0].strip()
 
 # This works but is very slow and ugly due to parsing output.
 def get_default_gcloud_project_name_fallback():
@@ -95,16 +95,22 @@ def gcloud_images(name=''):
     return [x for x in a if x['REPOSITORY'] == name]
 
 def gcloud_auth_token():
-    ## This gcloud auth command is SLOW!
-    #return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
-    cred = join(os.environ['HOME'], '.config', 'gcloud' ,'credentials')
-    return json.loads(open(cred).read())['data'][0]['credential']['access_token']
+    ## This gcloud auth command is SLOW so we cache the result.
+    access_token = join(os.environ['HOME'], '.config', 'gcloud' ,'access_token')
+    if not os.path.exists(access_token) or os.path.getctime(access_token) < time.time() - 60*60*12:
+        token = run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+        open(access_token,'w').write(token)
+        return token
+    else:
+        return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
     # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
-    return 'gcr.io/'+repo, json.loads(requests.get(url, auth=('_token', gcloud_auth_token())).content.decode())
+    r = requests.get(url, auth=('_token', gcloud_auth_token())).content.decode()
+    r = json.loads(r)
+    return 'gcr.io/'+repo, r
 
 def gcloud_images(name):
     #print("gcloud_images '{name}'".format(name=name))

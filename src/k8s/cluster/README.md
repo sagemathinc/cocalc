@@ -17,7 +17,7 @@ Now create it, which takes 5-10 minutes:
 
 Once done, you can do
 
-    ./control.py run
+    ./control.py run-deployments
 
 to build any not-build Docker images, then run them all.  This could take about 10 minutes, but may result in a fully workin cluster that you can visit.  Use
 
@@ -47,7 +47,7 @@ You can also force the cluster to have a given size:
 
 ## Deleting the cluster
 
-    ./control.py delete test
+    ./control.py delete-cluster test
 
 ## TODO: Troubleshooting
 

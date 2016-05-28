@@ -113,6 +113,10 @@ def select_cluster(args):
 def delete_cluster(args):
     select_cluster(args)
 
+    # IMPORTANT: shutdown all deployments *and* services first; otherwise we end up with
+    # a random load balancer left laying around, which costs, and will never be used again.
+    delete_all()
+
     env = {
         'KUBE_GCE_INSTANCE_PREFIX' : 'k8s-'+args.name,
         'KUBE_GCE_ZONE'            : args.zone
@@ -138,7 +142,7 @@ def resize_cluster(args):
     util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', 'k8s-'+args.name+'-minion-group',
          '--size', str(args.size)])
 
-def run_all(args):
+def run_all():
     x = util.get_deployments()
     for name in ['rethinkdb0', 'rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
         if name not in x:
@@ -146,6 +150,18 @@ def run_all(args):
                 name = 'rethinkdb'
             print('\n******\nRUNNING {name}\n******\n'.format(name=name))
             util.run([join(SCRIPT_PATH,'..',name,'control.py'), 'run'])
+
+def delete_all():
+    x = util.get_deployments()
+    s = util.get_services()
+    for name in ['rethinkdb0', 'rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
+        if name in x:
+            if name == 'rethinkdb0':
+                name = 'rethinkdb'
+            print('\n******\nDELETING {name}\n******\n'.format(name=name))
+            util.run([join(SCRIPT_PATH,'..',name,'control.py'), 'delete'])
+        if name in s:
+            util.run(['kubectl', 'delete', 'services', name])
 
 if __name__ == '__main__':
     import argparse
@@ -173,7 +189,7 @@ if __name__ == '__main__':
     sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)')
     sub.set_defaults(func=select_cluster)
 
-    sub = subparsers.add_parser('delete', help='delete k8s cluster')
+    sub = subparsers.add_parser('delete-cluster', help='delete k8s cluster')
     sub.add_argument('name', type=str, help='name of the cluster to delete')
     sub.add_argument("--zone", default="us-central1-c", help="zone of the cluster")
     sub.set_defaults(func=delete_cluster)
@@ -190,8 +206,11 @@ if __name__ == '__main__':
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
     sub.set_defaults(func=resize_cluster)
 
-    sub = subparsers.add_parser('run', help="starts all deployments running in the current cluster")
-    sub.set_defaults(func=run_all)
+    sub = subparsers.add_parser('run-deployments', help="starts all deployments running in the current cluster")
+    sub.set_defaults(func=lambda args: run_all())
+
+    sub = subparsers.add_parser('delete-deployments', help='delete all smc deployments (and service!) in the current cluster')
+    sub.set_defaults(func=lambda args: delete_all())
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
