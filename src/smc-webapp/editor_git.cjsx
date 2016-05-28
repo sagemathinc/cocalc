@@ -11,11 +11,11 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 TABS = [
-    #{"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings"},
+    {"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings", "init_actions": ['get_git_user_name', 'get_git_user_email']},
     {"name": "Commit", "icon": "git-commit", "description": "Commit files", "init_actions": ['get_changed_tracked_files', 'get_changed_untracked_files', 'update_diff']},
     #{"name": "Push", "icon": "repo-push", "description": "Push files"},
     #{"name": "Branches", "icon": "git-branch", "description": "Create and switch between branches"},
-   # {"name": "Log", "icon": "history", "description": "Log of commits"},
+    {"name": "Log", "icon": "history", "description": "Log of commits", "init_actions": ['update_log']},
    # {"name": "Issues", "icon": "issue-opened", "description": "Create and modify Github issues"}
 ]
 
@@ -155,7 +155,10 @@ class GitActions extends Actions
         store = @redux.getStore(@name)
         commit_message = store.get('commit_message')
         console.log('CM: '+commit_message)
-        checked_tracked_files = JSON.parse(JSON.stringify(store.get('checked_files').get('tracked')))
+        if store.get('checked_files')
+            checked_tracked_files = JSON.parse(JSON.stringify(store.get('checked_files').get('tracked')))
+        else
+            checked_tracked_files = []
         @setState(git_commit_return : 'commiting...')
         @exec
             cmd  : "git"
@@ -258,7 +261,7 @@ FileRow = rclass
         listing_type : rtypes.string
 
     render : ->
-        <Row onClick={@handle_click} className={'noselect'}>
+        <Row onClick={@handle_click} className={'noselect small'}>
             <FileCheckbox
                     name         = {@props.name}
                     checked      = {@props.checked}
@@ -402,10 +405,22 @@ Git = (name) -> rclass
                 <Input
                     ref         = 'commit_message'
                     type        = 'text'
-                    placeholder = 'Commit message'
+                    placeholder = {@props.commit_message ? 'Commit message'}
                     onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
                     onKeyDown   = {@handle_commit_message_keypress}
                 />
+                <span>
+                    Changed tracked files
+                    <Space/> <Space/>
+                    <Button onClick={=>@props.actions.get_changed_tracked_files()}>
+                        Refresh
+                    </Button>
+                </span>
+                {<FileListing
+                    listing             = {@props.git_changed_tracked_files}
+                    listing_type        = 'tracked'
+                    checked_files       = {@props.checked_files}
+                    actions             = {@props.actions} /> if @props.git_changed_tracked_files}
                 <Button
                     onClick  = {=>@props.actions.run_git_commit()} >
                     Commit the selected changed tracked files
@@ -442,6 +457,13 @@ Git = (name) -> rclass
                 </Button>
             </span>
         <Panel header={head}>
+            <span>
+                Changed tracked files
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.get_changed_tracked_files()}>
+                    Refresh
+                </Button>
+            </span>
             {<FileListing
                 listing             = {@props.git_changed_tracked_files}
                 listing_type        = 'tracked'
@@ -517,11 +539,7 @@ Git = (name) -> rclass
             <Row>
                 <Col sm=4>
                     {@render_commit_panel()}
-                </Col>
-                <Col sm=4>
-                    {@render_changed_tracked_files()}
                     {@render_changed_untracked_files()}
-                    {@render_status()}
                 </Col>
                 <Col sm=4>
                     {@render_diff()}
@@ -534,10 +552,11 @@ Git = (name) -> rclass
             <Row>
                 <Col sm=4>
                     {@render_commit_panel()}
+                    {@render_changed_untracked_files()}
                 </Col>
                 <Col sm=4>
                     {@render_changed_tracked_files()}
-                    {@render_changed_untracked_files()}
+                   
                     {@render_status()}
                 </Col>
                 <Col sm=4>
