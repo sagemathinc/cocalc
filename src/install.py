@@ -63,7 +63,7 @@ def install_webapp():
     cmd("npm run webpack-production")
 
 def install_primus():
-    cmd("cd smc-hub && npm install primus && cd .. && static/primus/update_primus")
+    cmd("cd smc-hub && npm install primus engine.io && cd .. && static/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
