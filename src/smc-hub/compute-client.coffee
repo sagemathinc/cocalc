@@ -472,6 +472,7 @@ class ComputeServerClient
                         cb(e)
                     else
                         dbg("waiting to receive response with id #{opts.mesg.id}")
+                        start_time = new Date()
                         socket.recv_mesg
                             type    : 'json'
                             id      : opts.mesg.id
@@ -480,6 +481,10 @@ class ComputeServerClient
                                 dbg("got response -- #{misc.to_safe_str(mesg)}")
                                 if mesg.event == 'error'
                                     dbg("error = #{mesg.error}")
+                                    if new Date() - start_time >= Math.max(opts.timeout/1.1, 3000)
+                                        # very likely a timeout error, so don't re-use this socket (this is dangerous though since we can accumulate sockets and DOS the compute server!)
+                                        dbg("deleting socket cache for '#{opts.host}'")
+                                        delete @_socket_cache[opts.host]
                                     cb(mesg.error)
                                 else
                                     delete mesg.id
@@ -1259,7 +1264,7 @@ class ProjectClient extends EventEmitter
     # start local_hub daemon running (must be opened somewhere)
     start: (opts) =>
         opts = defaults opts,
-            set_quotas : true   # if true, also sets all quotas (in parallel with start)
+            set_quotas : true   # if true, also sets all quotas
             cb         : required
         dbg = @dbg("start")
         @_synctable?.connect()
@@ -1285,6 +1290,13 @@ class ProjectClient extends EventEmitter
             return
         async.series([
             (cb) =>
+                if opts.set_quotas
+                    # CRITICAL: some quotas -- like member hosting must be set before project starts.
+                    dbg("setting all quotas")
+                    @set_all_quotas(cb:cb)
+                else
+                    cb()
+            (cb) =>
                 @open(cb : cb)
             (cb) =>
                 dbg("issuing the start command")
@@ -1300,7 +1312,7 @@ class ProjectClient extends EventEmitter
                     cb      : cb
             (cb) =>
                 if opts.set_quotas
-                    # CRITICAL: the quotas **MUST** be set after the project has started, since some of
+                    # CRITICAL: the quotas **MUST** also be set after the project has started, since some of
                     # the quotas, e.g., disk space and network, can't be set until the Linux account
                     # has been created.
                     dbg("setting all quotas")

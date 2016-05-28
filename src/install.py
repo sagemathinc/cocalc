@@ -57,11 +57,13 @@ def install_webapp():
     cmd("cd static/term; ./compile")
     # update static react
     cmd("update_react_static")
+    # update primus - so client has it.
+    install_primus()
     print("Building production webpack -- this will take about 3 minutes")
     cmd("npm run webpack-production")
 
 def install_primus():
-    cmd("static/primus/update_primus")
+    cmd("cd smc-hub && npm install primus engine.io && cd .. && static/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
@@ -72,7 +74,6 @@ def install_all(compute=False, web=False):
         install_sagews()
         install_project()
     if web:
-        install_primus()
         install_webapp()
 
 def main():

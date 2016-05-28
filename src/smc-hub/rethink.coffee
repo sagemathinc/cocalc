@@ -108,12 +108,13 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
-            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool
+            pool     : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             concurrent_error : 0  # if nonzero, and this many queries at once, any query fails after a slight delay.
+            concurrent_kill  : 3000 # if hit this, process will kill itself
             mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
             cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
@@ -127,6 +128,7 @@ class RethinkDB
         @_error_thresh     = opts.error
         @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
+        @_concurrent_kill  = opts.concurrent_kill
         @_concurrent_error = opts.concurrent_error
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
@@ -162,6 +164,17 @@ class RethinkDB
                             cb()
             (cb) =>
                 @_init_native(cb)
+            (cb) =>
+                # create schema if @_database does not exist.
+                @r.dbList().run (err, v) =>
+                    if err
+                        cb(err)
+                    else
+                        if @_database not in v
+                            @db = @r.db(@_database)
+                            @update_schema(cb:cb)
+                        else
+                            cb()
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{to_json(err)}")
@@ -314,6 +327,9 @@ class RethinkDB
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
+                        if that._concurrent_queries > that._concurrent_kill
+                            winston.debug("rethink: *** concurrent_kill *** CONCURRENT KILL THRESHOLD EXCEEDED!")
+                            process.exit(1)
 
                         if that._concurrent_error and that._concurrent_queries > that._concurrent_error
                             winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
@@ -789,6 +805,20 @@ class RethinkDB
             if not opts.end?
                 opts.end = new Date()
 
+    _get_log_query: (opts={}) =>
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            log   : 'central_log'
+        query = @table(opts.log)
+        @_process_time_range(opts)
+        if opts.start? or opts.end?
+            query = query.between(opts.start, opts.end, {index:'time'})
+        if opts.event?  # restrict to only the given event
+            query = query.getAll([opts.event], {index:'event'})
+        return query
+
     get_log: (opts={}) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
@@ -796,12 +826,22 @@ class RethinkDB
             event : undefined
             log   : 'central_log'
             cb    : required
-        query = @table(opts.log)
-        @_process_time_range(opts)
-        if opts.start? or opts.end?
-            query = query.between(opts.start, opts.end, {index:'time'})
-        if opts.event?  # restrict to only the given event
-            query = query.filter(@r.row("event").eq(opts.event))
+        @_get_log_query(misc.copy_without(opts,'cb')).run(opts.cb)
+
+    ###
+    Return every entry x in central_log in the given period of time for
+    which x.event==event and x.value.account_id == account_id.
+    This is **VERY** slow since there is no index on value.account_id!
+    ###
+    get_user_log: (opts) =>
+        opts = defaults opts,
+            start      : undefined     # if not given start at beginning of time
+            end        : undefined     # if not given include everything until now
+            event      : undefined
+            account_id : required
+            cb         : required
+        query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
+        query = query.filter(value:{account_id:opts.account_id})
         query.run(opts.cb)
 
     log_client_error: (opts) =>

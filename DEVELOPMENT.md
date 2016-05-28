@@ -15,6 +15,36 @@ scripts to enable development in various contexts:
 
 - src/dev/smc -- related to the actual live SMC deployment, which runs on many nodes, and uses haproxy and nginx.
 
+## Issue Triage
+For the most part, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
+
+Contributors with sufficient permissions on the SMC repo can help by adding
+labels to triage issues:
+
+* Yellow, **A**-prefixed labels state which **area** of SMC the issue relates to.
+
+* Green, **E**-prefixed labels explain the type of **experience** necessary
+  to fix the issue.
+
+* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue. The
+  [I-nominated][inom] label indicates that an issue has been nominated for
+  prioritizing at the next triage meeting.
+
+* Orange, **P**-prefixed labels indicate a bug's **priority**. These labels
+  are only assigned during triage meetings, and replace the [I-nominated][inom]
+  label.
+
+* The purple **meta** label denotes a list of issues collected from other categories.
+
+
+* The black, **blocked** label denotes an issue blocked by another.
+
+If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
+
+[inom]:https://github.com/sagemathinc/smc/labels/I-nominated
+[eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
+
+
 ## Modules:
 
 - smc-util:      javascript utility code used in the browser and servers

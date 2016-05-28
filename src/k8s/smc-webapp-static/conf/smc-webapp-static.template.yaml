@@ -10,7 +10,7 @@ metadata:
   name: smc-webapp-static
   selfLink: /apis/extensions/v1beta1/namespaces/deployments/smc-webapp-static
 spec:
-  replicas: 2
+  replicas: {replicas}
   selector:
     matchLabels:
       run: smc-webapp-static
@@ -26,8 +26,8 @@ spec:
         run: smc-webapp-static
     spec:
       containers:
-      - image: gcr.io/sage-math-inc/smc-webapp-static:0.11
-        imagePullPolicy: IfNotPresent
+      - image: {image}
+        imagePullPolicy: {pull_policy}
         livenessProbe:
           httpGet:
             path: /
@@ -38,10 +38,7 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
-        resources: {}
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-      securityContext: {}
       terminationGracePeriodSeconds: 30
-status: {}
