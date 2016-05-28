@@ -401,7 +401,23 @@ Git = (name) -> rclass
         window.refs = @refs
         head =
             <div>
-                Commit
+                
+                
+                <span>
+                    Select the tracked files to commit
+                    <Space/> <Space/>
+                    <Button onClick={=>@props.actions.get_changed_tracked_files()}>
+                        Refresh
+                    </Button>
+                </span>
+                <div>
+                {<FileListing
+                    listing             = {@props.git_changed_tracked_files}
+                    listing_type        = 'tracked'
+                    checked_files       = {@props.checked_files}
+                    actions             = {@props.actions} /> if @props.git_changed_tracked_files}
+                </div>
+                Write your commit message
                 <Input
                     ref         = 'commit_message'
                     type        = 'text'
@@ -410,18 +426,6 @@ Git = (name) -> rclass
                     onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
                     onKeyDown   = {@handle_commit_message_keypress}
                 />
-                <span>
-                    Changed tracked files
-                    <Space/> <Space/>
-                    <Button onClick={=>@props.actions.get_changed_tracked_files()}>
-                        Refresh
-                    </Button>
-                </span>
-                {<FileListing
-                    listing             = {@props.git_changed_tracked_files}
-                    listing_type        = 'tracked'
-                    checked_files       = {@props.checked_files}
-                    actions             = {@props.actions} /> if @props.git_changed_tracked_files}
                 <Button
                     onClick  = {=>@props.actions.run_git_commit()} >
                     Commit the selected changed tracked files
