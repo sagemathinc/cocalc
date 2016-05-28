@@ -4,11 +4,24 @@ Git "editor" -- basically an application that let's you interact with git.
 ###
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{Button, Input, Panel, Row, Col, Tabs, Tab} = require('react-bootstrap')
+{Button, Input, Form, Panel, Row, Col, Tabs, Tab} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
 {defaults, required} = misc
+
+TABS = [
+    #{"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings"},
+    {"name": "Commit", "icon": "git-commit", "description": "Commit files", "init_actions": ['get_changed_tracked_files', 'get_changed_untracked_files', 'update_diff']},
+    #{"name": "Push", "icon": "repo-push", "description": "Push files"},
+    #{"name": "Branches", "icon": "git-branch", "description": "Create and switch between branches"},
+   # {"name": "Log", "icon": "history", "description": "Log of commits"},
+   # {"name": "Issues", "icon": "issue-opened", "description": "Create and modify Github issues"}
+]
+
+TABS_BY_NAME = {}
+for tab in TABS
+    TABS_BY_NAME[tab["name"].toLowerCase()] = tab
 
 redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
@@ -18,8 +31,9 @@ class GitActions extends Actions
     init : (@project_id, @filename) =>
         @path = misc.path_split(@filename).head
         @setState(git_repo_root : @path)
-        @set_tab('configuration')
-
+        #@set_tab('configuration')
+        @set_tab('commit')
+        
     exec : (opts) =>
         opts = defaults opts,
             cmd  : required
@@ -98,21 +112,60 @@ class GitActions extends Actions
             cb   : (err, output) =>
                 @setState(current_branch : output.stdout)
 
+    get_changed_tracked_files : =>
+        store = @redux.getStore(@name)
+        # git rev-parse --abbrev-ref HEAD
+        @exec
+            cmd  : "smc-git"
+            args : ['changed_tracked_files']
+            cb   : (err, output) =>
+                @setState(git_changed_tracked_files : JSON.parse(output.stdout))
+
+    get_changed_untracked_files : =>
+        store = @redux.getStore(@name)
+        # git rev-parse --abbrev-ref HEAD
+        @exec
+            cmd  : "smc-git"
+            args : ['changed_untracked_files']
+            cb   : (err, output) =>
+                @setState(git_changed_untracked_files : JSON.parse(output.stdout))
+
+
+
+    git_add_selected : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "git"
+            args : ['add'].concat store.get('checked_files').get('untracked')
+            cb   : (err, output) =>
+                @get_changed_untracked_files()
+                @get_changed_tracked_files()
+
+    git_add_all : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "git"
+            args : ['add', '.']
+            cb   : (err, output) =>
+                @get_changed_untracked_files()
+                @get_changed_tracked_files()
+                @update_diff()
+
     run_git_commit : =>
         store = @redux.getStore(@name)
         commit_message = store.get('commit_message')
         console.log('CM: '+commit_message)
+        checked_tracked_files = JSON.parse(JSON.stringify(store.get('checked_files').get('tracked')))
         @setState(git_commit_return : 'commiting...')
         @exec
             cmd  : "git"
-            args : ['commit', '-a', '-m', commit_message]
+            args : ['commit', '-m', commit_message].concat checked_tracked_files
             cb   : (err, output) =>
                 if err
                     @setState(git_commit_return : JSON.stringify(err) + ' ' + JSON.stringify(output))
                 else
                     @setState(git_commit_return : output.stdout)
                     @setState(commit_message : '')
-                    @refs.commit_message.setValue('')
                     @update_status()
                     @update_diff()
 
@@ -151,14 +204,103 @@ class GitActions extends Actions
 
     set_tab : (tab) =>
         @setState(tab:tab)
-        if tab == 'configuration'
-            @get_git_user_name()
-            @get_git_user_email()
-        if tab == 'commit'
-            @update_status()
-            @update_diff()
-        if tab == 'log'
-            @update_log()
+        for action in TABS_BY_NAME[tab]["init_actions"]
+            @[action]()
+
+    add_or_removed_checked_files : (name, listing_type) =>
+        console.log('Name '+name+'Listing type'+listing_type)
+        store = @redux.getStore(@name)
+        window.actions = @; window.store = store
+        console.log('A'+store.get('checked_files'))
+        if not store.get('checked_files')
+            @setState(checked_files: {"tracked": [], "untracked": []})
+        console.log('B'+store.get('checked_files'))
+        console.log('C'+listing_type+store.get('checked_files')[listing_type])
+        console.log('D'+store.get('checked_files').get(listing_type).indexOf(name) > -1)
+        # I was unable to modify the object as is Only worked once I did -> JSON -> object
+        if store.get('checked_files').get(listing_type).indexOf(name) > -1
+            checked_files = JSON.parse(JSON.stringify(store.get('checked_files')))
+            checked_files[listing_type] = checked_files[listing_type].filter (word) -> word isnt name
+            @setState(checked_files: checked_files)
+        else
+            checked_files = JSON.parse(JSON.stringify(store.get('checked_files')))
+            checked_files[listing_type].push(name)
+            console.log(checked_files)
+            @setState(checked_files: checked_files)
+        console.log(JSON.stringify(store.get('checked_files')))
+
+FileCheckbox = rclass
+    displayName : 'ProjectGit-FileCheckbox'
+
+    propTypes :
+        name         : rtypes.string
+        checked      : rtypes.bool
+        actions      : rtypes.object.isRequired
+        current_path : rtypes.string
+        style        : rtypes.object
+        listing_type : rtypes.string
+
+    handle_click : (e) ->
+        @props.actions.add_or_removed_checked_files(@props.name, @props.listing_type)
+
+    render : ->
+        <span onClick={@handle_click} style={@props.style}>
+            <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
+        </span>
+
+FileRow = rclass
+    displayName : 'ProjectGit-FileRow'
+
+    propTypes :
+        name         : rtypes.string.isRequired
+        current_path : rtypes.string
+        actions      : rtypes.object.isRequired
+        listing_type : rtypes.string
+
+    render : ->
+        <Row onClick={@handle_click} className={'noselect'}>
+            <FileCheckbox
+                    name         = {@props.name}
+                    checked      = {@props.checked}
+                    current_path = {@props.current_path}
+                    actions      = {@props.actions}
+                    style        = {verticalAlign:'sub'}
+                    listing_type = {@props.listing_type} />
+            {@props.name}
+        </Row>
+
+FileListing = rclass
+    displayName : 'ProjectGit-FileListing'
+
+    propTypes :
+        listing             : rtypes.array.isRequired
+        listing_type        : rtypes.string
+        checked_files       : rtypes.object
+        current_path        : rtypes.string
+        actions             : rtypes.object.isRequired
+
+    getDefaultProps : ->
+        file_search : ''
+
+    render_row : (name) ->
+        checked = true
+
+        return <FileRow
+            name         = {name}
+            listing_type = {@props.listing_type}
+            checked      = {if @props.checked_files then @props.checked_files[@props.listing_type].indexOf(name) > -1 else false}
+            current_path = {@props.current_path}
+            actions      = {@props.actions} />
+
+    render_rows : ->
+        (@render_row(name) for name in @props.listing)
+
+    render : ->
+        <Col sm=12>
+            {@render_rows()}
+        </Col>
+
+
 
 
 exports.init_redux = init_redux = (redux, project_id, filename) ->
@@ -184,43 +326,13 @@ Git = (name) -> rclass
             git_diff              : rtypes.string
             git_log               : rtypes.string
             current_branch        : rtypes.string
+            git_changed_tracked_files : rtypes.array
+            git_changed_untracked_files : rtypes.array
+            checked_files : rtypes.object
 
     propTypes :
         actions : rtypes.object
 
-    render_configuration_header : ->
-        <Tip delayShow=1300
-             title="Configuration" tip="This tab lists all ">
-            <span>
-                <Octicon name="settings"/> Configuration
-            </span>
-        </Tip>
-
-    render_commit_header : ->
-        <Tip delayShow=1300
-             title="Commit" tip="This tab lists all ">
-            <span>
-                <Octicon name="git-commit"/> Commit
-            </span>
-        </Tip>
-
-    render_log_header : ->
-        <Tip delayShow=1300
-             title="Log" tip="This tab lists all ">
-            <span>
-                <Octicon name="history"/> Log
-            </span>
-        </Tip>
-
-    render_commit_message_input : ->
-        <Input
-            ref         = 'commit_message'
-            type        = 'text'
-            placeholder = 'Commit message'
-
-            onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
-            onKeyDown   = {@handle_commit_message_keypress}
-        />
 
     render_user_name_input : ->
         <Input
@@ -254,6 +366,7 @@ Git = (name) -> rclass
             @props.actions.set_git_user_email()
 
     handle_commit_message_keypress : (e) ->
+        console.log(@refs.commit_message.getValue())
         if e.keyCode == 13 and @props.commit_message != ''
             @props.actions.run_git_commit()
 
@@ -282,15 +395,22 @@ Git = (name) -> rclass
 
 
     render_commit_panel : ->
+        window.refs = @refs
         head =
-            <span>
-                git commit -a -m "{@render_commit_message_input()}"
+            <div>
+                Commit
+                <Input
+                    ref         = 'commit_message'
+                    type        = 'text'
+                    placeholder = 'Commit message'
+                    onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
+                    onKeyDown   = {@handle_commit_message_keypress}
+                />
                 <Button
                     onClick  = {=>@props.actions.run_git_commit()} >
-                    Run
+                    Commit the selected changed tracked files
                 </Button>
-
-            </span>
+            </div>
         <Panel header={head}>
             {<pre>{@props.git_commit_return}</pre> if @props.git_commit_return}
         </Panel>
@@ -310,6 +430,44 @@ Git = (name) -> rclass
             </span>
         <Panel header={head}>
             {<pre>{@props.git_log}</pre> if @props.git_log}
+        </Panel>
+
+    render_changed_tracked_files : ->
+        head =
+            <span>
+                Changed tracked files
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.get_changed_tracked_files()}>
+                    Refresh
+                </Button>
+            </span>
+        <Panel header={head}>
+            {<FileListing
+                listing             = {@props.git_changed_tracked_files}
+                listing_type        = 'tracked'
+                checked_files       = {@props.checked_files}
+                actions             = {@props.actions} /> if @props.git_changed_tracked_files}
+        </Panel>
+
+    render_changed_untracked_files : ->
+        head =
+            <span>
+                Changed untracked files not covered by .gitignore
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.get_changed_untracked_files()}>
+                    Refresh
+                </Button>
+                <Button onClick={=>@props.actions.git_add_selected()}>
+                    Add selected
+                </Button>
+            </span>
+        <Panel header={head}>
+        
+            {<FileListing
+                listing             = {@props.git_changed_untracked_files}
+                listing_type        = 'untracked'
+                checked_files       = {@props.checked_files}
+                actions             = {@props.actions} /> if @props.git_changed_untracked_files}
         </Panel>
 
     render_status : ->
@@ -361,6 +519,42 @@ Git = (name) -> rclass
                     {@render_commit_panel()}
                 </Col>
                 <Col sm=4>
+                    {@render_changed_tracked_files()}
+                    {@render_changed_untracked_files()}
+                    {@render_status()}
+                </Col>
+                <Col sm=4>
+                    {@render_diff()}
+                </Col>
+            </Row>
+        </div>
+
+    render_push : ->
+        <div>
+            <Row>
+                <Col sm=4>
+                    {@render_commit_panel()}
+                </Col>
+                <Col sm=4>
+                    {@render_changed_tracked_files()}
+                    {@render_changed_untracked_files()}
+                    {@render_status()}
+                </Col>
+                <Col sm=4>
+                    {@render_diff()}
+                </Col>
+            </Row>
+        </div>
+
+    render_pull : ->
+        <div>
+            <Row>
+                <Col sm=4>
+                    {@render_commit_panel()}
+                </Col>
+                <Col sm=4>
+                    {@render_changed_tracked_files()}
+                    {@render_changed_untracked_files()}
                     {@render_status()}
                 </Col>
                 <Col sm=4>
@@ -378,13 +572,6 @@ Git = (name) -> rclass
             </Row>
         </div>
 
-    render_branches_header : ->
-        <Tip delayShow=1300
-             title="Branches" tip="This tab lists all ">
-            <span>
-                <Octicon name="git-branch"/> Branches
-            </span>
-        </Tip>
 
     render_branches : ->
         <div>
@@ -395,26 +582,33 @@ Git = (name) -> rclass
             </Row>
         </div>
 
+
+    render_tab_header : (name, icon, description)->
+        <Tip delayShow=1300
+             title={name} tip={description}>
+            <span>
+                <Octicon name={icon}/> {name }
+            </span>
+        </Tip>
+
+    render_tab : (idx, name, icon, description) ->
+        <Tab key={idx}
+             eventKey={name.toLowerCase()}
+             title={@render_tab_header(name, icon, description)}>
+                 <div style={marginTop:'8px'}></div>
+                 {@['render_'+name.toLowerCase()]()}
+        </Tab>
+
+    render_tabs : ->
+        for tab, idx in TABS
+            @render_tab(idx, tab.name, tab.icon, tab.description)
+
     render : ->
+        console.log('rendering')
         <div>
             <h2>Git Repository at {@props.git_repo_root}</h2>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
-                <Tab eventKey={'configuration'} title={@render_configuration_header()}>
-                    <div style={marginTop:'8px'}></div>
-                    {@render_configuration()}
-                </Tab>
-                <Tab eventKey={'commit'} title={@render_commit_header()}>
-                    <div style={marginTop:'8px'}></div>
-                    {@render_commit()}
-                </Tab>
-                <Tab eventKey={'log'} title={@render_log_header()}>
-                    <div style={marginTop:'8px'}></div>
-                    {@render_log()}
-                </Tab>
-                <Tab eventKey={'branches'} title={@render_branches_header()}>
-                    <div style={marginTop:'8px'}></div>
-                    {@render_branches()}
-                </Tab>
+                {@render_tabs()}
             </Tabs>
 
         </div>
