@@ -23,7 +23,7 @@ def build_base(rebuild=False):
     v.append('.')
     util.run(v, path='image-base')
 
-def build(tag, rebuild):
+def build(tag, rebuild, commit=None):
     """
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
@@ -32,6 +32,9 @@ def build(tag, rebuild):
 
     # Build image we will deploy on top of base
     v = ['sudo', 'docker', 'build', '-t', tag]
+    if commit:
+        v.append("--build-arg")
+        v.append("commit={commit}".format(commit=commit))
     if rebuild:
         v.append("--no-cache")
     v.append('.')
@@ -49,10 +52,12 @@ def get_tag(args):
     return tag
 
 def build_docker(args):
+    if args.commit:
+        args.tag = args.commit
     tag = util.get_tag(args, NAME)
     if args.rebuild_all:
         build_base(True)
-    build(tag, args.rebuild)
+    build(tag, args.rebuild, args.commit)
     if args.local:
         test_mesg(tag)
     else:
@@ -86,8 +91,9 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", default="", help="tag for this build")
-    sub.add_argument("-r", "--rebuild", action="store_true",
-                     help="update to latest version of SMC from master")
+    sub.add_argument("-r", "--rebuild", action="store_true", help="update to latest version of SMC from master")
+    sub.add_argument("-c", "--commit", default='',
+                     help="build a particular sha1 commit; the tag will be set to this commit")
     sub.add_argument("--rebuild_all", action="store_true", help="rebuild everything including base image")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
