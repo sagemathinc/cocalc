@@ -404,7 +404,7 @@ Git = (name) -> rclass
                 
                 
                 <span>
-                    Select the tracked files to commit
+                    Select the changed tracked files to commit
                     <Space/> <Space/>
                     <Button onClick={=>@props.actions.get_changed_tracked_files()}>
                         Refresh
