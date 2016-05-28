@@ -75,7 +75,10 @@ def gcloud_docker_push(name):
     run(['gcloud', 'docker', 'push', name])
 
 def gcloud_most_recent_image(name):
-    x = gcloud_images(name)[0]
+    v = gcloud_images(name)
+    if len(v) == 0:
+        return
+    x = v[0]
     return x['REPOSITORY'] + ':' + x['TAG']
 
 def gcloud_images(name=''):
@@ -92,7 +95,10 @@ def gcloud_images(name=''):
     return [x for x in a if x['REPOSITORY'] == name]
 
 def gcloud_auth_token():
-    return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+    ## This gcloud auth command is SLOW!
+    #return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+    cred = join(os.environ['HOME'], '.config', 'gcloud' ,'credentials')
+    return json.loads(open(cred).read())['data'][0]['credential']['access_token']
 
 def get_gcloud_image_info(name):
     # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
@@ -198,12 +204,22 @@ def ensure_secret_exists(name, basename):
         run(['kubectl', 'create', 'secret', 'generic', name,
          '--from-literal={basename}='.format(basename=basename)])
 
-def get_tag(args, name):
+def get_tag(args, name, build=None):
     tag = name
     if args.tag:
         tag += ':' + args.tag
     elif not args.local:
-        return gcloud_most_recent_image(name)
+        t = gcloud_most_recent_image(name)
+        if t is None and build is not None:
+            # There are no images, and there is a function to build one, so we
+            # build it and push it to gcloud.
+            from argparse import Namespace
+            tag = get_tag(Namespace(tag='init', local=False), name)
+            build(tag, True)
+            gcloud_docker_push(tag)
+            return tag
+        else:
+            return t
     if not args.local:
         tag = gcloud_docker_repo(tag)
     return tag
@@ -272,6 +288,9 @@ def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None
 
     if resize:
         resizefs_disk(name)
+
+def get_persistent_disk_names():
+    return [x.split()[0] for x in run(['gcloud', 'compute', 'disks', 'list'], get_output=True).splitlines()[1:]]
 
 def resizefs_disk(name):
     host = get_instance_with_disk(name)

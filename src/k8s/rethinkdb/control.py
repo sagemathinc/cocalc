@@ -37,6 +37,10 @@ def ensure_persistent_disk_exists(context, number, size, disk_type):
     name = "{context}-rethinkdb-{number}".format(context=context, number=number)
     util.ensure_persistent_disk_exists(name, size=size, disk_type=disk_type)
 
+def get_persistent_disks(context):
+    name = "{context}-rethinkdb-".format(context=context)
+    return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
+
 def ensure_services_exist():
     v = util.get_services()
     for s in ['driver', 'cluster']:
@@ -47,13 +51,14 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
+    context = util.get_kube_context()
     if len(args.number) == 0:
-        args.number = [0]
+        # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
+        args.number = range(max(1,len(get_persistent_disks(context))))
     ensure_services_exist()
     util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     args.local = False # so tag is for gcloud
-    tag = util.get_tag(args, NAME)
-    context = util.get_kube_context()
+    tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     for number in args.number:
         ensure_persistent_disk_exists(context, number, args.size, args.type)

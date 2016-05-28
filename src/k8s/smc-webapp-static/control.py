@@ -71,7 +71,7 @@ def get_tag(args):
     return tag
 
 def build_docker(args):
-    tag = get_tag(args)
+    tag = util.get_tag(args, NAME)
     if args.rebuild and not args.full:
         rebuild_host_static()
     if args.full:
@@ -92,7 +92,7 @@ def images_on_gcloud(args):
 
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
-    tag = get_tag(args)
+    tag = util.get_tag(args, NAME, build_full)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas,

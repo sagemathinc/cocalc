@@ -20,7 +20,7 @@ NAME='smc-hub'
 
 SECRETS = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
 
-def build(tag, rebuild, upgrade):
+def build(tag, rebuild, upgrade=False):
     """
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
@@ -40,18 +40,8 @@ def build(tag, rebuild, upgrade):
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH,'image'))
 
-def get_tag(args):
-    tag = NAME
-    if args.tag:
-        tag += ':' + args.tag
-    elif not args.local:
-        return util.gcloud_most_recent_image(NAME)
-    if not args.local:
-        tag = util.gcloud_docker_repo(tag)
-    return tag
-
 def build_docker(args):
-    tag = get_tag(args)
+    tag = util.get_tag(args, NAME)
     build(tag, args.rebuild, args.upgrade)
     if not args.local:
         util.gcloud_docker_push(tag)
@@ -64,7 +54,7 @@ def run_on_kubernetes(args):
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
     args.local = False # so tag is for gcloud
-    tag = get_tag(args)
+    tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas,

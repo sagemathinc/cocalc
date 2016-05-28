@@ -33,7 +33,7 @@ def images_on_gcloud(args):
 
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
-    tag = util.get_tag(args, NAME)
+    tag = util.get_tag(args, NAME, build)
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
