@@ -44,7 +44,6 @@ def install_project():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
-    cmd(SUDO+"/usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm install"%path)
 
