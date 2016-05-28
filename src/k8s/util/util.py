@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import base64, json, os, requests, subprocess, time, yaml
+import base64, json, os, requests, subprocess, tempfile, time, yaml
 
 join = os.path.join
 
@@ -47,18 +47,18 @@ def run(v, shell=False, path='.', get_output=False, env=None):
 
 
 # Fast, but relies on stability of gcloud config path (I reversed engineered this).
-# Failed for @hal the first time, so don't use...
-#def get_default_gcloud_project_name():
-#    PATH = join(os.environ['HOME'], '.config', 'gcloud')
-#    active_config = open(join(PATH, 'active_config')).read()
-#    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
-#    i = conf.find("project = ")
-#    if i == -1:
-#        raise RuntimeError
-#    return conf[i:].split('=')[1].strip()
+# Failed for @hal the first time, so ...
+def get_default_gcloud_project_name():
+    PATH = join(os.environ['HOME'], '.config', 'gcloud')
+    active_config = open(join(PATH, 'active_config')).read()
+    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
+    i = conf.find("project = ")
+    if i == -1:
+        return get_default_gcloud_project_name_fallback()
+    return conf[i:].split('=')[1].strip()
 
 # This works but is very slow and ugly due to parsing output.
-def get_default_gcloud_project_name():
+def get_default_gcloud_project_name_fallback():
     a = run(['gcloud', 'info'], get_output=True)
     i = a.find("project: ")
     if i == -1:
@@ -79,9 +79,7 @@ def gcloud_most_recent_image(name):
     return x['REPOSITORY'] + ':' + x['TAG']
 
 def gcloud_images(name=''):
-    if name:
-        name = gcloud_docker_repo(name)
-    x = run(['gcloud', 'docker', 'images'], get_output=True)
+    x = run(['gcloud', 'docker', 'images', gcloud_docker_repo(name)], get_output=True)
     i = x.find("REPOSITORY")
     if i == 1:
         raise RuntimeError
@@ -92,6 +90,67 @@ def gcloud_images(name=''):
     for w in v[1:]:
         a.append(dict(zip(headers, w.split()[:2])))
     return [x for x in a if x['REPOSITORY'] == name]
+
+def gcloud_auth_token():
+    return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+
+def get_gcloud_image_info(name):
+    # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
+    repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
+    url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
+    return 'gcr.io/'+repo, json.loads(requests.get(url, auth=('_token', gcloud_auth_token())).content.decode())
+
+def gcloud_images(name):
+    #print("gcloud_images '{name}'".format(name=name))
+    from datetime import datetime
+    w = []
+    repo, data = get_gcloud_image_info(name)
+    if 'manifest' not in data:
+        return []
+    for _, v in data['manifest'].items():
+        if 'tag' in v:
+            w.append([repo, datetime.fromtimestamp(float(v['timeCreatedMs'])/1000), v['tag'][0]])
+    w.sort()
+    return [dict(zip(['REPOSITORY', 'CREATED', 'TAG'], x)) for x in reversed(w)]
+
+def gcloud_delete_images(name, tag=None):
+    """
+    Delete all images from the Google Docker Container registry with the given name.
+    If tag is given, only delete the one with the given tag, if it exists.
+
+    NOTE: this is complicated and ugly because Google hasn't implemented it yet!  http://goo.gl/rvlPCY
+    I just reverse engineered how to do this.
+    """
+
+    # Get metadata about images with the given name.
+    with tempfile.TemporaryDirectory() as tmp:
+        proj = get_default_gcloud_project_name()
+        path = "gs://artifacts.{project}.appspot.com/containers/repositories/library/{name}".format(
+                    project=proj, name=name)
+        meta = join(tmp, 'metadata')
+        os.makedirs(meta)
+        run(['gsutil', 'rsync', path+'/', meta + '/'])
+        print(os.listdir(meta))
+        if tag is None:
+            tags = [x[4:] for x in os.path.listdir(meta) if x.startswith('tag_')]
+        else:
+            tags = [str(tag)]
+        for tag in tags:
+            tag_file = 'tag_'+tag
+            if not os.path.exists(join(meta, tag_file)):
+                print("skipping already deleted {tag}".format(tag=tag))
+                continue
+            s = open(join(meta, tag_file)).read()
+            manifest_file = join(meta,'manifest_'+s)
+            x = json.loads(open(manifest_file).read())
+            v = []
+            for k in x['fsLayers']:
+                v.append("gs://artifacts.{project}.appspot.com/containers/images/{blobSum}".format(
+                    project = proj, blobSum = k['blobSum']))
+            run(['gsutil', 'rm', '-f'] + v + [join(path, 'tag_'+tag), join(path, 'manifest_'+s)])
+
+
+
 
 def get_deployments():
     return [x.split()[0] for x in run(['kubectl', 'get', 'deployments'], get_output=True).splitlines()[1:]]
@@ -303,6 +362,12 @@ def add_bash_parser(name, subparsers):
     sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
     sub.set_defaults(func=f)
 
+def add_edit_parser(name, subparsers):
+    def f(args):
+        run(['kubectl', 'edit', 'deployment', name])
+    sub = subparsers.add_parser('edit', help='edit the deployment')
+    sub.set_defaults(func=f)
+
 def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
     sub.add_argument("--min",  default=None, help="MINPODS")
@@ -317,3 +382,8 @@ def pull_policy(args):
         return 'Always'
     else:
         return 'IfNotPresent'
+
+def add_deployment_parsers(NAME, subparsers):
+    add_bash_parser(NAME, subparsers)
+    add_edit_parser(NAME, subparsers)
+    add_autoscale_parser(NAME, subparsers)

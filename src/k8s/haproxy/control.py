@@ -107,8 +107,7 @@ if __name__ == '__main__':
                     default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets', 'sagemath.inc')))
     sub.set_defaults(func=load_ssl)
 
-    util.add_bash_parser(NAME, subparsers)
-    util.add_autoscale_parser(NAME, subparsers)
+    util.add_deployment_parsers(NAME, subparsers)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

@@ -87,8 +87,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=images_on_gcloud)
 
-    util.add_autoscale_parser(NAME, subparsers)
-    util.add_bash_parser(NAME, subparsers)
+    util.add_deployment_parsers(NAME, subparsers)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

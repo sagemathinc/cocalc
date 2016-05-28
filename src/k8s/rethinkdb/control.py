@@ -232,6 +232,8 @@ if __name__ == '__main__':
     sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')
     sub.set_defaults(func=external)
 
+    util.add_edit_parser(NAME, subparsers)
+
     args = parser.parse_args()
     if hasattr(args, 'func'):
         args.func(args)
