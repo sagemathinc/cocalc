@@ -15,6 +15,16 @@ Now create it, which takes 5-10 minutes:
 
     ./control.py create test --min-nodes=2 --max-nodes=5
 
+Once done, you can do
+
+    ./control.py run
+
+to build any not-build Docker images, then run them all.  This could take about 10 minutes, but may result in a fully workin cluster that you can visit.  Use
+
+    kubectrl services
+
+to see the ip address of the haproxy server.
+
 ## Switching clusters
 
 You can easily switch between multiple clusters, say `test` and `test2`:
@@ -41,9 +51,8 @@ You can also force the cluster to have a given size:
 
 ## TODO: Troubleshooting
 
-If you get errors like this when trying to use/connect to pods, it's the firewall:
+If you get errors like this when trying to use/connect to pods, it's the firewall (this should not happen unless you manually mess something up):
 
     Error from server: dial tcp 10.240.0.39:10250: i/o timeout
 
-This happens when the master can't connect to the minion.  The fix is to make a firewal
-rule that allows anything with tag k8s-[name]-master to connect to anything with tag k8s-[name]-minion on any port.
+
