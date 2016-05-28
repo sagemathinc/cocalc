@@ -13,7 +13,7 @@ underscore = require('underscore')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Loading, SearchInput, Icon} = require('r_misc')
-{Alert, Button, Col, Row, ButtonToolbar, Input} = require('react-bootstrap')
+{Alert, Button, Col, Row, Panel, ButtonToolbar, Input} = require('react-bootstrap')
 
 # Ensure the console jquery plugin is available
 {Console} = require('./console')
@@ -29,6 +29,7 @@ default_store_state = (project_id, filename) ->
     session_uuid : undefined
     filename : filename
     project_id : project_id
+    value     : ''
 
 syncdbs = {}
 exports.init_redux = init_redux = (redux, project_id, filename) ->
@@ -39,24 +40,21 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
     store   = redux.createStore(name, default_store_state(project_id, filename))
 
     # What kind of sync should this be? Does it need a sync?
-    #console.log("getting syncstring for '#{filename}'")
-    #synchronized_string
-    #    project_id    : project_id
-    #    filename      : filename
-    #    sync_interval : 100
-    #    cb            : (err, syncstring) ->
-    #        if err
-    #            actions.report_error("unable to open #{@filename}")
-    #        else
-    #            syncstring.on('sync', actions.sync)
-    #            store.syncstring = actions.syncstring = syncstring
-    #            actions.set_value(syncstring.live())
+    console.log("getting syncstring for '#{filename}'")
+    synchronized_string
+        project_id    : project_id
+        filename      : filename
+        sync_interval : 100
+        cb            : (err, syncstring) ->
+            if err
+                actions.report_error("unable to open #{@filename}")
+            else
+                syncstring.on('sync', actions.sync)
+                store.syncstring = actions.syncstring = syncstring
+                actions.set_value(syncstring.live())
 
 # Putting client -> server actions here as well as action -> state
 class DevTerminalActions extends Actions
-    sync : ->
-        console.log("sync called")
-
     get_store : =>
         return @redux.getStore(@name)
 
@@ -93,7 +91,7 @@ class DevTerminalActions extends Actions
 
         path = path_split(filename).head
         mesg =
-            timeout    : 30  # just for making the connection; not the timeout of the session itself!
+            timeout    : 60  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : project_id
             cb : (err, session) =>
@@ -126,25 +124,14 @@ class DevTerminalActions extends Actions
 
     increment_font_size: ->
         console.log('increment_font_size being called')
-        @set_state('font_size':(@get_store().get('font_size') + 1))
+        @setState('font_size':(@get_store().get('font_size') + 1))
 
-    decrement_font_size: ->
-        console.log('decrement_font_size being called')
-
-    reconnect: ->
-        console.log('reconnect being called')
-
-    toggle_pause: ->
-        console.log('toggle_pause being called')
-
-    open_history_file: ->
-        console.log('open_history_file being called')
-
-    open_init_file: ->
-        console.log('open_init_file being called')
+    set_title : (title) =>
+      @setState(title:title)
 
     set_value: (value) =>
         if @redux.getStore(@name).get('value') != value
+            console.log("SET_VALUE THIS = ", @)
             @setState(value: value)
             @syncstring.live(value)
             @syncstring.sync()
@@ -159,6 +146,10 @@ TerminalEditor = (name) -> rclass
             settings   : rtypes.object
             filename   : rtypes.string
             font_size  : rtypes.number
+            title      : rtypes.string
+            rows       : rtypes.number
+            cols       : rtypes.number
+            value      : rtypes.string
 
     propTypes :
         editor     : rtypes.object
@@ -168,105 +159,148 @@ TerminalEditor = (name) -> rclass
 
     getDefaultProps : ->
       font_size : 12
+      title : 'Terminal'
+      rows : 30
+      cols : 80
 
     getInitialState : ->
         paused : false
+        reconnecting : false
 
     _init_terminal : ->
         # Find the DOM node
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
-        console.log("THIS IS THE EDITOR:", @props.editor)
 
         @_terminal = new Console
             element     : node
-            title       : "Terminal"
+            title       : @props.title
             filename    : @props.filename
-            resizable   : false
             project_id  : @props.project_id
             editor      : @props.editor
             on_pause    : @toggle_pause
             on_unpause  : @toggle_pause
+            on_reconnecting : (() => @setState({reconnecting : true}))
+            on_reconnected : (() => @setState({reconnecting : false}))
+            set_title   : @props.actions.set_title
+            cols        : @props.cols
+            rows        : @props.rows
             font :
                 size    : @props.font_size
 
     componentDidMount : ->
+        console.log("terminal didMount")
         @_init_terminal()
-        @props.actions.connect_terminal((session) => @_terminal.set_session(session); console.log("THIS IS THE SESSION: ", session))
 
-    # Works
+        # Something is wrong in the connection. Requires page refresh for some reason.
+        @props.actions.connect_terminal((session) => @_terminal.set_session(session); console.log("THIS IS THE SESSION: ", session))
+        #@_terminal.update_scrollbar()
+        console.log("PASSED VALUE: ", @props.value)
+        if @props.value
+            @_terminal.value = @props.value
+
+    componentWillReceiveProps : (newProps) ->
+        console.log("NEW PROPS: ", newProps)
+        console.log("OLD PROPS: ", @props)
+
+    componentWillUnmount : ->
+        console.log("terminal willUnmount")
+        if @_terminal?
+            console.log("TERMINAL VALUE:", @_terminal.value)
+            if @props.actions.syncstring?
+                @props.actions.set_value(@_terminal.value)
+            @_terminal.remove()
+            
     increase_font_size : ->
         console.log("Increase font size")
         @_terminal._increase_font_size()
-        #@props.actions.increment_font_size() # Passed back down through props
 
-    # Works
     decrease_font_size : ->
         console.log("Decrease font size")
         @_terminal._decrease_font_size()
-        #@props.actions.decrement_font_size() # Passed back down through props
 
     reconnect : ->
         console.log("Reconnecting")
         @_terminal.session?.reconnect()
 
-    # Works
     toggle_pause : (e) ->
         console.log("Pausing Terminal")
         if e   # Was triggered from button, not from @_terminal
             @_terminal._on_pause_button_clicked(e)
         @setState
             paused : not @state.paused
-        #@props.actions.toggle_pause()
 
     open_history_file : ->
         console.log("Opening history file")
-        #@props.actions.open_history_file()
+        @_terminal.open_copyable_history()
 
     open_init_file : ->
         console.log("opening Init file")
-        #@props.actions.open_init_file()
+        @_terminal.open_init_file()
+
+    header : ->
+        <Row style={padding:'0px'}>
+            <Col sm=2>
+                <ButtonToolbar style={marginLeft:'2px'}>
+                    <Button onClick={@decrease_font_size} bsSize="small" style={marginLeft:'0px'}>
+                        <Icon name={'font'} style={fontSize:'7pt'}/>
+                    </Button>
+
+                    <Button onClick={@increase_font_size} bsSize="small" style={marginLeft:'0px'}>
+                        <Icon name={'font'} style={fontSize:'10pt'} />
+                    </Button>
+
+                    <Button onClick={@reconnect} bsSize="small" style={marginLeft:'0px'}
+                            bsStyle={if @state.reconnecting then 'success'} >
+                        <Icon name='refresh' spin={@state.reconnecting} />
+                    </Button>
+
+                    <Button onClick={@toggle_pause} bsSize="small" style={marginLeft:'0px'} bsStyle={if @state.paused then 'success'} >
+                        <Icon name={if @state.paused then 'play' else 'pause'} />
+                    </Button>
+
+                    <Button onClick={@open_history_file} bsSize="small" style={marginLeft:'0px'}>
+                        <Icon name={'history'} />
+                    </Button>
+
+                    <Button onClick={@open_init_file} bsSize="small" style={marginLeft:'0px'}>
+                        <Icon name={'rocket'} />
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+            <Col sm=8>
+                <div style={fontWeight:'bold', paddingTop:'3px'}>
+                    {@props.filename}
+                </div>
+            </Col>
+            <Col sm=2 xsHidden={true}>
+                <div style={fontWeight:'bold', textAlign:'right', paddingTop:'3px'}>
+                    {@props.title}
+                </div>
+            </Col>
+        </Row>
+
+    # This is an interesting way to change Panel's internal css
+    # Not sure if there's a better way
+    style_injection : ->
+        <style type="text/css">
+            {"\
+                .panel-heading {\
+                    padding: 1px;\
+                }\
+                .panel-body {\
+                    padding: 1px;\
+                }\
+            "}
+        </style>
 
     render : ->
         <div>
-            <Row>
-                <Col sm=3>
-                    <ButtonToolbar style={marginLeft:'5px'}>
-                        <Button onClick={@decrease_font_size} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'font'} style={fontSize:'7pt'}/>
-                        </Button>
-
-                        <Button onClick={@increase_font_size} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'font'} style={fontSize:'10pt'} />
-                        </Button>
-
-                        <Button onClick={@reconnect} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'refresh'} />
-                        </Button>
-
-                        <Button onClick={@toggle_pause} bsSize="small" style={marginLeft:'0px'} bsStyle={if @state.paused then 'success'} >
-                            <Icon name={if @state.paused then 'play' else 'pause'} />
-                        </Button>
-
-                        <Button onClick={@open_history_file} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'history'} />
-                        </Button>
-
-                        <Button onClick={@open_init_file} bsSize="small" style={marginLeft:'0px'}>
-                            <Icon name={'rocket'} />
-                        </Button>
-                    </ButtonToolbar>
-                </Col>
-                <Col sm=9>
-                    <Alert style={fontWeight:'bold'} bsStyle='danger'>
-                        Warning: You are in a TEST terminal. To use the normal terminal, open a .term file.
-                    </Alert>
-                </Col>
-            </Row>
-            <Row>
+            {@style_injection()}
+            <Panel header={@header()} >
                 <div className='smc-react-terminal' style={fontSize:"#{@props.font_size}px"}>
                     <textarea />
                 </div>
-            </Row>
+            </Panel>
         </div>
 
 # boilerplate fitting this into SMC below
@@ -297,7 +331,7 @@ exports.hide = (opts) ->
 
 exports.show = (opts) ->
     {project_id, filename, dom_node, redux, editor} = opts
-    console.log("editor_terminal: show\n Happens. But No-oping fixes a thing for some reason")
+    console.log("editor_terminal: show")
     pack =
         redux      : redux
         project_id : project_id

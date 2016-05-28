@@ -138,7 +138,7 @@ CodemirrorEditor = (name) -> rclass
         @_cm_scroll_info = @cm.getScrollInfo()
 
     componentDidMount: ->
-        console.log("componentDidMount")
+        console.log("codemirror componentDidMount")
         window.c = @
         @init_codemirror(@props.options, @props.style, @props.value)
 
@@ -149,7 +149,7 @@ CodemirrorEditor = (name) -> rclass
             @cm?.setValueNoJump(newProps.value)
 
     componentWillUnmount: ->
-        console.log("componentWillUnmount")
+        console.log("codemirror componentWillUnmount")
         if @cm?
             if @_cm_scroll_info?
                 @props.actions?.set_scroll_info(@_cm_scroll_info)

@@ -130,6 +130,9 @@ class Console extends EventEmitter
             project_id     : undefined # Provided in editor_terminal
             on_pause       : undefined # Called after pause_rendering is called
             on_unpause     : undefined # Called after unpause_rendering is called
+            on_reconnecting: undefined
+            on_reconnected : undefined
+            set_title      : undefined
 
         @_init_default_settings()
 
@@ -228,9 +231,6 @@ class Console extends EventEmitter
         # Init pausing rendering when user clicks
         @_init_rendering_pause()
 
-        # Initialize fullscreen button -- DELETE THIS; there's a generic fullscreen now...
-        #@_init_fullscreen()
-
         # delete scroll buttons except on mobile
         if not IS_MOBILE
             @element.find(".salvus-console-up").hide()
@@ -303,6 +303,7 @@ class Console extends EventEmitter
                 #console.log('terminal: reconnecting')
                 @element.find(".salvus-console-terminal").css('opacity':'.5')
                 @element.find("a[href=#refresh]").addClass('btn-success').find(".fa").addClass('fa-spin')
+                @opts.on_reconnecting?()
 
             @session.on 'reconnect', () =>
                 #console.log("terminal: reconnect")
@@ -325,6 +326,7 @@ class Console extends EventEmitter
                 @terminal.queue = ''
                 @terminal.showCursor()
                 @_ignore_mesg = false
+                @opts.on_reconnected?()
 
             # Initialize pinging the server to keep the console alive
             #@_init_session_ping()
@@ -631,20 +633,6 @@ class Console extends EventEmitter
     _focus_hidden_textarea: () =>
         @textarea.focus()
 
-    _init_fullscreen: () =>
-        fullscreen = @element.find("a[href=#fullscreen]")
-        exit_fullscreen = @element.find("a[href=#exit_fullscreen]")
-        fullscreen.on 'click', () =>
-            @fullscreen()
-            exit_fullscreen.show()
-            fullscreen.hide()
-            return false
-        exit_fullscreen.hide().on 'click', () =>
-            @exit_fullscreen()
-            exit_fullscreen.hide()
-            fullscreen.show()
-            return false
-
     _init_buttons: () ->
         editor = @terminal.editor
 
@@ -688,6 +676,28 @@ class Console extends EventEmitter
                         alert_message(type:'error', message:"problem creating initfile: #{err}")
                     else
                         @_project_actions?.open_file(path:initfn, foreground:true)
+
+    open_copyable_history : () =>
+        id = uuid()
+        s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
+        bootbox.alert(s)
+        elt = $("##{id}")
+        elt.val(@value).scrollTop(elt[0].scrollHeight)
+
+    open_init_file : ()  =>
+        initfn = misc.console_init_filename(@opts.filename)
+        content = initfile_content(@opts.filename)
+        {salvus_client} = require('./salvus_client')
+        salvus_client.exec
+            project_id  : @opts.editor?.editor.project_id
+            command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
+            bash        : true
+            err_on_exit : false
+            cb          : (err, output) =>
+                if err
+                    alert_message(type:'error', message:"problem creating initfile: #{err}")
+                else
+                    @_project_actions?.open_file(path:initfn, foreground:true)
 
     _init_input_line: () =>
         #if not IS_MOBILE
@@ -1016,6 +1026,7 @@ class Console extends EventEmitter
         timer = setInterval(check_for_hide, 100)
 
     set_title: (title) ->
+        @opts.set_title?(title)
         @element.find(".salvus-console-title").text(title)
 
     set_filename: (filename) ->
