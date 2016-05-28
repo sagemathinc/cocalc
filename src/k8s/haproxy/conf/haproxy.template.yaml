@@ -31,8 +31,8 @@ spec:
         name: haproxy
         livenessProbe:
           httpGet:
-            path: /healthz
-            port: 8081
+            path: /
+            port: 1936
             scheme: HTTP
           initialDelaySeconds: 30
           timeoutSeconds: 5

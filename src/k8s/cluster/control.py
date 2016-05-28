@@ -26,8 +26,9 @@ def cost_of_cluster(node_size, node_disk_type, node_disk_size, min_nodes, max_no
                     master_size, master_disk_type, master_disk_size):
     sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', '..', 'scripts', 'gce')))
     import pricing
-    def show(v):
-        return "{low:<8} <= monthly cost <= {high:<8}    ".format(low=pricing.money(v[0]), high=pricing.money(v[1]))
+    def show(v, period='monthly'):
+        return "{low:<8} <= {period:<8} cost <= {high:<8}    ".format(
+                low=pricing.money(v[0]), high=pricing.money(v[1]), period=period)
     master_cpu = pricing.cpu_cost(size=master_size, preemptible=False, region='us') # region assumed
     print("master_cpu  = ", show(master_cpu))
     node_cpu   = pricing.cpu_cost(size=node_size, preemptible=preemptible, region='us')
@@ -44,6 +45,7 @@ def cost_of_cluster(node_size, node_disk_type, node_disk_size, min_nodes, max_no
              master_cpu[1] + nodes_cpu[1] + master_disk[1] + nodes_disk[1]]
     print("-"*50)
     print("total       = ", show(total))
+    print("total       = ", show([total[0]/30.5, total[1]/30.5], 'daily'))
 
 def create_cluster(args):
     if args.min_nodes > args.max_nodes:

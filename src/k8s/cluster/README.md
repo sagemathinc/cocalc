@@ -19,7 +19,7 @@ Once done, you can do
 
     ./control.py run-deployments
 
-to build any not-build Docker images, then run them all.  This could take about 10 minutes, but may result in a fully workin cluster that you can visit.  Use
+to build any not-build Docker images, then run them all.  This could take about 10 minutes, but may result in a fully working cluster that you can visit.  Use
 
     kubectrl services
 
@@ -55,4 +55,8 @@ If you get errors like this when trying to use/connect to pods, it's the firewal
 
     Error from server: dial tcp 10.240.0.39:10250: i/o timeout
 
+## Actual deployments
 
+For the main SMC site, I think this likely makes sense:
+
+    ./control.py create --master-size n1-standard-2 --master-disk-size 20 --node-size n1-standard-2 --node-disk-size 60 --min-nodes 3 --max-nodes 40  prod
