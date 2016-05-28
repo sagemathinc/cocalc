@@ -59,6 +59,8 @@ def run_on_kubernetes(args):
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
     args.local = False # so tag is for gcloud
+    if args.replicas is None:
+        args.replicas = util.get_desired_replicas(NAME, 2)
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
@@ -104,7 +106,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
-    sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
+    sub.add_argument("-r", "--replicas", default=None, help="number of replicas")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 

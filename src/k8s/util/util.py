@@ -81,23 +81,11 @@ def gcloud_most_recent_image(name):
     x = v[0]
     return x['REPOSITORY'] + ':' + x['TAG']
 
-def gcloud_images(name=''):
-    x = run(['gcloud', 'docker', 'images', gcloud_docker_repo(name)], get_output=True)
-    i = x.find("REPOSITORY")
-    if i == 1:
-        raise RuntimeError
-    x = x[i:]
-    v = x.splitlines()
-    headers = v[0].split()[:2]
-    a = []
-    for w in v[1:]:
-        a.append(dict(zip(headers, w.split()[:2])))
-    return [x for x in a if x['REPOSITORY'] == name]
 
 def gcloud_auth_token():
-    ## This gcloud auth command is SLOW so we cache the result.
+    ## This gcloud auth command is SLOW so we cache the result for a few minutes
     access_token = join(os.environ['HOME'], '.config', 'gcloud' ,'access_token')
-    if not os.path.exists(access_token) or os.path.getctime(access_token) < time.time() - 60*60*12:
+    if not os.path.exists(access_token) or os.path.getctime(access_token) < time.time() - 5:
         token = run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
         open(access_token,'w').write(token)
         return token
@@ -105,7 +93,7 @@ def gcloud_auth_token():
         return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
-    # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
+    # Use the API to get info about the given image (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
     r = requests.get(url, auth=('_token', gcloud_auth_token())).content.decode()
@@ -113,7 +101,7 @@ def get_gcloud_image_info(name):
     return 'gcr.io/'+repo, r
 
 def gcloud_images(name):
-    #print("gcloud_images '{name}'".format(name=name))
+    print("gcloud_images '{name}'".format(name=name))
     from datetime import datetime
     w = []
     repo, data = get_gcloud_image_info(name)
@@ -413,3 +401,10 @@ def add_deployment_parsers(NAME, subparsers):
     add_bash_parser(NAME, subparsers)
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
+
+def get_desired_replicas(deployment_name, default=1):
+    x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
+    if 'status' in x:
+        return x['status']['replicas']
+    else:
+        return default

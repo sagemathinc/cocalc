@@ -41,6 +41,8 @@ def expose():
 
 def run_on_kubernetes(args):
     ensure_ssl()
+    if args.replicas is None:
+        args.replicas = util.get_desired_replicas(NAME, 2)
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
@@ -91,7 +93,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
-    sub.add_argument("-r", "--replicas", default=1, help="number of replicas") # todo -- need to run as daemon-- one on each node for best HA
+    sub.add_argument("-r", "--replicas", default=None, help="number of replicas") # todo -- need to run as daemon-- one on each node for best HA
     sub.add_argument("-f", "--force", action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
