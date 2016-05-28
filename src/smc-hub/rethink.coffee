@@ -805,6 +805,20 @@ class RethinkDB
             if not opts.end?
                 opts.end = new Date()
 
+    _get_log_query: (opts={}) =>
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            log   : 'central_log'
+        query = @table(opts.log)
+        @_process_time_range(opts)
+        if opts.start? or opts.end?
+            query = query.between(opts.start, opts.end, {index:'time'})
+        if opts.event?  # restrict to only the given event
+            query = query.getAll([opts.event], {index:'event'})
+        return query
+
     get_log: (opts={}) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
@@ -812,12 +826,22 @@ class RethinkDB
             event : undefined
             log   : 'central_log'
             cb    : required
-        query = @table(opts.log)
-        @_process_time_range(opts)
-        if opts.start? or opts.end?
-            query = query.between(opts.start, opts.end, {index:'time'})
-        if opts.event?  # restrict to only the given event
-            query = query.filter(@r.row("event").eq(opts.event))
+        @_get_log_query(misc.copy_without(opts,'cb')).run(opts.cb)
+
+    ###
+    Return every entry x in central_log in the given period of time for
+    which x.event==event and x.value.account_id == account_id.
+    This is **VERY** slow since there is no index on value.account_id!
+    ###
+    get_user_log: (opts) =>
+        opts = defaults opts,
+            start      : undefined     # if not given start at beginning of time
+            end        : undefined     # if not given include everything until now
+            event      : undefined
+            account_id : required
+            cb         : required
+        query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
+        query = query.filter(value:{account_id:opts.account_id})
         query.run(opts.cb)
 
     log_client_error: (opts) =>
