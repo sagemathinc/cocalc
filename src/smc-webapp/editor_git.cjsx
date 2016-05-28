@@ -169,7 +169,7 @@ class GitActions extends Actions
                 else
                     @setState(git_commit_return : output.stdout)
                     @setState(commit_message : '')
-                    @update_status()
+                    @get_changed_tracked_files()
                     @update_diff()
 
     update_status : () =>
