@@ -63,12 +63,6 @@ def build_docker(args):
     else:
         util.gcloud_docker_push(tag)
 
-def images_on_gcloud(args):
-    print('-'*70 + '\n')
-    for x in util.gcloud_images(NAME):
-        print("%-20s%-60s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
-    print('\n')
-
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     if args.replicas is None:
@@ -109,9 +103,6 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
-
-    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
-    sub.set_defaults(func=images_on_gcloud)
 
     util.add_deployment_parsers(NAME, subparsers)
 

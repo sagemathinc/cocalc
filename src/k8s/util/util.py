@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import base64, json, os, requests, subprocess, tempfile, time, yaml
+import argparse, base64, json, os, requests, subprocess, tempfile, time, yaml
 
 join = os.path.join
 
@@ -381,7 +381,7 @@ def add_edit_parser(name, subparsers):
     sub.set_defaults(func=f)
 
 def add_autoscale_parser(name, subparsers):
-    sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
+    sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
     sub.add_argument("--cpu-percent", default=95, help="CPU")
@@ -395,10 +395,22 @@ def pull_policy(args):
     else:
         return 'IfNotPresent'
 
+def images_on_gcloud(NAME, args):
+    v = gcloud_images(NAME)
+    print('-'*100)
+    print("%-40s%-40s%-20s"%('TAG', 'REPOSITORY', 'CREATED'))
+    for x in v:
+        print("%-40s%-40s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
+
+def add_images_parser(NAME, subparsers):
+    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
+    sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
+
 def add_deployment_parsers(NAME, subparsers):
     add_bash_parser(NAME, subparsers)
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
+    add_images_parser(NAME, subparsers)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))

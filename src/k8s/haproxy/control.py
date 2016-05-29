@@ -30,10 +30,6 @@ def build_docker(args):
     if not args.local:
         util.gcloud_docker_push(tag)
 
-def images_on_gcloud(args):
-    for x in util.gcloud_images(NAME):
-        print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
-
 def expose():
     if NAME not in util.get_services():
         util.run(['kubectl', 'expose', 'deployment', NAME, '--type=LoadBalancer'])
@@ -99,9 +95,6 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
-
-    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
-    sub.set_defaults(func=images_on_gcloud)
 
     sub = subparsers.add_parser('load-ssl', help='load the ssl cert into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
