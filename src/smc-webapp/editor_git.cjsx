@@ -97,16 +97,22 @@ class GitActions extends Actions
 
     get_current_branch : =>
         store = @redux.getStore(@name)
-        # git rev-parse --abbrev-ref HEAD
         @exec
             cmd  : "smc-git"
             args : ['current_branch']
             cb   : (err, output) =>
                 @setState(current_branch : output.stdout)
 
+    get_branches : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['branches']
+            cb   : (err, output) =>
+                @setState(branches : JSON.parse(output.stdout))
+
     get_changed_tracked_files : =>
         store = @redux.getStore(@name)
-        # git rev-parse --abbrev-ref HEAD
         @exec
             cmd  : "smc-git"
             args : ['changed_tracked_files']
@@ -115,7 +121,6 @@ class GitActions extends Actions
 
     get_changed_untracked_files : =>
         store = @redux.getStore(@name)
-        # git rev-parse --abbrev-ref HEAD
         @exec
             cmd  : "smc-git"
             args : ['changed_untracked_files']
@@ -204,7 +209,7 @@ class GitActions extends Actions
 
     set_tab : (tab) =>
         @setState(tab:tab)
-        general_actions_to_run = ['get_current_branch']
+        general_actions_to_run = ['get_current_branch', 'get_branches']
         actions_to_run = general_actions_to_run.concat TABS_BY_NAME[tab]["init_actions"]
         for action in actions_to_run
             @[action]()
@@ -323,10 +328,12 @@ Git = (name) -> rclass
             git_diff                    : rtypes.string
             git_log                     : rtypes.string
             current_branch              : rtypes.string
+            branches                    : rtypes.array
             git_changed_tracked_files   : rtypes.array
             git_changed_untracked_files : rtypes.array
             checked_files               : rtypes.object
             file_to_diff                : rtypes.string
+            
 
     propTypes :
         actions : rtypes.object
@@ -502,16 +509,6 @@ Git = (name) -> rclass
         </div>
 
 
-    render_branches : ->
-        <div>
-            <Row>
-                <Col sm=12>
-
-                </Col>
-            </Row>
-        </div>
-
-
     render_tab_header : (name, icon, description)->
         <Tip delayShow=1300
              title={name} tip={description}>
@@ -532,6 +529,11 @@ Git = (name) -> rclass
         for tab, idx in TABS
             @render_tab(idx, tab.name, tab.icon, tab.description)
 
+    render_branches : ->
+        if @props.branches
+            for branch, idx in @props.branches
+                <MenuItem key={idx} eventKey="{branch}" onSelect={(e)=>@props.actions.checkout_branch(e.target.text);}>{branch}</MenuItem>
+
     render : ->
         <div>
             <div>
@@ -542,7 +544,8 @@ Git = (name) -> rclass
                 </Button>
                 <Space/> <Space/>
                 <DropdownButton title={'Switch branch from '+@props.current_branch} id='switch_branches'>
-                    {@render_diff_files()}
+                    <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.create_branch()}>Create a branch and rebase with upstream master</MenuItem>
+                    {@render_branches()}
                 </DropdownButton>
             </div>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>

@@ -11,6 +11,12 @@ def current_branch():
     result = os.popen('git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "master" ').read().strip('\n').split('\n')[-1]
     return result.strip()
 
+def branches():
+    results = os.popen('git branch').read().strip('\n').split('\n')
+    results = [item.strip() for item in results if not item.startswith('*')]
+    results = sorted(results)
+    return json.dumps(results)
+
 def changed_tracked_files():
     results = os.popen('git diff --name-only').read().strip('\n').split('\n')
     return json.dumps(results)
