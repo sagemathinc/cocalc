@@ -342,7 +342,7 @@ Git = (name) -> rclass
             git_changed_untracked_files : rtypes.array
             checked_files               : rtypes.object
             file_to_diff                : rtypes.string
-            show_create_branch_modal    : rtypes.boolean
+            show_create_branch_modal    : rtypes.bool
             new_branch_name             : rtypes.string
 
     propTypes :
@@ -549,6 +549,7 @@ Git = (name) -> rclass
             @props.actions[action]()
 
     render : ->
+        console.log(@props.show_create_branch_modal)
         <div>
             <div>
                 <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>
@@ -562,7 +563,7 @@ Git = (name) -> rclass
                     {@render_branches()}
                 </DropdownButton>
                 <div className="custom-modal">
-                    <Modal.Dialog show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>
+                    <Modal show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>
                         <Modal.Header>
                             <Modal.Title>Create a banch</Modal.Title>
                         </Modal.Header>
@@ -579,11 +580,11 @@ Git = (name) -> rclass
                       </Modal.Body>
 
                       <Modal.Footer>
-                        <Button>Close</Button>
+                        <Button onClick={=>@props.actions.setState(show_create_branch_modal:false)}>Close</Button>
                         <Button bsStyle="primary" onClick={=>@props.actions.create_branch_and_reset_to_upstream_master();@props.actions.setState(show_create_branch_modal:false)}>Create the branch</Button>
                       </Modal.Footer>
 
-                    </Modal.Dialog>
+                    </Modal>
                 </div>
             </div>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
