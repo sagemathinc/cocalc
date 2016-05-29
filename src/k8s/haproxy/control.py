@@ -37,21 +37,19 @@ def expose():
 
 def run_on_kubernetes(args):
     ensure_ssl()
-    if args.replicas is None:
-        args.replicas = util.get_desired_replicas(NAME, 2)
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
-    print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
+    print("tag='{tag}'".format(tag=tag))
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image=tag, replicas=args.replicas,
+        tmp.write(t.format(image=tag,
                         pull_policy=util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
     expose()
 
 def stop_on_kubernetes(args):
-    util.stop_deployment(NAME)
+    util.run(['kubectl', 'delete', 'daemonset', NAME])
 
 def ensure_ssl():
     if 'ssl-cert' not in util.get_secrets():
@@ -77,7 +75,7 @@ def load_ssl(args):
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
+    parser = argparse.ArgumentParser(description='Control daemonset of {name}'.format(name=NAME))
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
@@ -87,13 +85,12 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
+    sub = subparsers.add_parser('run', help='create/update {name} daemonset on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
-    sub.add_argument("-r", "--replicas", default=None, help="number of replicas") # todo -- need to run as daemon-- one on each node for best HA
     sub.add_argument("-f", "--force", action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
-    sub = subparsers.add_parser('delete', help='delete the deployment')
+    sub = subparsers.add_parser('delete', help='delete the daemonset')
     sub.set_defaults(func=stop_on_kubernetes)
 
     sub = subparsers.add_parser('load-ssl', help='load the ssl cert into k8s from disk',

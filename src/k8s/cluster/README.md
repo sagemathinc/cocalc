@@ -67,7 +67,7 @@ Then:
 
     cd ..; cd rethinkdb-proxy; ./control.py run; ./control.py autoscale --min=10 --max=40
     sleep 30
-    cd ..; cd haproxy; ./control.py run; ./control.py autoscale --min=3 --max=10
+    cd ..; cd haproxy; ./control.py run;  # runs 1 on each node
     cd ..; cd smc-hub; ./control.py run; ./control.py autoscale --min=3 --max=20
     cd ..; cd smc-webapp-static; ./control.py run;
 
