@@ -568,10 +568,6 @@ Git = (name) -> rclass
             <div>
                 <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>
                 <Space/> <Space/>
-                <Button onClick={=>@props.actions.set_tab(@props.tab)}>
-                    Refresh
-                </Button>
-                <Space/> <Space/>
                 <DropdownButton title={'Switch branch from '+@props.current_branch} id='switch_branches'>
                     <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.setState(show_create_branch_modal:true)}>Create a branch and reset to upstream master</MenuItem>
                     {@render_branches()}
