@@ -561,8 +561,8 @@ Git = (name) -> rclass
                     <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.setState(show_create_branch_modal:true)}>Create a branch and reset to upstream master</MenuItem>
                     {@render_branches()}
                 </DropdownButton>
-                <div className="static-modal">
-                    <Modal.Dialog show={@props.show_create_branch_modal}>
+                <div className="custom-modal">
+                    <Modal.Dialog show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>
                         <Modal.Header>
                             <Modal.Title>Create a banch</Modal.Title>
                         </Modal.Header>
@@ -574,7 +574,7 @@ Git = (name) -> rclass
                             value       = {@props.new_branch_name ? ''}
                             placeholder = {'Branch name'}
                             onChange    = {=>@props.actions.setState(new_branch_name:@refs.new_branch_name.getValue())}
-                            onKeyDown   = {=>@handle_keypress(e, 'new_branch_name', 'create_branch_and_reset_to_upstream_master')}
+                            onKeyDown   = {=>@handle_keypress('new_branch_name', 'create_branch_and_reset_to_upstream_master')}
                         />
                       </Modal.Body>
 
