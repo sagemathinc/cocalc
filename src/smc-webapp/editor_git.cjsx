@@ -95,6 +95,14 @@ class GitActions extends Actions
                 else
                     @setState(git_user_email : output.stdout)
 
+    simple_smc_git : (f_name) =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : [f_name]
+            cb   : (err, output) =>
+                @set_tab(store.get('tab'))
+
     get_current_branch : =>
         store = @redux.getStore(@name)
         @exec
@@ -569,6 +577,10 @@ Git = (name) -> rclass
                     <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.setState(show_create_branch_modal:true)}>Create a branch and reset to upstream master</MenuItem>
                     {@render_branches()}
                 </DropdownButton>
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.simple_smc_git('push_to_origin_same_branch')}>
+                    Push to origin {@props.current_branch}
+                </Button>
                 <div className="custom-modal">
                     <Modal show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>
                         <Modal.Header>

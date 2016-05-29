@@ -34,6 +34,10 @@ def create_branch_and_reset_to_upstream_master(branch_name):
     os.system('git fetch upstream; git reset --hard upstream/master')
     return ''
 
+def push_to_origin_same_branch():
+    os.system('git push origin %s' % (current_branch()))
+    return ''
+
 def main():
     import sys
     #import argparse
