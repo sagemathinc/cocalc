@@ -55,8 +55,22 @@ If you get errors like this when trying to use/connect to pods, it's the firewal
 
     Error from server: dial tcp 10.240.0.39:10250: i/o timeout
 
-## Actual deployments
+# Actual clusters
 
-For the main SMC site, I think this likely makes sense:
+(todo: automate once we understand/test this better)
 
-    ./control.py create --master-size n1-standard-2 --master-disk-size 20 --node-size n1-standard-2 --node-disk-size 60 --min-nodes 3 --max-nodes 40  prod
+For the main SMC sites webserver, I think this likely makes sense:
+
+    ./control.py create --master-size n1-standard-2 --master-disk-size 20 --node-size n1-standard-2 --node-disk-size 60 --min-nodes 3 --max-nodes 30  prod
+
+Then:
+
+    cd ..; cd rethinkdb-proxy; ./control.py run; ./control.py autoscale --min=10 --max=40
+    sleep 30
+    cd ..; cd haproxy; ./control.py run; ./control.py autoscale --min=3 --max=10
+    cd ..; cd smc-hub; ./control.py run; ./control.py autoscale --min=3 --max=20
+    cd ..; cd smc-webapp-static; ./control.py run;
+
+
+
+
