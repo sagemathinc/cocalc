@@ -45,24 +45,20 @@ def run(v, shell=False, path='.', get_output=False, env=None):
             os.chdir(cur)
 
 
-# Fast, but relies on stability of gcloud config path (I reversed engineered this).
-# Failed for @hal the first time, so ...
 def get_default_gcloud_project_name():
     PATH = join(os.environ['HOME'], '.config', 'gcloud')
     active_config = open(join(PATH, 'active_config')).read()
-    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
-    i = conf.find("project = ")
-    if i == -1:
+    import configparser
+    conf = configparser.ConfigParser()
+    conf.read_file(open(join(PATH, 'configurations', 'config_'+active_config)))
+    project = conf.get('core', 'project', fallback=None)
+    if project is None:
         return get_default_gcloud_project_name_fallback()
-    return conf[i:].split('=')[1].split()[0].strip()
+    return project
 
 # This works but is very slow and ugly due to parsing output.
 def get_default_gcloud_project_name_fallback():
-    a = run(['gcloud', 'info'], get_output=True)
-    i = a.find("project: ")
-    if i == -1:
-        raise RuntimeError
-    return a[i:].split()[1].strip('[]')
+    return json.loads(run(['gcloud', 'info', '--format=json'], get_output=True))['config']['project']
 
 def get_kube_context():
     return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
@@ -79,7 +75,6 @@ def gcloud_most_recent_image(name):
         return
     x = v[0]
     return x['REPOSITORY'] + ':' + x['TAG']
-
 
 def gcloud_auth_token():
     ## This gcloud auth command is SLOW so we cache the result for a few minutes
