@@ -33,6 +33,25 @@ You can increase (but not decrease) the size of an existing disk. This *will* li
 
 You can't change from standard to ssd.
 
+## Connecting to an external database cluster
+
+Instead of spinning up containers, you can point the k8s cluster at an **external** cluster of rethinkdb nodes:
+
+    ./control.py delete # turn off any containers, etc.
+    ./control.py external db0 db1 db2 db3 db4 db5
+
+IMPORTANT: Make sure that the firewall allows the containers to connect to the database.   A rule might look like:
+
+    Source IP ranges
+    10.244.1.0/24
+    Allowed protocols and ports
+    tcp:29015
+    Target tags
+    db
+
+where the source ip ranges are listed in the Routes section of
+Networking-->Networks.  (Yes, creating this firewall rule  could be automated, but we will be moving the database into k8s so what's the point?)
+
 
 ### References
 

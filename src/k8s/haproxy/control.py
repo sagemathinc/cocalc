@@ -105,8 +105,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('load-ssl', help='load the ssl cert into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument('--path', type=str, help='path to directory that contains the file nopassphrase.pem',
-                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets', 'sagemath.inc')))
+    sub.add_argument('path', type=str, help='path to directory that will contain the file nopassphrase.pem')
     sub.set_defaults(func=load_ssl)
 
     util.add_deployment_parsers(NAME, subparsers)

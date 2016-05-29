@@ -118,15 +118,13 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('load-sendgrid', help='load the sendgrid password into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument('--path', type=str, help='path to directory that contains the file "sendgrid"',
-                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets')))
+    sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "sendgrid"')
     sub.set_defaults(func=lambda args: load_secret('sendgrid',args))
 
     sub = subparsers.add_parser('load-zendesk', help='load the zendesk password into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument('--path', type=str, help='path to directory that contains the file "zendesk"',
-                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets')))
-    sub.set_defaults(func=lambda args: load_secret('zendisk',args))
+    sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "zendesk"')
+    sub.set_defaults(func=lambda args: load_secret('zendesk',args))
 
     util.add_deployment_parsers(NAME, subparsers)
 
