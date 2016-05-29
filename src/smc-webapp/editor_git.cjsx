@@ -395,10 +395,6 @@ Git = (name) -> rclass
             <div>
                 <span>
                     Select the changed tracked files to commit
-                    <Space/> <Space/>
-                    <Button onClick={=>@props.actions.get_changed_tracked_files()}>
-                        Refresh
-                    </Button>
                 </span>
                 <div>
                 {<FileListing
@@ -429,51 +425,16 @@ Git = (name) -> rclass
         head =
             <span>
                 git log
-                <Space/> <Space/>
-                <Button onClick={=>@props.actions.update_log()}>
-                    Refresh
-                </Button>
-                <Button onClick={=>@props.actions.setState(git_log:'')}>
-                    Clear
-                </Button>
 
             </span>
         <Panel header={head}>
             {<pre>{@props.git_log}</pre> if @props.git_log}
         </Panel>
 
-    render_changed_tracked_files : ->
-        head =
-            <span>
-                Changed tracked files
-                <Space/> <Space/>
-                <Button onClick={=>@props.actions.get_changed_tracked_files()}>
-                    Refresh
-                </Button>
-            </span>
-        <Panel header={head}>
-            <span>
-                Changed tracked files
-                <Space/> <Space/>
-                <Button onClick={=>@props.actions.get_changed_tracked_files()}>
-                    Refresh
-                </Button>
-            </span>
-            {<FileListing
-                listing             = {@props.git_changed_tracked_files}
-                listing_type        = 'tracked'
-                checked_files       = {@props.checked_files}
-                actions             = {@props.actions} /> if @props.git_changed_tracked_files}
-        </Panel>
-
     render_changed_untracked_files : ->
         head =
             <span>
                 Changed untracked files not covered by .gitignore
-                <Space/> <Space/>
-                <Button onClick={=>@props.actions.get_changed_untracked_files()}>
-                    Refresh
-                </Button>
                 <Button onClick={=>@props.actions.git_add_selected()}>
                     Add selected
                 </Button>
@@ -500,12 +461,7 @@ Git = (name) -> rclass
                     {@render_diff_files()}
                 </DropdownButton>
                 <Space/> <Space/>
-                <Button onClick={=>@props.actions.update_diff()}>
-                    Refresh
-                </Button>
-                <Button onClick={=>@props.actions.setState(git_diff:'')}>
-                    Clear
-                </Button>
+                
             </span>
         <Panel header={head}>
             {<pre>{@props.git_diff}</pre> if @props.git_diff}
@@ -576,7 +532,17 @@ Git = (name) -> rclass
 
     render : ->
         <div>
-            <h2>Git Repository at {@props.git_repo_root}</h2>
+            <div>
+                <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.set_tab(@props.tab)}>
+                    Refresh
+                </Button>
+                <Space/> <Space/>
+                <DropdownButton title={'Switch branch from '+@props.current_branch} id='switch_branches'>
+                    {@render_diff_files()}
+                </DropdownButton>
+            </div>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
                 {@render_tabs()}
             </Tabs>
