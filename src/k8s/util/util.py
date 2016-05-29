@@ -32,7 +32,6 @@ def run(v, shell=False, path='.', get_output=False, env=None):
         else:
             kwds = {'env':env}
         if get_output:
-            print(kwds)
             output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
         else:
             if subprocess.call(v, **kwds):
@@ -325,7 +324,6 @@ def exec_bash(i=0, **selector):
     Run bash on the first Running pod that matches the given selector.
     """
     v = get_pods(**selector)
-    print(v)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
         print("No running matching pod %s"%selector)
@@ -373,7 +371,7 @@ def add_bash_parser(name, subparsers):
     def f(args):
         exec_bash(args.number, run=name)
     sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
+    sub.add_argument('number', type=int, default=0, nargs='?', help='pod number (sort of arbitrary)')
     sub.set_defaults(func=f)
 
 def add_edit_parser(name, subparsers):
@@ -386,7 +384,7 @@ def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
-    sub.add_argument("--cpu-percent", default=None, help="CPU")
+    sub.add_argument("--cpu-percent", default=95, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)

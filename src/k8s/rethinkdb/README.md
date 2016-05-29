@@ -43,7 +43,7 @@ Instead of spinning up containers, you can point the k8s cluster at an **externa
 IMPORTANT: Make sure that the firewall allows the containers to connect to the database.   A rule might look like:
 
     Source IP ranges
-    10.244.1.0/24
+    10.244.0.0/16
     Allowed protocols and ports
     tcp:29015
     Target tags
@@ -51,6 +51,18 @@ IMPORTANT: Make sure that the firewall allows the containers to connect to the d
 
 where the source ip ranges are listed in the Routes section of
 Networking-->Networks.  (Yes, creating this firewall rule  could be automated, but we will be moving the database into k8s so what's the point?)
+
+Similar remarks for compute nodes:
+
+    Source IP ranges
+    10.244.0.0/16
+    Allowed protocols and ports
+
+    tcp:1-65535
+    udp:1-65535
+    icmp
+    Target tags
+    compute
 
 
 ### References
