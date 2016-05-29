@@ -556,7 +556,7 @@ Git = (name) -> rclass
 
     componentDidMount : ->
         @props.actions.set_tab('configuration')
-        setInterval =>
+        @props.interval = setInterval =>
             @props.actions.run_for_tab()
           , 5000
 
