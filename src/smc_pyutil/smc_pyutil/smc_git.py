@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-(c) William Stein, 2013
+(c) Tim Clemans, 2016
 
 
 """
@@ -20,7 +20,7 @@ def changed_untracked_files():
     return json.dumps(results)
 
 def compare_current_branch_with_upstream_master():
-    results = os.popen('git diff %s upstream/master' % (current_branch)).read()
+    results = os.popen('git diff %s upstream/master' % (current_branch())).read()
     return results
 
 def main():
