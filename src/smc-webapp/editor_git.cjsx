@@ -101,7 +101,7 @@ class GitActions extends Actions
             cmd  : "smc-git"
             args : [f_name]
             cb   : (err, output) =>
-                @set_tab(store.get('tab'))
+                ''
 
     get_current_branch : =>
         store = @redux.getStore(@name)
@@ -126,7 +126,6 @@ class GitActions extends Actions
             args : ['create_branch_and_reset_to_upstream_master', store.get('new_branch_name')]
             cb   : (err, output) =>
                 @setState(new_branch_name : '')
-                @set_tab(store.get('tab'))
 
     checkout_branch : (branch) =>
         store = @redux.getStore(@name)
@@ -134,7 +133,7 @@ class GitActions extends Actions
             cmd  : "git"
             args : ['checkout', branch]
             cb   : (err, output) =>
-                @set_tab(store.get('tab'))
+                ''
 
     get_changed_tracked_files : =>
         store = @redux.getStore(@name)
@@ -160,8 +159,7 @@ class GitActions extends Actions
             cmd  : "git"
             args : ['add'].concat store.get('checked_files').get('untracked')
             cb   : (err, output) =>
-                @get_changed_untracked_files()
-                @get_changed_tracked_files()
+                ''
 
     git_add_all : =>
         store = @redux.getStore(@name)
@@ -169,9 +167,7 @@ class GitActions extends Actions
             cmd  : "git"
             args : ['add', '.']
             cb   : (err, output) =>
-                @get_changed_untracked_files()
-                @get_changed_tracked_files()
-                @update_diff()
+                ''
 
     run_git_commit : =>
         store = @redux.getStore(@name)
@@ -190,19 +186,8 @@ class GitActions extends Actions
                 else
                     @setState(git_commit_return : output.stdout)
                     @setState(commit_message : '')
-                    @get_changed_tracked_files()
-                    @update_diff()
 
-    update_status : () =>
-        @setState(git_status : 'updating...')
-        @exec
-            cmd  : "git"
-            args : ['status']
-            cb   : (err, output) =>
-                if err
-                    @setState(git_status : '')
-                else
-                    @setState(git_status : output.stdout)
+
 
     update_diff : =>
         store = @redux.getStore(@name)
@@ -211,7 +196,6 @@ class GitActions extends Actions
             args = if store.get('file_to_diff') then ['diff', store.get('file_to_diff')] else ['diff']
         else
             args = ['diff']
-        @setState(git_diff : 'updating...')
         @exec
             cmd  : "git"
             args : args
@@ -222,7 +206,6 @@ class GitActions extends Actions
                     @setState(git_diff : output.stdout)
 
     update_log : () =>
-        @setState(git_log : 'updating...')
         @exec
             cmd  : "git"
             args : ['log', '-20']
@@ -232,12 +215,18 @@ class GitActions extends Actions
                 else
                     @setState(git_log : output.stdout)
 
+    run_for_tab : =>
+        store = @redux.getStore(@name)
+        if store
+            tab = store.get('tab')
+            general_actions_to_run = ['get_current_branch', 'get_branches']
+            actions_to_run = general_actions_to_run.concat TABS_BY_NAME[tab]["init_actions"]
+            for action in actions_to_run
+                @[action]()
+
     set_tab : (tab) =>
         @setState(tab:tab)
-        general_actions_to_run = ['get_current_branch', 'get_branches']
-        actions_to_run = general_actions_to_run.concat TABS_BY_NAME[tab]["init_actions"]
-        for action in actions_to_run
-            @[action]()
+        @run_for_tab()
 
     add_or_removed_checked_files : (name, listing_type) =>
         store = @redux.getStore(@name)
@@ -360,7 +349,8 @@ Git = (name) -> rclass
             file_to_diff                : rtypes.string
             show_create_branch_modal    : rtypes.bool
             new_branch_name             : rtypes.string
-
+            interval                    : rtypes.func
+ 
     propTypes :
         actions : rtypes.object
 
@@ -563,6 +553,15 @@ Git = (name) -> rclass
     handle_keypress : (e, input_name, action) ->
         if e.keyCode == 13 and @props[input_name] != ''
             @props.actions[action]()
+
+    componentDidMount : ->
+        @props.actions.set_tab('configuration')
+        setInterval =>
+            @props.actions.run_for_tab()
+          , 5000
+
+    componentWillUnmount: ->
+        clearInterval(@props.interval)
 
     render : ->
         <div>
