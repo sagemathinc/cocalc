@@ -4,7 +4,7 @@ Git "editor" -- basically an application that let's you interact with git.
 ###
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{Button, Input, Form, Panel, Row, Col, Tabs, Tab, DropdownButton, MenuItem} = require('react-bootstrap')
+{Button, Input, Form, Panel, Row, Col, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
@@ -110,6 +110,15 @@ class GitActions extends Actions
             args : ['branches']
             cb   : (err, output) =>
                 @setState(branches : JSON.parse(output.stdout))
+                
+    create_branch_and_reset_to_upstream_master : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['create_branch_and_reset_to_upstream_master', store.get('new_branch_name')]
+            cb   : (err, output) =>
+                @setState(new_branch_name : '')
+                @set_tab(store.get('tab'))
 
     get_changed_tracked_files : =>
         store = @redux.getStore(@name)
@@ -333,7 +342,8 @@ Git = (name) -> rclass
             git_changed_untracked_files : rtypes.array
             checked_files               : rtypes.object
             file_to_diff                : rtypes.string
-            
+            show_create_branch_modal    : rtypes.boolean
+            new_branch_name             : rtypes.string
 
     propTypes :
         actions : rtypes.object
@@ -534,6 +544,10 @@ Git = (name) -> rclass
             for branch, idx in @props.branches
                 <MenuItem key={idx} eventKey="{branch}" onSelect={(e)=>@props.actions.checkout_branch(e.target.text);}>{branch}</MenuItem>
 
+    handle_keypress : (e, input_name, action) ->
+        if e.keyCode == 13 and @props[input_name] != ''
+            @props.actions[action]()
+
     render : ->
         <div>
             <div>
@@ -544,9 +558,33 @@ Git = (name) -> rclass
                 </Button>
                 <Space/> <Space/>
                 <DropdownButton title={'Switch branch from '+@props.current_branch} id='switch_branches'>
-                    <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.create_branch()}>Create a branch and rebase with upstream master</MenuItem>
+                    <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.setState(show_create_branch_modal:true)}>Create a branch and reset to upstream master</MenuItem>
                     {@render_branches()}
                 </DropdownButton>
+                <div className="static-modal">
+                    <Modal.Dialog show={@props.show_create_branch_modal}>
+                        <Modal.Header>
+                            <Modal.Title>Create a banch</Modal.Title>
+                        </Modal.Header>
+
+                      <Modal.Body>
+                        <Input
+                            ref         = 'new_branch_name'
+                            type        = 'text'
+                            value       = {@props.new_branch_name ? ''}
+                            placeholder = {'Branch name'}
+                            onChange    = {=>@props.actions.setState(new_branch_name:@refs.new_branch_name.getValue())}
+                            onKeyDown   = {=>@handle_keypress(e, 'new_branch_name', 'create_branch_and_reset_to_upstream_master')}
+                        />
+                      </Modal.Body>
+
+                      <Modal.Footer>
+                        <Button>Close</Button>
+                        <Button bsStyle="primary" onClick={=>@props.actions.create_branch_and_reset_to_upstream_master();@props.actions.setState(show_create_branch_modal:false)}>Create the branch</Button>
+                      </Modal.Footer>
+
+                    </Modal.Dialog>
+                </div>
             </div>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
                 {@render_tabs()}

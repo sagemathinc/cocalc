@@ -29,11 +29,19 @@ def compare_current_branch_with_upstream_master():
     results = os.popen('git diff %s upstream/master' % (current_branch())).read()
     return results
 
+def create_branch_and_reset_to_upstream_master(branch_name):
+    os.system('git checkout -b %s' % (branch_name))
+    os.system('git fetch upstream; git reset --hard upstream/master')
+    return ''
+
 def main():
+    import sys
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('command')
     args = parser.parse_args()
+    if args.command == 'create_branch_and_rebase_with_upstream_master':
+        create_branch_and_rebase_with_upstream_master(sys.argv[2])
     print globals()[args.command]()
 
 if __name__ == "__main__":
