@@ -204,7 +204,9 @@ class GitActions extends Actions
 
     set_tab : (tab) =>
         @setState(tab:tab)
-        for action in TABS_BY_NAME[tab]["init_actions"]
+        general_actions_to_run = ['get_current_branch']
+        actions_to_run = general_actions_to_run.concat TABS_BY_NAME[tab]["init_actions"]
+        for action in actions_to_run
             @[action]()
 
     add_or_removed_checked_files : (name, listing_type) =>
