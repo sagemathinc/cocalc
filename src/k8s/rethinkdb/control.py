@@ -176,7 +176,8 @@ def external(args):
     """
     import socket, yaml
     ips = [socket.gethostbyname(host) for host in args.instances]
-    x = yaml.dump([{'ip':ip} for ip in ips]).replace('-','    -')
+    # hsy: instead of indenting via .replace('-','    -'), I've changed this to a one-liner using flow style
+    x = yaml.dump([{'ip':ip} for ip in ips], default_flow_style=True)
     t = open(join('conf', 'external.template.yaml')).read().format(ips=x)
 
     delete_services()
