@@ -38,6 +38,10 @@ def push_to_origin_same_branch():
     os.system('git push origin %s' % (current_branch()))
     return ''
 
+def pull_upstream_master():
+    os.system('git pull --no-edit upstream master')
+    return ''
+
 def main():
     import sys
     #import argparse

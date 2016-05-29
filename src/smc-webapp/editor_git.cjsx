@@ -581,6 +581,10 @@ Git = (name) -> rclass
                 <Button onClick={=>@props.actions.simple_smc_git('push_to_origin_same_branch')}>
                     Push to origin {@props.current_branch}
                 </Button>
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.simple_smc_git('pull_upstream_master')}>
+                    Pull upstream master
+                </Button>
                 <div className="custom-modal">
                     <Modal show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>
                         <Modal.Header>
