@@ -557,7 +557,6 @@ Git = (name) -> rclass
             @props.actions[action]()
 
     render : ->
-        console.log(@props.show_create_branch_modal)
         <div>
             <div>
                 <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>
