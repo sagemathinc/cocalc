@@ -230,8 +230,7 @@ if __name__ == '__main__':
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
     sub.set_defaults(func=delete)
 
-    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
-    sub.set_defaults(func=images_on_gcloud)
+    util.add_images_parser(NAME, subparsers)
 
     sub = subparsers.add_parser('external', help='create service that is external to kubernetes')
     sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')

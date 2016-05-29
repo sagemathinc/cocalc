@@ -27,12 +27,10 @@ def build_docker(args):
     if not args.local:
         util.gcloud_docker_push(tag)
 
-def images_on_gcloud(args):
-    for x in util.gcloud_images(NAME):
-        print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
-
 def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
+    if args.replicas is None:
+        args.replicas = util.get_desired_replicas(NAME, 2)
     tag = util.get_tag(args, NAME, build)
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
@@ -75,7 +73,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
-    sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
+    sub.add_argument("-r", "--replicas", default=None, help="number of replicas")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('test', help='forward 28015 port from some pod to localhost for testing purposes')
@@ -83,9 +81,6 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
-
-    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
-    sub.set_defaults(func=images_on_gcloud)
 
     util.add_deployment_parsers(NAME, subparsers)
 

@@ -1,5 +1,9 @@
+# This is a DaemonSet, so one pod gets scheduled on every node.
+# TODO: it tired to schedule a pod on the master node, which fails... and sits there
+# in an error state.  I don't know a **good** way to prevent this yet.
+
 apiVersion: extensions/v1beta1
-kind: Deployment
+kind: DaemonSet
 metadata:
   annotations:
     deployment.kubernetes.io/revision: "1"
@@ -10,15 +14,9 @@ metadata:
   name: haproxy
   selfLink: /apis/extensions/v1beta1/namespaces/deployments/haproxy
 spec:
-  replicas: {replicas}  # TODO: instead use daemon sets when I understand them...
   selector:
     matchLabels:
       run: haproxy
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
   template:
     metadata:
       creationTimestamp: null
@@ -31,8 +29,8 @@ spec:
         name: haproxy
         livenessProbe:
           httpGet:
-            path: /healthz
-            port: 8081
+            path: /
+            port: 1936
             scheme: HTTP
           initialDelaySeconds: 30
           timeoutSeconds: 5

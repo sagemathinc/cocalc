@@ -51,14 +51,12 @@ def build_docker(args):
     if not args.local:
         util.gcloud_docker_push(tag)
 
-def images_on_gcloud(args):
-    for x in util.gcloud_images(NAME):
-        print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
-
 def run_on_kubernetes(args):
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
     args.local = False # so tag is for gcloud
+    if args.replicas is None:
+        args.replicas = util.get_desired_replicas(NAME, 2)
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
@@ -104,27 +102,22 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
-    sub.add_argument("-r", "--replicas", default=1, help="number of replicas")
+    sub.add_argument("-r", "--replicas", default=None, help="number of replicas")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('delete', help='delete the deployment')
     sub.set_defaults(func=stop_on_kubernetes)
 
-    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
-    sub.set_defaults(func=images_on_gcloud)
-
     sub = subparsers.add_parser('load-sendgrid', help='load the sendgrid password into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument('--path', type=str, help='path to directory that contains the file "sendgrid"',
-                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets')))
+    sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "sendgrid"')
     sub.set_defaults(func=lambda args: load_secret('sendgrid',args))
 
     sub = subparsers.add_parser('load-zendesk', help='load the zendesk password into k8s from disk',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument('--path', type=str, help='path to directory that contains the file "zendesk"',
-                    default=os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets')))
-    sub.set_defaults(func=lambda args: load_secret('zendisk',args))
+    sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "zendesk"')
+    sub.set_defaults(func=lambda args: load_secret('zendesk',args))
 
     util.add_deployment_parsers(NAME, subparsers)
 

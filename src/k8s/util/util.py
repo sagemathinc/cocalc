@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import base64, json, os, requests, subprocess, tempfile, time, yaml
+import argparse, base64, json, os, requests, subprocess, tempfile, time, yaml
 
 join = os.path.join
 
@@ -32,7 +32,6 @@ def run(v, shell=False, path='.', get_output=False, env=None):
         else:
             kwds = {'env':env}
         if get_output:
-            print(kwds)
             output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
         else:
             if subprocess.call(v, **kwds):
@@ -55,7 +54,7 @@ def get_default_gcloud_project_name():
     i = conf.find("project = ")
     if i == -1:
         return get_default_gcloud_project_name_fallback()
-    return conf[i:].split('=')[1].strip()
+    return conf[i:].split('=')[1].split()[0].strip()
 
 # This works but is very slow and ugly due to parsing output.
 def get_default_gcloud_project_name_fallback():
@@ -81,33 +80,27 @@ def gcloud_most_recent_image(name):
     x = v[0]
     return x['REPOSITORY'] + ':' + x['TAG']
 
-def gcloud_images(name=''):
-    x = run(['gcloud', 'docker', 'images', gcloud_docker_repo(name)], get_output=True)
-    i = x.find("REPOSITORY")
-    if i == 1:
-        raise RuntimeError
-    x = x[i:]
-    v = x.splitlines()
-    headers = v[0].split()[:2]
-    a = []
-    for w in v[1:]:
-        a.append(dict(zip(headers, w.split()[:2])))
-    return [x for x in a if x['REPOSITORY'] == name]
 
 def gcloud_auth_token():
-    ## This gcloud auth command is SLOW!
-    #return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
-    cred = join(os.environ['HOME'], '.config', 'gcloud' ,'credentials')
-    return json.loads(open(cred).read())['data'][0]['credential']['access_token']
+    ## This gcloud auth command is SLOW so we cache the result for a few minutes
+    access_token = join(os.environ['HOME'], '.config', 'gcloud' ,'access_token')
+    if not os.path.exists(access_token) or os.path.getctime(access_token) < time.time() - 5:
+        token = run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+        open(access_token,'w').write(token)
+        return token
+    else:
+        return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
-    # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
+    # Use the API to get info about the given image (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
-    return 'gcr.io/'+repo, json.loads(requests.get(url, auth=('_token', gcloud_auth_token())).content.decode())
+    r = requests.get(url, auth=('_token', gcloud_auth_token())).content.decode()
+    r = json.loads(r)
+    return 'gcr.io/'+repo, r
 
 def gcloud_images(name):
-    #print("gcloud_images '{name}'".format(name=name))
+    print("gcloud_images '{name}'".format(name=name))
     from datetime import datetime
     w = []
     repo, data = get_gcloud_image_info(name)
@@ -331,7 +324,6 @@ def exec_bash(i=0, **selector):
     Run bash on the first Running pod that matches the given selector.
     """
     v = get_pods(**selector)
-    print(v)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
         print("No running matching pod %s"%selector)
@@ -379,7 +371,7 @@ def add_bash_parser(name, subparsers):
     def f(args):
         exec_bash(args.number, run=name)
     sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
+    sub.add_argument('number', type=int, default=0, nargs='?', help='pod number (sort of arbitrary)')
     sub.set_defaults(func=f)
 
 def add_edit_parser(name, subparsers):
@@ -389,10 +381,10 @@ def add_edit_parser(name, subparsers):
     sub.set_defaults(func=f)
 
 def add_autoscale_parser(name, subparsers):
-    sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
+    sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
-    sub.add_argument("--cpu-percent", default=None, help="CPU")
+    sub.add_argument("--cpu-percent", default=80, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)
@@ -403,7 +395,39 @@ def pull_policy(args):
     else:
         return 'IfNotPresent'
 
+def images_on_gcloud(NAME, args):
+    v = gcloud_images(NAME)
+    print('-'*100)
+    print("%-40s%-40s%-20s"%('TAG', 'REPOSITORY', 'CREATED'))
+    for x in v:
+        print("%-40s%-40s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
+
+def add_images_parser(NAME, subparsers):
+    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
+    sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
+
 def add_deployment_parsers(NAME, subparsers):
     add_bash_parser(NAME, subparsers)
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
+    add_images_parser(NAME, subparsers)
+    add_tail_parser(NAME, subparsers)
+
+def get_desired_replicas(deployment_name, default=1):
+    x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
+    if 'status' in x:
+        return x['status']['replicas']
+    else:
+        return default
+
+def tail(deployment_name, grep_args):
+    SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+    cmd = join(SCRIPT_PATH, 'kubetail.sh') + ' ' + deployment_name
+    if len(grep_args) > 0:
+        cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
+    run(cmd + ' 2>/dev/null')
+
+def add_tail_parser(NAME, subparsers):
+    sub = subparsers.add_parser('tail', help='tail log files for all pods at once')
+    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py tail concurrent"')
+    sub.set_defaults(func=lambda args: tail(NAME, args.grep_args))
