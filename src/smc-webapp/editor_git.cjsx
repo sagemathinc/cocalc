@@ -120,6 +120,14 @@ class GitActions extends Actions
                 @setState(new_branch_name : '')
                 @set_tab(store.get('tab'))
 
+    checkout_branch : (branch) =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "git"
+            args : ['checkout', branch]
+            cb   : (err, output) =>
+                @set_tab(store.get('tab'))
+
     get_changed_tracked_files : =>
         store = @redux.getStore(@name)
         @exec
