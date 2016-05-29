@@ -15,8 +15,11 @@ def get_service(service):
                      POD_NAMESPACE=os.environ.get('POD_NAMESPACE', 'default'),
                      service=service)
     token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
+    print("Getting k8s information about '{service}' from '{URL}'".format(service=service, URL=URL))
     headers={'Authorization':'Bearer {token}'.format(token=token)}
-    return requests.get(URL, headers=headers, verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt').json()
+    x = requests.get(URL, headers=headers, verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt').json()
+    print("Got {x}".format(x=x))
+    return x
 
 def get_replicas():
     """
@@ -42,7 +45,9 @@ def start_rethinkdb():
     for ip in other_replicas():
         v.append("--join")
         v.append(ip)
+    print("opening password file")
     if open('/secrets/rethinkdb/rethinkdb').read().strip():
+        print('there is a password')
         # Just in case we don't have a password already, but there is one set.
         v.append('--initial-password')
         v.append('auto')

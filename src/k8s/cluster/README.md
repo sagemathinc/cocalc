@@ -65,11 +65,26 @@ For the main SMC sites webserver, I think this likely makes sense:
 
 Then:
 
+Create our L7 ingress load balancer:
+
+    cd ..; cd haproxy; ./control.py run; ./control.py  autoscale --min=3 --max=5
+
+Use external rethinkdb servers:
+
+    cd ..; cd rethinkdb; ./control.py external db0 db1 db2 db3 db4 db5
+
+Proxy them internally:
+
     cd ..; cd rethinkdb-proxy; ./control.py run; ./control.py autoscale --min=10 --max=40
     sleep 30
-    cd ..; cd haproxy; ./control.py run;  # runs 1 on each node
+
+Start the hubs:
+
     cd ..; cd smc-hub; ./control.py run; ./control.py autoscale --min=3 --max=20
-    cd ..; cd smc-webapp-static; ./control.py run;
+
+Start the static nginx servers:
+
+    cd ..; cd smc-webapp-static; ./control.py run; ./control.py autoscale --min=3 --max=5
 
 
 

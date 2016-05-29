@@ -69,3 +69,20 @@ Similar remarks for compute nodes:
 
 This was helpful: https://github.com/rosskukulinski/kubernetes-rethinkdb-cluster
 
+## Resetting the admin password
+
+If you set the admin password on rethinkdb and completely loose it, the only way to reset it is to start rethinkdb with disabled health checks
+
+
+    ./control.py run --health-delay=99999999
+
+Then do
+
+    ./control.py forward-admin
+
+And run this sort of query in the Data Explorer:
+
+    r.db('rethinkdb').table('users').get('admin').update({password:"your-new-password"})
+
+You may have to explicitly disable health checks or rethinkdb will get restarted before you can do this.
+

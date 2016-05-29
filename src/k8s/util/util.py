@@ -174,6 +174,18 @@ def stop_deployment(name):
     if name in get_deployments():
         run(['kubectl', 'delete', 'deployment', name])
 
+def get_daemonsets():
+    return get_resources('daemonsets')
+
+def update_daemonset(filename_yaml):
+    name = yaml.load(open(filename_yaml).read())['metadata']['name']
+    run(['kubectl', 'replace' if name in get_daemonsets() else 'create', '-f', filename_yaml])
+
+def stop_daemonset(name):
+    if name in get_daemonsets():
+        run(['kubectl', 'delete', 'daemonset', name])
+
+
 def create_secret(name, filename):
     if name in get_secrets():
         # delete first

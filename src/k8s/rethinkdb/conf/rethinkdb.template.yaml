@@ -35,7 +35,7 @@ spec:
       containers:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
-        name: rethinkdb0
+        name: rethinkdb{number}
         ports:
         - containerPort: 28015
           name: driver-port
@@ -46,7 +46,7 @@ spec:
           exec:
             command:
             - /health.py
-          initialDelaySeconds: 15
+          initialDelaySeconds: {health_delay}
           timeoutSeconds: 5
         volumeMounts:
         - mountPath: /data

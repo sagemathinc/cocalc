@@ -63,7 +63,8 @@ def run_on_kubernetes(args):
     for number in args.number:
         ensure_persistent_disk_exists(context, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image=tag, number=number, context=context,
+            tmp.write(t.format(image=tag, number=number, context=context, 
+                               health_delay=args.health_delay,
                                pull_policy=util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
@@ -84,7 +85,7 @@ def forward_port(args, port, mesg):
         v = util.get_pods(db='rethinkdb', instance=args.number)
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(v) == 0:
-        raise RuntimeError("rethinkdb node {number} not available".format(args.number))
+        raise RuntimeError("rethinkdb node {number} not available".format(number=args.number))
     print("{dashes}{mesg}{dashes}".format(mesg=mesg, dashes='\n\n'+'-'*70+'\n\n'))
     util.run(['kubectl', 'port-forward', v[0]['NAME'], '{port}:{port}'.format(port=port)])
 
@@ -205,14 +206,15 @@ if __name__ == '__main__':
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
     sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
+    sub.add_argument('--health-delay', default=60, type=int, help='time in seconds before starting health checks')
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('forward-admin', help='forward port for an admin interface to localhost')
-    sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
+    sub.add_argument('number', type=int, default=-1, nargs='?', help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_admin)
 
     sub = subparsers.add_parser('forward-db', help='forward database to localhost so you can directly connect')
-    sub.add_argument('-n', '--number', type=int, default=-1, help='which node to forward (if not given uses random node)')
+    sub.add_argument('number', type=int, default=-1, nargs='?', help='which node to forward (if not given uses random node)')
     sub.set_defaults(func=forward_db)
 
     sub = subparsers.add_parser('create-password', help='create or regenerate the rethinkdb admin password (both in the database and in k8s)')
