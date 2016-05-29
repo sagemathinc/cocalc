@@ -36,13 +36,14 @@ def create_branch_and_reset_to_upstream_master(branch_name):
 
 def main():
     import sys
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('command')
-    args = parser.parse_args()
-    if args.command == 'create_branch_and_rebase_with_upstream_master':
-        create_branch_and_rebase_with_upstream_master(sys.argv[2])
-    print globals()[args.command]()
+    #import argparse
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('command')
+    #args = parser.parse_args()
+    if sys.argv[1] == 'create_branch_and_reset_to_upstream_master':
+        print create_branch_and_reset_to_upstream_master(sys.argv[2])
+    else:
+        print globals()[sys.argv[1]]()
 
 if __name__ == "__main__":
     main()
