@@ -15,8 +15,7 @@ metadata:
   name: rethinkdb-cluster
 subsets:
 -
-  addresses:
-{ips}
+  addresses: {ips}
   ports:
     -
       port: 29015
@@ -40,8 +39,7 @@ metadata:
   name: rethinkdb-driver
 subsets:
 -
-  addresses:
-{ips}
+  addresses: {ips}
   ports:
     -
       port: 28015
