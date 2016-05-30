@@ -326,9 +326,9 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_bash(pods, **selector):
+def exec_command(pods, command, **selector):
     """
-    Run bash on the first Running pod that matches the given selector.
+    Run command on pods that matches the given selector (using tmux if more than one).
     """
     if '__tmux_sync__' in selector:
         sync = selector['__tmux_sync__']
@@ -343,9 +343,11 @@ def exec_bash(pods, **selector):
         if pods[0] >= len(v):
             print("No running matching pod ...")
             return
-        run(['kubectl', 'exec', '-it', v[pods[0]]['NAME'], 'bash'])
+        run(['kubectl', 'exec', '-it', v[pods[0]]['NAME'], command])
     else:
-        cmds = ["kubectl exec -it {name} bash".format(name=v[i]['NAME']) for i in pods if i < len(v)]
+        cmds = ["kubectl exec -it {name} -- {command}".format(
+                    name    = v[i]['NAME'],
+                    command = command) for i in pods if i < len(v)]
         if len(cmds) == 0:
             print("No running matching pod %s"%selector)
         else:
@@ -391,17 +393,30 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_bash_parser(name, subparsers, custom_selector=None):
+def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None):
     def f(args):
         if custom_selector is not None:
             selector = custom_selector(args)
         else:
             selector = {'run':name}
-        exec_bash(args.number, __tmux_sync__=not args.no_sync, **selector)
-    sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('number', type=int, nargs='*', help='pods by number to cconnect to (0, 1, etc.); connects to all using tmux if ommitted')
-    sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not synchronize panes")
+        exec_command(args.number, command, __tmux_sync__=not args.no_sync, **selector)
+    sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
+    sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
+    sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
     sub.set_defaults(func=f)
+
+def add_bash_parser(name, subparsers, custom_selector=None):
+    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"', custom_selector=custom_selector)
+
+# NOTE: explicit terminal size not supported by k8s or docker; but, we can explicitly set
+# it below by doing "stty cols 150;"
+def add_top_parser(name, subparsers, custom_selector=None):
+    c = 'bash -c "TERM=xterm top || (apt-get update&& apt-get install -y top&& TERM=xterm top)"'
+    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector)
+
+def add_htop_parser(name, subparsers, custom_selector=None):
+    c = 'bash -c "TERM=xterm htop || (apt-get update&& apt-get install -y htop&& TERM=xterm htop)"'
+    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector)
 
 def add_edit_parser(name, subparsers):
     def f(args):
@@ -436,11 +451,13 @@ def add_images_parser(NAME, subparsers):
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
 def add_deployment_parsers(NAME, subparsers):
-    add_bash_parser(NAME, subparsers)
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
     add_logs_parser(NAME, subparsers)
+    add_bash_parser(NAME, subparsers)
+    add_top_parser(NAME, subparsers)
+    add_htop_parser(NAME, subparsers)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))

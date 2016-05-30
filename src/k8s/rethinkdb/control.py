@@ -228,13 +228,15 @@ if __name__ == '__main__':
     sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "rethinkdb"')
     sub.set_defaults(func=load_password)
 
-    def bash_selector(args):
+    def selector(args):
         if len(args.number) == 0:
             return {'db':'rethinkdb'}
         else:
             # can only do one
             return {'db':'rethinkdb', 'number':args.number[0]}
-    util.add_bash_parser(NAME, subparsers, custom_selector=bash_selector)
+    util.add_bash_parser(NAME, subparsers, custom_selector=selector)
+    util.add_top_parser(NAME, subparsers, custom_selector=selector)
+    util.add_htop_parser(NAME, subparsers, custom_selector=selector)
 
     util.add_logs_parser(NAME, subparsers)
 
