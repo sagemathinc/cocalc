@@ -37,25 +37,4 @@ If you then do this you'll be able to use the `smc-open` command from the kubect
 
 ## Creating a k8s cluster
 
-To get started, go the `cluster` subdirectory and type
-
-    ./control.py create mycluster
-
-This takes about 5 minutes.
-
-When you're done with a cluster and want it completely gone, do
-
-    ./control.py delete-cluster mycluster  # deletes everything (about 5 min)
-
-For more information, read `cluster/README.md` and see `./control.py -h`.
-
-## Running SMC on the k8s cluster
-
-Create (if necessary) all Docker images, upload them
-to the private repo, and start everything running:
-
-    ./control.py run-deployments
-
-This takes about 10 minutes.
-
-
+To get started, go the `cluster` subdirectory and read the README.md there.

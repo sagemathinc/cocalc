@@ -37,8 +37,8 @@ spec:
           exec:
             command:
             - /health.py
-          initialDelaySeconds: 15
-          timeoutSeconds: 5
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
