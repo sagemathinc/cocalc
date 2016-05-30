@@ -14,6 +14,7 @@ TABS = [
     {"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings", "init_actions": ['get_git_user_name', 'get_git_user_email']},
     {"name": "Commit", "icon": "git-commit", "description": "Commit files", "init_actions": ['get_changed_tracked_files', 'get_changed_untracked_files', 'update_diff']},
     {"name": "Log", "icon": "history", "description": "Log of commits", "init_actions": ['update_log']},
+    {"name": "Issues", "icon": "issue-opened", "description": "Github issues for upstream", "init_actions": ['get_github_issues']},
 ]
 
 TABS_BY_NAME = {}
@@ -46,6 +47,11 @@ class GitActions extends Actions
                     console.warn("git editor ERROR exec'ing #{opts.cmd} #{opts.args.join(' ')}")
                     opts.cb(err, output)
                 opts.cb(err, output)
+
+    get_github_issues : =>
+        url = 'https://api.github.com/repos/sagemathinc/smc/issues'
+        callback = (response) => @setState(github_issues: response)
+        $.get url, callback
 
     set_git_user_name : =>
         store = @redux.getStore(@name)
@@ -350,6 +356,7 @@ Git = (name) -> rclass
             show_create_branch_modal    : rtypes.bool
             new_branch_name             : rtypes.string
             interval                    : rtypes.func
+            github_issues               : rtypes.array
  
     propTypes :
         actions : rtypes.object
@@ -520,6 +527,15 @@ Git = (name) -> rclass
             <Row>
                 <Col sm=12>
                     {@render_log_panel()}
+                </Col>
+            </Row>
+        </div>
+        
+    render_issues : ->
+        <div>
+            <Row>
+                <Col sm=12>
+                    {JSON.stringify(@props.github_issues)}
                 </Col>
             </Row>
         </div>
