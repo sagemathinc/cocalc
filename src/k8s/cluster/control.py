@@ -70,7 +70,7 @@ def create_cluster(args):
         'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
         'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
         'PREEMPTIBLE_NODE'               : 'false' if args.non_preemptible else 'true',
-        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s-'+args.name,
+        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s',
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes)
@@ -97,16 +97,15 @@ def update_firewall():
             for t in eval(v[-1]):
                 tags.append(t)
     tags = set(tags)
-    tags = [x for x in tags if x.startswith('k8s-')]
+    tags = [x for x in tags if x.startswith('k8s')]
     util.run(['gcloud', 'compute', 'firewall-rules', 'update', 'default-default-internal',
               '--target-tags', ','.join(tags)])
 
-def select_cluster(args):
-    print('selecting ', args.name)
-    context = "{project_name}_k8s-{name}".format(
-        project_name = util.get_default_gcloud_project_name(),
-        name         = args.name)
-    util.run(['kubectl', 'config', 'use-context', context])
+#def select_cluster(args):
+#    print('selecting default cluster')
+#    context = "{project_name}_k8s".format(
+#        project_name = util.get_default_gcloud_project_name())
+#    util.run(['kubectl', 'config', 'use-context', context])
 
 def delete_cluster(args):
     select_cluster(args)
@@ -116,7 +115,7 @@ def delete_cluster(args):
     delete_all()
 
     env = {
-        'KUBE_GCE_INSTANCE_PREFIX' : 'k8s-'+args.name,
+        'KUBE_GCE_INSTANCE_PREFIX' : 'k8s',
         'KUBE_GCE_ZONE'            : args.zone
     }
     env.update(os.environ)
@@ -125,7 +124,7 @@ def delete_cluster(args):
 def autoscale_cluster(args):
     if args.min_nodes is not None and args.max_nodes < args.min_nodes:
         args.min_nodes = args.max_nodes
-    v = ['gcloud', 'compute', 'instance-groups', 'managed', 'set-autoscaling', 'k8s-'+args.name+'-minion-group',
+    v = ['gcloud', 'compute', 'instance-groups', 'managed', 'set-autoscaling', 'k8s-minion-group',
          '--max-num-replicas', str(args.max_nodes)]
     if args.min_nodes is not None:
         v.append('--min-num-replicas')
@@ -137,7 +136,7 @@ def autoscale_cluster(args):
     util.run(v)
 
 def resize_cluster(args):
-    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', 'k8s-'+args.name+'-minion-group',
+    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', 'k8s-minion-group',
          '--size', str(args.size)])
 
 def run_all():
@@ -168,39 +167,38 @@ if __name__ == '__main__':
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    sub = subparsers.add_parser('create', help='create k8s cluster',
+    sub = subparsers.add_parser('create', help='create *the* k8s cluster',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument("name",               type=str,              help="name of the cluster")
     sub.add_argument("--zone",             default="us-central1-c", help="zone of the cluster")
-    sub.add_argument("--master-size",      default="n1-standard-1",    help="node VM type")
-    sub.add_argument("--master-disk-size", default=10, type=int,  help="size of master disks")
-    sub.add_argument("--node-size",        default="n1-standard-1",    help="node VM type")
-    sub.add_argument("--node-ssd",         action="store_true",   help="use SSD's on the nodes")
-    sub.add_argument("--node-disk-size",   default=30, type=int,  help="size of node disks")
-    sub.add_argument("--min-nodes",        default=2, type=int,   help="min number of nodes")
-    sub.add_argument("--max-nodes",        default=5, type=int,   help="max number of nodes (if >min, autoscale)")
-    sub.add_argument("--non-preemptible",  action="store_true",   help="do NOT use preemptible nodes")
-    sub.add_argument("--cost",             action="store_true",   help="instead of creating only estimate monthly cost of cluster")
+    sub.add_argument("--master-size",      default="n1-standard-2", help="node VM type")
+    sub.add_argument("--master-disk-size", default=20, type=int,    help="size of master disks")
+    sub.add_argument("--node-size",        default="n1-standard-2", help="node VM type")
+    sub.add_argument("--node-ssd",         action="store_true",     help="use SSD's on the nodes")
+    sub.add_argument("--node-disk-size",   default=100, type=int,    help="size of node disks")
+    sub.add_argument("--min-nodes",        default=2,  type=int,    help="min number of nodes; can change later")
+    sub.add_argument("--max-nodes",        default=2,  type=int,    help="max number of nodes (if >min, autoscale); can change later")
+    sub.add_argument("--non-preemptible",  action="store_true",     help="do NOT use preemptible nodes")
+    sub.add_argument("--cost",             action="store_true",     help="instead of creating only estimate monthly cost of cluster")
     sub.set_defaults(func=create_cluster)
 
-    sub = subparsers.add_parser('select', help='select a given cluster')
-    sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)')
-    sub.set_defaults(func=select_cluster)
+    #sub = subparsers.add_parser('select', help='select a given cluster')
+    #sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)')
+    #sub.set_defaults(func=select_cluster)
 
     sub = subparsers.add_parser('delete-cluster', help='delete k8s cluster')
-    sub.add_argument('name', type=str, help='name of the cluster to delete')
+    #sub.add_argument('name', type=str, help='name of the cluster to delete')
     sub.add_argument("--zone", default="us-central1-c", help="zone of the cluster")
     sub.set_defaults(func=delete_cluster)
 
     sub = subparsers.add_parser('autoscale', help='autoscale the nodes')
-    sub.add_argument('name', type=str, help='name of the cluster to rescale')
+    #sub.add_argument('name', type=str, help='name of the cluster to rescale')
     sub.add_argument("--max-nodes",   type=int,     help="max number of nodes -- required and must be at least 1")
     sub.add_argument("--min-nodes",   type=int, default=None, help="minimum number of nodes")
     sub.add_argument("--cpu-percent", type=int, default=None, help="target average cpu percentage (number between 1 and 100)")
     sub.set_defaults(func=autoscale_cluster)
 
     sub = subparsers.add_parser('resize', help='set the number of nodes')
-    sub.add_argument('name', type=str, help='name of the cluster to rescale')
+    #sub.add_argument('name', type=str, help='name of the cluster to rescale')
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
     sub.set_defaults(func=resize_cluster)
 

@@ -332,7 +332,7 @@ def exec_bash(i=0, **selector):
     """
     v = get_pods(**selector)
     v = [x for x in v if x['STATUS'] == 'Running']
-    if len(v) == 0:
+    if i>=len(v):
         print("No running matching pod %s"%selector)
     else:
         run(['kubectl', 'exec', '-it', v[i]['NAME'], 'bash'])
@@ -418,7 +418,7 @@ def add_deployment_parsers(NAME, subparsers):
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
-    add_tail_parser(NAME, subparsers)
+    add_logs_parser(NAME, subparsers)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
@@ -427,14 +427,17 @@ def get_desired_replicas(deployment_name, default=1):
     else:
         return default
 
-def tail(deployment_name, grep_args):
+def logs(deployment_name, grep_args):
     SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
     cmd = join(SCRIPT_PATH, 'kubetail.sh') + ' ' + deployment_name
     if len(grep_args) > 0:
         cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
-    run(cmd + ' 2>/dev/null')
+    try:
+        run(cmd + ' 2>/dev/null')
+    except:
+        return
 
-def add_tail_parser(NAME, subparsers):
-    sub = subparsers.add_parser('tail', help='tail log files for all pods at once')
-    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py tail concurrent"')
-    sub.set_defaults(func=lambda args: tail(NAME, args.grep_args))
+def add_logs_parser(NAME, subparsers):
+    sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
+    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah blah"')
+    sub.set_defaults(func=lambda args: logs(NAME, args.grep_args))
