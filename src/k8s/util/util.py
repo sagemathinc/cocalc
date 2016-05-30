@@ -340,6 +340,9 @@ def exec_bash(i=0, **selector):
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]
 
+def get_nodes():
+    return get_resources('nodes')
+
 def get_secrets():
     return get_resources('secrets')
 
@@ -441,3 +444,32 @@ def add_logs_parser(NAME, subparsers):
     sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
     sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah blah"')
     sub.set_defaults(func=lambda args: logs(NAME, args.grep_args))
+
+
+def tmux_commands(cmds, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    # Try this to see the idea...
+    # tmux split-window -d 'python' \; split-window -d 'python' \; split-window -d 'python'; python
+    s = 'tmux'
+    s += ' ' + r' \; select-layout tiled \; '.join(["split-window -d '{cmd}'".format(cmd=cmd) for cmd in cmds[:-1]])
+    if sync:
+        print("sync")
+        s += ' \; setw synchronize-panes on '
+    s += ' \; select-layout tiled ; {cmd} '.format(cmd=cmds[-1])
+    run(s)
+
+
+
+def tmux_ssh(hosts, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    tmux_commands(['ssh {host}'.format(host=host) for host in hosts], sync=sync)
+
+
+
+

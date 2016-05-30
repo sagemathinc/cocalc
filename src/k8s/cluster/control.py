@@ -213,6 +213,13 @@ def delete_all():
         if name in s:
             util.run(['kubectl', 'delete', 'services', name])
 
+def ssh(args):
+    v = util.get_nodes()
+    if args.name:
+        prefix = 'k8s-' + args.name + '-'
+        v = [x for x in v if x.startswith(prefix)]
+    util.tmux_ssh(v, sync=not args.no_sync)
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
@@ -271,6 +278,12 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('delete-deployments', help='delete all smc deployments (and service!) in the current cluster')
     sub.set_defaults(func=lambda args: delete_all())
+
+    sub = subparsers.add_parser('ssh', help='use tmux to ssh to all nodes at once')
+    sub.add_argument("name", type=str, default='', nargs='?', help="if given, only ssh to nodes with hostname that starts k8s-{name}-")
+    sub.add_argument("-n" , "--no-sync",  action="store_true",     help="do not syncrhonize panes")
+    sub.set_defaults(func=ssh)
+
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
