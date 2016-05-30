@@ -391,9 +391,13 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_bash_parser(name, subparsers):
+def add_bash_parser(name, subparsers, custom_selector=None):
     def f(args):
-        exec_bash(args.number, run=name, __tmux_sync__=not args.no_sync)
+        if custom_selector is not None:
+            selector = custom_selector(args)
+        else:
+            selector = {'run':name}
+        exec_bash(args.number, __tmux_sync__=not args.no_sync, **selector)
     sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to cconnect to (0, 1, etc.); connects to all using tmux if ommitted')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not synchronize panes")

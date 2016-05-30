@@ -274,7 +274,7 @@ if __name__ == '__main__':
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
     sub.set_defaults(func=resize_cluster)
 
-    sub = subparsers.add_parser('run-deployments', help="starts all deployments running in the current cluster")
+    sub = subparsers.add_parser('run-deployments', help="starts minimal latest versions of all deployments running in the current cluster, **EXCEPT** for rethinkdb.")
     sub.set_defaults(func=lambda args: run_all())
 
     sub = subparsers.add_parser('delete-deployments', help='delete all smc deployments (and service!) in the current cluster')
