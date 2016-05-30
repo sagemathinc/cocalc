@@ -42,3 +42,7 @@ If you then do this you'll be able to use the `smc-open` command from the kubect
 ## Creating a k8s cluster
 
 To get started, go the `cluster` subdirectory and read the README.md there.
+
+You can also run all commands from all subdirectories directly from the src/k8s directory, by doing
+
+    ./control.py [path] args...
