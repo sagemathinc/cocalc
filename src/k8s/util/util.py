@@ -484,6 +484,15 @@ def tmux_ssh(hosts, sync=True):
     """
     tmux_commands(['ssh {host}'.format(host=host) for host in hosts], sync=sync)
 
+def get_namespaces():
+    return get_resources('namespaces')
 
+def set_namespace(namespace):
+    if namespace not in get_namespaces():
+        run(['kubectl', 'create', 'namespace', namespace])
+    context = run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+    run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
 
+def get_current_namespace():
+    return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
 

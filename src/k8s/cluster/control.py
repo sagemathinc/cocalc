@@ -220,6 +220,7 @@ def ssh(args):
         v = [x for x in v if x.startswith(prefix)]
     util.tmux_ssh(v, sync=not args.no_sync)
 
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
@@ -284,6 +285,10 @@ if __name__ == '__main__':
     sub.add_argument("-n" , "--no-sync",  action="store_true",     help="do not syncrhonize panes")
     sub.set_defaults(func=ssh)
 
+
+    sub = subparsers.add_parser('namespace', help='set the current namespace, e.g., default, prod, test, etc.')
+    sub.add_argument("namespace", type=str, help="a valid namespace")
+    sub.set_defaults(func=lambda args: util.set_namespace(args.namespace))
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

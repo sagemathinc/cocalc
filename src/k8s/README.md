@@ -34,6 +34,10 @@
 If you then do this you'll be able to use the `smc-open` command from the kubectl machine to open files in your own project:
 	  cd ~/smc/src && ./install.py pyutil
 
+- Make your prompt show the current cluster namespace and not waste space on the user (put this in ~/.bashrc):
+
+    export PS1="[\$(kubectl config view |grep namespace:|cut  -c 16-)]\[\033[01;32m\] \h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]> "
+
 
 ## Creating a k8s cluster
 
