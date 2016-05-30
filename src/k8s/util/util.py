@@ -339,19 +339,15 @@ def exec_command(pods, command, **selector):
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(pods) == 0:
         pods = range(len(v))
-    if len(pods) == 1:
-        if pods[0] >= len(v):
-            print("No running matching pod ...")
-            return
-        run(['kubectl', 'exec', '-it', v[pods[0]]['NAME'], command])
+    cmds = ["kubectl exec -it {name} -- {command}".format(
+                name    = v[i]['NAME'],
+                command = command) for i in pods if i < len(v)]
+    if len(cmds) == 0:
+        print("No running matching pod %s"%selector)
+    elif len(cmds) == 1:
+        run(cmds[0])
     else:
-        cmds = ["kubectl exec -it {name} -- {command}".format(
-                    name    = v[i]['NAME'],
-                    command = command) for i in pods if i < len(v)]
-        if len(cmds) == 0:
-            print("No running matching pod %s"%selector)
-        else:
-            tmux_commands(cmds, sync=sync)
+        tmux_commands(cmds, sync=sync)
 
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]

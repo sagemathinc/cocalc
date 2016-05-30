@@ -194,7 +194,7 @@ def resize_cluster(args):
 
 def run_all():
     x = util.get_deployments()
-    for name in ['rethinkdb0', 'rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
+    for name in ['rethinkdb-proxy', 'smc-webapp-static', 'smc-hub', 'haproxy']:
         if name not in x:
             if name == 'rethinkdb0':
                 name = 'rethinkdb'
