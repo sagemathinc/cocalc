@@ -507,6 +507,8 @@ def get_namespaces():
 def set_namespace(namespace):
     if namespace not in get_namespaces():
         run(['kubectl', 'create', 'namespace', namespace])
+        # CRITICAL: also create default limits
+        run(['kubectl', 'create', '-f', 'conf/limits.template.conf', '--namespace', namespace])
     context = run(['kubectl', 'config', 'current-context'], get_output=True).strip()
     run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
 

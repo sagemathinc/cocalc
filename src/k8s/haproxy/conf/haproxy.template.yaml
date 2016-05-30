@@ -37,6 +37,13 @@ spec:
           initialDelaySeconds: 30
           timeoutSeconds: 5
         terminationMessagePath: /dev/termination-log
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "150m"
+          limits:
+            memory: "250Mi"
+            cpu: "500m"
         ports:
         # All http services
         - containerPort: 80
