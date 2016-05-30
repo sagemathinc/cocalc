@@ -326,16 +326,30 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_bash(i=0, **selector):
+def exec_bash(pods, **selector):
     """
     Run bash on the first Running pod that matches the given selector.
     """
+    if '__tmux_sync__' in selector:
+        sync = selector['__tmux_sync__']
+        del selector['__tmux_sync__']
+    else:
+        sync = True
     v = get_pods(**selector)
     v = [x for x in v if x['STATUS'] == 'Running']
-    if i>=len(v):
-        print("No running matching pod %s"%selector)
+    if len(pods) == 0:
+        pods = range(len(v))
+    if len(pods) == 1:
+        if pods[0] >= len(v):
+            print("No running matching pod ...")
+            return
+        run(['kubectl', 'exec', '-it', v[pods[0]]['NAME'], 'bash'])
     else:
-        run(['kubectl', 'exec', '-it', v[i]['NAME'], 'bash'])
+        cmds = ["kubectl exec -it {name} bash".format(name=v[i]['NAME']) for i in pods if i < len(v)]
+        if len(cmds) == 0:
+            print("No running matching pod %s"%selector)
+        else:
+            tmux_commands(cmds, sync=sync)
 
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]
@@ -379,9 +393,10 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
 
 def add_bash_parser(name, subparsers):
     def f(args):
-        exec_bash(args.number, run=name)
+        exec_bash(args.number, run=name, __tmux_sync__=not args.no_sync)
     sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('number', type=int, default=0, nargs='?', help='pod number (sort of arbitrary)')
+    sub.add_argument('number', type=int, nargs='*', help='pods by number to cconnect to (0, 1, etc.); connects to all using tmux if ommitted')
+    sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not synchronize panes")
     sub.set_defaults(func=f)
 
 def add_edit_parser(name, subparsers):
@@ -456,12 +471,11 @@ def tmux_commands(cmds, sync=True):
     s = 'tmux'
     s += ' ' + r' \; select-layout tiled \; '.join(["split-window -d '{cmd}'".format(cmd=cmd) for cmd in cmds[:-1]])
     if sync:
-        print("sync")
         s += ' \; setw synchronize-panes on '
+    else:
+        s += ' \; setw synchronize-panes off '   # important to turn it off if it was on!
     s += ' \; select-layout tiled ; {cmd} '.format(cmd=cmds[-1])
     run(s)
-
-
 
 def tmux_ssh(hosts, sync=True):
     """
