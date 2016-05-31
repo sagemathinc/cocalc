@@ -828,38 +828,32 @@ class JupyterNotebook extends EventEmitter
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        # We try multiple times, since result maybe be a timeout or gateway
-        # error as Jupyter gets started up.
-        misc.retry_until_success
-            f        : @_init_dom
-            start_delay : 4000    # wait 4s before trying the second time.
-            max_time : 4*60*1000  # try for at most 4 minutes
-            cb       : (err) =>
-                if not err
-                    cb()
-                else
-                    console.warn("Jupyter -- failed to load -- #{err}")
-                    @dom?.close()
-                    cb(err)
 
-    _init_dom: (cb) =>
-        if @state != 'loading'
-            cb("init_dom BUG: @state must be loading")
-            return
-        @_init_dom_timeout ?= 5
-        @_init_dom_timeout = Math.min(1.5*@_init_dom_timeout, 20)
-        @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
-        done = (err) =>
-            @notebook.css('opacity',1)
-            if err
-                @dom?.close()
-                cb(err)
-            else
-                if @dom.read_only
-                    # DOM gets extra info about @read_only status of file from jupyter notebook server.
-                    @read_only = true
-                cb()
-        @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, @_init_dom_timeout, done)
+        async.series([
+            (cb) =>
+                console.log 'Jupyter: checking for url to be ready'
+                # Use jquery until the server url loads properly (not an error), then load the iframe.
+                # We do this -- which seems inefficient -- because trying to detect errors inside
+                # the iframe properly is difficult.
+                misc.retry_until_success
+                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).success(=>cb())
+                    max_time : 60*1000  # try for at most 1 minute
+                    cb       : cb
+            (cb) =>
+                console.log 'Jupyter: loading iframe'
+                @notebook.css('opacity',0.5)
+                done = (err) =>
+                    @notebook.css('opacity',1)
+                    if err
+                        @dom?.close()
+                        cb(err)
+                    else
+                        if @dom.read_only
+                            # DOM gets extra info about @read_only status of file from jupyter notebook server.
+                            @read_only = true
+                        cb()
+                @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, 30, done)
+        ], cb)
 
     init_buttons: () =>
         # info button
