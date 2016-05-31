@@ -266,7 +266,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('autoscale', help='enable autoscale of an instance group')
     sub.add_argument("--max-nodes",   type=int,     help="max number of nodes -- required and must be at least 1")
     sub.add_argument("--min-nodes",   type=int, default=None, help="minimum number of nodes")
-    sub.add_argument("--cpu-percent", type=int, default=None, help="target average cpu percentage (number between 1 and 100)")
+    sub.add_argument("--cpu-percent", type=int, default=60, help="target average cpu percentage (number between 1 and 100)")
     sub.add_argument("name", type=str, default='', nargs='?', help="if given, autoscale group created using create-instance-group")
     sub.set_defaults(func=autoscale_cluster)
 
@@ -284,7 +284,6 @@ if __name__ == '__main__':
     sub.add_argument("name", type=str, default='', nargs='?', help="if given, only ssh to nodes with hostname that starts k8s-{name}-")
     sub.add_argument("-n" , "--no-sync",  action="store_true",     help="do not syncrhonize panes")
     sub.set_defaults(func=ssh)
-
 
     sub = subparsers.add_parser('namespace', help='set the current namespace, e.g., default, prod, test, etc.')
     sub.add_argument("namespace", type=str, help="a valid namespace")

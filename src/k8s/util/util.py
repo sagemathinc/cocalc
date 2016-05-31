@@ -424,7 +424,7 @@ def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
-    sub.add_argument("--cpu-percent", default=80, help="CPU")
+    sub.add_argument("--cpu-percent", default=60, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)
@@ -468,7 +468,7 @@ def logs(deployment_name, grep_args):
     if len(grep_args) > 0:
         cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
     try:
-        run(cmd + ' 2>/dev/null')
+        run(cmd + ' 2>/dev/null | more')
     except:
         return
 
