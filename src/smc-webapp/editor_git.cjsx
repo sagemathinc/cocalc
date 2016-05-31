@@ -603,7 +603,7 @@ Git = (name) -> rclass
         @props.actions.set_tab('configuration')
         @props.interval = setInterval =>
             @props.actions.run_for_tab()
-          , 5000
+          , 30000
 
     componentWillUnmount: ->
         clearInterval(@props.interval)
