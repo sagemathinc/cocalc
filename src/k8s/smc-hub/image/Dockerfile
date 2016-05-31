@@ -26,7 +26,7 @@ RUN \
 CMD \
   cd /smc/src && \
   . ./smc-env && \
-  hub --database_nodes rethinkdb-proxy --host=$HOSTNAME --db_pool 1 --port 5000 --proxy_port 5001 --foreground
+  hub --database_nodes rethinkdb-proxy --host=$HOSTNAME --db_pool 20 --port 5000 --proxy_port 5001 --foreground
 
 # Expose main http endpoint on port 5000 and the hub proxy on port 5001.
 EXPOSE 5000 5001

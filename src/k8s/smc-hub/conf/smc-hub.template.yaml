@@ -36,15 +36,15 @@ spec:
             path: /alive
             port: 5000
             scheme: HTTP
-          initialDelaySeconds: 80
-          timeoutSeconds: 10
+          initialDelaySeconds: 60
+          timeoutSeconds: 3
         resources:
-          requests:
-            memory: "256Mi"
-            cpu: "200m"
           limits:
-            memory: "1024Mi"
-            cpu: "1000m"
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
