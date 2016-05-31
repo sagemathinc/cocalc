@@ -1159,7 +1159,8 @@ class JupyterNotebook extends EventEmitter
         @load(cb)
 
     font_size_init: () =>
-        font_size = @parent.local_storage("font_size") ? @opts.default_font_size
+        # NOTE: @parent.local_storage may not be defined, e.g., for the history viewer!
+        font_size = @parent.local_storage?("font_size") ? @opts.default_font_size
         @dom.font_size_set(font_size)
         @element.data("font_size", font_size)
 
