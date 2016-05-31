@@ -832,6 +832,7 @@ class JupyterNotebook extends EventEmitter
         # error as Jupyter gets started up.
         misc.retry_until_success
             f        : @_init_dom
+            start_delay : 4000    # wait 4s before trying the second time.
             max_time : 4*60*1000  # try for at most 4 minutes
             cb       : (err) =>
                 if not err
@@ -845,7 +846,7 @@ class JupyterNotebook extends EventEmitter
         if @state != 'loading'
             cb("init_dom BUG: @state must be loading")
             return
-        @_init_dom_timeout ?= 3
+        @_init_dom_timeout ?= 5
         @_init_dom_timeout = Math.min(1.5*@_init_dom_timeout, 20)
         @notebook.css('opacity',0)  # invisible, so you don't see a funny half-loaded notebook (from the file rather than the syncstring), before monkey patching.
         done = (err) =>
