@@ -67,7 +67,7 @@ class exports.HistoryEditor extends FileEditor
         @element  = templates.find(".salvus-editor-history").clone()
         switch @ext
             when 'ipynb'
-                @view_doc = jupyter.jupyter_notebook(@editor, @_open_file_path, opts).data("jupyter_notebook")
+                @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
             else
