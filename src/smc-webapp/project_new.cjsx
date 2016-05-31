@@ -353,7 +353,7 @@ FileUpload = (name) -> rclass
             <Col sm=8>
                 <Tip icon='file' title='Drag and drop files'
                     tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                    <h4 style={color:"#666"}>Drag and drop files</h4>
+                    <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
                 </Tip>
                 <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0}>
                     <Dropzone

@@ -18,7 +18,7 @@ RUN \
 # Grab source code for SMC
 RUN git clone https://github.com/sagemathinc/smc.git
 
-# Build hub (mainly involves installing dependencies)
+# Build (mainly involves installing dependencies)
 WORKDIR /smc/src/
 RUN \
   cd /smc/src && \

@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import base64, json, os, requests, subprocess, tempfile, time, yaml
+import argparse, base64, json, os, requests, subprocess, tempfile, time, yaml
 
 join = os.path.join
 
@@ -32,7 +32,6 @@ def run(v, shell=False, path='.', get_output=False, env=None):
         else:
             kwds = {'env':env}
         if get_output:
-            print(kwds)
             output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
         else:
             if subprocess.call(v, **kwds):
@@ -46,24 +45,20 @@ def run(v, shell=False, path='.', get_output=False, env=None):
             os.chdir(cur)
 
 
-# Fast, but relies on stability of gcloud config path (I reversed engineered this).
-# Failed for @hal the first time, so ...
 def get_default_gcloud_project_name():
     PATH = join(os.environ['HOME'], '.config', 'gcloud')
     active_config = open(join(PATH, 'active_config')).read()
-    conf = open(join(PATH, 'configurations', 'config_'+active_config)).read()
-    i = conf.find("project = ")
-    if i == -1:
+    import configparser
+    conf = configparser.ConfigParser()
+    conf.read_file(open(join(PATH, 'configurations', 'config_'+active_config)))
+    project = conf.get('core', 'project', fallback=None)
+    if project is None:
         return get_default_gcloud_project_name_fallback()
-    return conf[i:].split('=')[1].strip()
+    return project
 
 # This works but is very slow and ugly due to parsing output.
 def get_default_gcloud_project_name_fallback():
-    a = run(['gcloud', 'info'], get_output=True)
-    i = a.find("project: ")
-    if i == -1:
-        raise RuntimeError
-    return a[i:].split()[1].strip('[]')
+    return json.loads(run(['gcloud', 'info', '--format=json'], get_output=True))['config']['project']
 
 def get_kube_context():
     return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
@@ -81,33 +76,26 @@ def gcloud_most_recent_image(name):
     x = v[0]
     return x['REPOSITORY'] + ':' + x['TAG']
 
-def gcloud_images(name=''):
-    x = run(['gcloud', 'docker', 'images', gcloud_docker_repo(name)], get_output=True)
-    i = x.find("REPOSITORY")
-    if i == 1:
-        raise RuntimeError
-    x = x[i:]
-    v = x.splitlines()
-    headers = v[0].split()[:2]
-    a = []
-    for w in v[1:]:
-        a.append(dict(zip(headers, w.split()[:2])))
-    return [x for x in a if x['REPOSITORY'] == name]
-
 def gcloud_auth_token():
-    ## This gcloud auth command is SLOW!
-    #return run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
-    cred = join(os.environ['HOME'], '.config', 'gcloud' ,'credentials')
-    return json.loads(open(cred).read())['data'][0]['credential']['access_token']
+    ## This gcloud auth command is SLOW so we cache the result for a few minutes
+    access_token = join(os.environ['HOME'], '.config', 'gcloud' ,'access_token')
+    if not os.path.exists(access_token) or os.path.getctime(access_token) < time.time() - 5:
+        token = run(['gcloud', 'auth', 'print-access-token'], get_output=True).strip()
+        open(access_token,'w').write(token)
+        return token
+    else:
+        return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
-    # Use the API to get info about the given imeage (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
+    # Use the API to get info about the given image (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
-    return 'gcr.io/'+repo, json.loads(requests.get(url, auth=('_token', gcloud_auth_token())).content.decode())
+    r = requests.get(url, auth=('_token', gcloud_auth_token())).content.decode()
+    r = json.loads(r)
+    return 'gcr.io/'+repo, r
 
 def gcloud_images(name):
-    #print("gcloud_images '{name}'".format(name=name))
+    print("gcloud_images '{name}'".format(name=name))
     from datetime import datetime
     w = []
     repo, data = get_gcloud_image_info(name)
@@ -185,6 +173,18 @@ def update_deployment(filename_yaml):
 def stop_deployment(name):
     if name in get_deployments():
         run(['kubectl', 'delete', 'deployment', name])
+
+def get_daemonsets():
+    return get_resources('daemonsets')
+
+def update_daemonset(filename_yaml):
+    name = yaml.load(open(filename_yaml).read())['metadata']['name']
+    run(['kubectl', 'replace' if name in get_daemonsets() else 'create', '-f', filename_yaml])
+
+def stop_daemonset(name):
+    if name in get_daemonsets():
+        run(['kubectl', 'delete', 'daemonset', name])
+
 
 def create_secret(name, filename):
     if name in get_secrets():
@@ -326,20 +326,34 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_bash(i=0, **selector):
+def exec_command(pods, command, **selector):
     """
-    Run bash on the first Running pod that matches the given selector.
+    Run command on pods that matches the given selector (using tmux if more than one).
     """
-    v = get_pods(**selector)
-    print(v)
-    v = [x for x in v if x['STATUS'] == 'Running']
-    if len(v) == 0:
-        print("No running matching pod %s"%selector)
+    if '__tmux_sync__' in selector:
+        sync = selector['__tmux_sync__']
+        del selector['__tmux_sync__']
     else:
-        run(['kubectl', 'exec', '-it', v[i]['NAME'], 'bash'])
+        sync = True
+    v = get_pods(**selector)
+    v = [x for x in v if x['STATUS'] == 'Running']
+    if len(pods) == 0:
+        pods = range(len(v))
+    cmds = ["kubectl exec -it {name} -- {command}".format(
+                name    = v[i]['NAME'],
+                command = command) for i in pods if i < len(v)]
+    if len(cmds) == 0:
+        print("No running matching pod %s"%selector)
+    elif len(cmds) == 1:
+        run(cmds[0])
+    else:
+        tmux_commands(cmds, sync=sync)
 
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]
+
+def get_nodes():
+    return get_resources('nodes')
 
 def get_secrets():
     return get_resources('secrets')
@@ -375,12 +389,30 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_bash_parser(name, subparsers):
+def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None):
     def f(args):
-        exec_bash(args.number, run=name)
-    sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('-n', '--number', type=int, default=0, help='pod number (sort of arbitrary)')
+        if custom_selector is not None:
+            selector = custom_selector(args)
+        else:
+            selector = {'run':name}
+        exec_command(args.number, command, __tmux_sync__=not args.no_sync, **selector)
+    sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
+    sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
+    sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
     sub.set_defaults(func=f)
+
+def add_bash_parser(name, subparsers, custom_selector=None):
+    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"', custom_selector=custom_selector)
+
+# NOTE: explicit terminal size not supported by k8s or docker; but, we can explicitly set
+# it below by doing "stty cols 150;"
+def add_top_parser(name, subparsers, custom_selector=None):
+    c = 'bash -c "TERM=xterm top || (apt-get update&& apt-get install -y top&& TERM=xterm top)"'
+    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector)
+
+def add_htop_parser(name, subparsers, custom_selector=None):
+    c = 'bash -c "TERM=xterm htop || (apt-get update&& apt-get install -y htop&& TERM=xterm htop)"'
+    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector)
 
 def add_edit_parser(name, subparsers):
     def f(args):
@@ -389,10 +421,10 @@ def add_edit_parser(name, subparsers):
     sub.set_defaults(func=f)
 
 def add_autoscale_parser(name, subparsers):
-    sub = subparsers.add_parser('autoscale', help='autoscale the deployment')
+    sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
-    sub.add_argument("--cpu-percent", default=None, help="CPU")
+    sub.add_argument("--cpu-percent", default=60, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)
@@ -403,7 +435,83 @@ def pull_policy(args):
     else:
         return 'IfNotPresent'
 
+def images_on_gcloud(NAME, args):
+    v = gcloud_images(NAME)
+    print('-'*100)
+    print("%-40s%-40s%-20s"%('TAG', 'REPOSITORY', 'CREATED'))
+    for x in v:
+        print("%-40s%-40s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
+
+def add_images_parser(NAME, subparsers):
+    sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
+    sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
+
 def add_deployment_parsers(NAME, subparsers):
-    add_bash_parser(NAME, subparsers)
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
+    add_images_parser(NAME, subparsers)
+    add_logs_parser(NAME, subparsers)
+    add_bash_parser(NAME, subparsers)
+    add_top_parser(NAME, subparsers)
+    add_htop_parser(NAME, subparsers)
+
+def get_desired_replicas(deployment_name, default=1):
+    x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
+    if 'status' in x:
+        return x['status']['replicas']
+    else:
+        return default
+
+def logs(deployment_name, grep_args):
+    SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+    cmd = join(SCRIPT_PATH, 'kubetail.sh') + ' ' + deployment_name
+    if len(grep_args) > 0:
+        cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
+    try:
+        run(cmd + ' 2>/dev/null | more')
+    except:
+        return
+
+def add_logs_parser(NAME, subparsers):
+    sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
+    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah blah"')
+    sub.set_defaults(func=lambda args: logs(NAME, args.grep_args))
+
+
+def tmux_commands(cmds, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    # Try this to see the idea...
+    # tmux split-window -d 'python' \; split-window -d 'python' \; split-window -d 'python'; python
+    s = 'tmux'
+    s += ' ' + r' \; select-layout tiled \; '.join(["split-window -d '{cmd}'".format(cmd=cmd) for cmd in cmds[:-1]])
+    if sync:
+        s += ' \; setw synchronize-panes on '
+    else:
+        s += ' \; setw synchronize-panes off '   # important to turn it off if it was on!
+    s += ' \; select-layout tiled ; {cmd} '.format(cmd=cmds[-1])
+    run(s)
+
+def tmux_ssh(hosts, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    tmux_commands(['ssh {host}'.format(host=host) for host in hosts], sync=sync)
+
+def get_namespaces():
+    return get_resources('namespaces')
+
+def set_namespace(namespace):
+    if namespace not in get_namespaces():
+        run(['kubectl', 'create', 'namespace', namespace])
+        # CRITICAL: also create default limits
+        run(['kubectl', 'create', '-f', 'conf/limits.template.conf', '--namespace', namespace])
+    context = run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+    run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
+
+def get_current_namespace():
+    return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
+

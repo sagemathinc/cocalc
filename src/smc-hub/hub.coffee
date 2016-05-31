@@ -3061,7 +3061,7 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        pool  : 50
+        pool  : program.db_pool
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
@@ -3438,6 +3438,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--foreground', 'If specified, do not run as a deamon')
     .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
     .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+    .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
