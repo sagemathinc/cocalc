@@ -45,6 +45,7 @@ class GitActions extends Actions
             cb          : (err, output) =>
                 if err
                     console.warn("git editor ERROR exec'ing #{opts.cmd} #{opts.args.join(' ')}")
+                    console.warn(JSON.stringify(output))
                     opts.cb(err, output)
                 opts.cb(err, output)
 
@@ -124,6 +125,15 @@ class GitActions extends Actions
             args : ['branches']
             cb   : (err, output) =>
                 @setState(branches : JSON.parse(output.stdout))
+    
+    create_branch_and_reset_to_upstream_master_with_name : (new_branch_name) =>
+        console.log('New branch name', new_branch_name)
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['create_branch_and_reset_to_upstream_master', new_branch_name]
+            cb   : (err, output) =>
+                @setState(new_branch_name : '')
                 
     create_branch_and_reset_to_upstream_master : =>
         store = @redux.getStore(@name)
@@ -530,12 +540,31 @@ Git = (name) -> rclass
                 </Col>
             </Row>
         </div>
-        
+    
+    pass_issue : (number) ->
+        @props.actions.create_branch_and_reset_to_upstream_master_with_name('upstream_issue_'+number)
+    
+    list_issues : ->
+        if @props.github_issues
+            for issue, idx in @props.github_issues
+                t = @
+                do (issue, t) ->
+                    <Row key={idx}>
+                        <Col sm=8>
+                             { issue.title }
+                        </Col>
+                        <Col>
+                            <Button onClick={=>t.pass_issue(issue.number)}>
+                                Create branch for this ticket: upstream_issue_{ issue.number }
+                            </Button>
+                        </Col>
+                    </Row>
+            
     render_issues : ->
         <div>
             <Row>
                 <Col sm=12>
-                    {JSON.stringify(@props.github_issues)}
+                    {@list_issues()}
                 </Col>
             </Row>
         </div>
