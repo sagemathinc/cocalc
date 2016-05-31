@@ -147,7 +147,7 @@ class GitActions extends Actions
         store = @redux.getStore(@name)
         @exec
             cmd  : "git"
-            args : ['checkout', branch]
+            args : ['checkout', '--force', branch]
             cb   : (err, output) =>
                 ''
 
