@@ -242,7 +242,10 @@ class GitActions extends Actions
 
     set_tab : (tab) =>
         @setState(tab:tab)
-        @run_for_tab()
+        t = @
+        run = (t) ->
+            t.run_for_tab()
+        setTimeout(run(t), 1000)
 
     add_or_removed_checked_files : (name, listing_type) =>
         store = @redux.getStore(@name)
