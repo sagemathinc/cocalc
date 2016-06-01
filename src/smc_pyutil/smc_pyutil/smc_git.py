@@ -1,11 +1,15 @@
 #!/usr/bin/python
 """
 (c) Tim Clemans, 2016
-
-
 """
 
 import json, os, subprocess, sys, uuid
+
+def remotes():
+    results = os.popen('git remote -v').read().strip('\n').split('\n')
+    results = [row.replace(' ','\t').split('\t')[:2] for row in results]
+    results = dict(results)
+    return json.dumps(results)
 
 def current_branch():
     result = os.popen('git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "master" ').read().strip('\n').split('\n')[-1]

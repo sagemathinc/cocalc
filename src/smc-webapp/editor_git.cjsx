@@ -29,6 +29,8 @@ class GitActions extends Actions
     init : (@project_id, @filename) =>
         @path = misc.path_split(@filename).head
         @setState(git_repo_root : @path)
+        @setState(data_file : @filename)
+        console.log('data file', @filename)
         @set_tab('configuration')
 
     exec : (opts) =>
@@ -53,6 +55,20 @@ class GitActions extends Actions
         url = 'https://api.github.com/repos/sagemathinc/smc/issues'
         callback = (response) => @setState(github_issues: response)
         $.get url, callback
+        
+    get_current_github_issue : =>
+        store = @redux.getStore(@name)
+        if store.get('current_branch') and store.get('remotes')
+            if store.get('current_branch').startsWith('upstream_issue_')
+                issue_number = store.get('current_branch').slice(15)
+                upstream_url = store.get('remotes').get('upstream')
+                regex = /r?\/([\w]+)\/([\w]+)\.git?/g
+                match = regex.exec(upstream_url)
+                username = match[1]
+                repo = match[2]
+                url = 'https://api.github.com/repos/'+username+'/'+repo+'/issues/'+issue_number
+                callback = (response) => @setState(current_github_issue: response)
+                $.get url, callback
 
     set_git_user_name : =>
         store = @redux.getStore(@name)
@@ -109,7 +125,15 @@ class GitActions extends Actions
             args : [f_name]
             cb   : (err, output) =>
                 ''
-
+                
+    set_remotes : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['remotes']
+            cb   : (err, output) =>
+                @setState(remotes : JSON.parse(output.stdout))
+                
     get_current_branch : =>
         store = @redux.getStore(@name)
         @exec
@@ -117,6 +141,10 @@ class GitActions extends Actions
             args : ['current_branch']
             cb   : (err, output) =>
                 @setState(current_branch : output.stdout)
+                t = @
+                run = (t) ->
+                    t.get_current_github_issue()
+                setTimeout(run(t), 5000)
 
     get_branches : =>
         store = @redux.getStore(@name)
@@ -207,7 +235,6 @@ class GitActions extends Actions
 
     update_diff : =>
         store = @redux.getStore(@name)
-        
         if store
             args = if store.get('file_to_diff') then ['diff', store.get('file_to_diff')] else ['diff']
         else
@@ -235,7 +262,7 @@ class GitActions extends Actions
         store = @redux.getStore(@name)
         if store
             tab = store.get('tab')
-            general_actions_to_run = ['get_current_branch', 'get_branches']
+            general_actions_to_run = ['set_remotes', 'get_current_branch', 'get_branches']
             actions_to_run = general_actions_to_run.concat TABS_BY_NAME[tab]["init_actions"]
             for action in actions_to_run
                 @[action]()
@@ -370,6 +397,8 @@ Git = (name) -> rclass
             new_branch_name             : rtypes.string
             interval                    : rtypes.func
             github_issues               : rtypes.array
+            current_github_issue        : rtypes.object
+            remotes                     : rtypes.object
  
     propTypes :
         actions : rtypes.object
@@ -506,7 +535,6 @@ Git = (name) -> rclass
                     {@render_diff_files()}
                 </DropdownButton>
                 <Space/> <Space/>
-                
             </span>
         <Panel header={head}>
             {<pre>{@props.git_diff}</pre> if @props.git_diff}
@@ -562,7 +590,6 @@ Git = (name) -> rclass
                             </Button>
                         </Col>
                     </Row>
-            
     render_issues : ->
         <div>
             <Row>
@@ -611,6 +638,17 @@ Git = (name) -> rclass
     componentWillUnmount: ->
         clearInterval(@props.interval)
 
+    render_current_issue : ->
+        if @props.current_github_issue
+            head = 
+                <span className="small">
+                    <strong>Working on issue #{@props.current_github_issue.number}:</strong> {@props.current_github_issue.title}
+                </span>
+            <Panel className="small" header={head}>
+                <p>{@props.current_github_issue.body}</p>
+                <a target="_blank" href={@props.current_github_issue.html_url}>Open on Github</a>
+            </Panel>
+                
     render : ->
         <div>
             <div>
@@ -652,6 +690,9 @@ Git = (name) -> rclass
 
                     </Modal>
                 </div>
+            </div>
+            <div>
+                {@render_current_issue()}
             </div>
             <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
                 {@render_tabs()}
