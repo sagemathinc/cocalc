@@ -44,7 +44,6 @@ def install_project():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
-    cmd(SUDO+"/usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm install"%path)
 
@@ -82,7 +81,7 @@ def install_webapp(*args):
         raise ValueError("action %s unknown" % action)
 
 def install_primus():
-    cmd("webapp-lib/primus/update_primus")
+    cmd("cd smc-hub && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
@@ -93,7 +92,6 @@ def install_all(compute=False, web=False):
         install_sagews()
         install_project()
     if web:
-        install_primus()
         install_webapp()
 
 def main():

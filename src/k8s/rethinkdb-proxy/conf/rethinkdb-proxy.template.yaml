@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: Always
+        imagePullPolicy: {pull_policy}
         name: rethinkdb-proxy
         terminationMessagePath: /dev/termination-log
         ports:
@@ -37,12 +37,24 @@ spec:
           exec:
             command:
             - /health.py
-          initialDelaySeconds: 15
-          timeoutSeconds: 5
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
           readOnly: true
+        env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        resources:
+          requests:
+            memory: "1000Mi"
+            cpu: "400m"
+          limits:
+            memory: "2000Mi"
+            cpu: "2000m"
       volumes:
         - name: secret-rethinkdb
           secret:

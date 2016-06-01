@@ -1469,7 +1469,7 @@ class Monitor(object):
             'disk_usage'  : self.disk_usage(),
             'dns'         : self.dns(),
             'load'        : self.load(),
-            'hub'         : self.hub(),
+            #'hub'         : self.hub(),
             #'stats'       : self.stats(),  # disabled due to using cloudflare.
             'compute'     : self.compute(),
             'nettest'     : self.nettest(),
@@ -1497,9 +1497,9 @@ class Monitor(object):
         #for x in all['dns'][:n]:
         #    print x
 
-        print "HUB"
-        for x in all['hub'][:n]:
-            print x
+        #print "HUB"
+        #for x in all['hub'][:n]:
+        #    print x
 
         print "DATABASE"
         for x in all['database'][:n]:

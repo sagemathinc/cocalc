@@ -104,20 +104,21 @@ exports.set_default_hosts = (hosts) ->
 class RethinkDB
     constructor: (opts={}) ->
         opts = defaults opts,
-            hosts    : default_hosts
-            database : 'smc'
-            password : undefined
-            debug    : true
-            pool     : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
-            all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
-            warning  : 30          # display warning and stop using connection if run takes this many seconds or more
-            error    : 10*60       # kill any query that takes this long (and corresponding connection)
-            concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
-            concurrent_error : 0  # if nonzero, and this many queries at once, any query fails after a slight delay.
-            concurrent_kill  : 3000 # if hit this, process will kill itself
-            mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
-            cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
-            cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
+            hosts            : default_hosts
+            database         : 'smc'
+            password         : undefined
+            debug            : true
+            pool             : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
+            all_hosts        : false  # if true, finds all hosts based on querying the server then connects to them
+            warning          : 30     # display warning if run takes this many seconds or more
+            error            : 120    # kill any query that takes this long (and corresponding connection)
+            concurrent_warn  : 500    # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_error : 0      # if nonzero, and this many queries at once, any query fails after a slight delay.
+            concurrent_kill  : 3000   # if hit this, process will kill itself
+
+            mod_warn         : 2      # display MOD_WARN warning in log if any query modifies at least this many docs
+            cache_expiry     : 15000  # expire cached queries after this many milliseconds (default: 15s)
+            cache_size       : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -133,6 +134,7 @@ class RethinkDB
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
         @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
+        @_concurrent_queries = 0
 
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
@@ -164,6 +166,17 @@ class RethinkDB
                             cb()
             (cb) =>
                 @_init_native(cb)
+            (cb) =>
+                # create schema if @_database does not exist.
+                @r.dbList().run (err, v) =>
+                    if err
+                        cb(err)
+                    else
+                        if @_database not in v
+                            @db = @r.db(@_database)
+                            @update_schema(cb:cb)
+                        else
+                            cb()
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{to_json(err)}")
@@ -181,7 +194,7 @@ class RethinkDB
         host = v[0]
         port = v[1]  # could be undefined
         dbg("connecting to #{host}...")
-        @r.connect {authKey:@_password, host:host, port:port}, (err, conn) =>
+        @r.connect {authKey:@_password, host:host, port:port, timeout:7}, (err, conn) =>
             if err
                 dbg("error connecting to #{host} -- #{to_json(err)}")
                 cb(err)
@@ -213,21 +226,25 @@ class RethinkDB
                         #dbg("error getting complete server list -- #{to_json(err)}")
                         cb()  # non fatal -- just means we don't know all hosts
 
+    # keeps retrying until successful connection is made to a database node.
+    _connect_no_matter_what: (cb) =>
+        misc.retry_until_success
+            f           : @_connect
+            start_delay : 3000
+            max_delay   : 10000
+            cb          : cb
+
     _init_native: (cb) =>
         @r = require('rethinkdb')
         @_monkey_patch_run()
         winston.debug("creating #{@_num_connections} connections")
         g = (i, cb) =>
-            if i%20 == 0
+            if i%10 == 0
                 winston.debug("created #{i} connections so far")
-            misc.retry_until_success
-                f : @_connect
-                start_delay : 5000
-                max_delay   : 30000
-                cb : cb
+            @_connect_no_matter_what(cb)
         # first connect once (to get topology), then many more times in parallel
         g 0, () =>
-            async.mapLimit misc.range(1, @_num_connections-1), 15, g, (err) =>
+            async.map misc.range(1, @_num_connections-1), g, (err) =>
                 winston.debug("finished creating #{@_num_connections}")
                 cb(err)
 
@@ -247,23 +264,38 @@ class RethinkDB
 
         # 2. ensure that the pool is full
         f = (cb) =>
-            n = misc.len(@_conn)
-            if n >= @_num_connections
+            k = @_num_connections - misc.len(@_conn)
+            if k <= 0
                 cb()
             else
-                 # fill the pool
-                async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
-
+                winston.debug("all database work blocked until we get #{k} connections")
+                g = (i, cb) =>
+                    misc.retry_until_success
+                        f           : @_connect
+                        start_delay : 3000
+                        max_time    : 20000  # try up to 20s
+                        cb          : (err) =>
+                            winston.debug("need #{@_num_connections - misc.len(@_conn)} more connections...")
+                            cb(err)
+                async.map(misc.range(k), g, cb)
         f (err) =>
-            for cb in @_update_pool_cbs
-                cb(err)
-            delete @_update_pool_cbs
+            notify = () =>
+                for cb in @_update_pool_cbs
+                    cb(err)
+                delete @_update_pool_cbs
+            if err
+                # If something went wrong we put in a random delay before returning with
+                # an error.  Otherwise, client will be constantly trying like crazy to
+                # connect again to the database.
+                setTimeout(notify, Math.max(3000, Math.random()*5000))
+            else
+                notify()
 
     _monkey_patch_run: () =>
         # We monkey patch run to have similar semantics to rethinkdbdash, and nice logging and warnings.
         # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
         # for how to monkey patch run.
-        that = @ # needed to reconnect if connection dies
+        that = @
         TermBase = @r.expr(1).constructor.__super__.constructor.__super__
         run_cbs = {}
         if not TermBase.run_native?  # only do this once!
@@ -307,10 +339,10 @@ class RethinkDB
                     start = new Date()
                     that._update_pool (err) ->
                         if err
-                            cb(err)
+                            error = "unable to connect to database"
+                            cb()  # so caller of this query gets an error.
                             return
 
-                        that._concurrent_queries ?= 0
                         that._concurrent_queries += 1
 
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
@@ -342,9 +374,6 @@ class RethinkDB
                                 winston.debug("rethink: query -- connection closed #{err}")
                                 winston.debug("rethink: query -- delete existing connection so won't get re-used")
                                 delete that._conn[id]
-                                # make another one (adding to pool)
-                                that._connect () ->
-                                    winston.debug("rethink: query -- made new connection due to connection being slow")
 
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
                         if that._error_thresh
@@ -369,19 +398,10 @@ class RethinkDB
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
                                     winston.debug("rethink: query -- got error that connection is closed -- #{err}")
-                                    #error = err
-                                    #cb()
-                                    fix = ->
-                                        delete that._conn[id]  # delete existing connection so won't get re-used
-                                        # make another one (adding to pool)
-                                        that._connect () ->
-                                            cb(true)
-                                    setTimeout(fix, 5000) # wait a few seconds then try to fix
-                                else
-                                    # Success in that we did the call with a valid connection.
-                                    # Now pass the error back to the code that called run.
-                                    error = err
-                                    cb()
+                                    delete that._conn[id]  # delete existing connection so won't get re-used
+                                # Now pass the error back to the code that called run.
+                                error = err
+                                cb()  # done -- will report error back to original query
                             else
                                 if "#{x}" == "[object Cursor]"
                                     # It's a cursor, so we convert it to an array, which is more convenient to work with, and is OK
@@ -794,6 +814,20 @@ class RethinkDB
             if not opts.end?
                 opts.end = new Date()
 
+    _get_log_query: (opts={}) =>
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            log   : 'central_log'
+        query = @table(opts.log)
+        @_process_time_range(opts)
+        if opts.start? or opts.end?
+            query = query.between(opts.start, opts.end, {index:'time'})
+        if opts.event?  # restrict to only the given event
+            query = query.getAll([opts.event], {index:'event'})
+        return query
+
     get_log: (opts={}) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
@@ -801,12 +835,22 @@ class RethinkDB
             event : undefined
             log   : 'central_log'
             cb    : required
-        query = @table(opts.log)
-        @_process_time_range(opts)
-        if opts.start? or opts.end?
-            query = query.between(opts.start, opts.end, {index:'time'})
-        if opts.event?  # restrict to only the given event
-            query = query.filter(@r.row("event").eq(opts.event))
+        @_get_log_query(misc.copy_without(opts,'cb')).run(opts.cb)
+
+    ###
+    Return every entry x in central_log in the given period of time for
+    which x.event==event and x.value.account_id == account_id.
+    This is **VERY** slow since there is no index on value.account_id!
+    ###
+    get_user_log: (opts) =>
+        opts = defaults opts,
+            start      : undefined     # if not given start at beginning of time
+            end        : undefined     # if not given include everything until now
+            event      : undefined
+            account_id : required
+            cb         : required
+        query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
+        query = query.filter(value:{account_id:opts.account_id})
         query.run(opts.cb)
 
     log_client_error: (opts) =>
