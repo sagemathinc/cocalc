@@ -104,20 +104,21 @@ exports.set_default_hosts = (hosts) ->
 class RethinkDB
     constructor: (opts={}) ->
         opts = defaults opts,
-            hosts    : default_hosts
-            database : 'smc'
-            password : undefined
-            debug    : true
-            pool     : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
-            all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
-            warning  : 30          # display warning and stop using connection if run takes this many seconds or more
-            error    : 120         # kill any query that takes this long (and corresponding connection)
-            concurrent_warn  : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
-            concurrent_error : 0  # if nonzero, and this many queries at once, any query fails after a slight delay.
-            concurrent_kill  : 3000 # if hit this, process will kill itself
-            mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
-            cache_expiry  : 15000  # expire cached queries after this many milliseconds (default: 15s)
-            cache_size    : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
+            hosts            : default_hosts
+            database         : 'smc'
+            password         : undefined
+            debug            : true
+            pool             : if process.env.DEVEL then 1 else 30  # default number of connection to use in connection pool
+            all_hosts        : false  # if true, finds all hosts based on querying the server then connects to them
+            warning          : 30     # display warning if run takes this many seconds or more
+            error            : 120    # kill any query that takes this long (and corresponding connection)
+            concurrent_warn  : 500    # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            concurrent_error : 0      # if nonzero, and this many queries at once, any query fails after a slight delay.
+            concurrent_kill  : 3000   # if hit this, process will kill itself
+
+            mod_warn         : 2      # display MOD_WARN warning in log if any query modifies at least this many docs
+            cache_expiry     : 15000  # expire cached queries after this many milliseconds (default: 15s)
+            cache_size       : 250    # cache this many queries; use @...query.run({cache:true}, cb) to cache result for a few seconds
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -133,6 +134,7 @@ class RethinkDB
         @_all_hosts        = opts.all_hosts
         @_stats_cached     = undefined
         @_user_query_stats = new UserQueryStats(@dbg("user_query_stats"))
+        @_concurrent_queries = 0
 
         if opts.cache_expiry and opts.cache_size
             @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
@@ -293,7 +295,7 @@ class RethinkDB
         # We monkey patch run to have similar semantics to rethinkdbdash, and nice logging and warnings.
         # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
         # for how to monkey patch run.
-        that = @ # needed to reconnect if connection dies
+        that = @
         TermBase = @r.expr(1).constructor.__super__.constructor.__super__
         run_cbs = {}
         if not TermBase.run_native?  # only do this once!
@@ -341,7 +343,6 @@ class RethinkDB
                             cb()  # so caller of this query gets an error.
                             return
 
-                        that._concurrent_queries ?= 0
                         that._concurrent_queries += 1
 
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
