@@ -4,14 +4,14 @@ Git "editor" -- basically an application that let's you interact with git.
 ###
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{Button, Input, Form, Panel, Row, Col, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
+{Button, Input, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
 TABS = [
-    {"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings", "init_actions": ['get_git_user_name', 'get_git_user_email']},
+    {"name": "Configuration", "icon": "settings", "description": "Configure global git settings as well as repo settings", "init_actions": ['get_git_user_name', 'get_git_user_email', 'update_github_login']},
     {"name": "Commit", "icon": "git-commit", "description": "Commit files", "init_actions": ['get_changed_tracked_files', 'get_changed_untracked_files', 'update_diff']},
     {"name": "Log", "icon": "history", "description": "Log of commits", "init_actions": ['update_log']},
     {"name": "Issues", "icon": "issue-opened", "description": "Github issues for upstream", "init_actions": ['get_github_issues']},
@@ -29,8 +29,7 @@ class GitActions extends Actions
     init : (@project_id, @filename) =>
         @path = misc.path_split(@filename).head
         @setState(git_repo_root : @path)
-        @setState(data_file : @filename)
-        console.log('data file', @filename)
+        @setState(data_file : misc.path_split(@filename).tail)
         @set_tab('configuration')
 
     exec : (opts) =>
@@ -69,6 +68,24 @@ class GitActions extends Actions
                 url = 'https://api.github.com/repos/'+username+'/'+repo+'/issues/'+issue_number
                 callback = (response) => @setState(current_github_issue: response)
                 $.get url, callback
+
+    save_github_login : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['set_github_login', store.get('data_file'), store.get('github_username'), store.get('github_access_token')]
+            cb   : (err, output) =>
+                ''
+                
+    update_github_login : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['get_data_file_contents', store.get('data_file')]
+            cb   : (err, output) =>
+                data = JSON.parse(output.stdout)
+                @setState(github_username : data['github_username'])
+                @setState(github_access_token : data['github_access_token'])
 
     set_git_user_name : =>
         store = @redux.getStore(@name)
@@ -155,7 +172,6 @@ class GitActions extends Actions
                 @setState(branches : JSON.parse(output.stdout))
     
     create_branch_and_reset_to_upstream_master_with_name : (new_branch_name) =>
-        console.log('New branch name', new_branch_name)
         store = @redux.getStore(@name)
         @exec
             cmd  : "smc-git"
@@ -378,6 +394,7 @@ Git = (name) -> rclass
         "#{name}" :
             tab                         : rtypes.string
             git_repo_root               : rtypes.string
+            data_file                   : rtypes.string
             git_user_name               : rtypes.string
             git_user_email              : rtypes.string
             git_user_name_return        : rtypes.string
@@ -399,6 +416,8 @@ Git = (name) -> rclass
             github_issues               : rtypes.array
             current_github_issue        : rtypes.object
             remotes                     : rtypes.object
+            github_username             : rtypes.string
+            github_access_token         : rtypes.string
  
     propTypes :
         actions : rtypes.object
@@ -539,16 +558,74 @@ Git = (name) -> rclass
         <Panel header={head}>
             {<pre>{@props.git_diff}</pre> if @props.git_diff}
         </Panel>
+    
+    handle_github_login_keypress : (e) ->
+        if e.keyCode == 13
+            @props.actions.save_github_login()
+    
+    render_github_login_panel : ->
+        head =
+            <span>
+                Github login credentials
+            </span>
+        <Panel header={head}>
+            <div>
+                <Row>
+                    <Col sm={2}>
+                        Username
+                    </Col>
+                    <Col sm={10}>
+                        <Input
+                            ref         = 'github_username'
+                            type        = 'text'
+                            value       = {@props.github_username ? ''}
+                            onChange    = {=>@props.actions.setState(github_username:@refs.github_username.getValue())}
+                            onKeyDown   = {@handle_github_login_keypress}
+                        />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm={2}>
+                        Personal access token
+                    </Col>
+                    <Col sm={10}>
+                        <Input
+                            ref         = 'github_access_token'
+                            type        = 'password'
+                            value       = {@props.github_access_token ? ''}
+                            onChange    = {=>@props.actions.setState(github_access_token:@refs.github_access_token.getValue())}
+                            onKeyDown   = {@handle_github_login_keypress}
+                        />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm={2}>
+                    </Col>
+                    <Col sm={10}>
+                        <Button onClick={=>@props.actions.save_github_login()}>
+                            Save
+                        </Button>
+                    </Col>
+                </Row>
+            </div>
+        </Panel>
 
     render_configuration : ->
-        <Row>
-            <Col sm=6>
-                {@render_user_name_panel()}
-            </Col>
-            <Col sm=6>
-                {@render_user_email_panel()}
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col sm=6>
+                    {@render_user_name_panel()}
+                </Col>
+                <Col sm=6>
+                    {@render_user_email_panel()}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=6>
+                    {@render_github_login_panel()}
+                </Col>
+            </Row>
+        </div>
 
     render_commit : ->
         <div>
@@ -590,6 +667,7 @@ Git = (name) -> rclass
                             </Button>
                         </Col>
                     </Row>
+                    
     render_issues : ->
         <div>
             <Row>

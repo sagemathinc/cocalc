@@ -46,6 +46,15 @@ def pull_upstream_master():
     os.system('git pull --no-edit upstream master')
     return ''
 
+def set_github_login(data_file, username, access_token):
+    with open(data_file, 'w') as f:
+        f.write(json.dumps({'github_username': username, 'github_access_token': access_token}))
+    return ''
+
+def get_data_file_contents(data_file):
+    with open(data_file, 'r') as f:
+        return f.read()
+
 def main():
     import sys
     #import argparse
@@ -54,6 +63,10 @@ def main():
     #args = parser.parse_args()
     if sys.argv[1] == 'create_branch_and_reset_to_upstream_master':
         print create_branch_and_reset_to_upstream_master(sys.argv[2])
+    elif sys.argv[1] == 'set_github_login':
+        print set_github_login(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif sys.argv[1] == 'get_data_file_contents':
+        print get_data_file_contents(sys.argv[2])
     else:
         print globals()[sys.argv[1]]()
 
