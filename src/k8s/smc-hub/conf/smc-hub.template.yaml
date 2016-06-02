@@ -24,7 +24,7 @@ spec:
         run: smc-hub
     spec:
       containers:
-      - image: {image}
+      - image: {image_hub}
         imagePullPolicy: {pull_policy}
         name: smc-hub
         ports:
@@ -56,6 +56,11 @@ spec:
         - name: secret-zendesk
           mountPath: /secrets/zendesk/
           readOnly: true
+        env:
+          - name: SMC_DB_HOSTS
+            value: {smc_db_hosts}
+          - name: SMC_DB_POOL
+            value: "{smc_db_pool}"
       volumes:
         - name: secret-rethinkdb
           secret:
