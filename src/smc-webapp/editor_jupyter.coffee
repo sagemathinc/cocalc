@@ -24,6 +24,11 @@ trying a lot of ideas, though in hindsite it's exactly the same as what React.js
 I didn't know about React.js at the time).
 ###
 
+# How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
+# a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
+# things should be allowed to work.
+JUPYTER_LOAD_TIMEOUT_S = 60*10
+
 {EventEmitter}       = require('events')
 
 async                = require('async')
@@ -852,7 +857,8 @@ class JupyterNotebook extends EventEmitter
                             # DOM gets extra info about @read_only status of file from jupyter notebook server.
                             @read_only = true
                         cb()
-                @dom = new JupyterWrapper(@notebook, @server_url, @filename, @read_only, @project_id, 30, done)
+                @dom = new JupyterWrapper(@notebook, @server_url, @filename,
+                                          @read_only, @project_id, JUPYTER_LOAD_TIMEOUT_S, done)
         ], cb)
 
     init_buttons: () =>
