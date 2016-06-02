@@ -539,7 +539,8 @@ class Client extends EventEmitter
         h = @_data_handlers[channel]
 
         if not h?
-            winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            if channel != 'X'  # X is a special case used on purpose -- not an error.
+                winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
             # Tell the client that they had better reconnect.
             @push_to_client( message.session_reconnect(data_channel : channel) )
             return
