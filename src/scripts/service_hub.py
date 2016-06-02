@@ -29,6 +29,9 @@ def hub_args(server_id):
         hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port,
         base_url=args.base_url)
 
+    if args.db_pool:
+        s += ' --db_pool {db_pool} '.format(db_pool=args.db_pool)
+        
     if args.dev:
         s += ' --dev '
 
@@ -107,6 +110,9 @@ if __name__ == "__main__":
     parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)
 
     parser.add_argument('--port', dest='port', default='')
+
+    parser.add_argument('--db_pool', dest='db_pool', default='')
+
     parser.add_argument('--proxy_port', dest='proxy_port', default='')
 
     parser.add_argument("--hostname", help="hostname to listen on [default: hostname of computer]", dest="hostname", default=socket.gethostname(), type=str)

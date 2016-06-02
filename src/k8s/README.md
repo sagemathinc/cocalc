@@ -34,28 +34,15 @@
 If you then do this you'll be able to use the `smc-open` command from the kubectl machine to open files in your own project:
 	  cd ~/smc/src && ./install.py pyutil
 
+- Make your prompt show the current cluster namespace and not waste space on the user (put this in ~/.bashrc):
+
+    export PS1="[\$(kubectl config view |grep namespace:|cut  -c 16-)]\[\033[01;32m\] \h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]> "
+
 
 ## Creating a k8s cluster
 
-To get started, go the `cluster` subdirectory and type
+To get started, go the `cluster` subdirectory and read the README.md there.
 
-    ./control.py create mycluster
+You can also run all commands from all subdirectories directly from the src/k8s directory, by doing
 
-This takes about 5 minutes.
-
-When you're done with a cluster and want it completely gone, do
-
-    ./control.py delete-cluster mycluster  # deletes everything (about 5 min)
-
-For more information, read `cluster/README.md` and see `./control.py -h`.
-
-## Running SMC on the k8s cluster
-
-Create (if necessary) all Docker images, upload them
-to the private repo, and start everything running:
-
-    ./control.py run-deployments
-
-This takes about 10 minutes.
-
-
+    ./control.py [path] args...
