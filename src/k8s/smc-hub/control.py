@@ -60,8 +60,10 @@ def run_on_kubernetes(args):
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image=tag, replicas=args.replicas,
-                               pull_policy=util.pull_policy(args)))
+        tmp.write(t.format(image=tag,
+                           replicas=args.replicas,
+                           pull_policy=util.pull_policy(args),
+                           min_read_seconds=args.gentle))
         tmp.flush()
         util.update_deployment(tmp.name)
 
@@ -104,6 +106,8 @@ if __name__ == '__main__':
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-r", "--replicas", default=None, help="number of replicas")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
+    sub.add_argument("-g", "--gentle", default=30, type=int,
+                     help="how gentle to be in doing the rolling update; in particular, will wait about this many seconds after each pod starts up (default: 30)")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('delete', help='delete the deployment')

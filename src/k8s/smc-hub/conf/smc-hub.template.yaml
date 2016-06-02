@@ -9,6 +9,7 @@ metadata:
   name: smc-hub
 spec:
   replicas: {replicas}
+  minReadySeconds: {min_read_seconds}
   selector:
     matchLabels:
       run: smc-hub
