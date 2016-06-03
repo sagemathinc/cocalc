@@ -19,9 +19,10 @@
 #
 ###############################################################################
 
-async     = require('async')
-misc      = require('smc-util/misc')
-_         = require('underscore')
+async         = require('async')
+misc          = require('smc-util/misc')
+salvus_client = require('./salvus_client')
+_             = require('underscore')
 
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 

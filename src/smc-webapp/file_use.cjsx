@@ -92,7 +92,7 @@ immutable = require('immutable')
 
 # smc-specific modules
 misc = require('smc-util/misc')
-
+salvus_client = require('./salvus_client')
 editor = require('./editor')
 
 # react in smc-specific modules
