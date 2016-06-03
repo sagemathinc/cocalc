@@ -76,7 +76,15 @@ class GitActions extends Actions
             args : ['set_github_login', store.get('data_file'), store.get('github_username'), store.get('github_access_token')]
             cb   : (err, output) =>
                 ''
-                
+    
+    make_upstream_pr_for_current_branch : =>
+        store = @redux.getStore(@name)
+        @exec
+            cmd  : "smc-git"
+            args : ['make_upstream_pr_for_current_branch', store.get('data_file')]
+            cb   : (err, output) =>
+                ''
+    
     update_github_login : =>
         store = @redux.getStore(@name)
         @exec
@@ -743,6 +751,10 @@ Git = (name) -> rclass
                 <Space/> <Space/>
                 <Button onClick={=>@props.actions.simple_smc_git('pull_upstream_master')}>
                     Pull upstream master
+                </Button>
+                <Space/> <Space/>
+                <Button onClick={=>@props.actions.make_upstream_pr_for_current_branch()}>
+                    Send pull request
                 </Button>
                 <div className="custom-modal">
                     <Modal show={@props.show_create_branch_modal} onHide={=>@props.actions.setState(show_create_branch_modal:false)}>

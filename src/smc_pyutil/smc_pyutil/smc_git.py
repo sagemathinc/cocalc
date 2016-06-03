@@ -4,6 +4,9 @@
 """
 
 import json, os, subprocess, sys, uuid
+import re
+import requests
+from requests.auth import HTTPBasicAuth
 
 def remotes():
     results = os.popen('git remote -v').read().strip('\n').split('\n')
@@ -55,6 +58,22 @@ def get_data_file_contents(data_file):
     with open(data_file, 'r') as f:
         return f.read()
 
+def make_upstream_pr_for_current_branch(data_file):
+    issue_number = current_branch().split('_')[-1]
+    with open(data_file, 'r') as f:
+        data = json.loads(f.read())
+    the_remotes = json.loads(remotes())
+    upstream = re.search('/(?P<owner>\w+)/(?P<repo>\w+)\.git', the_remotes['upstream'])
+    head = '%s:%s' % (data['github_username'], current_branch())
+    payload = {
+      "issue": issue_number,
+      "head": head,
+      "base": "master"
+    }
+    url = 'https://api.github.com/repos/%s/%s/pulls' % (upstream.group('owner'), upstream.group('repo'))
+    headers = {'content-type': 'application/json'}
+    return requests.post(url, data=json.dumps(payload), headers=headers, auth=HTTPBasicAuth(data['github_username'], data['github_access_token'])).json()
+    
 def main():
     import sys
     #import argparse
@@ -67,6 +86,8 @@ def main():
         print set_github_login(sys.argv[2], sys.argv[3], sys.argv[4])
     elif sys.argv[1] == 'get_data_file_contents':
         print get_data_file_contents(sys.argv[2])
+    elif sys.argv[1] == 'make_upstream_pr_for_current_branch':
+        print make_upstream_pr_for_current_branch(sys.argv[2])
     else:
         print globals()[sys.argv[1]]()
 
