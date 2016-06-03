@@ -66,7 +66,7 @@ def run_on_kubernetes(args):
         'pull_policy'            : util.pull_policy(args),
         'min_read_seconds'       : args.gentle,
         'smc_db_hosts'           : args.database_nodes,
-        'smc_db_pool'            : args.database_pool_size
+        'smc_db_pool'            : args.database_pool_size,
         'smc_db_concurrent_warn' : args.database_concurrent_warn
     }
 
