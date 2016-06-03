@@ -3068,11 +3068,12 @@ connect_to_database = (opts) ->
     if database? # already did this
         opts.cb(); return
     database = rethink.rethinkdb
-        hosts    : program.database_nodes.split(',')
-        database : program.keyspace
-        error    : opts.error
-        pool     : opts.pool
-        cb       : opts.cb
+        hosts           : program.database_nodes.split(',')
+        database        : program.keyspace
+        error           : opts.error
+        pool            : opts.pool
+        concurrent_warn : program.db_concurrent_warn
+        cb              : opts.cb
 
 # client for compute servers
 compute_server = undefined
@@ -3440,6 +3441,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
     .option('--single', 'if given, then run in LESS SAFE single-machine mode')
     .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+    .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.

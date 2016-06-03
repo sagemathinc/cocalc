@@ -186,6 +186,9 @@ class RethinkDB
             opts.cb?(err, @)
         )
 
+    concurrent: () =>
+        return @_concurrent_queries
+
     _connect: (cb) =>
         dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
