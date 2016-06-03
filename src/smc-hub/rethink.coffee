@@ -840,17 +840,24 @@ class RethinkDB
     ###
     Return every entry x in central_log in the given period of time for
     which x.event==event and x.value.account_id == account_id.
-    This is **VERY** slow since there is no index on value.account_id!
     ###
     get_user_log: (opts) =>
         opts = defaults opts,
-            start      : undefined     # if not given start at beginning of time
             end        : undefined     # if not given include everything until now
-            event      : undefined
+            start      : undefined
+            event      : 'successful_sign_in'
             account_id : required
             cb         : required
-        query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
-        query = query.filter(value:{account_id:opts.account_id})
+        #query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
+        #query = query.filter(value:{account_id:opts.account_id})
+        query = @table('central_log')
+        @_process_time_range(opts)
+        if not opts.start?
+            opts.start = db.r.minval
+        if not opts.end?
+            opts.end = db.r.maxval
+        query = query.between([opts.account_id, opts.event, opts.start],
+                              [opts.account_id, opts.event, opts.end], {index:'user_log'})
         query.run(opts.cb)
 
     log_client_error: (opts) =>
