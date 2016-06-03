@@ -110,7 +110,7 @@ class FileUseActions extends Actions
         # This should get displayed to the user...
         if not typeof(err) == 'string'
             err = misc.to_json(err)
-        @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
+        @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:salvus_client.server_time(), err:err})))
 
     mark_all: (action) =>
         if action == 'read'
@@ -146,7 +146,7 @@ class FileUseActions extends Actions
             setTimeout((()=>delete @_mark_file_lock[key]), ttl)
 
         table = @redux.getTable('file_use')
-        now   = new Date()
+        now   = salvus_client.server_time()
         obj   =
             project_id : project_id
             path       : path

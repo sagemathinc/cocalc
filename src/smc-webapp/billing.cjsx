@@ -1619,7 +1619,7 @@ BillingPage = rclass
         </div>
 
     render_course_payment_required: (project, pay) ->
-        if pay <= new Date()
+        if pay <= salvus_client.server_time()
             style = "danger"
             due = <span>now</span>
         else

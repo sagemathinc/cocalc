@@ -1775,7 +1775,7 @@ ProjectFiles = (name) -> rclass
         projects_store = @props.redux.getStore('projects')  # component depends on this so OK
 
         pay = projects_store.date_when_course_payment_required(@props.project_id)
-        if pay? and pay <= new Date()
+        if pay? and pay <= salvus_client.server_time()
             return @render_course_payment_required()
 
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
