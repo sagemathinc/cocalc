@@ -263,6 +263,7 @@ ChatRoom = (name) -> rclass
                 ref       = 'input'
                 onKeyDown = {@keydown}
                 value     = {@props.input}
+                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')}
                 onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
                 />
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>

@@ -26,6 +26,10 @@ File Usage Notifications
 AUTHORS:
    - first version written by William Stein, July 25-?, 2015, while unemployed.
 
+DOC:
+
+To mark a file as read: @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
+
 TODO:
 
 - [x] (0:30)  basic structure and plan
