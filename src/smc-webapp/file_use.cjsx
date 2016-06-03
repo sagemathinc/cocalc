@@ -28,52 +28,9 @@ AUTHORS:
 
 DOC:
 
-To mark a file as read: @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
+To mark a file as read:
 
-TODO:
-
-- [x] (0:30)  basic structure and plan
-- [x] (0:15?) (0:22) sorted file use by last_edited timestamp
-- [x] (0:30?) (0:24) display items a little more readably
-- [x] (0:30?) (0:55) search
-- [x] (0:30?) (0:27) click to open file
-- [x] (0:45?) (0:25) -- proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
-- [x] (0:45?) (1:22) notification number
-- [x] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
-- [x] (1:45) fix subtle backend database issues needed for marking read/seen
-- [x] (0:45?) (2:06) mark read
-    - [x] (0:42) make an action that takes a single id or array of them as input and marks them all read/seen/etc.
-    - [x] (0:24) make clicking mark that one as read
-    - [x] (1:00) mark all as read button
-- [x] (0:45?) (0:03) mark all seen
-- [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
-- [x] (1:00?) (1:02) if list of projects you collaborate on changes, must reset the file_use table, since the files you watched change as a result; client or server side?
-- [x] (0:45?) (0:18) delete old polling based activity notification code from hub; delete old activity notification code from page
-- [x] (1:00?) (0:30) cursor and enter to open first thing in notification search -- like in log
-- [x] (2:00?) (2:15) make pretty:
-   - [x] make wider
-   - [x] move mark_all_read button to upper right
-   - [x] spacing around file_use item
-   - [x] color to indicate read
-   - [x] color to indicate unseen
-   - [x] comment indication
-   - [x] truncate long project name
-   - [x] truncate long user name
-   - [x] truncate long filename
-   - [x] nicer layout
-   - [x] file type icons
-   - [x] special highlight first entry so user knows can open on enter
-   - [x] use timeago for when
-   - [x] truncate too many names
-- [x] (2:00?) optimize
-   - [x] (0:30?) (0:30) only show first few notifications and have a button to show more
-   - [x] (1:30?) (0:29) switch to immutable.js info and shouldComponentUpdate and optimize when do search
-
-
-LATER/UNRELATED:
-
-- [ ] (1:00?) address this comment in client.coffee "TODO: must group all queries in one call."
-- [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
+    redux.getActions('file_use').mark_file(project_id, path, 'chat')
 
 ###
 
