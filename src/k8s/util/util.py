@@ -326,7 +326,7 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_command(pods, command, **selector):
+def exec_command(pods, command, container, **selector):
     """
     Run command on pods that matches the given selector (using tmux if more than one).
     """
@@ -339,8 +339,9 @@ def exec_command(pods, command, **selector):
     v = [x for x in v if x['STATUS'] == 'Running']
     if len(pods) == 0:
         pods = range(len(v))
-    cmds = ["kubectl exec -it {name} -- {command}".format(
+    cmds = ["kubectl exec -it {name} {container} -- {command}".format(
                 name    = v[i]['NAME'],
+                container = "" if not container else ' --container="{container}" '.format(container=container),
                 command = command) for i in pods if i < len(v)]
     if len(cmds) == 0:
         print("No running matching pod %s"%selector)
@@ -395,10 +396,11 @@ def add_exec_parser(name, subparsers, command_name,  command, custom_selector=No
             selector = custom_selector(args)
         else:
             selector = {'run':name}
-        exec_command(args.number, command, __tmux_sync__=not args.no_sync, **selector)
+        exec_command(args.number, command, args.container, __tmux_sync__=not args.no_sync, **selector)
     sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
+    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=f)
 
 def add_bash_parser(name, subparsers, custom_selector=None):
@@ -451,6 +453,7 @@ def add_deployment_parsers(NAME, subparsers):
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
     add_logs_parser(NAME, subparsers)
+
     add_bash_parser(NAME, subparsers)
     add_top_parser(NAME, subparsers)
     add_htop_parser(NAME, subparsers)
@@ -462,9 +465,11 @@ def get_desired_replicas(deployment_name, default=1):
     else:
         return default
 
-def logs(deployment_name, grep_args):
+def logs(deployment_name, grep_args, container):
     SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
     cmd = join(SCRIPT_PATH, 'kubetail.sh') + ' ' + deployment_name
+    if container:
+        cmd += ' --container "{container}" '.format(container=container)
     if len(grep_args) > 0:
         cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
     try:
@@ -474,8 +479,9 @@ def logs(deployment_name, grep_args):
 
 def add_logs_parser(NAME, subparsers):
     sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
-    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah blah"')
-    sub.set_defaults(func=lambda args: logs(NAME, args.grep_args))
+    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah stuff"')
+    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
+    sub.set_defaults(func=lambda args: logs(NAME, args.grep_args, args.container))
 
 
 def tmux_commands(cmds, sync=True):
