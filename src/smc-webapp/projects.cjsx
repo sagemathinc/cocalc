@@ -41,6 +41,7 @@ markdown = require('./markdown')
 MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
+_create_project_with_upgrades_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
@@ -135,6 +136,57 @@ class ProjectsActions extends Actions
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
                 _create_project_tokens[token] = {err:err, project_id:project_id}
+        salvus_client.create_project(opts)
+    
+    save_upgrade_quotas : (project_id) ->
+        current = store.get('upgrades_you_applied_to_this_project')
+        # how much upgrade you have used between all projects
+        used_upgrades = store.get('upgrades_you_applied_to_all_projects')
+
+        # how much unused upgrade you have remaining
+        remaining = misc.map_diff(store.get('upgrades_you_can_use'), used_upgrades)
+        new_upgrade_quotas = {}
+        new_upgrade_state  = {}
+        for name, data of store.get('quota_params')
+            factor = data.display_factor
+            current_val = misc.round2((current[name] ? 0) * factor)
+            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
+
+            if data.input_type is 'checkbox'
+                input = @state["upgrade_#{name}"] ? current_val
+                if input and (remaining_val > 0 or current_val > 0)
+                    val = 1
+                else
+                    val = 0
+
+            else
+                # parse the current user input, and default to the current value if it is (somehow) invalid
+                input = misc.parse_number_input(@state["upgrade_#{name}"]) ? current_val
+                input = Math.max(input, 0)
+                limit = current_val + remaining_val
+                val = Math.min(input, limit)
+
+            new_upgrade_state["upgrade_#{name}"] = val
+            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
+
+        @apply_upgrades_to_project(project_id, new_upgrade_quotas)
+
+        # set the state so that the numbers are right if you click upgrade again
+        @setState(new_upgrade_state)
+        @setState(upgrading : false)
+    
+    # Create a new project
+    create_project_with_upgrades : (opts) =>
+        opts = defaults opts,
+            title       : 'No Title'
+            description : 'No Description'
+            token       : undefined  # if given, can use wait_until_project_is_created
+        if opts.token?
+            token = opts.token; delete opts.token
+            opts.cb = (err, project_id) =>
+                _create_project_with_upgrades_tokens[token] = {err:err, project_id:project_id}
+                @save_upgrade_quotas(project_id)
+                
         salvus_client.create_project(opts)
 
     # Open the given project
@@ -491,6 +543,24 @@ class ProjectsStore extends Store
                     cb(err)
                 else
                     cb(x.err, x.project_id)
+                    
+    wait_until_project_with_upgrades_created : (token, timeout, cb) =>
+        @wait
+            until   : =>
+                x = _create_project_with_upgrades_tokens[token]
+                return if not x?
+                {project_id, err} = x
+                if err
+                    return {err:err}
+                else
+                    if @get('project_map').has(project_id)
+                        return {project_id:project_id}
+            timeout : timeout
+            cb      : (err, x) =>
+                if err
+                    cb(err)
+                else
+                    cb(x.err, x.project_id)
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
@@ -621,6 +691,7 @@ NewProjectCreator = rclass
 
     propTypes :
         nb_projects : rtypes.number.isRequired
+        customer    : rtypes.object
 
     getInitialState : ->
         state            : 'view'    # view --> edit --> saving --> view
@@ -661,21 +732,48 @@ NewProjectCreator = rclass
                     error : "Error creating project -- #{err}"
             else
                 @cancel_editing()
+                
+    create_project_with_upgrades : ->
+        token = misc.uuid()
+        @setState(state:'saving')
+        actions.create_project_with_upgrades
+            title       : @state.title_text
+            description : @state.description_text
+            token       : token
+        store.wait_until_project_created token, 30, (err) =>
+            if err?
+                @setState
+                    state : 'edit'
+                    error : "Error creating project -- #{err}"
+            else
+                @cancel_editing()
 
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
-    render_become_a_subscriber : ->
-        {PaymentMethods} = require('./billing')
+    render_upgrade_before_create : ->
+        {BillingPageSimplifiedRedux} = require('./billing')
+        {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
+        redux.getActions('billing')?.update_customer()
+        subs = @props.customer?.subscriptions?.total_count ? 0
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
-            <p>Free projects don't have internet access. 
+            <p>To prevent abuse the free version doesn't have internet access. 
+            Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or 
+            any other internet resources
+            is not possible with the free version.
             Starting at just $7/month you can give your project(s)
             internet access, members only hosting, 1 day Idle timeout,
-            3 GB Memory, 5 GB Disk space, and half CPU share.</p>
+            3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
+            with any project you are a collobrator on.</p>
             <div>
-                <PaymentMethods redux={redux} sources={data:[]} default='' />
+                <BillingPageSimplifiedRedux redux={redux} />
+                {<UpgradeAdjustorForUncreatedProject
+                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
+                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+                actions                              = {redux.getActions('projects')} /> if subs > 0}
             </div>
         </Col>
 
@@ -743,7 +841,25 @@ NewProjectCreator = rclass
                 </Col>
             </Row>
             <Row>
-                {@render_become_a_subscriber() if not redux.getStore('account').is_paying_member()}
+                {@render_upgrade_before_create()}
+            </Row>
+            <Row>
+                <Col sm=5>
+                    <ButtonToolbar>
+                        <Button
+                            disabled = {@state.title_text == '' or @state.state == 'saving'}
+                            bsStyle  = 'success'
+                            onClick  = {@create_project_with_upgrades} >
+                            Create project
+                        </Button>
+                        <Button
+                            disabled = {@state.state is 'saving'}
+                            onClick  = {@cancel_editing} >
+                            {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+                        </Button>
+                    </ButtonToolbar>
+                    {@render_error()}
+                </Col>
             </Row>
         </Well>
 
@@ -1089,6 +1205,8 @@ ProjectSelector = rclass
             search            : rtypes.string
             selected_hashtags : rtypes.object
             show_all          : rtypes.bool
+        billing :
+            customer      : rtypes.object
 
     propTypes :
         redux             : rtypes.object
@@ -1283,7 +1401,8 @@ ProjectSelector = rclass
                 <Row>
                     <Col sm=12 style={marginTop:'1ex'}>
                         <NewProjectCreator
-                            nb_projects = {@project_list().length} />
+                            nb_projects = {@project_list().length}
+                            customer    = {@props.customer} />
                     </Col>
                 </Row>
                 <Row>

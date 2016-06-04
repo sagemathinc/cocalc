@@ -551,6 +551,8 @@ PaymentMethods = rclass
             {@render_payment_methods()}
         </Panel>
 
+exports.PaymentMethods = PaymentMethods
+
 exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render_project_quota: (name, value) ->
         data = PROJECT_UPGRADES.params[name]
@@ -1546,7 +1548,8 @@ BillingPage = rclass
             stripe_customer : rtypes.immutable  # to get total upgrades user has available
 
     propTypes :
-        redux : rtypes.object
+        redux         : rtypes.object
+        is_simplified : rtypes.bool
 
     render_action : ->
         if @props.action
@@ -1682,7 +1685,7 @@ BillingPage = rclass
                     sources       = {@props.customer.sources}
                     selected_plan = {@props.selected_plan}
                     redux         = {@props.redux} />
-                <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
+                {<InvoiceHistory invoices={@props.invoices} redux={@props.redux} /> if not @props.is_simplified}
             </div>
 
     render : ->
@@ -1696,7 +1699,7 @@ BillingPage = rclass
                 {@render_course_payment_instructions()}
                 {@render_page()}
             </div>
-            <Footer/>
+            {<Footer/> if not @props.is_simplified}
         </div>
 
 exports.BillingPageRedux = rclass
@@ -1704,7 +1707,15 @@ exports.BillingPageRedux = rclass
 
     render : ->
         <Redux redux={redux}>
-            <BillingPage redux={redux} />
+            <BillingPage is_simplified={false} redux={redux} />
+        </Redux>
+
+exports.BillingPageSimplifiedRedux = rclass
+    displayName : 'BillingPage-redux'
+
+    render : ->
+        <Redux redux={redux}>
+            <BillingPage is_simplified={true} redux={redux} />
         </Redux>
 
 render_amount = (amount, currency) ->
