@@ -37,6 +37,8 @@ markdown = require('./markdown')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
+{BillingPageSimplifiedRedux} = require('./billing')
+{UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -700,6 +702,7 @@ NewProjectCreator = rclass
         error            : ''
 
     start_editing : ->
+        redux.getActions('billing')?.update_customer()
         @setState
             state           : 'edit'
             title_text      : ''
@@ -752,10 +755,10 @@ NewProjectCreator = rclass
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
+    shouldComponentUpdate: (next) ->
+        return @props.customer != next.customer
+
     render_upgrade_before_create : ->
-        {BillingPageSimplifiedRedux} = require('./billing')
-        {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
-        redux.getActions('billing')?.update_customer()
         subs = @props.customer?.subscriptions?.total_count ? 0
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
