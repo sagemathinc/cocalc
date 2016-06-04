@@ -32,16 +32,23 @@ misc_node       = require('smc-util-node/misc_node')
 # In the `metadata` entry, it does contain the version, build date, build timestamp, and git revision.
 # Here, we are only interested in the `version`, to compare it with the version of smc-version.
 
-get_smc_webapp_version = ->
-    webapp_version_file = path.join(misc_node.SMC_ROOT, misc_node.OUTPUT_DIR, 'assets.json')
+get_smc_webapp_version = (cb) ->
+    # with the new containerized setup, the compiled smc webapp is separated from the hub
+    # therefore, there is no direct file-based information about the webapp available
+    # TODO replace this useless callback with a http call, to retrieve the assets.json file
+    # History: revision 6d7dc3067c82830 shows how this has been done before that!
+
+    # temporarily disabled
+    cb(null, 0); return
+    # TODO assets_json = retrieve base_url/assets.json
     try
-        data = JSON.parse(fs.readFileSync(webapp_version_file))
+        data = JSON.parse(assets_json)
         webapp_ver = data.metadata?.version ? 0
         # winston.debug("get_smc_webapp_version: #{webapp_ver}")
-        return webapp_ver
+        cb(null, webapp_ver)
     catch err
-        winston.warn("get_smc_webapp_version: error reading -- #{webapp_version_file} -- #{err}")
-        return 0
+        winston.warn("get_smc_webapp_version: error reading webapp's assets.json -- #{err}")
+        cb(err, 0)
 
 
 # Do a sanity check on the ver object to make sure it doesn't make it impossible
@@ -71,13 +78,17 @@ class Version extends EventEmitter
         # check_age_m      -- Don't tell browser clients to upgrade until this
         #                     many minutes after version file updated.
         # initialization: short-circuit the @update check
-        @set_smc_version(@load_smc_version())
-        @_check = setInterval(@update, @check_interval_s*1000)
+        @load_smc_version (err, smc_version) =>
+            if err?
+                winston.debug("Version.constructor err=#{err}")
+            @set_smc_version(smc_version)
+            @_check = setInterval(@update, @check_interval_s*1000)
 
-    load_smc_version: =>
+    load_smc_version: (cb) ->
         ver                = require_reload('smc-util/smc-version')
-        ver.webapp_version = get_smc_webapp_version()
-        return sanity_check(ver)
+        get_smc_webapp_version (err, webapp_version) ->
+            ver.webapp_version = webapp_version
+            cb(err, sanity_check(ver))
 
     set_smc_version: (smc_version) =>
         for k, v of smc_version
@@ -89,20 +100,23 @@ class Version extends EventEmitter
             delete @_check
 
     update: =>
-        smc_version = @load_smc_version()
-        if not smc_version.version
-            # not using versions
-            return
-        ver_age_s = (new Date() - smc_version.version * 1000)/1000
-        # winston.debug("ver_age_s=#{ver_age_s}, CHECK_AGE_M*60=#{CHECK_AGE_M*60}")
-        if ver_age_s <= @check_age_m * 60
-            # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
-            return
-        if not underscore.isEqual(@version, smc_version.version)
-            # we have a new version: updating the instance fields and emitting it to listeners
-            @set_smc_version(smc_version)
-            winston.debug("update_smc_version: update -- #{misc.to_json(smc_version)}")
-            @emit('change', smc_version)
+        @load_smc_version (err, smc_version) =>
+            # winston.debug("Version.update: smc_version = #{misc.to_json(smc_version)}")
+            if err?
+                winston.debug("Version.update err=#{err}")
+            if not smc_version.version
+                # not using versions
+                return
+            ver_age_s = (new Date() - smc_version.version * 1000)/1000
+            # winston.debug("Version.update: ver_age_s=#{ver_age_s}, CHECK_AGE_M*60=#{CHECK_AGE_M*60}")
+            if ver_age_s <= @check_age_m * 60
+                # do nothing - we wait until the version in the file is at least SMC_VERSION_CHECK_AGE_M old
+                return
+            if not underscore.isEqual(@version, smc_version.version)
+                # we have a new version: updating the instance fields and emitting it to listeners
+                @set_smc_version(smc_version)
+                winston.debug("update_smc_version: update -- #{misc.to_json(smc_version)}")
+                @emit('change', smc_version)
 
 # export a single version object
 module.exports = new Version()
