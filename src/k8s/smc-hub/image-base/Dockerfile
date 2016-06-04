@@ -12,8 +12,8 @@ RUN \
   wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs
 
-# Grab an initial version of the source code for SMC
-RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
+# Grab an initial version of the source code for SMC (do NOT use --depth=1, since we want to be able to checkout any commit later)
+RUN git clone https://github.com/sagemathinc/smc.git
 
 # Do initial build of hub (this means installing all dependencies using npm)
 RUN \

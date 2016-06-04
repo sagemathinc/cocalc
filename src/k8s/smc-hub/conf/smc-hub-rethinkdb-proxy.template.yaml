@@ -41,12 +41,12 @@ spec:
           timeoutSeconds: 5        # should very quickly return
           failureThreshold: 5      # quick bursts of high concurrents are normal, so we don't kill until many fails
         resources:
+          requests:
+            cpu: 100m
+            memory: "400Mi"
           limits:
             cpu: "1"
             memory: 2Gi
-          requests:
-            cpu: 500m
-            memory: 1Gi
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
@@ -64,6 +64,41 @@ spec:
             value: "{smc_db_pool}"
           - name: SMC_DB_CONCURRENT_WARN
             value: "{smc_db_concurrent_warn}"
+      - image: {image_rethinkdb_proxy}
+        imagePullPolicy: {pull_policy}
+        name: rethinkdb-proxy
+        terminationMessagePath: /dev/termination-log
+        ports:
+        - containerPort: 28015
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - /health.py
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+        volumeMounts:
+        - name: secret-rethinkdb
+          mountPath: /secrets/rethinkdb/
+          readOnly: true
+        env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "400Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2000Mi"
+      volumes:
+        - name: secret-rethinkdb
+          secret:
+            secretName: rethinkdb-password
+
+
       volumes:
         - name: secret-rethinkdb
           secret:

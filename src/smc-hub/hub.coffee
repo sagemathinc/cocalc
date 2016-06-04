@@ -539,7 +539,8 @@ class Client extends EventEmitter
         h = @_data_handlers[channel]
 
         if not h?
-            winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            if channel != 'X'  # X is a special case used on purpose -- not an error.
+                winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
             # Tell the client that they had better reconnect.
             @push_to_client( message.session_reconnect(data_channel : channel) )
             return
@@ -3061,17 +3062,18 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        pool  : 50
+        pool  : program.db_pool
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
         opts.cb(); return
     database = rethink.rethinkdb
-        hosts    : program.database_nodes.split(',')
-        database : program.keyspace
-        error    : opts.error
-        pool     : opts.pool
-        cb       : opts.cb
+        hosts           : program.database_nodes.split(',')
+        database        : program.keyspace
+        error           : opts.error
+        pool            : opts.pool
+        concurrent_warn : program.db_concurrent_warn
+        cb              : opts.cb
 
 # client for compute servers
 compute_server = undefined
@@ -3478,6 +3480,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--foreground', 'If specified, do not run as a deamon')
     .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
     .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+    .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+    .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.

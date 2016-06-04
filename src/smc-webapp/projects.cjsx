@@ -55,7 +55,7 @@ class ProjectsActions extends Actions
             @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
 
     set_project_state_open : (project_id, err) =>
-        @set_project_state(project_id, 'open', {time:new Date(), err:err})
+        @set_project_state(project_id, 'open', {time:salvus_client.server_time(), err:err})
 
     set_project_state_close : (project_id) =>
         @delete_project_state(project_id, 'open')
@@ -122,7 +122,7 @@ class ProjectsActions extends Actions
                 projects_owner :
                     project_id : project_id
                     course     :
-                        paying     : new Date()
+                        paying     : salvus_client.server_time()
             cb : cb
 
     # Create a new project
@@ -264,27 +264,27 @@ class ProjectsActions extends Actions
     save_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'save', time:new Date()}
+            action_request : {action:'save', time:salvus_client.server_time()}
 
     stop_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'stop', time:new Date()}
+            action_request : {action:'stop', time:salvus_client.server_time()}
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'close', time:new Date()}
+            action_request : {action:'close', time:salvus_client.server_time()}
 
     restart_project : (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'restart', time:new Date()}
+            action_request : {action:'restart', time:salvus_client.server_time()}
 
     start_project : (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
-            action_request : {action:'start', time:new Date()}
+            action_request : {action:'start', time:salvus_client.server_time()}
 
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>
@@ -376,7 +376,7 @@ class ProjectsStore extends Store
             # signed in user is the student
             pay = info.get('pay')
             if pay
-                if new Date() >= misc.months_before(-3, pay)
+                if salvus_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
                     # and we no longer require payment
                     return

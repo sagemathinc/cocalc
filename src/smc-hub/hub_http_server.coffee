@@ -59,7 +59,7 @@ exports.init_express_http_server = (opts) ->
     router.get '/base_url.js', (req, res) ->
         res.send("window.smc_base_url='#{opts.base_url}';")
 
-    # used for testing that this hub is working
+    # used by HAPROXY for testing that this hub is OK to receive traffic
     router.get '/alive', (req, res) ->
         if not hub_register.database_is_working()
             # this will stop haproxy from routing traffic to us
@@ -76,6 +76,22 @@ exports.init_express_http_server = (opts) ->
             res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
         else
             res.send(JSON.stringify(error:'no metrics recorder'))
+
+    # /concurrent -- used by kubernetes to decide whether or not to kill the container; if
+    # below the warn thresh, returns number of concurrent connection; if hits warn, then
+    # returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
+    # killing the container.  Will also return 404 if there is no working database connection.
+    router.get '/concurrent-warn', (req, res) ->
+        c = opts.database.concurrent()
+        if not hub_register.database_is_working() or c >= opts.database._concurrent_warn
+            winston.debug("/concurrent: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+            res.status(404).end()
+        else
+            res.send("#{c}")
+
+    # Return number of concurrent connections (could be useful)
+    router.get '/concurrent', (req, res) ->
+        res.send("#{opts.database.concurrent()}")
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     if opts.stripe?
