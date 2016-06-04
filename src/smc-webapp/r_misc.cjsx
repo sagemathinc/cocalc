@@ -31,7 +31,6 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 markdown = require('./markdown')
-{salvus_client} = require('./salvus_client')
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
