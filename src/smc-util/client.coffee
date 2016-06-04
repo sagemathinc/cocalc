@@ -252,23 +252,23 @@ class exports.Connection extends EventEmitter
             console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
     _ping: () =>
-        if not @_ping_interval?
-            @_ping_interval = 10000 # frequency to ping
+        @_ping_interval ?= 60000 # frequency to ping
         @_last_ping = new Date()
         @call
             message : message.ping()
-            timeout : 20  # 20 second timeout
+            timeout : 15     # CRITICAL that this timeout be less than the @_ping_interval
             cb      : (err, pong) =>
                 #console.log(err, pong)
-                if not err and pong?.event == 'pong'
-                    @_last_pong = {server:pong.now, local:new Date()}
+                now = new Date()
+                # Only record something if success, got a pong, and the round trip is short!
+                # If user messes with their clock during a ping and we don't do this, then
+                # bad things will happen.
+                if not err and pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                    @_last_pong = {server:pong.now, local:now}
                     # See the function server_time below; subtract @_clock_skew from local time to get a better
                     # estimate for server time.
                     @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
                     localStorage.clock_skew = @_clock_skew
-                    latency = new Date() - @_last_ping
-                    # We do not emit this, since that's now handled by primus.
-                    #@emit "ping", latency
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
