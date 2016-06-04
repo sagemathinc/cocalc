@@ -666,6 +666,19 @@ NewProjectCreator = rclass
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
+    render_become_a_subscriber : ->
+        {PaymentMethods} = require('./billing')
+        <Col sm=12>
+            <h3>Upgrade to give your project internet access and more resources</h3>
+            <p>Free projects don't have internet access. 
+            Starting at just $7/month you can give your project(s)
+            internet access, members only hosting, 1 day Idle timeout,
+            3 GB Memory, 5 GB Disk space, and half CPU share.</p>
+            <div>
+                <PaymentMethods redux={redux} sources={data:[]} default='' />
+            </div>
+        </Col>
+
     render_input_section : ->
         <Well style={backgroundColor: '#FFF', color:'#666'}>
             <Row>
@@ -706,7 +719,7 @@ NewProjectCreator = rclass
                             disabled = {@state.title_text == '' or @state.state == 'saving'}
                             bsStyle  = 'success'
                             onClick  = {@create_project} >
-                            Create project
+                            Create project without upgrades
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}
@@ -728,6 +741,9 @@ NewProjectCreator = rclass
                         share with others and <a target="_blank" href=PolicyPricingPageUrl>upgrade</a>.
                     </div>
                 </Col>
+            </Row>
+            <Row>
+                {@render_become_a_subscriber() if not redux.getStore('account').is_paying_member()}
             </Row>
         </Well>
 
