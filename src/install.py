@@ -107,7 +107,7 @@ def main():
     parser_hub.set_defaults(func = lambda *args: install_hub())
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
-    parser_webapp.add_argument('action', help='either build the webapp or pull the compiled files from the repository. NEVER BUILD THE WEBAPP ON A PRODUCTION NODE, USE PUSH/PULL!!! -- see scripts/webapp-control.sh', choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.add_argument('action', help='either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works', choices=['build', 'pull', 'push', 'build-push', 'clean'])
     parser_webapp.set_defaults(func = install_webapp)
 
     parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')
