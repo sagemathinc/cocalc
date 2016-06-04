@@ -54,7 +54,7 @@ class GitActions extends Actions
         url = 'https://api.github.com/repos/sagemathinc/smc/issues'
         callback = (response) => @setState(github_issues: response)
         $.get url, callback
-        
+
     get_current_github_issue : =>
         store = @redux.getStore(@name)
         if store.get('current_branch') and store.get('remotes')
@@ -76,7 +76,7 @@ class GitActions extends Actions
             args : ['set_github_login', store.get('data_file'), store.get('github_username'), store.get('github_access_token')]
             cb   : (err, output) =>
                 ''
-    
+
     make_upstream_pr_for_current_branch : =>
         store = @redux.getStore(@name)
         @exec
@@ -84,7 +84,7 @@ class GitActions extends Actions
             args : ['make_upstream_pr_for_current_branch', store.get('data_file')]
             cb   : (err, output) =>
                 ''
-    
+
     update_github_login : =>
         store = @redux.getStore(@name)
         @exec
@@ -150,7 +150,7 @@ class GitActions extends Actions
             args : [f_name]
             cb   : (err, output) =>
                 ''
-                
+
     set_remotes : =>
         store = @redux.getStore(@name)
         @exec
@@ -158,7 +158,7 @@ class GitActions extends Actions
             args : ['remotes']
             cb   : (err, output) =>
                 @setState(remotes : JSON.parse(output.stdout))
-                
+
     get_current_branch : =>
         store = @redux.getStore(@name)
         @exec
@@ -178,7 +178,7 @@ class GitActions extends Actions
             args : ['branches']
             cb   : (err, output) =>
                 @setState(branches : JSON.parse(output.stdout))
-    
+
     create_branch_and_reset_to_upstream_master_with_name : (new_branch_name) =>
         store = @redux.getStore(@name)
         @exec
@@ -186,7 +186,7 @@ class GitActions extends Actions
             args : ['create_branch_and_reset_to_upstream_master', new_branch_name]
             cb   : (err, output) =>
                 @setState(new_branch_name : '')
-                
+
     create_branch_and_reset_to_upstream_master : =>
         store = @redux.getStore(@name)
         @exec
@@ -426,7 +426,7 @@ Git = (name) -> rclass
             remotes                     : rtypes.object
             github_username             : rtypes.string
             github_access_token         : rtypes.string
- 
+
     propTypes :
         actions : rtypes.object
 
@@ -566,11 +566,11 @@ Git = (name) -> rclass
         <Panel header={head}>
             {<pre>{@props.git_diff}</pre> if @props.git_diff}
         </Panel>
-    
+
     handle_github_login_keypress : (e) ->
         if e.keyCode == 13
             @props.actions.save_github_login()
-    
+
     render_github_login_panel : ->
         head =
             <span>
@@ -656,10 +656,10 @@ Git = (name) -> rclass
                 </Col>
             </Row>
         </div>
-    
+
     pass_issue : (number) ->
         @props.actions.create_branch_and_reset_to_upstream_master_with_name('upstream_issue_'+number)
-    
+
     list_issues : ->
         if @props.github_issues
             for issue, idx in @props.github_issues
@@ -675,7 +675,7 @@ Git = (name) -> rclass
                             </Button>
                         </Col>
                     </Row>
-                    
+
     render_issues : ->
         <div>
             <Row>
@@ -726,7 +726,7 @@ Git = (name) -> rclass
 
     render_current_issue : ->
         if @props.current_github_issue
-            head = 
+            head =
                 <span className="small">
                     <strong>Working on issue #{@props.current_github_issue.number}:</strong> {@props.current_github_issue.title}
                 </span>
@@ -734,11 +734,12 @@ Git = (name) -> rclass
                 <p>{@props.current_github_issue.body}</p>
                 <a target="_blank" href={@props.current_github_issue.html_url}>Open on Github</a>
             </Panel>
-                
+
     render : ->
         <div>
             <div>
                 <h2 style={display:'inline'}>Git Repository at {@props.git_repo_root}</h2>
+                <b><br/>(WARNING: The git editor is highly experimental alpha code.)</b>
                 <Space/> <Space/>
                 <DropdownButton title={'Switch branch from '+@props.current_branch} id='switch_branches'>
                     <MenuItem eventKey="{file}" onSelect={(e)=>@props.actions.setState(show_create_branch_modal:true)}>Create a branch and reset to upstream master</MenuItem>
