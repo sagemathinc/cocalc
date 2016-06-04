@@ -22,6 +22,7 @@
     "mathjax": "^2.6.1",
     "md5": "^2.0.0",
     "nodeunit": "^0.9.0",
+    "octicons": "^3.5.0",
     "react": "^0.14.0",
     "react-bootstrap": "^0.27.1",
     "react-chosen": "^0.3.8",

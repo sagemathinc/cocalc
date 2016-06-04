@@ -10,6 +10,9 @@ require('./html')
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')
 
+# Needed by Octicon for displaying GitHub fonticons (see r_misc.cjsx)
+require('node_modules/octicons/octicons/octicons.css')
+
 # SASS Style file
 require('./index.sass')
 
