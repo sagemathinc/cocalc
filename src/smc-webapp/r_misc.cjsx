@@ -31,7 +31,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 markdown = require('./markdown')
-salvus_client = require('./salvus_client')
+{salvus_client} = require('./salvus_client')
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -911,7 +911,7 @@ exports.DirectoryInput = rclass
 
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
-        if not x? or salvus_client.server_time() - x.updated >= 15000
+        if not x? or new Date() - x.updated >= 15000
             @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?

@@ -34,7 +34,7 @@ account               = require('./account')
 {top_navbar}          = require('./top_navbar')
 immutable             = require('immutable')
 underscore            = require('underscore')
-salvus_client         = require('./salvus_client')
+{salvus_client}       = require('./salvus_client')
 
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 

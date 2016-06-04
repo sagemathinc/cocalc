@@ -195,7 +195,7 @@ class ProjectsActions extends Actions
                 obj =
                     error   : err
                     tree    : resp?.directories.sort()
-                    updated : salvus_client.server_time()
+                    updated : new Date()
                 @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.

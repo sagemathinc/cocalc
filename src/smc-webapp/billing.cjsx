@@ -21,7 +21,6 @@
 
 async         = require('async')
 misc          = require('smc-util/misc')
-salvus_client = require('./salvus_client')
 _             = require('underscore')
 
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
@@ -1620,6 +1619,7 @@ BillingPage = rclass
         </div>
 
     render_course_payment_required: (project, pay) ->
+        {salvus_client} = require('./salvus_client')  # do NOT put at top leve; some code used by server
         if pay <= salvus_client.server_time()
             style = "danger"
             due = <span>now</span>
