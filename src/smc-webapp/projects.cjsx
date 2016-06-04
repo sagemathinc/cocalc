@@ -669,11 +669,16 @@ NewProjectCreator = rclass
     getInitialState : ->
         state =
             upgrading : true
+            has_subbed       : false
             state            : 'view'    # view --> edit --> saving --> view
             title_text       : ''
             description_text : ''
             error            : ''
-
+            
+    getInitialUpgraderState : ->
+        state =
+            upgrading : true
+            
         current = @props.upgrades_you_applied_to_this_project
         
         # how much upgrade you have used between all projects
@@ -729,14 +734,6 @@ NewProjectCreator = rclass
         >
             Max
         </Button>
-
-    setUpgrade : (t, k, v) =>
-        upgrades = redux.getStore('projects').get('upgrades') ? {}
-        u = {}
-        for key, val of upgrades
-            u[key] = val
-        u[k] = v
-        t.setState(upgrades: u)
         
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
@@ -984,8 +981,11 @@ NewProjectCreator = rclass
             @create_project()
 
     render_upgrade_before_create : ->
-        window.redux = redux
         subs = @props.customer?.subscriptions?.total_count ? 0
+        console.log(subs)
+        if subs > 0 and not @state["has_subbed"]
+            @setState(@getInitialUpgraderState())
+            @setState(has_subbed: true)
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>To prevent abuse the free version doesn't have internet access. 
