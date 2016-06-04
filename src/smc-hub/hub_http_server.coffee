@@ -40,6 +40,7 @@ exports.init_express_http_server = (opts) ->
         stripe         : undefined   # stripe api connection
         database       : required
         compute_server : required
+        metricsRecorder: undefined
     winston.debug("initializing express http server")
 
     # Create an express application
@@ -67,6 +68,14 @@ exports.init_express_http_server = (opts) ->
             res.status(404).end()
         else
             res.send('alive')
+
+    router.get '/metrics', (req, res) ->
+        res.header("Content-Type", "application/json")
+        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+        if opts.metricsRecorder?
+            res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
+        else
+            res.send(JSON.stringify(error:'no metrics recorder'))
 
     # /concurrent -- used by kubernetes to decide whether or not to kill the container; if
     # below the warn thresh, returns number of concurrent connection; if hits warn, then
