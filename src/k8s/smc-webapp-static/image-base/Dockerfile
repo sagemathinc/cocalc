@@ -20,5 +20,5 @@ RUN \
 RUN git clone https://github.com/sagemathinc/smc.git
 
 # Build webapp
-RUN cd /smc/src && . ./smc-env && ./install.py webapp
+RUN cd /smc/src && . ./smc-env && ./install.py webapp build
 
