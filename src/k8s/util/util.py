@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False, env=None):
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -23,10 +23,12 @@ def run(v, shell=False, path='.', get_output=False, env=None):
         cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
     if path != '.':
         cur = os.path.abspath(os.curdir)
-        print('chdir %s'%path)
+        if verbose:
+            print('chdir %s'%path)
         os.chdir(path)
     try:
-        print(cmd)
+        if verbose:
+            print(cmd)
         if shell:
             kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
         else:
@@ -38,7 +40,8 @@ def run(v, shell=False, path='.', get_output=False, env=None):
                 raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
             output = None
         seconds = time.time() - t
-        print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+        if verbose:
+            print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
         return output
     finally:
         if path != '.':
@@ -520,4 +523,41 @@ def set_namespace(namespace):
 
 def get_current_namespace():
     return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
+
+def show_horizontal_pod_autoscalers(namespace=''):
+    """
+    This is like "kubectl get hpa", but MUCH better since it includes the missing column
+    with the current number of pods.  It's in the JSON, but not in their normal display
+    for some reason.
+    """
+    import dateutil.relativedelta, datetime
+    v = ['kubectl', 'get', 'hpa',  '-o', 'json']
+    if namespace:
+        v.append("--namespace")
+        v.append(namespace)
+    x = json.loads(run(v, get_output=True, verbose=False))
+    if not 'items' in x:
+        return
+    HEADINGS = ['NAME', 'TARGET', 'CURRENT', 'NUMBER', 'MINPODS', 'MAXPODS', 'AGE']
+    fmt = "{name:<20}{target:<13}{current:<13}{number:<13}{minpods:<13}{maxpods:<13}{age:<25}"
+    print(fmt.format(**dict(zip([x.lower() for x in HEADINGS], HEADINGS))))
+    attrs = ['years', 'months', 'days', 'hours', 'minutes', 'seconds']  # see http://stackoverflow.com/questions/6574329/how-can-i-produce-a-human-readable-difference-when-subtracting-two-unix-timestam
+    human_readable = lambda delta: ', '.join(['%d %s' % (getattr(delta, attr), getattr(delta, attr) > 1 and attr or attr[:-1]) for attr in attrs if getattr(delta, attr)])
+    for v in x['items']:
+        created = datetime.datetime.strptime( v['metadata']['creationTimestamp'][:-1], "%Y-%m-%dT%H:%M:%S" )
+        rd = dateutil.relativedelta.relativedelta(datetime.datetime.now(), created)
+        age = human_readable(rd)
+        cur = str(v['status'].get('currentCPUUtilizationPercentage',''))
+        if cur:
+            cur += '%'
+        else:
+            cur = '<waiting>'
+        print(fmt.format(name    = v['metadata']['name'],
+                         target  = "%s%%"%v['spec']['cpuUtilization']['targetPercentage'],
+                         current = cur,
+                         number  = v['status']["currentReplicas"],
+                         minpods = v['spec']['minReplicas'],
+                         maxpods = v['spec']['maxReplicas'],
+                         age     = age))
+
 
