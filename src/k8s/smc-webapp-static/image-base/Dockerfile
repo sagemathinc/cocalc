@@ -3,6 +3,9 @@ FROM nginx:1.10
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
+# Which commit to checkout and build.
+ARG commit=HEAD
+
 # So we can source (http://goo.gl/oBPi5G)
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -20,5 +23,5 @@ RUN \
 RUN git clone https://github.com/sagemathinc/smc.git
 
 # Build webapp
-RUN cd /smc/src && . ./smc-env && ./install.py webapp build
+RUN cd /smc/src && git checkout ${commit:-HEAD} && . ./smc-env && ./install.py webapp build
 

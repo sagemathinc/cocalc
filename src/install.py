@@ -58,6 +58,8 @@ def install_webapp(*args):
             cmd("cd %s; npm install"%path)
         # react static step must come *before* webpack step
         cmd("update_react_static")
+        # update primus - so client has it.
+        install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
         print("Building production webpack -- grab a coffee, this will take about 5 minutes")
