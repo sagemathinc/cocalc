@@ -31,6 +31,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 markdown = require('./markdown')
+salvus_client = require('./salvus_client')
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -910,7 +911,7 @@ exports.DirectoryInput = rclass
 
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
-        if not x? or new Date() - x.updated >= 15000
+        if not x? or salvus_client.server_time() - x.updated >= 15000
             @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?
@@ -942,7 +943,7 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+    return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
     {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
@@ -971,7 +972,7 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    if pay > new Date()  # in the future
+    if pay > salvus_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else

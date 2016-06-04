@@ -453,7 +453,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             store = get_store()
             return if not store?
             student_id = store.get_student(student).get('student_id')
-            @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
+            @_update(set:{create_project:salvus_client.server_time()}, where:{table:'students',student_id:student_id})
             id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
             token = misc.uuid()
             redux.getActions('projects').create_project
@@ -913,7 +913,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = syncdb.select_one(where:where)?[type] ? {}
                 y = (x[student.get('student_id')]) ? {}
-                if y.start? and new Date() - y.start <= 15000
+                if y.start? and salvus_client.server_time() - y.start <= 15000
                     return true  # never retry a copy until at least 15 seconds later.
                 y.start = misc.mswalltime()
                 x[student.get('student_id')] = y
@@ -1670,7 +1670,7 @@ Student = rclass
         create = @props.student.get("create_project")
         if create?
             # if so, how long ago did it start
-            how_long = (new Date() - create)/1000
+            how_long = (salvus_client.server_time() - create)/1000
             if how_long < 120 # less than 2 minutes -- still hope, so render that creating
                 return <div><Icon name="circle-o-notch" spin /> Creating project...(started <TimeAgo date={create} />)</div>
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
@@ -2439,7 +2439,7 @@ Assignment = rclass
             </Col>
             <Col xs=11>
                 <DateTimePicker
-                    value     = {@props.assignment.get('due_date') ? new Date()}
+                    value     = {@props.assignment.get('due_date') ? salvus_client.server_time()}
                     on_change = {@date_change}
                 />
             </Col>
@@ -3247,7 +3247,7 @@ Settings = rclass
         students = store.get_sorted_students()
         # CSV definition: http://edoceo.com/utilitas/csv-file-format
         # i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
-        timestamp  = (new Date()).toISOString()
+        timestamp  = (salvus_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
         content += "Name,Email,"
@@ -3271,7 +3271,7 @@ Settings = rclass
             {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
         ]
         ###
-        timestamp = (new Date()).toISOString()
+        timestamp = (salvus_client.server_time()).toISOString()
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -3731,7 +3731,7 @@ Settings = rclass
         </Button>
 
     render_require_students_pay_desc: (date) ->
-        if date > new Date()
+        if date > salvus_client.server_time()
             <span>
                 Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
             </span>
@@ -3790,7 +3790,7 @@ Settings = rclass
 
     render_students_pay_checkbox_label: ->
         if @state.students_pay
-            if new Date() >= @state.students_pay_when
+            if salvus_client.server_time() >= @state.students_pay_when
                 <span>Require that students upgrade immediately:</span>
             else
                 <span>Require that students upgrade by <TimeAgo date={@state.students_pay_when} />: </span>
