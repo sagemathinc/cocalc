@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Footer, r_join} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
@@ -140,43 +140,6 @@ class ProjectsActions extends Actions
                 _create_project_tokens[token] = {err:err, project_id:project_id}
         salvus_client.create_project(opts)
     
-    save_upgrade_quotas : (project_id) ->
-        current = store.get('upgrades_you_applied_to_this_project')
-        # how much upgrade you have used between all projects
-        used_upgrades = store.get('upgrades_you_applied_to_all_projects')
-
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(store.get('upgrades_you_can_use'), used_upgrades)
-        new_upgrade_quotas = {}
-        new_upgrade_state  = {}
-        for name, data of store.get('quota_params')
-            factor = data.display_factor
-            current_val = misc.round2((current[name] ? 0) * factor)
-            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
-
-            if data.input_type is 'checkbox'
-                input = @state["upgrade_#{name}"] ? current_val
-                if input and (remaining_val > 0 or current_val > 0)
-                    val = 1
-                else
-                    val = 0
-
-            else
-                # parse the current user input, and default to the current value if it is (somehow) invalid
-                input = misc.parse_number_input(@state["upgrade_#{name}"]) ? current_val
-                input = Math.max(input, 0)
-                limit = current_val + remaining_val
-                val = Math.min(input, limit)
-
-            new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
-
-        @apply_upgrades_to_project(project_id, new_upgrade_quotas)
-
-        # set the state so that the numbers are right if you click upgrade again
-        @setState(new_upgrade_state)
-        @setState(upgrading : false)
-    
     # Create a new project
     create_project_with_upgrades : (opts) =>
         opts = defaults opts,
@@ -187,7 +150,6 @@ class ProjectsActions extends Actions
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
                 _create_project_with_upgrades_tokens[token] = {err:err, project_id:project_id}
-                @save_upgrade_quotas(project_id)
                 
         salvus_client.create_project(opts)
 
@@ -694,12 +656,243 @@ NewProjectCreator = rclass
     propTypes :
         nb_projects : rtypes.number.isRequired
         customer    : rtypes.object
+        upgrades_you_can_use                 : rtypes.object
+        upgrades_you_applied_to_all_projects : rtypes.object
+        quota_params                         : rtypes.object.isRequired # from the schema
+        actions                              : rtypes.object.isRequired # projects actions
+
+    getDefaultProps : ->
+        upgrades_you_can_use                 : {}
+        upgrades_you_applied_to_all_projects : {}
+        upgrades_you_applied_to_this_project : {}
 
     getInitialState : ->
-        state            : 'view'    # view --> edit --> saving --> view
-        title_text       : ''
-        description_text : ''
-        error            : ''
+        state =
+            upgrading : true
+            state            : 'view'    # view --> edit --> saving --> view
+            title_text       : ''
+            description_text : ''
+            error            : ''
+
+        current = @props.upgrades_you_applied_to_this_project
+        
+        # how much upgrade you have used between all projects
+        used_upgrades = @props.upgrades_you_applied_to_all_projects
+        
+        # how much unused upgrade you have remaining
+        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+
+        # maximums you can use, including the upgrades already on this project
+        limits = misc.map_sum(current, remaining)
+        
+        for name, data of @props.quota_params
+            factor = data.display_factor
+            if name == 'network' or name == 'member_host'
+                limit = if limits[name] > 0 then 1 else 0
+                current_value = current[name] ? limit
+            else
+                current_value = current[name] ? limits[name]
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
+            upgrades = {}
+        
+        return state
+
+    show_upgrade_quotas : ->
+        @setState(upgrading : true)
+
+    cancel_upgrading : ->
+        state =
+            upgrading : false
+
+        current = @props.upgrades_you_applied_to_this_project
+
+        for name, data of @props.quota_params
+            factor = data.display_factor
+            current_value = current[name] ? 0
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
+
+        @setState(state)
+
+    is_upgrade_input_valid : (input, max) ->
+        val = misc.parse_number_input(input, round_number=false)
+        if not val? or val > Math.max(0, max)
+            return false
+        else
+            return true
+
+    # the max button will set the upgrade input box to the number given as max
+    render_max_button : (name, max) ->
+        <Button
+            bsSize  = 'xsmall'
+            onClick = {=>@setState("upgrade_#{name}" : max)}
+            style   = {padding:'0px 5px'}
+        >
+            Max
+        </Button>
+
+    setUpgrade : (t, k, v) =>
+        upgrades = redux.getStore('projects').get('upgrades') ? {}
+        u = {}
+        for key, val of upgrades
+            u[key] = val
+        u[k] = v
+        t.setState(upgrades: u)
+        
+    render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
+        if not data?
+            return
+
+        {display, desc, display_factor, display_unit, input_type} = data
+
+        if input_type == 'checkbox'
+
+            # the remaining count should decrease if box is checked
+            show_remaining = remaining + current - @state["upgrade_#{name}"]
+            show_remaining = Math.max(show_remaining, 0)
+
+            val = @state["upgrade_#{name}"]
+
+            if not @is_upgrade_input_valid(val, limit)
+                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+            else
+                label = if val == 0 then 'Enable' else 'Enabled'
+
+            <Row key={name}>
+                <Col sm=6>
+                    <Tip title={display} tip={desc}>
+                        <strong>{display}</strong><Space/>
+                    </Tip>
+                    ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                </Col>
+                <Col sm=6>
+                    <form>
+                        <Input
+                            ref      = {"upgrade_#{name}"}
+                            type     = 'checkbox'
+                            checked  = {val > 0}
+                            label    = {label}
+                            onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
+                            />
+                    </form>
+                </Col>
+            </Row>
+
+
+        else if input_type == 'number'
+            remaining = misc.round2(remaining * display_factor)
+            display_current = current * display_factor # current already applied
+            if current != 0 and misc.round2(display_current) != 0
+                current = misc.round2(display_current)
+            else
+                current = display_current
+
+            limit = misc.round2(limit * display_factor)
+            current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
+
+            # the amount displayed remaining subtracts off the amount you type in
+            show_remaining = misc.round2(remaining + current - current_input)
+
+            val = @state["upgrade_#{name}"]
+            if not @is_upgrade_input_valid(val, limit)
+                bs_style = 'error'
+                if misc.parse_number_input(val)?
+                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                else
+                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+            else
+                label = <span></span>
+
+            <Row key={name}>
+                <Col sm=6>
+                    <Tip title={display} tip={desc}>
+                        <strong>{display}</strong><Space/>
+                    </Tip>
+                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                </Col>
+                <Col sm=6>
+                    <Input
+                        ref        = {"upgrade_#{name}"}
+                        type       = 'text'
+                        value      = {val}
+                        bsStyle    = {bs_style}
+                        onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
+                        
+                    />
+                    {label}
+                </Col>
+            </Row>
+        else
+            console.warn('Invalid input type in render_upgrade_row: ', input_type)
+            return
+
+    # Returns true if the inputs are valid and different:
+    #    - at least one has changed
+    #    - none are negative
+    #    - none are empty
+    #    - none are higher than their limit
+    valid_changed_upgrade_inputs : (current, limits) ->
+        for name, data of @props.quota_params
+            factor = data.display_factor
+
+            # the highest number the user is allowed to type
+            limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
+
+            # the current amount applied to the project
+            cur_val = misc.round2((current[name] ? 0) * factor)
+
+            # the current number the user has typed (undefined if invalid)
+            new_val = misc.parse_number_input(@state["upgrade_#{name}"])
+            if not new_val? or new_val > limit
+                return false
+            if cur_val isnt new_val
+                changed = true
+        return changed
+
+    render_upgrades_adjustor : ->
+        if misc.is_zero_map(@props.upgrades_you_can_use)
+            # user has no upgrades on their account
+            <NoUpgrades cancel={@cancel_upgrading} />
+        else
+            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
+
+            # how much upgrade you have used between all projects
+            used_upgrades = @props.upgrades_you_applied_to_all_projects
+
+            # how much upgrade you currently use on this one project
+            current = @props.upgrades_you_applied_to_this_project
+
+            # how much unused upgrade you have remaining
+            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+
+            # maximums you can use, including the upgrades already on this project
+            limits = misc.map_sum(current, remaining)
+
+            <Alert bsStyle='info'>
+                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+
+                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+                <hr/>
+                <Row>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Quota</b>
+                    </Col>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Your contribution</b>
+                    </Col>
+                </Row>
+                <hr/>
+
+                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
+            </Alert>
+
+    render_upgrades_button : ->
+        <Row>
+            <Col sm=12>
+                <Button bsStyle='primary' onClick={@show_upgrade_quotas} style={float: 'right', marginBottom : '5px'}>
+                    <Icon name='arrow-circle-up' /> Adjust your quotas...
+                </Button>
+            </Col>
+        </Row>
 
     start_editing : ->
         redux.getActions('billing')?.update_customer()
@@ -735,7 +928,40 @@ NewProjectCreator = rclass
                     error : "Error creating project -- #{err}"
             else
                 @cancel_editing()
-                
+
+    save_upgrade_quotas : (project_id) ->
+        # how much upgrade you have used between all projects
+        used_upgrades = redux.getStore('projects').get_total_upgrades_you_have_applied()
+
+        # how much unused upgrade you have remaining
+        remaining = misc.map_diff(redux.getStore('account').get_total_upgrades(), used_upgrades)
+        new_upgrade_quotas = {}
+        new_upgrade_state  = {}
+        for name, data of require('smc-util/schema').PROJECT_UPGRADES.params
+            factor = data.display_factor
+            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
+            if data.input_type is 'checkbox'
+                input = @state["upgrade_#{name}"] ? 0
+                if input and (remaining_val > 0)
+                    val = 1
+                else
+                    val = 0
+
+            else
+                # parse the current user input, and default to the current value if it is (somehow) invalid
+                input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0
+                input = Math.max(input, 0)
+                limit = remaining_val
+                val = Math.min(input, limit)
+
+            new_upgrade_state["upgrade_#{name}"] = val
+            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
+        actions.apply_upgrades_to_project(project_id, new_upgrade_quotas)
+
+        # set the state so that the numbers are right if you click upgrade again
+        @setState(new_upgrade_state)
+        @setState(upgrading : false)
+
     create_project_with_upgrades : ->
         token = misc.uuid()
         @setState(state:'saving')
@@ -743,22 +969,22 @@ NewProjectCreator = rclass
             title       : @state.title_text
             description : @state.description_text
             token       : token
-        store.wait_until_project_created token, 30, (err) =>
+        store.wait_until_project_with_upgrades_created token, 30, (err, project_id) =>
             if err?
                 @setState
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
+                @save_upgrade_quotas(project_id)
                 @cancel_editing()
+                open_project(project_id:project_id)
 
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
-    shouldComponentUpdate: (next) ->
-        return @props.customer != next.customer
-
     render_upgrade_before_create : ->
+        window.redux = redux
         subs = @props.customer?.subscriptions?.total_count ? 0
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
@@ -772,11 +998,7 @@ NewProjectCreator = rclass
             with any project you are a collobrator on.</p>
             <div>
                 <BillingPageSimplifiedRedux redux={redux} />
-                {<UpgradeAdjustorForUncreatedProject
-                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
-                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                actions                              = {redux.getActions('projects')} /> if subs > 0}
+                {@render_upgrades_adjustor() if subs > 0}
             </div>
         </Col>
 
@@ -1405,7 +1627,11 @@ ProjectSelector = rclass
                     <Col sm=12 style={marginTop:'1ex'}>
                         <NewProjectCreator
                             nb_projects = {@project_list().length}
-                            customer    = {@props.customer} />
+                            customer    = {@props.customer}
+                            upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
+                            upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+                            actions                              = {redux.getActions('projects')} />
                     </Col>
                 </Row>
                 <Row>
