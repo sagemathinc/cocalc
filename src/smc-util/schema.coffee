@@ -360,6 +360,7 @@ schema.central_log =
     indexes:
         time  : []
         event : []
+        user_log : ["[that.r.row('value')('account_id'), that.r.row('event'), that.r.row('time')]"]
 
 schema.client_error_log =
     primary_key : 'id'

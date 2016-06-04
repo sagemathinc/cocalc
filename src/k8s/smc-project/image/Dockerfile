@@ -12,8 +12,7 @@ RUN \
   apt-get update && \
   apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo  && \
   curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
-  apt-get install -y nodejs && \
-  npm install coffee-script forever -g
+  apt-get install -y nodejs
 
 # Grab source code for SMC
 RUN git clone https://github.com/sagemathinc/smc.git

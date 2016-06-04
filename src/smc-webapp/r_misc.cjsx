@@ -138,6 +138,28 @@ exports.Icon = Icon = rclass
             classNames += " #{className}"
         return <i style={style} className={classNames}>{@props.children}</i>
 
+# this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
+exports.Octicon = rclass
+    displayName : 'Octicon'
+
+    propTypes :
+        name   : rtypes.string.isRequired
+        mega   : rtypes.bool
+        spin   : rtypes.bool
+
+    getDefaultProps : ->
+        name : 'flame'
+        mega : false
+        spin : false
+
+    render : ->
+        classNames = ['octicon', "octicon-#{@props.name}"]
+        if @props.spin
+            classNames.push('spin-octicon')
+        if @props.mega
+            classNames.push('mega-octicon')
+        return <span className={classNames.join(' ')} />
+
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
@@ -947,7 +969,7 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+    return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
     {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
@@ -976,7 +998,7 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    if pay > new Date()  # in the future
+    if pay > salvus_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else

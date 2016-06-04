@@ -223,15 +223,17 @@ class Firewall(object):
         def rules(user):
             # returns rule for allowing this user and whether rule is already in chain
             v = [['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']]
-            if user != 'salvus' and user != 'root':
+            if False and user != 'salvus' and user != 'root':
                 # Make it so this user has their bandwidth throttled so DOS attacks are more difficult, and also spending
                 # thousands in bandwidth is harder.
                 # -t mangle mangles packets by adding a mark, which is needed by tc.
                 # -p all -- match all protocols, including both tcp and udp
-                # ! -d 10.240.0.0/16 ensures this rule does NOT apply to any destination inside GCE.
+                # ! -d 10.240.0.0/8 ensures this rule does NOT apply to any destination inside GCE.; 
+                # CRITICAL -- I thought 10.240.0.0/16 was right because that's what it says in the google firewall rules; but with k8s 
+                # it's definitely wrong and this mistake frickin' kills everything!!!
                 # -m owner --uid-owner [user] makes the rule apply only to this user
                 # -j MARK --set-mark 0x1 marks packet so the throttling tc filter we created elsewhere gets applied
-                v.append(['OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d', '10.240.0.0/16', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
+                v.append(['OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d', '10.240.0.0/8', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
             return v
 
         for user in remove.split(','):

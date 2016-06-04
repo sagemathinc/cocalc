@@ -41,7 +41,8 @@ src/src/*.tgz
 .*backup
 .*swp
 
-.*sage-chat
+*sage-chat
+*sage-git
 
 src/conf/tinc_hosts/
 

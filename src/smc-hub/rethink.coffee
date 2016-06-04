@@ -41,6 +41,8 @@ required = defaults.required
 
 {UserQueryStats} = require './user-query-stats'
 
+MetricsRecorder    = require('./metrics-recorder')
+
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
 
@@ -185,6 +187,9 @@ class RethinkDB
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
+
+    concurrent: () =>
+        return @_concurrent_queries
 
     _connect: (cb) =>
         dbg = @dbg("_connect")
@@ -391,7 +396,15 @@ class RethinkDB
 
                                 # include some extra info about the query -- if it was a write this can be useful for debugging
                                 modified = (x?.inserted ? 0) + (x?.replaced ? 0) + (x?.deleted ? 0)
-                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+                                qtavg = Math.round(@_stats.sum/@_stats.n)
+                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
+
+                                {record_metric} = require('./hub')
+                                record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
+                                record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
+                                record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
+                                record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
+
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
                             if err
@@ -840,17 +853,24 @@ class RethinkDB
     ###
     Return every entry x in central_log in the given period of time for
     which x.event==event and x.value.account_id == account_id.
-    This is **VERY** slow since there is no index on value.account_id!
     ###
     get_user_log: (opts) =>
         opts = defaults opts,
-            start      : undefined     # if not given start at beginning of time
             end        : undefined     # if not given include everything until now
-            event      : undefined
+            start      : undefined
+            event      : 'successful_sign_in'
             account_id : required
             cb         : required
-        query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
-        query = query.filter(value:{account_id:opts.account_id})
+        #query = @_get_log_query(misc.copy_without(opts,['cb','account_id']))
+        #query = query.filter(value:{account_id:opts.account_id})
+        query = @table('central_log')
+        @_process_time_range(opts)
+        if not opts.start?
+            opts.start = db.r.minval
+        if not opts.end?
+            opts.end = db.r.maxval
+        query = query.between([opts.account_id, opts.event, opts.start],
+                              [opts.account_id, opts.event, opts.end], {index:'user_log'})
         query.run(opts.cb)
 
     log_client_error: (opts) =>
@@ -4154,7 +4174,10 @@ class RethinkDB
                                 table         : opts.table
                                 changefeed_id : changefeed_id
 
-                            winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
+                            nb_changefeeds = misc.len(@_change_feeds)
+                            winston.debug("FEED -- there are now num_feeds=#{nb_changefeeds} changefeeds")
+                            {record_metric} = require('./hub')
+                            record_metric('changefeeds', nb_changefeeds, MetricsRecorder.TYPE.CONT)
                             changefeed_state = 'initializing'
 
                             if heartbeat

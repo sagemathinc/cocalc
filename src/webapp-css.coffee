@@ -15,6 +15,9 @@ require("datetimepicker/bootstrap-datetimepicker.min.css")
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')
 
+# Needed by Octicon for displaying GitHub fonticons (see r_misc.cjsx)
+require('octicons/octicons/octicons.css')
+
 # info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?
     window.smcLoadStatus("Loading JavaScript libraries ...")
