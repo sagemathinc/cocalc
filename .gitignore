@@ -22,6 +22,7 @@ node_modules
 src/static/
 src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html
+src/webapp-lib/wizard/
 
 src/page/temp
 
