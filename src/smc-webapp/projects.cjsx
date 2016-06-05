@@ -1019,6 +1019,10 @@ NewProjectCreator = rclass
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
+    go_to_upgrade : (e) ->
+        e.preventDefault();
+        $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
+
     render_upgrade_before_create : ->
         subs = @props.customer?.subscriptions?.total_count ? 0
         console.log(subs)
@@ -1036,7 +1040,9 @@ NewProjectCreator = rclass
             3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
             with any project you are a collaborator on.</p>
             <div>
+                {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
+                {<div id="upgrade_before_creation"></div> if subs > 0}
                 {@render_upgrades_adjustor() if subs > 0}
             </div>
         </Col>
@@ -1100,7 +1106,7 @@ NewProjectCreator = rclass
                 <Col sm=12 style={color:'#555'}>
                     <div>
                         A <b>project</b> is your own private computational workspace that you can
-                        share with others and <a target="_blank" href=PolicyPricingPageUrl>upgrade</a>.
+                        share with others and <a href="" onClick={@go_to_upgrade}>upgrade</a>.
                     </div>
                 </Col>
             </Row>
