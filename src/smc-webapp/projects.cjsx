@@ -696,11 +696,38 @@ NewProjectCreator = rclass
                 limit = if limits[name] > 0 then 1 else 0
                 current_value = current[name] ? limit
             else
-                current_value = current[name] ? limits[name]
+                current_value = 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
             upgrades = {}
         
         return state
+        
+    max_upgrades : ->
+        state =
+            upgrading : true
+            
+        current = @props.upgrades_you_applied_to_this_project
+        
+        # how much upgrade you have used between all projects
+        used_upgrades = @props.upgrades_you_applied_to_all_projects
+        
+        # how much unused upgrade you have remaining
+        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+
+        # maximums you can use, including the upgrades already on this project
+        limits = misc.map_sum(current, remaining)
+        
+        for name, data of @props.quota_params
+            factor = data.display_factor
+            if name == 'network' or name == 'member_host'
+                limit = if limits[name] > 0 then 1 else 0
+                current_value = current[name] ? limit
+            else
+                current_value = current[name] ? limits[name]
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
+            upgrades = {}
+        
+        @setState(state)
 
     show_upgrade_quotas : ->
         @setState(upgrading : true)
@@ -734,7 +761,10 @@ NewProjectCreator = rclass
         >
             Max
         </Button>
-        
+    
+    render_addon : (misc, name, display_unit, limit) ->
+        <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
+    
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -769,7 +799,7 @@ NewProjectCreator = rclass
                             checked  = {val > 0}
                             label    = {label}
                             onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
-                            />
+                        />
                     </form>
                 </Col>
             </Row>
@@ -813,7 +843,7 @@ NewProjectCreator = rclass
                         value      = {val}
                         bsStyle    = {bs_style}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        
+                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
                     />
                     {label}
                 </Col>
@@ -868,6 +898,15 @@ NewProjectCreator = rclass
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+                <p>
+                    <Button
+                        bsSize  = 'xsmall'
+                        onClick = {=>@max_upgrades()}
+                        style   = {padding:'0px 5px'}
+                    >
+                        Max all the upgrades
+                    </Button>
+                </p>
                 <hr/>
                 <Row>
                     <Col md=6>
