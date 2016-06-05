@@ -24,13 +24,18 @@ async = require('async')
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
-Combobox = require('react-widgets/lib/Combobox')
+# injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
+smc_version = SMC_VERSION ? 'N/A'
+build_date  = BUILD_DATE  ? 'N/A'
+smc_git_rev = SMC_GIT_REV ? 'N/A'
 
-misc = require('smc-util/misc')
-immutable  = require('immutable')
-underscore = require('underscore')
+Combobox    = require('react-widgets/lib/Combobox')
 
-markdown = require('./markdown')
+misc        = require('smc-util/misc')
+immutable   = require('immutable')
+underscore  = require('underscore')
+
+markdown    = require('./markdown')
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -237,7 +242,7 @@ exports.Footer = rclass
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
-            &copy; {misc.YEAR}
+            <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
         </footer>
 
 

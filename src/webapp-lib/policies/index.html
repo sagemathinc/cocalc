@@ -7,10 +7,12 @@
         <meta name="description" content="SageMathCloud">
         <meta name="author" content="William Stein">
         <title>SageMathCloud Articles</title>
-        <link href="/static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
+        <!--
+        <link href="<%= require('!file!bootstrap-3.3.0/css/bootstrap.min.css') %>" rel="stylesheet">
+        -->
     </head>
     <body>
-        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="/static/favicon-96.png"  class="img-rounded"><br>
+        <a target="_blank" class="pull-right" style="text-align:center" href="https://cloud.sagemath.com"><img  src="<%= require('!file!webapp-lib/favicon-96.png') %>"  class="img-rounded"><br>
         SageMathCloud</a>
         <div class="jumbotron">
             <div class="container">

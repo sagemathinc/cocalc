@@ -15,8 +15,6 @@ if not process.env.SMC_TEST
     if process.env.SMC_DEBUG2
         DEBUG2 = true
 
-SMC_ROOT = process.env.SMC_ROOT
-
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
@@ -42,12 +40,21 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # node.js -- builtin libraries
-net     = require('net')
-assert  = require('assert')
-fs      = require('fs')
-underscore = require('underscore')
-path_module = require('path')
+net            = require('net')
+assert         = require('assert')
+fs             = require('fs')
+path_module    = require('path')
+underscore     = require('underscore')
 {EventEmitter} = require('events')
+mime           = require('mime')
+
+# smc path configurations (shared with webpack)
+misc_node      = require('smc-util-node/misc_node')
+SMC_ROOT       = misc_node.SMC_ROOT
+SALVUS_HOME    = misc_node.SALVUS_HOME
+OUTPUT_DIR     = misc_node.OUTPUT_DIR
+STATIC_PATH    = path_module.join(SALVUS_HOME, OUTPUT_DIR)
+WEBAPP_LIB     = misc_node.WEBAPP_LIB
 
 underscore = require('underscore')
 
@@ -89,8 +96,6 @@ init_smc_version = () ->
             if c.smc_version < version.version
                 c.push_version_update()
 
-misc_node = require('smc-util-node/misc_node')
-
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
 from_json = misc.from_json
@@ -116,7 +121,6 @@ database           = null
 
 # the connected clients
 clients = require('./clients').get_clients()
-
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -3102,7 +3106,7 @@ init_compute_server = (cb) ->
 
 update_primus = (cb) ->
     misc_node.execute_code
-        command : path_module.join(SMC_ROOT, 'static/primus/update_primus')
+        command : path_module.join(SMC_ROOT, WEBAPP_LIB, '/primus/update_primus')
         cb      : cb
 
 #############################################

@@ -5,6 +5,8 @@ The Hub's HTTP Server
 fs          = require('fs')
 path_module = require('path')
 Cookies     = require('cookies')
+util        = require('util')
+ms          = require("ms")
 
 async       = require('async')
 body_parser = require('body-parser')
@@ -16,6 +18,8 @@ winston     = require('winston')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc
+
+misc_node    = require('smc-util-node/misc_node')
 
 hub_register = require('./hub_register')
 
@@ -42,18 +46,29 @@ exports.init_express_http_server = (opts) ->
         compute_server : required
         metricsRecorder: undefined
     winston.debug("initializing express http server")
+    winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
     # Create an express application
     router = express.Router()
     app    = express()
     router.use(body_parser.urlencoded({ extended: true }))
 
+    # The webpack content. all files except for unhashed .html should be cached long-term ...
+    webpackHeaderControl = (res, path) ->
+        if not opts.dev  # ... unless in dev mode
+            timeout = ms('100 days') # more than a year would be invalid
+            res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
+            res.setHeader("Expires", new Date(Date.now() + timeout).toUTCString());
+
     # The /static content
-    router.use('/static',   express.static(STATIC_PATH, {hidden:true}))
-    router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))
+    router.use '/static',
+        express.static(STATIC_PATH, setHeaders: webpackHeaderControl)
+
+    router.use '/policies',
+        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
 
     router.get '/', (req, res) ->
-        res.sendFile(path_module.join(STATIC_PATH, 'index.html'))
+        res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
