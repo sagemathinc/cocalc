@@ -1055,13 +1055,13 @@ NewProjectCreator = rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    {<Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> if create_btn_disabled}
+                    {<Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> if create_btn_disabled and not @state.state is 'saving'}
                     <ButtonToolbar>
                         <Button
                             disabled = {create_btn_disabled}
                             bsStyle  = 'success'
                             onClick  = {@create_project} >
-                            Create project
+                            Create project with upgrades
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}
