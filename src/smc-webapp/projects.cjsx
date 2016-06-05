@@ -43,7 +43,6 @@ markdown = require('./markdown')
 MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
-_create_project_with_upgrades_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
@@ -138,19 +137,6 @@ class ProjectsActions extends Actions
             token = opts.token; delete opts.token
             opts.cb = (err, project_id) =>
                 _create_project_tokens[token] = {err:err, project_id:project_id}
-        salvus_client.create_project(opts)
-    
-    # Create a new project
-    create_project_with_upgrades : (opts) =>
-        opts = defaults opts,
-            title       : 'No Title'
-            description : 'No Description'
-            token       : undefined  # if given, can use wait_until_project_is_created
-        if opts.token?
-            token = opts.token; delete opts.token
-            opts.cb = (err, project_id) =>
-                _create_project_with_upgrades_tokens[token] = {err:err, project_id:project_id}
-                
         salvus_client.create_project(opts)
 
     # Open the given project
@@ -507,24 +493,6 @@ class ProjectsStore extends Store
                     cb(err)
                 else
                     cb(x.err, x.project_id)
-                    
-    wait_until_project_with_upgrades_created : (token, timeout, cb) =>
-        @wait
-            until   : =>
-                x = _create_project_with_upgrades_tokens[token]
-                return if not x?
-                {project_id, err} = x
-                if err
-                    return {err:err}
-                else
-                    if @get('project_map').has(project_id)
-                        return {project_id:project_id}
-            timeout : timeout
-            cb      : (err, x) =>
-                if err
-                    cb(err)
-                else
-                    cb(x.err, x.project_id)
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
@@ -674,60 +642,56 @@ NewProjectCreator = rclass
             title_text       : ''
             description_text : ''
             error            : ''
-            
-    getInitialUpgraderState : ->
-        state =
-            upgrading : true
-            
+
+    get_quota_limits : ->
+        # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
+
+        # how much upgrade you currently use on this one project
         current = @props.upgrades_you_applied_to_this_project
-        
         # how much upgrade you have used between all projects
         used_upgrades = @props.upgrades_you_applied_to_all_projects
-        
         # how much unused upgrade you have remaining
         remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-
         # maximums you can use, including the upgrades already on this project
         limits = misc.map_sum(current, remaining)
-        
+        # additionally, the limits are capped by the maximum per project
+        maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+        ret =
+            limits    : misc.map_limit(limits, maximum)
+            remaining : remaining
+            current   : current
+        return ret
+
+    getUpgraderState : (maximize = false) ->
+        ###
+        maximize==true means, that the quotas are set to the highest possible
+                       this is limited by the available quotas AND the maximum per project
+        ###
+        state =
+            upgrading : true
+
+        limits = @get_quota_limits()
+
         for name, data of @props.quota_params
             factor = data.display_factor
             if name == 'network' or name == 'member_host'
-                limit = if limits[name] > 0 then 1 else 0
-                current_value = current[name] ? limit
+                limit = if limits.limits[name] > 0 then 1 else 0
+                current_value = limits.current[name] ? limit
             else
-                current_value = 0
+                if maximize
+                    current_value = limits.current[name] ? limits.limits[name]
+                else
+                    current_value = 0
             state["upgrade_#{name}"] = misc.round2(current_value * factor)
             upgrades = {}
-        
+
         return state
-        
-    max_upgrades : ->
-        state =
-            upgrading : true
-            
-        current = @props.upgrades_you_applied_to_this_project
-        
-        # how much upgrade you have used between all projects
-        used_upgrades = @props.upgrades_you_applied_to_all_projects
-        
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
 
-        # maximums you can use, including the upgrades already on this project
-        limits = misc.map_sum(current, remaining)
-        
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            if name == 'network' or name == 'member_host'
-                limit = if limits[name] > 0 then 1 else 0
-                current_value = current[name] ? limit
-            else
-                current_value = current[name] ? limits[name]
-            state["upgrade_#{name}"] = misc.round2(current_value * factor)
-            upgrades = {}
-        
-        @setState(state)
+    getInitialUpgraderState : ->
+        return @getUpgraderState(false)
+
+    max_upgrades : ->
+        @setState(@getUpgraderState(true))
 
     show_upgrade_quotas : ->
         @setState(upgrading : true)
@@ -761,10 +725,10 @@ NewProjectCreator = rclass
         >
             Max
         </Button>
-    
+
     render_addon : (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
-    
+
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -823,7 +787,7 @@ NewProjectCreator = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
                 else
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
@@ -880,19 +844,7 @@ NewProjectCreator = rclass
             # user has no upgrades on their account
             <NoUpgrades cancel={@cancel_upgrading} />
         else
-            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-
-            # how much upgrade you have used between all projects
-            used_upgrades = @props.upgrades_you_applied_to_all_projects
-
-            # how much upgrade you currently use on this one project
-            current = @props.upgrades_you_applied_to_this_project
-
-            # how much unused upgrade you have remaining
-            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-
-            # maximums you can use, including the upgrades already on this project
-            limits = misc.map_sum(current, remaining)
+            limits = @get_quota_limits()
 
             <Alert bsStyle='info'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
@@ -918,7 +870,7 @@ NewProjectCreator = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
+                {@render_upgrade_row(n, data, limits.remaining[n], limits.current[n], limits.limits[n]) for n, data of @props.quota_params}
             </Alert>
 
     render_upgrades_button : ->
@@ -950,20 +902,24 @@ NewProjectCreator = rclass
         else
             @cancel_editing()
 
-    create_project : ->
+    create_project : (with_upgrades = false) ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
             title       : @state.title_text
             description : @state.description_text
             token       : token
-        store.wait_until_project_created token, 30, (err) =>
+        store.wait_until_project_created token, 30, (err, project_id) =>
             if err?
                 @setState
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
+                if with_upgrades
+                    @save_upgrade_quotas(project_id)
                 @cancel_editing()
+                if with_upgrades
+                    open_project(project_id:project_id)
 
     save_upgrade_quotas : (project_id) ->
         # how much upgrade you have used between all projects
@@ -998,23 +954,6 @@ NewProjectCreator = rclass
         @setState(new_upgrade_state)
         @setState(upgrading : false)
 
-    create_project_with_upgrades : ->
-        token = misc.uuid()
-        @setState(state:'saving')
-        actions.create_project_with_upgrades
-            title       : @state.title_text
-            description : @state.description_text
-            token       : token
-        store.wait_until_project_with_upgrades_created token, 30, (err, project_id) =>
-            if err?
-                @setState
-                    state : 'edit'
-                    error : "Error creating project -- #{err}"
-            else
-                @save_upgrade_quotas(project_id)
-                @cancel_editing()
-                open_project(project_id:project_id)
-
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
@@ -1047,6 +986,8 @@ NewProjectCreator = rclass
         </Col>
 
     render_input_section : ->
+        create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
+
         <Well style={backgroundColor: '#FFF', color:'#666'}>
             <Row>
                 <Col sm=5>
@@ -1113,12 +1054,13 @@ NewProjectCreator = rclass
                 {@render_upgrade_before_create()}
             </Row>
             <Row>
-                <Col sm=5>
+                <Col sm=12>
+                    {<Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> if create_btn_disabled}
                     <ButtonToolbar>
                         <Button
-                            disabled = {@state.title_text == '' or @state.state == 'saving'}
+                            disabled = {create_btn_disabled}
                             bsStyle  = 'success'
-                            onClick  = {@create_project_with_upgrades} >
+                            onClick  = {@create_project} >
                             Create project
                         </Button>
                         <Button
