@@ -171,7 +171,6 @@ class AccountStore extends Store
     # uses the total upgrades information to determine, if this is a paying member
     is_paying_member: =>
         ups = @get_total_upgrades()
-        console.log(JSON.stringify(ups))
         if not ups
             return false
         else if Object.keys(ups).length == 0

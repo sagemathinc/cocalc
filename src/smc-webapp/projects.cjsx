@@ -995,7 +995,7 @@ NewProjectCreator = rclass
             Starting at just $7/month you can give your project(s)
             internet access, members only hosting, 1 day Idle timeout,
             3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
-            with any project you are a collobrator on.</p>
+            with any project you are a collaborator on.</p>
             <div>
                 <BillingPageSimplifiedRedux redux={redux} />
                 {@render_upgrades_adjustor() if subs > 0}
