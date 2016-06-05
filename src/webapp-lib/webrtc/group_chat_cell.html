@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>Group Chat</title>
-        <link href="/static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+        <link href="<%= require('!file!font-awesome/css/font-awesome.min.css') %>" rel="stylesheet">
     </head>
     <body>
         <style>
@@ -66,8 +66,8 @@
             </div>
         </div>
         <div id="remotes"></div>
-        <script src="/static/jquery/jquery.min.js"></script>
-        <script src="simplewebrtc.js"></script>
+        <script src="<%= require('!file!jquery/jquery.min.js') %>"></script>
+        <script src="<%= require('!file!webapp-lib/webrtc/simplewebrtc.js') %>"></script>
         <script>
             // grab the room from the URL
             var room = location.search && location.search.split('?')[1];

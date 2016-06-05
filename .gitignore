@@ -19,9 +19,9 @@ data/
 node_modules
 *.sass-cache
 
-src/static/webpack
-
-src/static/policies/pricing.html
+src/static/
+src/static.git/
+src/webapp-lib/policies/_static_pricing_page.html
 
 src/page/temp
 
@@ -65,11 +65,11 @@ src/dev/public/rethinkdb_data/
 src/dev/smc/rethinkdb_data/
 src/dev/laptop/rethinkdb_data/
 
+src/webapp-lib/primus/primus-engine.js
+src/webapp-lib/primus/primus-engine.min.js
 
 src/static/term/term.min.js
 
-src/static/primus/primus-engine.js
-src/static/primus/primus-engine.min.js
 src/restart_hub
 src/restart_compute
 .coffee

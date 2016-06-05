@@ -480,9 +480,10 @@ message
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
 message
-    event     : 'jupyter_port'
-    port      : undefined    # gets set in response
-    id        : undefined
+    event       : 'jupyter_port'
+    port        : undefined  # gets set in response
+    id          : undefined
+    mathjax_url : undefined  # e.g. '/static/mathjax-2.6.1/MathJax.js'
 
 #############################################################################
 

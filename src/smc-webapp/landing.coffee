@@ -2,19 +2,14 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
-$("#smc-startup-banner").remove()
+# output some of the global variables
+console.log("SMC_VERSION", SMC_VERSION)
+console.log("SMC_GIT_REV", SMC_GIT_REV)
+console.log("BUILD_DATE",  BUILD_DATE)
+console.log("MATHJAX_URL", MATHJAX_URL)
 
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
-
-# Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
-require('react-widgets/lib/less/react-widgets.less')
-
-# Needed by Octicon for displaying GitHub fonticons (see r_misc.cjsx)
-require('node_modules/octicons/octicons/octicons.css')
-
-# SASS Style file
-require('./index.sass')
 
 # Load/initialize Redux-based react functionality
 require('./smc-react')
@@ -60,4 +55,3 @@ require('./r_help').render_help_page()
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')
-

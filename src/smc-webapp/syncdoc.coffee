@@ -292,18 +292,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
           (date.getTime() - last_date.getTime()) > 60000
 
             header.find(".salvus-chat-header-name")
-              .text(mesg.name)
-              .css(color: "#" + mesg.color)
+                .text(mesg.name)
+                .css(color: "#" + mesg.color)
             header.find(".salvus-chat-header-date")
-              .attr("title", date.toISOString())
-              .timeago()
+                .attr("title", date.toISOString())
+                .timeago()
 
         else
             header.hide()
 
         entry.find(".salvus-chat-entry-content")
-          .html(markdown.markdown_to_html(mesg.mesg.content).s)
-          .mathjax()
+            .html(markdown.markdown_to_html(mesg.mesg.content).s)
+            .mathjax()
 
         chat_output = @element.find(".salvus-editor-codemirror-chat-output")
         chat_output.append(entry)
@@ -326,17 +326,17 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
           (date.getTime() - last_date.getTime()) > 60000
 
             header.find(".salvus-chat-header-name")
-              .text(sender_name)
-              .css(color: "#" + message_color)
+                .text(sender_name)
+                .css(color: "#" + message_color)
             header.find(".salvus-chat-header-date")
-              .attr("title", date.toISOString())
-              .timeago()
+                .attr("title", date.toISOString())
+                .timeago()
         else
             header.hide()
 
         entry.find(".salvus-chat-entry-content")
-          .html(markdown.markdown_to_html(mesg.payload.content).s)
-          .mathjax()
+            .html(markdown.markdown_to_html(mesg.payload.content).s)
+            .mathjax()
 
         chat_output = @element.find(".salvus-editor-codemirror-chat-output")
         chat_output.append(entry)
@@ -361,11 +361,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
           (date.getTime() - last_date.getTime()) > 60000
 
             header.find(".salvus-chat-header-name")
-              .text(sender_name)
-              .css(color: "#" + message_color)
+                .text(sender_name)
+                .css(color: "#" + message_color)
             header.find(".salvus-chat-header-date")
-              .attr("title", date.toISOString())
-              .timeago()
+                .attr("title", date.toISOString())
+                .timeago()
         else
             header.hide()
 
@@ -400,11 +400,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
           (date.getTime() - last_date.getTime()) > 60000
 
             header.find(".salvus-chat-header-name")
-              .text(sender_name)
-              .css(color: "#" + message_color)
+                .text(sender_name)
+                .css(color: "#" + message_color)
             header.find(".salvus-chat-header-date")
-              .attr("title", date.toISOString())
-              .timeago()
+                .attr("title", date.toISOString())
+                .timeago()
         else
             header.hide()
 
@@ -426,10 +426,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         video_container = @element.find(".salvus-editor-codemirror-chat-video")
         video_container.empty()
-        video_container.html("
-            <iframe id=#{room_id} src=\"/static/webrtc/group_chat_side.html?#{room_id}\" height=\"#{video_height}\">
-            </iframe>
-            ")
+        # webpacking this here doesn't, because it needs a parameter and webpack only has js file as targets (if rendered to a file)
+        # maybe https://github.com/webpack/webpack/issues/536 has some answer some day in the future …
+        # TODO make this video chat properly part of the website or get rid of it
+        group_chat_url = window.smc_base_url + "/static/webrtc/group_chat_side.html"
+        video_container.html("<iframe id='#{room_id}' src='#{group_chat_url}?#{room_id}' height='#{video_height}'></iframe>")
 
         # Update heights of chat and video windows
         @editor.emit 'show-chat'

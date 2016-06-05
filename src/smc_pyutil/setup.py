@@ -43,16 +43,16 @@ setup(
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
     packages         = ['smc_pyutil'],
-    install_requires = ['markdown2', 'psutil'],
-    zip_safe        = False,
-    classifiers     = [
+    install_requires = ['markdown2', 'psutil', 'PyYAML'],
+    zip_safe         = False,
+    classifiers      = [
         'License :: OSI Approved :: GPLv3',
         'Programming Language :: Python :: 2.7',
         'Topic :: Mathematics :: Server',
     ],
-    keywords        = 'server mathematics cloud',
-    scripts         = ['smc_pyutil/bin/smc-sage-server'],
-    entry_points    = {
+    keywords         = 'server mathematics cloud',
+    scripts          = ['smc_pyutil/bin/smc-sage-server'],
+    entry_points     = {
         'console_scripts': [
             'open                 = smc_pyutil.smc_open:main',
             'smc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
