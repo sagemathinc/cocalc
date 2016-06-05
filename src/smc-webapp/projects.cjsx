@@ -985,6 +985,10 @@ NewProjectCreator = rclass
             </div>
         </Col>
 
+    render_no_title_alert : ->
+        if @state.title_text == '' and @state.state != 'saving'
+            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> 
+
     render_input_section : ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
@@ -1055,7 +1059,7 @@ NewProjectCreator = rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    {<Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> if create_btn_disabled and not @state.state is 'saving'}
+                    {@render_no_title_alert()}
                     <ButtonToolbar>
                         <Button
                             disabled = {create_btn_disabled}
