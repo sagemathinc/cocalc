@@ -329,18 +329,21 @@ def connections():
     """
     Shows the current network configuration of the cluster
     """
-    print("DB Nodes")
-    conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
-    for x in sorted(conns, key=lambda x : x['name']):
-        dbs = sorted(filter(lambda n : n.startswith('db'), x['network']['connected_to'].keys()))
-        print('%8s: %s' % (x['name'], dbs))
-    print(); print("DB Proxies")
     from collections import defaultdict
     proxies = defaultdict(lambda : len(proxies))
-    for x in sorted(conns, key=lambda x : x['name']):
-        dbs = sorted(filter(lambda n : not n.startswith('db'), x['network']['connected_to'].keys()))
-        dbs = [proxies[p] for p in dbs]
-        print('%8s: %s' % (x['name'], sorted(dbs)))
+    conns = list(r.db('rethinkdb').table('server_status').pluck('name', {'network':'connected_to'}).run())
+
+    for t in ['db', 'proxy']:
+        if t == 'db': print("DB Nodes")
+        if t == 'proxy': print("DB Proxies")
+
+        for x in sorted(conns, key=lambda x : x['name']):
+            dbs = sorted(filter(lambda k_v : k_v[0].startswith('db') ^ (t == 'proxy'), x['network']['connected_to'].items()))
+            dbs = [k for k, v in dbs if v]
+            if t == 'proxy':
+                dbs = [proxies[k] for k in dbs]
+            print('%8s: %s' % (x['name'], sorted(dbs)))
+        print()
 
 def read_write_stats(N = 10, B = 5, continuous=True):
     """
