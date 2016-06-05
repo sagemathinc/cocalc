@@ -1025,7 +1025,6 @@ NewProjectCreator = rclass
 
     render_upgrade_before_create : ->
         subs = @props.customer?.subscriptions?.total_count ? 0
-        console.log(subs)
         if subs > 0 and not @state["has_subbed"]
             @setState(@getInitialUpgraderState())
             @setState(has_subbed: true)
