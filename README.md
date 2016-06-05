@@ -1,4 +1,4 @@
-# ![logo](https://cloud.sagemath.com/favicon-48.png) SageMathCloud (SMC)
+# ![logo](https://raw.githubusercontent.com/sagemathinc/smc/master/src/webapp-lib/favicon-48.png) SageMathCloud (SMC)
 
 #### _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
 
@@ -26,12 +26,13 @@
    * Nicholas Ruhland, University of Washington -- frontend work, tab reordering and resizing
    * Keith Clawson -- hardware/infrastructure
    * Andy Huchala, University of Washington -- frontend work, bug finding
+   * Tim Clemans -- fontend work
 
 ## Copyright/License
 
 SMC is 100% open source, released under the GNU General Public License version 3+:
 
-    Copyright (C) 2014, 2015, William Stein
+    Copyright (C) 2014 -- 2016, SageMath, Inc.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -69,9 +70,10 @@ DevOps note: The relevant files are:
   * Database     -- RethinkDB
   * Compute      -- VM's running TCP servers (e.g., sage, console, projects, python3, R, etc.)
   * Hub          -- written in Node.js; primus server; connects with *everything* -- compute servers, database, other hubs, and clients.
+  * Storage      -- Snapshots of project data
   * HTTP server  -- Nginx
   * admin.py     -- Python program that uses the paramiko library to start/stop everything
-  * The Cloud -- Google Compute Engine
+  * The Cloud   -- Google Compute Engine
 
 ### Architectural Diagram
 <pre>

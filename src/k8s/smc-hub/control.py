@@ -61,12 +61,13 @@ def run_on_kubernetes(args):
     tag = util.get_tag(args, NAME, build)
 
     opts = {
-        'image_hub'        : tag,
-        'replicas'         : args.replicas,
-        'pull_policy'      : util.pull_policy(args),
-        'min_read_seconds' : args.gentle,
-        'smc_db_hosts'     : args.database_nodes,
-        'smc_db_pool'      : args.database_pool_size
+        'image_hub'              : tag,
+        'replicas'               : args.replicas,
+        'pull_policy'            : util.pull_policy(args),
+        'min_read_seconds'       : args.gentle,
+        'smc_db_hosts'           : args.database_nodes,
+        'smc_db_pool'            : args.database_pool_size,
+        'smc_db_concurrent_warn' : args.database_concurrent_warn
     }
 
     if args.database_nodes == 'localhost':
@@ -127,6 +128,7 @@ if __name__ == '__main__':
                      help="how gentle to be in doing the rolling update; in particular, will wait about this many seconds after each pod starts up (default: 30)")
     sub.add_argument("-d", "--database-nodes",  default='localhost', type=str, help="database to connect to.  If 'localhost' (the default), will run a local rethindkb proxy that is itself pointed at the rethinkdb-cluster service; if 'rethinkdb-proxy' will use that service.")
     sub.add_argument("-p", "--database-pool-size",  default=100, type=int, help="size of database connection pool")
+    sub.add_argument("--database-concurrent-warn",  default=100, type=int, help="if this many concurrent queries for sustained time, kill container")
     sub.add_argument("--rethinkdb-proxy-tag", default="", help="tag of rethinkdb-proxy image to run")
     sub.set_defaults(func=run_on_kubernetes)
 

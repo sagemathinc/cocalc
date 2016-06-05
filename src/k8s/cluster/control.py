@@ -220,6 +220,8 @@ def ssh(args):
         v = [x for x in v if x.startswith(prefix)]
     util.tmux_ssh(v, sync=not args.no_sync)
 
+def hpa(args):
+    util.show_horizontal_pod_autoscalers(args.namespace)
 
 if __name__ == '__main__':
     import argparse
@@ -288,6 +290,10 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('namespace', help='set the current namespace, e.g., default, prod, test, etc.')
     sub.add_argument("namespace", type=str, help="a valid namespace")
     sub.set_defaults(func=lambda args: util.set_namespace(args.namespace))
+
+    sub = subparsers.add_parser('hpa', help='show horizontal pod autoscaler info')
+    sub.add_argument("--namespace", type=str, default='', help="a valid namespace")
+    sub.set_defaults(func=hpa)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

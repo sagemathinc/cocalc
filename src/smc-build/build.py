@@ -175,7 +175,6 @@ SAGE_PIP_PACKAGES = [
     'bitarray',
     'h5py',
     'netcdf4',
-    'patsy',
     'lxml',
     'munkres',
     'oct2py',
@@ -222,7 +221,6 @@ SAGE_PIP_PACKAGES = [
     'mrjob',
     'boto',
     'pattern',
-    'seaborn',
     'brewer2mpl',
     'ggplot',
     'periodictable',
@@ -235,7 +233,6 @@ SAGE_PIP_PACKAGES = [
     'snappy',
     'twitter',
     'bayespy==0.3.6',   # last version that supports Python2 -- 0.4.x on is Python3 only!
-    'astropy',
     'aplpy',
     'PyDSTool',
     'progressbar',  # requested by David Lisbonne
@@ -247,7 +244,6 @@ SAGE_PIP_PACKAGES = [
     'pystan',
     'biopython',
     'guppy',
-    'nose',
     'pybtex',
     'bokeh',
     'numba',
@@ -310,7 +306,6 @@ R_PACKAGES = [
     'ROCR',
     'forecast',
     'numDeriv',
-    'Matrix',
     'NORMT3',
     'ggmap',
     'np',
@@ -320,7 +315,6 @@ R_PACKAGES = [
     'maptree',
     'agricolae',
     'nortest',
-    'forecast',
     'gplots',
     'Hmisc',
     'survey',
@@ -362,7 +356,6 @@ SAGE_OPTIONAL_PACKAGES = [
     'topcom',
     '4ti2',
     'modular_decomposition',
-    'topcom',
     'csdp'    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
 ]
 

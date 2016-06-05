@@ -9,6 +9,7 @@ local_hub_connection = require('./local_hub_connection')
 message = require('smc-util/message')
 
 misc    = require('smc-util/misc')
+misc_node = require('smc-util-node/misc_node')
 {defaults, required} = misc
 
 # Create a project object that is connected to a local hub (using
@@ -85,7 +86,7 @@ class Project
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port()
+            mesg    : message.jupyter_port(mathjax_url : misc_node.MATHJAX_URL)
             timeout : 30
             cb      : (err, resp) =>
                 if err

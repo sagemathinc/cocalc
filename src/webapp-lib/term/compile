@@ -27,7 +27,3 @@ for theme, colors in data.iteritems():
 
 import json
 open("color_themes.js",'w').write("Terminal.color_schemes="+json.dumps(data,separators=(',',':')))
-
-import os
-if os.system("uglifyjs term.js > term.min.js"):
-    raise RuntimeError("failed to minify term.js -- install uglifyjs")

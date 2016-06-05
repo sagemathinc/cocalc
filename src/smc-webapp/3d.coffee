@@ -31,9 +31,9 @@ VERSION = '73'
 
 window.THREE = require("three")
 for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
-    require("../static/threejs/r#{VERSION}/#{m}")
+    require("script!threejs/r#{VERSION}/#{m}")
 
-require("script!../static/threejs/r#{VERSION}/Detector")
+require("script!threejs/r#{VERSION}/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}

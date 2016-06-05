@@ -9,10 +9,10 @@ ARG commit=HEAD
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Pull latest version of code and rebuild
-RUN cd /smc/src && . ./smc-env && git pull && git fetch origin && git checkout ${commit:-HEAD} && ./install.py webapp
+RUN cd /smc/src && . ./smc-env && git pull && git fetch origin && git checkout ${commit:-HEAD} && ./install.py webapp build
 
 # Delete everything except the static site that we want to serve (no point in wasting space)
-RUN rsync -axL /smc/src/static/ /static/  && rm -rf /smc
+RUN rsync -axHL /smc/src/static/ /static/  && rm -rf /smc
 
 # Remove build pre-requisites that are no longer needed for just running the nginx static server
 RUN \
