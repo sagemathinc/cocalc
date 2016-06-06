@@ -7,8 +7,15 @@
 DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
+# {SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('salvus-icon.svg')
 
-images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/05-sky_is_the_limit.png' ]
+images = [
+    require('sagepreview/01-worksheet.png'),
+    require('sagepreview/02-courses.png'),
+    require('sagepreview/03-latex.png'),
+    require('sagepreview/05-sky_is_the_limit.png'),
+]
 # 'static/sagepreview/04-files.png'
 
 $.get window.smc_base_url + "/registration", (obj, status) ->
@@ -406,7 +413,7 @@ LogoWide = rclass
                     margin: UNIT + 'px 0',\
                     lineHeight: 0}>
           <span style={display: 'inline-block', \
-                       backgroundImage: 'url("/static/salvus-icon.svg")', \
+                       backgroundImage: "url('#{SMC_ICON_URL}')", \
                        backgroundSize: 'contain', \
                        height : UNIT * 4, width: UNIT * 4, \
                        borderRadius : 10, \

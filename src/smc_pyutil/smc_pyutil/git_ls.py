@@ -118,7 +118,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
             # modified_files = set of filenames
             modified_files = [os.path.split(str(x[2:]).replace('\\\\"','"').replace('\\"',''))[-1] for x in modified_files.splitlines() if x]
             for name in modified_files:
-                if name in files and not files[name].has_key('commit'):
+                if name in files and 'commit' not in files[name]:
                     files[name]['commit'] =  {'author':author, 'date':date, 'message':message, 'sha':sha}
 
     # Make ordered list of files, with directories first.

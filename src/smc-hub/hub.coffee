@@ -15,8 +15,6 @@ if not process.env.SMC_TEST
     if process.env.SMC_DEBUG2
         DEBUG2 = true
 
-SMC_ROOT = process.env.SMC_ROOT
-
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
@@ -42,12 +40,21 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # node.js -- builtin libraries
-net     = require('net')
-assert  = require('assert')
-fs      = require('fs')
-underscore = require('underscore')
-path_module = require('path')
+net            = require('net')
+assert         = require('assert')
+fs             = require('fs')
+path_module    = require('path')
+underscore     = require('underscore')
 {EventEmitter} = require('events')
+mime           = require('mime')
+
+# smc path configurations (shared with webpack)
+misc_node      = require('smc-util-node/misc_node')
+SMC_ROOT       = misc_node.SMC_ROOT
+SALVUS_HOME    = misc_node.SALVUS_HOME
+OUTPUT_DIR     = misc_node.OUTPUT_DIR
+STATIC_PATH    = path_module.join(SALVUS_HOME, OUTPUT_DIR)
+WEBAPP_LIB     = misc_node.WEBAPP_LIB
 
 underscore = require('underscore')
 
@@ -89,8 +96,6 @@ init_smc_version = () ->
             if c.smc_version < version.version
                 c.push_version_update()
 
-misc_node = require('smc-util-node/misc_node')
-
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
 from_json = misc.from_json
@@ -116,7 +121,6 @@ database           = null
 
 # the connected clients
 clients = require('./clients').get_clients()
-
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -539,7 +543,8 @@ class Client extends EventEmitter
         h = @_data_handlers[channel]
 
         if not h?
-            winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            if channel != 'X'  # X is a special case used on purpose -- not an error.
+                winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
             # Tell the client that they had better reconnect.
             @push_to_client( message.session_reconnect(data_channel : channel) )
             return
@@ -3061,17 +3066,18 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        pool  : 50
+        pool  : program.db_pool
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
         opts.cb(); return
     database = rethink.rethinkdb
-        hosts    : program.database_nodes.split(',')
-        database : program.keyspace
-        error    : opts.error
-        pool     : opts.pool
-        cb       : opts.cb
+        hosts           : program.database_nodes.split(',')
+        database        : program.keyspace
+        error           : opts.error
+        pool            : opts.pool
+        concurrent_warn : program.db_concurrent_warn
+        cb              : opts.cb
 
 # client for compute servers
 compute_server = undefined
@@ -3100,7 +3106,7 @@ init_compute_server = (cb) ->
 
 update_primus = (cb) ->
     misc_node.execute_code
-        command : path_module.join(SMC_ROOT, 'static/primus/update_primus')
+        command : path_module.join(SMC_ROOT, WEBAPP_LIB, '/primus/update_primus')
         cb      : cb
 
 #############################################
@@ -3255,12 +3261,45 @@ stripe_sales_tax = (opts) ->
             return
         opts.cb(undefined, misc_node.sales_tax(zip))
 
+# real-time reporting of hub metrics
+
+MetricsRecorder = require('./metrics-recorder')
+metricsRecorder = null
+
+init_metrics = (cb) ->
+    if program.statsfile?
+        # make it absolute, with defaults it will sit next to the hub.log file
+        if program.statsfile[0] != '/'
+            STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
+        # make sure the directory exists
+        dir = require('path').dirname(STATS_FN)
+        if not fs.existsSync(dir)
+            fs.mkdirSync(dir)
+    else
+        STATS_FN = null
+    dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
+    {number_of_clients} = require('./hub_register')
+    collect = () ->
+        try
+            record_metric('nb_clients', number_of_clients(), MetricsRecorder.TYPE.CONT)
+        catch err
+
+    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, collect, cb)
+
+# use record_metric to update its state
+
+exports.record_metric = record_metric = (key, value, type) ->
+    metricsRecorder?.record(key, value, type)
+
+# Support Tickets
+
 support = undefined
 init_support = (cb) ->
     {Support} = require('./support')
     support = new Support cb: (err, s) =>
         support = s
         cb(err)
+
 
 #############################################
 # Start everything running
@@ -3290,12 +3329,17 @@ exports.start_server = start_server = (cb) ->
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
     blocked (ms) ->
+        # filter values > 100 ms
+        if ms > 100
+            record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
     init_smc_version()
 
     async.series([
+        (cb) ->
+            init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -3328,6 +3372,7 @@ exports.start_server = start_server = (cb) ->
                 stripe         : stripe
                 compute_server : compute_server
                 database       : database
+                metricsRecorder: metricsRecorder
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
@@ -3391,26 +3436,26 @@ exports.start_server = start_server = (cb) ->
 # Command line admin stuff -- should maybe be moved to another program?
 ###
 add_user_to_project = (project_id, email_address, cb) ->
-     account_id = undefined
-     async.series([
-         # ensure database object is initialized
-         (cb) ->
-             connect_to_database(cb:cb)
-         # find account id corresponding to email address
-         (cb) ->
-             database.account_exists
-                 email_address : email_address
-                 cb            : (err, _account_id) ->
-                     account_id = _account_id
-                     cb(err)
-         # add user to that project as a collaborator
-         (cb) ->
-             database.add_user_to_project
-                 project_id : project_id
-                 account_id : account_id
-                 group      : 'collaborator'
-                 cb         : cb
-     ], cb)
+    account_id = undefined
+    async.series([
+        # ensure database object is initialized
+        (cb) ->
+            connect_to_database(cb:cb)
+        # find account id corresponding to email address
+        (cb) ->
+            database.account_exists
+                email_address : email_address
+                cb            : (err, _account_id) ->
+                    account_id = _account_id
+                    cb(err)
+        # add user to that project as a collaborator
+        (cb) ->
+            database.add_user_to_project
+                project_id : project_id
+                account_id : account_id
+                group      : 'collaborator'
+                cb         : cb
+    ], cb)
 
 
 #############################################
@@ -3424,6 +3469,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
+    .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
@@ -3438,6 +3484,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--foreground', 'If specified, do not run as a deamon')
     .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
     .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+    .option('--db_pool <n>', 'number of db connections in pool (default: 50)', ((n)->parseInt(n)), 50)
+    .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.

@@ -44,26 +44,46 @@ def install_project():
         cmd(SUDO+"npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
-    cmd(SUDO+"/usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm install"%path)
 
-def install_webapp():
+def install_webapp(*args):
     nice()
-    cmd("cd wizard && make")
-    for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
-        cmd("cd %s; npm install"%path)
-    # update term.min.js
-    cmd("cd static/term; ./compile")
-    # update static react
-    cmd("update_react_static")
-    # update primus - so client has it.
-    install_primus()
-    print("Building production webpack -- this will take about 3 minutes")
-    cmd("npm run webpack-production")
+    action = args[0].action
+    nothing = True
+
+    if 'build' in action:
+        cmd("cd wizard && make")
+        for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
+            cmd("cd %s; npm install"%path)
+        # react static step must come *before* webpack step
+        cmd("update_react_static")
+        # update primus - so client has it.
+        install_primus()
+        # update term.js
+        cmd("cd webapp-lib/term; ./compile")
+        print("Building production webpack -- grab a coffee, this will take about 5 minutes")
+        cmd("npm run webpack-production")
+        nothing = False
+
+    if 'pull' == action:
+        cmd("webapp-control.sh pull")
+        nothing = False
+
+    if 'push' in action:
+        cmd("webapp-control.sh push")
+        nothing = False
+
+    if 'clean' == action:
+        cmd("webapp-control.sh clean")
+        nothing = False
+
+    # some fallback check, just in case ...
+    if nothing:
+        raise ValueError("action %s unknown" % action)
 
 def install_primus():
-    cmd("static/primus/update_primus")
+    cmd("cd smc-hub && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
@@ -74,7 +94,6 @@ def install_all(compute=False, web=False):
         install_sagews()
         install_project()
     if web:
-        install_primus()
         install_webapp()
 
 def main():
@@ -88,7 +107,8 @@ def main():
     parser_hub.set_defaults(func = lambda *args: install_hub())
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
-    parser_webapp.set_defaults(func = lambda *args: install_webapp())
+    parser_webapp.add_argument('action', help='either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works', choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.set_defaults(func = install_webapp)
 
     parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')
     parser_primus.set_defaults(func = lambda *args: install_primus())

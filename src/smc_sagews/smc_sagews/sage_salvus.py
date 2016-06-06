@@ -162,7 +162,7 @@ class InteractCell(object):
                     v.append(new_row)
                 layout = v
             except:
-                raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), where width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
+                raise ValueError("layout must be None or a list of tuples (variable_name, width, [optional label]), where width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area.")
 
         # Append a row for any remaining controls:
         layout_vars = set(sum([[x[0] for x in row] for row in layout],[]))
@@ -255,8 +255,8 @@ class InteractFunction(object):
         I = self.__dict__['interact_cell']
         try:
             return I._last_vals[arg]
-        except Exception, err:
-            print err
+        except Exception as err:
+            print(err)
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
 
     def __delattr__(self, arg):
@@ -364,7 +364,7 @@ class Interact(object):
         @interact(layout={'top': [['a', 'b']], 'left': [['c']],
                           'bottom': [['d']], 'right':[['e']]})
         def _(a=x^2, b=(0..20), c=100, d=x+1, e=sin(2)):
-            print a+b+c+d+e
+            print(a+b+c+d+e)
 
     We illustrate some features that are only in Salvus, not in the
     Sage cell server or Sage notebook.
@@ -382,7 +382,7 @@ class Interact(object):
 
         @interact
         def f(n=20, **kwds):
-            print kwds
+            print(kwds)
             n = Integer(n)
             if n % 2 == 1:
                 del interact.half
@@ -402,7 +402,7 @@ class Interact(object):
             if not hasattr(interact, 'foo'):
                 interact.foo = 'hello'
             else:
-                print interact.foo
+                print(interact.foo)
 
     An indecisive interact::
 
@@ -467,7 +467,7 @@ class Interact(object):
     def __getattr__(self, arg):
         try:
             return interact_exec_stack[-1]._last_vals[arg]
-        except Exception, err:
+        except Exception as err:
             raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
 
     def changed(self):
@@ -502,7 +502,7 @@ class control:
     def convert_to_client(self, value):
         try:
             return self._convert_to_client(value)
-        except Exception, err:
+        except Exception as err:
             sys.stderr.write("%s -- %s\n"%(err, self))
             sys.stderr.flush()
             return jsonable(value)
@@ -515,7 +515,7 @@ class control:
         if self._convert_from_client is not None:
             try:
                 x = self._convert_from_client(obj)
-            except Exception, err:
+            except Exception as err:
                 sys.stderr.write("%s -- %s\n"%(err, self))
                 sys.stderr.flush()
                 x = self._last_value
@@ -684,7 +684,7 @@ def color_selector(default='blue', label=None, readonly=False, widget=None, hide
 
         @interact
         def f(c=color_selector()):
-            print c
+            print(c)
     """
     from sage.all import Color
     default = Color(default).html_color()
@@ -767,16 +767,16 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
         def f(hi=button('Hello', label='', classes="btn-primary btn-large"),
               by=button("By")):
             if 'hi' in interact.changed():
-                print "Hello to you, good sir."
+                print("Hello to you, good sir.")
             if 'by' in interact.changed():
-                print "See you."
+                print("See you.")
 
     Some buttons with icons::
 
         @interact
         def f(n=button('repeat', icon='fa-repeat'),
               m=button('see?', icon="fa-eye", classes="btn-large")):
-            print interact.changed()
+            print(interact.changed())
     """
     return control(
             control_type = "button",
@@ -903,7 +903,7 @@ def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
               square = button("Square", icon="fa-external-link"),
               m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
             if 'reset' in interact.changed():
-                print "randomize"
+                print("randomize")
                 interact.m = [[random() for _ in range(4)] for _ in range(4)]
             if 'square' in interact.changed():
                 salvus.tex(m^2)
@@ -967,7 +967,7 @@ def slider(start, stop=None, step=None, default=None, label=None,
         @interact
         def f(speed=(50,100,..,2000), x=slider([1..50], animate=1000)):
             if 'speed' in interact.triggers():
-                print "change x to have speed", speed
+                print("change x to have speed {}".format(speed))
                 del interact.x
                 interact.x = slider([1..50], default=interact.x, animate=speed)
                 return
@@ -1001,7 +1001,7 @@ def range_slider(*args, **kwds):
 
         @interact
         def _(t = range_slider([1..1000], default=(100,200), label=r'Choose a range for $\alpha$')):
-            print t
+            print(t)
     """
     kwds['range'] = True
     return slider(*args, **kwds)
@@ -1194,7 +1194,7 @@ class HTML:
         salvus.html(s)
 
     def table(self):
-        raise NotImplementedError, "html.table not implemented in SageMathCloud yet"
+        raise NotImplementedError("html.table not implemented in SageMathCloud yet")
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
@@ -1337,7 +1337,7 @@ evaluated as salvus.data.  For example, if you execute this code
 in a cell::
 
     javascript('''
-        worksheet.execute_code({code:"a = salvus.data['b']/2; print a", data:{b:5},
+        worksheet.execute_code({code:"a = salvus.data['b']/2; print(a)", data:{b:5},
                        preparse:false, cb:function(mesg) { console.log(mesg)} });
     ''')
 
@@ -1423,7 +1423,7 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print "CPU time: %.2f s, Wall time: %.2f s"%( cputime(self._start_cputime), walltime(self._start_walltime))
+        print("CPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -1486,7 +1486,7 @@ def timeit(*args, **kwds):
 
     """
     def go(code):
-        print sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds)
+        print(sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds))
     if len(args) == 0:
         return lambda code : go(code)
     else:
@@ -1538,7 +1538,7 @@ class Capture:
                 def write_stdout(buf):
                     salvus.namespace[stdout] += buf
             else:
-                raise TypeError, "stdout must be None, a string, or have a write method"
+                raise TypeError("stdout must be None, a string, or have a write method")
             def f(buf, done):
                 write_stdout(buf)
                 if echo:
@@ -1565,7 +1565,7 @@ class Capture:
                 def write_stderr(buf):
                     salvus.namespace[stderr] += buf
             else:
-                raise TypeError, "stderr must be None, a string, or have a write method"
+                raise TypeError("stderr must be None, a string, or have a write method")
             def f(buf, done):
                 write_stderr(buf)
                 if echo:
@@ -1646,9 +1646,9 @@ def cython(code=None, **kwds):
             defined.append(name)
     if not silent:
         if defined:
-            print "Defined %s"%(', '.join(defined))
+            print("Defined %s" % (', '.join(defined)))
         else:
-            print "No functions defined."
+            print("No functions defined.")
 
     files = os.listdir(path)
     html_filename = None
@@ -1919,7 +1919,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
             raise RuntimeError("failed to compile Fortran code:\n" + log_string)
 
         if verbose:
-            print log_string
+            print(log_string)
 
         m = __builtin__.__import__(name)
 
@@ -2063,8 +2063,8 @@ def prun(code):
                 p.strip_dirs()
             p.sort_stats(sort)
             p.print_stats()
-        except Exception, msg:
-            print msg
+        except Exception as msg:
+            print(msg)
 
 
 
@@ -2078,7 +2078,7 @@ def _wait_in_thread(pid, callback, filename):
         try:
             os.waitpid(pid,0)
             callback(load(filename))
-        except Exception, msg:
+        except Exception as msg:
         	callback(msg)
 
     from threading import Thread
@@ -2107,7 +2107,7 @@ def async(f, args, kwds, callback):
         # The child process
         try:
             result = f(*args, **kwds)
-        except Exception, msg:
+        except Exception as msg:
             result = str(msg)
         from sage.structure.sage_object import save
         save(result, filename)
@@ -2196,13 +2196,13 @@ class Fork(object):
                     try:
                         salvus.namespace[var] = loads(val)
                     except:
-                        print "unable to unpickle %s"%var
+                        print("unable to unpickle %s" % var)
             salvus._conn.send_json({'event':'output', 'id':id, 'done':True})
             if pid in self._children:
                 del self._children[pid]
 
         pid = async(f, tuple([]), {}, g)
-        print "Forked subprocess %s"%pid
+        print("Forked subprocess %s" % pid)
         self._children[pid] = id
 
     def kill(self, pid):
@@ -2211,7 +2211,7 @@ class Fork(object):
             os.kill(pid, 9)
             del self._children[pid]
         else:
-            raise ValueError, "Unknown pid = (%s)"%pid
+            raise ValueError("Unknown pid = (%s)" % pid)
 
 fork = Fork()
 
@@ -2456,7 +2456,7 @@ def show(*objs, **kwds):
             s = str(sage.misc.latex.latex(obj))
             if r'\text{\texttt' in s and 'tikzpicture' not in s:
                 # In this case the mathjax latex mess is so bad, it is better to just print and give up!
-                print obj
+                print(obj)
                 return
             # Add anything here that Sage produces and mathjax can't handle, and
             # which people complain about... (obviously, I wish there were a way to
@@ -2566,7 +2566,7 @@ class Exercise:
             else:
                 correct = bool(r)
                 comment = ''
-        except TypeError, msg:
+        except TypeError as msg:
             response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
         else:
             if correct:
@@ -3075,7 +3075,7 @@ def raw_input(prompt='', default='', placeholder='', input_width=None, label_wid
 
     EXAMPLE:
 
-        print salvus.raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="15ex")
+        print(salvus.raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="15ex"))
     """
     return salvus.raw_input(prompt=prompt, default=default, placeholder=placeholder, input_width=input_width, label_width=label_width, type=type)
 
@@ -3412,49 +3412,20 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     """
     Display a PDF file from the filesystem in an output cell of a worksheet.
 
+    It uses the HTML object tag, which uses either the browser plugin,
+    or provides a download link in case the browser can't display pdf's.
+
     INPUT:
 
     - filename
-    - viewer -- 'object' (default): use html object tag, which uses the browser plugin, or
-                provides a download link in case the browser can't display pdf's.
-              -- 'pdfjs' (experimental):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
-                (this works on more browser, but may be slower and uglier)
-    - width -- (default: 1000) -- pixel width of viewer
-    - height -- (default: 600) -- pixel height of viewer
-    - scale  -- (default: 1.6) -- zoom scale (only applies to pdfjs)
+    - width     -- (default: 1000) -- pixel width of viewer
+    - height    -- (default: 600)  -- pixel height of viewer
     """
     url = salvus.file(filename, show=False)
-    if viewer == 'object':
-        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> Your browser doesn\'t support embedded PDF\'s, but you can <a href="%s">download %s</a></p> </object>'%(url, width, height, url, filename)
-        salvus.html(s)
-    elif viewer == 'pdfjs':
-        import uuid
-        id = 'a'+str(uuid())
-        salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
-        salvus.html("""
-    <!-- pdf.js-based embedded javascript PDF viewer -->
-    <!-- File from the PDF.JS Library -->
-    <script type="text/javascript" src="pdfListView/external/compatibility.js"></script>
-    <script type="text/javascript" src="pdfListView/external/pdf.js"></script>
-
-    <!-- to disable webworkers: swap these below -->
-    <!-- <script type="text/javascript">PDFJS.disableWorker = true;</script> -->
-    <script type="text/javascript">PDFJS.workerSrc = 'pdfListView/external/pdf.js';</script>
-
-    <link rel="stylesheet" href="pdfListView/src/TextLayer.css">
-    <script src="pdfListView/src/TextLayerBuilder.js"></script>
-    <link rel="stylesheet" href="pdfListView/src/AnnotationsLayer.css">
-    <script src="pdfListView/src/AnnotationsLayerBuilder.js"></script>
-    <script src="pdfListView/src/PdfListView.js"></script>
-    """)
-
-        salvus.javascript('''
-            var lv = new PDFListView($("#%s")[0], {textLayerBuilder:TextLayerBuilder, annotationsLayerBuilder: AnnotationsLayerBuilder});
-            lv.setScale(%s);
-            lv.loadPdf("%s")'''%(
-            id, scale, url))
-    else:
-        raise RuntimeError("viewer must be 'object' or 'pdfjs'")
+    s = '''<object data="%s" type="application/pdf" width="%s" height="%s">
+    <p>Your browser doesn't support embedded PDF's, but you can <a href="%s">download %s</a></p>
+    </object>'''%(url, width, height, url, filename)
+    salvus.html(s)
 
 
 ########################################################

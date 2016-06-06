@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+set -v
+
+export NODE_PATH=$SALVUS_ROOT/smc-hub/node_modules/:$NODE_PATH
+cd $SALVUS_ROOT/webapp-lib/primus
+coffee update_primus.coffee $*
+
+uglifyjs primus-engine.js > primus-engine.min.js

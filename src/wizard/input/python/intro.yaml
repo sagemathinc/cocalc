@@ -7,7 +7,7 @@ category: Language / Tutorial
 ---
 title: Hello World
 descr: The "Hello World" program
-code: print "Hello World"
+code: print("Hello World")
 ---
 title: Variables
 descr: >
@@ -20,25 +20,25 @@ descr: >
 code: |
     x = 1
     y = x + 1
-    print x
-    print y
+    print(x)
+    print(y)
 ---
 title: Print Data
 descr: The "Hello World" program printing some values.
 code: |
     x = "Hello"
     y = 2.123456789
-    print "%s World, y = %f" %(x, y)
-    print "x={x}, y={y:.3f}".format(**locals())
+    print("%s World, y = %f" % (x, y))
+    print("x={x}, y={y:.3f}".format(**locals()))
 ---
 title: Expressions
 descr: Expressions are evaluated, they can consist of operators and function calls.
 code: |
-    print (5 + 6) * 11
+    print((5 + 6) * 11)
     z = 3
-    print (1 + z)**2
+    print((1 + z)**2)
     from math import sqrt
-    print sqrt(z)
+    print(sqrt(z))
 ---
 title: Functions
 descr: >
@@ -50,8 +50,8 @@ code: |
         z = 10 * x + y
         return z
 
-    print function1(4, 5)
-    print function1(1,-1)
+    print(function1(4, 5))
+    print(function1(1,-1))
 ---
 title: "Data Structure: List"
 descr: >
@@ -59,9 +59,9 @@ descr: >
     A very basic one is an ordered collection of arbitrary objects.
 code: |
     x = [42, "Hello", [1,2,3]]
-    print x
+    print(x)
     x.append("World")
-    print x
+    print(x)
 ---
 title: "Data Structure: Dict(ionary)"
 descr: >
@@ -72,6 +72,6 @@ code: |
     d[42] = "The Answer"
     d["what"] = ["this", "and", "that"]
     d[(4,2)] = 99
-    print d[(4,2)]
-    print d.keys()
-    print 42 in d
+    print(d[(4,2)])
+    print(d.keys())
+    print(42 in d)

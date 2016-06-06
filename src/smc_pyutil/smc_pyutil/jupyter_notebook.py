@@ -68,10 +68,17 @@ def command():
     port = random_port()  # time consuming!
     if project_id:
         b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
+        base = " --NotebookApp.base_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
     else:
         base = ''
-    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js %s --ip=%s --port=%s"%(base, ip, port)
+
+    # 2nd argument after "start" ("start" is already eaten, see above)
+    if len(sys.argv) >= 2:
+        mathjax_url = sys.argv.pop(1)
+    else:
+        mathjax_url = "/static/mathjax/MathJax.js" # fallback
+
+    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 

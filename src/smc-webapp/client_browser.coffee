@@ -23,6 +23,9 @@ _ = require('underscore')
 
 client = require('smc-util/client')
 
+#{SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('salvus-icon.svg')
+
 # these idle notifications were in misc_page, but importing it here failed
 
 idle_notification_html = ->
@@ -31,7 +34,7 @@ idle_notification_html = ->
     site_name = customize?.get('site_name') ? "SageMathCloud"
     """
     <div>
-    <img src="/static/salvus-icon.svg">
+    <img src="#{SMC_ICON_URL}">
     <h1>#{site_name}<br> is on standby</h1>
     &mdash; click to resume &mdash;
     </div>
