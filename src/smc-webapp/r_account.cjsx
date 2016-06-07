@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
 
-{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{InputGroup, FormGroup, FormControl, Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
 
@@ -419,18 +419,14 @@ AccountSettings = rclass
         </Well>
 
     render_sign_out_buttons : ->
-        <Row style={marginTop: '1ex'}>
-            <Col xs=12>
-                <ButtonToolbar className='pull-right'>
-                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
-                        <Icon name='sign-out'/> Sign out
-                    </Button>
-                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
-                        <Icon name='sign-out'/> Sign out everywhere
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <ButtonToolbar className='pull-right'>
+            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
+                <Icon name='sign-out'/> Sign out
+            </Button>
+            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
+                <Icon name='sign-out'/> Sign out everywhere
+            </Button>
+        </ButtonToolbar>
 
     render_sign_in_strategies : ->
         if not STRATEGIES? or STRATEGIES.length <= 1
@@ -471,10 +467,94 @@ AccountSettings = rclass
                 email_address = {@props.email_address}
                 ref   = 'password'
                 />
-            {@render_sign_out_buttons()}
+            <Row style={marginTop: '1ex'}>
+                <Col xs=12>
+                    {@render_sign_out_buttons()}
+                </Col>
+            </Row>
             {@render_sign_out_confirm() if @props.show_sign_out}
+            <Row>
+                <Col xs=12>
+                    <DeleteAccount
+                        style={marginTop:'1ex'}
+                        initial_click={()=>@setState(show_delete_confirmation:true)}
+                        confirm_click={(pass)=>@props.redux.getActions('account').delete_account(pass)}
+                        cancel_click={()=>@setState(show_delete_confirmation:false)}
+                        show_confirmation={@state.show_delete_confirmation}
+                        />
+                </Col>
+            </Row>
             {@render_sign_in_strategies()}
         </Panel>
+
+DeleteAccount = rclass
+    displayName : 'Account-DeleteAccount'
+
+    propTypes:
+        initial_click     : rtypes.func.isRequired
+        confirm_click     : rtypes.func.isRequired
+        cancel_click      : rtypes.func.isRequired
+        show_confirmation : rtypes.bool
+        style             : rtypes.object
+
+    render : ->
+        if not @props.show_confirmation
+            <Button
+                disabled={@props.show_confirmation}
+                className='pull-right'
+                bsStyle='danger'
+                style={@props.style}
+                onClick=@props.initial_click>
+            <Icon name='trash' /> Delete Account
+            </Button>
+        else
+            <DeleteAccountConfirmation
+                confirm_click={@props.confirm_click}
+                cancel_click={@props.cancel_click}/>
+
+# Concious choice to make them actually click the confirm delete button.
+# No confirm on enter.
+DeleteAccountConfirmation = rclass
+    displayName : 'Account-DeleteAccountConfirmation'
+
+    propTypes:
+        confirm_click : rtypes.func.isRequired
+        cancel_click  : rtypes.func.isRequired
+
+    # Loses state on rerender from cancel. But this is what we want.
+    getInitialState: ->
+        password : ''
+
+    render : ->
+        <Well style={marginTop: '15px', textAlign:'center'}>
+            Are you sure you want to do this?<br/>
+            You will lose access to <span style={fontWeight:'bold'}>all</span> of your projects.
+            <Input
+                autoFocus
+                value       = {@state.password}
+                type        = 'password'
+                ref         = 'password'
+                placeholder = 'Enter your current password to proceed'
+                onChange    = {=>@setState(password : @refs.password.getValue())}
+                style       = {marginTop : '1ex'}
+            />
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled={@state.password == ''}
+                    bsStyle='danger'
+                    onClick={=>@props.confirm_click(@state.password)}
+                >
+                    <Icon name='trash' /> Confirm Deletion
+                </Button>
+                <Button
+                    style={paddingRight:'8px'}
+                    bsStyle='primary'
+                    onClick={@props.cancel_click}}
+                >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
 
 ###
 # Terminal

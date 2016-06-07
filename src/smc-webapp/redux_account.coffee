@@ -72,6 +72,21 @@ class AccountActions extends Actions
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
+    # Takes a password and a callback in case of delete failure
+    delete_account : (password) ->
+        # salvus_client.delete_account
+        # ...
+        # cb : (err, message) =>
+        #     if err?
+        # @setState('reset_password_error' : "Error communicating with server: FAKE_ERROR")
+        #     else
+        @setState(is_deleted:true)
+        console.log("Delete account! Do this in redux_account.coffee")
+
+    undelete_account : ->
+        @setState(is_deleted:false)
+        console.log("Process reversed! Account active again")
+
     forgot_password : (email) ->
         salvus_client.forgot_password
             email_address : email
