@@ -390,7 +390,7 @@ module.exports =
 
     # https://webpack.github.io/docs/configuration.html#devtool
     # don't use cheap-module-eval-source-map produces too large files
-    devtool: if SOURCE_MAP then 'cheap-source-map' else false
+    devtool: if SOURCE_MAP then 'source-map' else false
 
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
         css  : 'webapp-css.coffee'
