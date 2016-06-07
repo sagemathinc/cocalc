@@ -160,6 +160,11 @@ class TopNavbar  extends EventEmitter
             n.button.show().addClass("active")
             @current_page_id = id
             @emit("switch_to_page-#{id}", id)
+            # recompute free project warning at the top when switching around
+            # TODO: remove this workaround when this is is reactified
+            if id.length == 36
+                {project_page}  = require('./project')
+                project_page(id).free_project_warning()
 
         # We still call show even if already on this page.
         n.page?.show()
