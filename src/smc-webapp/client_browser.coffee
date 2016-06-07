@@ -156,14 +156,14 @@ class Connection extends client.Connection
         @ondata = ondata
 
         opts =
-            ping      : 6000   # used for maintaining the connection and deciding when to reconnect.
+            ping      : 25000   # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
-                max      : 15000
+                max      : 12000
                 min      : 500
                 factor   : 1.5
-                retries  : 100000  # why ever stop trying if we're only trying once every 15 seconds?
+                retries  : 100000  # why ever stop trying if we're only trying once every 12 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn

@@ -881,7 +881,7 @@ if exports.SALVUS_HOME?
     # this is the directory where webpack builds everything
     exports.OUTPUT_DIR = "static"
     base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
-    exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else ''
+    exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else '/'
 
     # mathjax location and version: we read it from its package.json
     # webpack symlinks with the version in the path (MATHJAX_ROOT)

@@ -8,7 +8,10 @@ require("bootstrap-switch/bootstrap-switch.css")
 require("jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css")
 require("pnotify/jquery.pnotify.default.css")
 require("pnotify/jquery.pnotify.default.icons.css")
+
+# Dropzone in file/new
 require("dropzone/css/dropzone.css")
+
 # Datetime picker plugin
 require("datetimepicker/bootstrap-datetimepicker.min.css")
 
