@@ -40,6 +40,8 @@ markdown = require('./markdown')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 
+{PROJECT_UPGRADES} = require('smc-util/schema')
+
 MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
@@ -845,7 +847,10 @@ NewProjectCreator = rclass
             <NoUpgrades cancel={@cancel_upgrading} />
         else
             limits = @get_quota_limits()
-
+            ordered_fields = PROJECT_UPGRADES.field_order
+            ordered_quota_params = {}
+            for name in ordered_fields
+                ordered_quota_params[name] = @props.quota_params[name]
             <Alert bsStyle='info'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
@@ -870,7 +875,7 @@ NewProjectCreator = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, data, limits.remaining[n], limits.current[n], limits.limits[n]) for n, data of @props.quota_params}
+                {@render_upgrade_row(n, data, limits.remaining[n], limits.current[n], limits.limits[n]) for n, data of ordered_quota_params}
             </Alert>
 
     render_upgrades_button : ->
@@ -962,8 +967,7 @@ NewProjectCreator = rclass
         e.preventDefault();
         $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
 
-    render_upgrade_before_create : ->
-        subs = @props.customer?.subscriptions?.total_count ? 0
+    render_upgrade_before_create : (subs) ->
         if subs > 0 and not @state["has_subbed"]
             @setState(@getInitialUpgraderState())
             @setState(has_subbed: true)
@@ -989,7 +993,22 @@ NewProjectCreator = rclass
         if @state.title_text == '' and @state.state != 'saving'
             <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> 
 
-    render_input_section : ->
+    render_create_with_upgrades_button : (create_btn_disabled) ->
+        <ButtonToolbar>
+            <Button
+                disabled = {create_btn_disabled}
+                bsStyle  = 'success'
+                onClick  = {@create_project} >
+                Create project with upgrades
+            </Button>
+            <Button
+                disabled = {@state.state is 'saving'}
+                onClick  = {@cancel_editing} >
+                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+            </Button>
+        </ButtonToolbar>
+
+    render_input_section : (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
         <Well style={backgroundColor: '#FFF', color:'#666'}>
@@ -1055,24 +1074,12 @@ NewProjectCreator = rclass
                 </Col>
             </Row>
             <Row>
-                {@render_upgrade_before_create()}
+                {@render_upgrade_before_create(subs)}
             </Row>
             <Row>
                 <Col sm=12>
-                    {@render_no_title_alert()}
-                    <ButtonToolbar>
-                        <Button
-                            disabled = {create_btn_disabled}
-                            bsStyle  = 'success'
-                            onClick  = {@create_project} >
-                            Create project with upgrades
-                        </Button>
-                        <Button
-                            disabled = {@state.state is 'saving'}
-                            onClick  = {@cancel_editing} >
-                            {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-                        </Button>
-                    </ButtonToolbar>
+                    {@render_no_title_alert() if subs > 0}
+                    {@render_create_with_upgrades_button(create_btn_disabled) if subs > 0}
                     {@render_error()}
                 </Col>
             </Row>
@@ -1083,6 +1090,7 @@ NewProjectCreator = rclass
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
     render : ->
+        subs = @props.customer?.subscriptions?.total_count ? 0
         new_proj_btn =  <Col sm=4>
                             <Button
                                 bsStyle  = 'success'
@@ -1097,7 +1105,7 @@ NewProjectCreator = rclass
 
         new_proj_dialog = <Col sm=12>
                             <Space/>
-                            {@render_input_section()}
+                            {@render_input_section(subs)}
                           </Col>
 
         <Row>
