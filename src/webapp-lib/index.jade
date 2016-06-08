@@ -58,8 +58,13 @@ html
     div#smc-startup-banner-status
       | Initializing ...
 
-    //- this sets the base_url
-    script(type="text/javascript" src="base_url.js")
+    //- this sets the global window.smc_base_url: either statically via the BASE_URL template variable, or dynamically via hub
+    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+    if typeof BASE_URL !== "undefined" && BASE_URL !== null
+        script(type="text/javascript").
+            window.smc_base_url='#{BASE_URL}';
+    else
+        script(type="text/javascript" src="base_url.js")
 
     script(type="text/javascript").
         function smcLoadStatus(msg) {
