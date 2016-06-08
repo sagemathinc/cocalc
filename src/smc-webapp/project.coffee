@@ -77,6 +77,7 @@ class ProjectPage
         @init_tabs()
         @init_sortable_editor_tabs()
         @init_new_tab_in_navbar()
+        @free_project_warning()
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
@@ -111,6 +112,35 @@ class ProjectPage
         delete @projects_store
         delete @actions
         delete @store
+
+    free_project_warning: () =>
+        @projects_store.wait
+            until   : (s) => s.get_total_project_quotas(@project_id)
+            timeout : 60
+            cb      : (err, quotas) =>
+                if not err and quotas?
+                    host     = not quotas.member_host
+                    internet = not quotas.network
+                    box  = @container.find('.smc-project-free-quota-warning')
+                    if host or internet
+                        html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
+                        if host
+                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts"
+                            if internet
+                                html += ", and "
+                        if internet
+                            html += "does <b>not have full access to the internet</b>."
+                        else
+                            html += '.'
+                        html += " Please upgrade in <b>settings/usage and quotas</b> for a better experience!"
+                        box.find("div").html(html)
+                        box.show()
+                        box.click =>
+                            @load_target('settings')
+                            box.hide()
+                    else
+                        box.hide()
+
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)

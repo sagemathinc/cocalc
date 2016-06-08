@@ -192,10 +192,18 @@ htmlMinifyOpts =
     collapseWhitespace : true
     conservativeCollapse : true
 
+# when base_url_html is set, it is hardcoded into the index page
+# it mimics the logic of the hub, where all trailing slashes are removed
+# i.e. the production page has a base url of '' and smc-in-smc has '/.../...'
+base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down below
+while base_url_html and base_url_html[base_url_html.length-1] == '/'
+    base_url_html = base_url_html.slice(0, base_url_html.length-1)
+
 # this is the main indes.html file, which should be served without any caching
 jade2html = new HtmlWebpackPlugin
                         date     : BUILD_DATE
                         title    : TITLE
+                        BASE_URL : base_url_html
                         git_rev  : GIT_REV
                         mathjax  : MATHJAX_URL
                         filename : 'index.html'
@@ -390,7 +398,7 @@ module.exports =
 
     # https://webpack.github.io/docs/configuration.html#devtool
     # don't use cheap-module-eval-source-map produces too large files
-    devtool: if SOURCE_MAP then 'cheap-source-map' else false
+    devtool: if SOURCE_MAP then 'source-map' else false
 
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
         css  : 'webapp-css.coffee'
