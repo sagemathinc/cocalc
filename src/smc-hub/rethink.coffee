@@ -1084,7 +1084,8 @@ class RethinkDB
         if not opts.account_id? and not opts.email_address?
             opts.cb("one of email address or account_id must be specified")
             return
-
+        opts.cb("GOT TO THE DATABASE -- THIS SHOULD BE IN THE ERROR")
+        return
         query = undefined
         email_address = undefined
         async.series([

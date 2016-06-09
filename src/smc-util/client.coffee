@@ -658,6 +658,21 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
+    delete_account: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            password      : required
+            timeout       : 40
+            cb            : required
+#
+        @call
+            message : message.delete_account
+                email_address: opts.email_address
+                password     : opts.password
+            timeout : opts.timeout
+            cb      : opts.cb
+
+
     sign_in: (opts) ->
         opts = defaults opts,
             email_address : required

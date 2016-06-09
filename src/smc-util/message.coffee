@@ -10,7 +10,7 @@
 #    (at your option) any later version.
 #
 #    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    but WITHOUT ANY WARRANTY; witcreatehout even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 #
@@ -221,6 +221,18 @@ message
     event          : 'account_creation_failed'
     id             : undefined
     reason         : required
+
+# client --> hub
+message
+    event        : 'delete_account'
+    id           : undefined
+    email_address: required
+    password     : required
+# hub --> client
+message
+    event        : 'account_deletion_failed'
+    id           : undefined
+    error        : undefined
 
 # client <--> hub
 message

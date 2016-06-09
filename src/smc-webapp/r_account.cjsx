@@ -478,7 +478,7 @@ AccountSettings = rclass
                     <DeleteAccount
                         style={marginTop:'1ex'}
                         initial_click={()=>@setState(show_delete_confirmation:true)}
-                        confirm_click={(pass)=>@props.redux.getActions('account').delete_account(pass)}
+                        confirm_click={(pass)=>@props.redux.getActions('account').delete_account(@props.email_address, pass)}
                         cancel_click={()=>@setState(show_delete_confirmation:false)}
                         show_confirmation={@state.show_delete_confirmation}
                         />
