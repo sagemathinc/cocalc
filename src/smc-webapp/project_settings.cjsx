@@ -39,6 +39,8 @@ misc                 = require('smc-util/misc')
 {HelpEmailLink}   = require('./customize')
 {ShowSupportLink} = require('./support')
 
+{PROJECT_UPGRADES} = require('smc-util/schema')
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -319,6 +321,10 @@ UpgradeAdjustor = rclass
             # user has no upgrades on their account
             <NoUpgrades cancel={@cancel_upgrading} />
         else
+            ordered_fields = PROJECT_UPGRADES.field_order
+            ordered_quota_params = {}
+            for name in ordered_fields
+                ordered_quota_params[name] = @props.quota_params[name]
             # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
 
             # how much upgrade you have used between all projects
@@ -348,7 +354,7 @@ UpgradeAdjustor = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
+                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of ordered_quota_params}
 
                 <ButtonToolbar>
                     <Button
