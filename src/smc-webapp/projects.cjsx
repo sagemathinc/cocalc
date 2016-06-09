@@ -645,6 +645,13 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
+    componentWillReceiveProps : (nextProps) ->
+        # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
+        @setState(@getInitialUpgraderState())
+        subs = @props.customer?.subscriptions?.total_count ? 0
+        if subs > 0 and not @state["has_subbed"]
+            @setState(has_subbed: true)
+
     get_quota_limits : ->
         # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
 
@@ -694,6 +701,9 @@ NewProjectCreator = rclass
 
     max_upgrades : ->
         @setState(@getUpgraderState(true))
+
+    reset_upgrades : ->
+        @setState(@getUpgraderState(false))
 
     show_upgrade_quotas : ->
         @setState(upgrading : true)
@@ -855,15 +865,6 @@ NewProjectCreator = rclass
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
-                <p>
-                    <Button
-                        bsSize  = 'xsmall'
-                        onClick = {=>@max_upgrades()}
-                        style   = {padding:'0px 5px'}
-                    >
-                        Max all the upgrades
-                    </Button>
-                </p>
                 <hr/>
                 <Row>
                     <Col md=6>
@@ -871,6 +872,22 @@ NewProjectCreator = rclass
                     </Col>
                     <Col md=6>
                         <b style={fontSize:'12pt'}>Your contribution</b>
+                        <br/>
+                        <Button
+                            bsSize  = 'xsmall'
+                            onClick = {=>@max_upgrades()}
+                            style   = {padding:'0px 5px'}
+                        >
+                            Max all upgrades
+                        </Button>
+                        {' '}
+                        <Button
+                            bsSize  = 'xsmall'
+                            onClick = {=>@reset_upgrades()}
+                            style   = {padding:'0px 5px'}
+                        >
+                            Reset all upgrades
+                        </Button>
                     </Col>
                 </Row>
                 <hr/>
@@ -968,19 +985,18 @@ NewProjectCreator = rclass
         $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
 
     render_upgrade_before_create : (subs) ->
-        if subs > 0 and not @state["has_subbed"]
-            @setState(@getInitialUpgraderState())
-            @setState(has_subbed: true)
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
-            <p>To prevent abuse the free version doesn't have internet access. 
-            Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or 
-            any other internet resources
-            is not possible with the free version.
-            Starting at just $7/month you can give your project(s)
-            internet access, members only hosting, 1 day Idle timeout,
-            3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
-            with any project you are a collaborator on.</p>
+            <p>
+                To prevent abuse the free version doesn{"'"}t have internet access. 
+                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or 
+                any other internet resources
+                is not possible with the free version.
+                Starting at just $7/month you can give your project(s)
+                internet access, members only hosting, 1 day Idle timeout,
+                3 GB Memory, 5 GB Disk space, and half CPU share. You can share upgrades
+                with any project you are a collaborator on.
+            </p>
             <div>
                 {<div id="upgrade_before_creation"></div> if subs == 0}
                 <BillingPageSimplifiedRedux redux={redux} />
