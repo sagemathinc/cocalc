@@ -83,7 +83,8 @@ exports.UpgradesPage = rclass
 
     render_upgrade_rows: (upgrades, used) ->
         i = 1
-        for prop, amount of upgrades
+        for prop in PROJECT_UPGRADES.field_order
+            amount = upgrades[prop]
             i += 1
             @render_upgrade(prop, amount, used[prop], i%2==0)
 
