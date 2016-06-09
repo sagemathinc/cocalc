@@ -1440,6 +1440,13 @@ exports.map_diff = (a, b) ->
         c[k] ?= -v
     return c
 
+# limit the values in a by the values of b
+exports.map_limit = (a, b) ->
+    c = {}
+    for k, v of a
+        c[k] = Math.min(v, (b[k] ? Number.MAX_VALUE))
+    return c
+
 # arithmetic sum of an array
 exports.sum = (arr, start=0) -> underscore.reduce(arr, ((a, b) -> a+b), start)
 
