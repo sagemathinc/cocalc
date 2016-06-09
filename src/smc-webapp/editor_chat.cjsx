@@ -235,11 +235,11 @@ ChatRoom = (name) -> rclass
         input : ''
 
     keydown : (e) ->
-        @scroll_to_bottom()
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
+            @scroll_to_bottom()
             e.preventDefault()
             mesg = @refs.input.getValue()
             # block sending empty messages

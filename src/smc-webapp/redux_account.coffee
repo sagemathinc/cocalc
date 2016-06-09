@@ -186,7 +186,7 @@ class AccountStore extends Store
     # uses the total upgrades information to determine, if this is a paying member
     is_paying_member: =>
         ups = @get_total_upgrades()
-        return ups? and (v for k, v of ups).reduce((a, b) -> a + b) > 0
+        return ups? and (v for k, v of ups).reduce(((a, b) -> a + b), 0) > 0
 
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...

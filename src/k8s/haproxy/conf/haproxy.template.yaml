@@ -39,11 +39,11 @@ spec:
         terminationMessagePath: /dev/termination-log
         resources:
           requests:
-            memory: "100Mi"
-            cpu: "150m"
+            memory: "500Mi"
+            cpu: "1000m"
           limits:
-            memory: "250Mi"
-            cpu: "500m"
+            memory: "1000Mi"
+            cpu: "2000m"
         ports:
         # All http services
         - containerPort: 80
