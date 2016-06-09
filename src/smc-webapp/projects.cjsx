@@ -645,9 +645,11 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
+    componentWillMount : ->
+        @setState(@getInitialUpgraderState())
+
     componentWillReceiveProps : (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
-        @setState(@getInitialUpgraderState())
         subs = @props.customer?.subscriptions?.total_count ? 0
         if subs > 0 and not @state["has_subbed"]
             @setState(has_subbed: true)
