@@ -660,15 +660,13 @@ class exports.Connection extends EventEmitter
 
     delete_account: (opts) =>
         opts = defaults opts,
-            email_address : required
-            password      : required
+            account_id    : required
             timeout       : 40
             cb            : required
-#
+
         @call
             message : message.delete_account
-                email_address: opts.email_address
-                password     : opts.password
+                account_id : opts.account_id
             timeout : opts.timeout
             cb      : opts.cb
 

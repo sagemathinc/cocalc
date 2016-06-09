@@ -478,7 +478,7 @@ AccountSettings = rclass
                     <DeleteAccount
                         style={marginTop:'1ex'}
                         initial_click={()=>@setState(show_delete_confirmation:true)}
-                        confirm_click={(pass)=>@props.redux.getActions('account').delete_account(@props.email_address, pass)}
+                        confirm_click={=>@props.redux.getActions('account').delete_account()}
                         cancel_click={()=>@setState(show_delete_confirmation:false)}
                         show_confirmation={@state.show_delete_confirmation}
                         />
@@ -523,26 +523,28 @@ DeleteAccountConfirmation = rclass
 
     # Loses state on rerender from cancel. But this is what we want.
     getInitialState: ->
-        password : ''
+        confirmation_text : ''
+
+    required_text : 'delete this account'
 
     render : ->
         <Well style={marginTop: '15px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
-            You will lose access to <span style={fontWeight:'bold'}>all</span> of your projects.
+            You will lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+            To proceed type <span style={fontWeight:'bold'}>delete this account</span> below.
             <Input
                 autoFocus
-                value       = {@state.password}
-                type        = 'password'
-                ref         = 'password'
-                placeholder = 'Enter your current password to proceed'
-                onChange    = {=>@setState(password : @refs.password.getValue())}
+                value       = {@state.confirmation_text}
+                type        = 'text'
+                ref         = 'confirmation_field'
+                onChange    = {=>@setState(confirmation_text : @refs.confirmation_field.getValue())}
                 style       = {marginTop : '1ex'}
             />
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
-                    disabled={@state.password == ''}
+                    disabled={@state.confirmation_text != @required_text}
                     bsStyle='danger'
-                    onClick={=>@props.confirm_click(@state.password)}
+                    onClick={@props.confirm_click}
                 >
                     <Icon name='trash' /> Confirm Deletion
                 </Button>

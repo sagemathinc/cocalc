@@ -226,8 +226,8 @@ message
 message
     event        : 'delete_account'
     id           : undefined
-    email_address: required
-    password     : required
+    account_id   : required
+
 # hub --> client
 message
     event        : 'account_deletion_failed'

@@ -74,10 +74,9 @@ class AccountActions extends Actions
 
     # Need a way to confirm user identity for account deletion.
     # Email + password = Email access != passport?
-    delete_account : (email_address, password) ->
+    delete_account : ->
         salvus_client.delete_account
-            email_address : email_address
-            password      : password
+            account_id : @redux.getStore('account').get_account_id()
             timeout       : 40
             cb            : (err, mesg) =>
                 console.log("RETURNED MESG FROM SERVER: \n\t", mesg)

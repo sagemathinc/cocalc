@@ -2759,38 +2759,13 @@ create_account = (client, mesg, cb) ->
     )
 
 delete_account = (mesg, client, push_to_client) ->
-    {email_address, account_id, password} = mesg
-    console.log("DELETING ACCOUNT!!!")
-    if mesg.email_address?
-        mesg.email_address = misc.lower_email_address(mesg.email_address)
-    dbg = (m) -> winston.debug("delete_account(mesg.account_id, mesg.email_address, mesg): #{m}")
+    dbg = (m) -> winston.debug("delete_account(mesg.account_id): #{m}")
     dbg()
 
-    async.series([
-        (cb) ->
-            auth.is_password_correct
-                database             : database
-                account_id           : mesg.account_id
-                password             : mesg.password
-                email_address        : mesg.email_address
-                allow_empty_password : true  # in case account created using a linked passport only
-                cb                   : (err, is_correct) ->
-                    if err
-                        cb("Error checking password -- please try again in a minute -- #{err}.")
-                    else if not is_correct
-                        cb("invalid_password")
-                    else
-                        cb()
-
-        (cb) ->
-            database.mark_account_deleted
-                email_address : mesg.email_address
-                account_id    : mesg.account_id
-                cb            : cb
-    ], (err) ->
-        push_to_client(message.account_deletion_failed(id:mesg.id, error:err))
-    )
-
+    database.delete_account
+        account_id    : mesg.account_id
+        cb            : (err) =>
+            push_to_client(message.account_deletion_failed(id:mesg.id, error:err))
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null

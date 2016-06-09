@@ -1073,8 +1073,10 @@ class RethinkDB
         opts = defaults opts,
             account_id : required
             cb         : required
+
         if not @_validate_opts(opts) then return
-        @table('accounts').get(opts.account_id).delete().run(opts.cb)
+        opts.cb("VALID opts!!! Can proceed to deletion")
+        #@table('accounts').get(opts.account_id).delete().run(opts.cb)
 
     mark_account_deleted: (opts) =>
         opts = defaults opts,
@@ -1084,8 +1086,6 @@ class RethinkDB
         if not opts.account_id? and not opts.email_address?
             opts.cb("one of email address or account_id must be specified")
             return
-        opts.cb("GOT TO THE DATABASE -- THIS SHOULD BE IN THE ERROR")
-        return
         query = undefined
         email_address = undefined
         async.series([
