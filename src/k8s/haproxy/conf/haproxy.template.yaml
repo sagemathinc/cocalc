@@ -10,7 +10,7 @@ metadata:
   name: haproxy
   selfLink: /apis/extensions/v1beta1/namespaces/deployments/haproxy
 spec:
-  replicas: {replicas}  # TODO: instead use daemon sets when I understand them...
+  replicas: {replicas}
   selector:
     matchLabels:
       run: haproxy
@@ -27,16 +27,23 @@ spec:
     spec:
       containers:
       - image: {image}
-        imagePullPolicy: Always #IfNotPresent
+        imagePullPolicy: {pull_policy}
         name: haproxy
         livenessProbe:
           httpGet:
-            path: /healthz
-            port: 8081
+            path: /
+            port: 1936
             scheme: HTTP
           initialDelaySeconds: 30
           timeoutSeconds: 5
         terminationMessagePath: /dev/termination-log
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "1000m"
+          limits:
+            memory: "1000Mi"
+            cpu: "2000m"
         ports:
         # All http services
         - containerPort: 80
@@ -51,6 +58,8 @@ spec:
         - name: secret
           mountPath: /secret
           readOnly: true
+        args:
+        - --namespace={namespace}
       volumes:
         - name: secret
           secret:

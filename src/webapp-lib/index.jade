@@ -1,0 +1,125 @@
+doctype html
+html
+  head
+    meta(charset="utf-8")
+    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="description" content="#{ htmlWebpackPlugin.options.title }")
+    meta(name="author"      content="#{ htmlWebpackPlugin.options.title } Authors")
+    meta(name="date"        content="#{ htmlWebpackPlugin.options.date }")
+    meta(name="version"     content="#{ htmlWebpackPlugin.options.version }")
+    title= htmlWebpackPlugin.options.title
+
+    //- ****** faviconit.com favicons ******
+    //- Basic favicons -->
+    link(rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href="#{require('!file!favicon.ico')}")
+    link(rel="shortcut icon" type="image/x-icon" href="#{require('!file!favicon.ico')}")
+    <!--[if IE]><link rel="shortcut icon" href="#{require('!file!favicon.ico')}"><![endif]-->
+    //- For Opera Speed Dial:
+    link(rel="icon" type="image/png" sizes="195x195" href="#{require('!file!favicon-195.png') }")
+    //- For iPad with high-resolution Retina display running iOS ≥ 7:
+    link(rel="apple-touch-icon" sizes="152x152" href="#{require('!file!favicon-152.png') }")
+    //- For iPad with high-resolution Retina display running iOS ≤ 6:
+    link(rel="apple-touch-icon" sizes="144x144" href="#{require('!file!favicon-144.png') }")
+    //- For iPhone with high-resolution Retina display running iOS ≥ 7:
+    link(rel="apple-touch-icon" sizes="120x120" href="#{require('!file!favicon-120.png') }")
+    //- For iPhone with high-resolution Retina display running iOS ≤ 6:
+    link(rel="apple-touch-icon" sizes="114x114" href="#{require('!file!favicon-114.png') }")
+    //- For Google TV devices:
+    link(rel="icon" type="image/png" sizes="96x96" href="#{require('!file!favicon-96.png') }")
+    //- For iPad Mini:
+    link(rel="apple-touch-icon" sizes="76x76" href="#{require('!file!favicon-76.png') }")
+    //- For first- and second-generation iPad:
+    link(rel="apple-touch-icon" sizes="72x72" href="#{require('!file!favicon-72.png') }")
+    //- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices:
+    link(rel="apple-touch-icon" href="#{require('!file!favicon-57.png') }")
+    //- Windows 8 Tiles
+    meta(name="msapplication-TileColor" content="#C9C9F9")
+    meta(name="msapplication-TileImage" content="#{require('!file!favicon-144.png') }")
+    //- ****** faviconit.com favicons ******
+
+  body
+    style.
+      #{require('!css?minimize!smc-startup-style.css')}
+    div#smc-startup-banner
+      div
+        img(src="#{ require('!url?mimetype=image/svg+xml!salvus-icon.svg') }")
+      div
+        div.banner-blink
+            | Loading
+            br/
+            | #{ htmlWebpackPlugin.options.title } ...
+        div.banner-error
+          div.message
+            | Something bad must have happened.
+            br/
+            | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
+        div(style="clear: both;")
+    div#smc-startup-banner-status
+      | Initializing ...
+
+    //- this sets the global window.smc_base_url: either statically via the BASE_URL template variable, or dynamically via hub
+    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+    if typeof BASE_URL !== "undefined" && BASE_URL !== null
+        script(type="text/javascript").
+            window.smc_base_url='#{BASE_URL}';
+    else
+        script(type="text/javascript" src="base_url.js")
+
+    script(type="text/javascript").
+        function smcLoadStatus(msg) {
+        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
+
+    script(type="text/x-mathjax-config").
+        MathJax.Hub.Config({
+           skipStartupTypeset: true,
+           extensions: ["tex2jax.js","asciimath2jax.js"],
+           jax: ["input/TeX","input/AsciiMath", "output/SVG"],
+           tex2jax: {
+              inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+              displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+              processEscapes: true
+           },
+           TeX: {
+               extensions: ["autoload-all.js"],
+                Macros: { /* get these from sage/misc/latex.py */
+                    Bold:  ["\\mathbb{#1}",1],
+                    ZZ:    ["\\Bold{Z}",0],
+                    NN:    ["\\Bold{N}",0],
+                    RR:    ["\\Bold{R}",0],
+                    CC:    ["\\Bold{C}",0],
+                    FF:    ["\\Bold{F}",0],
+                    QQ:    ["\\Bold{Q}",0],
+                    QQbar: ["\\overline{\\QQ}",0],
+                    CDF:   ["\\Bold{C}",0],
+                    CIF:   ["\\Bold{C}",0],
+                    CLF:   ["\\Bold{C}",0],
+                    RDF:   ["\\Bold{R}",0],
+                    RIF:   ["\\Bold{I} \\Bold{R}",0],
+                    RLF:   ["\\Bold{R}",0],
+                    CFF:   ["\\Bold{CFF}",0],
+                    GF:    ["\\Bold{F}_{#1}",1],
+                    Zp:    ["\\ZZ_{#1}",1],
+                    Qp:    ["\\QQ_{#1}",1],
+                    Zmod:  ["\\ZZ/#1\\ZZ",1]
+                }
+           },      /* do not use "xypic.js", frequently causes crash! */
+           "HTML-CSS": { linebreaks: { automatic: true } },
+           SVG: { linebreaks: { automatic: true } },
+           showProcessingMessages: false
+        });
+    script(src="#{ htmlWebpackPlugin.options.mathjax }?delayStartupUntil=configured")
+
+    script(type="text/javascript").
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-34321400-1', 'auto');
+        ga('send', 'pageview');
+
+    //- Billing related functionality
+    script(type="text/javascript" src="https://js.stripe.com/v2/")
+
+    //- Hidden div to accurately determine if page is in responsive mode
+    div.salvus-responsive-mode-test

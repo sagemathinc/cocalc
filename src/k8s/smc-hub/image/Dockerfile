@@ -2,10 +2,13 @@ FROM smc-hub-base
 
 USER root
 
-# Pull latest source code for SMC
-RUN cd /smc && git pull
+# Which commit to checkout and build.
+ARG commit=HEAD
 
-# Rebuild hub -- this uses npm to update any dependencies, or install anything newly required.
+# Pull latest source code for SMC and checkout requested commit (or HEAD)
+RUN cd /smc && git pull && git fetch origin && git checkout ${commit:-HEAD}
+
+# Rebuild hub -- this uses npm to update any dependencies, or install anything required.
 RUN \
   cd /smc/src && \
   . ./smc-env && \
@@ -23,7 +26,7 @@ RUN \
 CMD \
   cd /smc/src && \
   . ./smc-env && \
-  hub --database_nodes rethinkdb-proxy --host=$HOSTNAME --port 5000 --proxy_port 5001 --foreground
+  hub --database_nodes=$SMC_DB_HOSTS --host=$HOSTNAME --db_pool=$SMC_DB_POOL --db_concurrent_warn=$SMC_DB_CONCURRENT_WARN --port 5000 --proxy_port 5001 --foreground
 
 # Expose main http endpoint on port 5000 and the hub proxy on port 5001.
 EXPOSE 5000 5001

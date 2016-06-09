@@ -11,8 +11,8 @@
 #                        http://www.gnu.org/licenses/                               #
 #####################################################################################
 
-import sys
-from os.path import abspath, normpath, exists, join
+import os, sys
+from os.path import abspath, dirname, normpath, exists, join
 from os import makedirs, walk
 from shutil import rmtree
 import yaml
@@ -54,7 +54,9 @@ def process_doc(doc, input_fn):
 
 def wizard_data(input_dir, output_fn):
     input_dir = abspath(normpath(input_dir))
-    wizard_js = abspath(normpath(output_fn))
+    wizard_json = abspath(normpath(output_fn))
+    output_dir = dirname(wizard_json)
+    print(output_dir)
     #print(input_dir, output_dir)
 
     # this implicitly defines all known languages
@@ -108,13 +110,17 @@ def wizard_data(input_dir, output_fn):
 
     #from datetime import datetime
     #wizard["timestamp"] = str(datetime.utcnow())
-    with open(wizard_js, "w", "utf8") as f_out:
+    if not os.path.exists(output_dir):
+        print("Creating output directory '%s'" % output_dir)
+        os.makedirs(output_dir)
+
+    with open(wizard_json, "w", "utf8") as f_out:
         # sorted keys to de-randomize output (to keep it in Git)
-        json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True)
+        json.dump(wizard, f_out, ensure_ascii=True, sort_keys=True, indent=1)
     #return json.dumps(wizard, indent=1)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'wizard.js')>" % sys.argv[0])
+        print("Usage: %s <input-directory of *.yaml files> <ouput-file (usually 'wizard.json')>" % sys.argv[0])
         sys.exit(1)
     wizard_data(sys.argv[1], sys.argv[2])

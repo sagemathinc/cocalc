@@ -21,6 +21,7 @@
 
 
 {defaults, to_json} = require("misc")
+{salvus_client} = require('./salvus_client')
 
 types = ['error', 'default', 'success', 'info']
 default_timeout =
@@ -68,7 +69,7 @@ exports.alert_message = (opts={}) ->
         # that us developers know what errors people are hitting.
         # There really should be no situation where users *regularly*
         # get error alert messages.
-        require('./salvus_client').salvus_client.log_error(opts.message)
+        salvus_client.log_error(opts.message)
 
     return
 
@@ -82,10 +83,16 @@ exports.alert_message = (opts={}) ->
 
     # setTimeout((()->c.remove()), opts.timeout*1000)
 
+check_for_clock_skew = () ->
+    local_time = new Date()
+    if Math.abs(salvus_client.server_time() - local_time) > 60000
+        exports.alert_message(type:'error', timeout:30,  message:"Your computer's clock is off by over a minute.  Please set it correctly.")
+
+# Wait until after the page is loaded and clock sync'd before checking for skew.
+setTimeout(check_for_clock_skew, 60000)
+
 # for testing/development
 # alert_message(type:'error',   message:"This is an error")
 # alert_message(type:'default', message:"This is a default alert")
 # alert_message(type:'success', message:"This is a success alert")
 # alert_message(type:'info',    message:"This is an info alert")
-
-

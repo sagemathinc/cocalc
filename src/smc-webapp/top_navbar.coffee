@@ -116,9 +116,10 @@ class TopNavbar  extends EventEmitter
         else if icon_img?
             button_label.prepend($("<img>").attr("src", icon_img))
         else if logo_smc?
+            smc_icon_url = require('salvus-icon.svg')
             logo_smc_div = $("<div class='img-rounded'>")
                                 .css('display', 'inline-block')
-                                .css('background-image', 'url("/static/salvus-icon.svg")')
+                                .css('background-image', "url('#{smc_icon_url}')")
                                 .css('background-size', 'contain')
                                 .css('background-color', SAGE_LOGO_COLOR)
                                 .css('height', "42px").css('width', "42px")
@@ -159,6 +160,11 @@ class TopNavbar  extends EventEmitter
             n.button.show().addClass("active")
             @current_page_id = id
             @emit("switch_to_page-#{id}", id)
+            # recompute free project warning at the top when switching around
+            # TODO: remove this workaround when this is is reactified
+            if id.length == 36
+                {project_page}  = require('./project')
+                project_page(id).free_project_warning()
 
         # We still call show even if already on this page.
         n.page?.show()
@@ -398,8 +404,17 @@ $("a[href=#salvus-connection-reconnect]").click () ->
 
 last_ping_time = ''
 
+network_connect_state = null
+network_connect_timer = null
+network_connect_timer_stop = () ->
+    if network_connect_timer?
+        window.clearTimeout(network_connect_timer)
+        network_connect_timer = null
+
 salvus_client.on "disconnected", (state) ->
     state ?= "disconnected"
+    network_connect_timer_stop()
+    network_connect_state = 'disconnected'
     $(".salvus-connection-status-connected").hide()
     $(".salvus-connection-status-connecting").hide()
     $(".salvus-connection-status-disconnected").html(state)
@@ -409,15 +424,26 @@ salvus_client.on "disconnected", (state) ->
     last_ping_time = ''
 
 salvus_client.on "connecting", () ->
-    $(".salvus-connection-status-disconnected").hide()
-    $(".salvus-connection-status-connected").hide()
-    $(".salvus-connection-status-connecting").show()
-    $(".salvus-fullscreen-activate").hide()
-    $(".salvus-connection-status-ping-time").html('')
-    last_ping_time = ''
-    $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
+    f = ->
+        $(".salvus-connection-status-disconnected").hide()
+        $(".salvus-connection-status-connected").hide()
+        $(".salvus-connection-status-connecting").show()
+        $(".salvus-fullscreen-activate").hide()
+        $(".salvus-connection-status-ping-time").html('')
+        last_ping_time = ''
+        $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
+        network_connect_timer = null
+
+    # insert delay mainly on connected → connecting state transitions
+    # such that there are brief&flaky "connecting" warnings.
+    if network_connect_state != 'connecting'
+        if not network_connect_timer?
+            network_connect_timer = window.setTimeout(f, 2000)
+    network_connect_state = 'connecting'
 
 salvus_client.on "connected", () ->
+    network_connect_state = 'connected'
+    network_connect_timer_stop()
     $(".salvus-connection-status-disconnected").hide()
     $(".salvus-connection-status-connecting").hide()
     $(".salvus-connection-status-connected").show()
@@ -425,9 +451,17 @@ salvus_client.on "connected", () ->
         $(".salvus-fullscreen-activate").show()
     $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
 
+ping_time_smooth = null
 salvus_client.on "ping", (ping_time) ->
     last_ping_time = ping_time
-    $(".salvus-connection-status-ping-time").html("#{ping_time}ms")
+    ping_time_smooth ?= ping_time
+    # reset outside 3x
+    if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
+        ping_time_smooth = ping_time
+    else
+        decay = 1 - Math.exp(-1)
+        ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
+    $(".salvus-connection-status-ping-time").html("#{Math.floor(ping_time_smooth)}ms")
 
 show_connection_information = () ->
     dialog = $(".salvus-connection-info")

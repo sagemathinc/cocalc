@@ -235,11 +235,11 @@ ChatRoom = (name) -> rclass
         input : ''
 
     keydown : (e) ->
-        @scroll_to_bottom()
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
+            @scroll_to_bottom()
             e.preventDefault()
             mesg = @refs.input.getValue()
             # block sending empty messages
@@ -263,6 +263,7 @@ ChatRoom = (name) -> rclass
                 ref       = 'input'
                 onKeyDown = {@keydown}
                 value     = {@props.input}
+                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
                 onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
                 />
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>

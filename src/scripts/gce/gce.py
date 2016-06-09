@@ -19,51 +19,7 @@ locale.setlocale( locale.LC_ALL, '' )
 def money(s):
     return locale.currency(s)
 
-# https://cloud.google.com/compute/pricing
-
-# all storage prices are per GB per month.
-PRICING = {
-    'gcs-standard'     : 0.026,
-    'gcs-reduced'      : 0.02,
-    'gcs-nearline'     : 0.01,
-    'snapshot'         : 0.026,
-    'local-ssd'        : 0.218,
-    'pd-ssd'           : 0.17,
-    'pd-standard'      : 0.04,
-
-    'n1-standard-hour' : 0.05,          # for equivalent of -1, so multiply by number of cpu's (the suffix)
-    'n1-standard-hour-pre'  : 0.015,
-    'n1-standard-month': 0.035*30.5*24,  # price for sustained use for a month
-    'n1-standard-ram'  : 3.75,           # amount in GB of base machine
-
-    'n1-highmem-hour'  : 0.096/2,
-    'n1-highmem-hour-pre'   : 0.035/2,
-    'n1-highmem-month' : 0.088*30.5*24/2,
-    'n1-highmem-ram'   : 6.5,
-
-    'n1-highcpu-hour'  : 0.076/2,
-    'n1-highcpu-hour-pre'   : 0.02/2,
-    'n1-highcpu-month' : 0.053*30.5*24/2,
-    'n1-highcpu-ram'   : 0.9,
-
-    'g1-small-hour'    : 0.021,
-    'g1-small-hour-pre': 0.01,
-    'g1-small-month'   : 0.019*30.5*24,
-    'g1-small-ram'     : 1.7,
-
-    'f1-micro-hour'    : 0.008,
-    'f1-micro-hour-pre': 0.005,
-    'f1-micro-month'   : 0.0056*30.5*24,
-    'f1-micro-ram'     : 0.60,
-
-    'europe'           : 1.096,
-    'asia'             : 1.096,
-    'us'               : 1,
-
-    'egress'           : 0.12,
-    'egress-china'     : 0.23,
-    'egress-australia' : 0.19,
-}
+from pricing import PRICING
 
 if 'SALVUS_ROOT' not in os.environ:
     # this is a hack because I'm in a hurry and want to run this script from cron
@@ -221,7 +177,7 @@ class GCE(object):
     def create_all_boot_snapshots(self):
         v = []
 
-        v.append(('docker-build', ''))
+        v.append(('kubectl', ''))
 
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))

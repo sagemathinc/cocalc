@@ -112,9 +112,10 @@ codemirror_associations =
     go     : 'text/x-go'
     pari   : 'text/pari'
     php    : 'php'
+    pl     : 'text/x-perl'
+    pug    : 'text/x-jade'
     py     : 'python'
     pyx    : 'python'
-    pl     : 'text/x-perl'
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
@@ -424,6 +425,8 @@ define_codemirror_sagews_mode = () ->
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
     ###
+    # ATTN: if that's ever going to be re-activated again,
+    # this needs to be require("script!...") in the spirit of webpack
     $.get '/static/codemirror-extra/data/sage-completions.txt', (data) ->
         s = data.split('\n')
         sagews_hint = (editor) ->
