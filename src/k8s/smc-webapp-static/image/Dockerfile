@@ -8,6 +8,9 @@ ARG commit=HEAD
 # Configuration of NGINX
 COPY default.conf /etc/nginx/conf.d/default.conf
 
+# Optional GA token (needs to be an empty file if not set)
+COPY google_analytics /smc/src/data/config/
+
 # Pull latest version of code and rebuild
 RUN cd /smc/src && . ./smc-env && git pull && git fetch origin && git checkout ${commit:-HEAD} && ./install.py webapp build
 
