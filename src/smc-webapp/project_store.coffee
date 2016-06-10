@@ -108,7 +108,8 @@ class ProjectActions extends Actions
             url = ''
         @_last_history_state = url
         window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
-        ga('send', 'pageview', window.location.pathname)
+        {analytics_pageview} = require('./misc_page')
+        analytics_pageview(window.location.pathname)
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)

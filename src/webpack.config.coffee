@@ -109,15 +109,17 @@ SOURCE_MAP    = !! process.env.SOURCE_MAP
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
+GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
-console.log "SMC_VERSION  = #{SMC_VERSION}"
-console.log "SMC_GIT_REV  = #{GIT_REV}"
-console.log "NODE_ENV     = #{NODE_ENV}"
-console.log "BASE_URL     = #{BASE_URL}"
-console.log "INPUT        = #{INPUT}"
-console.log "OUTPUT       = #{OUTPUT}"
+console.log "SMC_VERSION      = #{SMC_VERSION}"
+console.log "SMC_GIT_REV      = #{GIT_REV}"
+console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "BASE_URL         = #{BASE_URL}"
+console.log "INPUT            = #{INPUT}"
+console.log "OUTPUT           = #{OUTPUT}"
+console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 
 # mathjax version → symlink with version info from package.json/version
 MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
@@ -201,16 +203,17 @@ while base_url_html and base_url_html[base_url_html.length-1] == '/'
 
 # this is the main indes.html file, which should be served without any caching
 jade2html = new HtmlWebpackPlugin
-                        date     : BUILD_DATE
-                        title    : TITLE
-                        BASE_URL : base_url_html
-                        git_rev  : GIT_REV
-                        mathjax  : MATHJAX_URL
-                        filename : 'index.html'
-                        chunksSortMode: smcChunkSorter
-                        hash     : PRODMODE
-                        template : path.join(INPUT, 'index.jade')
-                        minify   : htmlMinifyOpts
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        BASE_URL         : base_url_html
+                        git_rev          : GIT_REV
+                        mathjax          : MATHJAX_URL
+                        filename         : 'index.html'
+                        chunksSortMode   : smcChunkSorter
+                        hash             : PRODMODE
+                        template         : path.join(INPUT, 'index.jade')
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
 
 # the following set of plugins renders the policy pages
 # they do *not* depend on any of the chunks, but rather specify css and favicon dependencies

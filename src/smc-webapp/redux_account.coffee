@@ -66,7 +66,8 @@ class AccountActions extends Actions
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                        {analytics_event} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
                         require('./top_navbar').top_navbar.switch_to_page('projects')
                     else
                         # should never ever happen
@@ -103,7 +104,8 @@ class AccountActions extends Actions
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
-        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
+        {analytics_event} = require('./misc_page')
+        analytics_event('account', evt)  # user explicitly signed out.
 
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server must clean up resources

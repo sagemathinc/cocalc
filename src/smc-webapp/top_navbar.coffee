@@ -169,7 +169,8 @@ class TopNavbar  extends EventEmitter
         # We still call show even if already on this page.
         n.page?.show()
         n.onshow?()
-        ga('send', 'pageview', window.location.pathname)
+        {analytics_pageview} = require('./misc_page')
+        analytics_pageview(window.location.pathname)
 
     activity_indicator: (id) =>
         if not id?
