@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
 
-{InputGroup, FormGroup, FormControl, Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
 
@@ -298,14 +298,15 @@ AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
-        first_name    : rtypes.string
-        last_name     : rtypes.string
-        email_address : rtypes.string
-        passports     : rtypes.object
-        show_sign_out : rtypes.bool
-        sign_out_error: rtypes.string
-        everywhere    : rtypes.bool
-        redux         : rtypes.object
+        first_name           : rtypes.string
+        last_name            : rtypes.string
+        email_address        : rtypes.string
+        passports            : rtypes.object
+        show_sign_out        : rtypes.bool
+        sign_out_error       : rtypes.string
+        everywhere           : rtypes.bool
+        redux                : rtypes.object
+        delete_account_error : rtypes.string
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -513,7 +514,6 @@ DeleteAccount = rclass
                 cancel_click={@props.cancel_click}/>
 
 # Concious choice to make them actually click the confirm delete button.
-# No confirm on enter.
 DeleteAccountConfirmation = rclass
     displayName : 'Account-DeleteAccountConfirmation'
 

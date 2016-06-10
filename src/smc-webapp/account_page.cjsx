@@ -1,9 +1,8 @@
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes, redux, Redux} = require('./smc-react')
-{Tab, Tabs, Grid, Button} = require('react-bootstrap')
+{Tab, Tabs, Grid} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
-{DeletedAccountWarning} = require('./deleted_account_warning')
 {AccountSettingsTop} = require('./r_account')
 {BillingPageRedux} = require('./billing')
 {UpgradesPage} = require('./r_upgrades')
@@ -47,7 +46,6 @@ AccountPage = rclass
             profile                 : rtypes.object
             groups                  : rtypes.array
             stripe_customer         : rtypes.object
-            is_deleted              : rtypes.bool
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -127,8 +125,7 @@ AccountPage = rclass
                 <Tab eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
                     {@render_support() if @props.active_page == 'support'}
                 </Tab>
-            </Tabs> if logged_in and not @props.is_deleted}
-            {<DeletedAccountWarning undelete_account={=>@props.actions.undelete_account()}/> if logged_in and @props.is_deleted}
+            </Tabs> if logged_in}
         </Grid>
 
 AccountPageRedux = rclass

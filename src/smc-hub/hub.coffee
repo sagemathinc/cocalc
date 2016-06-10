@@ -2765,7 +2765,7 @@ delete_account = (mesg, client, push_to_client) ->
     database.delete_account
         account_id    : mesg.account_id
         cb            : (err) =>
-            push_to_client(message.account_deletion_failed(id:mesg.id, error:err))
+            push_to_client(message.account_deleted(id:mesg.id, error:err))
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
