@@ -530,8 +530,9 @@ DeleteAccountConfirmation = rclass
     render : ->
         <Well style={marginTop: '15px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
-            You will lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
-            To proceed type <span style={fontWeight:'bold'}>delete this account</span> below.
+            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            To proceed, type <span style={fontWeight:'bold'}>delete this account</span> below.
             <Input
                 autoFocus
                 value       = {@state.confirmation_text}
