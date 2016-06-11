@@ -1552,12 +1552,13 @@ exports.analytics = (type, args...) ->
     # GoogleAnalyticsObject contains the possibly customized function name of GA.
     # It's a good idea to call it differently from the default 'ga' to avoid name clashes...
     if window.GoogleAnalyticsObject?
-        switch type
-            when 'event', 'pageview'
-                ga = window[window.GoogleAnalyticsObject]
-                ga('send', type, args...)
-            else
-                console.warn("unknown analytics event '#{type}'")
+        ga = window[window.GoogleAnalyticsObject]
+        if ga?
+            switch type
+                when 'event', 'pageview'
+                    ga('send', type, args...)
+                else
+                    console.warn("unknown analytics event '#{type}'")
 
 exports.analytics_pageview = (args...) ->
     exports.analytics('pageview', args...)
