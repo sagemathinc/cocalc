@@ -150,8 +150,9 @@ class MathjaxVersionedSymlink
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
 # deterministic hashing for assets
-WebpackSHAHash = require('webpack-sha-hash')
-webpackSHAHash = new WebpackSHAHash()
+# TODO this sha-hash lib sometimes crashes. switch to https://github.com/erm0l0v/webpack-md5-hash and try if that works!
+#WebpackSHAHash = require('webpack-sha-hash')
+#webpackSHAHash = new WebpackSHAHash()
 
 # cleanup like "make distclean"
 # otherwise, compiles create an evergrowing pile of files
@@ -334,7 +335,7 @@ plugins = [
     assetsPlugin,
     #extractCSS,
     #copyWebpackPlugin
-    webpackSHAHash,
+    #webpackSHAHash,
     statsWriterPlugin,
     #new PrintChunksPlugin(),
     mathjaxVersionedSymlink,
