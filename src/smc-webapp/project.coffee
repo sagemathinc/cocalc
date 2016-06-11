@@ -133,7 +133,15 @@ class ProjectPage
                         else
                             html += '.'
                         html += " Please upgrade in <b>settings/usage and quotas</b> for a better experience!"
+                        {PolicyPricingPageUrl} = require('./customize')
+                        html += " (<a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Subscriptions</a> and"
+                        html += " <a href='#' class='billing'>Billing</a>)"
                         box.find("div").html(html)
+                        box.find("div a.billing").click (evt) ->
+                            require('./history').load_target('settings/billing')
+                            evt.stopPropagation()
+                        box.find("div a.pricing").click (evt) ->
+                            evt.stopPropagation()
                         box.show()
                         box.click =>
                             @load_target('settings')
