@@ -544,11 +544,12 @@ class ProjectPage
             return
 
         @editor.open opts.path, (err, opened_path) =>
+            # {analytics_event} = require('./misc_page')
             if err
-                # ga('send', 'event', 'file', 'open', 'error', opts.path, {'nonInteraction': 1})
+                # analytics_event('file', 'open', 'error', opts.path, {'nonInteraction': 1})
                 alert_message(type:"error", message:"Error opening '#{opts.path}' -- #{misc.to_json(err)}", timeout:10)
             else
-                # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
+                # analytics_event('file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
 

@@ -58,7 +58,8 @@ load_app = (cb) ->
         cb()
 
 signed_in = (mesg) ->
-    ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
+    {analytics_event} = require('./misc_page')
+    analytics_event('account', 'signed_in')    # user signed in
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
 

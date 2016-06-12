@@ -1543,3 +1543,25 @@ return _sanitize_html_lib html,
         allowedTags: _sanitize_html_allowedTags
         allowedAttributes: _sanitize_html_allowedAttributes
 ###
+
+# `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
+# for now, it either does nothing or works with GA
+# this API basically allows to send off events by name and category
+
+exports.analytics = (type, args...) ->
+    # GoogleAnalyticsObject contains the possibly customized function name of GA.
+    # It's a good idea to call it differently from the default 'ga' to avoid name clashes...
+    if window.GoogleAnalyticsObject?
+        ga = window[window.GoogleAnalyticsObject]
+        if ga?
+            switch type
+                when 'event', 'pageview'
+                    ga('send', type, args...)
+                else
+                    console.warn("unknown analytics event '#{type}'")
+
+exports.analytics_pageview = (args...) ->
+    exports.analytics('pageview', args...)
+
+exports.analytics_event = (args...) ->
+    exports.analytics('event', args...)
