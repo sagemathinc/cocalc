@@ -441,10 +441,10 @@ HelpPageGettingStartedSection = rclass
                     <div>
                         In a project, click "<Icon name='plus-circle' /> New" then the
                         "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
-                        then press shift+enter.
-                        For the reset of the worksheet, type normal R commands, followed by shift+enter.
+                        then press shift+enter to evaluate it.
+                        For the rest of the worksheet, type normal R commands, followed by shift+snter.
                         Plotting should just work as usual in R.
-                        See <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates/tree/master/r'>these
+                        See <a target='_blank' href='https://github.com/sagemath/cloud-examples/tree/master/r'>these
                         example worksheets</a>.
                     </div>
                 </Panel>
