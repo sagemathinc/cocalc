@@ -25,8 +25,9 @@ def config():
     if not os.path.exists(datadog_fn):
         raise Exception('No datadog API key stored in "%s"' % datadog_fn)
     API_KEY = open(datadog_fn).read().strip()
+    NS = util.get_current_namespace()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(API_KEY=API_KEY))
+        tmp.write(t.format(API_KEY=API_KEY, namespace=NS))
         tmp.flush()
         # report back the temp filename
         yield tmp.name

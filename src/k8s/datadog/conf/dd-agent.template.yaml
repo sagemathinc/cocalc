@@ -20,7 +20,7 @@ spec:
           - name: API_KEY
             value: {API_KEY}
           - name: TAGS
-            value: "role:k8s"
+            value: "role:k8s,ns:{namespace}"
         volumeMounts:
           - name: dockersocket
             mountPath: /var/run/docker.sock
