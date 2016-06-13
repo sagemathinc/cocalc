@@ -39,6 +39,8 @@ misc                 = require('smc-util/misc')
 {HelpEmailLink}   = require('./customize')
 {ShowSupportLink} = require('./support')
 
+{PROJECT_UPGRADES} = require('smc-util/schema')
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -320,7 +322,7 @@ UpgradeAdjustor = rclass
             <NoUpgrades cancel={@cancel_upgrading} />
         else
             # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-
+            quota_params = @props.quota_params
             # how much upgrade you have used between all projects
             used_upgrades = @props.upgrades_you_applied_to_all_projects
 
@@ -348,7 +350,7 @@ UpgradeAdjustor = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
+                {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
 
                 <ButtonToolbar>
                     <Button
@@ -571,6 +573,7 @@ QuotaConsole = rclass
                 disk = Math.ceil(disk)
 
         r = misc.round2
+        # the keys in quotas have to match those in PROJECT_UPGRADES.field_order
         quotas =
             disk_quota  :
                 view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
@@ -598,7 +601,7 @@ QuotaConsole = rclass
 
         <div>
             {@render_admin_edit_buttons()}
-            {@render_quota_row(quota, settings.get(name), upgrades[name], quota_params[name]) for name, quota of quotas}
+            {@render_quota_row(quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
         </div>
 
 UsagePanel = rclass

@@ -9,6 +9,10 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
+# analytics token optionally stored in src/data/config/google_analytics
+# if doesn't exist, don't copy anything
+ga_fn = os.path.abspath(os.path.join(SCRIPT_PATH, '..', '..', 'data', 'config', 'google_analytics'))
+
 # For now in all cases, we just call the container the following; really it should
 # maybe be smc-webapp-static#sha1hash, which makes switching between versions easy, etc.
 NAME='smc-webapp-static'
@@ -32,6 +36,12 @@ def build(tag, rebuild, commit=None):
 
     # Build image we will deploy on top of base
     v = ['sudo', 'docker', 'build', '-t', tag]
+
+    ga = '' # default must be an empty file, otherwise docker complains
+    if os.path.exists(ga_fn):
+        ga = open(ga_fn).read().strip()
+    open(os.path.join(SCRIPT_PATH, 'image', 'google_analytics'), 'w').write(ga)
+
     if commit:
         v.append("--build-arg")
         v.append("commit={commit}".format(commit=commit))

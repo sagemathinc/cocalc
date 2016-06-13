@@ -898,3 +898,15 @@ if exports.SALVUS_HOME?
     exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
     # this is where the webapp and the jupyter notebook should get mathjax from
     exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
+
+    # google analytics (or later on some other analytics provider) needs a token as a parameter
+    # if defined in data/config/google_analytics, tell webpack about it.
+    ga_snippet_fn            = path.join(exports.SALVUS_HOME, 'data', 'config', 'google_analytics')
+    # file could contain the token or nothing (empty string, see k8s/smc-webapp-static)
+    ga = null
+    if fs.existsSync(ga_snippet_fn)
+        token = fs.readFileSync(ga_snippet_fn).toString().trim()
+        if token.length > 0
+            ga = token
+    exports.GOOGLE_ANALYTICS = ga
+
