@@ -992,7 +992,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 You can distribute these upgrades to your own projects or any projects where you are a collaborator &mdash;
                 everyone participating in such a collective project benefits and can easily change their allocations at any time!
                 You can get higher-quality hosting on members-only machines and enable access to the internet from projects.
-                You can also increas quotas for CPU and RAM, so that you can work on larger problems and
+                You can also increase quotas for CPU and RAM, so that you can work on larger problems and
                 do more computations simultaneously.
             </div>
         </div>
