@@ -292,8 +292,7 @@ HelpPageGettingStartedSection = rclass
         @update_mathjax()
 
     update_mathjax: ->
-        el = ReactDOM.findDOMNode(@)
-        MathJax.Hub.Queue(["Typeset", MathJax.Hub, el])
+        $(ReactDOM.findDOMNode(@)).mathjax()
 
     render : ->
         <div>
