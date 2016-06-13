@@ -53,7 +53,6 @@ if client._connected
         client.emit("signed_in", client._sign_in_mesg)
 
 # mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
-# the essential step is at the bottom below: MathJax.Hub.Configured()
 
 # ATTN: do not use "xypic.js", frequently causes crash!
 window.MathJax =
