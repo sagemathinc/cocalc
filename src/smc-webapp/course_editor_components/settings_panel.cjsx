@@ -63,14 +63,13 @@ exports.SettingsPanel = rclass
             </LabeledRow>
             <hr/>
             <span style={color:'#666'}>
-                <p>Set the course title and description here.
+                Set the course title and description here.
                 When you change the title or description, the corresponding
                 title and description of each student project will be updated.
                 The description is set to this description, and the title
                 is set to the student name followed by this title.
                 Use the description to provide additional information about
                 the course, e.g., a link to the main course website.
-                </p>
             </span>
         </Panel>
 
@@ -260,8 +259,7 @@ exports.SettingsPanel = rclass
             </Row>
             <hr/>
             <span style={color:'#666'}>
-                <p>Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
-                </p>
+                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
             </span>
         </Panel>
 
@@ -303,10 +301,9 @@ exports.SettingsPanel = rclass
             {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
             <hr/>
             <span style={color:'#666'}>
-                <p>If for some reason you would like to delete all the student projects
+                If for some reason you would like to delete all the student projects
                 created for this course, you may do so by clicking below.
                 Be careful!
-                </p>
             </span>
         </Panel>
 

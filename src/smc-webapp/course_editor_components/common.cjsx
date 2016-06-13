@@ -90,7 +90,7 @@ exports.DirectoryLink = rclass
     render : ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
-exports.BigTime = rclass
+exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
 
     render : ->
@@ -205,17 +205,17 @@ exports.StudentAssignmentInfo = rclass
     render_grade_score : ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
-                <Input autoFocus
-                       value       = {@state.grade}
-                       ref         = 'grade_input'
-                       type        = 'text'
-                       placeholder = 'Grade (any text)...'
-                       onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
-                       onBlur      = {@save_grade}
-                       onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
-                       buttonAfter = {<Button onClick={@save_grade} bsStyle='success'>Save</Button>}
+                <Input
+                    autoFocus
+                    value       = {@state.grade}
+                    ref         = 'grade_input'
+                    type        = 'text'
+                    placeholder = 'Grade (any text)...'
+                    onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
+                    onBlur      = {@save_grade}
+                    onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                    buttonAfter = {<Button bsStyle='success'>Save</Button>}
                 />
-
             </form>
         else
             if @props.grade
