@@ -227,7 +227,7 @@ class JupyterWrapper extends EventEmitter
         # own prefs.
         @frame.window.onbeforeunload = null
         # when active, periodically reset the idle timeout time in client_browser
-        console.log 'iframe', @iframe
+        # console.log 'iframe', @iframe
         @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
 
     monkey_patch_ui: () =>
