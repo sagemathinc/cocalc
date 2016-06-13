@@ -3313,6 +3313,10 @@ Settings = rclass
             <span style={color:"#666"}>
                 <ul>
                     <li>
+                        <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">
+                            SageMathCloud for lecturers <Icon name='external-link'/></a> (by Mike Croucher)
+                    </li>
+                    <li>
                         <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
                             Grading Courses <Icon name='external-link'/></a> (by Rob Beezer)
                     </li>
