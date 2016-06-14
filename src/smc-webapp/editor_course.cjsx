@@ -791,6 +791,18 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             delete_missing    : assignment.get('delete_missing')
                             exclude_history   : true
                             cb                : cb
+                    (cb) =>
+                        if peer_graded
+                            # Delete GRADER file
+                            salvus_client.exec
+                                project_id : student_project_id
+                                command    : 'rm ./*/GRADER*'
+                                timeout    : 60
+                                bash       : true
+                                path       : assignment.get('graded_path')
+                                cb         : cb
+                          else
+                              cb(null)
                 ], finish)
 
         # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
