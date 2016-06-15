@@ -122,7 +122,6 @@ class ProjectPage
                     host     = not quotas.member_host
                     internet = not quotas.network
                     box  = @container.find('.smc-project-free-quota-warning')
-                    $('#warning_banner_upgrade_this_project').hide()
                     if host or internet
                         html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
                         if host
@@ -141,7 +140,6 @@ class ProjectPage
                         box.show()
                         box.find("div button.become_paying_member").click (evt) ->
                             $('#warning_banner_upgrade_this_project').show()
-                            console.log('THE fing project id', quotas.project_id)
                             require('./paying_and_upgrading').init_upgrade_project(quotas.project_id, redux)
                             evt.stopPropagation()
                     else
