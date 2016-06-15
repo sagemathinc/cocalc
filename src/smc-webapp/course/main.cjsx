@@ -45,27 +45,27 @@ async     = require('async')
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{salvus_client} = require('./salvus_client')
-{synchronized_db} = require('./syncdb')
+{salvus_client} = require('../salvus_client')
+{synchronized_db} = require('../syncdb')
 schema = require('smc-util/schema')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, ErrorDisplay, Help, Icon, Loading,
-    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, NumberInput} = require('./r_misc')
+    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip, NumberInput} = require('../r_misc')
 
 # Course components
 #{CourseActions} = require('./course_editor_components/actions')
 #{CourseStore} = require('./course_editor_components/store')
-{StudentsPanel} = require('./course_editor_components/students_panel')
-{AssignmentsPanel} = require('./course_editor_components/assignments_panel')
-{SettingsPanel} = require('./course_editor_components/settings_panel')
-{SharedProjectPanel} = require('./course_editor_components/shared_project_panel')
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./course_editor_components/common.cjsx')
+{StudentsPanel} = require('./students_panel')
+{AssignmentsPanel} = require('./assignments_panel')
+{SettingsPanel} = require('./settings_panel')
+{SharedProjectPanel} = require('./shared_project_panel')
+{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
 
 
 PARALLEL_LIMIT = 5  # number of async things to do in parallel

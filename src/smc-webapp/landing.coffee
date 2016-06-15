@@ -44,7 +44,7 @@ if true
     require('./r_help')
     require('./d3')
     require('./tasks')
-    require('./editor_course')
+    require('./course/main.cjsx')
     require('./r_account.cjsx')
     require('./file_use.cjsx')
     require('./support.cjsx')

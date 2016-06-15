@@ -3706,7 +3706,7 @@ class TaskList extends FileEditorWrapper
 ###
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        editor_course = undefined   # is lazy loaded below
+        course = undefined   # is lazy loaded below
 
         @element = $("<div>")
         @element.css
@@ -3720,7 +3720,7 @@ class Course extends FileEditorWrapper
         @wrapped =
             save    : undefined
             destroy : =>
-                editor_course?.free_editor_course(args...)
+                course?.free_course(args...)
                 args = undefined
                 delete @editor
                 @element?.empty()
@@ -3728,12 +3728,12 @@ class Course extends FileEditorWrapper
                 delete @element
             # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
             #hide    : =>
-            #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #    course.hide_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
             #show    : =>
-            #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
+            #    course.show_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         require.ensure [], () =>
-            editor_course = require('./editor_course')
-            editor_course.render_editor_course(args...)
+            course = require('./course/main')
+            course.render_course(args...)
 
 
 ###
