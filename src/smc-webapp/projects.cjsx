@@ -544,7 +544,9 @@ class ProjectsStore extends Store
             return
         misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
-        return misc.map_sum(base_values, upgrades)
+        o = misc.map_sum(base_values, upgrades)
+        o['project_id'] = project_id
+        return o
 
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade

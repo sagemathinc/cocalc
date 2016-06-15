@@ -122,20 +122,16 @@ class ProjectPage
                     host     = not quotas.member_host
                     internet = not quotas.network
                     box  = @container.find('.smc-project-free-quota-warning')
+                    $('#warning_banner_upgrade_this_project').hide()
                     if host or internet
                         html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
                         if host
-                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts"
-                            if internet
-                                html += ", and "
+                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts."
                         if internet
-                            html += "does <b>not have full access to the internet</b>."
-                        else
-                            html += '.'
-                        html += " Please upgrade in <b>settings/usage and quotas</b> for a better experience!"
+                            html += " You <b>can't use any web resources in your code including PyPi and Github</b>."
+                        html += " <button type='button' class='become_paying_member btn btn-default'>Please upgrade</button>"
                         {PolicyPricingPageUrl} = require('./customize')
-                        html += " (<a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Subscriptions</a> and"
-                        html += " <a href='#' class='billing'>Billing</a>)"
+                        html += '<div id="warning_banner_upgrade_this_project"></div>'
                         box.find("div").html(html)
                         box.find("div a.billing").click (evt) ->
                             require('./history').load_target('settings/billing')
@@ -143,9 +139,11 @@ class ProjectPage
                         box.find("div a.pricing").click (evt) ->
                             evt.stopPropagation()
                         box.show()
-                        box.click =>
-                            @load_target('settings')
-                            box.hide()
+                        box.find("div button.become_paying_member").click (evt) ->
+                            $('#warning_banner_upgrade_this_project').show()
+                            console.log('THE fing project id', quotas.project_id)
+                            require('./paying_and_upgrading').init_upgrade_project(quotas.project_id, redux)
+                            evt.stopPropagation()
                     else
                         box.hide()
 
