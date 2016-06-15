@@ -797,7 +797,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                             # Delete GRADER file
                             salvus_client.exec
                                 project_id : student_project_id
-                                command    : 'rm ./*/GRADER*'
+                                command    : 'rm ./*/GRADER*.txt'
                                 timeout    : 60
                                 bash       : true
                                 path       : assignment.get('graded_path')
