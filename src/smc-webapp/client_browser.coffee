@@ -160,10 +160,10 @@ class Connection extends client.Connection
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
-                max      : 12000
-                min      : 500
-                factor   : 1.5
-                retries  : 100000  # why ever stop trying if we're only trying once every 12 seconds?
+                max      : 5000
+                min      : 1000
+                factor   : 1.25
+                retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn
@@ -177,6 +177,7 @@ class Connection extends client.Connection
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             console.log("websocket -- connected #{protocol}")
+            @_num_attempts = 0
 
             #console.log("installing ondata handler")
             conn.removeAllListeners('data')
@@ -212,6 +213,7 @@ class Connection extends client.Connection
             @emit("disconnected", "disconnected")
 
         conn.on 'reconnect scheduled', (opts) =>
+            @_num_attempts = opts.attempt
             @emit("connecting")
             conn.removeAllListeners('data')
             console.log("websocket -- reconnecting in #{opts.scheduled} ms")

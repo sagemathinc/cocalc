@@ -52,23 +52,21 @@ if client._connected
     if client._signed_in
         client.emit("signed_in", client._sign_in_mesg)
 
-###
 # mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
-# the essential step is at the bottom below: MathJax.Hub.Configured()
-# TODO: this doesn't work, because parts of the SMC app require MathJax during startup to be already there.
 
+# ATTN: do not use "xypic.js", frequently causes crash!
 window.MathJax =
-   skipStartupTypeset: true
-   extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
-   jax: ["input/TeX","input/AsciiMath", "output/SVG"]
-   tex2jax:
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ]
-      displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
-      processEscapes: true
+    skipStartupTypeset: true
+    extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
+    jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+    tex2jax:
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ]
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
+        processEscapes: true
 
-   TeX:
-       extensions: ["autoload-all.js"]
-       Macros:  # get these from sage/misc/latex.py
+    TeX:
+        extensions: ["autoload-all.js"]
+        Macros:  # get these from sage/misc/latex.py
             Bold:  ["\\mathbb{#1}",1]
             ZZ:    ["\\Bold{Z}",0]
             NN:    ["\\Bold{N}",0]
@@ -89,18 +87,27 @@ window.MathJax =
             Qp:    ["\\QQ_{#1}",1]
             Zmod:  ["\\ZZ/#1\\ZZ",1]
 
-   # do not use "xypic.js", frequently causes crash!
-   "HTML-CSS":
-        linebreaks: { automatic: true }
-   SVG:
-        linebreaks: { automatic: true }
-   showProcessingMessages: false
-###
+    # do not use "xypic.js", frequently causes crash!
+    "HTML-CSS":
+        linebreaks:
+            automatic: true
+    SVG:
+        linebreaks:
+            automatic: true
+    showProcessingMessages: false
 
 $ = require("jquery")
 $ ->
     $("#smc-startup-banner")?.remove()
     $('#smc-startup-banner-status')?.remove()
     $(parent).trigger('initialize:frame')
-    # $.getScript "#{MATHJAX_URL}?delayStartupUntil=configured", ->
-    MathJax.Hub.Configured()
+
+    # dynamically inserting the mathjax script URL
+    mjscript = document.createElement("script")
+    mjscript.type = "text/javascript"
+    mjscript.src  = MATHJAX_URL
+    mjscript.onload = ->
+        {mathjax_finish_startup} = require('./misc_page')
+        MathJax.Hub?.Queue([mathjax_finish_startup])
+    document.getElementsByTagName("head")[0].appendChild(mjscript)
+

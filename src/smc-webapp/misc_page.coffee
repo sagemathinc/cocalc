@@ -182,6 +182,30 @@ $.fn.html_noscript = (html) ->
         return t
 
 # MathJax some code -- jQuery plugin
+# ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
+# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc.cjsx)
+
+# this queue is used, when starting up or when it isn't configured (yet)
+mathjax_queue = []
+mathjax_enqueue = (x) ->
+    if MathJax?.Hub?
+        if x[0] == 'Typeset'
+            # insert MathJax.Hub as 2nd entry
+            MathJax.Hub.Queue([x[0], MathJax.Hub, x[1]])
+        else
+            MathJax.Hub.Queue(x)
+    else
+        mathjax_queue.push(x)
+
+exports.mathjax_finish_startup = ->
+    console.log 'finishing mathjax startup'
+    for x in mathjax_queue
+        mathjax_enqueue(x)
+
+mathjax_typeset = (el) ->
+    # no MathJax.Hub, since there is no MathJax defined!
+    mathjax_enqueue(["Typeset", el])
+
 $.fn.extend
     mathjax: (opts={}) ->
         opts = defaults opts,
@@ -213,11 +237,11 @@ $.fn.extend
                 element = t.html(tex)
             if opts.hide_when_rendering
                 t.hide()
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            mathjax_typeset(element[0])
             if opts.hide_when_rendering
-                MathJax.Hub.Queue([=>t.show()])
+                mathjax_enqueue([=>t.show()])
             if opts.cb?
-                MathJax.Hub.Queue([opts.cb, t])
+                mathjax_enqueue([opts.cb, t])
             return t
 
 $.fn.extend

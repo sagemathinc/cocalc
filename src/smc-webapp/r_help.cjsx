@@ -142,8 +142,9 @@ SUPPORT_LINKS =
     #    link : <span>Getting started with <SiteName/></span>
     teaching :
         icon : 'users'
-        href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
+        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
         #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        href : 'https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md'
         link : <span>Teaching a course with SageMathCloud</span>
     courses :
         icon : 'graduation-cap'
@@ -292,8 +293,7 @@ HelpPageGettingStartedSection = rclass
         @update_mathjax()
 
     update_mathjax: ->
-        el = ReactDOM.findDOMNode(@)
-        MathJax.Hub.Queue(["Typeset", MathJax.Hub, el])
+        $(ReactDOM.findDOMNode(@)).mathjax()
 
     render : ->
         <div>
