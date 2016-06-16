@@ -175,6 +175,11 @@ exports.SettingsPanel = rclass
             <span style={color:"#666"}>
                 <ul>
                     <li>
+                        <a href="https://github.com/mikecroucher/SMC_tutorial#sagemathcloud" target="_blank">
+                            A tutorial for anyone wanting to use SageMathCloud for teaching
+                        </a> (by Mike Croucher)
+                    </li>
+                    <li>
                         <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
                             Grading Courses <Icon name='external-link'/></a> (by Rob Beezer)
                     </li>
@@ -185,12 +190,6 @@ exports.SettingsPanel = rclass
                     <li>
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
                             Course Management and collaborative Jupyter Notebooks <Icon name='external-link'/></a> (by Tony Hirst)
-                    </li>
-                    <li>
-                        How H. Ulfarsson creates and grades homework:{' '}
-                        <a href="https://www.youtube.com/watch?v=dgTi11ZS3fQ" target="_blank">part 1 <Icon name='external-link'/></a>,{' '}
-                        <a href="https://www.youtube.com/watch?v=nkSdOVE2W0A" target="_blank">part 2 <Icon name='external-link'/></a>,{' '}
-                        <a href="https://www.youtube.com/watch?v=0qrhZQ4rjjg" target="_blank">part 3 <Icon name='external-link'/></a>
                     </li>
                 </ul>
             </span>
