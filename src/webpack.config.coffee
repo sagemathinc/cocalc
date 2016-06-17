@@ -31,7 +31,7 @@ Resources for learning webpack:
 This webpack config file might look scary, but it only consists of a few moving parts.
 
 1. There is the "main" SMC application, which is split into "css", "lib" and "smc":
-   1. css: a collection of all static styles from various locations. it might be possible
+   1. css: a collection of all static styles from various locations. It might be possible
       to use the text extraction plugin to make this a .css file, but that didn't work out.
       Some css is inserted, but it doesn't work and no styles are applied. In the end,
       it doesn't matter to load it one way or the other. Furthermore, as .js is even better,
@@ -202,7 +202,7 @@ base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
-# this is the main indes.html file, which should be served without any caching
+# this is the main index.html file, which should be served without any caching
 jade2html = new HtmlWebpackPlugin
                         date             : BUILD_DATE
                         title            : TITLE
@@ -401,8 +401,9 @@ module.exports =
     cache: true
 
     # https://webpack.github.io/docs/configuration.html#devtool
-    # don't use cheap-module-eval-source-map produces too large files
-    devtool: if SOURCE_MAP then 'source-map' else false
+    # **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
+    # using this in production.  DO NOT use 'source-map', which is VERY slow.
+    devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
 
     entry: # ATTN don't alter or add names here, without changing the sorting function above!
         css  : 'webapp-css.coffee'
