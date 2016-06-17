@@ -1390,7 +1390,7 @@ class FileEditor extends EventEmitter
                     @save_button.addClass('disabled')
             @_has_unsaved_changes = val
 
-    # commited means "not saved to the database/server", whereas save above
+    # committed means "not saved to the database/server", whereas save above
     # means "saved to *disk*".
     has_uncommitted_changes: (val) =>
         if not val?
@@ -1399,7 +1399,7 @@ class FileEditor extends EventEmitter
             @_has_uncommitted_changes = val
             if val
                 if not @_show_uncommitted_warning_timeout?
-                    # We have not already started a timer, so start one -- if we do not here otherwise, show
+                    # We have not already started a timer, so start one -- if we do not hear otherwise, show
                     # the warning in 10s.
                     @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 10000)
             else
