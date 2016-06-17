@@ -590,7 +590,7 @@ class Worksheet(object):
                + r"\end{document}"
 
 
-def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, style='modern'):
+def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, work_dir=None, style='modern'):
     base = os.path.splitext(filename)[0]
     if not outfile:
         pdf = base + ".pdf"
@@ -598,13 +598,16 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
         pdf = outfile
     print "converting: %s --> %s"%(filename, pdf)
     W = Worksheet(filename)
-    temp = ''
     try:
-        temp = tempfile.mkdtemp()
+        if work_dir is None:
+            work_dir = tempfile.mkdtemp()
+        else:
+            if not os.path.exists(work_dir):
+                os.makedirs(work_dir)
         if not remove_tmpdir:
-            print "Temporary directory retained: %s" % temp
+            print "Temporary directory retained: %s" % work_dir
         cur = os.path.abspath('.')
-        os.chdir(temp)
+        os.chdir(work_dir)
         from codecs import open
         open('tmp.tex', 'w', 'utf8').write(
             W.latex(title=title,
@@ -620,10 +623,10 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
     finally:
-        if temp and remove_tmpdir:
-            shutil.rmtree(temp)
+        if work_dir and remove_tmpdir:
+            shutil.rmtree(work_dir)
         else:
-            print "Leaving latex files in '%s'"%temp
+            print "Leaving latex files in '%s'"%work_dir
 
 def main():
     global extra_data
@@ -636,12 +639,15 @@ def main():
     parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
     parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
+    parser.add_argument("--work_dir", dest="work_dir", help="if set, then this is used as the working directory where the tex files are generated and it won't be deleted like the temp dir.")
+    parser.add_argument('--subdir', dest="subdir", help="if set, the work_dir will be set (or overwritten) to be pointing to a subdirectory named after the file to be converted.", default='false')
     parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
     parser.add_argument("--style", dest="style", help="Styling of the LaTeX document", type=str, choices=['classic', 'modern'], default="modern")
 
     args = parser.parse_args()
     args.contents = args.contents == 'true'
     args.remove_tmpdir = args.remove_tmpdir == 'true'
+    args.subdir = args.subdir == 'true'
 
     if args.extra_data_file:
         import json
@@ -649,13 +655,25 @@ def main():
     else:
         extra_data = {}
 
+    remove_tmpdir=args.remove_tmpdir
+
+    if args.subdir:
+        work_dir = '%s-sagews2pdf' % os.path.splitext(os.path.basename(args.filename))[0]
+        remove_tmpdir = False
+    elif args.work_dir is not None:
+        work_dir = os.path.abspath(os.path.expanduser(args.work_dir))
+        remove_tmpdir = False
+    else:
+        work_dir = None
+
     sagews_to_pdf(args.filename,
                   title=args.title.decode('utf8'),
                   author=args.author.decode('utf8'),
                   date=args.date,
                   outfile=args.outfile,
                   contents=args.contents,
-                  remove_tmpdir=args.remove_tmpdir,
+                  remove_tmpdir=remove_tmpdir,
+                  work_dir=work_dir,
                   style=args.style
                  )
 

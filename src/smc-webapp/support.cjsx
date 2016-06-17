@@ -122,10 +122,12 @@ class SupportActions extends Actions
             @set(email_err: 'Email address is invalid!')
 
     check_valid: () =>
-        s = @get('subject')?.trim() isnt ''
-        b = @get('body')?.trim() isnt ''
+        s = @get('subject')?.trim().length > 0
+        b = @get('body')?.trim().length > 0
         e = not @get('email_err')?
-        @set(valid: s and b and e)
+        v = s and b and e
+        # console.log("support/actions/check_valid: #{v} (s: #{s}, b: #{b}, e: #{e})")
+        @set(valid: v)
 
     project_id : ->
         pid = top_navbar.current_page_id
