@@ -64,6 +64,7 @@ schema = require('smc-util/schema')
 #{CourseStore} = require('./course_editor_components/store')
 {StudentsPanel} = require('./students_panel')
 {AssignmentsPanel} = require('./assignments_panel')
+{HandoutsPanel} = require('./handouts_panel')
 {SettingsPanel} = require('./settings_panel')
 {SharedProjectPanel} = require('./shared_project_panel')
 {STEPS, previous_step, step_direction, step_verb, step_ready} = require('./common.cjsx')
@@ -77,6 +78,7 @@ redux_name = (project_id, course_filename) ->
 primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
+    handouts    : 'handout_id'
 
 syncdbs = {}
 exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
@@ -99,7 +101,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         _store_is_initialized: =>
             store = get_store()
             return if not store?
-            if not (store.get('students')? and store.get('assignments')? and store.get('settings')?)
+            if not (store.get('students')? and store.get('assignments')? and store.get('settings')? and store.get('handouts'))
                 @set_error("store must be initialized")
                 return false
             return true
@@ -609,6 +611,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             course_filename.slice(0,i) + '-collect/' + path
 
         # Assignments
+        # TODO: Make a batch adder?
         add_assignment: (path) =>
             # Add an assignment to the course, which is defined by giving a directory in the project.
             # Where we collect homework that students have done (in teacher project)
@@ -1172,7 +1175,6 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
 
             async.map(peers, f, finish)
 
-
         # This doesn't really stop it yet, since that's not supported by the backend.
         # It does stop the spinner and let the user try to restart the copy.
         stop_copying_assignment: (type, assignment_id, student_id) =>
@@ -1223,7 +1225,188 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             # Now open it
             redux.getProjectActions(proj).open_directory(path)
 
+        # Handouts
+        add_handout: (path) =>
+            target_path = path # folder where we copy the handout to
+            @_update
+                set   : {path: path, target_path:target_path}
+                where : {table: 'handouts', handout_id:misc.uuid()}
+
+        delete_handout: (handout) =>
+            store = get_store()
+            return if not store?
+            handout = store.get_handout(handout)
+            @_update
+                set   : {deleted: true}
+                where : {handout_id: handout.get('handout_id'), table: 'handouts'}
+
+        undelete_handout: (handout) =>
+            store = get_store()
+            return if not store?
+            handout = store.get_handout(handout)
+            @_update
+                set   : {deleted: false}
+                where : {handout_id: handout.get('handout_id'), table: 'handouts'}
+
+        _set_handout_field: (handout, name, val) =>
+            store = get_store()
+            return if not store?
+            handout = store.get_handout(handout)
+            where      = {table:'handouts', handout_id:handout.get('handout_id')}
+            @_update(set:{"#{name}":val}, where:where)
+
+        set_handout_note: (handout, note) =>
+            @_set_handout_field(handout, 'note', note)
+
+        _handout_finish_copy: (handout, student, err) =>
+            if student? and handout?
+                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                where = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = syncdb.select_one(where:where)?.status ? {}
+                status_map[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                @_update(set:{"status":status_map}, where:where)
+
+        _handout_start_copy: (handout, student) =>
+            if student? and handout?
+                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                where = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = syncdb.select_one(where:where)?.status ? {}
+                student_status = (status_map[student.get('student_id')]) ? {}
+                if student_status.start? and salvus_client.server_time() - student_status.start <= 15000
+                    return true  # never retry a copy until at least 15 seconds later.
+                student_status.start = misc.mswalltime()
+                status_map[student.get('student_id')] = student_status
+                @_update(set:{"status":status_map}, where:where)
+            return false
+
+        # "Copy" of `stop_copying_assignment:`
+        stop_copying_handout: (handout, student) =>
+            if student? and handout?
+                store = get_store(); student = store.get_student(student); handout = store.get_handout(handout)
+                where = {table:'handouts', handout_id:handout.get('handout_id')}
+                status_map = syncdb.select_one(where:where)?.status_map
+                if not status_map?
+                    return
+                student_status = (status_map[student.get('student_id')])
+                if not student_status?
+                    return
+                if student_status.start?
+                    delete student_status.start
+                    status_map[student.get('student_id')] = student_status
+                    @_update(set:{"status_map":status_map}, where:where)
+
+        # Copy the files for the given handout to the given student. If
+        # the student project doesn't exist yet, it will be created.
+        # You may also pass in an id for either the handout or student.
+        # If the store is initialized and the student and handout both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    handout.status[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+        copy_handout_to_student: (handout, student) =>
+            if @_handout_start_copy(handout, student)
+                return
+            id = @set_activity(desc:"Copying handout to a student")
+            finish = (err) =>
+                @clear_activity(id)
+                @_handout_finish_copy(handout, student, err)
+                if err
+                    @set_error("copy to student: #{err}")
+            store = get_store()
+            if not @_store_is_initialized()
+                return finish("store not yet initialized")
+            if not student = store.get_student(student)
+                return finish("no student")
+            if not handout = store.get_handout(handout)
+                return finish("no handout")
+
+            student_name = store.get_student_name(student)
+            @set_activity(id:id, desc:"Copying handout to #{student_name}")
+            student_project_id = student.get('project_id')
+            student_id = student.get('student_id')
+            src_path = handout.get('path')
+            async.series([
+                (cb) =>
+                    if not student_project_id?
+                        @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so creating it.")
+                        @create_student_project(student)
+                        get_store().wait
+                            until : => get_store().get_student_project_id(student_id)
+                            cb    : (err, x) =>
+                                student_project_id = x
+                                cb(err)
+                    else
+                        cb()
+                (cb) =>
+                    @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
+                    salvus_client.copy_path_between_projects
+                        src_project_id    : course_project_id
+                        src_path          : src_path
+                        target_project_id : student_project_id
+                        target_path       : handout.get('target_path')
+                        overwrite_newer   : false
+                        delete_missing    : false
+                        backup            : true
+                        exclude_history   : true
+                        cb                : cb
+            ], (err) =>
+                finish(err)
+            )
+
+        # Copy the given handout to all non-deleted students, doing several copies in parallel at once.
+        copy_handout_to_all_students: (handout, new_only) =>
+            desc = "Copying handouts to all students #{if new_only then 'who have not already received it' else ''}"
+            short_desc = "copy to student"
+
+            id = @set_activity(desc:desc)
+            error = (err) =>
+                @clear_activity(id)
+                err="#{short_desc}: #{err}"
+                @set_error(err)
+            store = get_store()
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not handout = store.get_handout(handout)
+                return error("no handout")
+            errors = ''
+            f = (student_id, cb) =>
+                if new_only and store.handout_last_copied(handout, student_id, true)
+                    cb(); return
+                n = misc.mswalltime()
+                @copy_handout_to_student(handout, student_id)
+                store.wait
+                    timeout : 60*15
+                    until   : => store.handout_last_copied(handout, student_id) >= n
+                    cb      : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
+
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
+                if errors
+                    error(errors)
+                else
+                    @clear_activity(id)
+
+        open_handout: (handout_id, student_id) =>
+            store = get_store()
+            handout = store.get_handout(handout_id)
+            student = store.get_student(student_id)
+            student_project_id = student.get('project_id')
+            if not student_project_id?
+                @set_error("open_handout: student project not yet created")
+                return
+            path = handout.get('target_path')
+            proj = student_project_id
+            if not proj?
+                @set_error("no such project")
+                return
+            # Now open it
+            redux.getProjectActions(proj).open_directory(path)
+
     redux.createActions(the_redux_name, CourseActions)
+
     class CourseStore extends Store
         any_assignment_uses_peer_grading: =>
             # Return true if there are any non-deleted assignments that use peer grading
@@ -1394,6 +1577,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         # number of non-deleted assignments
         num_assignments: => @_num_nondeleted(@get_assignments())
 
+        # number of non-deleted handouts
+        num_handouts: => @_num_nondeleted(@get_handouts())
+
         # get info about relation between a student and a given assignment
         student_assignment_info: (student, assignment) =>
             assignment = @get_assignment(assignment)
@@ -1486,8 +1672,95 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
 
             @_assignment_status[assignment_id] = info
             return info
+
+        get_handout_note: (handout) =>
+            return @get_handout(handout)?.get('note')
+
+        get_handouts: =>
+            return @get('handouts')
+
+        get_handout: (handout) =>
+            # return handout with given id if a string; otherwise, just return handout (the input)
+            if typeof(handout) != 'string'
+                handout = handout?.get('handout_id')
+            return @getIn(['handouts', handout])
+
+        get_handout_ids: (opts) =>
+            opts = defaults opts,
+                deleted : false   # if true return only deleted handouts
+            if not @get_handouts()
+                return undefined
+            v = []
+            @get_handouts().map (val, handout_id) =>
+                if !!val.get('deleted') == opts.deleted
+                    v.push(handout_id)
+            return v
+
+        student_handout_info: (student, handout) =>
+            handout = @get_handout(handout)
+            student = @get_student(student)
+            student_id = student.get('student_id')
+            status = @get_handout_status(handout)
+            info =                         # RHS -- important to be undefined if no info -- assumed in code
+                status      : handout.get('status')?.get(student_id)?.toJS()
+                student_id        : student_id
+                handout_id        : handout.get('handout_id')
+            return info
+
+        # Return the last time the handout was copied to/from the
+        # student (in the given step of the workflow), or undefined.
+        # Even an attempt to copy with an error counts.
+        # ???
+        handout_last_copied: (handout, student_id) =>
+            x = @get_handout(handout)?.get("status")?.get(student_id)
+            if not x?
+                return undefined
+            if x.get('error')
+                return undefined
+            return x.get('time')
+
+        get_handout_status: (handout) =>
+            #
+            # Compute and return an object that has fields (deleted students are ignored)
+            #
+            #  handout     - number of students who have received handout
+            #  not_handout - number of students who have NOT received handout
+            # This function caches its result and only recomputes values when the store changes,
+            # so it should be safe to call in render.
+            #
+            if not @_handout_status?
+                @_handout_status = {}
+                @on 'change', =>
+                    @_handout_status = {}
+            handout = @get_handout(handout)
+            if not handout?
+                return undefined
+
+            handout_id = handout.get('handout_id')
+            if @_handout_status[handout_id]?
+                return @_handout_status[handout_id]
+
+            students = @get_student_ids(deleted:false)
+            if not students?
+                return undefined
+
+            info =
+                handout : 0
+                not_handout : 0
+
+            for student_id in students
+                x = handout.get("status")?.get(student_id)
+                if x? and not x.get('error')
+                    info.handout += 1
+                else
+                    info.not_handout += 1
+
+            @_handout_status[handout_id] = info
+            return info
+
     redux.createStore(the_redux_name, CourseStore)
 
+    # TODO Sync Handouts
     synchronized_db
         project_id : course_project_id
         filename   : course_filename
@@ -1497,7 +1770,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             else
                 syncdbs[the_redux_name] = syncdb = _db
                 i = course_filename.lastIndexOf('.')
-                t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}}
+                t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}, handouts:{}}
                 for x in syncdb.select()
                     if x.table == 'settings'
                         misc.merge(t.settings, misc.copy_without(x, 'table'))
@@ -1505,6 +1778,8 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         t.students[x.student_id] = misc.copy_without(x, 'table')
                     else if x.table == 'assignments'
                         t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
+                    else if x.table == 'handouts'
+                        t.handouts[x.handout_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
                 get_actions().setState(t)
@@ -1522,7 +1797,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
     return # don't return syncdb above
 
 CourseEditor = (name) -> rclass
-    displayName : "CourseEditor"
+    displayName : "CourseEditor-Main"
 
     reduxProps :
         "#{name}" :
@@ -1531,6 +1806,7 @@ CourseEditor = (name) -> rclass
             activity    : rtypes.object    # status messages about current activity happening (e.g., things being assigned)
             students    : rtypes.immutable
             assignments : rtypes.immutable
+            handouts    : rtypes.immutable
             settings    : rtypes.immutable
             unsaved     : rtypes.bool
         users :
@@ -1592,6 +1868,9 @@ CourseEditor = (name) -> rclass
     num_assignments: ->
         @props.redux.getStore(@props.name)?.num_assignments()
 
+    num_handouts: ->
+        @props.redux.getStore(@props.name)?.num_handouts()
+
     render_students : ->
         if @props.redux? and @props.students? and @props.user_map? and @props.project_map?
             <StudentsPanel redux={@props.redux} students={@props.students}
@@ -1606,6 +1885,15 @@ CourseEditor = (name) -> rclass
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <AssignmentsPanel redux={@props.redux} assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
+        else
+            return <Loading />
+
+    render_handouts : ->
+        if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
+            <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
+                project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
+                store={@props.redux.getStore(@props.name)} project_actions={@props.redux.getProjectActions(@props.project_id)}
+                />
         else
             return <Loading />
 
@@ -1641,6 +1929,10 @@ CourseEditor = (name) -> rclass
                 <Tab eventKey={'assignments'} title={<AssignmentsPanel.Header n={@num_assignments()}/>}>
                     <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
+                </Tab>
+                <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
+                    <div style={marginTop:'8px'}></div>
+                    {@render_handouts()}
                 </Tab>
                 <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
                     <div style={marginTop:'8px'}></div>

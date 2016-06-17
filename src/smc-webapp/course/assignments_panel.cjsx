@@ -136,20 +136,6 @@ exports.AssignmentsPanel = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_assignment_tip : ->
-        <div>
-            <p> <b>Collect an assignment</b> from your students by clicking "Collect from...".
-            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button.)
-            You can then open each completed assignment and edit the student files, indicating grades
-            on each problem, etc.
-            </p>
-
-            <p><b>Return the graded assignment</b> to your students by clicking "Return to..."
-            If the assignment folder is called <tt>assignment1</tt>, then the graded version will appear
-            in the student project as <tt>homework1-graded</tt>.
-            </p>
-        </div>
-
     render_header : (num_omitted) ->
         <div>
             <Row>
