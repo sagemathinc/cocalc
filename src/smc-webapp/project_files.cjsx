@@ -917,6 +917,13 @@ ProjectFilesActionBox = rclass
     cancel_action : ->
         @props.actions.set_file_action()
 
+    action_key: (e) ->
+        switch e.keyCode
+            when 27
+                @cancel_action()
+            when 13
+                @["submit_action_#{@props.file_action}"]?()
+
     render_selected_files_list : ->
         <pre style={@pre_styles}>
             {<div key={name}>{misc.path_split(name).tail}</div> for name in @props.checked_files.toArray()}
@@ -942,11 +949,14 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666'}>
                     <h4>Result archive</h4>
                     <Input
+                        autoFocus    = {true}
                         ref          = 'result_archive'
                         key          = 'result_archive'
                         type         = 'text'
                         defaultValue = {account.default_filename('zip')}
-                        placeholder  = 'Result archive...' />
+                        placeholder  = 'Result archive...'
+                        onKeyDown    = {@action_key}
+                    />
                 </Col>
             </Row>
             <Row>
@@ -962,6 +972,9 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    submit_action_compress: () ->
+        @compress_click()
 
     delete_click : ->
         @props.actions.trash_files
@@ -1045,13 +1058,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666'}>
                     <h4>New name</h4>
                     <Input
-                        autoFocus
+                        autoFocus    = {true}
                         ref          = 'new_name'
                         key          = 'new_name'
                         type         = 'text'
                         defaultValue = {misc.path_split(single_item).tail}
                         placeholder  = 'New file name...'
-                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())} />
+                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())}
+                        onKeyDown    = {@action_key}
+                    />
                     {@render_rename_warning()}
                 </Col>
             </Row>
@@ -1069,6 +1084,11 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
+    submit_action_rename: () ->
+        single_item = @props.checked_files.first()
+        if @valid_rename_input(single_item)
+            @rename_click()
+
     move_click : ->
         @props.actions.move_files
             src  : @props.checked_files.toArray()
@@ -1077,7 +1097,10 @@ ProjectFilesActionBox = rclass
         @props.actions.set_all_files_unchecked()
 
     valid_move_input : ->
+        src_path = misc.path_split(@props.checked_files.first()).head
         dest = @state.move_destination.trim()
+        if dest == src_path
+            return false
         if misc.contains(dest, '//') or misc.startswith(dest, '/')
             return false
         if dest.charAt(dest.length - 1) is '/'
@@ -1095,12 +1118,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666',marginBottom:'15px'}>
                     <h4>Destination</h4>
                     <DirectoryInput
-                        on_change     = {(value)=>@setState(move_destination:value)}
+                        autoFocus     = {true}
+                        on_change     = {(value) => @setState(move_destination:value)}
                         key           = 'move_destination'
                         default_value = ''
                         placeholder   = 'Home directory'
                         redux         = {@props.redux}
-                        project_id    = {@props.project_id} />
+                        project_id    = {@props.project_id}
+                        on_key_up     = {@action_key}
+                    />
                 </Col>
             </Row>
             <Row>
@@ -1116,6 +1142,10 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    submit_action_move: () ->
+        if @valid_move_input()
+            @move_click()
 
     render_different_project_dialog : ->
         if @state.show_different_project
@@ -1180,7 +1210,10 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     valid_copy_input : ->
+        src_path = misc.path_split(@props.checked_files.first()).head
         input = @state.copy_destination_directory
+        if input == src_path
+            return false
         if @state.copy_destination_project_id is ''
             return false
         if input is @props.current_directory
@@ -1221,12 +1254,15 @@ ProjectFilesActionBox = rclass
                     <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
                         <h4 style={{height:'25px'} if not @state.show_different_project}>Destination</h4>
                         <DirectoryInput
+                            autoFocus     = {true}
                             on_change     = {(value)=>@setState(copy_destination_directory:value)}
                             key           = 'copy_destination_directory'
                             placeholder   = 'Home directory'
                             default_value = ''
                             redux         = {@props.redux}
-                            project_id    = {@state.copy_destination_project_id} />
+                            project_id    = {@state.copy_destination_project_id}
+                            on_key_up     = {@action_key}
+                        />
                     </Col>
                 </Row>
                 <Row>
@@ -1242,6 +1278,10 @@ ProjectFilesActionBox = rclass
                     </Col>
                 </Row>
             </div>
+
+    submit_action_copy: () ->
+        if @valid_copy_input()
+            @copy_click()
 
     share_click : ->
         description = @refs.share_description.getValue()
@@ -1290,12 +1330,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
                     <Input
+                        autoFocus     = {true}
                         ref          = 'share_description'
                         key          = 'share_description'
                         type         = 'text'
                         defaultValue = {single_file_data.public?.description ? ''}
                         disabled     = {parent_is_public}
-                        placeholder  = 'Description...' />
+                        placeholder  = 'Description...'
+                        onKeyUp      = {@action_key}
+                    />
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
@@ -1321,6 +1364,13 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
+    submit_action_share: () ->
+        single_file = @props.checked_files.first()
+        single_file_data = @props.file_map[misc.path_split(single_file).tail]
+        if single_file_data?
+            if not (single_file_data.is_public and single_file_data.public?.path isnt single_file)
+                @share_click()
+
     download_click : ->
         @props.actions.download_file
             path : @props.checked_files.first()
@@ -1335,11 +1385,10 @@ ProjectFilesActionBox = rclass
         </pre>
 
     render_download_alert : ->
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h4><Icon name='exclamation-triangle' /> Notice</h4>
             <p>Download for multiple files and directories is not yet implemented.</p>
             <p>For now, create a zip archive or download files one at a time.</p>
-            <p>This functionality is coming soon!</p>
         </Alert>
 
     render_download : ->
