@@ -40,7 +40,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
+{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonToolbar} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -74,6 +74,9 @@ class ChatActions extends Actions
 
     set_input: (input) =>
         @setState(input:input)
+
+    save_position: (position) =>
+        @setState(position:position)
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -216,6 +219,7 @@ ChatRoom = (name) -> rclass
         "#{name}" :
             messages : rtypes.immutable
             input    : rtypes.string
+            position : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -295,19 +299,28 @@ ChatRoom = (name) -> rclass
             return
         node = ReactDOM.findDOMNode(@refs.log_container)
         node.scrollTop = node.scrollHeight
+        @props.redux.getActions(@props.name).save_position(node.scrollTop)
         @_ignore_next_scroll = true
         @_scrolled = false
+
+    scroll_to_position: ->
+        if not @refs.log_container?
+            return
+        @_scrolled = true
+        node = ReactDOM.findDOMNode(@refs.log_container)
+        node.scrollTop = @props.position
 
     on_scroll: (e) ->
         if @_ignore_next_scroll
             @_ignore_next_scroll = false
             return
         @_scrolled = true
+        node = ReactDOM.findDOMNode(@refs.log_container)
+        @props.redux.getActions(@props.name).save_position(node.scrollTop)
         e.preventDefault()
 
     componentDidMount: ->
-        if not @_scrolled
-            @scroll_to_bottom()
+        @scroll_to_position()
 
     componentDidUpdate: ->
         if not @_scrolled
@@ -342,9 +355,14 @@ ChatRoom = (name) -> rclass
                     </div>
                 </Col>
                 <Col xs={4}>
-                    <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
-                        <Icon name='history'/> TimeTravel
-                    </Button>
+                    <ButtonToolbar>
+                        <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
+                            <Icon name='history'/> TimeTravel
+                        </Button>
+                        <Button onClick={@scroll_to_bottom} bsStyle='info' style={float:'right'}>
+                            <Icon name='arrow-down'/> Scroll to Bottom
+                        </Button>
+                    </ButtonToolbar>
                 </Col>
             </Row>
             <Row>
