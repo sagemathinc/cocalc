@@ -1,4 +1,3 @@
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon, Space} = require('./r_misc')
 misc = require('smc-util/misc')

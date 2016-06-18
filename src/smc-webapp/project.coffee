@@ -41,7 +41,7 @@ project_store   = require('./project_store')
 {alert_message} = require('./alerts')
 misc_page       = require('./misc_page')
 
-{redux}         = require('./smc-react')
+{redux, ReactDOM} = require('./smc-react')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('./editor')
@@ -123,14 +123,20 @@ class ProjectPage
                     internet = not quotas.network
                     box  = @container.find('.smc-project-free-quota-warning')
                     if host or internet
+                        # if already rendered, unmount the react component
+                        # https://facebook.github.io/react/docs/top-level-api.html#reactdom.unmountcomponentatnode
+                        react_target = box.find('.warning_banner_upgrade_this_project').get(0)
+                        if react_target?
+                            ReactDOM.unmountComponentAtNode(react_target)
+                        # now construct the content
                         html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
                         if host
                             html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts."
                         if internet
                             html += " You <b>can't use any web resources in your code including PyPi and Github</b>."
-                        html += " <button type='button' class='become_paying_member btn btn-default'>Please upgrade</button>"
-                        {PolicyPricingPageUrl} = require('./customize')
-                        html += '<div id="warning_banner_upgrade_this_project"></div>'
+                        html += " <button type='button' class='become_paying_member btn btn-default'>Please upgrade this project</button>"
+                        # {PolicyPricingPageUrl} = require('./customize')
+                        html += '<div class="warning_banner_upgrade_this_project"></div>'
                         box.find("div").html(html)
                         box.find("div a.billing").click (evt) ->
                             require('./history').load_target('settings/billing')
