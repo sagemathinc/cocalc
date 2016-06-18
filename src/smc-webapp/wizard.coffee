@@ -240,7 +240,7 @@ class Wizard
 
     select_lang: (lang) ->
         # crude way to go from a lang-string to the <a> element
-        pill = @nav.find("a[href=##{lang}]")
+        pill = @nav.find("a[href=\"##{lang}\"]")
         if pill?
             @select_nav(pill)
 

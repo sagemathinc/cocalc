@@ -676,8 +676,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
     disable_undo: () =>
         @codemirror.setOption('undoDepth',1)
         @codemirror1.setOption('undoDepth',1)
-        @editor.element.find("a[href=#undo]").remove()
-        @editor.element.find("a[href=#redo]").remove()
+        @editor.element.find("a[href=\"#undo\"]").remove()
+        @editor.element.find("a[href=\"#redo\"]").remove()
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             if changeObj.origin == 'undo' or changeObj.origin == 'redo'
                 changeObj.cancel()

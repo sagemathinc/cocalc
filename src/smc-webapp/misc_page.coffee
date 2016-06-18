@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+$ = window.$
+
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')

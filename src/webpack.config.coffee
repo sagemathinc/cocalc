@@ -317,6 +317,7 @@ provideGlobals      = new webpack.ProvidePlugin
                                         $: "jquery"
                                         jQuery: "jquery"
                                         "window.jQuery": "jquery"
+                                        "window.$": "jquery"
 
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.
@@ -334,7 +335,7 @@ class PrintChunksPlugin
 
 plugins = [
     cleanWebpackPlugin,
-    provideGlobals,
+    #provideGlobals,
     setNODE_ENV,
     banner,
     jade2html,
@@ -456,6 +457,9 @@ module.exports =
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
+        #alias:
+        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
+        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
 

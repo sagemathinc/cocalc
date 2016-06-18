@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+$ = window.$
+
 # Editor for files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -1868,7 +1870,7 @@ class CodeMirrorEditor extends FileEditor
 
         # TODO: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=#print]").unbind().hide()
+            @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -2078,12 +2080,12 @@ class CodeMirrorEditor extends FileEditor
         dialog.modal('show')
 
     init_close_button: () =>
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
     init_save_button: () =>
-        @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
+        @save_button = @element.find("a[href=\"#save\"]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
     init_uncommitted_element: () =>
@@ -2165,7 +2167,7 @@ class CodeMirrorEditor extends FileEditor
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
-        btn = @element.find("a[href=#split-view]")
+        btn = @element.find("a[href=\"#split-view\"]")
         btn.find("i").hide()
         if not @_split_view
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
@@ -2440,7 +2442,7 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=#todo]").click () =>
+        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -3391,11 +3393,11 @@ class PDF_PreviewEmbed extends FileEditor
 
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
 
-        @element.find("a[href=#refresh]").click () =>
+        @element.find("a[href=\"#refresh\"]").click () =>
             @update()
             return false
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3408,7 +3410,7 @@ class PDF_PreviewEmbed extends FileEditor
             return
         width = @element.width()
 
-        button = @element.find("a[href=#refresh]")
+        button = @element.find("a[href=\"#refresh\"]")
         button.icon_spin(true)
 
         @_last_width = width
@@ -3559,14 +3561,14 @@ class Image extends FileEditor
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
-        refresh = @element.find("a[href=#refresh]")
+        refresh = @element.find("a[href=\"#refresh\"]")
         refresh.click () =>
             refresh.icon_spin(true)
             @update (err) =>
                 refresh.icon_spin(false)
             return false
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3577,13 +3579,13 @@ class Image extends FileEditor
             @update()
 
     update: (cb) =>
-        @element.find("a[href=#refresh]").icon_spin(start:true)
+        @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
-                @element.find("a[href=#refresh]").icon_spin(false)
+                @element.find("a[href=\"#refresh\"]").icon_spin(false)
                 @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
@@ -3625,7 +3627,7 @@ class StaticHTML extends FileEditor
         @iframe.maxheight()
 
     init_buttons: () =>
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3975,8 +3977,8 @@ class HTML_MD_Editor extends FileEditor
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
-        @element.find("a[href=#save]").click(@click_save_button)
-        @print_button = @element.find("a[href=#print]").show().click(@print)
+        @element.find("a[href=\"#save\"]").click(@click_save_button)
+        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -3996,14 +3998,14 @@ class HTML_MD_Editor extends FileEditor
                 @sync()
 
     init_preview_buttons: () =>
-        disable = @element.find("a[href=#disable-preview]").click () =>
+        disable = @element.find("a[href=\"#disable-preview\"]").click () =>
             disable.hide()
             enable.show()
             @disable_preview = true
             @local_storage("disable_preview", true)
             @preview_content.html('')
 
-        enable = @element.find("a[href=#enable-preview]").click () =>
+        enable = @element.find("a[href=\"#enable-preview\"]").click () =>
             disable.show()
             enable.hide()
             @disable_preview = false

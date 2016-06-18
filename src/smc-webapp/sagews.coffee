@@ -192,29 +192,29 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        buttons.find("a[href=#execute]").click () =>
+        buttons.find("a[href=\"#execute\"]").click () =>
             @action(execute:true, advance:false)
             return false
-        buttons.find("a[href=#toggle-input]").click () =>
+        buttons.find("a[href=\"#toggle-input\"]").click () =>
             @action(execute:false, toggle_input:true)
             return false
-        buttons.find("a[href=#toggle-output]").click () =>
+        buttons.find("a[href=\"#toggle-output\"]").click () =>
             @action(execute:false, toggle_output:true)
             return false
-        buttons.find("a[href=#delete-output]").click () =>
+        buttons.find("a[href=\"#delete-output\"]").click () =>
             @action(execute:false, delete_output:true)
             return false
 
         if IS_MOBILE
-            buttons.find("a[href=#tab]").click () =>
+            buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 return false
         else
-            @element.find("a[href=#tab]").hide()
-            @element.find("a[href=#undo]").hide()
-            @element.find("a[href=#redo]").hide()
+            @element.find("a[href=\"#tab\"]").hide()
+            @element.find("a[href=\"#undo\"]").hide()
+            @element.find("a[href=\"#redo\"]").hide()
 
-        buttons.find("a[href=#new-html]").click () =>
+        buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
             line = cm.lineCount()-1
             while line >= 0 and cm.getLine(line) == ""
@@ -232,7 +232,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 execute : true
                 advance : true
 
-        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+        interrupt_button = buttons.find("a[href=\"#interrupt\"]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt
                 maxtime : 15
@@ -241,7 +241,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     if err
                         alert_message(type:"error", message:"Unable to interrupt worksheet; try restarting the worksheet instead.")
             return false
-        kill_button = buttons.find("a[href=#kill]").click () =>
+        kill_button = buttons.find("a[href=\"#kill\"]").click () =>
             kill_button.find("i").addClass('fa-spin')
             @_restarting = true
             @kill

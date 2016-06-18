@@ -24,6 +24,7 @@
 #########################################################################
 
 $ = window.$
+require('jquery-ui')
 
 # $.tooltip() setup
 require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.

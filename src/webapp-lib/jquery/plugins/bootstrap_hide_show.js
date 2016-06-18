@@ -1,4 +1,4 @@
-var jQuery = require('jquery');
+var jQuery = window.$;
 
 (function($) {
   var hide, show;
