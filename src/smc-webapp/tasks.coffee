@@ -28,6 +28,8 @@ Task List
 SAVE_SPINNER_DELAY_MS = 5000  # TODO -- make this consistent across editors
 
 # tasks makes use of future timestamps (for due date)
+jQuery = require('jquery')
+require('timeago')
 jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')

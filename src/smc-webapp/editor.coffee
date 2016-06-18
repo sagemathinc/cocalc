@@ -965,7 +965,7 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
+                    editor.element.find("a[href=\"#split-view\"]").hide()  # disable split view for public worksheets
                     if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (sagews.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
@@ -1861,7 +1861,7 @@ class CodeMirrorEditor extends FileEditor
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
-            e = @element.find("a[href=##{name}]")
+            e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
@@ -4029,7 +4029,7 @@ class HTML_MD_Editor extends FileEditor
         if true #  @ext != 'html'
             # hide some buttons, since these are not markdown friendly operations:
             for t in ['clean'] # I don't like this!
-                @edit_buttons.find("a[href=##{t}]").hide()
+                @edit_buttons.find("a[href=\"##{t}\"]").hide()
 
         # initialize the color controls
         button_bar = @edit_buttons

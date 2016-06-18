@@ -312,6 +312,12 @@ setNODE_ENV         = new webpack.DefinePlugin
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
 
+# https://webpack.github.io/docs/shimming-modules.html
+provideGlobals      = new webpack.ProvidePlugin
+                                        $: "jquery"
+                                        jQuery: "jquery"
+                                        "window.jQuery": "jquery"
+
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.
 # (i.e. if require.ensure really creates chunkfiles, etc.)
@@ -328,7 +334,7 @@ class PrintChunksPlugin
 
 plugins = [
     cleanWebpackPlugin,
-    #provideGlobals,
+    provideGlobals,
     setNODE_ENV,
     banner,
     jade2html,
@@ -419,6 +425,7 @@ module.exports =
 
     module:
         loaders: [
+            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #

@@ -1,3 +1,5 @@
+var jQuery = require('jquery');
+
 (function($) {
   var hide, show;
   show = $.fn.show;

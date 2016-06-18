@@ -474,7 +474,7 @@ timeago_formatter = (value, unit, suffix, date) ->
         unit += 's'
     return "#{value} #{unit} #{suffix}"
 
-TimeAgo = require('react-timeago')
+TimeAgo = require('react-timeago').default
 exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 

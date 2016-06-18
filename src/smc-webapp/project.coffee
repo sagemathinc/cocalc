@@ -26,6 +26,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 underscore      = require('underscore')
 async           = require('async')
@@ -283,7 +284,7 @@ class ProjectPage
                 continue
 
             # activate any a[href=...] links elsewhere on the page
-            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+            @container.find("a[href=\"##{target}\"]").data('item',t).data('target',target).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
                     return false
@@ -363,7 +364,7 @@ class ProjectPage
                 continue
 
             # activate any a[href=...] links elsewhere on the page
-            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+            @container.find("a[href=\"##{target}\"]").data('item',t).data('target',target).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
                     return false
