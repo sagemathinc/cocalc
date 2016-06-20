@@ -268,6 +268,13 @@ file_associations['sage-template'] =
     opts   : {}
     name   : 'template'
 
+file_associations['react-wrapped-demo'] =
+    editor : 'react-wrapped-demo'
+    icon   : 'fa-ban'
+    opts   : {}
+    name   : 'react-wrapped-demo'
+
+
 file_associations['sage-history'] =
     editor : 'history'
     icon   : 'fa-history'
@@ -1003,6 +1010,8 @@ class exports.Editor
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
             when 'template'
                 editor = new TemplateEditor(@, filename, content, extra_opts)
+            when 'react-wrapped-demo'
+                editor = new ReactWrappedEditorDemo(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -4471,7 +4480,13 @@ class HTML_MD_Editor extends FileEditor
     focus: () =>
         @source_editor?.focus()
 
+###
+# Editor for Latex Documents
+###
+
 {LatexEditor} = require('./editor_latex')
+
+
 
 class ReactCodemirror extends FileEditorWrapper
     init_wrapped: () =>
@@ -4534,3 +4549,11 @@ class TemplateEditor extends FileEditorWrapper
             show    : =>
                 the_editor.show(args...)
         the_editor.render(args...)
+
+###
+# Demonstration of using react to wrap an editor, which we
+# (for now) display inside a piece of DOM.
+###
+{react_wrapped_editor, ReactWrappedEditorDemo} = require('editor-react-wrapper')
+
+
