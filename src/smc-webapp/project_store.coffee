@@ -486,7 +486,7 @@ class ProjectActions extends Actions
             cb      : required
         if not opts.dest and not opts.path?
             opts.dest = '.'
-
+           
         salvus_client.exec
             project_id      : @project_id
             command         : 'mv'

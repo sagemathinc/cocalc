@@ -1390,7 +1390,7 @@ class FileEditor extends EventEmitter
                     @save_button.addClass('disabled')
             @_has_unsaved_changes = val
 
-    # commited means "not saved to the database/server", whereas save above
+    # committed means "not saved to the database/server", whereas save above
     # means "saved to *disk*".
     has_uncommitted_changes: (val) =>
         if not val?
@@ -1399,7 +1399,7 @@ class FileEditor extends EventEmitter
             @_has_uncommitted_changes = val
             if val
                 if not @_show_uncommitted_warning_timeout?
-                    # We have not already started a timer, so start one -- if we do not here otherwise, show
+                    # We have not already started a timer, so start one -- if we do not hear otherwise, show
                     # the warning in 10s.
                     @_show_uncommitted_warning_timeout = setTimeout((()=>@_show_uncommitted_warning()), 10000)
             else
@@ -2039,6 +2039,7 @@ class CodeMirrorEditor extends FileEditor
                             author     : dialog.find(".salvus-file-print-author").text()
                             date       : dialog.find(".salvus-file-print-date").text()
                             contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                            subdir     : dialog.find(".salvus-file-print-keepfiles").is(":checked")
                             extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
                         cb          : (err, _pdf) =>
                             if err
@@ -3706,7 +3707,7 @@ class TaskList extends FileEditorWrapper
 ###
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        editor_course = undefined   # is lazy loaded below
+        course = undefined   # is lazy loaded below
 
         @element = $("<div>")
         @element.css
@@ -3720,7 +3721,7 @@ class Course extends FileEditorWrapper
         @wrapped =
             save    : undefined
             destroy : =>
-                editor_course?.free_editor_course(args...)
+                course?.free_course(args...)
                 args = undefined
                 delete @editor
                 @element?.empty()
@@ -3728,12 +3729,12 @@ class Course extends FileEditorWrapper
                 delete @element
             # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
             #hide    : =>
-            #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #    course.hide_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
             #show    : =>
-            #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
+            #    course.show_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         require.ensure [], () =>
-            editor_course = require('./editor_course')
-            editor_course.render_editor_course(args...)
+            course = require('./course/main')
+            course.render_course(args...)
 
 
 ###

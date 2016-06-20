@@ -934,6 +934,9 @@ exports.DirectoryInput = rclass
         on_change     : rtypes.func.isRequired
         default_value : rtypes.string
         placeholder   : rtypes.string
+        autoFocus     : rtypes.bool
+        on_key_down   : rtypes.func
+        on_key_up     : rtypes.func
 
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
@@ -947,6 +950,7 @@ exports.DirectoryInput = rclass
         else
             group = (s) -> s
         <Combobox
+            autoFocus    = {@props.autoFocus}
             data         = {tree}
             filter       = {'contains'}
             groupBy      = {group}
@@ -954,6 +958,8 @@ exports.DirectoryInput = rclass
             placeholder  = {@props.placeholder}
             messages     = {emptyFilter : '', emptyList : ''}
             onChange     = {(value) => @props.on_change(value.trim())}
+            onKeyDown    = {@props.on_key_down}
+            onKeyUp      = {@props.on_key_up}
         />
 
 #onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
