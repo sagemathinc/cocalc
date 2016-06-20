@@ -16,3 +16,4 @@ EXPOSE 860 3260
 
 # Run ietd server
 CMD /run.sh
+
