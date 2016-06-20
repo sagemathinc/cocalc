@@ -131,22 +131,30 @@ class ProjectPage
                         # now construct the content
                         html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
                         if host
-                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts."
+                            html += "runs on a <b>free server</b>. It will be often randomly restarted because the free server is a cheap <a href='https://cloud.google.com/compute/docs/instances/preemptible'>Google preemptible instance</a>. And the <b>free servers are usually overloaded</b>, so your code will often run slower than if were on a members only server."
                         if internet
                             html += " You <b>can't use any web resources in your code including PyPi and Github</b>."
                         html += " <button type='button' class='become_paying_member btn btn-default'>Please upgrade this project</button>"
                         # {PolicyPricingPageUrl} = require('./customize')
                         html += '<div class="warning_banner_upgrade_this_project"></div>'
                         box.find("div").html(html)
-                        box.find("div a.billing").click (evt) ->
-                            require('./history').load_target('settings/billing')
-                            evt.stopPropagation()
-                        box.find("div a.pricing").click (evt) ->
-                            evt.stopPropagation()
+                        window.box = box # TODO remove this line
+                        #box.find("div a.billing").click (evt) ->
+                        #    require('./history').load_target('settings/billing')
+                        #    evt.stopPropagation()
+                        #box.find("div a.pricing").click (evt) ->
+                        #    evt.stopPropagation()
                         box.show()
+                        box.find('.warning_banner_upgrade_this_project').hide()
                         box.find("div button.become_paying_member").click (evt) ->
-                            $('#warning_banner_upgrade_this_project').show()
-                            require('./paying_and_upgrading').init_upgrade_project(quotas.project_id, redux)
+                            banner = box.find('.warning_banner_upgrade_this_project')
+                            if not banner.is(":visible")
+                                banner.show()
+                                require('./paying_and_upgrading').init_upgrade_project(banner.get(0), quotas.project_id, redux)
+                                box.find("div button.become_paying_member").text('Close upgrader')
+                            else
+                                banner.hide()
+                                box.find("div button.become_paying_member").text('Please upgrade this project')
                             evt.stopPropagation()
                     else
                         box.hide()

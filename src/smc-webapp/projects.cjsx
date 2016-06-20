@@ -992,8 +992,8 @@ NewProjectCreator = rclass
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>
-                To prevent abuse the free version doesn{"'"}t have internet access. 
-                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or 
+                To prevent abuse the free version doesn{"'"}t have internet access.
+                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or
                 any other internet resources
                 is not possible with the free version.
                 Starting at just $7/month you can give your project(s)
@@ -1011,7 +1011,7 @@ NewProjectCreator = rclass
 
     render_no_title_alert : ->
         if @state.title_text == '' and @state.state != 'saving'
-            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> 
+            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
 
     render_create_with_upgrades_button : (create_btn_disabled) ->
         <ButtonToolbar>
