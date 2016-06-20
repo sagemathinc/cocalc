@@ -33,6 +33,7 @@
 #                                 the originating object is destroyed.
 
 "use strict"
+$ = window.$
 _ = require("underscore")
 {defaults, required, optional} = require('smc-util/misc')
 misc_page = require('./misc_page')

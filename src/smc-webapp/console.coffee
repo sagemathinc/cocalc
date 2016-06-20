@@ -26,14 +26,15 @@
 #
 ###########################################
 
-{EventEmitter} = require('events')
-{alert_message} = require('./alerts')
-misc = require('smc-util/misc')
+$                = window.$
+{EventEmitter}   = require('events')
+{alert_message}  = require('./alerts')
+misc             = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
-{redux} = require('./smc-react')
-{alert_message} = require('./alerts')
+{redux}          = require('./smc-react')
+{alert_message}  = require('./alerts')
 
-misc_page = require('./misc_page')
+misc_page        = require('./misc_page')
 
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")

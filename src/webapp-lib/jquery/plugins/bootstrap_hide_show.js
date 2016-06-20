@@ -1,5 +1,3 @@
-var jQuery = window.$;
-
 (function($) {
   var hide, show;
   show = $.fn.show;
@@ -12,4 +10,4 @@ var jQuery = window.$;
     this.addClass("hidden hide");
     return hide.apply(this, arguments);
   };
-})(jQuery);
+})(window.jQuery);

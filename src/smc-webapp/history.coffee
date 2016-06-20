@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 ###
 Code related to the history and URL in the browser bar.

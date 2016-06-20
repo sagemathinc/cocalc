@@ -29,6 +29,8 @@ I didn't know about React.js at the time).
 # things should be allowed to work.
 JUPYTER_LOAD_TIMEOUT_S = 60*10
 
+$                    = window.$
+
 {EventEmitter}       = require('events')
 
 async                = require('async')
@@ -840,8 +842,9 @@ class JupyterNotebook extends EventEmitter
                 # Use jquery until the server url loads properly (not an error), then load the iframe.
                 # We do this -- which seems inefficient -- because trying to detect errors inside
                 # the iframe properly is difficult.
+                # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
-                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).success(=>cb())
+                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
                     max_time : 60*1000  # try for at most 1 minute
                     cb       : cb
             (cb) =>

@@ -1,20 +1,21 @@
-async = require('async')
+$         = window.$
+async     = require('async')
 stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
-misc     = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-message  = require('smc-util/message')
-markdown = require('./markdown')
-{salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
+misc_page         = require('./misc_page')
+message           = require('smc-util/message')
+markdown          = require('./markdown')
+{salvus_client}   = require('./salvus_client')
+{alert_message}   = require('./alerts')
 
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE}       = require('./feature')
 
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")

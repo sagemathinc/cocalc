@@ -3,6 +3,8 @@
 # Editor for LaTeX documents
 #############################################
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {defaults, required} = misc

@@ -5,6 +5,7 @@ templated by jQuery and sticks it at the bottom of the body of the document on l
 TODO: This and all of the HTML loaded below will GO AWAY with the react.js rewrite!
 ###
 
+$ = window.$
 html = require('./top_navbar.html') + require('./account.html') + require('./misc_page.html') + require('./alerts.html') + require('./help.html') + require('./console.html') + require('./projects.html') + require('./project.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
 
 # Page container is for https://github.com/jschr/bootstrap-modal, which of course will go away...

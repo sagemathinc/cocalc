@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
+$          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, Input, Well, Alert, Modal, Table} = require('react-bootstrap')

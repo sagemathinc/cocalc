@@ -34,6 +34,7 @@ To mark a file as read:
 
 ###
 
+$ = window.$
 
 # Magic constants:
 

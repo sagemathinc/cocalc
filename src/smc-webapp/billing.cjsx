@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$             = window.$
 async         = require('async')
 misc          = require('smc-util/misc')
 _             = require('underscore')

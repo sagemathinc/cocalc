@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 

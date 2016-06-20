@@ -313,11 +313,14 @@ setNODE_ENV         = new webpack.DefinePlugin
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
 
 # https://webpack.github.io/docs/shimming-modules.html
-provideGlobals      = new webpack.ProvidePlugin
-                                        $: "jquery"
-                                        jQuery: "jquery"
-                                        "window.jQuery": "jquery"
-                                        "window.$": "jquery"
+# do *not* require('jquery') but $ = window.$
+# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
+# rather, webapp-lib.coffee defines the one and only global jquery instance!
+#provideGlobals      = new webpack.ProvidePlugin
+#                                        '$'             : 'jquery'
+#                                        'jQuery'        : 'jquery'
+#                                        "window.jQuery" : "jquery"
+#                                        "window.$"      : "jquery"
 
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.

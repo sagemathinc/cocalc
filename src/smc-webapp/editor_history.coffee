@@ -2,6 +2,8 @@
 Viewer for history of changes to a document
 ###
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')

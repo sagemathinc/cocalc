@@ -1,3 +1,4 @@
+$ = window.$
 misc = require('smc-util/misc')
 {defaults, required} = misc
 

@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')

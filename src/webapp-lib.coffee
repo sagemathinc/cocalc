@@ -9,7 +9,7 @@
 require("script!primus/primus-engine.min.js")
 
 # require("script!jquery/jquery.min.js")
-window.jQuery = window.$ = $ = jQuery = require('jquery')
+$ = jQuery = window.$ = window.jQuery = require('jquery')
 require('jquery-ui')
 #require("script!jquery/jquery-ui/js/jquery-ui.min.js")
 
