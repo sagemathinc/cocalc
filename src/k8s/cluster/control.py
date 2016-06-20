@@ -157,7 +157,7 @@ def update_firewall():
 #    util.run(['kubectl', 'config', 'use-context', context])
 
 def delete_cluster(args):
-    select_cluster(args)
+    #select_cluster(args)
 
     # IMPORTANT: shutdown all deployments *and* services first; otherwise we end up with
     # a random load balancer left laying around, which costs, and will never be used again.
