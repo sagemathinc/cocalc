@@ -704,7 +704,22 @@ exports.define_codemirror_extensions = () ->
         if not r
             @setOption('readOnly', true)
         @_setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
+
+        # Determine information so we can restore the scroll position
+        t      = @getScrollInfo().top
+        b      = @setBookmark(line:@lineAtHeight(t, 'local'))
+        before = @heightAtLine(@lineAtHeight(t, 'local'))
+
+        # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
+        # which would cause total chaos.
         @diffApply(dmp.diff_main(@getValue(), value))
+
+        # Now, if possible, restore the exact scroll position.
+        n = b.find()?.line
+        if n?
+            @scrollTo(undefined, @getScrollInfo().top - (before - @heightAtLine(b.find().line)))
+            b.clear()
+
         if not r
             @setOption('readOnly', false)
         delete @_setValueNoJump
