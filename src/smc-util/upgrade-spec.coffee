@@ -4,6 +4,16 @@ Define upgrades to projects.
 
 upgrades = exports.upgrades = {}
 
+# these are the base quotas
+exports.DEFAULT_QUOTAS =
+    disk_quota  : 3000
+    cores       : 1
+    memory      : 1000
+    cpu_shares  : 256
+    mintime     : 3600   # hour
+    network     : 0
+    member_host : 0
+
 upgrades.max_per_project =
     disk_quota : 50000
     memory     : 8000
