@@ -654,7 +654,6 @@ PlanInfo = rclass
         </span>
 
     render_price : (prices, periods) ->
-        #sep = <span style={fontSize:"small", margin:"15px"}>or</span>
         if @props.on_click?
             # note: in non-static, there is always just *one* price (several only on "static" pages)
             for i in [0...prices.length]
@@ -662,7 +661,7 @@ PlanInfo = rclass
                     {@render_cost(prices[i], periods[i])}
                 </Button>
         else
-            <h3 style={textAlign:'center'}>
+            <h3 style={textAlign:'left'}>
                 {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), <br/>)}
             </h3>
 
@@ -743,7 +742,13 @@ AddSubscription = rclass
                     bsStyle = {if @state.selected_button is 'month4' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month4')}
                 >
-                    Course package (4-months)
+                    4-Month course packages
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'year1' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('year1')}
+                >
+                    Yearly course packages
                 </Button>
             </ButtonGroup>
         </div>
@@ -894,6 +899,7 @@ exports.ExplainResources = ExplainResources = rclass
         <div>
             <Row>
                 <Col md=8 sm=12>
+                    <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
                     Your work on <SiteName/> happens inside <em>projects</em>.
@@ -999,10 +1005,10 @@ exports.ExplainPlan = ExplainPlan = rclass
 
     render_course: ->
         <div style={marginBottom:"10px"}>
-            <h3>Course plans</h3>
+            <h3>Course packages</h3>
             <div>
-                We offer course plans for teaching a class in <SiteName/>.
-                Such plans start right after purchase and last for the full indicated period without auto-renewal.
+                We offer course packages for teaching classes in <SiteName/>.
+                Such plans start right after purchase and last for the full indicated period <b>without auto-renewal</b>.
                 Through the interface of <SiteName/>, you start teaching by creating a course.
                 Each time you add a student, a project will be automatically created for that student.
                 After upgrading your student{"'"}s projects, you can create and distribute assignments,
@@ -1762,21 +1768,20 @@ STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'Californ
 
 # TODO: make this an action and a getter in the BILLING store
 set_selected_plan = (plan, period) ->
-    if period is 'year'
-        redux.getActions('billing').setState(selected_plan : "#{plan}-year")
-    else
-        redux.getActions('billing').setState(selected_plan : plan)
+    if period?.slice(0,4) == 'year'
+        plan = plan + "-year"
+    redux.getActions('billing').setState(selected_plan : plan)
 
 exports.render_static_pricing_page = () ->
     <div>
-        <ExplainResources type='shared' is_static={true}/>
-        <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
         {# <Space/><ExplainResources type='dedicated'/> }
         <hr/>
         <ExplainPlan type='course'/>
-        <SubscriptionGrid period='month4' is_static={true}/>
+        <SubscriptionGrid period='month4 year1' is_static={true}/>
+        <hr/>
+        <ExplainResources type='shared' is_static={true}/>
         <hr/>
         <FAQ/>
         <Footer/>
