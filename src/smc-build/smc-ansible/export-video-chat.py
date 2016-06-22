@@ -12,5 +12,6 @@ os.system('bzcat video_chats-compute*.bz2 | bzip2 > video_chats.csv.bz2')
 # smc statistics project
 host = project_host("7561f68d-3d97-4530-b97e-68af2fb4ed13")
 
+os.chdir(os.path.join(os.environ['SMC_ROOT'], "smc-build/smc-ansible"))
 # push to the project via ansible and set the permissions
-os.system('ansible %s -m copy -a "src=video_chats.csv.bz2 dest=/projects/7561f68d-3d97-4530-b97e-68af2fb4ed13/video-chats/ owner=1078872008 group=1078872008 mode=u=rw,go=" -become' % host)
+os.system('ansible %s -m copy -a "src=~/tmp/video_chats.csv.bz2 dest=/projects/7561f68d-3d97-4530-b97e-68af2fb4ed13/video-chats/ owner=1078872008 group=1078872008 mode=u=rw,go=" -become' % host)
