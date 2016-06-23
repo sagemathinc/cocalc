@@ -1,5 +1,5 @@
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -156,23 +156,22 @@ SignIn = rclass
             @props.actions.setState(sign_in_error : undefined)
 
     render : ->
-        <Col sm=5>
-            <form onSubmit={@sign_in} className='form-inline' style={marginRight : 0, marginTop : 2 * UNIT}>
-                <Row>
-                    <Col xs=5 style={paddingRight:'2px'}>
-                        <Input style={marginRight: UNIT, width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
-                    </Col>
-                    <Col xs=4 style={paddingLeft:'0px', paddingRight:'0px'}>
-                        <Input style={marginRight: UNIT, width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
-                    </Col>
-                    <Col xs=3 style={paddingLeft:'0px'}>
-                        <Button type="submit" disabled={@props.signing_in} bsStyle="primary" className='pull-right'>Sign&nbsp;In</Button>
-                    </Col>
-                </Row>
-            </form>
+        <form onSubmit={@sign_in} className='form-inline'>
+            <Grid fluid=true style={padding:0}>
             <Row>
-                <Col xs=7 xsOffset=5>
-                    <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt', marginLeft: '-15px'} >Forgot Password?</a>
+                <Col xs=5>
+                    <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                </Col>
+                <Col xs=4>
+                    <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                </Col>
+                <Col xs=3>
+                    <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
+                </Col>
+            </Row>
+            <Row>
+                <Col xs=7 xsOffset=5 style={paddingLeft:15}>
+                    <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
                 </Col>
             </Row>
             <Row className='form-inline pull-right' style={clear : "right"}>
@@ -180,7 +179,8 @@ SignIn = rclass
                     {@display_error()}
                 </Col>
             </Row>
-        </Col>
+            </Grid>
+        </form>
 
 ForgotPassword = rclass
     displayName : "ForgotPassword"
@@ -319,7 +319,7 @@ LANDING_PAGE_CONTENT =
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/AEKOjac9obk" frameBorder="0" allowFullScreen></iframe>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/oqCVNue0uL0" frameBorder="0" allowFullScreen></iframe>
     #<iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
     #</iframe>
 
@@ -401,33 +401,6 @@ ExampleBox = rclass
             </div>
         </div>
 
-LogoWide = rclass
-    displayName: "LogoWide"
-    render : ->
-        <div style={fontSize: 3*UNIT,\
-                    whiteSpace: 'nowrap',\
-                    backgroundColor: SAGE_LOGO_COLOR,\
-                    borderRadius : 4,\
-                    display: 'inline-block',\
-                    padding: 1,\
-                    margin: UNIT + 'px 0',\
-                    lineHeight: 0}>
-          <span style={display: 'inline-block', \
-                       backgroundImage: "url('#{SMC_ICON_URL}')", \
-                       backgroundSize: 'contain', \
-                       height : UNIT * 4, width: UNIT * 4, \
-                       borderRadius : 10, \
-                       verticalAlign: 'center'}>
-          </span>
-          <div className="hidden-sm"
-              style={display:'inline-block',\
-                      fontFamily: DESC_FONT,\
-                      top: -1 * UNIT,\
-                      position: 'relative',\
-                      color: 'white',\
-                      paddingRight: UNIT}><SiteName /></div>
-        </div>
-
 RememberMe = () ->
     <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
         <Icon name="spinner" spin /> Signing you in...
@@ -461,24 +434,32 @@ exports.LandingPage = rclass
                 {<ForgotPassword actions={@props.actions}
                                  forgot_password_error={@props.forgot_password_error}
                                  forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-                <Row>
-                    <Col sm=12>
-                        <Row>
-                            <Col sm=7 className="hidden-xs">
-                                <LogoWide />
-                            </Col>
-                            <SignIn actions={@props.actions}
-                                     signing_in={@props.signing_in}
-                                     sign_in_error={@props.sign_in_error}
-                                     has_account={@props.has_account} />
-                        </Row>
-                        <Row className="hidden-xs">
-                            <Col sm=12>
-                                <SiteDescription />
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
+                <div style={fontSize: 3*UNIT,\
+                            backgroundColor: SAGE_LOGO_COLOR,\
+                            padding: '1px, 20px'}>
+                  <div style={width:440,position:"relative",top:12,right:0,float:"right"} className="smc-sign-in-form"> 
+                      <SignIn actions={@props.actions}
+                             signing_in={@props.signing_in}
+                             sign_in_error={@props.sign_in_error}
+                             has_account={@props.has_account} />
+                  </div>
+                  <span style={display: 'inline-block', \
+                               backgroundImage: "url('#{SMC_ICON_URL}')", \
+                               backgroundSize: 'contain', \
+                               height : UNIT * 4, width: UNIT * 4, \
+                               borderRadius : 10, \
+                               verticalAlign: 'center'}>
+                  </span>
+                  <div className="hidden-sm"
+                      style={display:'inline-block',\
+                              fontFamily: DESC_FONT,\
+                              top: -1 * UNIT,\
+                              position: 'relative',\
+                              color: 'white',\
+                              lineHeight: 0,\
+                              paddingRight: UNIT}><SiteName /></div>
+                  <SiteDescription />
+                </div>
                 <Row>
                     <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
                         <SMC_Commercial />

@@ -68,8 +68,10 @@ SiteDescription = rclass
         customize :
             site_description : rtypes.string
     render : ->
+        # I use this hack word-spacing: 9999999px from http://stackoverflow.com/questions/4212909/can-css-force-a-line-break-after-each-word-in-an-element
+        # to make each word of site description on its own line
         if @props.site_description?
-            <span style={color:"#666", fontSize:'16px'}>{@props.site_description}</span>
+            <div style={fontWeight:"700",maxWidth:75,fontSize:"15px",display:"inline-block",lineHeight:"1",fontFamily:"sans-serif",top:"-5px",position:"relative",color:"white",paddingRight:15}>{@props.site_description}</div>
         else
             <Loading/>
 
