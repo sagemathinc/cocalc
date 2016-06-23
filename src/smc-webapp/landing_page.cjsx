@@ -1,5 +1,5 @@
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, Input, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, Input, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -139,6 +139,7 @@ SignIn = rclass
         sign_in_error : rtypes.string
         signing_in : rtypes.bool
         has_account : rtypes.bool
+        xs          : rtypes.bool
 
     sign_in : (e) ->
         e.preventDefault()
@@ -156,31 +157,52 @@ SignIn = rclass
             @props.actions.setState(sign_in_error : undefined)
 
     render : ->
-        <form onSubmit={@sign_in} className='form-inline'>
-            <Grid fluid=true style={padding:0}>
-            <Row>
-                <Col xs=5>
-                    <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
-                </Col>
-                <Col xs=4>
-                    <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
-                </Col>
-                <Col xs=3>
-                    <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
-                </Col>
-            </Row>
-            <Row>
-                <Col xs=7 xsOffset=5 style={paddingLeft:15}>
-                    <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
-                </Col>
-            </Row>
-            <Row className='form-inline pull-right' style={clear : "right"}>
-                <Col xs=12>
-                    {@display_error()}
-                </Col>
-            </Row>
-            </Grid>
-        </form>
+        if @props.xs
+            <Col xs=12>
+                <form onSubmit={@sign_in} className='form-inline'>
+                    <Row>
+                        <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                    </Row>
+                    <Row>
+                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                    </Row>
+                    <Row>
+                        <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
+                    </Row>
+                    <Row>
+                        <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
+                    </Row>
+                    <Row className='form-inline pull-right' style={clear : "right"}>
+                        {@display_error()}
+                    </Row>
+                </form>
+            </Col>
+        else
+            <form onSubmit={@sign_in} className='form-inline'>
+                <Grid fluid=true style={padding:0}>
+                <Row>
+                    <Col xs=5>
+                        <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                    </Col>
+                    <Col xs=4>
+                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                    </Col>
+                    <Col xs=3>
+                        <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs=7 xsOffset=5 style={paddingLeft:15}>
+                        <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
+                    </Col>
+                </Row>
+                <Row className='form-inline pull-right' style={clear : "right"}>
+                    <Col xs=12>
+                        {@display_error()}
+                    </Col>
+                </Row>
+                </Grid>
+            </form>
 
 ForgotPassword = rclass
     displayName : "ForgotPassword"
@@ -315,7 +337,7 @@ LANDING_PAGE_CONTENT =
         text : 'Use SageMath, IPython, the entire scientific Python stack, R, Julia, GAP, Octave and much more.'
     latex :
         icon : 'superscript'
-        heading : 'Built-in LaTeX Editor'
+        heading : 'LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
@@ -427,39 +449,54 @@ exports.LandingPage = rclass
     render : ->
         if not @props.remember_me
             reset_key = reset_password_key()
-            <div style={marginLeft: 20, marginRight: 20}>
-                {<ResetPassword reset_key={reset_key}
-                                reset_password_error={@props.reset_password_error}
-                                actions={@props.actions} /> if reset_key}
-                {<ForgotPassword actions={@props.actions}
-                                 forgot_password_error={@props.forgot_password_error}
-                                 forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-                <div style={fontSize: 3*UNIT,\
-                            backgroundColor: SAGE_LOGO_COLOR,\
-                            padding: '1px, 20px'}>
-                  <div style={width:440,position:"relative",top:12,right:0,float:"right"} className="smc-sign-in-form"> 
-                      <SignIn actions={@props.actions}
-                             signing_in={@props.signing_in}
-                             sign_in_error={@props.sign_in_error}
-                             has_account={@props.has_account} />
-                  </div>
-                  <span style={display: 'inline-block', \
-                               backgroundImage: "url('#{SMC_ICON_URL}')", \
-                               backgroundSize: 'contain', \
-                               height : UNIT * 4, width: UNIT * 4, \
-                               borderRadius : 10, \
-                               verticalAlign: 'center'}>
-                  </span>
-                  <div className="hidden-sm"
-                      style={display:'inline-block',\
-                              fontFamily: DESC_FONT,\
-                              top: -1 * UNIT,\
-                              position: 'relative',\
-                              color: 'white',\
-                              lineHeight: 0,\
-                              paddingRight: UNIT}><SiteName /></div>
-                  <SiteDescription />
-                </div>
+            <div style={marginTop:10, marginLeft: 20, marginRight: 20}>
+                    {<ResetPassword reset_key={reset_key}
+                                    reset_password_error={@props.reset_password_error}
+                                    actions={@props.actions} /> if reset_key}
+                    {<ForgotPassword actions={@props.actions}
+                                     forgot_password_error={@props.forgot_password_error}
+                                     forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                <Row>
+                    <div style={marginTop:10, marginLeft:20, marginRight:20, fontSize: 3*UNIT,\
+                                    backgroundColor: SAGE_LOGO_COLOR,\
+                                    padding: 5, borderRadius:4} className="visible-xs">
+                        <SignIn actions={@props.actions}
+                                     signing_in={@props.signing_in}
+                                     sign_in_error={@props.sign_in_error}
+                                     has_account={@props.has_account}
+                                     xs={true} />
+                        <div style={clear:'both'}></div>
+                    </div>
+                </Row>
+                <Row>
+                    <div style={marginTop:10, marginLeft:20, marginRight:20, fontSize: 3*UNIT,\
+                                backgroundColor: SAGE_LOGO_COLOR,\
+                                padding: 5, borderRadius:4} className="hidden-xs">
+                      <div style={width:440,position:"relative",top:12,right:0,float:"right"} className="smc-sign-in-form">
+                          <SignIn actions={@props.actions}
+                                 signing_in={@props.signing_in}
+                                 sign_in_error={@props.sign_in_error}
+                                 has_account={@props.has_account}
+                                 xs={false} />
+                      </div>
+                      <span style={display: 'inline-block', \
+                                   backgroundImage: "url('#{SMC_ICON_URL}')", \
+                                   backgroundSize: 'contain', \
+                                   height : UNIT * 4, width: UNIT * 4, \
+                                   borderRadius : 10, \
+                                   verticalAlign: 'center'}>
+                      </span>
+                      <div className="hidden-sm"
+                          style={display:'inline-block',\
+                                  fontFamily: DESC_FONT,\
+                                  top: -1 * UNIT,\
+                                  position: 'relative',\
+                                  color: 'white',\
+                                  lineHeight: 0,\
+                                  paddingRight: UNIT}><SiteName /></div>
+                      <SiteDescription />
+                    </div>
+                </Row>
                 <Row>
                     <Col sm=7 className="hidden-xs" style=marginTop:'10px'>
                         <SMC_Commercial />
