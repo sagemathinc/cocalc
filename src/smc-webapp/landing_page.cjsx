@@ -390,15 +390,16 @@ SagePreview = rclass
                             <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
                             The <strong>preview</strong> helps you understanding what&#39;s going on.
                             The LaTeX editor also supports <strong>forward and inverse search</strong> to avoid getting lost in large documents.
+                            SageMathCloud also allows you to publish documents online.
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox title="The Sky is the Limit" index={3}>
-                            <SiteName /> does not arbitrarily restrict you. <strong>Upload</strong> your
-                            own files, <strong>generate</strong> data and results online,
-                            then download or <strong>publish</strong> your results.
-                            Besides Sage Worksheets and Jupyter Notebooks,
-                            you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
+                        <ExampleBox title="Jupyter Notebook, Linux Terminal, ..." index={3}>
+                            <SiteName /> does not arbitrarily restrict you.
+                            Work with <strong>Jupyter Notebooks</strong>,
+                            {' '}<strong>upload</strong> your own files,
+                            {' '}<strong>process</strong> data and results online,
+                            and work with a <strong>full Linux terminal</strong>.
                         </ExampleBox>
                     </Col>
                 </Row>
