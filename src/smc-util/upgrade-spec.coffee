@@ -102,6 +102,7 @@ upgrades.period_names =
     month  : 'month'
     year   : 'year'
     month4 : '4 months'
+    year1  : 'year'
 
 # TODO: change from "membership" to "subscription".
 
@@ -157,6 +158,7 @@ membership.large_course =
     icon  : 'battery-full'
     price :
         month4 : 999
+        year1  : 2499
     cancel_at_period_end : true
     benefits :
         cores       : 0
@@ -169,6 +171,7 @@ membership.medium_course =
     icon  : 'battery-three-quarters'
     price :
         month4 : 399
+        year1  : 999
     cancel_at_period_end : true
     benefits :
         cores       : 0
@@ -181,6 +184,7 @@ membership.small_course =
     icon  : 'battery-quarter'
     price :
         month4 : 199
+        year1  : 499
     cancel_at_period_end : true
     benefits :
         cores       : 0

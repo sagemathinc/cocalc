@@ -111,7 +111,7 @@ SignUp = rclass
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 {@display_error("first_name")}
-                <Input ref='name' type='text' autoFocus={not @props.has_account} placeholder='First and last Name' />
+                <Input ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
                 {@display_error("email_address")}
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
@@ -185,7 +185,7 @@ SignIn = rclass
                 <Grid fluid=true style={padding:0}>
                 <Row>
                     <Col xs=5>
-                        <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        <Input ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                     </Col>
                     <Col xs=4>
                         <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
