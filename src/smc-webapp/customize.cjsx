@@ -64,22 +64,25 @@ exports.SiteName = rclass
 
 SiteDescription = rclass
     displayName : 'SiteDescription'
+    propTypes:
+        style: rtypes.object
     reduxProps :
         customize :
             site_description : rtypes.string
     render : ->
-        # I use this hack word-spacing: 9999999px from http://stackoverflow.com/questions/4212909/can-css-force-a-line-break-after-each-word-in-an-element
-        # to make each word of site description on its own line
+        style = @props.style ? {color:'#666', fontSize:'16px'}
         if @props.site_description?
-            <div style={fontWeight:"700",maxWidth:75,fontSize:"15px",display:"inline-block",lineHeight:"1.3",fontFamily:"sans-serif",top:1,position:"relative",color:"white",paddingRight:15}>{@props.site_description}</div>
+            <span style={style}>{@props.site_description}</span>
         else
             <Loading/>
 
 exports.SiteDescription = rclass
     displayName : 'SiteDescription-redux'
+    propTypes :
+        style : rtypes.object
     render      : ->
         <Redux redux={redux}>
-            <SiteDescription />
+            <SiteDescription style={@props.style}/>
         </Redux>
 
 # TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …

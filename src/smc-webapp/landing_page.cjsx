@@ -170,7 +170,10 @@ SignIn = rclass
                         <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
                     </Row>
                     <Row>
-                        <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
+                        <Button type="submit"
+                                disabled={@props.signing_in}
+                                xsStyle="default" style={height:34}
+                                className='pull-right'>Sign&nbsp;In</Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
                         {@display_error()}
@@ -188,7 +191,11 @@ SignIn = rclass
                         <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                     </Col>
                     <Col xs=3>
-                        <Button type="submit" disabled={@props.signing_in} style={background:'navy',color:'#FFF',height:34} className='pull-right'>Sign&nbsp;In</Button>
+                        <Button type="submit"
+                                disabled={@props.signing_in}
+                                xsStyle="default"
+                                style={height:34}
+                                className='pull-right'>Sign&nbsp;In</Button>
                     </Col>
                 </Row>
                 <Row>
@@ -449,30 +456,32 @@ exports.LandingPage = rclass
     render : ->
         if not @props.remember_me
             reset_key = reset_password_key()
-            <div style={marginTop:10, marginLeft: 20, marginRight: 20}>
+            <div style={margin: UNIT}>
                     {<ResetPassword reset_key={reset_key}
                                     reset_password_error={@props.reset_password_error}
                                     actions={@props.actions} /> if reset_key}
                     {<ForgotPassword actions={@props.actions}
                                      forgot_password_error={@props.forgot_password_error}
                                      forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-                <Row>
-                    <div style={marginTop:10, marginLeft:20, marginRight:20, fontSize: 3*UNIT,\
-                                    backgroundColor: SAGE_LOGO_COLOR,\
-                                    padding: 5, borderRadius:4} className="visible-xs">
+                <Row style={fontSize: 3*UNIT,\
+                            backgroundColor: SAGE_LOGO_COLOR,\
+                            padding: 5, margin: 0, borderRadius:4}
+                     className="visible-xs">
                         <SignIn actions={@props.actions}
                                      signing_in={@props.signing_in}
                                      sign_in_error={@props.sign_in_error}
                                      has_account={@props.has_account}
                                      xs={true} />
                         <div style={clear:'both'}></div>
-                    </div>
                 </Row>
-                <Row>
-                    <div style={marginTop:10, marginLeft:20, marginRight:20, fontSize: 3*UNIT,\
+                <Row style={fontSize: 3*UNIT,\
                                 backgroundColor: SAGE_LOGO_COLOR,\
-                                padding: 5, borderRadius:4} className="hidden-xs">
-                      <div style={width:440,position:"relative",top:12,right:0,float:"right"} className="smc-sign-in-form">
+                                padding: 5, margin: 0, borderRadius:4, whiteSpace:'nowrap'}
+                     className="hidden-xs">
+                      <div style={width:440,zIndex:10,\
+                                  position:"relative",\
+                                  top:12,right:12,float:"right"}
+                           className="smc-sign-in-form">
                           <SignIn actions={@props.actions}
                                  signing_in={@props.signing_in}
                                  sign_in_error={@props.sign_in_error}
@@ -494,7 +503,19 @@ exports.LandingPage = rclass
                                   color: 'white',\
                                   lineHeight: 0,\
                                   paddingRight: UNIT}><SiteName /></div>
-                      <SiteDescription />
+                      <div style={fontWeight:"700",\
+                                  fontSize:"15px",\
+                                  lineHeight:"1.3",\
+                                  fontFamily:"sans-serif",\
+                                  top:1,\
+                                  display:'inline-block',\
+                                  position:"relative",\
+                                  color:"white",\
+                                  paddingRight:UNIT}>Collaborative<br/>Computational<br/>Mathematics</div>
+                </Row>
+                <Row>
+                    <div className="hidden-xs" style={padding: "#{UNIT}px"}>
+                        <SiteDescription style={color:'#666', fontSize:"#{UNIT}px"} />
                     </div>
                 </Row>
                 <Row>
