@@ -62,6 +62,7 @@ setup(
             'smc-new-file         = smc_pyutil.new_file:main',
             'smc-status           = smc_pyutil.status:main',
             'smc-jupyter          = smc_pyutil.jupyter_notebook:main',
+            'smc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',
             'smc-ls               = smc_pyutil.git_ls:main',
             'smc-compute          = smc_pyutil.smc_compute:main',
             'smc-start            = smc_pyutil.start_smc:main',
