@@ -399,7 +399,7 @@ def add_exec_parser(name, subparsers, command_name,  command, custom_selector=No
             selector = custom_selector(args)
         else:
             selector = {'run':name}
-        exec_command(args.number, command, args.container, __tmux_sync__=not args.no_sync, **selector)
+        exec_command(args.number if custom_selector is None else [], command, args.container, __tmux_sync__=not args.no_sync, **selector)
     sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")

@@ -16,7 +16,7 @@ spec:
   selector:
     matchLabels:
       storage  : nfs
-      instance : "{number}"
+      instance : {number}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -27,10 +27,10 @@ spec:
       creationTimestamp: null
       labels:
           storage  : nfs
-          instance : "{number}"
+          instance : {number}
     spec:
       containers:
-      - image: "{image}"
+      - image: {image}
         imagePullPolicy: {pull_policy}
         name: storage{number}
         ports:
