@@ -1,20 +1,25 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 # TODO: this can't be the real location!
 # Install at /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
-#
-#
 
-import json, os, sys
+import json, os, shutil, sys
+
+def LOG(*args):
+    open("/tmp/a",'a').write(str(args)+'\n')
+
+LOG('argsv', sys.argv)
 
 def log(obj):
     print(json.dumps(obj))
 
 def init(args):
+    LOG('init', args)
     # TODO: would ensure zfs kernel module is available (?)
     return
 
 def attach(args):
+    LOG('attach', args)
     params = json.loads(args.json_params)
     project_id = params.get("project_id", None)
     if not project_id:
@@ -22,9 +27,11 @@ def attach(args):
     return {'device':project_id}
 
 def detach(sarg):
+    LOG('detach', args)
     pass
 
 def mount(args):
+    LOG('mount', args)
     mount_dir  = args.mount_dir
     project_id = args.project_id
     params     = json.loads(args.json_params)
@@ -32,7 +39,10 @@ def mount(args):
         os.makedirs(mount_dir)
 
 def unmount(args):
-    pass
+    LOG('unmount', args)
+    mount_dir  = args.mount_dir
+    if os.path.exists(mount_dir):
+        shutil.rmtree(mount_dir)
 
 if __name__ == '__main__':
     import argparse
