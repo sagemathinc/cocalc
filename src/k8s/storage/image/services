@@ -1,0 +1,4 @@
+sunrpc          111/tcp         portmapper      # RPC 4.0 portmapper
+sunrpc          111/udp         portmapper
+nfs     2049/tcp    # Network File System
+nfs     2049/udp    # Network File System
