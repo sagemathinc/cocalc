@@ -17,10 +17,10 @@ import string
 
 # jupyter kernel magic
 
-class JUPYTER:
+class JUPYTER(object):
 
-    def __call__(self, kernel_name):
-        return jkmagic(kernel_name)
+    def __call__(self, kernel_name, **kwargs):
+        return jkmagic(kernel_name, **kwargs)
 
     def _get_doc(self):
         ds0 = r"""
@@ -50,13 +50,16 @@ class JUPYTER:
         return ds0 + ks2
 
     __doc__ = property(_get_doc)
-    
+
 jupyter = JUPYTER()
 
 import jupyter_client
 from Queue import Empty
+from ansi2html import Ansi2HTMLConverter
+import os, tempfile
+import base64
 
-def jkmagic(kernel_name):
+def jkmagic(kernel_name, **kwargs):
     r"""
     See docs for jupyter
     """
@@ -65,9 +68,26 @@ def jkmagic(kernel_name):
     # https://github.com/JanSchulz/knitpy/blob/master/knitpy/knitpy.py#L458
 
     km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
-    if kernel_name in ("python3","anaconda3","python2","python2-ubuntu"):
-        # suppress ansi color codes in error messages
-        kc.execute("%colors NoColor")
+
+    debug = 'debug' in kwargs
+
+    def p(*args):
+        if debug:
+            print ' '.join(str(a) for a in args)
+
+    conv = Ansi2HTMLConverter()
+
+    # sets color styles for the page
+    # including cells already run before using this magic
+    # I don't know any way around this
+    salvus.html(conv.convert(""))
+
+    def hout(s):
+        # `full = False` or else cell output is huge
+        h = conv.convert(s, full = False)
+        h2 = '<pre><span style="font-family:monospace;">'+h+'</span></pre>'
+        salvus.html(h2)
+
     def run_code(code):
 
         # execute the code
@@ -84,7 +104,7 @@ def jkmagic(kernel_name):
                 msg = shell.get_msg()
             except Empty:
                 # shouldn't happen
-                print "shell channel empty"
+                p("shell channel empty")
             if msg['parent_header'].get('msg_id') == msg_id:
                 break
             else:
@@ -101,13 +121,38 @@ def jkmagic(kernel_name):
 
             except Empty:
                 # shouldn't happen
-                print "iopub channel timeout"
+                p("iopub channel timeout")
                 break
 
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
 
-            if msg_type == 'status':
+            # trace jupyter protocol if debug enabled
+            p(msg_type, content)
+
+            if msg_type == 'execute_result':
+                res_out = ""
+                if 'execution_count' in content:
+                    res_out += "[%d] "%content['execution_count']
+                if 'data' in content:
+                    if 'text/plain' in content['data']:
+                        # hsy: maybe this needs a '\n' ?
+                        res_out += content['data']['text/plain']
+                        hout(res_out)
+            elif msg_type == 'display_data':
+                for mime, data in content['data'].iteritems():
+                    attr = mime.split('/')[-1].lower()
+                    # fix svg+html, plain
+                    attr = attr.replace('+xml', '').replace('plain', 'text')
+                    # XXX assume salvus.file can handle all display_data types
+                    fname = tempfile.mkstemp(suffix=".png")[1]
+                    img_data = base64.decodestring(data)
+                    p('salvus.file',fname)
+                    with open(fname,'w') as fo:
+                        fo.write(img_data)
+                    #salvus.file(fname)
+                    #os.unlink(fname)
+            elif msg_type == 'status':
                 if content['execution_state'] == 'idle':
                     # when idle, kernel has executed all input
                     kernel_idle = True
@@ -115,20 +160,20 @@ def jkmagic(kernel_name):
                 else:
                     continue
             elif msg_type == 'clear_output':
-                continue
+                salvus.clear()
             elif msg_type == 'stream':
                 if 'text' in content:
-                    print(content['text'])
+                    hout(content['text'])
             elif msg_type == 'error':
-                # XXX look for ename and evalue too?
+                # XXX look for ename and evaluate too?
                 if 'traceback' in content:
                     for tr in content['traceback']:
-                        print tr
+                        hout(tr)
 
         if not kernel_idle:
             # shouldn't happen
             print "end of processing and kernel not idle"
 
         return
-    return run_code
 
+    return run_code
