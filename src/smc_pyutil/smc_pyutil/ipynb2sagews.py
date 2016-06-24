@@ -30,6 +30,7 @@ import textwrap
 import json
 # reading the ipynb via http://nbformat.readthedocs.io/en/latest/api.html
 import nbformat
+from ansi2html import Ansi2HTMLConverter
 
 from sws2sagews import MARKERS, uuid
 
@@ -46,6 +47,7 @@ class Ipynb2SageWS(object):
         OUTPUT:
         - creates a file foo.sagews if it doesn't already exist
         """
+        self.ansi2htmlconv = Ansi2HTMLConverter()
         self.infile = filename
         base = os.path.splitext(filename)[0]
         self.outfile = base + '.sagews'
@@ -56,7 +58,7 @@ class Ipynb2SageWS(object):
         self.nb = None  # holds the notebook data
         self.output = None  # send cells to write here
 
-    def cell(self, html='', input='', output='', md=''):
+    def cell(self, html='', input='', output='', md='', error=''):
         cell = None
         html = html.strip()
         input = input.strip()
@@ -67,8 +69,13 @@ class Ipynb2SageWS(object):
             cell = MARKERS['cell'] + uuid() + modes + MARKERS['cell'] + u'\n'
             if type in ['md', 'html']:
                 cell += '%%%s\n' % type
-                output = input
+                if not output:
+                    output = input
             cell += input
+            # input is done, now the output part
+            if type == 'err':
+                # mangle type of output to html
+                type = 'html'
             cell += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
                      json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
             return cell
@@ -77,6 +84,8 @@ class Ipynb2SageWS(object):
             cell = mkcell(html, type='html')
         elif md:
             cell = mkcell(md, type='md')
+        elif error:
+            cell = mkcell(input=input, output=error, type='err', modes='')
 
         if cell is None and (input or output):
             modes = ''
@@ -130,11 +139,14 @@ class Ipynb2SageWS(object):
 
         def process_output(outputs):
             stdout = []
-            html = []
+            html   = []
+            errors = []
+
             for output in outputs:
                 ot = output['output_type']
                 if ot == 'stream':
                     stdout.append(output['text'])
+
                 elif ot in ['display_data', 'execute_result']:
                     data = output['data']
                     if 'text/html' in data:
@@ -143,12 +155,22 @@ class Ipynb2SageWS(object):
                         html.append(data['text/latex'])
                     if 'text/plain' in data:
                         stdout.append(data['text/plain'])
-                    #print(json.dumps(data, indent=2))
+                    # print(json.dumps(data, indent=2))
+
+                elif ot in 'error':
+                    if 'traceback' in output:
+                        # print(json.dumps(output['traceback'], indent=2))
+                        for tr in output['traceback']:
+                            # `full = False` or else cell output is huge
+                            err = self.ansi2htmlconv.convert(tr, full=False)
+                            errhtml = '<pre><span style="font-family:monospace;">%s</span></pre>' % err
+                            errors.append(errhtml)
+
                 else:
                     print("ERROR: unknown output type '%s':\n%s" %
                           (ot, json.dumps(output, indent=2)))
 
-            return u'\n'.join(stdout), u'<br/>'.join(html)
+            return u'\n'.join(stdout), u'<br/>'.join(html), u'<br/>'.join(errors)
 
         for cell in self.nb.cells:
             ct = cell['cell_type']
@@ -159,8 +181,8 @@ class Ipynb2SageWS(object):
                 self.cell(md=source)
 
             elif ct == 'code':
-                text, html = process_output(outputs)
-                self.cell(input=source, html=html, output=text)
+                text, html, error = process_output(outputs)
+                self.cell(input=source, html=html, error = error, output=text)
 
             else:
                 print("ERROR: cell type '%s' not recognized:\n%s" %
