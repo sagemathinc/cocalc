@@ -43,7 +43,7 @@ setup(
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
     packages         = ['smc_pyutil'],
-    install_requires = ['markdown2', 'psutil', 'PyYAML'],
+    install_requires = ['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
     zip_safe         = False,
     classifiers      = [
         'License :: OSI Approved :: GPLv3',
