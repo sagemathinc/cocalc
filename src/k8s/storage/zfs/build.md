@@ -16,6 +16,8 @@ gcloud compute instances create zfs-build\
   --preemptible
 ```
 
+(Use `gcloud compute images list --project google-containers` to find the ` container-v1-3-v20160517` image name.)
+
 Ssh into it, become root via `sudo su`, and install relevant tools, downgrade the kernel to one with sources, and reboot.  Do each of the following as root and when it asks for confirmation about removing the kernel, DO IT.
 
 ```
