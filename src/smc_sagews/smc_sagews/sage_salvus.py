@@ -14,6 +14,7 @@
 
 
 import copy, os, sys, types
+from sage_jupyter import *
 
 try:
     from pandas import DataFrame
