@@ -24,27 +24,64 @@ def init(args):
     # TODO: would ensure zfs kernel module is available (?)
     return
 
-def image_filename(project_id):
-    return os.path.join("/tmp/%s.img"%project_id)
+def ensure_server_is_mounted(server):
+    # server is a string like '10.245.201.4:/projects'
+    mnt = os.path.join("/mnt/smc-storage", server)
+    if not os.path.exists(mnt):
+        os.makedirs(mnt)
+    if not os.path.ismount(mnt):
+        # We are using NFS; however, we might switch to use sshfs or something else
+        # if we ever have trouble.  This is the only thing that would have to change:
+        cmd("mount -t nfs %s %s"%(server, mnt))
+    return mnt
 
 # Attach device to minion
 def attach(args):
     LOG('attach', args)
     params = json.loads(args.json_params)
-    project_id = params.get("project_id", None)
-    if not project_id:
-        raise RuntimeError("must specify project_id")
-    img = image_filename(project_id)
-    if not os.path.exists(img):
-        cmd('truncate -s 3G %s'%img)
-        format = True
-    else:
-        format = False
-    device = os.popen("losetup -v -f %s"%img).read().split()[-1]
-    if format:
-        cmd('mkfs.ext4 -q %s'%device)
-    return {'device':device}
 
+    path = params.get("path", None)
+    if not path:
+        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4 path/to/foo.zfs")
+
+    server = params.get("server", None)
+    if not server:
+        raise RuntimeError("must specify server 'ip_address:/path'")
+
+    size = params.get("size", '1G')
+    if not size:
+        raise RuntimeError("size can't be 0")
+
+    mount_point = ensure_server_is_mounted(server)
+
+    ext = os.path.splitext(path)[1][1:]
+    path = os.path.join(mount_point, path)
+    if ext in ['ext4', 'zfs', 'btrfs']:
+        if not os.path.exists(path):
+            containing_dir = os.path.split(path)[0]
+            if not os.path.exists(containing_dir):
+                os.makedirs(containing_dir)
+            cmd('truncate -s %s %s'%(size, path))
+            format = True
+        else:
+            format = False
+
+        device = os.popen("losetup -v -f %s"%path).read().split()[-1]
+        if format:
+            if ext == 'zfs':
+                raise NotImplementedError
+            elif ext in ['ext4', 'btrfs']:
+                cmd('mkfs.%s -q %s'%(ext, device))
+            else:
+                raise RuntimeError("unsupported filesystem type '%s'"%fs_type)
+    elif ext == 'nfs':
+        if not os.path.exists(path):
+            os.makedirs(path)
+        device = path
+    else:
+        raise RuntimeError("unsupported type '%s'"%ext)
+
+    return {'device':device}
 
 def mount(args):
     LOG('mount', args)
@@ -53,7 +90,10 @@ def mount(args):
     params     = json.loads(args.json_params)
     if not os.path.exists(mount_dir):
         os.makedirs(mount_dir)
-    cmd("mount %s %s"%(device, mount_dir))
+    if device.endswith('.nfs'):
+        cmd("mount --bind %s %s"%(device, mount_dir))
+    else:
+        cmd("mount %s %s"%(device, mount_dir))
 
 def unmount(args):
     LOG('unmount', args)
