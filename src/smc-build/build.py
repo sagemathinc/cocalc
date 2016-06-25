@@ -256,7 +256,8 @@ SAGE_PIP_PACKAGES = [
     'yattag',
     'pyyaml',
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
-    'charm-crypto'   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'bash_kernel' # the jupyter bash kernel
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
