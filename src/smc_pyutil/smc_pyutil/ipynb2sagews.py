@@ -35,6 +35,135 @@ from ansi2html import Ansi2HTMLConverter
 from sws2sagews import MARKERS, uuid
 
 
+class IpynbCell(object):
+
+    '''
+    Sagews vs. Ipynb cells have several corner cases which make a translation a bit complex.
+    This class is only used for creating a suitable ipynb cell representation,
+    that is then inserted into the sagews worksheet.
+
+    # see http://nbformat.readthedocs.io/en/latest/format_description.html
+    '''
+
+    def __init__(self, input='', outputs=None, md=None):
+        '''
+        Either specify `md` as markdown text, which is used for the text boxes in ipynb,
+        or specify `outputs` as the list of output data dictionaries from ipynb (format version 4)
+        '''
+        if outputs is not None and md is not None:
+            raise ArgumentError('Either specify md or outputs -- not both!')
+        self._ansi2htmlconv = Ansi2HTMLConverter(inline=True, linkify=True)
+        # raw data
+        self.input = input or ''
+        # cell states data
+        self.md = md or ''
+        self.html = ''
+        self.output = ''
+        self.ascii = ''
+        self.error = ''
+        self.stdout = ''
+        # process outputs list
+        if outputs is not None:
+            self.process_outputs(outputs)
+
+    def ansi2htmlconv(self, ansi):
+        '''
+        Sometimes, ipynb contains ansi strings with control characters for colors.
+        This little helper converts this to fixed-width formatted html with coloring.
+        '''
+        # `full = False` or else cell output is huge
+        html = self._ansi2htmlconv.convert(ansi, full=False)
+        return '<pre><span style="font-family:monospace;">%s</span></pre>' % html
+
+    def process_outputs(self, outputs):
+        stdout = []
+        html = []
+        # ascii: for actual html content, that has been converted from ansi-encoded ascii
+        ascii = []
+        # errors are similar to ascii content
+        errors = []
+
+        for output in outputs:
+            ot = output['output_type']
+            if ot == 'stream':
+                ascii.append(self.ansi2htmlconv(output['text']))
+
+            elif ot in ['display_data', 'execute_result']:
+                data = output['data']
+                if 'text/html' in data:
+                    html.append(data['text/html'])
+                if 'text/latex' in data:
+                    html.append(data['text/latex'])
+                if 'text/plain' in data:
+                    stdout.append(data['text/plain'])
+                # print(json.dumps(data, indent=2))
+
+            elif ot in 'error':
+                if 'traceback' in output:
+                    # print(json.dumps(output['traceback'], indent=2))
+                    for tr in output['traceback']:
+                        errors.append(self.ansi2htmlconv(tr))
+
+            else:
+                print("ERROR: unknown output type '%s':\n%s" %
+                      (ot, json.dumps(output, indent=2)))
+
+        # TODO refactor this mess using IpynbCell, etc.
+        self.stdout = u'\n'.join(stdout)
+        self.html = u'<br/>'.join(html)
+        self.error = u'<br/>'.join(errors)
+        self.ascii = u'<br/>'.join(ascii)
+
+    def convert(self):
+        cell = None
+        html = self.html.strip()
+        input = self.input.strip()
+        stdout = self.stdout.strip()
+        ascii = self.ascii.strip()
+        error = self.error.strip()
+        md = self.md.strip()
+
+        def mkcell(input='', output='', type='stdout', modes=''):
+            '''
+            This creates a sagews cell.
+
+            - modes:
+               * '%auto' → 'a'
+               * '%hide' → 'i'
+               * '%hideall' → 'o'
+            - type:
+               * err/ascii: html formatted error or ascii/ansi content
+               * stdout: plain text
+               * html/md: explicit input of html code or md, as display_data
+            '''
+            cell = MARKERS['cell'] + uuid() + modes + MARKERS['cell'] + u'\n'
+            if type == 'md':
+                cell += '%%%s\n' % type
+                output = input
+            cell += input
+            # input is done, now the output part
+            if type in ['err', 'ascii']:
+                # mangle type of output to html
+                type = 'html'
+            cell += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
+                     json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
+            return cell
+
+        if html:
+            cell = mkcell(input=input, output = html, type='html', modes='')
+        elif md:
+            cell = mkcell(input=md, type = 'md', modes='i')
+        elif error:
+            cell = mkcell(input=input, output=error, type='err')
+        elif ascii:
+            cell = mkcell(input=input, output=ascii, type='ascii')
+
+        if cell is None and (input or stdout):
+            cell = mkcell(input, stdout)
+
+        return cell
+
+
 class Ipynb2SageWS(object):
 
     def __init__(self, filename, overwrite=True):
@@ -47,7 +176,6 @@ class Ipynb2SageWS(object):
         OUTPUT:
         - creates a file foo.sagews if it doesn't already exist
         """
-        self.ansi2htmlconv = Ansi2HTMLConverter()
         self.infile = filename
         base = os.path.splitext(filename)[0]
         self.outfile = base + '.sagews'
@@ -58,48 +186,6 @@ class Ipynb2SageWS(object):
         self.nb = None  # holds the notebook data
         self.output = None  # send cells to write here
 
-    def cell(self, html='', input='', output='', md='', error=''):
-        cell = None
-        html = html.strip()
-        input = input.strip()
-        output = output.strip()
-        md = md.strip()
-
-        def mkcell(input='', output='', type='stdout', modes='i'):
-            cell = MARKERS['cell'] + uuid() + modes + MARKERS['cell'] + u'\n'
-            if type in ['md', 'html']:
-                cell += '%%%s\n' % type
-                if not output:
-                    output = input
-            cell += input
-            # input is done, now the output part
-            if type == 'err':
-                # mangle type of output to html
-                type = 'html'
-            cell += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                     json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
-            return cell
-
-        if html:
-            cell = mkcell(html, type='html')
-        elif md:
-            cell = mkcell(md, type='md')
-        elif error:
-            cell = mkcell(input=input, output=error, type='err', modes='')
-
-        if cell is None and (input or output):
-            modes = ''
-            if '%auto' in input:
-                modes += 'a'
-            if '%hide' in input:
-                modes += 'i'
-            if '%hideall' in input:
-                modes += 'o'
-            cell = mkcell(input, output, modes=modes)
-
-        if cell is not None:
-            self.output.send(cell)
-
     def convert(self):
         self.read()
         self.open()
@@ -108,6 +194,10 @@ class Ipynb2SageWS(object):
 
     def read(self):
         self.nb = nbformat.read(self.infile, 4)
+
+    def write(self, line):
+        if line is not None:
+            self.output.send(line)
 
     def open(self):
         sys.stdout.write("%s: Creating SageMathCloud worksheet '%s'\n" %
@@ -119,7 +209,7 @@ class Ipynb2SageWS(object):
                 while True:
                     cell = yield
                     if cell is None:
-                        return
+                        break
                     fout.write(cell)
         self.output = output()
         self.output.next()
@@ -132,45 +222,10 @@ class Ipynb2SageWS(object):
         %auto
         jupyter_kernel = jupyter("{}")
         %default_mode jupyter_kernel'''.format(name)
-        self.cell(input=textwrap.dedent(cell))
+        self.write(IpynbCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
         # see http://nbformat.readthedocs.io/en/latest/format_description.html
-
-        def process_output(outputs):
-            stdout = []
-            html   = []
-            errors = []
-
-            for output in outputs:
-                ot = output['output_type']
-                if ot == 'stream':
-                    stdout.append(output['text'])
-
-                elif ot in ['display_data', 'execute_result']:
-                    data = output['data']
-                    if 'text/html' in data:
-                        html.append(data['text/html'])
-                    if 'text/latex' in data:
-                        html.append(data['text/latex'])
-                    if 'text/plain' in data:
-                        stdout.append(data['text/plain'])
-                    # print(json.dumps(data, indent=2))
-
-                elif ot in 'error':
-                    if 'traceback' in output:
-                        # print(json.dumps(output['traceback'], indent=2))
-                        for tr in output['traceback']:
-                            # `full = False` or else cell output is huge
-                            err = self.ansi2htmlconv.convert(tr, full=False)
-                            errhtml = '<pre><span style="font-family:monospace;">%s</span></pre>' % err
-                            errors.append(errhtml)
-
-                else:
-                    print("ERROR: unknown output type '%s':\n%s" %
-                          (ot, json.dumps(output, indent=2)))
-
-            return u'\n'.join(stdout), u'<br/>'.join(html), u'<br/>'.join(errors)
 
         for cell in self.nb.cells:
             ct = cell['cell_type']
@@ -178,11 +233,13 @@ class Ipynb2SageWS(object):
             outputs = cell.get('outputs', [])
 
             if ct == 'markdown':
-                self.cell(md=source)
+                self.write(IpynbCell(md=source).convert())
 
             elif ct == 'code':
-                text, html, error = process_output(outputs)
-                self.cell(input=source, html=html, error = error, output=text)
+                self.write(IpynbCell(input=source, outputs=outputs).convert())
+
+            elif ct == 'raw':
+                self.write(IpynbCell(input=source).convert())
 
             else:
                 print("ERROR: cell type '%s' not recognized:\n%s" %
