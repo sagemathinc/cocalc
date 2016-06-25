@@ -1,9 +1,11 @@
 #!/usr/bin/env python2
 
-# TODO: this can't be the real location!
-# Install at /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
+# Install as (yes, without the .py extension!)
+#
+#    /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
+#
 
-import json, os, shutil, sys
+import json, os, shutil, sys, uuid
 
 def LOG(*args):
     open("/tmp/a",'a').write(str(args)+'\n')
@@ -11,13 +13,15 @@ def LOG(*args):
 LOG('argsv', sys.argv)
 
 def log(obj):
+    LOG("Will return '%s'"%obj)
     print(json.dumps(obj))
 
 def cmd(s):
-    z = os.popen(s)
+    z = os.popen(s+" 2>/dev/null")
     t = z.read()
     if z.close():
         raise RuntimeError(t)
+    return t
 
 def init(args):
     LOG('init', args)
@@ -69,7 +73,10 @@ def attach(args):
         device = os.popen("losetup -v -f %s"%path).read().split()[-1]
         if format:
             if ext == 'zfs':
-                raise NotImplementedError
+                pool = 'pool-' + str(uuid.uuid4())
+                cmd("zpool create %s -f %s"%(pool, path))
+                cmd("zfs set compression=lz4 %s"%pool)
+                cmd("zfs set dedup=on %s"%pool)
             elif ext in ['ext4', 'btrfs']:
                 cmd('mkfs.%s -q %s'%(ext, device))
             else:
@@ -83,6 +90,18 @@ def attach(args):
 
     return {'device':device}
 
+def get_pool(image_filename):
+    t = cmd("zpool status")
+    i = t.index(image_filename)
+    if i == -1:
+        raise RuntimeError("no such pool")
+    j = t[:i].rindex('pool:')
+    if j == -1:
+        raise RuntimeError("no such pool")
+    t = t[j:]
+    i = t.index('\n')
+    return t[:i].split(':')[1].strip()
+
 def mount(args):
     LOG('mount', args)
     mount_dir  = args.mount_dir
@@ -90,8 +109,24 @@ def mount(args):
     params     = json.loads(args.json_params)
     if not os.path.exists(mount_dir):
         os.makedirs(mount_dir)
+    path       = params.get("path", None)
+    if not path:
+        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4 path/to/foo.zfs")
+
+    ext = os.path.splitext(path)[1][1:]
     if device.endswith('.nfs'):
         cmd("mount --bind %s %s"%(device, mount_dir))
+    elif ext == 'zfs':
+        server = params.get("server", None)
+        if not server:
+            raise RuntimeError("must specify server 'ip_address:/path'")
+        p = os.path.join(ensure_server_is_mounted(server), path)
+        try:
+            pool = get_pool(p)
+        except:
+            cmd("zpool import -a")
+            pool = get_pool(p)
+        cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
     else:
         cmd("mount %s %s"%(device, mount_dir))
 
@@ -99,11 +134,37 @@ def unmount(args):
     LOG('unmount', args)
     mount_dir  = args.mount_dir
     if os.path.exists(mount_dir):
-        cmd("umount %s"%mount_dir)
+        try:
+            pool = cmd("zfs list -H | grep %s"%mount_dir).split()[0]
+            cmd("zfs set mountpoint=none %s"%pool)
+        except:
+            # turns out it is not a ZFS mount
+            cmd("umount %s"%mount_dir)
+
 
 def detach(args):
     LOG('detach', args)
     device = args.device
+    if device.endswith('.nfs'):
+        # nothing to detach
+        return
+    if '/dev/loop' not in device:
+        # ZFS, so determine file  (device= pool name)
+        pool = device
+        image = None
+        for k in cmd("zpool status %s"%pool).splitlines():
+            v = k.split()
+            if len(v) > 0 and v[0].endswith('.zfs'):
+                image = v[0]
+                break
+        if image is None:
+            raise RuntimeError("unable to determine image")
+        # this is the device to unmount
+        device = cmd("losetup -j %s"%image).split(':')[0]
+        # But first export the pool
+        cmd("zpool export %s"%pool)
+
+    # In all cases now we free up the loopback device.
     cmd("losetup -d %s"%device)
 
 if __name__ == '__main__':
