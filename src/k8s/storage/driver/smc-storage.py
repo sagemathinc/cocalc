@@ -20,7 +20,7 @@ def log(obj):
 
 def cmd(s):
     LOG("cmd('%s')"%s)
-    z = os.popen(s+" 2>/dev/null")
+    z = os.popen(s+" 2>&1 ")
     t = z.read()
     if z.close():
         raise RuntimeError(t)
@@ -73,7 +73,17 @@ def attach(args):
         else:
             format = False
 
-        device = os.popen("losetup -v -f %s"%path).read().split()[-1]
+        try:
+            device = cmd("losetup -v -f %s"%path).split()[-1]
+        except Exception as err:
+            if "could not find any free loop device" in str(err):
+                # make a loop device
+                n = 8
+                while os.path.exists('/dev/loop%s'%n):
+                    n += 1
+                cmd("mknod -m 660 /dev/loop%s b 7 %s"%(n,n))
+                device = cmd("losetup -v -f %s"%path).split()[-1]
+
         if format:
             if ext == 'zfs':
                 pool = 'pool-' + str(uuid.uuid4())
@@ -95,14 +105,14 @@ def attach(args):
 
 def get_pool(image_filename):
     t = cmd("zpool status")
-    i = t.index(image_filename)
+    i = t.find(image_filename)
     if i == -1:
         raise RuntimeError("no such pool")
-    j = t[:i].rindex('pool:')
+    j = t[:i].rfind('pool:')
     if j == -1:
         raise RuntimeError("no such pool")
     t = t[j:]
-    i = t.index('\n')
+    i = t.find('\n')
     return t[:i].split(':')[1].strip()
 
 def mount(args):
@@ -127,7 +137,7 @@ def mount(args):
         try:
             pool = get_pool(p)
         except:
-            cmd("zpool import -a")
+            cmd("zpool import -d /dev  -a")
             pool = get_pool(p)
         cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
         # Also bindfs (fuse module) mount the snapshots, since otherwise new ones won't work in the container!
