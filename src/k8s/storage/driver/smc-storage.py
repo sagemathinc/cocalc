@@ -60,48 +60,64 @@ def attach(args):
         raise RuntimeError("size can't be 0")
 
     mount_point = ensure_server_is_mounted(server)
-
-    ext = os.path.splitext(path)[1][1:]
     path = os.path.join(mount_point, path)
-    if ext in ['ext4', 'zfs', 'btrfs']:
-        if not os.path.exists(path):
-            containing_dir = os.path.split(path)[0]
-            if not os.path.exists(containing_dir):
-                os.makedirs(containing_dir)
-            cmd('truncate -s %s %s'%(size, path))
-            format = True
-        else:
-            format = False
-
-        try:
-            device = cmd("losetup -v -f %s"%path).split()[-1]
-        except Exception as err:
-            if "could not find any free loop device" in str(err):
-                # make a loop device
-                n = 8
-                while os.path.exists('/dev/loop%s'%n):
-                    n += 1
-                cmd("mknod -m 660 /dev/loop%s b 7 %s"%(n,n))
-                device = cmd("losetup -v -f %s"%path).split()[-1]
-
-        if format:
-            if ext == 'zfs':
-                pool = 'pool-' + str(uuid.uuid4())
-                cmd("zpool create %s -f %s"%(pool, path))
-                cmd("zfs set compression=lz4 %s"%pool)
-                cmd("zfs set dedup=on %s"%pool)
-            elif ext in ['ext4', 'btrfs']:
-                cmd('mkfs.%s -q %s'%(ext, device))
-            else:
-                raise RuntimeError("unsupported filesystem type '%s'"%fs_type)
-    elif ext == 'nfs':
-        if not os.path.exists(path):
-            os.makedirs(path)
-        device = path
+    if not os.path.exists(path):
+        os.makedirs(path)
+    elif not os.path.isdir(path):
+        os.unlink(path)
+        os.makedirs(path)
+    fs = os.path.splitext(path)[1][1:]
+    if fs == 'zfs':
+        return attach_zfs(path, size)
+    elif fs in ['ext4', 'btrfs']:
+        return attach_loop(path, size, fs)
+    elif fs == 'nfs':
+        return attach_nfs(path)
     else:
-        raise RuntimeError("unsupported type '%s'"%ext)
+        raise ValueError("Unknown filesystem '%s'"%fs)
 
+def attach_zfs(path, size):
+    images = [x for x in os.listdir(path) if x.endswith('.img')]
+    pool_file = os.path.join(path, 'pool')
+    if len(images) == 0 or not os.path.exists(pool_file):
+        image = os.path.join(path, "00.img")
+        cmd('truncate -s %s %s'%(size, image))
+        pool = 'pool-' + str(uuid.uuid4())
+        open(pool_file,'w').write(pool)
+        cmd("zpool create %s -f %s"%(pool, image))
+        cmd("zfs set compression=lz4 %s"%pool)
+        cmd("zfs set dedup=on %s"%pool)
+    else:
+        pool = open(pool_file).read()
+    return {'device':pool}
+
+def attach_loop(path, size, fs):
+    images = [x for x in os.listdir(path) if x.endswith('.img')]
+    if len(images) == 0:
+        image = os.path.join(path, "00.img")
+        cmd('truncate -s %s %s'%(size, image))
+        if fs == 'ext4':
+            cmd('yes | mkfs.ext4 -q %s >/dev/null 2>/dev/null'%image)
+        elif fs == 'btrfs':
+            cmd('mkfs.btrfs %s >/dev/null 2>/dev/null'%image)
+        else:
+            raise ValueError("unknown filesystem '%s'"%fs)
+    else:
+        image = os.path.join(path, images[0])
+    try:
+        device = cmd("losetup -v -f %s"%image).split()[-1]
+    except Exception as err:
+        if "could not find any free loop device" in str(err):
+            # make a new loop device
+            n = 8
+            while os.path.exists('/dev/loop%s'%n):
+                n += 1
+            cmd("mknod -m 660 /dev/loop%s b 7 %s"%(n,n))
+            device = cmd("losetup -v -f %s"%image).split()[-1]
     return {'device':device}
+
+def attach_nfs(path):
+    return {'device':path}
 
 def get_pool(image_filename):
     t = cmd("zpool status")
@@ -124,43 +140,54 @@ def mount(args):
         os.makedirs(mount_dir)
     path       = params.get("path", None)
     if not path:
-        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4 path/to/foo.zfs")
+        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4, path/to/foo.zfs")
 
-    ext = os.path.splitext(path)[1][1:]
-    if device.endswith('.nfs'):
-        cmd("mount --bind %s %s"%(device, mount_dir))
-    elif ext == 'zfs':
+    fs = os.path.splitext(path)[1][1:]
+    if fs == 'zfs':
         server = params.get("server", None)
         if not server:
             raise RuntimeError("must specify server 'ip_address:/path'")
-        p = os.path.join(ensure_server_is_mounted(server), path)
-        try:
-            pool = get_pool(p)
-        except:
-            cmd("zpool import -d /dev  -a")
-            pool = get_pool(p)
-        cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
-        # Also bindfs (fuse module) mount the snapshots, since otherwise new ones won't work in the container!
-        snapshots = os.path.join(mount_dir, '.snapshots')
-        if not os.path.exists(snapshots):
-            os.makedirs(snapshots)
-        cmd("bindfs %s %s"%(os.path.join(mount_dir, '.zfs', 'snapshot'), snapshots))
-    else:
+        mount_point = ensure_server_is_mounted(server)
+        path = os.path.join(mount_point, path)
+        return mount_zfs(path, mount_dir)
+    elif fs == 'ext4':
         cmd("mount %s %s"%(device, mount_dir))
+    elif fs == 'btrfs':
+        cmd("mount -o compress-force=lzo %s %s"%(device, mount_dir))
+    elif fs == 'nfs':
+        cmd("mount --bind %s %s"%(device, mount_dir))
+    else:
+        raise ValueError("Unknown filesystem '%s'"%fs)
+
+def mount_zfs(path, mount_dir):
+    pool_file = os.path.join(path, 'pool')
+    pool = open(pool_file).read()
+    try:
+        cmd("zpool import %s -d %s"%(pool, path))
+    except Exception as err:
+        if 'give it a new name' not in str(err):
+            raise
+    cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
+    # Also bindfs (FUSE!) mount the snapshots, since otherwise new ones won't work in the container!
+    snapshots = os.path.join(mount_dir, '.snapshots')
+    if not os.path.exists(snapshots):
+        os.makedirs(snapshots)
+    cmd("bindfs %s %s"%(os.path.join(mount_dir, '.zfs', 'snapshot'), snapshots))
 
 def unmount(args):
     LOG('unmount', args)
     mount_dir  = args.mount_dir
     if os.path.exists(mount_dir):
-        try:
-            snapshots = os.path.join(mount_dir, '.snapshots')
+        snapshots = os.path.join(mount_dir, '.snapshots')
+        if os.path.exists(snapshots) and os.path.ismount(snapshots):
             cmd("umount %s"%snapshots)
-            pool = cmd("zfs list -H | grep %s"%mount_dir).split()[0]
-            cmd("zfs set mountpoint=none %s"%pool)
-        except:
-            # turns out it is not a ZFS mount
+        else:
+            # not a ZFS mount
             cmd("umount %s"%mount_dir)
-
+            return
+        v = cmd("zfs list -H | grep %s"%mount_dir).split()
+        if len(v) > 0:
+            cmd("zfs set mountpoint=none %s"%v[0])
 
 def detach(args):
     LOG('detach', args)
@@ -168,24 +195,12 @@ def detach(args):
     if device.endswith('.nfs'):
         # nothing to detach
         return
-    if '/dev/loop' not in device:
-        # ZFS, so determine file  (device= pool name)
-        pool = device
-        image = None
-        for k in cmd("zpool status %s"%pool).splitlines():
-            v = k.split()
-            if len(v) > 0 and v[0].endswith('.zfs'):
-                image = v[0]
-                break
-        if image is None:
-            raise RuntimeError("unable to determine image")
-        # this is the device to unmount
-        device = cmd("losetup -j %s"%image).split(':')[0]
-        # But first export the pool
-        cmd("zpool export %s"%pool)
-
-    # In all cases now we free up the loopback device.
-    cmd("losetup -d %s"%device)
+    if device.startswith('/dev/loop'):
+        # loopback device
+        cmd("losetup -d %s"%device)
+        return
+    # ZFS -- export the pool
+    cmd("zpool export %s"%device)
 
 if __name__ == '__main__':
     import argparse
