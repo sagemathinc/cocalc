@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - name: test
+      mountPath: /data
+    - name: test2
+      mountPath: /data2
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: test
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.245.201.4:/projects'
+        path   : "day3/a.zfs"
+        size   : "3000m"
+  - name: test2
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.245.201.4:/projects'
+        path   : "day3/b.zfs"
+        size   : "3000m"
+  nodeSelector:
+    volume: storage
