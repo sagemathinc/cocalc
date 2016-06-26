@@ -4,6 +4,8 @@
 #
 #    /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
 #
+# The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs`.
+#
 
 import json, os, shutil, sys, uuid
 
@@ -17,6 +19,7 @@ def log(obj):
     print(json.dumps(obj))
 
 def cmd(s):
+    LOG("cmd('%s')"%s)
     z = os.popen(s+" 2>/dev/null")
     t = z.read()
     if z.close():
@@ -127,6 +130,11 @@ def mount(args):
             cmd("zpool import -a")
             pool = get_pool(p)
         cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
+        # Also bindfs (fuse module) mount the snapshots, since otherwise new ones won't work in the container!
+        snapshots = os.path.join(mount_dir, '.snapshots')
+        if not os.path.exists(snapshots):
+            os.makedirs(snapshots)
+        cmd("bindfs %s %s"%(os.path.join(mount_dir, '.zfs', 'snapshot'), snapshots))
     else:
         cmd("mount %s %s"%(device, mount_dir))
 
@@ -135,6 +143,8 @@ def unmount(args):
     mount_dir  = args.mount_dir
     if os.path.exists(mount_dir):
         try:
+            snapshots = os.path.join(mount_dir, '.snapshots')
+            cmd("umount %s"%snapshots)
             pool = cmd("zfs list -H | grep %s"%mount_dir).split()[0]
             cmd("zfs set mountpoint=none %s"%pool)
         except:
