@@ -110,15 +110,25 @@ Message = rclass
     propTypes:
         # example message object
         # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
-        message    : rtypes.object.isRequired  # immutable.js message object
-        account_id : rtypes.string.isRequired
-        user_map   : rtypes.object
-        project_id : rtypes.string    # optional -- improves relative links if given
-        file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
-        font_size  : rtypes.number
+        message        : rtypes.object.isRequired  # immutable.js message object
+        account_id     : rtypes.string.isRequired
+        sender_name    : rtypes.string
+        user_map       : rtypes.object
+        project_id     : rtypes.string    # optional -- improves relative links if given
+        file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
+        font_size      : rtypes.number
+        show_avatar    : rtypes.bool
+        is_prev_sender : rtypes.bool
+        is_next_sender : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
+        return @props.message != next.message or
+               @props.user_map != next.user_map or
+               @props.account_id != next.account_id or
+               @props.show_avatar != next.show_avatar or
+               @props.is_prev_sender != next.is_prev_sender or
+               @props.is_next_sender != next.is_next_sender or
+               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
@@ -128,15 +138,24 @@ Message = rclass
             pull = "pull-right small"
         else
             pull = "pull-left small"
-        <div className={pull} style={color:'#888', marginTop:'2px'}>
-            <TimeAgo date={new Date(@props.message.get('date'))} />
+        if @props.show_avatar
+            <div className={pull} style={color:'#888', marginTop:'2px'}>
+                <TimeAgo date={new Date(@props.message.get('date'))} />
+            </div>
+
+    show_user_name: ->
+        <div className={"small"} style={color:'#888', marginBottom:'2px'}>
+            {@props.sender_name}
         </div>
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
-        if account?  # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
+        if account? and @props.show_avatar # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+            <Col key={0} xs={1} style={display:"inline-block", verticalAlign:"middle", marginTop:'15px'}>
                 <Avatar account={account} />
+            </Col>
+        else
+            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
             </Col>
 
     content_column: ->
@@ -154,8 +173,13 @@ Message = rclass
 
         font_size = "#{@props.font_size}px"
 
+        if @props.show_avatar
+            marginBottom = "20px" # the default value actually..
+        else
+            marginBottom = "5px"
         <Col key={1} xs={8}>
-            <Panel style={wordWrap:"break-word"}>
+            {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
+            <Panel style={wordWrap:"break-word", marginBottom: marginBottom}>
                 <ListGroup fill>
                     <ListGroupItem style={background:color; fontSize: font_size}>
                         <Markdown value={value}
@@ -170,8 +194,11 @@ Message = rclass
     blank_column:  ->
         <Col key={2} xs={3}></Col>
 
+    #delete_message: ->
+    #    @props.redux.getActions(@props.name).set_input("test")
+
     render: ->
-        cols = [ @avatar_column(), @content_column(), @blank_column()]
+        cols = [@avatar_column(), @content_column(), @blank_column()]
         # mirror right-left for sender's view
         if @sender_is_viewer()
             cols = cols.reverse()
@@ -194,18 +221,40 @@ ChatLog = rclass
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
     list_messages: ->
-        v = {}
-        @props.messages.map (mesg, date) =>
-            v[date] = <Message key={date}
-                        account_id = {@props.account_id}
-                        user_map   = {@props.user_map}
-                        message    = {mesg}
-                        project_id = {@props.project_id}
-                        file_path  = {@props.file_path}
-                        font_size  = {@props.font_size}
-                      />
-        k = misc.keys(v).sort(misc.cmp_Date)
-        return (v[date] for date in k)
+        is_next_message_sender = (index, list, map) ->
+            if index + 1 == list.length
+                return false
+            current_message = map.get(list[index])
+            next_message = map.get(list[index + 1])
+            return current_message.get('sender_id') == next_message.get('sender_id')
+
+        is_prev_message_sender = (index, list, map) ->
+            if index == 0
+                return false
+            current_message = map.get(list[index])
+            prev_message = map.get(list[index - 1])
+            return current_message.get('sender_id') == prev_message.get('sender_id')
+
+        k = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        v = []
+        for date, i in k
+            sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
+            sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
+
+            v.push(<Message key={date}
+                     account_id  = {@props.account_id}
+                     user_map    = {@props.user_map}
+                     message     = {@props.messages.get(date)}
+                     project_id  = {@props.project_id}
+                     file_path   = {@props.file_path}
+                     font_size   = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, k, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, k, @props.messages)}
+                     show_avatar      = {not is_next_message_sender(i, k, @props.messages)}
+                     sender_name      = {sender_name}
+                    />)
+
+        return v
 
     render: ->
         <div>
@@ -219,7 +268,7 @@ ChatRoom = (name) -> rclass
         "#{name}" :
             messages : rtypes.immutable
             input    : rtypes.string
-            position : rtypes.string
+            position : rtypes.number
         users :
             user_map : rtypes.immutable
         account :
@@ -359,7 +408,7 @@ ChatRoom = (name) -> rclass
                         <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
                             <Icon name='history'/> TimeTravel
                         </Button>
-                        <Button onClick={@scroll_to_bottom} bsStyle='info' style={float:'right'}>
+                        <Button onClick={@scroll_to_bottom} bsStyle='success' style={float:'right'}>
                             <Icon name='arrow-down'/> Scroll to Bottom
                         </Button>
                     </ButtonToolbar>
