@@ -37,9 +37,9 @@ def ensure_server_is_mounted(server):
     if not os.path.exists(mnt):
         os.makedirs(mnt)
     if not os.path.ismount(mnt):
-        # We are using glusterfs; however, we could instead use NFS or sshfs or any other
+        # We are using NFS; however, we could instead use any other
         # remote filesystem if we had to.   This is the only thing that would have to change:
-        cmd("mount -t glusterfs %s %s"%(server, mnt))
+        cmd("mount -t nfs %s %s"%(server, mnt))
     return mnt
 
 # Attach device to minion
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('init', help='initialize the storage driver')
     sub.set_defaults(func=init)
 
-    sub = subparsers.add_parser('attach', help='attach to glusterfs server and create or import the remote ZFS pool')
+    sub = subparsers.add_parser('attach', help='attach to NFS server and create or import the remote ZFS pool')
     sub.add_argument('json_params', type=str, help="""json of object '{"project_id": "f8cf98ed-299e-4423-a167-870e8658e081"}""")
     sub.set_defaults(func=attach)
 

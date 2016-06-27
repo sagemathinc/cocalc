@@ -8,7 +8,13 @@ spec:
     image: nginx
     volumeMounts:
     - name: test3
-      mountPath: /share
+      mountPath: /data3
+    - name: test4
+      mountPath: /data4
+    - name: test2
+      mountPath: /data2
+    - name: test1
+      mountPath: /data1
     ports:
     - containerPort: 80
   volumes:
@@ -16,9 +22,29 @@ spec:
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
-        path   : "test-project2/c.share"
-        size   : "3000m"
+        server : '10.245.201.4:/projects'
+        path   : "foobar/share.nfs"
+  - name: test2
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.245.201.4:/projects'
+        path   : "foobar/b.ext4"
+        size   : "1000m"
+  - name: test4
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.245.201.4:/projects'
+        path   : "foobar/b.btrfs"
+        size   : "1000m"
+  - name: test1
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.245.201.4:/projects'
+        path   : "tests/many/12.zfs"
+        size   : "500m"
   nodeSelector:
     volume: storage
 

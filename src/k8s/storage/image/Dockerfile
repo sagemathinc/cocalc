@@ -5,13 +5,18 @@ USER root
 MAINTAINER William Stein <wstein@sagemath.com>
 
 RUN \
-  apt-get update && \
-  apt-get install -y python-software-properties software-properties-common && \
-  add-apt-repository -y ppa:gluster/glusterfs-3.8 && \
-  apt-get update && \
-  apt-get install -y glusterfs-server
+  apt-get update && apt-get install -y nfs-kernel-server rpcbind
 
+RUN \
+  mkdir -p /projects
 
-ADD run.py /run.py
+# Script to configure nfs.
+ADD run_nfs.sh /run_nfs.sh
+ADD services /etc/services
 
-ENTRYPOINT ["./run.py"]
+# expose mountd 20048/tcp and nfsd 2049/tcp and rpcbind 111/tcp
+EXPOSE 2049/tcp 20048/tcp 111/tcp 111/udp
+
+# Start nfs server
+ENTRYPOINT ["./run_nfs.sh", "/projects"]
+

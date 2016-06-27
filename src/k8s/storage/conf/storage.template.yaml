@@ -1,5 +1,5 @@
 # This is really a template for generating the yaml that describes the deployments
-# for each of the gluster nodes.
+# for each of the storage nodes.
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -15,7 +15,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      storage  : gluster
+      storage  : nfs
       instance : "{number}"
   strategy:
     rollingUpdate:
@@ -26,29 +26,26 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
-          storage  : gluster
-          role     : replica
+          storage  : nfs
           instance : "{number}"
     spec:
       containers:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
-        name: gluster{number}
+        name: storage{number}
         ports:
+          - name: nfs
+            containerPort: 2049
+          - name: mountd
+            containerPort: 20048
           - name: rpcbind
             containerPort: 111
-          - name: gluster1
-            containerPort: 24007
-          - name: gluster2
-            containerPort: 24008
-          - name: gluster3
-            containerPort: 24009
         securityContext:
           privileged: true
         terminationMessagePath: /dev/termination-log
         volumeMounts:
-        - mountPath: /brick
-          name: gluster-brick
+        - mountPath: /projects
+          name: storage-projects
         resources:
           requests:
             memory: "100Mi"
@@ -60,7 +57,7 @@ spec:
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: gluster-brick
+      - name: storage-projects
         gcePersistentDisk:
           fsType: ext4
           pdName: {pd_name}

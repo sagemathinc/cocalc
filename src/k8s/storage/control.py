@@ -29,8 +29,7 @@ def images_on_gcloud(args):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def pd_name(context, namespace, number=''):
-    return "{context}-{NAME}-{namespace}-server{number}".format(
-            context=context, NAME=NAME, number=number, namespace=namespace)
+    return "{context}-storage-{namespace}-server{number}".format(context=context, number=number, namespace=namespace)
 
 def ensure_persistent_disk_exists(context, namespace, number, size, disk_type):
     name = pd_name(context, namespace, number)
@@ -61,12 +60,12 @@ def run_on_kubernetes(args):
             tmp.flush()
             util.update_deployment(tmp.name)
             # Also ensure that storage[n] is available internally, so that DNS works for
-            # them (required so gluster peer doesn't depend on ip address).
+            # them (required for NFS mounting).
             if deployment_name not in util.get_services():
                 util.run(['kubectl', 'expose', 'deployment', deployment_name])
 
 def all_node_numbers():
-    n = len(NAME)
+    n = len('storage')
     v = []
     for x in util.get_deployments():
         print(x)
@@ -83,6 +82,9 @@ def delete(args):
         args.number = all_node_numbers()
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
+        deployment_name = "{name}{number}".format(name=NAME, number=number)
+        if deployment_name not in util.get_services():
+            util.run(['kubectl', 'delete', 'deployment', deployment_name])
 
 if __name__ == '__main__':
     import argparse
@@ -107,10 +109,10 @@ if __name__ == '__main__':
 
     def selector(args):
         if len(args.number) == 0:
-            return {'storage':'gluster'}
+            return {'storage':'nfs'}
         else:
             # can only do one
-            return {'storage':'gluster', 'instance':args.number[0]}
+            return {'storage':'nfs', 'instance':args.number[0]}
     util.add_bash_parser(NAME, subparsers, custom_selector=selector)
     util.add_top_parser(NAME, subparsers, custom_selector=selector)
     util.add_htop_parser(NAME, subparsers, custom_selector=selector)

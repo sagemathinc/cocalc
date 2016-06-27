@@ -38,84 +38,84 @@ spec:
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/0.zfs"
         size   : "1000m"
   - name: zfs2
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/zfs/1.zfs"
         size   : "10G"
   - name: zfs3
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/3.zfs"
         size   : "500m"
   - name: zfs4
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/4.zfs"
         size   : "500m"
   - name: zfs5
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/5.zfs"
         size   : "500m"
   - name: zfs6
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/6.zfs"
         size   : "500m"
   - name: zfs7
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/7.zfs"
         size   : "500m"
   - name: zfs8
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/8.zfs"
         size   : "500m"
   - name: zfs9
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/9.zfs"
         size   : "500m"
   - name: zfs10
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/10.zfs"
         size   : "500m"
   - name: zfs11
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/11.zfs"
         size   : "500m"
   - name: zfs12
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.246.73.4:/projects'
+        server : '10.245.201.4:/projects'
         path   : "tests2/many/12.zfs"
         size   : "500m"
 
