@@ -419,7 +419,7 @@ record_disconnect = () ->
     recent_disconnects.push(+new Date())
     # avoid buffer overflow
     recent_disconnects = recent_disconnects[-100..]
-    console.log("recent_disconnects:", recent_disconnects)
+    # console.log("recent_disconnects:", recent_disconnects)
 
 num_recent_disconnects = (minutes=10) ->
     # note the "+", since we work with timestamps
@@ -462,6 +462,8 @@ salvus_client.on "connecting", () ->
     network_connect_state = 'connecting'
 
     reconnect = (msg) ->
+        # reset recent disconnects, and hope that after the reconnection the situation will be better
+        recent_disconnects = []
         reconnection_warning = +new Date()
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         alert_message(msg)
@@ -473,14 +475,14 @@ salvus_client.on "connecting", () ->
     if num_recent_disconnects() >= 2 or (attempt >= 10)
         # this event fires several times, limit displaying the message and calling reconnect() too often
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if (num_recent_disconnects() >= 2 and attempt >= 5) or attempt >= 20
+            if num_recent_disconnects() >= 5 or attempt >= 20
                 reconnect
                     type: "error"
                     timeout: 10
                     message: "Your internet connection is unstable or down. Therefore SMC is not working."
             else if attempt >= 10
                 reconnect
-                    type: "info"
+                    type: "warning"
                     timeout: 10
                     message: "Your internet connection might be unstable. Please check!"
     else
@@ -520,6 +522,7 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-hub").hide()
 
     if last_ping_time
-        dialog.find(".salvus-connection-ping").show().find('pre').text("#{ping_time_smooth ? 'N/A'}ms (latest: #{last_ping_time}ms)")
+        ptavg = if ping_time_smooth? then Math.floor(ping_time_smooth) else 'N/A'
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{ptavg}ms (latest: #{last_ping_time}ms)")
     else
         dialog.find(".salvus-connection-ping").hide()
