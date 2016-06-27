@@ -134,14 +134,13 @@ Message = rclass
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        if @sender_is_viewer()
-            pull = "pull-right small"
-        else
-            pull = "pull-left small"
-        if @props.show_avatar
-            <div className={pull} style={color:'#888', marginTop:'2px'}>
-                <TimeAgo date={new Date(@props.message.get('date'))} />
-            </div>
+        #if @sender_is_viewer()
+        #    pull = "pull-right small"
+        #else
+        #    pull = "pull-left small"
+        <div className="pull-right small" style={color:'#888', marginTop:'5px', width:'50%'}>
+            <TimeAgo date={new Date(@props.message.get('date'))} />
+        </div>
 
     show_user_name: ->
         <div className={"small"} style={color:'#888', marginBottom:'2px'}>
@@ -150,16 +149,24 @@ Message = rclass
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
-        if account? and @props.show_avatar # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-            <Col key={0} xs={1} style={display:"inline-block", verticalAlign:"middle", marginTop:'15px'}>
-                <Avatar account={account} />
-            </Col>
+        if @props.is_prev_sender
+            margin_top = '12px'
         else
-            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
-            </Col>
+            margin_top = '23px'
+
+        if @sender_is_viewer()
+            float_avatar = 'right'
+
+        # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+        <Col key={0} xs={1} style={display:"inline-block", verticalAlign:"middle", marginTop:margin_top}>
+            <div style={float:float_avatar}>
+                {<Avatar account={account} /> if account? and @props.show_avatar }
+            </div>
+        </Col>
 
     content_column: ->
         value = @props.message.get('payload')?.get('content') ? ''
+
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -177,25 +184,26 @@ Message = rclass
             marginBottom = "20px" # the default value actually..
         else
             marginBottom = "5px"
+
+        if not @props.is_prev_sender and @sender_is_viewer()
+            marginTop = "17px"
+
         <Col key={1} xs={8}>
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
-            <Panel style={wordWrap:"break-word", marginBottom: marginBottom}>
+            <Panel style={wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color; fontSize: font_size}>
+                    <ListGroupItem style={background:color, fontSize: font_size}>
                         <Markdown value={value}
                                   project_id={@props.project_id}
                                   file_path={@props.file_path} />
                     </ListGroupItem>
-                    {@get_timeago()}
+                    {@get_timeago() if @props.show_avatar}
                 </ListGroup>
             </Panel>
         </Col>
 
     blank_column:  ->
         <Col key={2} xs={3}></Col>
-
-    #delete_message: ->
-    #    @props.redux.getActions(@props.name).set_input("test")
 
     render: ->
         cols = [@avatar_column(), @content_column(), @blank_column()]
@@ -241,7 +249,7 @@ ChatLog = rclass
             sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
             sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
 
-            v.push(<Message key={date}
+            v.push <Message key={date}
                      account_id  = {@props.account_id}
                      user_map    = {@props.user_map}
                      message     = {@props.messages.get(date)}
@@ -252,8 +260,7 @@ ChatLog = rclass
                      is_next_sender   = {is_next_message_sender(i, k, @props.messages)}
                      show_avatar      = {not is_next_message_sender(i, k, @props.messages)}
                      sender_name      = {sender_name}
-                    />)
-
+                    />
         return v
 
     render: ->
@@ -343,26 +350,19 @@ ChatRoom = (name) -> rclass
         marginTop    : "5px"
 
     scroll_to_bottom: ->
-        if not @refs.log_container?
+        if @refs.log_container?
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            node.scrollTop = node.scrollHeight
+            @props.redux.getActions(@props.name).save_position(node.scrollTop)
             @_scrolled = false
-            return
-        node = ReactDOM.findDOMNode(@refs.log_container)
-        node.scrollTop = node.scrollHeight
-        @props.redux.getActions(@props.name).save_position(node.scrollTop)
-        @_ignore_next_scroll = true
-        @_scrolled = false
 
     scroll_to_position: ->
-        if not @refs.log_container?
-            return
-        @_scrolled = true
-        node = ReactDOM.findDOMNode(@refs.log_container)
-        node.scrollTop = @props.position
+        if @refs.log_container?
+            @_scrolled = true
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            node.scrollTop = @props.position
 
     on_scroll: (e) ->
-        if @_ignore_next_scroll
-            @_ignore_next_scroll = false
-            return
         @_scrolled = true
         node = ReactDOM.findDOMNode(@refs.log_container)
         @props.redux.getActions(@props.name).save_position(node.scrollTop)
