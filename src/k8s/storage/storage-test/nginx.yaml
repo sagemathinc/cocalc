@@ -11,6 +11,8 @@ spec:
       mountPath: /data
     - name: test2
       mountPath: /data2
+    - name: test3
+      mountPath: /share
     ports:
     - containerPort: 80
   volumes:
@@ -18,15 +20,22 @@ spec:
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.245.201.4:/projects'
-        path   : "day3/a.zfs"
+        server : '10.246.73.4:/projects'
+        path   : "test-projet/a.zfs"
         size   : "3000m"
   - name: test2
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : '10.245.201.4:/projects'
-        path   : "day3/b.zfs"
+        server : '10.246.73.4:/projects'
+        path   : "test-project2/b.zfs"
+        size   : "3000m"
+  - name: test3
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : '10.246.73.4:/projects'
+        path   : "test-project2/c.share"
         size   : "3000m"
   nodeSelector:
     volume: storage

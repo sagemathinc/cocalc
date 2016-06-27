@@ -37,9 +37,9 @@ def ensure_server_is_mounted(server):
     if not os.path.exists(mnt):
         os.makedirs(mnt)
     if not os.path.ismount(mnt):
-        # We are using NFS; however, we might switch to use sshfs or something else
-        # if we ever have trouble.  This is the only thing that would have to change:
-        cmd("mount -t nfs %s %s"%(server, mnt))
+        # We are using glusterfs; however, we could instead use NFS or sshfs or any other
+        # remote filesystem if we had to.   This is the only thing that would have to change:
+        cmd("mount -t glusterfs %s %s"%(server, mnt))
     return mnt
 
 # Attach device to minion
@@ -49,7 +49,7 @@ def attach(args):
 
     path = params.get("path", None)
     if not path:
-        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4 path/to/foo.zfs")
+        raise RuntimeError("must specify path of the form path/to/foo.share, path/to/foo.ext4 path/to/foo.zfs")
 
     server = params.get("server", None)
     if not server:
@@ -71,8 +71,8 @@ def attach(args):
         return attach_zfs(path, size)
     elif fs in ['ext4', 'btrfs']:
         return attach_loop(path, size, fs)
-    elif fs == 'nfs':
-        return attach_nfs(path)
+    elif fs == 'share':
+        return attach_share(path)
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
 
@@ -116,7 +116,7 @@ def attach_loop(path, size, fs):
             device = cmd("losetup -v -f %s"%image).split()[-1]
     return {'device':device}
 
-def attach_nfs(path):
+def attach_share(path):
     return {'device':path}
 
 def get_pool(image_filename):
@@ -140,7 +140,7 @@ def mount(args):
         os.makedirs(mount_dir)
     path       = params.get("path", None)
     if not path:
-        raise RuntimeError("must specify path of the form path/to/foo.nfs, path/to/foo.ext4, path/to/foo.zfs")
+        raise RuntimeError("must specify path of the form path/to/foo.share, path/to/foo.ext4, path/to/foo.zfs")
 
     fs = os.path.splitext(path)[1][1:]
     if fs == 'zfs':
@@ -154,7 +154,7 @@ def mount(args):
         cmd("mount %s %s"%(device, mount_dir))
     elif fs == 'btrfs':
         cmd("mount -o compress-force=lzo %s %s"%(device, mount_dir))
-    elif fs == 'nfs':
+    elif fs == 'share':
         cmd("mount --bind %s %s"%(device, mount_dir))
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
@@ -192,7 +192,7 @@ def unmount(args):
 def detach(args):
     LOG('detach', args)
     device = args.device
-    if device.endswith('.nfs'):
+    if device.endswith('.share'):
         # nothing to detach
         return
     if device.startswith('/dev/loop'):
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('init', help='initialize the storage driver')
     sub.set_defaults(func=init)
 
-    sub = subparsers.add_parser('attach', help='attach to NFS server and create or import the remote ZFS pool')
+    sub = subparsers.add_parser('attach', help='attach to glusterfs server and create or import the remote ZFS pool')
     sub.add_argument('json_params', type=str, help="""json of object '{"project_id": "f8cf98ed-299e-4423-a167-870e8658e081"}""")
     sub.set_defaults(func=attach)
 

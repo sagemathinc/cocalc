@@ -29,7 +29,8 @@ def images_on_gcloud(args):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def pd_name(context, namespace, number=''):
-    return "{context}-storage-{namespace}-server{number}".format(context=context, number=number, namespace=namespace)
+    return "{context}-{NAME}-{namespace}-server{number}".format(
+            context=context, NAME=NAME, number=number, namespace=namespace)
 
 def ensure_persistent_disk_exists(context, namespace, number, size, disk_type):
     name = pd_name(context, namespace, number)
@@ -60,7 +61,7 @@ def run_on_kubernetes(args):
             util.update_deployment(tmp.name)
 
 def all_node_numbers():
-    n = len('storage')
+    n = len(NAME)
     v = []
     for x in util.get_deployments():
         print(x)
@@ -101,10 +102,10 @@ if __name__ == '__main__':
 
     def selector(args):
         if len(args.number) == 0:
-            return {'storage':'nfs'}
+            return {'storage':'gluster'}
         else:
             # can only do one
-            return {'storage':'nfs', 'instance':args.number[0]}
+            return {'storage':'gluster', 'instance':args.number[0]}
     util.add_bash_parser(NAME, subparsers, custom_selector=selector)
     util.add_top_parser(NAME, subparsers, custom_selector=selector)
     util.add_htop_parser(NAME, subparsers, custom_selector=selector)
