@@ -1,0 +1,16 @@
+# The point of this service is to make it easy for any node to probe or mount our Gluster storage cluster
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    storage: gluster
+  name: storage-cluster
+spec:
+  ports:
+    - port: 111     # portmap/rpc
+    - port: 49152   # for glusterfs
+    - port: 24007   # internal glusterd
+    - port: 24008   # the brick
+  selector:
+    storage: gluster
+    role: replica

@@ -12,6 +12,6 @@ RUN \
   apt-get install -y glusterfs-server
 
 
-ADD run.sh /run.sh
+ADD run.py /run.py
 
-ENTRYPOINT ["./run.sh"]
+ENTRYPOINT ["./run.py"]

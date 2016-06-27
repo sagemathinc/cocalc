@@ -50,6 +50,7 @@ def run_on_kubernetes(args):
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     for number in args.number:
+        deployment_name = "{name}{number}".format(name=NAME, number=number)
         ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
             tmp.write(t.format(image        = tag,
@@ -59,6 +60,10 @@ def run_on_kubernetes(args):
                                pull_policy  = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
+            # Also ensure that storage[n] is available internally, so that DNS works for
+            # them (required so gluster peer doesn't depend on ip address).
+            if deployment_name not in util.get_services():
+                util.run(['kubectl', 'expose', 'deployment', deployment_name])
 
 def all_node_numbers():
     n = len(NAME)

@@ -27,6 +27,7 @@ spec:
       creationTimestamp: null
       labels:
           storage  : gluster
+          role     : replica
           instance : "{number}"
     spec:
       containers:
@@ -34,12 +35,14 @@ spec:
         imagePullPolicy: {pull_policy}
         name: gluster{number}
         ports:
-          - name: nfs
-            containerPort: 2049
-          - name: mountd
-            containerPort: 20048
           - name: rpcbind
             containerPort: 111
+          - name: gluster1
+            containerPort: 24007
+          - name: gluster2
+            containerPort: 24008
+          - name: gluster3
+            containerPort: 24009
         securityContext:
           privileged: true
         terminationMessagePath: /dev/termination-log
