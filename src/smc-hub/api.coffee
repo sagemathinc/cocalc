@@ -6,10 +6,14 @@ mounted at /api/#{APIVER}/ and hence makes it possible to update endpoints to hi
 the mounting step uses the router object, which is created in hub_http_server and passed in here
 ###
 
-misc      = require('smc-util/misc')
+misc        = require('smc-util/misc')
+path_module = require('path')
 {defaults, required} = misc
-misc_node = require('smc-util-node/misc_node')
-express   = require('express')
+misc_node   = require('smc-util-node/misc_node')
+express     = require('express')
+
+SMC_ROOT        = process.env.SMC_ROOT
+WEBAPP_LIB_PATH = path_module.join(SMC_ROOT, 'webapp-lib')
 
 setup_endpoint = (req, res, done) ->
     res.header('Content-Type', 'text/plain')
@@ -18,14 +22,19 @@ setup_endpoint = (req, res, done) ->
     res.header('Pragma', 'no-cache')
     done?()
 
+clear_nocache = (res) ->
+    res.removeHeader('Expires')
+    res.removeHeader('Cache-Control')
+    res.removeHeader('Pragma')
+
 exports.init_smc_api = (opts, router) ->
 
     APIVER = '1' # (indicates version 1)
     pw_reset_url = "#{opts.base_url}/api/#{APIVER}/password_reset"
 
-    # poor mans template, good enough for now
+    # poor man's template, good enough for now
     mk_page = (title, body, error=false, tryagain=false) ->
-        error_html = if error then "<h1 style='color:#e33;'>There is a problem!</h1>" else ''
+        error_html = if error then "<h2 style='color:#e33;'>There is a problem!</h2>" else ''
         tryagain_html = if tryagain then "<p><a href='#{pw_reset_url}'>Try again please!</a></p>" else ''
 
         return """<!DOCTYPE html>
@@ -35,14 +44,20 @@ exports.init_smc_api = (opts, router) ->
           <meta name="viewport" content="width=device-width,initial-scale=1">
           <title>#{title} - SageMathCloud</title>
           <style>
-          * {font-family: sans-serif;}
-          body {font-size: 110%;}
+          body {font-family: sans-serif; font-size: 110%;}
+          img.logo {background: #428bca;vertical-align:bottom;height:38px;}
+          footer {font-size: small;}
           </style>
         </head>
         <body>
+        <h1><img src='#{opts.base_url}/api/1/logo.svg' class='logo'>&nbsp;SageMathCloud</h1>
         #{error_html}
         #{body}
         #{tryagain_html}
+        <footer style='margin-top: 15em;'>
+        <hr size=1/>
+        <a href='#{opts.base_url}'>SageMathCloud</a>
+        </footer>
         </body>
         </html>
         """
@@ -56,11 +71,15 @@ exports.init_smc_api = (opts, router) ->
         setup_endpoint(req, res)
         res.send(JSON.stringify(name:'SageMathCloud API', version: 1))
 
+    smcapi.get '/logo.svg', (req, res) ->
+        clear_nocache(res)
+        res.header("Content-Type", "image/svg+xml")
+        res.sendFile(path_module.join(WEBAPP_LIB_PATH, 'salvus-icon.svg'), {maxAge: '1d'})
 
     smcapi.get '/password_reset', (req, res) ->
         res.header('Content-Type', 'text/html')
         form = mk_page('Password Reset', """
-        <h1>Request password reset</h1>
+        <h2>Request password reset</h2>
         <p>Enter your account's email address to receive password reset instructions.</p>
         <form action="#{pw_reset_url}" method="post">
           <label for="email">Email address:</label>
@@ -101,7 +120,7 @@ exports.init_smc_api = (opts, router) ->
                 else
                     res.send(mk_page("Check email account",
                                      """
-                                     <h1 style='color:#3e3;'>Success: reset email sent</h1>
+                                     <h2 style='color:#3e3;'>Success: reset email sent</h2>
                                      <p>Please check your email account for '#{email}' to reset your password and
                                      don't forget to inspect your spam folder!</p>
                                      """))
@@ -121,7 +140,7 @@ exports.init_smc_api = (opts, router) ->
                 else
                     res.send(mk_page('New password saved',
                                       """
-                                      <h1 style='color:#3e3;'>Success: Your new password has been saved.</h1>
+                                      <h2 style='color:#3e3;'>Success: Your new password has been saved.</h2>
                                       <p>Please <a href='#{opts.base_url}'>login again</a>!</p>
                                       """))
             next()
