@@ -2901,7 +2901,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 #############################################################################
 
 # forgot-password activity for requesting a token in an email for a given email address
-forgot_password_impl = exports.forgot_password_impl = (email_address, client_ip_address, cb) ->
+email_forgot_password_impl = exports.email_forgot_password_impl = (email_address, client_ip_address, cb) ->
     # This is an easy check to save work and also avoid empty email_address, which causes trouble below
     if not misc.is_valid_email_address(email_address)
         cb("Invalid email address.")
@@ -2925,7 +2925,7 @@ forgot_password_impl = exports.forgot_password_impl = (email_address, client_ip_
                 cb            : (err, count) ->
                     if err
                         cb(err)
-                    else if count >= 31
+                    else if count >= 10
                         cb("Too many password resets for this email per hour; try again later.")
                     else
                         cb()
@@ -2976,7 +2976,7 @@ forgot_password_impl = exports.forgot_password_impl = (email_address, client_ip_
         (cb) ->
             # send an email to `email_address` that has a password reset link
             # link = "https://cloud.sagemath.com#forgot-#{id}"
-            link = "https://cloud.sagemath.com/v1/password_reset/#{id}"
+            link = "https://cloud.sagemath.com/api/1/password_reset/#{id}"
             body = """
             <div>Hello,</div>
             <div>&nbsp;</div>
@@ -3016,7 +3016,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
         return
 
-    forgot_password_impl mesg.email_address, client_ip_address, (err) ->
+    email_forgot_password_impl mesg.email_address, client_ip_address, (err) ->
         if err
             push_to_client(message.forgot_password_response(id:mesg.id, error:err))
         else

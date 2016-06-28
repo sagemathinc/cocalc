@@ -18,25 +18,20 @@ winston     = require('winston')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc
-
 misc_node    = require('smc-util-node/misc_node')
-
 hub_register = require('./hub_register')
-
 auth         = require('./auth')
-
 access       = require('./access')
-
 hub_proxy    = require('./proxy')
-
 hub_projects = require('./projects')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe-invoice')
 
+{init_smc_api}     = require('./api')
+
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
-
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -54,113 +49,7 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     router.use(body_parser.urlencoded({ extended: true }))
 
-    # SMC API, mounted at /#{APIVER}/*
-    APIVER = 'v1' # (indicates version 1)
-    smcapi = express()
-
-    smcapi.all '/', (req, res) ->
-        res.send(JSON.stringify(name:'SageMathCloud API', version: 1))
-
-    smcapi.all '/*', (req, res, done) ->
-        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-        res.header('Expires', '-1')
-        res.header('Pragma', 'no-cache')
-        done()
-
-    pw_reset_url = "#{opts.base_url}/#{APIVER}/password_reset"
-
-    smcapi.get '/password_reset', (req, res) ->
-        res.header('Content-Type', 'text/html')
-        form = """<!DOCTYPE html>
-        <html>
-        <head>
-          <title>Password Reset</title>
-          <style>
-          * {font-family: sans-serif; font-size: 110%;}
-          </style>
-        </head>
-        <body>
-        <h1>Request password reset</h1>
-        <p>Enter your account's email address to receive password reset instructions.</p>
-        <form action="#{pw_reset_url}" method="post">
-          <label for="email">Email address:</label>
-          <input name="email" placeholder="email@address.com" value="" size="40">
-          <br/><br/>
-          <button>Request reset</button>
-        </form>
-        </body>
-        </html>
-        """
-        res.send(form)
-
-    smcapi.post '/password_reset/', (req, res) ->
-        # ATTN no logging of req.body, contains the user's new password
-        # winston.debug("smcapi/password_reset/POST: #{misc.to_json(req.body)}")
-        res.header('Content-Type', 'text/html')
-        email = req.body.email
-        if email?
-            if not misc.is_valid_email_address(email)
-                reset_url = ""
-                msg = """
-                <p><b>ERROR: '#{email}' is not a valid email address."</b></p>
-                <p><a href="#{reset_url}">Try again please!</a></p>
-                """
-                res.send(msg)
-                return
-
-            {forgot_password_impl} = require('./hub')
-            console.log forgot_password_impl
-            forgot_password_impl email, '0.0.0.0', (err) ->
-                if err?
-                    res.send("ERROR requesting a password reset: #{misc.to_json(err)}")
-                else
-                    res.send("Check your email account of '#{email}' for resetting your password – don't forget to check your spam folder!")
-            return
-
-        password = req.body.password
-        if password?
-            token = req.body.token
-            res.header('Content-Type', 'text/html')
-            res.write("TESTING: password of length #{password.length} and token: #{token}")
-            {reset_forgot_password_impl} = require('./hub')
-            reset_forgot_password_impl token, password, (err) ->
-                if err?
-                    res.write("<p>ERROR saving new password: #{misc.to_json(err)}</p>")
-                else
-                    res.write("<p>Your new password has been saved.</p>")
-                    res.write("<p>Please <a href='#{opts.base_url}'>login again</a></p>")
-            return
-
-        res.write(JSON.stringify(error: 'action unknown'))
-
-    smcapi.get '/password_reset/*', (req, res) ->
-        token = req.path[16..] # only the '*' part of the path
-        # winston.debug("smcapi/password_reset/token: #{token}")
-        res.header('Content-Type', 'text/html')
-        form = """<!DOCTYPE html>
-        <html>
-        <head>
-          <title>New Password</title>
-          <style>
-          * {font-family: sans-serif; font-size: 110%;}
-          </style>
-        </head>
-        <body>
-        <p>Please enter the new password for your account:</p>
-        <form action="#{pw_reset_url}" method="post">
-          <label for="password">Password:</label>
-          <input name="password" value="" size="40" type="password">
-          <input type="hidden" name="token" value="#{token}">
-          <br/><br/>
-          <button>Reset Password</button>
-        </form>
-        </body>
-        </html>
-        """
-        res.write(form)
-
-    router.use("/#{APIVER}", smcapi)
-    # ~~ END SMC API
+    init_smc_api(opts, router)
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
     webpackHeaderControl = (res, path) ->
