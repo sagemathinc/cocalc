@@ -16,7 +16,7 @@ http_proxy  = require('http-proxy')
 http        = require('http')
 winston     = require('winston')
 
-misc    = require('smc-util/misc')
+misc         = require('smc-util/misc')
 {defaults, required} = misc
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')

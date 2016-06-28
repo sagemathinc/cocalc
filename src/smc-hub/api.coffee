@@ -108,23 +108,31 @@ exports.init_smc_api = (opts, router) ->
                     next()
             return
 
-            password = req.body.password
-            if password?
-                token = req.body.token
-                res.header('Content-Type', 'text/html')
-                res.write("TESTING: password of length #{password.length} and token: #{token}")
-                {reset_forgot_password_impl} = require('./hub')
-                reset_forgot_password_impl token, password, (err) ->
-                    if err?
-                        res.write("<p>ERROR saving new password: #{misc.to_json(err)}</p>")
-                    else
-                        res.write("<p>Your new password has been saved.</p>")
-                        res.write("<p>Please <a href='#{opts.base_url}'>login again</a>!</p>")
-                next()
-                return
-
-            res.write(JSON.stringify(error: 'action unknown'))
+        password = req.body.password
+        if password?
+            token = req.body.token
+            res.header('Content-Type', 'text/html')
+            {reset_forgot_password_impl} = require('./hub')
+            reset_forgot_password_impl token, password, (err) ->
+                if err?
+                    res.send(mk_page('Problem saving password',
+                                      "<p>Problem saving new password: #{misc.to_json(err)}</p>",
+                                      error=true, tryagain=true))
+                else
+                    res.send(mk_page('New password saved',
+                                      """
+                                      <h1 style='color:#3e3;'>Success: Your new password has been saved.</h1>
+                                      <p>Please <a href='#{opts.base_url}'>login again</a>!</p>
+                                      """))
             next()
+            return
+
+        res.send(mk_page('Error',
+                         """
+                         <p>The request is malformed or an internal error happened.</p>
+                         <p>Contact: <a href='mailto:#{email}'>#{email}</a></p>
+                         """, error=true, tryagain=true))
+        next()
 
     smcapi.post '/password_reset', [password_reset_step1], (req, res) ->
         if req.help_email?
@@ -135,12 +143,14 @@ exports.init_smc_api = (opts, router) ->
             msg = mk_page("Problem",
                 """
                 <p>Problem requesting a password reset: #{misc.to_json(req.err)}</p>
-                <p>Possible reasons why there is a problem:
+                <p>Possible reasons for this problem:
                 <ul>
-                  <li>You mistyped your email address – either right now or when you registered.</li>
+                  <li>You mistyped your email address – either right now or when you did register.</li>
                   <li>Maybe you did register using another email address?</li>
                   <li>If you did register with a federated account provided via Google, GitHub, Twitter or others,
-                      your email address might not be known to us.</li>
+                      your email address might not be known to us.
+                      In that case, sign in using such an account by clicking on the appropriate icon of the service.
+                  </li>
                 </ul>
                 </p>
                 <p>Contact: <a href='mailto:#{email}'>#{email}</a></p>
@@ -152,7 +162,7 @@ exports.init_smc_api = (opts, router) ->
         # winston.debug("smcapi/password_reset/token: #{token}")
         res.header('Content-Type', 'text/html')
         form = mk_page('Reset Password', """
-        <p>Please enter the new password for your account:</p>
+        <p>Please enter a new password for your account:</p>
         <form action="#{pw_reset_url}" method="post">
           <label for="password">Password:</label>
           <input name="password" value="" size="40" type="password">
@@ -161,7 +171,7 @@ exports.init_smc_api = (opts, router) ->
           <button>Reset Password</button>
         </form>
         """)
-        res.write(form)
+        res.send(form)
 
     router.use("/api/#{APIVER}", smcapi)
     # ~~ END SMC API

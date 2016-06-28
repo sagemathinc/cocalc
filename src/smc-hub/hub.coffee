@@ -2976,7 +2976,7 @@ email_forgot_password_impl = exports.email_forgot_password_impl = (email_address
         (cb) ->
             # send an email to `email_address` that has a password reset link
             # link = "https://cloud.sagemath.com#forgot-#{id}"
-            link = "https://cloud.sagemath.com/api/1/password_reset/#{id}"
+            link = 'https://' + path_module.join('cloud.sagemath.com', BASE_URL, "/api/1/password_reset/#{id}")
             body = """
             <div>Hello,</div>
             <div>&nbsp;</div>
