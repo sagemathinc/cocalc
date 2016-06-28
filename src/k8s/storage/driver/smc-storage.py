@@ -40,7 +40,7 @@ def ensure_server_is_mounted(server):
         # ip changes (which will happen when storage servers get restarted/moved!),
         # whereas NFS is a nightmarish hell of locks and misery, which hardcodes ips in the mount table.
         # Also, obviously, using sshfs allows us to clarify security dramatically better using a simple PKI.
-        cmd("sshfs -o reconnect,ServerAliveInterval=5,ServerAliveCountMax=5,nonempty %s %s"%(server, mnt))
+        cmd("sshfs -o Ciphers=arcfour128,reconnect,ServerAliveInterval=5,ServerAliveCountMax=5,nonempty %s %s"%(server, mnt))
     return mnt
 
 # Attach device to minion
