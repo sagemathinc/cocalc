@@ -45,6 +45,8 @@ def run_on_kubernetes(args):
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
         args.number = range(max(1,len(get_persistent_disks(context, namespace))))
+    if 'storage-projects' not in util.get_services():
+        util.run(['kubectl', 'create', '-f', 'conf/service.yaml'])
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
