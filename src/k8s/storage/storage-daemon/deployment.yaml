@@ -6,9 +6,9 @@ metadata:
   creationTimestamp: null
   generation: 1
   labels:
-    run : storagedaemon
-  name: storagedaemon
-  selfLink: /apis/extensions/v1beta1/namespaces/deployments/storagedaemon
+    run : storage-daemon
+  name: storage-daemon
+  selfLink: /apis/extensions/v1beta1/namespaces/deployments/storage-daemon
 spec:
   replicas: 1
   selector:
@@ -28,7 +28,7 @@ spec:
       containers:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
-        name: storagedaemon
+        name: storage-daemon
         volumeMounts:
         - name: mnt
           mountPath: /node/info

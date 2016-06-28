@@ -11,6 +11,8 @@ spec:
       mountPath: /data
     - name: test2
       mountPath: /data2
+    - name: omnibase
+      mountPath: /omnibase
     ports:
     - containerPort: 80
   volumes:
@@ -28,5 +30,12 @@ spec:
         server : 'storage-storage1:/projects'
         path   : "test2.zfs"
         size   : "3000m"
+  - name: omnibase
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        server : 'storage-storage0:/projects'
+        path   : "369491f1-9b8a-431c-8cd0-150dd15f7b11.zfs"
+        size   : "10000m"
   nodeSelector:
     volume: storage

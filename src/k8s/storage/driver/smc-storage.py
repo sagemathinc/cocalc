@@ -89,7 +89,7 @@ def attach_zfs(path, size):
         cmd("zfs set compression=lz4 %s"%pool)
         cmd("zfs set dedup=on %s"%pool)
     else:
-        pool = open(pool_file).read()
+        pool = open(pool_file).read().strip()
     return {'device':pool}
 
 def attach_loop(path, size, fs):
@@ -162,7 +162,7 @@ def mount(args):
 
 def mount_zfs(path, mount_dir):
     pool_file = os.path.join(path, 'pool')
-    pool = open(pool_file).read()
+    pool = open(pool_file).read().strip()
     try:
         cmd("zpool import %s -d %s"%(pool, path))
     except Exception as err:

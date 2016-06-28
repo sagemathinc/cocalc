@@ -96,7 +96,7 @@ if __name__ == '__main__':
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='*')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (or use recent image if not specified)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
-    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
+    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (can be used to dynamically increase size!)')
     sub.add_argument('--type', default='standard', help='"standard" or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.add_argument('--health-delay', default=60, type=int, help='time in seconds before starting health checks')
     sub.set_defaults(func=run_on_kubernetes)

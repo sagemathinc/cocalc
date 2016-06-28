@@ -9,7 +9,7 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', '..', 'util')))
 import util
 
-NAME='storagedaemon'
+NAME='storage-daemon'
 
 def build(tag, rebuild):
     v = ['sudo', 'docker', 'build', '-t', tag]
