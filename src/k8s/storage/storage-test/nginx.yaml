@@ -18,14 +18,14 @@ spec:
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : 'storage0:/projects'
+        server : 'storage-storage0:/projects'
         path   : "test.zfs"
         size   : "3000m"
   - name: test2
     flexVolume:
       driver : "smc/smc-storage"
       options:
-        server : 'storage1:/projects'
+        server : 'storage-storage1:/projects'
         path   : "test2.zfs"
         size   : "3000m"
   nodeSelector:

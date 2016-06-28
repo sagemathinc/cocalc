@@ -32,14 +32,15 @@ def init(args):
     return
 
 def ensure_server_is_mounted(server):
-    # server is a string like '10.245.201.4:/projects'
     mnt = os.path.join("/mnt/smc-storage", server)
     if not os.path.exists(mnt):
         os.makedirs(mnt)
     if not os.path.ismount(mnt):
-        # We are using NFS; however, we could instead use any other
-        # remote filesystem if we had to.   This is the only thing that would have to change:
-        cmd("mount -t nfs %s %s"%(server, mnt))
+        # We use sshfs instead of NFS, since sshfs is vastly more robust and will survive
+        # ip changes (which will happen when storage servers get restarted/moved!),
+        # whereas NFS is a nightmarish hell of locks and misery, which hardcodes ips in the mount table.
+        # Also, obviously, using sshfs allows us to clarify security dramatically better using a simple PKI.
+        cmd("sshfs -o reconnect,ServerAliveInterval=60,ServerAliveCountMax=5,nonempty %s %s"%(server, mnt))
     return mnt
 
 # Attach device to minion

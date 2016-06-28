@@ -59,10 +59,6 @@ def run_on_kubernetes(args):
                                pull_policy  = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
-            # Also ensure that storage[n] is available internally, so that DNS works for
-            # them (required for NFS mounting).
-            if deployment_name not in util.get_services():
-                util.run(['kubectl', 'expose', 'deployment', deployment_name])
 
 def all_node_numbers():
     n = len('storage')
@@ -83,8 +79,6 @@ def delete(args):
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
         deployment_name = "{name}{number}".format(name=NAME, number=number)
-        if deployment_name in util.get_services():
-            util.run(['kubectl', 'delete', 'service', deployment_name])
 
 if __name__ == '__main__':
     import argparse
