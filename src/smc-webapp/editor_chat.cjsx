@@ -134,32 +134,36 @@ Message = rclass
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        #if @sender_is_viewer()
-        #    pull = "pull-right small"
-        #else
-        #    pull = "pull-left small"
-        <div className="pull-right small" style={color:'#888', marginTop:'5px', width:'50%'}>
+        if @sender_is_viewer()
+            align = "right"
+        else
+            align = "center"
+        <div className="pull-right small" style={color:'#888', marginTop:'2px', marginBottom:'1px', marginRight:'16px', width:'100%', textAlign:align}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
     show_user_name: ->
-        <div className={"small"} style={color:'#888', marginBottom:'2px'}>
+        <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'16px'}>
             {@props.sender_name}
         </div>
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
         if @props.is_prev_sender
-            margin_top = '12px'
+            margin_top = '5px'
         else
-            margin_top = '23px'
+            margin_top = '27px'
 
         if @sender_is_viewer()
-            float_avatar = 'right'
+            textAlign = 'left'
+            marginRight = '11px'
+        else
+            textAlign = 'right'
+            marginLeft = '11px'
 
         # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-        <Col key={0} xs={1} style={display:"inline-block", verticalAlign:"middle", marginTop:margin_top}>
-            <div style={float:float_avatar}>
+        <Col key={0} xsHidden={true} sm={1} style={display:"inline-block", verticalAlign:"middle", marginTop:margin_top, marginLeft:marginLeft, marginRight:marginRight, width:'4%', textAlign:textAlign, padding:'0px'} >
+            <div>
                 {<Avatar account={account} /> if account? and @props.show_avatar }
             </div>
         </Col>
@@ -183,16 +187,23 @@ Message = rclass
         if @props.show_avatar
             marginBottom = "20px" # the default value actually..
         else
-            marginBottom = "5px"
+            marginBottom = "3px"
 
         if not @props.is_prev_sender and @sender_is_viewer()
             marginTop = "17px"
 
-        <Col key={1} xs={8}>
+        if not @props.is_prev_sender and not @props.is_next_sender
+            borderRadius = '19px 19px 19px 19px'
+        else if not @props.is_prev_sender
+            borderRadius = '19px 19px 5px 5px'
+        else if not @props.is_next_sender
+            borderRadius = '5px 5px 19px 19px'
+
+        <Col key={1} xs={10} sm={9}>
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
-            <Panel style={wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop}>
+            <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color, fontSize: font_size}>
+                    <ListGroupItem style={background:color, fontSize: font_size, paddingBottom:'1px', borderRadius: borderRadius}>
                         <Markdown value={value}
                                   project_id={@props.project_id}
                                   file_path={@props.file_path} />
@@ -203,7 +214,7 @@ Message = rclass
         </Col>
 
     blank_column:  ->
-        <Col key={2} xs={3}></Col>
+        <Col key={2} xs={2}></Col>
 
     render: ->
         cols = [@avatar_column(), @content_column(), @blank_column()]
@@ -229,23 +240,23 @@ ChatLog = rclass
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
     list_messages: ->
-        is_next_message_sender = (index, list, map) ->
-            if index + 1 == list.length
+        is_next_message_sender = (index, dates, messages) ->
+            if index + 1 == dates.length
                 return false
-            current_message = map.get(list[index])
-            next_message = map.get(list[index + 1])
+            current_message = messages.get(dates[index])
+            next_message = messages.get(dates[index + 1])
             return current_message.get('sender_id') == next_message.get('sender_id')
 
-        is_prev_message_sender = (index, list, map) ->
+        is_prev_message_sender = (index, dates, messages) ->
             if index == 0
                 return false
-            current_message = map.get(list[index])
-            prev_message = map.get(list[index - 1])
+            current_message = messages.get(dates[index])
+            prev_message = messages.get(dates[index - 1])
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
-        k = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
-        for date, i in k
+        for date, i in sorted_dates
             sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
             sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
 
@@ -256,9 +267,9 @@ ChatLog = rclass
                      project_id  = {@props.project_id}
                      file_path   = {@props.file_path}
                      font_size   = {@props.font_size}
-                     is_prev_sender   = {is_prev_message_sender(i, k, @props.messages)}
-                     is_next_sender   = {is_next_message_sender(i, k, @props.messages)}
-                     show_avatar      = {not is_next_message_sender(i, k, @props.messages)}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
                      sender_name      = {sender_name}
                     />
         return v
@@ -303,7 +314,7 @@ ChatRoom = (name) -> rclass
             e.preventDefault()
             mesg = @refs.input.getValue()
             # block sending empty messages
-            if mesg.length? and mesg.length >= 1
+            if mesg.length? and mesg.trim().length >= 1
                 @props.redux.getActions(@props.name).send_chat(mesg)
                 @clear_input()
 
