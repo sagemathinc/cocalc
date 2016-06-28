@@ -83,8 +83,8 @@ def delete(args):
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
         deployment_name = "{name}{number}".format(name=NAME, number=number)
-        if deployment_name not in util.get_services():
-            util.run(['kubectl', 'delete', 'deployment', deployment_name])
+        if deployment_name in util.get_services():
+            util.run(['kubectl', 'delete', 'service', deployment_name])
 
 if __name__ == '__main__':
     import argparse
@@ -109,10 +109,10 @@ if __name__ == '__main__':
 
     def selector(args):
         if len(args.number) == 0:
-            return {'storage':'nfs'}
+            return {'storage':'projects'}
         else:
             # can only do one
-            return {'storage':'nfs', 'instance':args.number[0]}
+            return {'storage':'projects', 'instance':args.number[0]}
     util.add_bash_parser(NAME, subparsers, custom_selector=selector)
     util.add_top_parser(NAME, subparsers, custom_selector=selector)
     util.add_htop_parser(NAME, subparsers, custom_selector=selector)

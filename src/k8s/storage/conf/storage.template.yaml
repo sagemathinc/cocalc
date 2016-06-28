@@ -9,13 +9,14 @@ metadata:
   generation: 1
   labels:
     run : storage{number}
+    storage  : projects
   name: storage{number}
   selfLink: /apis/extensions/v1beta1/namespaces/deployments/storage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      storage  : nfs
+      storage  : projects
       instance : "{number}"
   strategy:
     rollingUpdate:
@@ -26,7 +27,7 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
-          storage  : nfs
+          storage  : projects
           instance : "{number}"
     spec:
       containers:
