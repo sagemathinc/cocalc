@@ -33,20 +33,20 @@ def run_on_kubernetes(args):
     namespace = util.get_current_namespace()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
-    t = open('deployment.yaml').read()
+    t = open('storage-daemon.yaml').read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image        = tag,
                            namespace    = util.get_current_namespace(),
                            pull_policy  = util.pull_policy(args)))
         tmp.flush()
-        util.update_deployment(tmp.name)
+        util.update_daemonset(tmp.name)
 
 def delete(args):
-    util.stop_deployment(NAME)
+    util.stop_daemonset(NAME)
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
+    parser = argparse.ArgumentParser(description='Control running daemonset of {name}'.format(name=NAME))
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
@@ -56,13 +56,13 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub = subparsers.add_parser('run', help='create/update {name} daemonset on the currently selected kubernetes cluster'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (or use recent image if not specified)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
 
-    sub = subparsers.add_parser('delete', help='delete deployment')
+    sub = subparsers.add_parser('delete', help='delete daemonset')
     sub.set_defaults(func=delete)
 
     selector = f = lambda *args: {'storage':'daemon'}

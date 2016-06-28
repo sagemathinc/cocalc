@@ -1,27 +1,13 @@
 apiVersion: extensions/v1beta1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  annotations:
-    deployment.kubernetes.io/revision: "1"
-  creationTimestamp: null
-  generation: 1
   labels:
     run : storage-daemon
   name: storage-daemon
   selfLink: /apis/extensions/v1beta1/namespaces/deployments/storage-daemon
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      storage  : daemon
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
   template:
     metadata:
-      creationTimestamp: null
       labels:
           storage  : daemon
     spec:
@@ -39,7 +25,7 @@ spec:
             memory: "20Mi"
             cpu: "10m"
           limits:
-            memory: "100Mi"
+            memory: "50Mi"
             cpu: "100m"
         env:
           - name: POD_NAMESPACE
@@ -56,5 +42,3 @@ spec:
       - name: hosts
         hostPath:
           path: /etc/hosts
-      nodeSelector:
-        volume: storage

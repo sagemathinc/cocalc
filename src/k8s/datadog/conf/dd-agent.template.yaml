@@ -16,6 +16,13 @@ spec:
         ports:
           - containerPort: 8125
             name: dogstatsdport
+        resources:
+          requests:
+            memory: "20Mi"
+            cpu: "10m"
+          limits:
+            memory: "200Mi"
+            cpu: "100m"
         env:
           - name: API_KEY
             value: {API_KEY}
