@@ -143,7 +143,7 @@ Message = rclass
         </div>
 
     show_user_name: ->
-        <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'16px'}>
+        <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'10px'}>
             {@props.sender_name}
         </div>
 
@@ -161,8 +161,18 @@ Message = rclass
             textAlign = 'right'
             marginLeft = '11px'
 
+        style =
+            display       : "inline-block"
+            marginTop     : margin_top
+            marginLeft    : marginLeft
+            marginRight   : marginRight
+            padding       : '0px'
+            textAlign     : textAlign
+            verticalAlign : "middle"
+            width         : '4%'
+
         # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-        <Col key={0} xsHidden={true} sm={1} style={display:"inline-block", verticalAlign:"middle", marginTop:margin_top, marginLeft:marginLeft, marginRight:marginRight, width:'4%', textAlign:textAlign, padding:'0px'} >
+        <Col key={0} xsHidden={true} sm={1} style={style} >
             <div>
                 {<Avatar account={account} /> if account? and @props.show_avatar }
             </div>
@@ -193,11 +203,11 @@ Message = rclass
             marginTop = "17px"
 
         if not @props.is_prev_sender and not @props.is_next_sender
-            borderRadius = '19px 19px 19px 19px'
+            borderRadius = '10px 10px 10px 10px'
         else if not @props.is_prev_sender
-            borderRadius = '19px 19px 5px 5px'
+            borderRadius = '10px 10px 5px 5px'
         else if not @props.is_next_sender
-            borderRadius = '5px 5px 19px 19px'
+            borderRadius = '5px 5px 10px 10px'
 
         <Col key={1} xs={10} sm={9}>
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
