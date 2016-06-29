@@ -482,7 +482,7 @@ salvus_client.on "connecting", () ->
                     message: "Your internet connection is unstable or down. Therefore SMC is not working."
             else if attempt >= 10
                 reconnect
-                    type: "warning"
+                    type: "info"
                     timeout: 10
                     message: "Your internet connection might be unstable. Please check!"
     else
