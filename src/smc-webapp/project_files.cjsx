@@ -349,14 +349,14 @@ DirectoryRow = rclass
 
 TerminalModeDisplay = rclass
     render : ->
-        <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
+        <Row style={textAlign:'left', color:'#888', marginTop:'5px', wordWrap:'break-word'} >
             <Col sm=2>
             </Col>
             <Col sm=8>
-                <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
-                Warning: You are in terminal mode.<br/><br/>
-                This was caused by the leading / in your file search. If you would instead like to see just your folders, enter a space in front of the /.<br/>
-                Terminal mode in file listing is experimental and comes with no guarantees about its usability or future existence.
+                <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: You are in terminal mode.<br/>
+                This was caused by the leading / in your file search. If you want to just see your folders, enter a space in front of the /.<br/>
+                Terminal mode inside the search bar is experimental and comes with no guarantees about its usability or future existence.
             </Alert>
             </Col>
             <Col sm=2>
