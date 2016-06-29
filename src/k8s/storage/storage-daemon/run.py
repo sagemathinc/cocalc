@@ -1,7 +1,40 @@
 #!/usr/bin/env python3
-import json, os, requests, socket, subprocess, time
+import json, os, requests, shutil, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
+
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
+    t = time.time()
+    if isinstance(v, str):
+        cmd = v
+        shell = True
+    else:
+        cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
+    if path != '.':
+        cur = os.path.abspath(os.curdir)
+        if verbose:
+            print('chdir %s'%path)
+        os.chdir(path)
+    try:
+        if verbose:
+            print(cmd)
+        if shell:
+            kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
+        else:
+            kwds = {'env':env}
+        if get_output:
+            output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
+        else:
+            if subprocess.call(v, **kwds):
+                raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
+            output = None
+        seconds = time.time() - t
+        if verbose:
+            print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+        return output
+    finally:
+        if path != '.':
+            os.chdir(cur)
 
 def get_service(service):
     """
@@ -46,9 +79,39 @@ def update_etc_hosts():
     except Exception as err:
         print("Problem in update_etc_hosts", err)
 
+MINION_IP = 'unknown'
+def enable_ssh_access_to_minion():
+    global MINION_IP
+    # create our own local ssh key
+    if os.path.exists('/root/.ssh'):
+        shutil.rmtree('/root/.ssh')
+    run(['ssh-keygen', '-b', '2048', '-N', '', '-f', '/root/.ssh/id_rsa'])
+    # make root user of minion allow login using this (and only this) key.
+    shutil.copyfile('/root/.ssh/id_rsa.pub', '/node/root/.ssh/authorized_keys')
+    # true who we connect to
+    open("/root/.ssh/config",'w').write("StrictHostKeyChecking no\nUserKnownHostsFile=/dev/null\n")
+    # record hostname of minion
+    for x in open("/node/etc/hosts").readlines():
+        if 'group' in x:
+            MINION_IP = x.split()[0]
+            open("/node/minion_ip",'w').write(MINION_IP)
+
+def run_on_minion(v, *args, **kwds):
+    global MINION_IP
+    if MINION_IP == 'unknown':
+        if os.path.exists("/node/minion_ip"):
+            MINION_IP = open("/node/minion_ip").read()
+        else:
+            raise RuntimeError("first run enable_ssh_access_to_minion")
+    if isinstance(v, str):
+        v = "ssh " + MINION_IP + " " + v
+    else:
+        v = ['ssh', MINION_IP] + v
+    run(v)
 
 def start_storage_daemon():
-    print("launching rethinkdb")
+    print("launching storage daemon")
+    enable_ssh_access_to_minion()
     while True:
         update_etc_hosts()
         time.sleep(15)

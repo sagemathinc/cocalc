@@ -20,12 +20,14 @@ spec:
           mountPath: /node/info
         - name: hosts
           mountPath: /node/etc/hosts
+        - name: ssh
+          mountPath: /node/root/.ssh
         resources:
           requests:
-            memory: "20Mi"
+            memory: "100Mi"
             cpu: "10m"
           limits:
-            memory: "50Mi"
+            memory: "200Mi"
             cpu: "100m"
         env:
           - name: POD_NAMESPACE
@@ -42,3 +44,6 @@ spec:
       - name: hosts
         hostPath:
           path: /etc/hosts
+      - name: ssh
+        hostPath:
+          path: /root/.ssh
