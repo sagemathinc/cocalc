@@ -63,8 +63,8 @@ def update_etc_hosts():
         namespace = v['metadata']['namespace']
         hosts = ["{ip}    {namespace}-{name}".format(ip=x['ip'], namespace=namespace,
                               name=x['targetRef']['name'].split('-')[0]) for x in v['subsets'][0]['addresses']]
-        start = "# start smc-storage dns - namespace="+namespace
-        end = "# end smc-storage dns - namespace="+namespace
+        start = "# start smc-storage dns - namespace="+namespace+"\n\n"
+        end = "# end smc-storage dns - namespace="+namespace+"\n\n"
         block = '\n'.join([start] + hosts + [end])
         current = open(HOSTS).read()
         if block in current:
@@ -96,22 +96,46 @@ def enable_ssh_access_to_minion():
             MINION_IP = x.split()[0]
             open("/node/minion_ip",'w').write(MINION_IP)
 
-def run_on_minion(v, *args, **kwds):
+def minion_ip():
     global MINION_IP
     if MINION_IP == 'unknown':
         if os.path.exists("/node/minion_ip"):
             MINION_IP = open("/node/minion_ip").read()
+            return MINION_IP
         else:
-            raise RuntimeError("first run enable_ssh_access_to_minion")
-    if isinstance(v, str):
-        v = "ssh " + MINION_IP + " " + v
+            enable_ssh_access_to_minion()
+            if MINION_IP == 'unknown':
+                raise RuntimeError("first run enable_ssh_access_to_minion")
+            else:
+                return MINION_IP
     else:
-        v = ['ssh', MINION_IP] + v
+        return MINION_IP
+
+def run_on_minion(v, *args, **kwds):
+    if isinstance(v, str):
+        v = "ssh " + minion_ip() + " '%s'"%v
+    else:
+        v = ['ssh', minion_ip() ] + v
     run(v)
+
+def install_flexvolume_plugin():
+    # we always copy it over, which at least upgrades it if necessary.
+    shutil.copyfile("/install/smc-storage", "/node/plugin/smc-storage")
+
+def install_zfs():
+    try:
+        run_on_minion('zpool status')
+        print("excellent -- zfs is already installed")
+    except:
+        print("zfs not installed, so installing it")
+        run(['scp', '-r', '/install/gke-zfs', minion_ip()+":"])
+        run_on_minion("cd /root/gke-zfs/3.16.0-4-amd64/ && ./install.sh")
 
 def start_storage_daemon():
     print("launching storage daemon")
+    install_flexvolume_plugin()
     enable_ssh_access_to_minion()
+    install_zfs()
     while True:
         update_etc_hosts()
         time.sleep(15)
