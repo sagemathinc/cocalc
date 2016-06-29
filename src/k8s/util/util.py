@@ -106,7 +106,8 @@ def gcloud_images(name):
         return []
     for _, v in data['manifest'].items():
         if 'tag' in v:
-            w.append([repo, datetime.fromtimestamp(float(v['timeCreatedMs'])/1000), v['tag'][0]])
+            if len(v['tag']) > 0:
+                w.append([repo, datetime.fromtimestamp(float(v['timeCreatedMs'])/1000), v['tag'][0]])
     w.sort()
     return [dict(zip(['REPOSITORY', 'CREATED', 'TAG'], x)) for x in reversed(w)]
 
@@ -399,7 +400,7 @@ def add_exec_parser(name, subparsers, command_name,  command, custom_selector=No
             selector = custom_selector(args)
         else:
             selector = {'run':name}
-        exec_command(args.number, command, args.container, __tmux_sync__=not args.no_sync, **selector)
+        exec_command(args.number if custom_selector is None else [], command, args.container, __tmux_sync__=not args.no_sync, **selector)
     sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
@@ -553,7 +554,7 @@ def show_horizontal_pod_autoscalers(namespace=''):
         else:
             cur = '<waiting>'
         print(fmt.format(name    = v['metadata']['name'],
-                         target  = "%s%%"%v['spec']['cpuUtilization']['targetPercentage'],
+                         target  = "%s%%"%v['spec']['targetCPUUtilizationPercentage'],
                          current = cur,
                          number  = v['status']["currentReplicas"],
                          minpods = v['spec']['minReplicas'],

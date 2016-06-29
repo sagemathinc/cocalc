@@ -624,6 +624,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                         if changeObj.origin == 'redo'
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
+                            @_last_change_time = new Date()
                             @save_state_debounce()
                     update_unsaved_uncommitted_changes()
 
@@ -650,6 +651,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     _update_unsaved_uncommitted_changes: =>
         if not @codemirror?
+            return
+        if new Date() - (@_last_change_time ? 0) <= 1000
+            # wait at least a second from when the user last changed the document, in case it's just a burst of typing.
             return
         x = @codemirror.getValue()
         @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(x))

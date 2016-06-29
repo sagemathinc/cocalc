@@ -42,8 +42,8 @@ spec:
           failureThreshold: 5      # quick bursts of high concurrents are normal, so we don't kill until many fails
         resources:
           requests:
-            cpu: 100m
-            memory: "400Mi"
+            cpu: 500m
+            memory: 1Gi
           limits:
             cpu: "1"
             memory: 2Gi

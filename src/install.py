@@ -49,7 +49,7 @@ def install_hub():
 
 def install_webapp(*args):
     nice()
-    action = args[0].action
+    action = args[0].action if args else 'build'
     nothing = True
 
     if 'build' in action:
