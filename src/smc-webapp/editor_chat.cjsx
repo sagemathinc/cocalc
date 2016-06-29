@@ -134,11 +134,7 @@ Message = rclass
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        if @sender_is_viewer()
-            align = "right"
-        else
-            align = "center"
-        <div className="pull-right small" style={color:'#888', marginTop:'2px', marginBottom:'1px', marginRight:'16px', width:'100%', textAlign:align}>
+        <div className="pull-right small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
@@ -213,12 +209,12 @@ Message = rclass
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
             <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color, fontSize: font_size, paddingBottom:'1px', borderRadius: borderRadius}>
+                    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: borderRadius}>
                         <Markdown value={value}
                                   project_id={@props.project_id}
                                   file_path={@props.file_path} />
+                        {@get_timeago()}
                     </ListGroupItem>
-                    {@get_timeago() if @props.show_avatar}
                 </ListGroup>
             </Panel>
         </Col>
