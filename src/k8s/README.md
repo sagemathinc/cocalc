@@ -15,8 +15,10 @@ c delete-cluster
 # if possible, you could now upgraded kubernetes by changing what tarball is in ~/kubernetes
 
 # create the cluster (5 min)
-c create-cluster --node-disk-size=60 --min-nodes=10 --max-nodes=12 --non-preemptible
+c create-cluster --node-disk-size=60 --min-nodes=1 --max-nodes=1 --non-preemptible
 ```
+
+Immediately, once the cluster is running, add more nodes via the web UI or `c resize --size` or `c autoscale...`.   We recently hit  race condition in which during the initial cluster creation multiple nodes had the same Routes assigned (so `sudo ifconfig cbr0|grep inet` was repeated on multiple nodes).  This led to disaster.
 
 Next, configure the cluster and start everything running.
 Here's how to setup the test namespace; doing the prod one is
