@@ -11,12 +11,30 @@ import util
 
 NAME='storage-daemon'
 
+def create_install_path():
+    """
+    Create install-tmp/, which contains files that will get
+    installed into the k8s host node when the daemon starts.
+    """
+    remove_install_path()
+    os.makedirs("install-tmp")
+    shutil.copyfile("../driver/smc-storage.py", 'install-tmp/smc-storage')
+    util.run(['git', 'clone', 'https://github.com/sagemathinc/gke-zfs'], path=join(SCRIPT_PATH, 'install-tmp'))
+
+def remove_install_path():
+    if os.path.exists("install-tmp"):
+        shutil.rmtree("install-tmp")
+
 def build(tag, rebuild):
+    create_install_path()
+
     v = ['sudo', 'docker', 'build', '-t', tag]
     if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
     v.append('.')
-    util.run(v, path=join(SCRIPT_PATH))
+    util.run(v, path=SCRIPT_PATH)
+
+    remove_install_path()
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
