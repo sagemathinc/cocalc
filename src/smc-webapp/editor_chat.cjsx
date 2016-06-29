@@ -268,7 +268,10 @@ ChatLog = rclass
         v = []
         for date, i in sorted_dates
             sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
-            sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
+            if sender_account?
+                sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
+            else
+                sender_name = "Unknown"
 
             v.push <Message key={date}
                      account_id  = {@props.account_id}
