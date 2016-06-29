@@ -3572,6 +3572,7 @@ def help(*args, **kwds):
 - **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
         salvus.md(s)
 
+
 """
 sage_jupyter.py
 
@@ -3579,7 +3580,7 @@ Spawn and send commands to jupyter kernels.
 """
 
 #########################################################################################
-#       Copyright (C) 2016 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, SageMath, Inc.                                              #
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -3588,6 +3589,7 @@ Spawn and send commands to jupyter kernels.
 
 import os
 import string
+import textwrap
 
 
 # jupyter kernel magic
@@ -3597,31 +3599,36 @@ class JUPYTER(object):
     def __call__(self, kernel_name, **kwargs):
         return jkmagic(kernel_name, **kwargs)
 
+    def available_kernels(self):
+        '''
+        Returns the list of available Jupyter kernels.
+        '''
+        return os.popen("jupyter kernelspec list").read()
+
     def _get_doc(self):
-        ds0 = r"""
-    Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet.
+        ds0 = textwrap.dedent(r"""\
+        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet.
 
-        | my_python3 = jupyter("python3")
+            | my_python3 = jupyter("python3")
 
-    After that, begin a sagews cell with the magic command to send statements to the kernel
+        After that, begin a sagews cell with the magic command to send statements to the kernel
 
-        | %my_python3
-        | print(42)
+            | %my_python3
+            | print(42)
 
-    Each magic command connects to its own kernel. So you can have more than
-    one instance of the same kernel type.
+        Each magic command connects to its own kernel. So you can have more than
+        one instance of the same kernel type.
 
-        | my_second_python3 = jupyter("python3")
+            | my_second_python3 = jupyter("python3")
 
-    Other kernels:
+        Other kernels:
 
-        | my_anaconda = jupyter("anaconda3")
-        | my_bash = jupyter("bash")
+            | my_anaconda = jupyter("anaconda3")
+            | my_bash = jupyter("bash")
 
-
-    """
-        print("calling JUPYTER._get_doc()")
-        kspec = os.popen("jupyter kernelspec list").read()
+        """)
+        # print("calling JUPYTER._get_doc()")
+        kspec = self.available_kernels()
         ks2 = string.replace(kspec, "kernels:\n ", "kernels:\n\n|")
         return ds0 + ks2
 
@@ -3652,7 +3659,9 @@ def jkmagic(kernel_name, **kwargs):
         if debug:
             print ' '.join(str(a) for a in args)
 
-    conv = Ansi2HTMLConverter()
+    # inline: no header or style tags, useful for full == False
+    # linkify: little gimmik, translates URLs to anchor tags
+    conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
     # sets color styles for the page
     # including cells already run before using this magic
@@ -3665,7 +3674,6 @@ def jkmagic(kernel_name, **kwargs):
         salvus.html(h2)
 
     def run_code(code):
-
 
         # execute the code
         msg_id = kc.execute(code)
