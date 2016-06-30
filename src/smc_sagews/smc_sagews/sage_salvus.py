@@ -3647,10 +3647,6 @@ def jkmagic(kernel_name, **kwargs):
     See docs for jupyter
     """
 
-    # jupyter client state machine is inferred from sample code here:
-    # https://gist.github.com/minrk/2620735
-    # https://github.com/JanSchulz/knitpy/blob/master/knitpy/knitpy.py#L458
-
     km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
@@ -3663,15 +3659,48 @@ def jkmagic(kernel_name, **kwargs):
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
-    # sets color styles for the page
-    # including cells already run before using this magic
     salvus.html(conv.convert(""))
 
-    def hout(s):
+    def hout(s, block = True, scroll = False):
+        r"""
+        wrapper for ansi conversion before displaying output
+        
+        INPUT:
+        
+        -  ``block`` - set false to prevent newlines between output segments
+        
+        -  ``scroll`` - set true to put output into scrolling div
+        """
         # `full = False` or else cell output is huge
         h = conv.convert(s, full = False)
-        h2 = '<pre><span style="font-family:monospace;">'+h+'</span></pre>'
+        if block:
+            h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+        else:
+            h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
+        if scroll:
+            h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
+
+    # temporarily raise ceilings on output limits (for data uris and docs)
+    def big_output(f,*args, **kwargs):
+        import sage_server
+
+        BOOST_HTML_SIZE = 2000000
+        BOOST_OUTPUT    = 2000000
+
+        prev_mhs = sage_server.MAX_HTML_SIZE
+        sage_server.MAX_HTML_SIZE = BOOST_HTML_SIZE
+
+        prev_mo = sage_server.MAX_OUTPUT
+        sage_server.MAX_OUTPUT = BOOST_OUTPUT
+
+        f(*args, **kwargs)
+
+        sage_server.MAX_HTML_SIZE = prev_mhs
+        sage_server.MAX_OUTPUT = prev_mo
+
+        return
+
 
     def run_code(code):
 
@@ -3681,39 +3710,26 @@ def jkmagic(kernel_name, **kwargs):
         # get responses
         shell = kc.shell_channel
         iopub = kc.iopub_channel
-
-        # get shell messages until command is finished
-        while True:
-            try:
-                # this blocks
-                msg = shell.get_msg()
-            except Empty:
-                # shouldn't happen
-                p("shell channel empty")
-            if msg['parent_header'].get('msg_id') == msg_id:
-                break
-            else:
-                # not our reply
-                continue
+        stdinj = kc.stdin_channel
 
         # get messages until kernel idle
         kernel_idle = False
         while True:
             try:
-                msg = iopub.get_msg(timeout=0.2)
+                msg = iopub.get_msg()
                 msg_type = msg['msg_type']
                 content = msg['content']
 
             except Empty:
                 # shouldn't happen
-                p("iopub channel timeout")
+                p("iopub channel empty")
                 break
 
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
 
             # trace jupyter protocol if debug enabled
-            p(msg_type, str(content)[:300])
+            p('iopub', msg_type, str(content)[:300])
 
             def display_mime(msg_data):
                 '''
@@ -3775,18 +3791,18 @@ def jkmagic(kernel_name, **kwargs):
                 elif 'text/markdown' in content['data']:
                     salvus.md(content['data']['text/markdown'])
                 elif 'text/html' in content['data']:
-                    import sage_server
-                    prev_mhs = sage_server.MAX_HTML_SIZE
-                    p('prev_mhs',prev_mhs)
-                    sage_server.MAX_HTML_SIZE = 2000000
+                    #import sage_server
+                    #prev_mhs = sage_server.MAX_HTML_SIZE
+                    #p('prev_mhs',prev_mhs)
+                    #sage_server.MAX_HTML_SIZE = 2000000
 
-                    prev_mo = sage_server.MAX_OUTPUT
-                    p('prev_mo',prev_mo)
-                    sage_server.MAX_OUTPUT = 2000000
+                    #prev_mo = sage_server.MAX_OUTPUT
+                    #p('prev_mo',prev_mo)
+                    #sage_server.MAX_OUTPUT = 2000000
 
-                    salvus.html(content['data']['text/html'])
-                    sage_server.MAX_HTML_SIZE = prev_mhs
-                    sage_server.MAX_OUTPUT = prev_mo
+                    big_output(salvus.html, content['data']['text/html'])
+                    #sage_server.MAX_HTML_SIZE = prev_mhs
+                    #sage_server.MAX_OUTPUT = prev_mo
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
                     # display_mime(content['data'])
@@ -3809,7 +3825,7 @@ def jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    hout(content['text'])
+                    hout(content['text'],block = False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -3821,6 +3837,38 @@ def jkmagic(kernel_name, **kwargs):
             # shouldn't happen
             p("end of processing and kernel not idle")
 
+        p("kernel idle")
+        # get shell messages until command is finished
+        while True:
+            try:
+                msg = shell.get_msg(timeout = 0.2)
+                msg_type = msg['msg_type']
+                content = msg['content']
+            except Empty:
+                p("shell channel empty")
+                break
+            if msg['parent_header'].get('msg_id') == msg_id:
+                p('shell', msg_type, len(str(content)), str(content)[:300])
+                if msg_type == 'execute_reply':
+                    if content['status'] == 'ok':
+                        if 'payload' in content:
+                            payload = content['payload']
+                            if len(payload) > 0:
+                                if 'data' in payload[0]:
+                                    data = payload[0]['data']
+                                    if 'text/plain' in data:
+                                        text = data['text/plain']
+                                        big_output(hout, text, scroll = True)
+                #p('shell',msg_type)
+                #if 'execution_count' in content:
+                #    p('ec',execution_count)
+                #if 'status' in content:
+                #    p('status',status)
+                #if 'payload' in content and len(content['payload']) > 0:
+                #    p('payload',content['payload'])
+            else:
+                # not our reply
+                continue
         return
 
     return run_code
