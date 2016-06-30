@@ -540,6 +540,13 @@ def set_namespace(namespace):
 def get_current_namespace():
     return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
 
+def get_prompt():
+    x = json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True, verbose=0))
+    for c in x['contexts']:
+        if c['name'] == x['current-context']:
+            return c['context']['cluster'] + "." + c['context']['namespace']
+    return 'no-cluster'
+
 def show_horizontal_pod_autoscalers(namespace=''):
     """
     This is like "kubectl get hpa", but MUCH better since it includes the missing column
@@ -568,8 +575,14 @@ def show_horizontal_pod_autoscalers(namespace=''):
             cur += '%'
         else:
             cur = '<waiting>'
+        if 'cpuUtilization' in v['spec']:
+            # Api change between 1.2....
+            target = v['spec']['cpuUtilization']['targetPercentage']
+        else:
+            # and 1.3
+            target = v['spec']['targetCPUUtilizationPercentage']
         print(fmt.format(name    = v['metadata']['name'],
-                         target  = "%s%%"%v['spec']['targetCPUUtilizationPercentage'],
+                         target  = "%s%%"%target,
                          current = cur,
                          number  = v['status']["currentReplicas"],
                          minpods = v['spec']['minReplicas'],

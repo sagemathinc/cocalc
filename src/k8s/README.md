@@ -15,7 +15,7 @@ c delete-cluster
 # if possible, you could now upgraded kubernetes by changing what tarball is in ~/kubernetes
 
 # create the cluster (5 min)
-c create-cluster --node-disk-size=60 --min-nodes=1 --max-nodes=1 --non-preemptible
+c create-cluster --node-disk-size=60 --min-nodes=1 --max-nodes=1
 ```
 
 Immediately, once the cluster is running, add more nodes via the web UI or `c resize --size` or `c autoscale...`.   We recently hit  race condition in which during the initial cluster creation multiple nodes had the same Routes assigned (so `sudo ifconfig cbr0|grep inet` was repeated on multiple nodes).  This led to disaster.
@@ -27,34 +27,25 @@ similar -- just allocate more resources (via -r):
 ```
 # create the namespace
 cd ~/smc/src/k8s/
-c cluster namespace test
+c cluster namespace test # or something else
 
 # start haproxy
-cd haproxy/
-c load-ssl ~/secrets/haproxy/
-c run -r 1
+cd haproxy/ && c load-ssl ~/secrets/haproxy/ && c run -r 1
 
 # setup rethinkdb to point to outside db cluster and know password
-cd ../rethinkdb
-c external db0 db1 db2 db3 db4 db5
-c load-password ~/secrets/rethinkdb/
+cd ../rethinkdb && c external db0 db1 db2 db3 db4 db5 && c load-password ~/secrets/rethinkdb/
 
 # load passwords into hub and start
-cd ../smc-hub/
-c load-sendgrid ~/secrets/sendgrid/
-c load-zendesk ~/secrets/zendesk/
-c run -r 1
+cd ../smc-hub/ && c load-sendgrid ~/secrets/sendgrid/ && c load-zendesk ~/secrets/zendesk/ && c run -r 1
 
 # start static nginx server
-cd ../smc-webapp-static/
-c run -r 1
+cd ../smc-webapp-static/ && c run -r 1
 
-# look at our ip and add it to cloudflare DNS
+# look at our public ip address and add it to cloudflare DNS
 k get services
 
 # datadog
-cd ../datadog/
-c run
+cd ../datadog/ && c run
 ```
 
 
@@ -94,7 +85,21 @@ c run
 If you then do this you'll be able to use the `smc-open` command from the kubectl machine to open files in your own project:
 	  cd ~/smc/src && ./install.py pyutil
 
-- Make your prompt show the current cluster namespace and not waste space on the user (put this in ~/.bashrc):
+### Make your prompt nice
 
-    export PS1="[\$(kubectl config view |grep namespace:|cut  -c 16-)]\[\033[01;32m\] \h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]> "
+    [sage-math-inc_k8s-prod.prod] kubectl:~/smc/src/k8s> more ~/bin/k8s_prompt
+    #!/usr/bin/env python2
+    import json, os, sys
+
+    x = json.loads(os.popen("kubectl config view -o json").read())
+    for c in x['contexts']:
+        if c['name'] == x['current-context']:
+            print c['context']['cluster'] + "." + c['context']['namespace']
+            sys.exit(0)
+    print 'no-cluster'
+
+and in ~/.bashrc:
+
+    export PS1="[\$(k8s_prompt)] \[\033[01;32m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]> "
+
 

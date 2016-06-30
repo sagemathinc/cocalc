@@ -59,7 +59,7 @@ def create_cluster(args):
                             master_size = args.master_size,
                             master_disk_type = 'pd-ssd',  # forced by k8s
                             master_disk_size = args.master_disk_size,
-                            preemptible = not args.non_preemptible)
+                            preemptible = args.preemptible)
         print(c)
         return
 
@@ -73,11 +73,12 @@ def create_cluster(args):
         'MASTER_DISK_SIZE'               : "%sGB"%args.master_disk_size,
         'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
         'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
-        'PREEMPTIBLE_NODE'               : 'false' if args.non_preemptible else 'true',
+        'PREEMPTIBLE_NODE'               : 'true' if args.preemptible else 'false',
         'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s-'+args.name,
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
-        'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes)
+        'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
+        'KUBE_OS_DISTRIBUTION'           : 'trusty'
     }
 
     env.update(os.environ)
@@ -241,8 +242,8 @@ if __name__ == '__main__':
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    # Example: time c create-cluster --master-size=g1-small --node-size=g1-small --min-nodes=2 --max-nodes=2 --node-disk-size=20  mycluster
-    sub = subparsers.add_parser('create-cluster', help='create *the* k8s cluster',
+    # Example: time c create-cluster --master-size=g1-small --node-size=g1-small --min-nodes=2 --max-nodes=2 --node-disk-size=20 --preemptible mycluster
+    sub = subparsers.add_parser('create-cluster', help='create a new k8s cluster',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("name",               type=str,                help="name of the cluster")
     sub.add_argument("--zone",             default="us-central1-c", help="zone of the cluster")
@@ -250,10 +251,10 @@ if __name__ == '__main__':
     sub.add_argument("--master-disk-size", default=20, type=int,    help="size of master disks")
     sub.add_argument("--node-size",        default="n1-standard-2", help="node VM type")
     sub.add_argument("--node-ssd",         action="store_true",     help="use SSD's on the nodes")
-    sub.add_argument("--node-disk-size",   default=100, type=int,    help="size of node disks")
+    sub.add_argument("--node-disk-size",   default=60, type=int,    help="size of node disks")
     sub.add_argument("--min-nodes",        default=2,  type=int,    help="min number of nodes; can change later")
     sub.add_argument("--max-nodes",        default=2,  type=int,    help="max number of nodes (if >min, autoscale); can change later")
-    sub.add_argument("--non-preemptible",  action="store_true",     help="do NOT use preemptible nodes")
+    sub.add_argument("--preemptible",      action="store_true",     help="use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating only estimate monthly cost of cluster")
     sub.set_defaults(func=create_cluster)
 
