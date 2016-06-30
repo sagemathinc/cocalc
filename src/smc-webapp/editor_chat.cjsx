@@ -40,7 +40,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonToolbar} = require('react-bootstrap')
+{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -424,14 +424,14 @@ ChatRoom = (name) -> rclass
                     </div>
                 </Col>
                 <Col xs={4}>
-                    <ButtonToolbar>
-                        <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
+                    <ButtonGroup style={float:'right'}>
+                        <Button onClick={@show_timetravel} bsStyle='info'>
                             <Icon name='history'/> TimeTravel
                         </Button>
-                        <Button onClick={@scroll_to_bottom} bsStyle='success' style={float:'right'}>
+                        <Button onClick={@scroll_to_bottom}>
                             <Icon name='arrow-down'/> Scroll to Bottom
                         </Button>
-                    </ButtonToolbar>
+                    </ButtonGroup>
                 </Col>
             </Row>
             <Row>
