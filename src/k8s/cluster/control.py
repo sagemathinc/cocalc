@@ -91,11 +91,16 @@ def create_cluster(args):
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
-        'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',
-        'KUBE_OS_DISTRIBUTION'           : 'trusty',
-        'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',
-        'CLUSTER_IP_RANGE'               : cluster_ip_range
+        'CLUSTER_IP_RANGE'               : cluster_ip_range,
+        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
+        'KUBE_OS_DISTRIBUTION'           : 'debian',
+        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
+        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
+        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
+        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
+        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
+        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
+
     }
 
     env.update(os.environ)
