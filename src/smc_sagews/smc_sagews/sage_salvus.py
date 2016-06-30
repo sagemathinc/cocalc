@@ -3616,15 +3616,16 @@ class JUPYTER(object):
             | %my_python3
             | print(42)
 
+        You can set the default mode for all cells in the worksheet:
+        
+            | %auto
+            | a3 = jupyter('anaconda3')
+            | %default_mode a3
+        
         Each magic command connects to its own kernel. So you can have more than
         one instance of the same kernel type.
 
             | my_second_python3 = jupyter("python3")
-
-        Other kernels:
-
-            | my_anaconda = jupyter("anaconda3")
-            | my_bash = jupyter("bash")
 
         """)
         # print("calling JUPYTER._get_doc()")
@@ -3664,11 +3665,11 @@ def jkmagic(kernel_name, **kwargs):
     def hout(s, block = True, scroll = False):
         r"""
         wrapper for ansi conversion before displaying output
-        
+
         INPUT:
-        
+
         -  ``block`` - set false to prevent newlines between output segments
-        
+
         -  ``scroll`` - set true to put output into scrolling div
         """
         # `full = False` or else cell output is huge
@@ -3681,8 +3682,12 @@ def jkmagic(kernel_name, **kwargs):
             h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
 
-    # temporarily raise ceilings on output limits (for data uris and docs)
     def big_output(f,*args, **kwargs):
+        r"""
+        Temporarily raise ceilings on output limits (for data uris and docs).
+        Arbitrary new upper limit is 2000000 for both.
+        Restore to prior values after calling the function provided.
+        """
         import sage_server
 
         BOOST_HTML_SIZE = 2000000
