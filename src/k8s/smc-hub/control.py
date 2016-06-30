@@ -140,8 +140,8 @@ if __name__ == '__main__':
     sub.add_argument("-g", "--gentle", default=30, type=int,
                      help="how gentle to be in doing the rolling update; in particular, will wait about this many seconds after each pod starts up (default: 30)")
     sub.add_argument("-d", "--database-nodes",  default='localhost', type=str, help="database to connect to.  If 'localhost' (the default), will run a local rethindkb proxy that is itself pointed at the rethinkdb-cluster service; if 'rethinkdb-proxy' will use that service.")
-    sub.add_argument("-p", "--database-pool-size",  default=100, type=int, help="size of database connection pool")
-    sub.add_argument("--database-concurrent-warn",  default=100, type=int, help="if this many concurrent queries for sustained time, kill container")
+    sub.add_argument("-p", "--database-pool-size",  default=50, type=int, help="size of database connection pool")
+    sub.add_argument("--database-concurrent-warn",  default=300, type=int, help="if this many concurrent queries for sustained time, kill container")
     sub.add_argument("--rethinkdb-proxy-tag", default="", help="tag of rethinkdb-proxy image to run")
     sub.add_argument("--test", action="store_true", help="using for testing so make very minimal resource requirements")
     sub.set_defaults(func=run_on_kubernetes)
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "zendesk"')
     sub.set_defaults(func=lambda args: load_secret('zendesk',args))
 
-    util.add_deployment_parsers(NAME, subparsers)
+    util.add_deployment_parsers(NAME, subparsers, default_container='smc-hub')
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

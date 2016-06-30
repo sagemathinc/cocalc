@@ -410,7 +410,7 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None):
+def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None, default_container=''):
     def f(args):
         if custom_selector is not None:
             selector = custom_selector(args)
@@ -420,21 +420,24 @@ def add_exec_parser(name, subparsers, command_name,  command, custom_selector=No
     sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
-    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=f)
 
-def add_bash_parser(name, subparsers, custom_selector=None):
-    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"', custom_selector=custom_selector)
+def add_bash_parser(name, subparsers, custom_selector=None, default_container=''):
+    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"',
+                    custom_selector=custom_selector, default_container=default_container)
 
 # NOTE: explicit terminal size not supported by k8s or docker; but, we can explicitly set
 # it below by doing "stty cols 150;"
-def add_top_parser(name, subparsers, custom_selector=None):
+def add_top_parser(name, subparsers, custom_selector=None, default_container=''):
     c = 'bash -c "TERM=xterm top || (apt-get update&& apt-get install -y top&& TERM=xterm top)"'
-    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector)
+    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector,
+                   default_container=default_container)
 
-def add_htop_parser(name, subparsers, custom_selector=None):
+def add_htop_parser(name, subparsers, custom_selector=None, default_container=''):
     c = 'bash -c "TERM=xterm htop || (apt-get update&& apt-get install -y htop&& TERM=xterm htop)"'
-    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector)
+    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
+                    default_container=default_container)
 
 def add_edit_parser(name, subparsers):
     def f(args):
@@ -468,15 +471,14 @@ def add_images_parser(NAME, subparsers):
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
-def add_deployment_parsers(NAME, subparsers):
+def add_deployment_parsers(NAME, subparsers, default_container=''):
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
-    add_logs_parser(NAME, subparsers)
-
-    add_bash_parser(NAME, subparsers)
-    add_top_parser(NAME, subparsers)
-    add_htop_parser(NAME, subparsers)
+    add_logs_parser(NAME, subparsers, default_container=default_container)
+    add_bash_parser(NAME, subparsers, default_container=default_container)
+    add_top_parser(NAME, subparsers, default_container=default_container)
+    add_htop_parser(NAME, subparsers, default_container=default_container)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
@@ -497,10 +499,10 @@ def logs(deployment_name, grep_args, container):
     except:
         return
 
-def add_logs_parser(NAME, subparsers):
+def add_logs_parser(NAME, subparsers, default_container=''):
     sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
     sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah stuff"')
-    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=lambda args: logs(NAME, args.grep_args, args.container))
 
 
