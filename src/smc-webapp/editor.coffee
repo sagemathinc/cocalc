@@ -648,6 +648,7 @@ class exports.Editor
             return 0
         else
             e = @project_page.container
+            # console.log("editor_top_position: e.position().top = #{e.position().top} + e.height() = #{e.height()}")
             return e.position().top + e.height()
 
     refresh: () =>
@@ -3863,6 +3864,7 @@ class HTML_MD_Editor extends FileEditor
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         @ext = filename_extension_notilde(@filename)   #'html' or 'md'
+        # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
@@ -4452,6 +4454,8 @@ class HTML_MD_Editor extends FileEditor
 
         @_dragbar.css('left',editor_width+left)
 
+        # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
+
         @source_editor.show
             width : editor_width
             top   : top + @edit_buttons.height()
@@ -4461,14 +4465,17 @@ class HTML_MD_Editor extends FileEditor
         @preview.maxheight(offset:button_bar_height)
 
         @_dragbar.height(@source_editor.element.height())
-        @_dragbar.css('top',top-9)  # -9 = ugly hack
+        @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
+        @_dragbar.css('top', "#{@edit_buttons.height() + button_bar_height + 9}px") # +9 is not good
 
         # position the preview
+        @preview.offset
+            top: @source_editor.element.offset() + button_bar_height
+
         @preview.css
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
-            top   : top
-
+            top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
 
     focus: () =>
         @source_editor?.focus()
