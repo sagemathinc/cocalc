@@ -78,7 +78,10 @@ def create_cluster(args):
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'KUBE_OS_DISTRIBUTION'           : 'trusty'
+        'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
+        'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',
+        'KUBE_OS_DISTRIBUTION'           : 'trusty',
+        'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud'
     }
 
     env.update(os.environ)

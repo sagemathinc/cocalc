@@ -54,7 +54,7 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
@@ -249,8 +249,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('external', help='create service that is external to kubernetes')
     sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')
     sub.set_defaults(func=external)
-
-    util.add_edit_parser(NAME, subparsers)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

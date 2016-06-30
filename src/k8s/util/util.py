@@ -384,7 +384,7 @@ def get_secret(name):
     else:
         d = {}
         for k, v in json.loads(run(['kubectl', 'get', 'secrets', name, '-o', 'json'], get_output=True))['data'].items():
-            d[k] = base64.b64decode(v)
+            d[k] = base64.b64decode(v) if v is not None else v
         return d
 
 def random_password(n=31):
@@ -538,14 +538,11 @@ def set_namespace(namespace):
     run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
 
 def get_current_namespace():
-    return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
-
-def get_prompt():
     x = json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True, verbose=0))
     for c in x['contexts']:
         if c['name'] == x['current-context']:
-            return c['context']['cluster'] + "." + c['context']['namespace']
-    return 'no-cluster'
+            return c['context']['namespace']
+    raise RuntimeError("no current namespace")
 
 def show_horizontal_pod_autoscalers(namespace=''):
     """
