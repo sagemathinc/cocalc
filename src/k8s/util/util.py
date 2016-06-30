@@ -74,12 +74,13 @@ def get_all_contexts():
 
 def set_context(name):
     options = [x for x in get_all_contexts() if name in x]
-    if len(options) == 1:
+    if len(options) > 1:
+        print("WARNING -- AMBIGUOUS so taking first of %s"%options)
+    if len(options) >= 1:
         run(['kubectl', 'config', 'use-context', options[0]])
-    elif len(options) == 0:
-        raise RuntimeError("unknown context '%s'"%name)
     else:
-        raise RuntimeError("AMBIGUOUS: which of %s?"%options)
+        raise RuntimeError("unknown context '%s'"%name)
+
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
