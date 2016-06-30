@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -40,7 +40,7 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
                 raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
             output = None
         seconds = time.time() - t
-        if verbose:
+        if verbose > 1:
             print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
         return output
     finally:
@@ -64,7 +64,22 @@ def get_default_gcloud_project_name_fallback():
     return json.loads(run(['gcloud', 'info', '--format=json'], get_output=True))['config']['project']
 
 def get_kube_context():
-    return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
+    return run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+
+def get_cluster_prefix():
+    return get_kube_context().split('_')[-1].strip()
+
+def get_all_contexts():
+    return [x['name'] for x in json.loads(run(['kubectl', 'config', 'view', '-o=json'], get_output=True, verbose=False))['contexts']]
+
+def set_context(name):
+    options = [x for x in get_all_contexts() if name in x]
+    if len(options) == 1:
+        run(['kubectl', 'config', 'use-context', options[0]])
+    elif len(options) == 0:
+        raise RuntimeError("unknown context '%s'"%name)
+    else:
+        raise RuntimeError("AMBIGUOUS: which of %s?"%options)
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
