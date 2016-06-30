@@ -892,9 +892,30 @@ if exports.SALVUS_HOME?
     mathjax_package_json     = path.resolve(exports.SALVUS_HOME, "#{exports.MATHJAX_LIB}", 'package.json')
     # if the line below causes an exception, there is no mathjax or at the wrong location (should be in MATHJAX_LIB)
     # without that information here, the jupyter notebook can't work
-    exports.MATHJAX_VERSION  = JSON.parse(fs.readFileSync(mathjax_package_json, 'utf8')).version
+    # hsy: disabling this for the hub, until we have a better solution.
+    # fallback: mathjax for jupyter is served from the unversioned /mathjax/ path
+    if fs.existsSync(mathjax_package_json)
+        exports.MATHJAX_VERSION = JSON.parse(fs.readFileSync(mathjax_package_json, 'utf8')).version
+    else
+        exports.MATHJAX_VERSION = null
     # that's where webpack writes the symlink to
-    exports.MATHJAX_ROOT     = path.join(exports.OUTPUT_DIR, "mathjax-#{exports.MATHJAX_VERSION}")
+    exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
+    if exports.MATHJAX_VERSION?
+        exports.MATHJAX_ROOT = path.join(exports.OUTPUT_DIR, "mathjax-#{exports.MATHJAX_VERSION}")
+    else
+        exports.MATHJAX_ROOT = exports.MATHJAX_NOVERS
     exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
     # this is where the webapp and the jupyter notebook should get mathjax from
     exports.MATHJAX_URL      = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
+
+    # google analytics (or later on some other analytics provider) needs a token as a parameter
+    # if defined in data/config/google_analytics, tell webpack about it.
+    ga_snippet_fn            = path.join(exports.SALVUS_HOME, 'data', 'config', 'google_analytics')
+    # file could contain the token or nothing (empty string, see k8s/smc-webapp-static)
+    ga = null
+    if fs.existsSync(ga_snippet_fn)
+        token = fs.readFileSync(ga_snippet_fn).toString().trim()
+        if token.length > 0
+            ga = token
+    exports.GOOGLE_ANALYTICS = ga
+

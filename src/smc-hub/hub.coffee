@@ -699,10 +699,13 @@ class Client extends EventEmitter
                             @push_to_client(mesg)  # same message back.
 
     ######################################################
-    # Messages: Account creation, sign in, sign out
+    # Messages: Account creation, deletion, sign in, sign out
     ######################################################
     mesg_create_account: (mesg) =>
         create_account(@, mesg)
+
+    mesg_delete_account: (mesg) =>
+        delete_account(mesg, @, @push_to_client)
 
     mesg_sign_in: (mesg) => sign_in(@,mesg)
 
@@ -2755,10 +2758,14 @@ create_account = (client, mesg, cb) ->
             cb?()
     )
 
+delete_account = (mesg, client, push_to_client) ->
+    dbg = (m) -> winston.debug("delete_account(mesg.account_id): #{m}")
+    dbg()
 
-
-
-
+    database.delete_account
+        account_id    : mesg.account_id
+        cb            : (err) =>
+            push_to_client(message.account_deleted(id:mesg.id, error:err))
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null

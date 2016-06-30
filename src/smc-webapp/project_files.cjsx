@@ -36,7 +36,11 @@ immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
 
+{salvus_client} = require('./salvus_client')
+
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+
+TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
         compress :
@@ -343,6 +347,22 @@ DirectoryRow = rclass
             </Col>
         </Row>
 
+TerminalModeDisplay = rclass
+    render : ->
+        <Row style={textAlign:'left', color:'#888', marginTop:'5px', wordWrap:'break-word'} >
+            <Col sm=2>
+            </Col>
+            <Col sm=8>
+                <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='danger'>
+                Warning: You are in terminal mode.<br/>
+                This was caused by the leading / in your file search. If you want to just see your folders, enter a space in front of the /.<br/>
+                Terminal mode inside the search bar is experimental and comes with no guarantees about its usability or future existence.
+            </Alert>
+            </Col>
+            <Col sm=2>
+            </Col>
+        </Row>
+
 NoFiles = rclass
     propTypes :
         actions       : rtypes.object.isRequired
@@ -504,7 +524,7 @@ FileListing = rclass
             color = '#eee'
         else
             color = 'white'
-        apply_border = index == @props.selected_file_index and @props.file_search.length > 0
+        apply_border = index == @props.selected_file_index and @props.file_search.length > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -568,7 +588,7 @@ FileListing = rclass
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
     render_no_files : ->
-        if @props.listing.length is 0
+        if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             <NoFiles
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
@@ -578,8 +598,13 @@ FileListing = rclass
                 create_folder = {@props.create_folder}
                 create_file   = {@props.create_file} />
 
+    render_terminal_mode : ->
+        if @props.file_search[0] == TERM_MODE_CHAR
+            <TerminalModeDisplay/>
+
     render : ->
         <Col sm=12>
+            {@render_terminal_mode()}
             {@parent_directory()}
             {@render_rows()}
             {@render_no_files()}
@@ -917,6 +942,13 @@ ProjectFilesActionBox = rclass
     cancel_action : ->
         @props.actions.set_file_action()
 
+    action_key: (e) ->
+        switch e.keyCode
+            when 27
+                @cancel_action()
+            when 13
+                @["submit_action_#{@props.file_action}"]?()
+
     render_selected_files_list : ->
         <pre style={@pre_styles}>
             {<div key={name}>{misc.path_split(name).tail}</div> for name in @props.checked_files.toArray()}
@@ -942,11 +974,14 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666'}>
                     <h4>Result archive</h4>
                     <Input
+                        autoFocus    = {true}
                         ref          = 'result_archive'
                         key          = 'result_archive'
                         type         = 'text'
                         defaultValue = {account.default_filename('zip')}
-                        placeholder  = 'Result archive...' />
+                        placeholder  = 'Result archive...'
+                        onKeyDown    = {@action_key}
+                    />
                 </Col>
             </Row>
             <Row>
@@ -962,6 +997,9 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    submit_action_compress: () ->
+        @compress_click()
 
     delete_click : ->
         @props.actions.trash_files
@@ -1045,13 +1083,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666'}>
                     <h4>New name</h4>
                     <Input
-                        autoFocus
+                        autoFocus    = {true}
                         ref          = 'new_name'
                         key          = 'new_name'
                         type         = 'text'
                         defaultValue = {misc.path_split(single_item).tail}
                         placeholder  = 'New file name...'
-                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())} />
+                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())}
+                        onKeyDown    = {@action_key}
+                    />
                     {@render_rename_warning()}
                 </Col>
             </Row>
@@ -1069,6 +1109,11 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
+    submit_action_rename: () ->
+        single_item = @props.checked_files.first()
+        if @valid_rename_input(single_item)
+            @rename_click()
+
     move_click : ->
         @props.actions.move_files
             src  : @props.checked_files.toArray()
@@ -1077,7 +1122,10 @@ ProjectFilesActionBox = rclass
         @props.actions.set_all_files_unchecked()
 
     valid_move_input : ->
+        src_path = misc.path_split(@props.checked_files.first()).head
         dest = @state.move_destination.trim()
+        if dest == src_path
+            return false
         if misc.contains(dest, '//') or misc.startswith(dest, '/')
             return false
         if dest.charAt(dest.length - 1) is '/'
@@ -1095,12 +1143,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=5 style={color:'#666',marginBottom:'15px'}>
                     <h4>Destination</h4>
                     <DirectoryInput
-                        on_change     = {(value)=>@setState(move_destination:value)}
+                        autoFocus     = {true}
+                        on_change     = {(value) => @setState(move_destination:value)}
                         key           = 'move_destination'
                         default_value = ''
                         placeholder   = 'Home directory'
                         redux         = {@props.redux}
-                        project_id    = {@props.project_id} />
+                        project_id    = {@props.project_id}
+                        on_key_up     = {@action_key}
+                    />
                 </Col>
             </Row>
             <Row>
@@ -1116,6 +1167,10 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    submit_action_move: () ->
+        if @valid_move_input()
+            @move_click()
 
     render_different_project_dialog : ->
         if @state.show_different_project
@@ -1180,7 +1235,10 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     valid_copy_input : ->
+        src_path = misc.path_split(@props.checked_files.first()).head
         input = @state.copy_destination_directory
+        if input == src_path
+            return false
         if @state.copy_destination_project_id is ''
             return false
         if input is @props.current_directory
@@ -1221,12 +1279,15 @@ ProjectFilesActionBox = rclass
                     <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
                         <h4 style={{height:'25px'} if not @state.show_different_project}>Destination</h4>
                         <DirectoryInput
+                            autoFocus     = {true}
                             on_change     = {(value)=>@setState(copy_destination_directory:value)}
                             key           = 'copy_destination_directory'
                             placeholder   = 'Home directory'
                             default_value = ''
                             redux         = {@props.redux}
-                            project_id    = {@state.copy_destination_project_id} />
+                            project_id    = {@state.copy_destination_project_id}
+                            on_key_up     = {@action_key}
+                        />
                     </Col>
                 </Row>
                 <Row>
@@ -1242,6 +1303,10 @@ ProjectFilesActionBox = rclass
                     </Col>
                 </Row>
             </div>
+
+    submit_action_copy: () ->
+        if @valid_copy_input()
+            @copy_click()
 
     share_click : ->
         description = @refs.share_description.getValue()
@@ -1290,12 +1355,15 @@ ProjectFilesActionBox = rclass
                 <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
                     <Input
+                        autoFocus     = {true}
                         ref          = 'share_description'
                         key          = 'share_description'
                         type         = 'text'
                         defaultValue = {single_file_data.public?.description ? ''}
                         disabled     = {parent_is_public}
-                        placeholder  = 'Description...' />
+                        placeholder  = 'Description...'
+                        onKeyUp      = {@action_key}
+                    />
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
@@ -1321,6 +1389,13 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
+    submit_action_share: () ->
+        single_file = @props.checked_files.first()
+        single_file_data = @props.file_map[misc.path_split(single_file).tail]
+        if single_file_data?
+            if not (single_file_data.is_public and single_file_data.public?.path isnt single_file)
+                @share_click()
+
     download_click : ->
         @props.actions.download_file
             path : @props.checked_files.first()
@@ -1335,11 +1410,10 @@ ProjectFilesActionBox = rclass
         </pre>
 
     render_download_alert : ->
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h4><Icon name='exclamation-triangle' /> Notice</h4>
             <p>Download for multiple files and directories is not yet implemented.</p>
             <p>For now, create a zip archive or download files one at a time.</p>
-            <p>This functionality is coming soon!</p>
         </Alert>
 
     render_download : ->
@@ -1393,10 +1467,14 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
+# TODO: Move state into store.
+# Commands such as CD throw a setState error.
+# Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
     displayName : 'ProjectFiles-ProjectFilesSearch'
 
     propTypes :
+        project_id         : rtypes.string.isRequired  # Added by miniterm functionality
         file_search        : rtypes.string
         current_path       : rtypes.string
         actions            : rtypes.object.isRequired
@@ -1412,10 +1490,69 @@ ProjectFilesSearch = rclass
         selected_file_index : 0
         num_files_displayed : 0
 
+    getInitialState : ->  # Miniterm functionality
+        stdout : undefined
+        state  : 'edit'   # 'edit' --> 'run' --> 'edit'
+        error  : undefined
+
+    # Miniterm functionality
+    execute_command : (command) ->
+        @setState
+            stdout : ''
+            error  : ''
+        input = command.trim()
+        if not input
+            return
+        input0 = input + '\necho $HOME "`pwd`"'
+        @setState(state:'run')
+
+        @_id = (@_id ? 0) + 1
+        id = @_id
+        salvus_client.exec
+            project_id : @props.project_id
+            command    : input0
+            timeout    : 10
+            max_output : 100000
+            bash       : true
+            path       : @props.current_path
+            err_on_exit: false
+            cb         : (err, output) =>
+                if @_id != id
+                    # computation was cancelled -- ignore result.
+                    return
+                if err
+                    @setState(error:err, state:'edit')
+                else
+                    if output.stdout
+                        # Find the current path
+                        # after the command is executed, and strip
+                        # the output of "pwd" from the output:
+                        s = output.stdout.trim()
+                        i = s.lastIndexOf('\n')
+                        if i == -1
+                            output.stdout = ''
+                        else
+                            s = s.slice(i+1)
+                            output.stdout = output.stdout.slice(0,i)
+                        i = s.indexOf(' ')
+                        full_path = s.slice(i+1)
+                        if full_path.slice(0,i) == s.slice(0,i)
+                            # only change if in project
+                            path = s.slice(2*i+2)
+                            @props.actions.set_current_path(path, update_file_listing=true)
+                            @props.actions.set_url_to_path(path)
+                    if not output.stderr
+                        # only log commands that worked...
+                        @props.actions.log({event:'termInSearch', input:input})
+                    # WARNING: RENDER ERROR. Move state to redux store
+                    @setState(state:'edit', error:output.stderr, stdout:output.stdout)
+                    if not output.stderr
+                        @props.actions.set_file_search('')
+
     render_help_info : ->
-        if @props.file_search.length > 0 and @props.num_files_displayed > 0
+        if @props.file_search.length > 0 and @props.num_files_displayed > 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             firstFolderPosition = @props.file_search.indexOf('/')
-            if @props.file_search == '/'
+            if @props.file_search == ' /'
                 text = "Showing all folders in this directory"
             else if firstFolderPosition == @props.file_search.length - 1
                 text = "Showing folders matching #{@props.file_search.slice(0, @props.file_search.length - 1)}"
@@ -1431,11 +1568,26 @@ ProjectFilesSearch = rclass
                 {@props.file_creation_error}
             </Alert>
 
+    # Miniterm functionality
+    render_output : (x, style) ->
+        if x
+            <pre style=style>
+                <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
+                   href=''
+                   style={right:'5px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
+                       <Icon name='times' />
+                </a>
+                {x}
+            </pre>
+
     dismiss_alert : ->
         @props.actions.setState(file_creation_error : '')
 
     search_submit: (value, opts) ->
-        if @props.selected_file
+        if value[0] == TERM_MODE_CHAR
+            command = value.slice(1, value.length)
+            @execute_command(command)
+        else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
                 @props.actions.set_current_path(new_path, update_file_listing=true)
@@ -1467,6 +1619,9 @@ ProjectFilesSearch = rclass
             @props.actions.reset_selected_file_index()
         @props.actions.set_file_search(search)
 
+    on_escape : () ->
+        @setState(input: '', stdout:'', error:'')
+
     render : ->
         <span>
             <SearchInput
@@ -1477,9 +1632,14 @@ ProjectFilesSearch = rclass
                 on_submit     = {@search_submit}
                 on_up         = {@on_up_press}
                 on_down       = {@on_down_press}
+                on_escape     = {@on_escape}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
+            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+                {@render_output(@state.error, {color:'darkred', margin:0})}
+                {@render_output(@state.stdout, {margin:0})}
+            </div>
         </span>
 
 ProjectFilesNew = rclass
@@ -1786,7 +1946,7 @@ ProjectFiles = (name) -> rclass
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing(TERM_MODE_CHAR)
 
         file_listing_page_size= @file_listing_page_size()
         if listing?
@@ -1800,6 +1960,7 @@ ProjectFiles = (name) -> rclass
             <Row>
                 <Col sm=3>
                     <ProjectFilesSearch
+                        project_id          = {@props.project_id}
                         key                 = {@props.current_path}
                         file_search         = {@props.file_search}
                         actions             = {@props.actions}

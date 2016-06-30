@@ -108,7 +108,8 @@ class ProjectActions extends Actions
             url = ''
         @_last_history_state = url
         window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
-        ga('send', 'pageview', window.location.pathname)
+        {analytics_pageview} = require('./misc_page')
+        analytics_pageview(window.location.pathname)
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
@@ -485,7 +486,7 @@ class ProjectActions extends Actions
             cb      : required
         if not opts.dest and not opts.path?
             opts.dest = '.'
-
+           
         salvus_client.exec
             project_id      : @project_id
             command         : 'mv'
@@ -870,7 +871,8 @@ class ProjectStore extends Store
     get_directory_listings: =>
         return @get('directory_listings')
 
-    get_displayed_listing: =>
+    # search_escape_char may or may not be the right way to escape search
+    get_displayed_listing : (search_escape_char) =>
         # cached pre-processed file listing, which should always be up to date when called, and properly
         # depends on dependencies.
         # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
@@ -902,7 +904,7 @@ class ProjectStore extends Store
             @_compute_snapshot_display_names(listing)
 
         search = @get('file_search')?.toLowerCase()
-        if search
+        if search and search[0] isnt search_escape_char
             listing = @_matched_files(search, listing)
 
         map = {}

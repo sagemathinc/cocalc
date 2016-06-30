@@ -30,6 +30,7 @@ $(document).on 'keydown', (ev) =>
         #console.log("document keydown ", ev)
         return false
 
+{alert_message} = require('./alerts')
 misc = require("misc")
 feature = require('./feature')
 browser = require('./browser')
@@ -169,7 +170,8 @@ class TopNavbar  extends EventEmitter
         # We still call show even if already on this page.
         n.page?.show()
         n.onshow?()
-        ga('send', 'pageview', window.location.pathname)
+        {analytics_pageview} = require('./misc_page')
+        analytics_pageview(window.location.pathname)
 
     activity_indicator: (id) =>
         if not id?
@@ -396,14 +398,14 @@ $(".salvus-connection-status").click () ->
     show_connection_information()
     return false
 
-last_reconnect_clicks = []
-
 $("a[href=#salvus-connection-reconnect]").click () ->
     salvus_client._fix_connection(true)
     return false
 
+# latest ping time
 last_ping_time = ''
 
+# this is used to insert a short delay to avoid "connecting" flickering
 network_connect_state = null
 network_connect_timer = null
 network_connect_timer_stop = () ->
@@ -411,9 +413,23 @@ network_connect_timer_stop = () ->
         window.clearTimeout(network_connect_timer)
         network_connect_timer = null
 
+# record recent disconnects, used as a basis for automatic `_fix_connection(true)` calls
+recent_disconnects = []
+record_disconnect = () ->
+    recent_disconnects.push(+new Date())
+    # avoid buffer overflow
+    recent_disconnects = recent_disconnects[-100..]
+    # console.log("recent_disconnects:", recent_disconnects)
+
+num_recent_disconnects = (minutes=10) ->
+    # note the "+", since we work with timestamps
+    ago = +misc.minutes_ago(minutes)
+    return (x for x in recent_disconnects when x > ago).length
+
 salvus_client.on "disconnected", (state) ->
     state ?= "disconnected"
     network_connect_timer_stop()
+    record_disconnect()
     network_connect_state = 'disconnected'
     $(".salvus-connection-status-connected").hide()
     $(".salvus-connection-status-connecting").hide()
@@ -423,7 +439,11 @@ salvus_client.on "disconnected", (state) ->
     $(".salvus-connection-status-ping-time").html('')
     last_ping_time = ''
 
+reconnection_warning = null
 salvus_client.on "connecting", () ->
+    attempt = salvus_client._num_attempts ? 1
+    $(".salvus-connection-status-connecting").html("Retry ##{attempt}")
+
     f = ->
         $(".salvus-connection-status-disconnected").hide()
         $(".salvus-connection-status-connected").hide()
@@ -435,11 +455,38 @@ salvus_client.on "connecting", () ->
         network_connect_timer = null
 
     # insert delay mainly on connected → connecting state transitions
-    # such that there are brief&flaky "connecting" warnings.
+    # such that there are no longer brief&flaky "connecting" warnings.
     if network_connect_state != 'connecting'
         if not network_connect_timer?
             network_connect_timer = window.setTimeout(f, 2000)
     network_connect_state = 'connecting'
+
+    reconnect = (msg) ->
+        # reset recent disconnects, and hope that after the reconnection the situation will be better
+        recent_disconnects = []
+        reconnection_warning = +new Date()
+        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
+        alert_message(msg)
+        salvus_client._fix_connection(true)
+        # remove one extra reconnect added by the call above
+        setTimeout((-> recent_disconnects.pop()), 500)
+
+    console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
+    if num_recent_disconnects() >= 2 or (attempt >= 10)
+        # this event fires several times, limit displaying the message and calling reconnect() too often
+        if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
+            if num_recent_disconnects() >= 5 or attempt >= 20
+                reconnect
+                    type: "error"
+                    timeout: 10
+                    message: "Your internet connection is unstable/down or SMC is temporarily not available. Therefore SMC is not working."
+            else if attempt >= 10
+                reconnect
+                    type: "info"
+                    timeout: 10
+                    message: "Your internet connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
+    else
+        reconnection_warning = null
 
 salvus_client.on "connected", () ->
     network_connect_state = 'connected'
@@ -475,6 +522,7 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-hub").hide()
 
     if last_ping_time
-        dialog.find(".salvus-connection-ping").show().find('pre').text("#{last_ping_time}ms")
+        ptavg = if ping_time_smooth? then Math.floor(ping_time_smooth) else 'N/A'
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{ptavg}ms (latest: #{last_ping_time}ms)")
     else
         dialog.find(".salvus-connection-ping").hide()

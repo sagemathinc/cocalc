@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, shutil, sys, tempfile
+import json, os, shutil, sys, tempfile
 join = os.path.join
 
 # Where Kubernetes is installed from https://github.com/kubernetes/kubernetes/releases
@@ -46,6 +46,8 @@ def cost_of_cluster(node_size, node_disk_type, node_disk_size, min_nodes, max_no
     print("total       = ", show([total[0]/30.5, total[1]/30.5], 'daily'))
 
 def create_cluster(args):
+    if '_' in args.name:
+        raise ValueError("name must not contain an underscore (_)")
     if args.min_nodes > args.max_nodes:
         args.max_nodes = args.min_nodes
     if args.cost:
@@ -57,9 +59,22 @@ def create_cluster(args):
                             master_size = args.master_size,
                             master_disk_type = 'pd-ssd',  # forced by k8s
                             master_disk_size = args.master_disk_size,
-                            preemptible = not args.non_preemptible)
+                            preemptible = args.preemptible)
         print(c)
         return
+
+    # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
+    # prevent collisions with other clusters, which is all we need.  However, be nervous.
+    routes = json.loads(util.run(['gcloud', '--format=json', 'compute', 'routes', 'list'], get_output=True))
+    n = 245
+    while True:
+        for route in routes:
+            if route['destRange'].startswith('10.%s'%n):
+                n += 1
+                continue
+        break
+    cluster_ip_range = '10.%s.0.0/16'%n
+
 
     # see https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/config-default.sh for env vars
     env = {
@@ -71,11 +86,21 @@ def create_cluster(args):
         'MASTER_DISK_SIZE'               : "%sGB"%args.master_disk_size,
         'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
         'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
-        'PREEMPTIBLE_NODE'               : 'false' if args.non_preemptible else 'true',
-        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s',
+        'PREEMPTIBLE_NODE'               : 'true' if args.preemptible else 'false',
+        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s-'+args.name,
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
-        'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes)
+        'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
+        'CLUSTER_IP_RANGE'               : cluster_ip_range,
+        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
+        'KUBE_OS_DISTRIBUTION'           : 'debian',
+        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
+        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
+        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
+        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
+        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
+        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
+
     }
 
     env.update(os.environ)
@@ -83,6 +108,8 @@ def create_cluster(args):
     update_firewall()
 
 def create_instance_group(args):
+    if '_' in args.name:
+        raise ValueError("name must not contain an underscore (_)")
     if args.min_nodes > args.max_nodes:
         args.max_nodes = args.min_nodes
     if args.cost:
@@ -98,9 +125,13 @@ def create_instance_group(args):
     if not args.name:
         raise RuntimeError("you must specify a name")
 
+
+    prefix = util.get_cluster_prefix()
+
     # KUBE_USE_EXISTING_MASTER -- figured out by looking at https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/util.sh
     env = {
-        'KUBE_MASTER'                    : 'k8s-master',
+        'KUBERNETES_PROVIDER'            : 'gce',
+        'KUBE_MASTER'                    : prefix + '-master',
         'KUBE_ENABLE_CLUSTER_MONITORING' : 'google',
         'KUBE_GCE_ZONE'                  : args.zone,
         'NODE_SIZE'                      : args.node_size,
@@ -108,8 +139,8 @@ def create_instance_group(args):
         'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
         'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
         'PREEMPTIBLE_NODE'               : 'false' if args.non_preemptible else 'true',
-        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s',
-        'NEW_GROUP_PREFIX'               : 'k8s-' + args.name,
+        'KUBE_GCE_INSTANCE_PREFIX'       : prefix,
+        'NEW_GROUP_PREFIX'               : prefix + '-' + args.name,
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
@@ -123,7 +154,7 @@ def create_instance_group(args):
     util.run('./kube-add.sh', env=env)
 
 def delete_instance_group(args):
-    base     = 'k8s-' + args.name + "-minion"
+    base     = util.get_cluster_prefix() + '-' + args.name + "-minion"
     group    = base + '-group'
     template = base + '-template'
     util.run(["gcloud", "--quiet", "compute", "instance-groups", "managed", "delete", group])
@@ -150,21 +181,23 @@ def update_firewall():
     util.run(['gcloud', 'compute', 'firewall-rules', 'update', 'default-default-internal',
               '--target-tags', ','.join(tags)])
 
-#def select_cluster(args):
-#    print('selecting default cluster')
-#    context = "{project_name}_k8s".format(
-#        project_name = util.get_default_gcloud_project_name())
-#    util.run(['kubectl', 'config', 'use-context', context])
+def select_cluster(args):
+    print('selecting ', args.name)
+    util.set_context(args.name)
+
+def list_clusters(args):
+    print('\n'.join(util.get_all_contexts()))
 
 def delete_cluster(args):
-    select_cluster(args)
-
+    if input("**This is VERY dangerous. **  Delete Cluster '%s'?  type 'yes sir' to delete it: "%util.get_kube_context()) != 'yes sir':
+        print("canceling")
+        return
     # IMPORTANT: shutdown all deployments *and* services first; otherwise we end up with
     # a random load balancer left laying around, which costs, and will never be used again.
     delete_all()
 
     env = {
-        'KUBE_GCE_INSTANCE_PREFIX' : 'k8s',
+        'KUBE_GCE_INSTANCE_PREFIX' : util.get_cluster_prefix(),
         'KUBE_GCE_ZONE'            : args.zone
     }
     env.update(os.environ)
@@ -173,10 +206,11 @@ def delete_cluster(args):
 def autoscale_cluster(args):
     if args.min_nodes is not None and args.max_nodes < args.min_nodes:
         args.min_nodes = args.max_nodes
+    prefix = util.get_cluster_prefix()
     if args.name:
-        group = 'k8s-{name}-minion-group'.format(name=args.name)
+        group = '{prefix}-{name}-minion-group'.format(prefix=prefix, name=args.name)
     else:
-        group = 'k8s-minion-group'
+        group = '{prefix}-minion-group'.format(prefix=prefix)
     v = ['gcloud', 'compute', 'instance-groups', 'managed', 'set-autoscaling', group,
          '--max-num-replicas', str(args.max_nodes)]
     if args.min_nodes is not None:
@@ -189,7 +223,7 @@ def autoscale_cluster(args):
     util.run(v)
 
 def resize_cluster(args):
-    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', 'k8s-minion-group',
+    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', util.get_cluster_prefix() + '-minion-group',
          '--size', str(args.size)])
 
 def run_all():
@@ -216,7 +250,7 @@ def delete_all():
 def ssh(args):
     v = util.get_nodes()
     if args.name:
-        prefix = 'k8s-' + args.name + '-'
+        prefix = util.get_cluster_prefix() + '-' + args.name + '-'
         v = [x for x in v if x.startswith(prefix)]
     util.tmux_ssh(v, sync=not args.no_sync)
 
@@ -230,19 +264,28 @@ if __name__ == '__main__':
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    sub = subparsers.add_parser('create-cluster', help='create *the* k8s cluster',
+    # Example: time c create-cluster --master-size=g1-small --node-size=g1-small --min-nodes=2 --max-nodes=2 --node-disk-size=20 --preemptible mycluster
+    sub = subparsers.add_parser('create-cluster', help='create a new k8s cluster',
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub.add_argument("name",               type=str,                help="name of the cluster")
     sub.add_argument("--zone",             default="us-central1-c", help="zone of the cluster")
     sub.add_argument("--master-size",      default="n1-standard-2", help="node VM type")
     sub.add_argument("--master-disk-size", default=20, type=int,    help="size of master disks")
     sub.add_argument("--node-size",        default="n1-standard-2", help="node VM type")
     sub.add_argument("--node-ssd",         action="store_true",     help="use SSD's on the nodes")
-    sub.add_argument("--node-disk-size",   default=100, type=int,    help="size of node disks")
+    sub.add_argument("--node-disk-size",   default=60, type=int,    help="size of node disks")
     sub.add_argument("--min-nodes",        default=2,  type=int,    help="min number of nodes; can change later")
     sub.add_argument("--max-nodes",        default=2,  type=int,    help="max number of nodes (if >min, autoscale); can change later")
-    sub.add_argument("--non-preemptible",  action="store_true",     help="do NOT use preemptible nodes")
+    sub.add_argument("--preemptible",      action="store_true",     help="use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating only estimate monthly cost of cluster")
     sub.set_defaults(func=create_cluster)
+
+    sub = subparsers.add_parser('select-cluster', help='select a given cluster')
+    sub.add_argument('name', type=str, help='name of the cluster to switch to (so is default for kubectl)')
+    sub.set_defaults(func=select_cluster)
+
+    sub = subparsers.add_parser('list-clusters', help='list of all clusters running in this project')
+    sub.set_defaults(func=list_clusters)
 
     sub = subparsers.add_parser('delete-cluster', help='delete k8s cluster')
     sub.add_argument("--zone", default="us-central1-c", help="zone of the cluster")
@@ -258,11 +301,11 @@ if __name__ == '__main__':
     sub.add_argument("--max-nodes",        default=2,  type=int,    help="max number of nodes (if >min, autoscale); can change later")
     sub.add_argument("--non-preemptible",  action="store_true",     help="do NOT use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating instance group, only estimate monthly cost of the instance group")
-    sub.add_argument("name", help="instance group will be named k8s-[name]")
+    sub.add_argument("name", help="instance group will be named k8s-[cluster]-[name]")
     sub.set_defaults(func=create_instance_group)
 
     sub = subparsers.add_parser('delete-instance-group', help='delete k8s instance group and template')
-    sub.add_argument("name", help="will delete k8s-[name]")
+    sub.add_argument("name", help="will delete k8s-[cluster]-[name]")
     sub.set_defaults(func=delete_instance_group)
 
     sub = subparsers.add_parser('autoscale', help='enable autoscale of an instance group')

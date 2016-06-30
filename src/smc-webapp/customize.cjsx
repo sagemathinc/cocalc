@@ -64,20 +64,25 @@ exports.SiteName = rclass
 
 SiteDescription = rclass
     displayName : 'SiteDescription'
+    propTypes:
+        style: rtypes.object
     reduxProps :
         customize :
             site_description : rtypes.string
     render : ->
+        style = @props.style ? {color:'#666', fontSize:'16px'}
         if @props.site_description?
-            <span style={color:"#666", fontSize:'16px'}>{@props.site_description}</span>
+            <span style={style}>{@props.site_description}</span>
         else
             <Loading/>
 
 exports.SiteDescription = rclass
     displayName : 'SiteDescription-redux'
+    propTypes :
+        style : rtypes.object
     render      : ->
         <Redux redux={redux}>
-            <SiteDescription />
+            <SiteDescription style={@props.style}/>
         </Redux>
 
 # TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …

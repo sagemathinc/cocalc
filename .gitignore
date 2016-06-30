@@ -83,4 +83,6 @@ src/smc_sagews/build/*
 logs
 pids
 
+src/k8s/smc-webapp-static/image/google_analytics
+
 .gitignore

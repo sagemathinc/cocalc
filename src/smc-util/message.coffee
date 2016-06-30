@@ -222,6 +222,18 @@ message
     id             : undefined
     reason         : required
 
+# client --> hub
+message
+    event        : 'delete_account'
+    id           : undefined
+    account_id   : required
+
+# hub --> client
+message
+    event        : 'account_deleted'
+    id           : undefined
+    error        : undefined
+
 # client <--> hub
 message
     event          : 'email_address_availability'
