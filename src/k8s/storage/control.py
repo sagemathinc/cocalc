@@ -40,7 +40,7 @@ def get_persistent_disks(context, namespace):
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.

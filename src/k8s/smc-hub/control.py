@@ -52,6 +52,15 @@ def build_docker(args):
         util.gcloud_docker_push(tag)
 
 def run_on_kubernetes(args):
+    if args.test:
+        rethink_cpu_request = hub_cpu_request = '10m'
+        rethink_memory_request = hub_memory_request = '200Mi'
+    else:
+        hub_cpu_request = '500m'
+        hub_memory_request = '1Gi'
+        rethink_cpu_request = '500m'
+        rethink_memory_request = '500Mi'
+
 
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
@@ -67,7 +76,11 @@ def run_on_kubernetes(args):
         'min_read_seconds'       : args.gentle,
         'smc_db_hosts'           : args.database_nodes,
         'smc_db_pool'            : args.database_pool_size,
-        'smc_db_concurrent_warn' : args.database_concurrent_warn
+        'smc_db_concurrent_warn' : args.database_concurrent_warn,
+        'hub_cpu_request'        : hub_cpu_request,
+        'hub_memory_request'     : hub_memory_request,
+        'rethink_cpu_request'    : rethink_cpu_request,
+        'rethink_memory_request' : rethink_memory_request
     }
 
     if args.database_nodes == 'localhost':
@@ -130,6 +143,7 @@ if __name__ == '__main__':
     sub.add_argument("-p", "--database-pool-size",  default=100, type=int, help="size of database connection pool")
     sub.add_argument("--database-concurrent-warn",  default=100, type=int, help="if this many concurrent queries for sustained time, kill container")
     sub.add_argument("--rethinkdb-proxy-tag", default="", help="tag of rethinkdb-proxy image to run")
+    sub.add_argument("--test", action="store_true", help="using for testing so make very minimal resource requirements")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('delete', help='delete the deployment')

@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -40,7 +40,7 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
                 raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
             output = None
         seconds = time.time() - t
-        if verbose:
+        if verbose > 1:
             print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
         return output
     finally:
@@ -64,7 +64,23 @@ def get_default_gcloud_project_name_fallback():
     return json.loads(run(['gcloud', 'info', '--format=json'], get_output=True))['config']['project']
 
 def get_kube_context():
-    return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
+    return run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+
+def get_cluster_prefix():
+    return get_kube_context().split('_')[-1].strip()
+
+def get_all_contexts():
+    return [x['name'] for x in json.loads(run(['kubectl', 'config', 'view', '-o=json'], get_output=True, verbose=False))['contexts']]
+
+def set_context(name):
+    options = [x for x in get_all_contexts() if name in x]
+    if len(options) > 1:
+        print("WARNING -- AMBIGUOUS so taking first of %s"%options)
+    if len(options) >= 1:
+        run(['kubectl', 'config', 'use-context', options[0]])
+    else:
+        raise RuntimeError("unknown context '%s'"%name)
+
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
@@ -369,7 +385,7 @@ def get_secret(name):
     else:
         d = {}
         for k, v in json.loads(run(['kubectl', 'get', 'secrets', name, '-o', 'json'], get_output=True))['data'].items():
-            d[k] = base64.b64decode(v)
+            d[k] = base64.b64decode(v) if v is not None else v
         return d
 
 def random_password(n=31):
@@ -523,7 +539,11 @@ def set_namespace(namespace):
     run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
 
 def get_current_namespace():
-    return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
+    x = json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True, verbose=0))
+    for c in x['contexts']:
+        if c['name'] == x['current-context']:
+            return c['context']['namespace']
+    raise RuntimeError("no current namespace")
 
 def show_horizontal_pod_autoscalers(namespace=''):
     """
@@ -553,8 +573,14 @@ def show_horizontal_pod_autoscalers(namespace=''):
             cur += '%'
         else:
             cur = '<waiting>'
+        if 'cpuUtilization' in v['spec']:
+            # Api change between 1.2....
+            target = v['spec']['cpuUtilization']['targetPercentage']
+        else:
+            # and 1.3
+            target = v['spec']['targetCPUUtilizationPercentage']
         print(fmt.format(name    = v['metadata']['name'],
-                         target  = "%s%%"%v['spec']['targetCPUUtilizationPercentage'],
+                         target  = "%s%%"%target,
                          current = cur,
                          number  = v['status']["currentReplicas"],
                          minpods = v['spec']['minReplicas'],
