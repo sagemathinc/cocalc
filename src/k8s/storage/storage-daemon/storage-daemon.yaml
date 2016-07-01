@@ -18,8 +18,8 @@ spec:
         volumeMounts:
         - name: mnt
           mountPath: /node/info
-        - name: hosts
-          mountPath: /node/etc/hosts
+        - name: etc
+          mountPath: /node/etc/
         - name: ssh
           mountPath: /node/root/.ssh
         - name: plugin
@@ -43,9 +43,9 @@ spec:
       - name: mnt
         hostPath:
           path: /mnt/smc-storage/info/
-      - name: hosts
+      - name: etc
         hostPath:
-          path: /etc/hosts
+          path: /etc
       - name: ssh
         hostPath:
           path: /root/.ssh
