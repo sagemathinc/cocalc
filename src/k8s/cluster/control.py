@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, os, shutil, sys, tempfile
+import os, shutil, sys, tempfile
 join = os.path.join
 
 # Where Kubernetes is installed from https://github.com/kubernetes/kubernetes/releases
@@ -63,19 +63,6 @@ def create_cluster(args):
         print(c)
         return
 
-    # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
-    # prevent collisions with other clusters, which is all we need.  However, be nervous.
-    routes = json.loads(util.run(['gcloud', '--format=json', 'compute', 'routes', 'list'], get_output=True))
-    n = 245
-    while True:
-        for route in routes:
-            if route['destRange'].startswith('10.%s'%n):
-                n += 1
-                continue
-        break
-    cluster_ip_range = '10.%s.0.0/16'%n
-
-
     # see https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/config-default.sh for env vars
     env = {
         'KUBE_ENABLE_CLUSTER_MONITORING' : 'google',
@@ -91,16 +78,7 @@ def create_cluster(args):
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'CLUSTER_IP_RANGE'               : cluster_ip_range,
-        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
-        'KUBE_OS_DISTRIBUTION'           : 'debian',
-        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
-        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
-        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
-        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
-        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
-        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
-
+        'KUBE_OS_DISTRIBUTION'           : 'trusty'
     }
 
     env.update(os.environ)
@@ -257,6 +235,31 @@ def ssh(args):
 def hpa(args):
     util.show_horizontal_pod_autoscalers(args.namespace)
 
+def install_kubernetes(args):
+    version = args.version
+    if not version:
+        version = util.run("curl -s https://github.com/kubernetes/kubernetes/releases | grep kubernetes/tree",
+                 get_output=True).splitlines()[0].split("tree/v")[1].split('"')[0]
+        print("using latest version '%s'"%version)
+    install_path = os.path.join(os.environ['HOME'], 'install')
+    link_path = os.path.join(os.environ['HOME'], 'kubernetes')
+    if not os.path.exists(install_path):
+        os.makedirs(install_path)
+    if os.path.exists(link_path) and not os.path.islink(link_path):
+        raise RuntimeError("Please manually remove '%s'"%link_path)
+    target = os.path.join(install_path, 'kubernetes.tar.gz')
+    if os.path.exists(target):
+        os.unlink(target)
+    util.run(['wget', 'https://github.com/kubernetes/kubernetes/releases/download/v%s/kubernetes.tar.gz'%version],
+            path = install_path)
+    util.run(['tar', 'zvxf', target], path=install_path)
+    os.unlink(target)
+    target_path = os.path.join(install_path, 'kubernetes-v%s'%version)
+    shutil.move(os.path.join(install_path, 'kubernetes'), target_path)
+    if os.path.exists(link_path):
+        os.unlink(link_path)
+    os.symlink(target_path, link_path)
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
@@ -337,6 +340,11 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('hpa', help='show horizontal pod autoscaler info')
     sub.add_argument("--namespace", type=str, default='', help="a valid namespace")
     sub.set_defaults(func=hpa)
+
+    sub = subparsers.add_parser('install-kubernetes', help='install a specific version of kubernetes in ~/install with a symlink to ~/kubernetes')
+    sub.add_argument("--version", type=str, default='', help="a version such as '1.3.0-beta.3' or '1.2.5' -- see https://github.com/kubernetes/kubernetes/releases; default to most recent version")
+    sub.set_defaults(func=install_kubernetes)
+
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
