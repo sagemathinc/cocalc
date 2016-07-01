@@ -32,18 +32,93 @@
 # w.destroy()                  -- invokes the dialog destruction, should be called when
 #                                 the originating object is destroyed.
 
-"use strict"
 _ = require("underscore")
 {defaults, required, optional} = require('smc-util/misc')
 misc_page = require('./misc_page')
 
 markdown = require('./markdown')
 
-wizard_template = $(".smc-wizard")
-
 # the json from the server, where the entries for the documents are [[title, body], ...]
 data = null
 
+# react wizard
+{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
+{Col, Row, Panel, Button, Input, Well, Alert, Modal, Table} = require('react-bootstrap')
+
+redux_name = (project_id, path) ->
+    return "wizard-#{project_id}-#{path}"
+
+class WizardActions extends Actions
+    get_store: =>
+        @redux.getStore('wizard')
+    get: (key) =>
+        @get_store().get(key)
+    set: (update) =>
+        @setState(update)
+    show: (lang='sage') =>
+        @set(show: true, lang: lang)
+    hide: () =>
+        @set(show: false)
+
+WizardBody = rclass
+    displayName : 'WizardBody'
+    propTypes:
+        lang : rtypes.string.isRequired
+    render : ->
+        console.log "lang", @props.lang
+        <div>
+            Body, with lang: {@props.lang}
+        </div>
+
+
+RWizard = (name) -> rclass
+    displayName : 'Wizard'
+
+    reduxProps :
+        "#{name}" :
+            show : rtypes.bool
+            lang : rtypes.string
+
+    propTypes :
+        cb      : rtypes.func
+        actions : rtypes.object.isRequired
+
+    close : ->
+        @props.actions.hide()
+
+    render : ->
+        <Modal show={@props.show} onHide={@close}>
+            <Modal.Header closeButton>
+                <Modal.Title>Wizard</Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+                <WizardBody lang={@props.lang} />
+            </Modal.Body>
+
+            <Modal.Footer>
+                Footer
+            </Modal.Footer>
+        </Modal>
+
+render = (name, lang, cb) ->
+    if not redux.getActions(name)?
+        actions = redux.createActions(name, WizardActions)
+    W = RWizard(name)
+    actions.show(lang=lang)
+    <Redux redux={redux}>
+        <W cb={cb} actions={actions}/>
+    </Redux>
+
+exports.render_wizard = (target, project_id, path, lang = 'sage', cb = null) ->
+    # console.log 'render_wizard: ', project_id, path, lang, cb
+    name = redux_name(project_id, path)
+    ReactDOM.render(render(name, lang, cb), target)
+    actions = redux.getActions(name)
+    return actions
+
+# old wizard code
+wizard_template = $(".smc-wizard")
 class Wizard
     constructor: (opts) ->
         @opts = defaults opts,

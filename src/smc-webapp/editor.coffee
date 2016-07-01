@@ -2350,15 +2350,22 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     wizard_handler: () =>
+        $target = @mode_display.parent().find('.react-target')
+        {render_wizard} = require('./wizard')
+        # @wizard is this WizardActions object
         if not @wizard?
-            @wizard = new Wizard(cb : @wizard_insert_handler, lang : @_current_mode)
+            @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
-            @wizard.show(lang : @_current_mode)
+            @wizard.show(lang = @_current_mode)
+        #if not @wizard?
+        #    @wizard = new Wizard(cb : @wizard_insert_handler, lang : @_current_mode)
+        #else
+        #    @wizard.show(lang : @_current_mode)
 
     wizard_insert_handler: (insert) =>
         code = insert.code
         lang = insert.lang
-        console.log "wizard insert:", lang, code
+        # console.log "wizard insert:", lang, code
         cm = @focused_codemirror()
         line = cm.getCursor().line
         @syncdoc?.insert_new_cell(line)
