@@ -275,6 +275,7 @@
     - jekyll
     - joe
     - lbzip2
+    - libao-dev
     - libapr1-dev
     - libav-tools
     - libavcodec-dev
@@ -343,6 +344,7 @@
     - libxslt-dev
     - libxvidcore-dev
     - libzmq-dev
+    - lilypond
     - linux-tools-common
     - linux-tools-generic
     - llvm
