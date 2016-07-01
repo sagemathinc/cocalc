@@ -9,8 +9,7 @@ KUBE_ROOT = join(os.environ['HOME'], 'kubernetes')
 CLUSTER   = join(KUBE_ROOT, 'cluster')
 
 if not os.path.exists(CLUSTER):
-    print("Install Kubernetes from https://github.com/kubernetes/kubernetes/releases in {dest}.".format(dest=KUBE_ROOT))
-    sys.exit(1)
+    print("WARNING -- use the install-kubernetes subcommand to install kubernetes!")
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
@@ -247,15 +246,16 @@ def install_kubernetes(args):
         os.makedirs(install_path)
     if os.path.exists(link_path) and not os.path.islink(link_path):
         raise RuntimeError("Please manually remove '%s'"%link_path)
-    target = os.path.join(install_path, 'kubernetes.tar.gz')
-    if os.path.exists(target):
-        os.unlink(target)
-    util.run(['wget', 'https://github.com/kubernetes/kubernetes/releases/download/v%s/kubernetes.tar.gz'%version],
-            path = install_path)
-    util.run(['tar', 'zvxf', target], path=install_path)
-    os.unlink(target)
     target_path = os.path.join(install_path, 'kubernetes-v%s'%version)
-    shutil.move(os.path.join(install_path, 'kubernetes'), target_path)
+    if not os.path.exists(target_path):
+        target = os.path.join(install_path, 'kubernetes.tar.gz')
+        if os.path.exists(target):
+            os.unlink(target)
+        util.run(['wget', 'https://github.com/kubernetes/kubernetes/releases/download/v%s/kubernetes.tar.gz'%version],
+                path = install_path)
+        util.run(['tar', 'zvxf', target], path=install_path)
+        os.unlink(target)
+        shutil.move(os.path.join(install_path, 'kubernetes'), target_path)
     if os.path.exists(link_path):
         os.unlink(link_path)
     os.symlink(target_path, link_path)
@@ -341,7 +341,7 @@ if __name__ == '__main__':
     sub.add_argument("--namespace", type=str, default='', help="a valid namespace")
     sub.set_defaults(func=hpa)
 
-    sub = subparsers.add_parser('install-kubernetes', help='install a specific version of kubernetes in ~/install with a symlink to ~/kubernetes')
+    sub = subparsers.add_parser('install-kubernetes', help='install (or switch to) a specific version of kubernetes in ~/install with a symlink to ~/kubernetes')
     sub.add_argument("--version", type=str, default='', help="a version such as '1.3.0-beta.3' or '1.2.5' -- see https://github.com/kubernetes/kubernetes/releases; default to most recent version")
     sub.set_defaults(func=install_kubernetes)
 
