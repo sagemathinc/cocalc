@@ -2369,7 +2369,10 @@ class CodeMirrorEditor extends FileEditor
         cm = @focused_codemirror()
         line = cm.getCursor().line
         @syncdoc?.insert_new_cell(line)
-        cm.replaceRange("%#{lang}\n#{code}", {line : line+1, ch:0})
+        cell = code
+        if lang != @_current_mode
+            cell = "%#{lang}\n#{cell}"
+        cm.replaceRange(cell, {line : line+1, ch:0})
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
