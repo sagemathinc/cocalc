@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, shutil, sys, tempfile
+import json, os, shutil, sys, tempfile
 join = os.path.join
 
 # Where Kubernetes is installed from https://github.com/kubernetes/kubernetes/releases
@@ -62,6 +62,18 @@ def create_cluster(args):
         print(c)
         return
 
+    # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
+    # prevent collisions with other clusters, which is all we need.  However, be nervous.
+    routes = json.loads(util.run(['gcloud', '--format=json', 'compute', 'routes', 'list'], get_output=True))
+    n = 245
+    while True:
+        for route in routes:
+            if route['destRange'].startswith('10.%s'%n):
+                n += 1
+                continue
+        break
+    cluster_ip_range = '10.%s.0.0/16'%n
+
     # see https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/config-default.sh for env vars
     env = {
         'KUBE_ENABLE_CLUSTER_MONITORING' : 'google',
@@ -77,7 +89,15 @@ def create_cluster(args):
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'KUBE_OS_DISTRIBUTION'           : 'trusty'
+        'CLUSTER_IP_RANGE'               : cluster_ip_range,
+        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
+        'KUBE_OS_DISTRIBUTION'           : 'debian',
+        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
+        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
+        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
+        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
+        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
+        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
     }
 
     env.update(os.environ)
@@ -259,6 +279,8 @@ def install_kubernetes(args):
     if os.path.exists(link_path):
         os.unlink(link_path)
     os.symlink(target_path, link_path)
+
+
 
 if __name__ == '__main__':
     import argparse
