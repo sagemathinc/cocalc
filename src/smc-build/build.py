@@ -175,7 +175,6 @@ SAGE_PIP_PACKAGES = [
     'bitarray',
     'h5py',
     'netcdf4',
-    'patsy',
     'lxml',
     'munkres',
     'oct2py',
@@ -222,7 +221,6 @@ SAGE_PIP_PACKAGES = [
     'mrjob',
     'boto',
     'pattern',
-    'seaborn',
     'brewer2mpl',
     'ggplot',
     'periodictable',
@@ -235,7 +233,6 @@ SAGE_PIP_PACKAGES = [
     'snappy',
     'twitter',
     'bayespy==0.3.6',   # last version that supports Python2 -- 0.4.x on is Python3 only!
-    'astropy',
     'aplpy',
     'PyDSTool',
     'progressbar',  # requested by David Lisbonne
@@ -247,7 +244,6 @@ SAGE_PIP_PACKAGES = [
     'pystan',
     'biopython',
     'guppy',
-    'nose',
     'pybtex',
     'bokeh',
     'numba',
@@ -260,7 +256,8 @@ SAGE_PIP_PACKAGES = [
     'yattag',
     'pyyaml',
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
-    'charm-crypto'   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'bash_kernel' # the jupyter bash kernel
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -310,7 +307,6 @@ R_PACKAGES = [
     'ROCR',
     'forecast',
     'numDeriv',
-    'Matrix',
     'NORMT3',
     'ggmap',
     'np',
@@ -320,7 +316,6 @@ R_PACKAGES = [
     'maptree',
     'agricolae',
     'nortest',
-    'forecast',
     'gplots',
     'Hmisc',
     'survey',
@@ -362,7 +357,6 @@ SAGE_OPTIONAL_PACKAGES = [
     'topcom',
     '4ti2',
     'modular_decomposition',
-    'topcom',
     'csdp'    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
 ]
 

@@ -6,14 +6,14 @@ Make sure that kubernetes is installed in `~/kubernetes`, downloaded from https:
 
 ## Creating a k8s cluster
 
-Type `./control.py create -h` for help on creating a cluster.  You can see how much
+Type `./control.py create-cluster -h` for help on creating a cluster.  You can see how much
 your cluster will cost per month before creating it:
 
-    ./control.py create test --min-nodes=2 --max-nodes=5 --cost
+    ./control.py create-cluster test --min-nodes=2 --max-nodes=5 --cost
 
 Now create it, which takes 5-10 minutes:
 
-    ./control.py create test --min-nodes=2 --max-nodes=5
+    ./control.py create-cluster test --min-nodes=2 --max-nodes=5
 
 Once done, you can do
 
@@ -61,7 +61,7 @@ If you get errors like this when trying to use/connect to pods, it's the firewal
 
 For the main SMC sites webserver, I think this likely makes sense:
 
-    ./control.py create --master-size n1-standard-2 --master-disk-size 20 --node-size n1-standard-2 --node-disk-size 60 --min-nodes 3 --max-nodes 30  prod
+    ./control.py create-cluster --master-size n1-standard-2 --master-disk-size 20 --node-size n1-standard-2 --node-disk-size 60 --min-nodes 3 --max-nodes 30  prod
 
 Then:
 

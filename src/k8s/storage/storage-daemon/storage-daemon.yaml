@@ -1,0 +1,56 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    run : storage-daemon
+  name: storage-daemon
+  selfLink: /apis/extensions/v1beta1/namespaces/deployments/storage-daemon
+spec:
+  template:
+    metadata:
+      labels:
+          storage  : daemon
+    spec:
+      containers:
+      - image: "{image}"
+        imagePullPolicy: {pull_policy}
+        name: storage-daemon
+        volumeMounts:
+        - name: mnt
+          mountPath: /node/info
+        - name: hosts
+          mountPath: /node/etc/hosts
+        - name: ssh
+          mountPath: /node/root/.ssh
+        - name: plugin
+          mountPath: /node/plugin
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "10m"
+          limits:
+            memory: "200Mi"
+            cpu: "100m"
+        env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: mnt
+        hostPath:
+          path: /mnt/smc-storage/info/
+      - name: hosts
+        hostPath:
+          path: /etc/hosts
+      - name: ssh
+        hostPath:
+          path: /root/.ssh
+      - name: plugin
+        hostPath:
+          path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/
+      #nodeSelector:
+      #  storage: test

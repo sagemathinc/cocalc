@@ -298,14 +298,15 @@ AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
-        first_name    : rtypes.string
-        last_name     : rtypes.string
-        email_address : rtypes.string
-        passports     : rtypes.object
-        show_sign_out : rtypes.bool
-        sign_out_error: rtypes.string
-        everywhere    : rtypes.bool
-        redux         : rtypes.object
+        first_name           : rtypes.string
+        last_name            : rtypes.string
+        email_address        : rtypes.string
+        passports            : rtypes.object
+        show_sign_out        : rtypes.bool
+        sign_out_error       : rtypes.string
+        everywhere           : rtypes.bool
+        redux                : rtypes.object
+        delete_account_error : rtypes.string
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -419,18 +420,14 @@ AccountSettings = rclass
         </Well>
 
     render_sign_out_buttons : ->
-        <Row style={marginTop: '1ex'}>
-            <Col xs=12>
-                <ButtonToolbar className='pull-right'>
-                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
-                        <Icon name='sign-out'/> Sign out
-                    </Button>
-                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
-                        <Icon name='sign-out'/> Sign out everywhere
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <ButtonToolbar className='pull-right'>
+            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
+                <Icon name='sign-out'/> Sign out
+            </Button>
+            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
+                <Icon name='sign-out'/> Sign out everywhere
+            </Button>
+        </ButtonToolbar>
 
     render_sign_in_strategies : ->
         if not STRATEGIES? or STRATEGIES.length <= 1
@@ -471,10 +468,96 @@ AccountSettings = rclass
                 email_address = {@props.email_address}
                 ref   = 'password'
                 />
-            {@render_sign_out_buttons()}
+            <Row style={marginTop: '1ex'}>
+                <Col xs=12>
+                    {@render_sign_out_buttons()}
+                </Col>
+            </Row>
             {@render_sign_out_confirm() if @props.show_sign_out}
+            <Row>
+                <Col xs=12>
+                    <DeleteAccount
+                        style={marginTop:'1ex'}
+                        initial_click={()=>@setState(show_delete_confirmation:true)}
+                        confirm_click={=>@props.redux.getActions('account').delete_account()}
+                        cancel_click={()=>@setState(show_delete_confirmation:false)}
+                        show_confirmation={@state.show_delete_confirmation}
+                        />
+                </Col>
+            </Row>
             {@render_sign_in_strategies()}
         </Panel>
+
+DeleteAccount = rclass
+    displayName : 'Account-DeleteAccount'
+
+    propTypes:
+        initial_click     : rtypes.func.isRequired
+        confirm_click     : rtypes.func.isRequired
+        cancel_click      : rtypes.func.isRequired
+        show_confirmation : rtypes.bool
+        style             : rtypes.object
+
+    render : ->
+        if not @props.show_confirmation
+            <Button
+                disabled={@props.show_confirmation}
+                className='pull-right'
+                bsStyle='danger'
+                style={@props.style}
+                onClick=@props.initial_click>
+            <Icon name='trash' /> Delete Account
+            </Button>
+        else
+            <DeleteAccountConfirmation
+                confirm_click={@props.confirm_click}
+                cancel_click={@props.cancel_click}/>
+
+# Concious choice to make them actually click the confirm delete button.
+DeleteAccountConfirmation = rclass
+    displayName : 'Account-DeleteAccountConfirmation'
+
+    propTypes:
+        confirm_click : rtypes.func.isRequired
+        cancel_click  : rtypes.func.isRequired
+
+    # Loses state on rerender from cancel. But this is what we want.
+    getInitialState: ->
+        confirmation_text : ''
+
+    required_text : 'delete this account'
+
+    render : ->
+        <Well style={marginTop: '15px', textAlign:'center'}>
+            Are you sure you want to do this?<br/>
+            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            To proceed, type <span style={fontWeight:'bold'}>delete this account</span> below.
+            <Input
+                autoFocus
+                value       = {@state.confirmation_text}
+                type        = 'text'
+                ref         = 'confirmation_field'
+                onChange    = {=>@setState(confirmation_text : @refs.confirmation_field.getValue())}
+                style       = {marginTop : '1ex'}
+            />
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled={@state.confirmation_text != @required_text}
+                    bsStyle='danger'
+                    onClick={@props.confirm_click}
+                >
+                    <Icon name='trash' /> Confirm Deletion
+                </Button>
+                <Button
+                    style={paddingRight:'8px'}
+                    bsStyle='primary'
+                    onClick={@props.cancel_click}}
+                >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
 
 ###
 # Terminal
@@ -1271,8 +1354,10 @@ password_score = (password) ->
             return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
     else
         zxcvbn = 'loading'
-        $.getScript '/static/zxcvbn/zxcvbn.js', () =>
-            zxcvbn = window.zxcvbn
+        require.ensure [], =>
+            zxcvbn = require("script!zxcvbn/zxcvbn.js")
+            # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
+            #    zxcvbn = window.zxcvbn
     return
 
 

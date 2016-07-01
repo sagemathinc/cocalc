@@ -37,6 +37,13 @@ spec:
           initialDelaySeconds: 30
           timeoutSeconds: 5
         terminationMessagePath: /dev/termination-log
+        resources:
+          requests:
+            memory: "400Mi"
+            cpu: "200m"
+          limits:
+            memory: "1000Mi"
+            cpu: "1000m"
         ports:
         # All http services
         - containerPort: 80
@@ -51,6 +58,8 @@ spec:
         - name: secret
           mountPath: /secret
           readOnly: true
+        args:
+        - --namespace={namespace}
       volumes:
         - name: secret
           secret:

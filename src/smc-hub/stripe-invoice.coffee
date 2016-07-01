@@ -4,6 +4,9 @@ async = require('async')
 
 misc    = require('smc-util/misc')
 
+misc_node = require('smc-util-node/misc_node')
+WEBAPP_LIB      = misc_node.WEBAPP_LIB
+
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
     if not stripe?
@@ -45,7 +48,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     doc.pipe(res)
 
-    doc.image(path.join(process.env.SMC_ROOT, 'static/favicon-128.png'), 268, 15, {width: 64, align: 'center'})
+    doc.image(path.join(process.env.SMC_ROOT, "#{WEBAPP_LIB}/favicon-128.png"), 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid

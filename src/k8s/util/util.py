@@ -14,7 +14,7 @@ def external_ip():
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
 
-def run(v, shell=False, path='.', get_output=False, env=None):
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
     t = time.time()
     if isinstance(v, str):
         cmd = v
@@ -23,10 +23,12 @@ def run(v, shell=False, path='.', get_output=False, env=None):
         cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
     if path != '.':
         cur = os.path.abspath(os.curdir)
-        print('chdir %s'%path)
+        if verbose:
+            print('chdir %s'%path)
         os.chdir(path)
     try:
-        print(cmd)
+        if verbose:
+            print(cmd)
         if shell:
             kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
         else:
@@ -38,7 +40,8 @@ def run(v, shell=False, path='.', get_output=False, env=None):
                 raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
             output = None
         seconds = time.time() - t
-        print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+        if verbose > 1:
+            print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
         return output
     finally:
         if path != '.':
@@ -61,7 +64,23 @@ def get_default_gcloud_project_name_fallback():
     return json.loads(run(['gcloud', 'info', '--format=json'], get_output=True))['config']['project']
 
 def get_kube_context():
-    return run(['kubectl', 'config', 'current-context'], get_output=True).split('_')[1].strip()
+    return run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+
+def get_cluster_prefix():
+    return get_kube_context().split('_')[-1].strip()
+
+def get_all_contexts():
+    return [x['name'] for x in json.loads(run(['kubectl', 'config', 'view', '-o=json'], get_output=True, verbose=False))['contexts']]
+
+def set_context(name):
+    options = [x for x in get_all_contexts() if name in x]
+    if len(options) > 1:
+        print("WARNING -- AMBIGUOUS so taking first of %s"%options)
+    if len(options) >= 1:
+        run(['kubectl', 'config', 'use-context', options[0]])
+    else:
+        raise RuntimeError("unknown context '%s'"%name)
+
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
@@ -103,7 +122,8 @@ def gcloud_images(name):
         return []
     for _, v in data['manifest'].items():
         if 'tag' in v:
-            w.append([repo, datetime.fromtimestamp(float(v['timeCreatedMs'])/1000), v['tag'][0]])
+            if len(v['tag']) > 0:
+                w.append([repo, datetime.fromtimestamp(float(v['timeCreatedMs'])/1000), v['tag'][0]])
     w.sort()
     return [dict(zip(['REPOSITORY', 'CREATED', 'TAG'], x)) for x in reversed(w)]
 
@@ -326,19 +346,35 @@ def get_instance_with_disk(name):
         return
     return users[0].split('/')[-1]
 
-def exec_bash(i=0, **selector):
+def exec_command(pods, command, container, **selector):
     """
-    Run bash on the first Running pod that matches the given selector.
+    Run command on pods that matches the given selector (using tmux if more than one).
     """
+    if '__tmux_sync__' in selector:
+        sync = selector['__tmux_sync__']
+        del selector['__tmux_sync__']
+    else:
+        sync = True
     v = get_pods(**selector)
     v = [x for x in v if x['STATUS'] == 'Running']
-    if len(v) == 0:
+    if len(pods) == 0:
+        pods = range(len(v))
+    cmds = ["kubectl exec -it {name} {container} -- {command}".format(
+                name    = v[i]['NAME'],
+                container = "" if not container else ' --container="{container}" '.format(container=container),
+                command = command) for i in pods if i < len(v)]
+    if len(cmds) == 0:
         print("No running matching pod %s"%selector)
+    elif len(cmds) == 1:
+        run(cmds[0])
     else:
-        run(['kubectl', 'exec', '-it', v[i]['NAME'], 'bash'])
+        tmux_commands(cmds, sync=sync)
 
 def get_resources(resource_type):
     return [x.split()[0] for x in run(['kubectl', 'get', resource_type], get_output=True).splitlines()[1:]]
+
+def get_nodes():
+    return get_resources('nodes')
 
 def get_secrets():
     return get_resources('secrets')
@@ -349,7 +385,7 @@ def get_secret(name):
     else:
         d = {}
         for k, v in json.loads(run(['kubectl', 'get', 'secrets', name, '-o', 'json'], get_output=True))['data'].items():
-            d[k] = base64.b64decode(v)
+            d[k] = base64.b64decode(v) if v is not None else v
         return d
 
 def random_password(n=31):
@@ -374,12 +410,34 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_bash_parser(name, subparsers):
+def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None, default_container=''):
     def f(args):
-        exec_bash(args.number, run=name)
-    sub = subparsers.add_parser('bash', help='get a bash shell on n-th node')
-    sub.add_argument('number', type=int, default=0, nargs='?', help='pod number (sort of arbitrary)')
+        if custom_selector is not None:
+            selector = custom_selector(args)
+        else:
+            selector = {'run':name}
+        exec_command(args.number if custom_selector is None else [], command, args.container, __tmux_sync__=not args.no_sync, **selector)
+    sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
+    sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
+    sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=f)
+
+def add_bash_parser(name, subparsers, custom_selector=None, default_container=''):
+    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"',
+                    custom_selector=custom_selector, default_container=default_container)
+
+# NOTE: explicit terminal size not supported by k8s or docker; but, we can explicitly set
+# it below by doing "stty cols 150;"
+def add_top_parser(name, subparsers, custom_selector=None, default_container=''):
+    c = 'bash -c "TERM=xterm top || (apt-get update&& apt-get install -y top&& TERM=xterm top)"'
+    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector,
+                   default_container=default_container)
+
+def add_htop_parser(name, subparsers, custom_selector=None, default_container=''):
+    c = 'bash -c "TERM=xterm htop || (apt-get update&& apt-get install -y htop&& TERM=xterm htop)"'
+    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
+                    default_container=default_container)
 
 def add_edit_parser(name, subparsers):
     def f(args):
@@ -391,7 +449,7 @@ def add_autoscale_parser(name, subparsers):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
-    sub.add_argument("--cpu-percent", default=80, help="CPU")
+    sub.add_argument("--cpu-percent", default=60, help="CPU")
     def f(args):
         autoscale_pods(name, min=args.min, max=args.max, cpu_percent=args.cpu_percent)
     sub.set_defaults(func=f)
@@ -413,12 +471,14 @@ def add_images_parser(NAME, subparsers):
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
-def add_deployment_parsers(NAME, subparsers):
-    add_bash_parser(NAME, subparsers)
+def add_deployment_parsers(NAME, subparsers, default_container=''):
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
-    add_tail_parser(NAME, subparsers)
+    add_logs_parser(NAME, subparsers, default_container=default_container)
+    add_bash_parser(NAME, subparsers, default_container=default_container)
+    add_top_parser(NAME, subparsers, default_container=default_container)
+    add_htop_parser(NAME, subparsers, default_container=default_container)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
@@ -427,14 +487,106 @@ def get_desired_replicas(deployment_name, default=1):
     else:
         return default
 
-def tail(deployment_name, grep_args):
+def logs(deployment_name, grep_args, container):
     SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
     cmd = join(SCRIPT_PATH, 'kubetail.sh') + ' ' + deployment_name
+    if container:
+        cmd += ' --container "{container}" '.format(container=container)
     if len(grep_args) > 0:
         cmd += " | grep -a {grep_args} 2>/dev/null".format(grep_args=' '.join(["'%s'"%x for x in grep_args]))
-    run(cmd + ' 2>/dev/null')
+    try:
+        run(cmd + ' 2>/dev/null | more')
+    except:
+        return
 
-def add_tail_parser(NAME, subparsers):
-    sub = subparsers.add_parser('tail', help='tail log files for all pods at once')
-    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py tail concurrent"')
-    sub.set_defaults(func=lambda args: tail(NAME, args.grep_args))
+def add_logs_parser(NAME, subparsers, default_container=''):
+    sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
+    sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah stuff"')
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
+    sub.set_defaults(func=lambda args: logs(NAME, args.grep_args, args.container))
+
+
+def tmux_commands(cmds, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    # Try this to see the idea...
+    # tmux split-window -d 'python' \; split-window -d 'python' \; split-window -d 'python'; python
+    s = 'tmux'
+    s += ' ' + r' \; select-layout tiled \; '.join(["split-window -d '{cmd}'".format(cmd=cmd) for cmd in cmds[:-1]])
+    if sync:
+        s += ' \; setw synchronize-panes on '
+    else:
+        s += ' \; setw synchronize-panes off '   # important to turn it off if it was on!
+    s += ' \; select-layout tiled ; {cmd} '.format(cmd=cmds[-1])
+    run(s)
+
+def tmux_ssh(hosts, sync=True):
+    """
+    Assuming in tmux, will open up ssh sessions to the given hosts
+    in separate windows all in the same pane.
+    """
+    tmux_commands(['ssh {host}'.format(host=host) for host in hosts], sync=sync)
+
+def get_namespaces():
+    return get_resources('namespaces')
+
+def set_namespace(namespace):
+    if namespace not in get_namespaces():
+        run(['kubectl', 'create', 'namespace', namespace])
+        # CRITICAL: also create default limits
+        run(['kubectl', 'create', '-f', 'conf/limits.template.conf', '--namespace', namespace])
+    context = run(['kubectl', 'config', 'current-context'], get_output=True).strip()
+    run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
+
+def get_current_namespace():
+    x = json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True, verbose=0))
+    for c in x['contexts']:
+        if c['name'] == x['current-context']:
+            return c['context']['namespace']
+    raise RuntimeError("no current namespace")
+
+def show_horizontal_pod_autoscalers(namespace=''):
+    """
+    This is like "kubectl get hpa", but MUCH better since it includes the missing column
+    with the current number of pods.  It's in the JSON, but not in their normal display
+    for some reason.
+    """
+    import dateutil.relativedelta, datetime
+    v = ['kubectl', 'get', 'hpa',  '-o', 'json']
+    if namespace:
+        v.append("--namespace")
+        v.append(namespace)
+    x = json.loads(run(v, get_output=True, verbose=False))
+    if not 'items' in x:
+        return
+    HEADINGS = ['NAME', 'TARGET', 'CURRENT', 'NUMBER', 'MINPODS', 'MAXPODS', 'AGE']
+    fmt = "{name:<20}{target:<13}{current:<13}{number:<13}{minpods:<13}{maxpods:<13}{age:<25}"
+    print(fmt.format(**dict(zip([x.lower() for x in HEADINGS], HEADINGS))))
+    attrs = ['years', 'months', 'days', 'hours', 'minutes', 'seconds']  # see http://stackoverflow.com/questions/6574329/how-can-i-produce-a-human-readable-difference-when-subtracting-two-unix-timestam
+    human_readable = lambda delta: ', '.join(['%d %s' % (getattr(delta, attr), getattr(delta, attr) > 1 and attr or attr[:-1]) for attr in attrs if getattr(delta, attr)])
+    for v in x['items']:
+        created = datetime.datetime.strptime( v['metadata']['creationTimestamp'][:-1], "%Y-%m-%dT%H:%M:%S" )
+        rd = dateutil.relativedelta.relativedelta(datetime.datetime.now(), created)
+        age = human_readable(rd)
+        cur = str(v['status'].get('currentCPUUtilizationPercentage',''))
+        if cur:
+            cur += '%'
+        else:
+            cur = '<waiting>'
+        if 'cpuUtilization' in v['spec']:
+            # Api change between 1.2....
+            target = v['spec']['cpuUtilization']['targetPercentage']
+        else:
+            # and 1.3
+            target = v['spec']['targetCPUUtilizationPercentage']
+        print(fmt.format(name    = v['metadata']['name'],
+                         target  = "%s%%"%target,
+                         current = cur,
+                         number  = v['status']["currentReplicas"],
+                         minpods = v['spec']['minReplicas'],
+                         maxpods = v['spec']['maxReplicas'],
+                         age     = age))
+
+

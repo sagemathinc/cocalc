@@ -66,11 +66,23 @@ class AccountActions extends Actions
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                        {analytics_event} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
                         require('./top_navbar').top_navbar.switch_to_page('projects')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+
+    # deletes the account and then signs out everywhere
+    delete_account : ->
+        salvus_client.delete_account
+            account_id : @redux.getStore('account').get_account_id()
+            timeout       : 40
+            cb            : (err) =>
+                if err?
+                    @setState('account_deletion_error' : "Error trying to delete the account: #{err}")
+                else
+                    @sign_out(true)
 
     forgot_password : (email) ->
         salvus_client.forgot_password
@@ -103,7 +115,8 @@ class AccountActions extends Actions
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
-        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
+        {analytics_event} = require('./misc_page')
+        analytics_event('account', evt)  # user explicitly signed out.
 
         # Send a message to the server that the user explicitly
         # requested to sign out.  The server must clean up resources
@@ -171,7 +184,7 @@ class AccountStore extends Store
     # uses the total upgrades information to determine, if this is a paying member
     is_paying_member: =>
         ups = @get_total_upgrades()
-        return ups? and (v for k, v of ups).reduce((a, b) -> a + b) > 0
+        return ups? and (v for k, v of ups).reduce(((a, b) -> a + b), 0) > 0
 
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...

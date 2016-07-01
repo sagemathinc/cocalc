@@ -36,6 +36,9 @@
 
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 
+#{SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('salvus-icon.svg')
+
 
 # CSS
 li_style =
@@ -139,8 +142,9 @@ SUPPORT_LINKS =
     #    link : <span>Getting started with <SiteName/></span>
     teaching :
         icon : 'users'
-        href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
+        #href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
         #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        href : 'https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md'
         link : <span>Teaching a course with SageMathCloud</span>
     courses :
         icon : 'graduation-cap'
@@ -289,8 +293,7 @@ HelpPageGettingStartedSection = rclass
         @update_mathjax()
 
     update_mathjax: ->
-        el = ReactDOM.findDOMNode(@)
-        MathJax.Hub.Queue(["Typeset", MathJax.Hub, el])
+        $(ReactDOM.findDOMNode(@)).mathjax()
 
     render : ->
         <div>
@@ -438,10 +441,10 @@ HelpPageGettingStartedSection = rclass
                     <div>
                         In a project, click "<Icon name='plus-circle' /> New" then the
                         "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
-                        then press shift+enter.
-                        For the reset of the worksheet, type normal R commands, followed by shift+enter.
+                        then press shift+enter to evaluate it.
+                        For the rest of the worksheet, type normal R commands, followed by shift+enter.
                         Plotting should just work as usual in R.
-                        See <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates/tree/master/r'>these
+                        See <a target='_blank' href='https://github.com/sagemath/cloud-examples/tree/master/r'>these
                         example worksheets</a>.
                     </div>
                 </Panel>
@@ -500,7 +503,7 @@ HelpPage = rclass
 
                 <h3>
                     <div style={display: 'inline-block', \
-                                backgroundImage: 'url("/static/salvus-icon.svg")', \
+                                backgroundImage: "url('#{SMC_ICON_URL}')", \
                                 backgroundSize: 'contain', \
                                 backgroundColor: SAGE_LOGO_COLOR}
                           className='img-rounded pull-right help-smc-logo' ></div>

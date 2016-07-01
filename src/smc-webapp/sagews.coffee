@@ -759,7 +759,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         x = cm.getLine(line)
         if not x?
             return
-        marks = cm.findMarks({line:line, ch:0}, {line:line,ch:x.length})
+        marks = (m for m in cm.findMarks({line:line, ch:0}, {line:line,ch:x.length}) when m.type != 'bookmark')
         if marks.length > 1
             # There should never be more than 1 mark on a line
             for m in marks.slice(1)

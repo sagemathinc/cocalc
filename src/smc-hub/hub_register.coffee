@@ -17,6 +17,11 @@ the_clients  = []
 number_of_clients = () ->
     return (C for id,C of the_clients when not C._destroy_timer? and not C.closed).length
 
+exports.number_of_clients = () ->
+    if not the_database?
+        throw new Error("database not yet set")
+    return number_of_clients()
+
 register_hub = (cb) ->
     if not the_database?
         cb?("database not yet set")

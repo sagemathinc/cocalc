@@ -40,7 +40,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
+{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -75,6 +75,9 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
+    save_position: (position) =>
+        @setState(position:position)
+
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
 exports.init_redux = init_redux = (redux, project_id, filename) ->
@@ -107,37 +110,73 @@ Message = rclass
     propTypes:
         # example message object
         # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
-        message    : rtypes.object.isRequired  # immutable.js message object
-        account_id : rtypes.string.isRequired
-        user_map   : rtypes.object
-        project_id : rtypes.string    # optional -- improves relative links if given
-        file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
-        font_size  : rtypes.number
+        message        : rtypes.object.isRequired  # immutable.js message object
+        account_id     : rtypes.string.isRequired
+        sender_name    : rtypes.string
+        user_map       : rtypes.object
+        project_id     : rtypes.string    # optional -- improves relative links if given
+        file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
+        font_size      : rtypes.number
+        show_avatar    : rtypes.bool
+        is_prev_sender : rtypes.bool
+        is_next_sender : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
+        return @props.message != next.message or
+               @props.user_map != next.user_map or
+               @props.account_id != next.account_id or
+               @props.show_avatar != next.show_avatar or
+               @props.is_prev_sender != next.is_prev_sender or
+               @props.is_next_sender != next.is_next_sender or
+               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        if @sender_is_viewer()
-            pull = "pull-right small"
-        else
-            pull = "pull-left small"
-        <div className={pull} style={color:'#888', marginTop:'2px'}>
+        <div className="pull-right small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
+        </div>
+
+    show_user_name: ->
+        <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'10px'}>
+            {@props.sender_name}
         </div>
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
-        if account?  # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
-                <Avatar account={account} />
-            </Col>
+        if @props.is_prev_sender
+            margin_top = '5px'
+        else
+            margin_top = '27px'
+
+        if @sender_is_viewer()
+            textAlign = 'left'
+            marginRight = '11px'
+        else
+            textAlign = 'right'
+            marginLeft = '11px'
+
+        style =
+            display       : "inline-block"
+            marginTop     : margin_top
+            marginLeft    : marginLeft
+            marginRight   : marginRight
+            padding       : '0px'
+            textAlign     : textAlign
+            verticalAlign : "middle"
+            width         : '4%'
+
+        # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+        <Col key={0} xsHidden={true} sm={1} style={style} >
+            <div>
+                {<Avatar account={account} /> if account? and @props.show_avatar }
+            </div>
+        </Col>
 
     content_column: ->
         value = @props.message.get('payload')?.get('content') ? ''
+
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -151,24 +190,40 @@ Message = rclass
 
         font_size = "#{@props.font_size}px"
 
-        <Col key={1} xs={8}>
-            <Panel style={wordWrap:"break-word"}>
+        if @props.show_avatar
+            marginBottom = "20px" # the default value actually..
+        else
+            marginBottom = "3px"
+
+        if not @props.is_prev_sender and @sender_is_viewer()
+            marginTop = "17px"
+
+        if not @props.is_prev_sender and not @props.is_next_sender
+            borderRadius = '10px 10px 10px 10px'
+        else if not @props.is_prev_sender
+            borderRadius = '10px 10px 5px 5px'
+        else if not @props.is_next_sender
+            borderRadius = '5px 5px 10px 10px'
+
+        <Col key={1} xs={10} sm={9}>
+            {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
+            <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color; fontSize: font_size}>
+                    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: borderRadius}>
                         <Markdown value={value}
                                   project_id={@props.project_id}
                                   file_path={@props.file_path} />
+                        {@get_timeago()}
                     </ListGroupItem>
-                    {@get_timeago()}
                 </ListGroup>
             </Panel>
         </Col>
 
     blank_column:  ->
-        <Col key={2} xs={3}></Col>
+        <Col key={2} xs={2}></Col>
 
     render: ->
-        cols = [ @avatar_column(), @content_column(), @blank_column()]
+        cols = [@avatar_column(), @content_column(), @blank_column()]
         # mirror right-left for sender's view
         if @sender_is_viewer()
             cols = cols.reverse()
@@ -191,18 +246,42 @@ ChatLog = rclass
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
     list_messages: ->
-        v = {}
-        @props.messages.map (mesg, date) =>
-            v[date] = <Message key={date}
-                        account_id = {@props.account_id}
-                        user_map   = {@props.user_map}
-                        message    = {mesg}
-                        project_id = {@props.project_id}
-                        file_path  = {@props.file_path}
-                        font_size  = {@props.font_size}
-                      />
-        k = misc.keys(v).sort(misc.cmp_Date)
-        return (v[date] for date in k)
+        is_next_message_sender = (index, dates, messages) ->
+            if index + 1 == dates.length
+                return false
+            current_message = messages.get(dates[index])
+            next_message = messages.get(dates[index + 1])
+            return current_message.get('sender_id') == next_message.get('sender_id')
+
+        is_prev_message_sender = (index, dates, messages) ->
+            if index == 0
+                return false
+            current_message = messages.get(dates[index])
+            prev_message = messages.get(dates[index - 1])
+            return current_message.get('sender_id') == prev_message.get('sender_id')
+
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        v = []
+        for date, i in sorted_dates
+            sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
+            if sender_account?
+                sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
+            else
+                sender_name = "Unknown"
+
+            v.push <Message key={date}
+                     account_id  = {@props.account_id}
+                     user_map    = {@props.user_map}
+                     message     = {@props.messages.get(date)}
+                     project_id  = {@props.project_id}
+                     file_path   = {@props.file_path}
+                     font_size   = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     sender_name      = {sender_name}
+                    />
+        return v
 
     render: ->
         <div>
@@ -216,6 +295,7 @@ ChatRoom = (name) -> rclass
         "#{name}" :
             messages : rtypes.immutable
             input    : rtypes.string
+            position : rtypes.number
         users :
             user_map : rtypes.immutable
         account :
@@ -235,15 +315,15 @@ ChatRoom = (name) -> rclass
         input : ''
 
     keydown : (e) ->
-        @scroll_to_bottom()
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
+            @scroll_to_bottom()
             e.preventDefault()
             mesg = @refs.input.getValue()
             # block sending empty messages
-            if mesg.length? and mesg.length >= 1
+            if mesg.length? and mesg.trim().length >= 1
                 @props.redux.getActions(@props.name).send_chat(mesg)
                 @clear_input()
 
@@ -263,6 +343,7 @@ ChatRoom = (name) -> rclass
                 ref       = 'input'
                 onKeyDown = {@keydown}
                 value     = {@props.input}
+                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
                 onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
                 />
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
@@ -289,24 +370,26 @@ ChatRoom = (name) -> rclass
         marginTop    : "5px"
 
     scroll_to_bottom: ->
-        if not @refs.log_container?
+        if @refs.log_container?
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            node.scrollTop = node.scrollHeight
+            @props.redux.getActions(@props.name).save_position(node.scrollTop)
             @_scrolled = false
-            return
-        node = ReactDOM.findDOMNode(@refs.log_container)
-        node.scrollTop = node.scrollHeight
-        @_ignore_next_scroll = true
-        @_scrolled = false
+
+    scroll_to_position: ->
+        if @refs.log_container?
+            @_scrolled = true
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            node.scrollTop = @props.position
 
     on_scroll: (e) ->
-        if @_ignore_next_scroll
-            @_ignore_next_scroll = false
-            return
         @_scrolled = true
+        node = ReactDOM.findDOMNode(@refs.log_container)
+        @props.redux.getActions(@props.name).save_position(node.scrollTop)
         e.preventDefault()
 
     componentDidMount: ->
-        if not @_scrolled
-            @scroll_to_bottom()
+        @scroll_to_position()
 
     componentDidUpdate: ->
         if not @_scrolled
@@ -341,9 +424,14 @@ ChatRoom = (name) -> rclass
                     </div>
                 </Col>
                 <Col xs={4}>
-                    <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
-                        <Icon name='history'/> TimeTravel
-                    </Button>
+                    <ButtonGroup style={float:'right'}>
+                        <Button onClick={@show_timetravel} bsStyle='info'>
+                            <Icon name='history'/> TimeTravel
+                        </Button>
+                        <Button onClick={@scroll_to_bottom}>
+                            <Icon name='arrow-down'/> Scroll to Bottom
+                        </Button>
+                    </ButtonGroup>
                 </Col>
             </Row>
             <Row>

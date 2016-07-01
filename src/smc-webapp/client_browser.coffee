@@ -23,6 +23,9 @@ _ = require('underscore')
 
 client = require('smc-util/client')
 
+#{SMC_ICON_URL} = require('./misc_page')
+SMC_ICON_URL = require('salvus-icon.svg')
+
 # these idle notifications were in misc_page, but importing it here failed
 
 idle_notification_html = ->
@@ -31,7 +34,7 @@ idle_notification_html = ->
     site_name = customize?.get('site_name') ? "SageMathCloud"
     """
     <div>
-    <img src="/static/salvus-icon.svg">
+    <img src="#{SMC_ICON_URL}">
     <h1>#{site_name}<br> is on standby</h1>
     &mdash; click to resume &mdash;
     </div>
@@ -153,14 +156,14 @@ class Connection extends client.Connection
         @ondata = ondata
 
         opts =
-            ping      : 6000   # used for maintaining the connection and deciding when to reconnect.
+            ping      : 25000   # used for maintaining the connection and deciding when to reconnect.
             pong      : 12000  # used to decide when to reconnect
             strategy  : 'disconnect,online,timeout'
             reconnect :
-                max      : 15000
-                min      : 500
-                factor   : 1.5
-                retries  : 100000  # why ever stop trying if we're only trying once every 15 seconds?
+                max      : 5000
+                min      : 1000
+                factor   : 1.25
+                retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
 
         conn = new Primus(url, opts)
         @_conn = conn
@@ -174,6 +177,7 @@ class Connection extends client.Connection
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             console.log("websocket -- connected #{protocol}")
+            @_num_attempts = 0
 
             #console.log("installing ondata handler")
             conn.removeAllListeners('data')
@@ -209,6 +213,7 @@ class Connection extends client.Connection
             @emit("disconnected", "disconnected")
 
         conn.on 'reconnect scheduled', (opts) =>
+            @_num_attempts = opts.attempt
             @emit("connecting")
             conn.removeAllListeners('data')
             console.log("websocket -- reconnecting in #{opts.scheduled} ms")

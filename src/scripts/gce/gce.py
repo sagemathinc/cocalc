@@ -177,7 +177,7 @@ class GCE(object):
     def create_all_boot_snapshots(self):
         v = []
 
-        v.append(('docker-build', ''))
+        v.append(('kubectl', ''))
 
         for i in [0,1,2,3,4,5]:
             v.append(('db', i))

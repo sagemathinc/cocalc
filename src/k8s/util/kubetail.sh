@@ -12,7 +12,7 @@ container=""
 selector=""
 since="${default_since}"
 
-usage="${PROGNAME} [-h] [-c] [-n] [-t] [-l] [-s] -- tail multiple Kubernetes pod logs at the same time
+usage="${PROGNAME} [-h] [-c] [-n] [-t] [-l] -- tail multiple Kubernetes pod logs at the same time
 
 where:
     -h, --help       Show this help text
@@ -20,14 +20,13 @@ where:
     -t, --context    The k8s context. ex. int1-context. Relies on ~/.kube/config for the contexts.
     -l, --selector   Label selector. If used the pod name is ignored.
     -n, --namespace  The Kubernetes namespace where the pods are located (defaults to "default")
-    -s, --since      Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to 10s.
 
 examples:
     ${PROGNAME} my-pod-v1
     ${PROGNAME} my-pod-v1 -c my-container
     ${PROGNAME} my-pod-v1 -t int1-context -c my-container
     ${PROGNAME} -l service=my-service
-    ${PROGNAME} --selector service=my-service --since 10m"
+    ${PROGNAME} --selector service=my-service"
 
 if [ $# -eq 0 ]; then
 	echo "$usage"
@@ -52,13 +51,6 @@ if [ "$#" -ne 0 ]; then
             selector="--selector $2"
             pod=""
             ;;
-		-s|--since)
-			if [ -z "$2" ]; then
-				since="${default_since}"
-			else
-				since="$2"
-			fi
-			;;
 		-n|--namespace)
 			if [ -z "$2" ]; then
 				namespace="${default_namespace}"
@@ -104,11 +96,14 @@ fi
 pod_logs_commands=()
 for pod in ${matching_pods[@]};
 do
-	pod_logs_commands+=("kubectl --context=${context} logs ${pod} ${container} -f --since=${since} --namespace=${namespace} | sed -e 's/^/${pod} - /' ");
+	pod_logs_commands+=("kubectl --context=${context} logs ${pod} ${container} -f --tail 10 --namespace=${namespace} | sed -e 's/^/(${pod}) /' ");
 done
 
 # Join all log commands into one string seperated by " & "
 join command_to_tail " & " "${pod_logs_commands[@]}"
 
 # Aggregate all logs and print to stdout
-cat <( eval "${command_to_tail}" ) | grep -a - --line-buffered
+eval "${command_to_tail}"
+
+# this was there before, but it messed up the beginning tail thing.
+#cat <( eval "${command_to_tail}" ) | grep -a - --line-buffered

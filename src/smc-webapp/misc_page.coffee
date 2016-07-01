@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')
@@ -183,6 +182,30 @@ $.fn.html_noscript = (html) ->
         return t
 
 # MathJax some code -- jQuery plugin
+# ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
+# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc.cjsx)
+
+# this queue is used, when starting up or when it isn't configured (yet)
+mathjax_queue = []
+mathjax_enqueue = (x) ->
+    if MathJax?.Hub?
+        if x[0] == 'Typeset'
+            # insert MathJax.Hub as 2nd entry
+            MathJax.Hub.Queue([x[0], MathJax.Hub, x[1]])
+        else
+            MathJax.Hub.Queue(x)
+    else
+        mathjax_queue.push(x)
+
+exports.mathjax_finish_startup = ->
+    console.log 'finishing mathjax startup'
+    for x in mathjax_queue
+        mathjax_enqueue(x)
+
+mathjax_typeset = (el) ->
+    # no MathJax.Hub, since there is no MathJax defined!
+    mathjax_enqueue(["Typeset", el])
+
 $.fn.extend
     mathjax: (opts={}) ->
         opts = defaults opts,
@@ -214,11 +237,11 @@ $.fn.extend
                 element = t.html(tex)
             if opts.hide_when_rendering
                 t.hide()
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            mathjax_typeset(element[0])
             if opts.hide_when_rendering
-                MathJax.Hub.Queue([=>t.show()])
+                mathjax_enqueue([=>t.show()])
             if opts.cb?
-                MathJax.Hub.Queue([opts.cb, t])
+                mathjax_enqueue([opts.cb, t])
             return t
 
 $.fn.extend
@@ -681,7 +704,22 @@ exports.define_codemirror_extensions = () ->
         if not r
             @setOption('readOnly', true)
         @_setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
+
+        # Determine information so we can restore the scroll position
+        t      = @getScrollInfo().top
+        b      = @setBookmark(line:@lineAtHeight(t, 'local'))
+        before = @heightAtLine(@lineAtHeight(t, 'local'))
+
+        # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
+        # which would cause total chaos.
         @diffApply(dmp.diff_main(@getValue(), value))
+
+        # Now, if possible, restore the exact scroll position.
+        n = b.find()?.line
+        if n?
+            @scrollTo(undefined, @getScrollInfo().top - (before - @heightAtLine(b.find().line)))
+            b.clear()
+
         if not r
             @setOption('readOnly', false)
         delete @_setValueNoJump
@@ -845,7 +883,9 @@ exports.define_codemirror_extensions = () ->
                         # this is a foldable line, and what did we do?  keep doing it.
                         mode = if editor.isFolded(pos) then "fold" else "unfold"
 
-    $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+    # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
+    require.ensure [], =>
+        data = require('raw!codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()
@@ -1465,10 +1505,13 @@ exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb()
     else
-        console.log("loading coffee-script...")
-        $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
-            console.log("loaded CoffeeScript -- #{status}")
+        require.ensure [], =>
+            require("script!coffeescript/coffee-script.js")
+            console.log("loaded CoffeeScript via reqire.ensure")
             cb()
+            #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
+            #    console.log("loaded CoffeeScript -- #{status}")
+            #    cb()
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
@@ -1539,3 +1582,25 @@ return _sanitize_html_lib html,
         allowedTags: _sanitize_html_allowedTags
         allowedAttributes: _sanitize_html_allowedAttributes
 ###
+
+# `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
+# for now, it either does nothing or works with GA
+# this API basically allows to send off events by name and category
+
+exports.analytics = (type, args...) ->
+    # GoogleAnalyticsObject contains the possibly customized function name of GA.
+    # It's a good idea to call it differently from the default 'ga' to avoid name clashes...
+    if window.GoogleAnalyticsObject?
+        ga = window[window.GoogleAnalyticsObject]
+        if ga?
+            switch type
+                when 'event', 'pageview'
+                    ga('send', type, args...)
+                else
+                    console.warn("unknown analytics event '#{type}'")
+
+exports.analytics_pageview = (args...) ->
+    exports.analytics('pageview', args...)
+
+exports.analytics_event = (args...) ->
+    exports.analytics('event', args...)

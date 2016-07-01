@@ -222,6 +222,18 @@ message
     id             : undefined
     reason         : required
 
+# client --> hub
+message
+    event        : 'delete_account'
+    id           : undefined
+    account_id   : required
+
+# hub --> client
+message
+    event        : 'account_deleted'
+    id           : undefined
+    error        : undefined
+
 # client <--> hub
 message
     event          : 'email_address_availability'
@@ -480,9 +492,10 @@ message
 # starts jupyter hub server and reports the port it is running on
 # hub <--> project
 message
-    event     : 'jupyter_port'
-    port      : undefined    # gets set in response
-    id        : undefined
+    event       : 'jupyter_port'
+    port        : undefined  # gets set in response
+    id          : undefined
+    mathjax_url : undefined  # e.g. '/static/mathjax-2.6.1/MathJax.js'
 
 #############################################################################
 

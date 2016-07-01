@@ -77,6 +77,7 @@ class ProjectPage
         @init_tabs()
         @init_sortable_editor_tabs()
         @init_new_tab_in_navbar()
+        @free_project_warning()
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
@@ -111,6 +112,43 @@ class ProjectPage
         delete @projects_store
         delete @actions
         delete @store
+
+    free_project_warning: () =>
+        @projects_store.wait
+            until   : (s) => s.get_total_project_quotas(@project_id)
+            timeout : 60
+            cb      : (err, quotas) =>
+                if not err and quotas?
+                    host     = not quotas.member_host
+                    internet = not quotas.network
+                    box  = @container.find('.smc-project-free-quota-warning')
+                    if host or internet
+                        html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
+                        if host
+                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts"
+                            if internet
+                                html += ", and "
+                        if internet
+                            html += "does <b>not have full access to the internet</b>."
+                        else
+                            html += '.'
+                        html += " Please upgrade in <b>settings/usage and quotas</b> for a better experience!"
+                        {PolicyPricingPageUrl} = require('./customize')
+                        html += " (<a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Subscriptions</a> and"
+                        html += " <a href='#' class='billing'>Billing</a>)"
+                        box.find("div").html(html)
+                        box.find("div a.billing").click (evt) ->
+                            require('./history').load_target('settings/billing')
+                            evt.stopPropagation()
+                        box.find("div a.pricing").click (evt) ->
+                            evt.stopPropagation()
+                        box.show()
+                        box.click =>
+                            @load_target('settings')
+                            box.hide()
+                    else
+                        box.hide()
+
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -506,11 +544,12 @@ class ProjectPage
             return
 
         @editor.open opts.path, (err, opened_path) =>
+            # {analytics_event} = require('./misc_page')
             if err
-                # ga('send', 'event', 'file', 'open', 'error', opts.path, {'nonInteraction': 1})
+                # analytics_event('file', 'open', 'error', opts.path, {'nonInteraction': 1})
                 alert_message(type:"error", message:"Error opening '#{opts.path}' -- #{misc.to_json(err)}", timeout:10)
             else
-                # ga('send', 'event', 'file', 'open', 'success', opts.path, {'nonInteraction': 1})
+                # analytics_event('file', 'open', 'success', opts.path, {'nonInteraction': 1})
                 if opts.foreground
                     @display_tab("project-editor")
 

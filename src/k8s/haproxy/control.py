@@ -43,9 +43,12 @@ def run_on_kubernetes(args):
     tag = util.get_tag(args, NAME, build)
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+    namespace = util.get_current_namespace()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image=tag, replicas=args.replicas,
-                        pull_policy=util.pull_policy(args)))
+        tmp.write(t.format(image       = tag,
+                           replicas    = args.replicas,
+                           pull_policy = util.pull_policy(args),
+                           namespace   = namespace))
         tmp.flush()
         util.update_deployment(tmp.name)
     expose()

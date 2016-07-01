@@ -24,13 +24,18 @@ async = require('async')
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
-Combobox = require('react-widgets/lib/Combobox')
+# injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
+smc_version = SMC_VERSION ? 'N/A'
+build_date  = BUILD_DATE  ? 'N/A'
+smc_git_rev = SMC_GIT_REV ? 'N/A'
 
-misc = require('smc-util/misc')
-immutable  = require('immutable')
-underscore = require('underscore')
+Combobox    = require('react-widgets/lib/Combobox')
 
-markdown = require('./markdown')
+misc        = require('smc-util/misc')
+immutable   = require('immutable')
+underscore  = require('underscore')
+
+markdown    = require('./markdown')
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -133,6 +138,28 @@ exports.Icon = Icon = rclass
             classNames += " #{className}"
         return <i style={style} className={classNames}>{@props.children}</i>
 
+# this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
+exports.Octicon = rclass
+    displayName : 'Octicon'
+
+    propTypes :
+        name   : rtypes.string.isRequired
+        mega   : rtypes.bool
+        spin   : rtypes.bool
+
+    getDefaultProps : ->
+        name : 'flame'
+        mega : false
+        spin : false
+
+    render : ->
+        classNames = ['octicon', "octicon-#{@props.name}"]
+        if @props.spin
+            classNames.push('spin-octicon')
+        if @props.mega
+            classNames.push('mega-octicon')
+        return <span className={classNames.join(' ')} />
+
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
@@ -215,7 +242,7 @@ exports.Footer = rclass
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
-            &copy; {misc.YEAR}
+            <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
         </footer>
 
 
@@ -907,6 +934,9 @@ exports.DirectoryInput = rclass
         on_change     : rtypes.func.isRequired
         default_value : rtypes.string
         placeholder   : rtypes.string
+        autoFocus     : rtypes.bool
+        on_key_down   : rtypes.func
+        on_key_up     : rtypes.func
 
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
@@ -920,6 +950,7 @@ exports.DirectoryInput = rclass
         else
             group = (s) -> s
         <Combobox
+            autoFocus    = {@props.autoFocus}
             data         = {tree}
             filter       = {'contains'}
             groupBy      = {group}
@@ -927,6 +958,8 @@ exports.DirectoryInput = rclass
             placeholder  = {@props.placeholder}
             messages     = {emptyFilter : '', emptyList : ''}
             onChange     = {(value) => @props.on_change(value.trim())}
+            onKeyDown    = {@props.on_key_down}
+            onKeyUp      = {@props.on_key_up}
         />
 
 #onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
@@ -942,7 +975,7 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+    return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
     {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
@@ -971,7 +1004,7 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    if pay > new Date()  # in the future
+    if pay > salvus_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else

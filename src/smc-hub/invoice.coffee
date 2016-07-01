@@ -1,4 +1,6 @@
 misc = require('smc-util/misc')
+misc_node = require('smc-util-node/misc_node')
+WEBAPP_LIB = misc_node.WEBAPP_LIB
 
 render_invoice_to_pdf = (invoice, customer, charge) ->
     PDFDocument = require('pdfkit')
@@ -6,7 +8,7 @@ render_invoice_to_pdf = (invoice, customer, charge) ->
 
     doc.pipe(require('fs').createWriteStream('receipt.pdf'))
 
-    doc.image('static/favicon-128.png', 268, 15, {width: 64, align: 'center'})
+    doc.image("#{WEBAPP_LIB}/favicon-128.png", 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid

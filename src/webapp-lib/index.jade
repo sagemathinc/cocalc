@@ -1,0 +1,101 @@
+doctype html
+html
+  head
+    meta(charset="utf-8")
+    meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="description" content="#{ htmlWebpackPlugin.options.title }")
+    meta(name="author"      content="#{ htmlWebpackPlugin.options.title } Authors")
+    meta(name="date"        content="#{ htmlWebpackPlugin.options.date }")
+    meta(name="version"     content="#{ htmlWebpackPlugin.options.version }")
+    title= htmlWebpackPlugin.options.title
+
+    //- ****** faviconit.com favicons ******
+    //- Basic favicons -->
+    link(rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href="#{require('!file!favicon.ico')}")
+    link(rel="shortcut icon" type="image/x-icon" href="#{require('!file!favicon.ico')}")
+    <!--[if IE]><link rel="shortcut icon" href="#{require('!file!favicon.ico')}"><![endif]-->
+    //- For Opera Speed Dial:
+    link(rel="icon" type="image/png" sizes="195x195" href="#{require('!file!favicon-195.png') }")
+    //- For iPad with high-resolution Retina display running iOS ≥ 7:
+    link(rel="apple-touch-icon" sizes="152x152" href="#{require('!file!favicon-152.png') }")
+    //- For iPad with high-resolution Retina display running iOS ≤ 6:
+    link(rel="apple-touch-icon" sizes="144x144" href="#{require('!file!favicon-144.png') }")
+    //- For iPhone with high-resolution Retina display running iOS ≥ 7:
+    link(rel="apple-touch-icon" sizes="120x120" href="#{require('!file!favicon-120.png') }")
+    //- For iPhone with high-resolution Retina display running iOS ≤ 6:
+    link(rel="apple-touch-icon" sizes="114x114" href="#{require('!file!favicon-114.png') }")
+    //- For Google TV devices:
+    link(rel="icon" type="image/png" sizes="96x96" href="#{require('!file!favicon-96.png') }")
+    //- For iPad Mini:
+    link(rel="apple-touch-icon" sizes="76x76" href="#{require('!file!favicon-76.png') }")
+    //- For first- and second-generation iPad:
+    link(rel="apple-touch-icon" sizes="72x72" href="#{require('!file!favicon-72.png') }")
+    //- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices:
+    link(rel="apple-touch-icon" href="#{require('!file!favicon-57.png') }")
+    //- Windows 8 Tiles
+    meta(name="msapplication-TileColor" content="#C9C9F9")
+    meta(name="msapplication-TileImage" content="#{require('!file!favicon-144.png') }")
+    //- ****** faviconit.com favicons ******
+
+  body
+    style.
+      #{require('!css?minimize!smc-startup-style.css')}
+    div#smc-startup-banner
+      div
+        img(src="#{ require('!url?mimetype=image/svg+xml!salvus-icon.svg') }")
+      div
+        div.banner-blink
+            | Loading
+            br/
+            | #{ htmlWebpackPlugin.options.title } ...
+        div.banner-error
+          div.message
+            | Something bad must have happened.
+            br/
+            | Try <a href="javascript:location.reload(true);">reloading the page</a> while holding your shift-key.
+        div(style="clear: both;")
+    div#smc-startup-banner-status
+      | Initializing ...
+
+    //- this sets the global window.smc_base_url: either statically via the BASE_URL template variable, or dynamically via hub
+    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+    if typeof BASE_URL !== "undefined" && BASE_URL !== null
+        script(type="text/javascript").
+            window.smc_base_url='#{BASE_URL}';
+    else
+        script(type="text/javascript" src="base_url.js")
+
+    script(type="text/javascript").
+        function smcLoadStatus(msg) {
+        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
+
+    //- Billing related functionality
+    script(type="text/javascript" src="https://js.stripe.com/v2/")
+
+    //- if we have a GA token, insert the google analytics async script
+    - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
+    if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
+        //--- Google Analytics ---
+        script.
+            //- Instructs analytics.js to use the name `google_analytics`.
+            window.GoogleAnalyticsObject = 'google_analytics';
+            //- Creates an initial analytics() function.
+            //- The queued commands will be executed once analytics.js loads.
+            window.google_analytics = window.google_analytics || function() {
+              (google_analytics.q = google_analytics.q || []).push(arguments)
+            };
+            //- Sets the time (as an integer) this tag was executed.
+            //- Used for timing hits.
+            google_analytics.l = +new Date;
+            //- Creates a default tracker with automatic cookie domain configuration.
+            google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
+            //- Sends a pageview hit from the tracker just created.
+            google_analytics('send', 'pageview');
+
+        <!-- Sets the `async` attribute to load the script asynchronously. -->
+        script(async src='//www.google-analytics.com/analytics.js')
+        //--- End Google Analytics ---
+
+    //- Hidden div to accurately determine if page is in responsive mode
+    div.salvus-responsive-mode-test

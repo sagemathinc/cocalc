@@ -33,12 +33,15 @@ def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
-def ensure_persistent_disk_exists(context, number, size, disk_type):
-    name = "{context}-rethinkdb-{number}".format(context=context, number=number)
+def pd_name(context, namespace, number=''):
+    return "{context}-rethinkdb-{namespace}-server{number}".format(context=context, number=number, namespace=namespace)
+
+def ensure_persistent_disk_exists(context, namespace, number, size, disk_type):
+    name = pd_name(context, namespace, number)
     util.ensure_persistent_disk_exists(name, size=size, disk_type=disk_type)
 
-def get_persistent_disks(context):
-    name = "{context}-rethinkdb-".format(context=context)
+def get_persistent_disks(context, namespace):
+    name = pd_name(context=context, namespace=namespace)
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
 def ensure_services_exist():
@@ -51,21 +54,24 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
+    namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
-        args.number = range(max(1,len(get_persistent_disks(context))))
+        args.number = range(max(1,len(get_persistent_disks(context, namespace))))
     ensure_services_exist()
     util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     for number in args.number:
-        ensure_persistent_disk_exists(context, number, args.size, args.type)
+        ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image=tag, number=number, context=context, 
-                               health_delay=args.health_delay,
-                               pull_policy=util.pull_policy(args)))
+            tmp.write(t.format(image        = tag,
+                               number       = number,
+                               pd_name      = pd_name(context=context, namespace=namespace, number=number),
+                               health_delay = args.health_delay,
+                               pull_policy  = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
 
@@ -88,9 +94,6 @@ def forward_port(args, port, mesg):
         raise RuntimeError("rethinkdb node {number} not available".format(number=args.number))
     print("{dashes}{mesg}{dashes}".format(mesg=mesg, dashes='\n\n'+'-'*70+'\n\n'))
     util.run(['kubectl', 'port-forward', v[0]['NAME'], '{port}:{port}'.format(port=port)])
-
-def bash(args):
-    util.exec_bash(db='rethinkdb', instance=args.number)
 
 def all_node_numbers():
     n = len('rethinkdb')
@@ -200,12 +203,12 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
+    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='*')
-    sub.add_argument("-t", "--tag", default="", help="tag of the image to run (default: most recent tag)")
+    sub.add_argument("-t", "--tag", default="", help="tag of the image to run (or use recent image if not specified)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
-    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
-    sub.add_argument('--type', default='standard', help='"standard" (default) or "ssd" -- type of persistent disk (ignored if disk already exists)')
+    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (can be used to dynamically increase size!)')
+    sub.add_argument('--type', default='standard', help='"standard" or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.add_argument('--health-delay', default=60, type=int, help='time in seconds before starting health checks')
     sub.set_defaults(func=run_on_kubernetes)
 
@@ -225,9 +228,17 @@ if __name__ == '__main__':
     sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "rethinkdb"')
     sub.set_defaults(func=load_password)
 
-    sub = subparsers.add_parser('bash', help='get a bash shell on the given rethinkdb pod')
-    sub.add_argument('-n', '--number', type=int, default=0, help='pod number')
-    sub.set_defaults(func=bash)
+    def selector(args):
+        if len(args.number) == 0:
+            return {'db':'rethinkdb'}
+        else:
+            # can only do one
+            return {'db':'rethinkdb', 'number':args.number[0]}
+    util.add_bash_parser(NAME, subparsers, custom_selector=selector)
+    util.add_top_parser(NAME, subparsers, custom_selector=selector)
+    util.add_htop_parser(NAME, subparsers, custom_selector=selector)
+
+    util.add_logs_parser(NAME, subparsers)
 
     sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
     sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
@@ -238,8 +249,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('external', help='create service that is external to kubernetes')
     sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')
     sub.set_defaults(func=external)
-
-    util.add_edit_parser(NAME, subparsers)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
