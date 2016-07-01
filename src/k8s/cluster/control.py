@@ -105,6 +105,7 @@ def create_cluster(args):
     update_firewall()
 
 def create_instance_group(args):
+    raise NotImplementedError("this might not work due needing to set CLUSTER_IP_RANGE (?)  -- it could break everything; make sure to carefully test")
     if '_' in args.name:
         raise ValueError("name must not contain an underscore (_)")
     if args.min_nodes > args.max_nodes:
