@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test1
+  name: test2
 spec:
   containers:
-  - name: test1
+  - name: test2
     image: nginx
     volumeMounts:
-    - name: test-abc1
-      mountPath: /test-abc1
+    - name: share
+      mountPath: /share
     ports:
     - containerPort: 80
   volumes:
-  - name: test-abc1
+  - name: share
     flexVolume:
       driver : "smc/smc-storage"
       options:
         namespace : 'test'
         server    : 'storage1'
-        path      : "abc1.zfs"
+        path      : "test.share"
         size      : "3000m"
