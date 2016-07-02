@@ -61,7 +61,13 @@ def get_service(service):
     return x
 
 def update_etc_hosts():
-    v = get_service('storage-projects')
+    try:
+        v = get_service('storage-projects')
+    except Exception as err:
+        # Expected to happen when node is starting up, etc. - we'll retry later soon!
+        print("Failed getting storage service info", err)
+        return
+
     if v.get('status', None) == 'Failure':
         return
     try:
