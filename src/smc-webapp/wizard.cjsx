@@ -40,7 +40,7 @@ markdown = require('./markdown')
 
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
-data = null
+DATA = null
 
 # react wizard
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
@@ -53,37 +53,96 @@ redux_name = (project_id, path) ->
 class WizardStore extends Store
 
 class WizardActions extends Actions
-    get_store: =>
-        @redux.getStore(@name)
     get: (key) =>
-        @get_store().get(key)
+        @redux.getStore(@name).get(key)
     set: (update) =>
         @setState(update)
     show: (lang='sage') =>
-        @set(show: true, lang: lang)
-    hide: () =>
+        @set
+            show: true
+            lang: lang
+    reset: ->
+        @set
+            cat0: null
+            cat1: null
+            cat2: null
+            catlist0 : []
+            catlist1 : []
+            catlist2 : []
+    hide: () ->
         @set(show: false)
+    init: (lang='sage') =>
+        @reset()
+        @show(lang=lang)
+        @load_data()
+    init_data: (data) =>
+        @set(data: data)
+        nav_entries = []
+        for key in _.keys(data)
+            entry = switch key
+                        when 'gap'
+                            ['gap', 'GAP']
+                        else
+                            [key, key[0].toUpperCase() + key[1..]]
+            if _.keys(data[key]).length > 0
+                nav_entries.push(entry)
+        @set(nav_entries: nav_entries)
+        @select_lang(@get('lang'))
     insert: (cb) =>
+        # this is the essential task of the wizard:
+        # call the callback with the selected code snippet
         cb
             code  : 'code'
             lang  : @get('lang')
+            title : 'title'
             descr : 'description'
     load_data: () =>
-        if not data?
+        if not DATA?
             require.ensure [], =>
-                data = require('wizard/wizard.json')
-                @set(data: data)
-                nav_entries = []
-                for key in _.keys(data)
-                    entry = switch key
-                                when 'gap'
-                                    ['gap', 'GAP']
-                                else
-                                    [key, key[0].toUpperCase() + key[1..]]
-                    nav_entries.push(entry)
-                @set(nav_entries: nav_entries)
+                # DATA is a global variable!
+                DATA = require('wizard/wizard.json')
+                @init_data(DATA)
         else
-            @set(data: data)
+            @init_data(DATA)
+    select_lang: (lang) =>
+        @reset()
+        @set
+            lang     : lang
+            catlist0 : @get('data').get(lang).keySeq().toArray()
+    set_selected_category: (level, selected, idx) =>
+        console.log 'category_selection', level, selected, idx
+        lang = @get('data').get(@get('lang'))
+        switch level
+            when 0, 1
+                @set(code: '', descr: '', cat2 : null)
+        switch level
+            when 0
+                catlist1 = lang.get(selected).keySeq().toArray()
+                @set
+                    cat0     : selected
+                    cat1     : null
+                    cat2     : null
+                    catlist1 : catlist1
+                    catlist2 : []
+                if catlist1.length == 1
+                    @set_selected_category(1, catlist1[0], 0)
+            when 1
+                cat0     = @get('cat0')
+                catlist2 = lang.getIn([cat0, selected]).map((el) -> el.get(0)).toArray()
+                @set
+                    cat1     : selected
+                    cat2     : null
+                    catlist2 : catlist2
+                if catlist2.length == 1
+                    @set_selected_category(2, catlist2[0], 0)
+            when 2
+                cat0 = @get('cat0')
+                cat1 = @get('cat1')
+                doc  = lang.getIn([cat0, cat1, idx])
+                @set
+                    cat2  : idx
+                    code  : doc.getIn([1, 0])
+                    descr : doc.getIn([1, 1])
 
 WizardHeader = rclass
     displayName : 'WizardHeader'
@@ -93,25 +152,25 @@ WizardHeader = rclass
         lang        : rtypes.string.isRequired
     langSelect: (key) ->
         #console.log 'language selected', key
-        @props.actions.set(lang:key)
+        @props.actions.select_lang(key)
     search: () ->
         console.log 'search:', @refs.search.getValue()
     render_nav : ->
-        if @props.nav_entries?
-            navs = []
-            for entry in @props.nav_entries
-                [key, name] = entry
-                navs.push(<NavItem key={key} eventKey={key} title={name}>{name}</NavItem>)
-            return navs
+        entries = @props.nav_entries
+        if entries?
+            <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
+                {entries.map (entry, idx) =>
+                        [key, name] = entry
+                        <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
+                }
+            </Nav>
         else
             return <Loading />
     render : ->
         <Row>
             <Col sm={3}><h2><Icon name='magic' /> Wizard</h2></Col>
             <Col sm={5}>
-                <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
-                    {@render_nav()}
-                </Nav>
+                {@render_nav()}
             </Col>
             <Col sm={3}>
                 <Input ref='search'
@@ -127,38 +186,47 @@ WizardBody = rclass
     propTypes:
         actions  : rtypes.object
         data     : rtypes.object
-        cat0     : rtypes.number
-        cat1     : rtypes.number
         lang     : rtypes.string.isRequired
-    category_selection: (level, idx) ->
-        console.log 'category_selection', level, idx
+        code     : rtypes.string
+        descr    : rtypes.string
+        cat0     : rtypes.string
+        cat1     : rtypes.string
+        cat2     : rtypes.number
+        catlist0 : rtypes.arrayOf(rtypes.string)
+        catlist1 : rtypes.arrayOf(rtypes.string)
+        catlist2 : rtypes.arrayOf(rtypes.string)
+    category_selection: (level, selected, idx) ->
+        @props.actions.set_selected_category(level, selected, idx)
     category_list: (level) ->
-        items = []
-        for i in [1..20]
-            active = props["cat#{level}"] == i
-            do (i, active) ->
-                items.push <ListGroupItem key={i} active={active}>entry {i}</ListGroupItem>
-
-        <ListGroup>
-            {items}
-        </ListGroup>
-    doc_list: ->
-        <ListGroup>
-            <ListGroupItem href="#" active>A 1</ListGroupItem>
-            <ListGroupItem href="#">A 2</ListGroupItem>
-            <ListGroupItem href="#" disabled>A 3</ListGroupItem>
-        </ListGroup>
+        cat  = @props["cat#{level}"]
+        list = @props["catlist#{level}"]
+        if not list?
+            list = []
+        # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
+        <ul className='list-group'>
+            {list.map (name, idx) =>
+                click  = @category_selection.bind(this, level, name, idx)
+                # level 0 and 1 by name, level 2 by index
+                comp   = if level == 2 then idx else name
+                active = if comp == cat then 'active' else ''
+                <li className={"list-group-item " + active} onClick={click} key={idx} ref="cat_#{level}_#{idx}">{name}</li>
+            }
+        </ul>
     render : ->
         if @props.data?
             <Modal.Body className='modal-body'>
                 <Row>
                     <Col sm={3}>{@category_list(0)}</Col>
                     <Col sm={3}>{@category_list(1)}</Col>
-                    <Col sm={6}>{@doc_list()}</Col>
+                    <Col sm={6}>{@category_list(2)}</Col>
                 </Row>
                 <Row>
-                    <Col sm={6}><pre ref='code' className='code'></pre></Col>
-                    <Col sm={6}><div ref='descr' className='smc-wizard-descr'></div></Col>
+                    <Col sm={6}>
+                        <pre ref='code' className='code'>{@props.code}</pre>
+                    </Col>
+                    <Col sm={6}>
+                        <Panel ref='descr' className='smc-wizard-descr'>{@props.descr}</Panel>
+                    </Col>
                 </Row>
             </Modal.Body>
         else
@@ -172,15 +240,21 @@ RWizard = (name) -> rclass
         "#{name}" :
             show        : rtypes.bool
             lang        : rtypes.string
+            code        : rtypes.string
+            descr       : rtypes.string
             data        : rtypes.object
             search      : rtypes.string
-            nav_entries : rtypes.array
+            nav_entries : rtypes.arrayOf(rtypes.arrayOf(rtypes.string))
+            catlist0    : rtypes.arrayOf(rtypes.string)
+            catlist1    : rtypes.arrayOf(rtypes.string)
+            catlist2    : rtypes.arrayOf(rtypes.string)
+            cat0        : rtypes.string
+            cat1        : rtypes.string
+            cat2        : rtypes.number
 
     propTypes :
         cb      : rtypes.func
         actions : rtypes.object.isRequired
-        cat0    : rtypes.number
-        cat1    : rtypes.number
 
     getInitialState : ->
         search  : ''
@@ -194,34 +268,33 @@ RWizard = (name) -> rclass
                <WizardHeader actions={@props.actions} lang={@props.lang} nav_entries={@props.nav_entries} />
             </Modal.Header>
 
-            <WizardBody actions={@props.actions}
-                        lang={@props.lang}
-                        cat0={@props.cat0}
-                        cat1={@props.cat1}
-                        data={@props.data} />
+            <WizardBody actions    = {@props.actions}
+                        lang       = {@props.lang}
+                        code       = {@props.code}
+                        descr      = {@props.descr}
+                        cat0       = {@props.cat0}
+                        cat1       = {@props.cat1}
+                        cat2       = {@props.cat2}
+                        catlist0   = {@props.catlist0}
+                        catlist1   = {@props.catlist1}
+                        catlist2   = {@props.catlist2}
+                        data       = {@props.data} />
 
             <Modal.Footer>
                 <Button onClick={@props.actions.hide}>Cancel</Button>
-                <Button onClick={=> @props.actions.insert(@props.cb)}>Insert Code</Button>
+                <Button onClick={=> @props.actions.insert(@props.cb)} bsStyle='success'>Insert Code</Button>
             </Modal.Footer>
         </Modal>
 
-render = (name, lang, cb) ->
-    if not redux.getActions(name)?
+exports.render_wizard = (target, project_id, path, lang = 'sage', cb = null) ->
+    name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    if not actions?
         actions = redux.createActions(name, WizardActions)
         store   = redux.createStore(name)
+    actions.init(lang=lang)
     W = RWizard(name)
-    actions.show(lang=lang)
-    <Redux redux={redux}>
-        <W cb={cb} actions={actions}/>
-    </Redux>
-
-exports.render_wizard = (target, project_id, path, lang = 'sage', cb = null) ->
-    # console.log 'render_wizard: ', project_id, path, lang, cb
-    name = redux_name(project_id, path)
-    ReactDOM.render(render(name, lang, cb), target)
-    actions = redux.getActions(name)
-    actions.load_data()
+    ReactDOM.render(<Redux redux={redux}><W cb={cb} actions={actions}/></Redux>, target)
     return actions
 
 # old wizard code
