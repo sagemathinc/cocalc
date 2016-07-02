@@ -45,7 +45,7 @@ DATA = null
 # react wizard
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
 {Col, Row, Panel, Button, Input, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
-{Loading, Icon} = require('./r_misc')
+{Loading, Icon, Markdown} = require('./r_misc')
 
 redux_name = (project_id, path) ->
     return "wizard-#{project_id}-#{path}"
@@ -114,7 +114,7 @@ class WizardActions extends Actions
         @get('data').get(@get('lang'))
     select_lang: (lang) ->
         @reset()
-        catlist0 = @get('data').get(lang).keySeq().toArray()
+        catlist0 = @get('data').get(lang).keySeq().toArray().sort(@cat_sort)
         @set
             lang     : lang
             catlist0 : catlist0
@@ -158,7 +158,7 @@ class WizardActions extends Actions
             code  : doc.getIn([1, 0])
             descr : doc.getIn([1, 1])
 
-    cat1_sort: (a, b) =>
+    cat_sort: (a, b) =>
         # ordering operator, such that some entries are in front
         top = @get('cat1_top')
         ord = (el) ->
@@ -173,7 +173,7 @@ class WizardActions extends Actions
                 @set(code: '', descr: '', cat2 : null)
         switch level
             when 0
-                catlist1 = lang.get(selected).keySeq().toArray().sort(@cat1_sort)
+                catlist1 = lang.get(selected).keySeq().toArray().sort(@cat_sort)
                 @set
                     cat0     : selected
                     cat1     : null
@@ -214,15 +214,13 @@ WizardHeader = rclass
         @props.actions.search(evt.target.value)
     render_nav : ->
         entries = @props.nav_entries
-        if entries?
-            <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
-                {entries.map (entry, idx) =>
-                        [key, name] = entry
-                        <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
-                }
-            </Nav>
-        else
-            return <Loading />
+        entries ?= []
+        <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
+            {entries.map (entry, idx) =>
+                    [key, name] = entry
+                    <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
+            }
+        </Nav>
     render : ->
         <Row>
             <Col sm={3}><h2><Icon name='magic' /> Wizard</h2></Col>
@@ -308,13 +306,23 @@ WizardBody = rclass
                 active = if @props.search_sel == idx then 'active' else ''
                 <li className={"list-group-item " + active} onClick={click} key={idx}>
                     {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
-                    {' '}{<span style={color:'#aaa'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
+                    {' '}{<span className='snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
                 </li>
             }
         </ul>
+
     render_top : ->
         searching = @props.search_str?.length > 0
-        if searching
+        if not @props.data?
+            <Row>
+                <Col sm={8} smOffset={4}>
+                    <ul className='list-group'>
+                        <li></li><li></li>
+                        <li><Loading /></li>
+                    </ul>
+                </Col>
+            </Row>
+        else if searching
             <Row>
                 <Col sm={12}>{@render_search_results()}</Col>
             </Row>
@@ -324,21 +332,21 @@ WizardBody = rclass
                 <Col sm={3}>{@category_list(1)}</Col>
                 <Col sm={6}>{@category_list(2)}</Col>
             </Row>
+
     render : ->
-        if @props.data?
-            <Modal.Body className='modal-body'>
-                {@render_top()}
-                <Row>
-                    <Col sm={6}>
-                        <pre ref='code' className='code'>{@props.code}</pre>
-                    </Col>
-                    <Col sm={6}>
-                        <Panel ref='descr' className='smc-wizard-descr'>{@props.descr}</Panel>
-                    </Col>
-                </Row>
-            </Modal.Body>
-        else
-            <Loading />
+        <Modal.Body className='modal-body'>
+            {@render_top()}
+            <Row>
+                <Col sm={6}>
+                    <pre ref='code' className='code'>{@props.code}</pre>
+                </Col>
+                <Col sm={6}>
+                    <Panel ref='descr' className='smc-wizard-descr'>
+                        <Markdown value={@props.descr} />
+                    </Panel>
+                </Col>
+            </Row>
+        </Modal.Body>
 
 
 RWizard = (name) -> rclass
@@ -373,8 +381,24 @@ RWizard = (name) -> rclass
     close : ->
         @props.actions.hide()
 
+    handle_key : (evt) ->
+        evt.preventDefault()
+        evt.stopPropagation()
+        key = evt.keyCode
+        if key not in [13, 38, 40, 37, 39]
+            return
+        switch key
+            when 13 #return
+                console.log 'select'
+            when 38, 40 # up or down
+                console.log 'up or down', key
+
     render : ->
-        <Modal show={@props.show} onHide={@close} bsSize="large" className="smc-wizard">
+        <Modal show={@props.show}
+               onKeyUp={@handle_key}
+               onHide={@close}
+               bsSize="large"
+               className="smc-wizard">
             <Modal.Header closeButton className='modal-header'>
                <WizardHeader actions     = {@props.actions}
                              lang        = {@props.lang}

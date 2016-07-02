@@ -1,8 +1,10 @@
+$selector-height: 175px
+
 .smc-wizard
   +disable-user-select
-  > div.modal-dialog
-    // min-width: 75vw
-    width: 900px
+  //> div.modal-dialog
+  //  // min-width: 75vw
+  //  width: 900px
 
   .modal-header
     white-space: nowrap;
@@ -20,7 +22,7 @@
     > div.row:first-child
       // margin-bottom: 1em
       ul
-        height: 175px
+        height: $selector-height
         overflow: auto
         padding: 1px
         > li
@@ -49,3 +51,6 @@
 
   span.hl
     background-color: yellow
+  .active
+    span.hl
+      color: #333
