@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test1
+spec:
+  containers:
+  - name: test1
+    image: nginx
+    volumeMounts:
+    - name: testzfs
+      mountPath: /testzfs
+    #- name: test-ext4
+    #  mountPath: /test-ext4
+    #- name: test-btrfs
+    #  mountPath: /test-btrfs
+    #- name: testshare
+    #  mountPath: /testshare
+    - name: test-storage1
+      mountPath: /test-storage1
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: testzfs
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        namespace : 'test'
+        server    : 'storage0'
+        path      : "test/test.zfs"
+        size      : "3000m"
+  #- name: test-ext4
+  #  flexVolume:
+  #    driver : "smc/smc-storage"
+  #    options:
+  #      namespace : 'test'
+  #      server    : 'storage0'
+  #      path      : "test/test.ext4"
+  #      size      : "3000m"
+  #- name: test-btrfs
+  #  flexVolume:
+  #    driver : "smc/smc-storage"
+  #    options:
+  #      namespace : 'test'
+  #      server    : 'storage0'
+  #      path      : "test/test.btrfs"
+  #      size      : "500m"
+  - name: testshare
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        namespace : 'test'
+        server    : 'storage0'
+        path      : "test/test2.share"
+        size      : "500m"
+  - name: test-storage1
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        namespace : 'test'
+        server    : 'storage1'
+        path      : "test/test.zfs"
+        size      : "3000m"
