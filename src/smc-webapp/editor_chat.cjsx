@@ -75,8 +75,10 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
-    save_position: (position) =>
-        @setState(position:position)
+    save_scroll_state: (position, height, offset) =>
+        # height == 0 means chat room is not rendered
+        if height != 0
+            @setState(saved_position:position, height:height, offset:offset)
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -293,9 +295,11 @@ ChatRoom = (name) -> rclass
 
     reduxProps :
         "#{name}" :
-            messages : rtypes.immutable
-            input    : rtypes.string
-            position : rtypes.number
+            messages       : rtypes.immutable
+            input          : rtypes.string
+            saved_position : rtypes.number
+            height         : rtypes.number
+            offset         : rtypes.number
         users :
             user_map : rtypes.immutable
         account :
@@ -306,6 +310,7 @@ ChatRoom = (name) -> rclass
 
     propTypes :
         redux       : rtypes.object
+        actions     : rtypes.object
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
@@ -324,11 +329,11 @@ ChatRoom = (name) -> rclass
             mesg = @refs.input.getValue()
             # block sending empty messages
             if mesg.length? and mesg.trim().length >= 1
-                @props.redux.getActions(@props.name).send_chat(mesg)
+                @props.actions.send_chat(mesg)
                 @clear_input()
 
     clear_input: ->
-        @props.redux.getActions(@props.name).set_input('')
+        @props.actions.set_input('')
 
     render_input: ->
         tip = <span>
@@ -344,9 +349,9 @@ ChatRoom = (name) -> rclass
                 onKeyDown = {@keydown}
                 value     = {@props.input}
                 onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
-                onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
+                onChange  = {(value)=>@props.actions.set_input(@refs.input.getValue())}
                 />
-            <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
+            <div style={marginTop: '-12px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
                     Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
@@ -369,30 +374,41 @@ ChatRoom = (name) -> rclass
         padding      : "0"
         marginTop    : "5px"
 
+    is_at_bottom: ->
+        # 20 for covering margin of bottom message
+        @props.saved_position + @props.offset + 20 > @props.height
+
     scroll_to_bottom: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
             node.scrollTop = node.scrollHeight
-            @props.redux.getActions(@props.name).save_position(node.scrollTop)
-            @_scrolled = false
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @_use_saved_position = false
 
     scroll_to_position: ->
         if @refs.log_container?
-            @_scrolled = true
+            @_use_saved_position = not @is_at_bottom()
             node = ReactDOM.findDOMNode(@refs.log_container)
-            node.scrollTop = @props.position
+            if @_use_saved_position
+                node.scrollTop = @props.saved_position
+            else
+                @scroll_to_bottom()
 
     on_scroll: (e) ->
-        @_scrolled = true
+        @_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.redux.getActions(@props.name).save_position(node.scrollTop)
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
         e.preventDefault()
 
     componentDidMount: ->
         @scroll_to_position()
 
+    componentWillReceiveProps: (next) ->
+        if @props.messages != next.messages and @is_at_bottom()
+            @_use_saved_position = false
+
     componentDidUpdate: ->
-        if not @_scrolled
+        if not @_use_saved_position
             @scroll_to_bottom()
 
     show_files : ->
@@ -463,7 +479,7 @@ render = (redux, project_id, path) ->
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Redux>
 
 exports.render = (project_id, path, dom_node, redux) ->
