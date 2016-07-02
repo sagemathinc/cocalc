@@ -50,6 +50,8 @@ def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+
+    ensure_ssh()
     for number in args.number:
         deployment_name = "{name}{number}".format(name=NAME, number=number)
         ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
@@ -81,6 +83,13 @@ def delete(args):
     for number in args.number:
         util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
         deployment_name = "{name}{number}".format(name=NAME, number=number)
+
+def ensure_ssh():
+    if 'storage-ssh' not in util.get_secrets():
+        # generate a public/private ssh key pair that will be used for sshfs
+        with tempfile.TemporaryDirectory() as tmp:
+            util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
+            util.create_secret('storage-ssh', tmp)
 
 if __name__ == '__main__':
     import argparse

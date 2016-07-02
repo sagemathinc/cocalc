@@ -45,8 +45,10 @@ spec:
           privileged: true
         terminationMessagePath: /dev/termination-log
         volumeMounts:
-        - mountPath: /projects
-          name: storage-projects
+        - mountPath: /data
+          name: data
+        - mountPath: /ssh
+          name: storage-ssh
         resources:
           requests:
             memory: "100Mi"
@@ -58,7 +60,11 @@ spec:
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: storage-projects
+      - name: data
         gcePersistentDisk:
           fsType: ext4
           pdName: {pd_name}
+      - name: storage-ssh
+        secret:
+          secretName: storage-ssh
+

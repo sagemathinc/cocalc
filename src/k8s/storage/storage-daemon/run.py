@@ -3,6 +3,11 @@ import json, os, requests, shutil, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
 
+
+# POD_NAMESPACE must be explicitly set in deployment yaml using downward api --
+# see https://github.com/kubernetes/kubernetes/blob/release-1.0/docs/user-guide/downward-api.md
+POD_NAMESPACE = os.environ.get('POD_NAMESPACE', 'default')
+
 def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
     t = time.time()
     if isinstance(v, str):
@@ -46,7 +51,7 @@ def get_service(service):
     URL = "https://{KUBERNETES_SERVICE_HOST}:{KUBERNETES_SERVICE_PORT}/api/v1/namespaces/{POD_NAMESPACE}/endpoints/{service}"
     URL = URL.format(KUBERNETES_SERVICE_HOST=os.environ['KUBERNETES_SERVICE_HOST'],
                      KUBERNETES_SERVICE_PORT=os.environ['KUBERNETES_SERVICE_PORT'],
-                     POD_NAMESPACE=os.environ.get('POD_NAMESPACE', 'default'),   # must be explicitly set in deployment yaml using downward api -- https://github.com/kubernetes/kubernetes/blob/release-1.0/docs/user-guide/downward-api.md
+                     POD_NAMESPACE=POD_NAMESPACE,
                      service=service)
     token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
     headers={'Authorization':'Bearer {token}'.format(token=token)}
@@ -87,7 +92,7 @@ def enable_ssh_access_to_minion():
         shutil.rmtree('/root/.ssh')
     run(['ssh-keygen', '-b', '2048', '-N', '', '-f', '/root/.ssh/id_rsa'])
     # make root user of minion allow login using this (and only this) key.
-    shutil.copyfile('/root/.ssh/id_rsa.pub', '/node/root/.ssh/authorized_keys')
+    run('cat /root/.ssh/id_rsa.pub >> /node/root/.ssh/authorized_keys')
     open("/root/.ssh/config",'w').write("StrictHostKeyChecking no\nUserKnownHostsFile=/dev/null\n")
     # record hostname of minion
     for x in open("/node/etc/hosts").readlines():
@@ -135,11 +140,40 @@ def is_plugin_loaded():
 def install_zfs():
     try:
         run_on_minion('zpool status')
-        print("excellent -- zfs is already installed")
+        print("OK: zfs is installed")
     except:
         print("zfs not installed, so installing it")
         run(['scp', '-r', '/install/gke-zfs', minion_ip()+":"])
         run_on_minion("cd /root/gke-zfs/3.16.0-4-amd64/ && ./install.sh")
+
+def install_bindfs():
+    try:
+        run_on_minion('which bindfs')
+        print("OK: bindfs is installed")
+    except:
+        print("bindfs not installed, so installing it")
+        run_on_minion(["apt-get", "update"])
+        run_on_minion(["apt-get", "install", "-y", "bindfs"])
+
+def install_sshfs():
+    try:
+        run_on_minion('which sshfs')
+        print("OK: bindfs is installed")
+    except:
+        print("bindfs not installed, so installing it")
+        run_on_minion(["apt-get", "update"])
+        run_on_minion(["apt-get", "install", "-y", "sshfs"])
+
+def install_ssh_keys():
+    # Copy the shared secret ssh keys to the minion so that it is able to sshfs
+    # mount the storage servers.
+    path = '/node/root/.ssh/smc-storage/{POD_NAMESPACE}'.format(POD_NAMESPACE = POD_NAMESPACE)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    for x in ['id-rsa', 'id-rsa.pub']:
+        src = os.path.join('/ssh', x); target = os.path.join(path, x.replace('-', '_'))
+        shutil.copyfile(src, target)
+        os.chmod(target, 0o600)
 
 def restart_kubelet():
     # Sadly I don't know of any other way to properly restart the minion except to completely reboot it.
@@ -150,7 +184,10 @@ def start_storage_daemon():
     print("launching storage daemon")
     install_flexvolume_plugin()
     enable_ssh_access_to_minion()
+    install_ssh_keys()
     install_zfs()
+    install_bindfs()
+    install_sshfs()
     if not is_plugin_loaded():
         restart_kubelet()
     while True:

@@ -24,6 +24,8 @@ spec:
           mountPath: /node/root/.ssh
         - name: plugin
           mountPath: /node/plugin
+        - name: storage-ssh
+          mountPath: /ssh
         resources:
           requests:
             memory: "100Mi"
@@ -52,5 +54,6 @@ spec:
       - name: plugin
         hostPath:
           path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/
-      #nodeSelector:
-      #  storage: test
+      - name: storage-ssh
+        secret:
+          secretName: storage-ssh

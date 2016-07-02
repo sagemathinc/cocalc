@@ -1,10 +1,11 @@
 #!/usr/bin/env python2
 
-# Install as (yes, without the .py extension!)
+# Installation is as follows.  However, this is all automated by the storage-daemon daemonset!  You don't
+# do this manually.    Install as (yes, without the .py extension!)
 #
 #    /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
 #
-# The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs`.
+# The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs` (for snapshots).
 #
 
 import json, os, shutil, sys, uuid
@@ -31,16 +32,22 @@ def init(args):
     # TODO: would ensure zfs kernel module is available (?)
     return
 
-def ensure_server_is_mounted(server):
-    mnt = os.path.join("/mnt/smc-storage", server)
+def ensure_server_is_mounted(server, namespace):
+    mnt = "/mnt/smc-storage/{namespace}/{server}".format(namespace = namespace, server = server)
     if not os.path.exists(mnt):
         os.makedirs(mnt)
     if not os.path.ismount(mnt):
         # We use sshfs instead of NFS, since sshfs is vastly more robust and will survive
         # ip changes (which will happen when storage servers get restarted/moved!),
         # whereas NFS is a nightmarish hell of locks and misery, which hardcodes ips in the mount table.
-        # Also, obviously, using sshfs allows us to clarify security dramatically better using a simple PKI.
-        cmd("sshfs -o Ciphers=arcfour128,reconnect,ServerAliveInterval=5,ServerAliveCountMax=5,nonempty %s %s"%(server, mnt))
+        # Also, obviously, using sshfs allows us to clarify security using a simple PKI.
+        id_rsa = "/root/.ssh/smc-storage/{namespace}/id_rsa".format(namespace=namespace)
+        cmd("sshfs -o Ciphers=arcfour128,reconnect,ServerAliveInterval=5,ServerAliveCountMax=5,nonempty,IdentityFile={id_rsa},StrictHostKeyChecking=no {namespace}-{server}:/data {mnt}".format(
+                id_rsa    = id_rsa,
+                server    = server,
+                namespace = namespace,
+                mnt       = mnt)
+           )
     return mnt
 
 # Attach device to minion
@@ -60,7 +67,11 @@ def attach(args):
     if not size:
         raise RuntimeError("size can't be 0")
 
-    mount_point = ensure_server_is_mounted(server)
+    namespace = params.get("namespace", '')
+    if not namespace:
+        raise RuntimeError("namespace must be explicitly specified")
+
+    mount_point = ensure_server_is_mounted(server, namespace)
     path = os.path.join(mount_point, path)
     if not os.path.exists(path):
         os.makedirs(path)
@@ -147,8 +158,11 @@ def mount(args):
     if fs == 'zfs':
         server = params.get("server", None)
         if not server:
-            raise RuntimeError("must specify server 'ip_address:/path'")
-        mount_point = ensure_server_is_mounted(server)
+            raise RuntimeError("must specify server hostname")
+        namespace = params.get("namespace", '')
+        if not namespace:
+            raise RuntimeError("namespace must be explicitly specified")
+        mount_point = ensure_server_is_mounted(server, namespace)
         path = os.path.join(mount_point, path)
         return mount_zfs(path, mount_dir)
     elif fs == 'ext4':

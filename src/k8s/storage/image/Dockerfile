@@ -10,7 +10,6 @@ RUN mkdir -p /projects
 
 # Script to configure nfs.
 ADD run.sh /run.sh
-ADD ssh /root/.ssh
 
 EXPOSE 22/tcp 22/udp
 
