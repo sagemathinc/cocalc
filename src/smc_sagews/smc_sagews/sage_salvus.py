@@ -3616,12 +3616,13 @@ class JUPYTER(object):
             | %my_python3
             | print(42)
 
-        You can set the default mode for all cells in the worksheet:
-        
+        You can set the default mode for all cells in the worksheet. After putting the following
+        in a cell, click the "restart" button, and you have an anaconda worksheet.
+
             | %auto
             | a3 = jupyter('anaconda3')
             | %default_mode a3
-        
+
         Each magic command connects to its own kernel. So you can have more than
         one instance of the same kernel type.
 
@@ -3796,18 +3797,7 @@ def jkmagic(kernel_name, **kwargs):
                 elif 'text/markdown' in content['data']:
                     salvus.md(content['data']['text/markdown'])
                 elif 'text/html' in content['data']:
-                    #import sage_server
-                    #prev_mhs = sage_server.MAX_HTML_SIZE
-                    #p('prev_mhs',prev_mhs)
-                    #sage_server.MAX_HTML_SIZE = 2000000
-
-                    #prev_mo = sage_server.MAX_OUTPUT
-                    #p('prev_mo',prev_mo)
-                    #sage_server.MAX_OUTPUT = 2000000
-
                     big_output(salvus.html, content['data']['text/html'])
-                    #sage_server.MAX_HTML_SIZE = prev_mhs
-                    #sage_server.MAX_OUTPUT = prev_mo
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
                     # display_mime(content['data'])
@@ -3864,13 +3854,6 @@ def jkmagic(kernel_name, **kwargs):
                                     if 'text/plain' in data:
                                         text = data['text/plain']
                                         big_output(hout, text, scroll = True)
-                #p('shell',msg_type)
-                #if 'execution_count' in content:
-                #    p('ec',execution_count)
-                #if 'status' in content:
-                #    p('status',status)
-                #if 'payload' in content and len(content['payload']) > 0:
-                #    p('payload',content['payload'])
             else:
                 # not our reply
                 continue
