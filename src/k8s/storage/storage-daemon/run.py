@@ -88,7 +88,6 @@ def enable_ssh_access_to_minion():
     run(['ssh-keygen', '-b', '2048', '-N', '', '-f', '/root/.ssh/id_rsa'])
     # make root user of minion allow login using this (and only this) key.
     shutil.copyfile('/root/.ssh/id_rsa.pub', '/node/root/.ssh/authorized_keys')
-    # true who we connect to
     open("/root/.ssh/config",'w').write("StrictHostKeyChecking no\nUserKnownHostsFile=/dev/null\n")
     # record hostname of minion
     for x in open("/node/etc/hosts").readlines():
@@ -116,11 +115,22 @@ def run_on_minion(v, *args, **kwds):
         v = "ssh " + minion_ip() + " '%s'"%v
     else:
         v = ['ssh', minion_ip() ] + v
-    run(v)
+    return run(v, *args, **kwds)
 
 def install_flexvolume_plugin():
     # we always copy it over, which at least upgrades it if necessary.
     shutil.copyfile("/install/smc-storage", "/node/plugin/smc-storage")
+    shutil.copymode("/install/smc-storage", "/node/plugin/smc-storage")
+
+def is_plugin_loaded():
+    try:
+        if int(run_on_minion("zgrep Loaded /var/log/kubelet*|grep smc-storage|wc -l", get_output=True).strip()) > 0:
+            return True
+        else:
+            return False
+    except Exception as err:
+        print(err)
+        return False
 
 def install_zfs():
     try:
@@ -131,14 +141,21 @@ def install_zfs():
         run(['scp', '-r', '/install/gke-zfs', minion_ip()+":"])
         run_on_minion("cd /root/gke-zfs/3.16.0-4-amd64/ && ./install.sh")
 
+def restart_kubelet():
+    # Sadly I don't know of any other way to properly restart the minion except to completely reboot it.
+    # Just restarting the service leaves everything very broken.
+    run_on_minion("reboot")
+
 def start_storage_daemon():
     print("launching storage daemon")
     install_flexvolume_plugin()
     enable_ssh_access_to_minion()
     install_zfs()
+    if not is_plugin_loaded():
+        restart_kubelet()
     while True:
         update_etc_hosts()
-        time.sleep(15)
+        time.sleep(7)
         print("sleeping...")
 
 if __name__ == "__main__":

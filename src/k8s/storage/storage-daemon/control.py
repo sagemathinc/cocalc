@@ -19,6 +19,7 @@ def create_install_path():
     remove_install_path()
     os.makedirs("install-tmp")
     shutil.copyfile("../driver/smc-storage.py", 'install-tmp/smc-storage')
+    shutil.copymode("../driver/smc-storage.py", 'install-tmp/smc-storage')
     util.run(['git', 'clone', 'https://github.com/sagemathinc/gke-zfs'], path=join(SCRIPT_PATH, 'install-tmp'))
 
 def remove_install_path():
