@@ -6,25 +6,24 @@ misc = require('smc-util/misc')
 
 immutable = require('immutable')
 
-###
-# THESE NEED UNIT TESTS THANKS
-###
+# Transforms Iterable<K, M<i, m>> to [M<i + primary_key, m + K>] where primary_key maps to K
+# Dunno if either of these is readable...
+# Turns Map(Keys -> Objects{...}) into [Objects{primary_key : Key, ...}]
+exports.immutable_to_list = (x, primary_key) ->
+    if not x?
+        return
+    v = []
+    x.map (val, key) ->
+        v.push(misc.merge(val.toJS(), {"#{primary_key}":key}))
+    return v
 
-# Does NOT sort the assignments.
-# To sort, pass the list to a sorter..
-# Expects :
-#     list     : iterable with filter (js array or immutable.List satisfy this)
-#     search   : String
-# list objects must fit the schema, member : type
-#     search_key : string
-# Returns
-# list        : list
-# num_omitted : number
+# Returns a list of matched objects and the number of objects
+# which were in the original list but omitted in the returned list
 exports.compute_match_list = (opts) ->
     opts = defaults opts,
-        list        : required
-        search_key  : required
-        search      : required
+        list        : required  # list of objects<M>
+        search_key  : required  # M.search_key property to match over
+        search      : required  # matches to M.search_key
         ignore_case : true
     {list, search, search_key, ignore_case} = opts
     if not search # why are you even calling this..
@@ -45,7 +44,7 @@ exports.compute_match_list = (opts) ->
     list = list.filter matches
     return {list:list, num_omitted:num_omitted}
 
-# Return:
+# Returns
 # `list` partitioned into [not deleted, deleted]
 # where each partition is sorted based on the given `compare_function`
 # deleted is not included by default
@@ -66,12 +65,3 @@ exports.order_list = (opts) ->
         list = list.concat(sorted_deleted)
 
     return {list:list, num_deleted:sorted_deleted.length}
-
-# TODO: Do this better?
-exports.immutable_to_list = (x, primary_key) ->
-    if not x?
-        return
-    v = []
-    x.map (val, key) ->
-        v.push(misc.merge(val.toJS(), {"#{primary_key}":key}))
-    return v

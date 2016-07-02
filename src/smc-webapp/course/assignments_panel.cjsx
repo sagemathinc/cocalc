@@ -8,194 +8,51 @@ misc = require('smc-util/misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
 
 # SMC and course components
+course_funcs = require('./course_funcs')
+styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, SearchInput, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready,
-    BigTime, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
+    BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
-entry_style =
-    paddingTop    : '5px'
-    paddingBottom : '5px'
-
-selected_entry_style = misc.merge
-    border        : '1px solid #aaa'
-    boxShadow     : '5px 5px 5px #999'
-    borderRadius  : '3px'
-    marginBottom  : '10px',
-    entry_style
-
-note_style =
-    borderTop  : '3px solid #aaa'
-    marginTop  : '10px'
-    paddingTop : '5px'
-
-show_hide_deleted_style =
-    marginTop  : '20px'
-    float      : 'right'
 
 exports.AssignmentsPanel = rclass
     displayName : "CourseEditorAssignments"
 
     propTypes :
-        name        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        redux       : rtypes.object.isRequired
-        assignments : rtypes.object.isRequired
-        students    : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
+        name            : rtypes.string.isRequired
+        project_id      : rtypes.string.isRequired
+        redux           : rtypes.object.isRequired
+        actions         : rtypes.object.isRequired
+        all_assignments : rtypes.object.isRequired
+        students        : rtypes.object.isRequired
+        user_map        : rtypes.object.isRequired
 
     getInitialState : ->
         err           : undefined  # error message to display at top.
         search        : ''         # search query to restrict which assignments are shown.
-        add_search    : ''         # search query in box for adding new assignment
-        add_searching : false      # whether or not it is asking the backend for the result of a search
-        add_select    : undefined  # contents to put in the selection box after getting search result back
-        add_selected  : ''         # specific path name in selection box that was selected
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
-    do_add_search : (e) ->
-        # Search for assignments to add to the course
-        e?.preventDefault()
-        if @state.add_searching # already searching
-            return
-        search = @state.add_search.trim()
-        #if search.length == 0
-        #    @setState(err:undefined, add_select:undefined)
-        #    return
-        @setState(add_searching:true, add_select:undefined)
-        add_search = @state.add_search
-        salvus_client.find_directories
-            project_id : @props.project_id
-            query      : "*#{search}*"
-            cb         : (err, resp) =>
-                if err
-                    @setState(add_searching:false, err:err, add_select:undefined)
-                    return
-                if resp.directories.length > 0
-                    # Omit any -collect directory (unless explicitly searched for).
-                    # Omit any currently assigned directory, or any subdirectory of any
-                    # assigned directory.
-                    omit_prefix = []
-                    @props.assignments.map (val, key) =>
-                        path = val.get('path')
-                        if path  # path might not be set in case something went wrong (this has been hit in production)
-                            omit_prefix.push(path)
-                    omit = (path) =>
-                        if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
-                            # omit assignment collection folders unless explicitly searched (could cause confusion...)
-                            return true
-                        for p in omit_prefix
-                            if path == p
-                                return true
-                            if path.slice(0, p.length+1) == p+'/'
-                                return true
-                        return false
-                    resp.directories = (path for path in resp.directories when not omit(path))
-                    resp.directories.sort()
-                @setState(add_searching:false, add_select:resp.directories)
-
-    clear_and_focus_assignment_add_search_input : ->
-        @setState(add_search : '', add_select:undefined, add_selected:'')
-        @refs.assignment_add_input.getInputDOMNode().focus()
-
-    assignment_add_search_button : ->
-        if @state.add_searching
-            # Currently doing a search, so show a spinner
-            <Button>
-                <Icon name="circle-o-notch" spin />
-            </Button>
-        else if @state.add_select?
-            # There is something in the selection box -- so only action is to clear the search box.
-            <Button onClick={@clear_and_focus_assignment_add_search_input}>
-                <Icon name="times-circle" />
-            </Button>
-        else
-            # Waiting for user to start a search
-            <Button onClick={@do_add_search}>
-                <Icon name="search" />
-            </Button>
-
-    add_selected_assignment : ->
-        @props.redux.getActions(@props.name).add_assignment(@state.add_selected)
-        @setState(err:undefined, add_select:undefined, add_search:'', add_selected:'')
-
-    render_add_selector_options : ->
-        for path in @state.add_select
-            <option key={path} value={path} label={path}>{path}</option>
-
-    render_add_selector : ->
-        if not @state.add_select?
-            return
-        <div>
-            <Input type='select' ref="add_select" size=5 onChange={=>@setState(add_selected:@refs.add_select.getValue())} >
-                {@render_add_selector_options()}
-            </Input>
-            <Button disabled={not @state.add_selected} onClick={@add_selected_assignment}><Icon name="plus" /> Add selected assignment</Button>
-        </div>
-
-    render_error : ->
-        if @state.err
-            <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
-
-    render_header : (num_omitted) ->
-        <div>
-            <Row>
-                <Col md=3>
-                    <SearchInput
-                        placeholder = "Find assignments..."
-                        default_value = {@state.search}
-                        on_change   = {(value)=>@setState(search:value)}
-                    />
-                </Col>
-                <Col md=4>
-                    {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
-                </Col>
-                <Col md=5>
-                    <form onSubmit={@do_add_search}>
-                        <Input
-                            ref         = 'assignment_add_input'
-                            type        = 'text'
-                            placeholder = "Add assignment by folder name (enter to see available folders)..."
-                            value       = {@state.add_search}
-                            buttonAfter = {@assignment_add_search_button()}
-                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.assignment_add_input.getValue())}
-                            onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
-                        />
-                    </form>
-                    {@render_add_selector()}
-                </Col>
-            </Row>
-            {@render_error()}
-        </div>
 
     compute_assignment_list : ->
-        v = immutable_to_list(@props.assignments, 'assignment_id')
-        search = (@state.search ? '').trim().toLowerCase()
-        num_omitted = 0
-        if search
-            words = misc.split(search)
-            matches = (x) ->  # TODO: refactor with student search, etc.
-                k = x.path.toLowerCase()
-                for w in words
-                    if k.indexOf(w) == -1
-                        num_omitted += 1
-                        return false
-                return true
-            v = (x for x in v when matches(x))
-        f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]  # also used in get_sorted_assignments
-        v.sort (a,b) -> misc.cmp_array(f(a), f(b))
+        list = course_funcs.immutable_to_list(@props.all_assignments, 'assignment_id')
 
-        # Deleted assignments
-        w = (x for x in v when x.deleted)
-        num_deleted = w.length
-        v = (x for x in v when not x.deleted)
-        if @state.show_deleted  # but show at the end...
-            v = v.concat(w)
+        {list, num_omitted} = course_funcs.compute_match_list
+            list        : list
+            search_key  : 'path'
+            search      : @state.search.trim()
 
-        return {assignments:v, num_omitted:num_omitted, num_deleted:num_deleted}
+        f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
+
+        {list, num_deleted} = course_funcs.order_list
+            list             : list
+            compare_function : (a,b) => misc.cmp_array(f(a), f(b))
+            include_deleted  : @state.show_deleted
+
+        return {shown_assignments:list, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_assignments : (assignments) ->
         for x,i in assignments
-            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
+            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.all_assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  redux={@props.redux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
@@ -203,22 +60,35 @@ exports.AssignmentsPanel = rclass
 
     render_show_deleted : (num_deleted) ->
         if @state.show_deleted
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
                     Hide {num_deleted} deleted assignments
                 </Tip>
             </Button>
         else
-            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+            <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:true,search:'')}>
                 <Tip placement='left' title="Show deleted" tip="Assignments are not deleted forever even after you delete them.  Click this button to show any deleted assignments at the bottom of the list of assignments.  You can then click on the assignment and click undelete to bring the assignment back.">
                     Show {num_deleted} deleted assignments
                 </Tip>
             </Button>
 
     render : ->
-        {assignments, num_omitted, num_deleted} = @compute_assignment_list()
-        <Panel header={@render_header(num_omitted)}>
-            {@render_assignments(assignments)}
+        {shown_assignments, num_omitted, num_deleted} = @compute_assignment_list()
+
+        header =
+            <FoldersToolbar
+                search        = {@state.search}
+                search_change = {(value) => @setState(search:value)}
+                num_omitted   = {num_omitted}
+                project_id    = {@props.project_id}
+                items         = {@props.all_assignments}
+                add_folders   = {(paths)=>paths.map(@props.actions.add_assignment)}
+                item_name     = {"assignment"}
+                plural_item_name = {"assignments"}
+            />
+
+        <Panel header={header}>
+            {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
 
@@ -250,10 +120,8 @@ Assignment = rclass
         return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     getInitialState : ->
-        x =
-            more : false
-            confirm_delete : false
-        return x
+        more : false
+        confirm_delete : false
 
     render_due : ->
         <Row>
@@ -277,7 +145,7 @@ Assignment = rclass
         @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
 
     render_note : ->
-        <Row key='note' style={note_style}>
+        <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
                     Private Assignment Notes<br /><span style={color:"#666"}></span>
@@ -767,7 +635,7 @@ Assignment = rclass
         </Row>
 
     render : ->
-        <Row style={if @state.more then selected_entry_style else entry_style}>
+        <Row style={if @state.more then styles.selected_entry else styles.entry}>
             <Col xs=12>
                 {@render_summary_line()}
                 {@render_more() if @state.more}
@@ -797,7 +665,7 @@ StudentListForAssignment = rclass
               grade   = {store.get_grade(@props.assignment, student_id)} />
 
     render_students : ->
-        v = immutable_to_list(@props.students, 'student_id')
+        v = course_funcs.immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v
@@ -825,19 +693,3 @@ StudentListForAssignment = rclass
             />
             {@render_students()}
         </div>
-
-immutable_to_list = (x, primary_key) ->
-    if not x?
-        return
-    v = []
-    x.map (val, key) ->
-        v.push(misc.merge(val.toJS(), {"#{primary_key}":key}))
-    return v
-
-noncloud_emails = (v, s) ->
-    # Given a list v of user_search results, and a search string s,
-    # return entries for each email address not in v, in order.
-    {string_queries, email_queries} = misc.parse_user_search(s)
-    result_emails = misc.dict(([r.email_address, true] for r in v when r.email_address?))
-    return ({email_address:r} for r in email_queries when not result_emails[r]).sort (a,b)->
-        misc.cmp(a.email_address,b.email_address)

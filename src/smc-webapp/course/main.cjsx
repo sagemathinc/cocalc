@@ -1760,7 +1760,6 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
 
     redux.createStore(the_redux_name, CourseStore)
 
-    # TODO Sync Handouts
     synchronized_db
         project_id : course_project_id
         filename   : course_filename
@@ -1883,7 +1882,7 @@ CourseEditor = (name) -> rclass
 
     render_assignments : ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
-            <AssignmentsPanel redux={@props.redux} assignments={@props.assignments}
+            <AssignmentsPanel actions={@props.redux.getActions(@props.name)} redux={@props.redux} all_assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />

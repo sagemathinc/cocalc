@@ -8,13 +8,14 @@ misc = require('smc-util/misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
 
 # SMC and course components
-course_funcs = require('./pfunctions')
+course_funcs = require('./course_funcs')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
 {Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
 
 # Could be merged with steps system of assignments.
-# May or may not be a good idea.
+# Probably not a good idea mixing the two.
+# Could also be coded into the components below but steps could be added in the future?
 STEPS = () ->
     ['handout']
 
@@ -49,8 +50,8 @@ exports.HandoutsPanel = rclass
 
     propTypes :
         project_id   : rtypes.string.isRequired
-        all_handouts : rtypes.object.isRequired
-        students     : rtypes.object.isRequired
+        all_handouts : rtypes.object.isRequired # Immutable map handout_id -> handout
+        students     : rtypes.object.isRequired # Immutable map student_id -> student
         user_map     : rtypes.object.isRequired
         actions      : rtypes.object.isRequired
         store        : rtypes.object.isRequired
@@ -60,7 +61,7 @@ exports.HandoutsPanel = rclass
         show_deleted : false
         search          : ''      # Search value for filtering handouts
 
-    # fuck yeah immutable.js (important because compute is potentially expensive)
+    # Update on different students, handouts, or filter parameters
     shouldComponentUpdate : (nextProps, nextState) ->
         if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students
             return true
@@ -68,7 +69,6 @@ exports.HandoutsPanel = rclass
             return true
         return false
 
-    # also used in handouts_panel
     compute_handouts_list : ->
         list = course_funcs.immutable_to_list(@props.all_handouts, 'handout_id')
 
@@ -77,17 +77,14 @@ exports.HandoutsPanel = rclass
             search_key  : 'path'
             search      : @state.search.trim()
 
-        f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()] # Changes for handouts
-        compare = (a,b) => misc.cmp_array(f(a), f(b))
-
         {list, num_deleted} = course_funcs.order_list
             list             : list
-            compare_function : compare
+            compare_function : (a,b) => misc.cmp(a.path?.toLowerCase(), b.path?.toLowerCase())
             include_deleted  : @state.show_deleted
 
         return {shown_handouts:list, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_show_deleted : (num_deleted) ->
+    render_show_deleted_button : (num_deleted) ->
         if @state.show_deleted
             <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list.">
@@ -102,7 +99,7 @@ exports.HandoutsPanel = rclass
             </Button>
 
     render : ->
-        # Changes based on state changes so it just has to go in render
+        # Computed data from state changes have to go in render
         {shown_handouts, num_omitted, num_deleted} = @compute_handouts_list()
         header =
             <FoldersToolbar
@@ -118,12 +115,12 @@ exports.HandoutsPanel = rclass
 
         <Panel header={header}>
             {for handout, i in shown_handouts
-                <Handout background={if i%2==0 then "#eee"}  key={handout.handout_id}
+                <Handout backgroundColor={if i%2==0 then "#eee"}  key={handout.handout_id}
                         handout={@props.all_handouts.get(handout.handout_id)} project_id={@props.project_id}
                         students={@props.students} user_map={@props.user_map} actions={@props.actions}
                         store={@props.store} open_directory={@props.project_actions.open_directory}
                 />}
-            {@render_show_deleted(num_deleted) if num_deleted > 0}
+            {@render_show_deleted_button(num_deleted) if num_deleted > 0}
         </Panel>
 
 exports.HandoutsPanel.Header = rclass
@@ -142,7 +139,7 @@ exports.HandoutsPanel.Header = rclass
 Handout = rclass
     propTypes :
         handout             : rtypes.object
-        background          : rtypes.string
+        backgroundColor     : rtypes.string
         store               : rtypes.object
         actions             : rtypes.object
         open_directory      : rtypes.func     # open_directory(path)
@@ -322,7 +319,7 @@ Handout = rclass
         status = @props.store.get_handout_status(@props.handout)
         <Row style={if @state.more then styles.selected_entry else styles.entry}>
             <Col xs=12>
-                <Row key='summary' style={backgroundColor:@props.background}>
+                <Row key='summary' style={backgroundColor:@props.backgroundColor}>
                     <Col md=2 style={paddingRight:'0px'}>
                         <h5>
                             <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
@@ -342,7 +339,7 @@ Handout = rclass
                                 ({status.handout}/{status.handout + status.not_handout} received)
                             </span>
                         </Row>
-                        <Row>
+                        <Row style={marginLeft:'8px'}>
                             {@render_copy_all(status)}
                         </Row>
                     </Col>

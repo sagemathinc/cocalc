@@ -398,13 +398,14 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         @setState(show_selector : false)
         @refs.search_input.clear_and_focus_search_input()
 
+    # TODO: Check if this works
     search_button : ->
         if @props.is_searching
             # Currently doing a search, so show a spinner
             <Button>
                 <Icon name="circle-o-notch" spin />
             </Button>
-        else if @props.search_results?
+        else if @state.show_selector
             # There is something in the selection box -- so only action is to clear the search box.
             <Button onClick={@clear_and_focus_search_input}>
                 <Icon name="times-circle" />
@@ -424,7 +425,6 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         for item in @props.search_results
             <option key={item} value={item} label={item}>{item}</option>
 
-    # TODO: Make the Add selected Button like the one in students_panel!
     render_add_selector : ->
         <div>
             <Input type='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : @refs.selector.getValue())}>
@@ -464,20 +464,23 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             {@render_add_selector() if @state.show_selector}
          </div>
 
-# State here is messy AF
 # Definitely not a good abstraction.
 # Purely for code reuse (bad reason..)
 # Complects FilterSearchBar and AddSearchBar...
 exports.FoldersToolbar = rclass
     propTypes :
         search        : rtypes.string
-        search_change : rtypes.func      # search_change(current_search_value)
+        search_change : rtypes.func.isRequired      # search_change(current_search_value)
         num_omitted   : rtypes.number
         project_id    : rtypes.string
         items         : rtypes.object.isRequired
-        add_folders   : rtypes.func      # add_folders (Iterable<T>)
+        add_folders   : rtypes.func                 # add_folders (Iterable<T>)
         item_name     : rtypes.string
         plural_item_name : rtypes.string
+
+    getDefaultProps : ->
+        item_name : "item"
+        plural_item_name : "items"
 
     getInitialState : ->
         add_is_searching : false
@@ -496,7 +499,6 @@ exports.FoldersToolbar = rclass
                     filtered_results = @filter_results(resp.directories, search, @props.items)
                     @setState(add_is_searching:false, add_search_results:filtered_results)
 
-    # TODO: see if this is common to assignments and students
     # Filter directories based on contents of all_items
     filter_results : (directories, search, all_items) ->
         if directories.length > 0
@@ -530,7 +532,7 @@ exports.FoldersToolbar = rclass
                 />
             </Col>
             <Col md=4>
-              {<h5>(Omitting {@props.num_omitted} {@props.plural_item_name})</h5> if @props.num_omitted}
+              {<h5>(Omitting {@props.num_omitted} {if @props.num_ommitted > 1 then @props.plural_item_name else @props.item_name})</h5> if @props.num_omitted}
             </Col>
             <Col md=5>
                 <MultipleAddSearch
