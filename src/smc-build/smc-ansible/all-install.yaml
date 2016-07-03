@@ -616,7 +616,7 @@
     - python3-yaml
     - python3-zmq
 
-# KWANT
+# KWANT -- http://kwant-project.org/install
 - hosts: compute
   become: yes
   gather_facts: no
@@ -628,9 +628,8 @@
     apt_repository: repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }}
     with_items:
-    - python-kwant
     - python-kwant-doc
     - python3-kwant
 
@@ -642,11 +641,14 @@
 
   tasks:
 
+  - name: 'GIAC apt key'
+    apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
+
   - name: 'GIAC repository'
     apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main' state=present
 
   - name: 'install GIAC'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }}
     with_items:
     - giac
     - python-giacpy
@@ -664,7 +666,7 @@
     apt_repository: repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
-    apt: state=latest name=fenics
+    apt: name=fenics
 
 # MPICH
 - hosts: compute
@@ -675,7 +677,7 @@
   tasks:
 
   - name: 'install mpich'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }}
     with_items:
     - mpich
     - mpich-doc
@@ -698,7 +700,7 @@
     apt_repository: repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
-    apt: state=latest name=pypy
+    apt: name=pypy
 
 # Cantera
 - hosts: compute
@@ -712,7 +714,7 @@
     apt_repository: repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }}
     with_items:
     - cantera-python
     - cantera-python3
@@ -733,5 +735,5 @@
   - name: "heroku apt-get update"
     apt:  update_cache=yes
   - name: "heroku install"
-    apt:  state=latest name=heroku-toolbelt
+    apt: name=heroku-toolbelt
 
