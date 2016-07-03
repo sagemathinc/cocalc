@@ -95,7 +95,9 @@
     - m4
     - make
     - ntp
-    - openjdk-7-jdk
+    - openjdk-8-jdk
+    - openjdk-8-doc
+    - openjdk-8-jre
     - pandoc
     - par2
     - pkg-config
@@ -145,7 +147,6 @@
     - m4
     - make
     - ntp
-    - openjdk-7-jdk
     - pandoc
     - par2
     - pkg-config
