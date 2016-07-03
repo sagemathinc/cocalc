@@ -596,6 +596,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     introspect_line: (opts) =>
         opts = defaults opts,
             line     : required
+            top      : undefined
             preparse : true
             timeout  : undefined
             cb       : required
@@ -603,6 +604,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             input :
                 event    : 'introspect'
                 line     : opts.line
+                top      : opts.top
                 preparse : opts.preparse
             cb    : opts.cb
 
@@ -614,6 +616,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # TODO: obviously this wouldn't work in both sides of split worksheet.
         cm = @focused_codemirror()
         pos  = cm.getCursor()
+        # added topline for jupyter decorator autocompletion
+        topline = cm.getLine(@cell(pos.line).start_line()+1)
         line = cm.getLine(pos.line).slice(0, pos.ch)
         if pos.ch == 0 or line[pos.ch-1] in ")]}'\"\t "
             if @editor.opts.spaces_instead_of_tabs
@@ -623,6 +627,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return
         @introspect_line
             line : line
+            top  : topline
             cb   : (mesg) =>
                 if mesg.event == "error"
                     # showing user an alert_message at this point isn't usable; but do want to know

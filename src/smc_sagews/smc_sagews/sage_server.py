@@ -1453,6 +1453,7 @@ def session(conn):
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
+                    log("INTROSPECT mesg keys: '%s'"%mesg.keys())
                     introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
