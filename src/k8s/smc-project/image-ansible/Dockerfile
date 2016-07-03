@@ -8,9 +8,9 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 # Install Node.js and some basic packages
 RUN apt-get update && \
-    apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo  && \
+    apt-get install --yes aptitude ansible apt-utils curl git vim python python-pip python-psutil dpkg-dev sudo  && \
     curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
-    apt-get install --yes git aptitude ansible nodejs
+    apt-get install --yes nodejs
 
 # Grab source code for SMC
 RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
