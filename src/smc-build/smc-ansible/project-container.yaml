@@ -1,0 +1,4 @@
+---
+# include all ansible playbooks for setting up a project container
+- include: all-install.yaml
+

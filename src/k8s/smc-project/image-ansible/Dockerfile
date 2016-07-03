@@ -17,7 +17,7 @@ RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
 
 WORKDIR /smc/src/smc-build/smc-ansible
 COPY container.ini ./container.ini
-RUN ansible-playbook -i container.ini all-install.yaml
+RUN ansible-playbook -i container.ini project-container.yaml
 
 # Build (mainly involves installing dependencies)
 WORKDIR /smc/src/

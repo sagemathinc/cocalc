@@ -21,6 +21,7 @@
   - name: "additional install packages for all machines"
     apt: state=latest name={{ item }}
     with_items:
+      - atop
       - aptitude
       - bup
       - etckeeper
@@ -30,6 +31,7 @@
       - python-pip
       - dstat
       - iotop
+      - par2
       - python-apt
       - python-pip
       - python-dateutil
@@ -53,7 +55,6 @@
     with_items:
        - google-api-python-client
        - jsonschema
-       - par2
 
   - name: "system wide pip3 packages"
     pip:  executable=pip3
@@ -62,7 +63,6 @@
     with_items:
        - rethinkdb
        - dateutils
-       - par2
 
 # Install critical packages needed for building SMC source code:
 - hosts: all
