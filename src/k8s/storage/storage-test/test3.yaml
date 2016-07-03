@@ -7,17 +7,26 @@ spec:
   - name: test3
     image: nginx
     volumeMounts:
-    - name: share
-      mountPath: /share
+    #- name: testzfs2
+    #  mountPath: /share
+    - name: testzfs
+      mountPath: /testzfs
     ports:
     - containerPort: 80
   volumes:
-  - name: share
+  #- name: testzfs2
+  #  flexVolume:
+  #    driver : "smc/smc-storage"
+  #    options:
+  #      namespace : 'test'
+  #      server    : 'storage1'
+  #      path      : "testzfs2.share"
+  #      size      : "3000m"
+  - name: testzfs
     flexVolume:
       driver : "smc/smc-storage"
       options:
         namespace : 'test'
-        server    : 'storage1'
-        path      : "test.share"
+        server    : 'storage0'
+        path      : "testzfs.zfs"
         size      : "3000m"
-

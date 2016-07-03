@@ -23,4 +23,8 @@ bash:
 	@echo starting bash in image with tag ${TAG} and project id ${PROJECT_ID}
 	docker run -it -e SMC_PROJECT_ID=${PROJECT_ID} ${TAG} bash
 
+clean:
+	@echo remove all untagged docker images
+	docker images -q --filter "dangling=true" | xargs docker rmi
 	
+

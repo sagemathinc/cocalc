@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, requests, shutil, socket, subprocess, time
+import datetime, json, os, requests, shutil, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
 
@@ -186,6 +186,85 @@ def restart_kubelet():
     # Just restarting the service leaves everything very broken.
     run_on_minion("reboot")
 
+def create_snapshot(pool, name):
+    snapshot = "{timestamp}-{name}".format(timestamp=time_to_timestamp(), name=name)
+    run_on_minion(['zfs', 'snapshot', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)])
+
+def delete_snapshot(pool, snapshot):
+    run_on_minion(['zfs', 'destroy', "{pool}@{snaphot}".format(pool=pool, snapshot=snapshot)])
+
+# Lengths of time in minutes.
+SNAPSHOT_INTERVALS = {
+    'five'    : 5,
+    'hourly'  : 60,
+    'daily'   : 60*24,
+    'weekly'  : 60*24*7,
+    'monthly' : 60*24*7*4
+}
+
+# How many of each type of snapshot to retain
+SNAPSHOT_COUNTS = {
+    'five'    : 12*6,   # 6 hours worth of five-minute snapshots
+    'hourly'  : 24*7,   # 1 week of hourly snapshots
+    'daily'   : 30,     # 1 month of daily snapshots
+    'weekly'  : 8,      # 2 months of weekly snapshots
+    'monthly' : 6       # 6 months of monthly snapshots
+}
+
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
+TIMESTAMP_N = len("2016-06-27-141131")
+def time_to_timestamp(tm=None):
+    if tm is None:
+        tm = time.time()
+    return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
+
+def timestamp_to_time(timestamp):
+    return datetime.datetime.strptime(timestamp, TIMESTAMP_FORMAT).timestamp()
+
+def update_snapshots(pool, snapshots):
+    """
+    Update the rolling ZFS snapshots on the given pool.
+    """
+    # determine which snapshots we need to make
+    now = time.time()
+    for name, interval in SNAPSHOT_INTERVALS.items():
+        if SNAPSHOT_COUNTS[name] <= 0: # not making any of these
+            continue
+        # Is there a snapshot with the given name that is within the given
+        # interval of now?  If not, make snapshot.
+        v = [s for s in snapshots if s.endswith('-'+name)]
+        if len(v) > 0:
+            newest = v[-1]
+            t = timestamp_to_time(newest[:TIMESTAMP_N])
+            age_m = (now - t)/60.0   # age in minutes since snapshot
+        else:
+            age_m = 999999999999  # 'infinite'
+        if age_m > interval:
+            # make this snapshot
+            create_snapshot(pool, name)
+        # Are there too many snapshots of the given type?  If so, delete them:
+        if len(v) > SNAPSHOT_COUNTS[name]:
+            for s in v[ : len(v) - SNAPSHOT_COUNTS[name]]:
+                delete_snapshot(pool, s)
+
+def snapshot_info():
+    # Get snapshot info for *all* snapshots on all pools
+    info = {}
+    for snapshot in sorted(run_on_minion(['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name'], get_output=True).split()):
+        pool, snap = snapshot.split('@')
+        if pool not in info:
+            info[pool] = [snap]
+        else:
+            info[pool].append(snap)
+    return info
+
+def update_all_snapshots():
+    """
+    Update the rolling ZFS snapshots on all mounted zpool's.
+    """
+    for pool, snaps in snapshot_info().items():
+        update_snapshots(pool, snaps)
+
 def start_storage_daemon():
     print("launching storage daemon")
     install_flexvolume_plugin()
@@ -196,10 +275,19 @@ def start_storage_daemon():
     install_sshfs()
     if not is_plugin_loaded():
         restart_kubelet()
+    last_snapshot_update = 0
     while True:
-        update_etc_hosts()
-        time.sleep(7)
-        print("sleeping...")
+        try:
+            update_etc_hosts()
+        except Exception as err:
+            print("ERROR updating etc hosts -- ", err)
+        if time.time() - last_snapshot_update >= 60*2.5:
+            try:
+                update_all_snapshots()
+                last_snapshot_update = time.time()
+            except Exception as err:
+                print("ERROR updating snapshots -- ", err)
+        time.sleep(10)
 
 if __name__ == "__main__":
     start_storage_daemon()
