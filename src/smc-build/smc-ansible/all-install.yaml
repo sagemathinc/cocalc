@@ -390,7 +390,7 @@
     - pari-galpol
     - pari-gp2c
     - pdftk
-    - php5
+    - php-dev
     - pkg-config
     - plink
     - plink
