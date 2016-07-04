@@ -170,7 +170,11 @@ def mount(args):
     elif fs == 'btrfs':
         cmd("mount -o compress-force=lzo %s %s"%(device, mount_dir))
     elif fs == 'share':
-        cmd("mount --bind %s %s"%(device, mount_dir))
+        # For a share, the actual shared data is in the data/ subdirectory, so that
+        # we can store other info in the .share directory, e.g., a bup archive.
+        if not os.path.exists("%s/data"%device):
+            os.makedirs("%s/data"%device)
+        cmd("mount --bind %s/data %s"%(device, mount_dir))
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
 
