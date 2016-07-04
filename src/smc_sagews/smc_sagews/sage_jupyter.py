@@ -2,6 +2,11 @@
 sage_jupyter.py
 
 Spawn and send commands to jupyter kernels.
+
+AUTHORS:
+  - Hal Snyder (main author)
+  - William Stein
+  - Harald Schilly
 """
 
 #########################################################################################
