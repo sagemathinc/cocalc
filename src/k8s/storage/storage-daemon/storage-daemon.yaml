@@ -15,6 +15,8 @@ spec:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
         name: storage-daemon
+        #securityContext:  # so can FUSE mount  (plus we get ssh access to host so not being privileged is silly)
+        #  privileged: true
         volumeMounts:
         - name: mnt
           mountPath: /node/info
