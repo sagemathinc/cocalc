@@ -9,7 +9,7 @@ See the section below about how to setup a machine to have the kubectl command. 
 cd cluster
 
 # if possible, you could now upgraded kubernetes by via
-./control.py upgrade-kubernetes --version=???
+./control.py install-kubernetes --version=???
 
 # Create the cluster, which takes about 5 minutes.
 time ./control.py create-cluster  --min-nodes=10 --max-nodes=10 main2
