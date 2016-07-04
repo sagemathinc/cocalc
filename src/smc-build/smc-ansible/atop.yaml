@@ -22,4 +22,4 @@
     shell: "update-rc.d atop disable"
 
   - name: "delete /var/log/atop/"
-    shell: "rm -rf /var/log/atop/ || exit 0"
+    file: path=/var/log/atop/ state=absent

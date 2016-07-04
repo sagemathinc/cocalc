@@ -195,7 +195,6 @@
     - asciidoc
     - aspell-*
     - attr
-    - auctex
     - autoconf
     - axiom
     - bindfs
@@ -486,7 +485,6 @@
     - v4l-utils
     - valgrind
     - vim
-    - vim-latexsuite
     - wget
     - whois
     - wordnet
@@ -548,7 +546,7 @@
     - prosper
     - tipa
     - vim-latexsuite
-
+    # - auctex
 
 # Python3-related packages of interest
 - hosts: compute
@@ -803,28 +801,4 @@
     apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
     apt: name=heroku-toolbelt install_recommends=yes
-
-# R -- from official ubuntu repository
-- hosts: compute
-  become: yes
-  gather_facts: yes
-  tags: r
-
-  tasks:
-  - name: 'R apt keys'
-    apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9 
-  - name: 'R repository url'
-    apt_repository: repo='deb https://cloud.r-project.org//bin/linux/ubuntu {{ ansible_distribution_release }}/'
-  - name: 'R installation'
-    apt: name={{ item }} install_recommends=yes
-    with_items:
-    - jags
-    - r-doc-html
-    - r-base-dev
-    - r-base-html
-    - r-recommended
-    - littler
-    - python-rpy2
-    - python3-rpy2
-    - ess
 

@@ -15,10 +15,6 @@
   - name: "julia dependencies ppa"
     apt_repository: repo='ppa:staticfloat/julia-deps'
 
-  # update apt cache and upgrade using aptitude's heuristics
-  - name: "apt-get update & upgrade"
-    apt: update_cache=yes upgrade=safe
-
   - name: "apt-get install packages"
     apt: state=latest name={{ item }}
     with_items:
