@@ -3648,8 +3648,10 @@ def jkmagic(kernel_name, **kwargs):
     r"""
     See docs for jupyter
     """
-
     km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
+
+    kn = kernel_name
+    i_am_a_jupyter_client = True
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
@@ -3710,6 +3712,10 @@ def jkmagic(kernel_name, **kwargs):
 
     def run_code(code):
 
+        # these are used by the worksheet process
+        if (not i_am_a_jupyter_client) or len(kn) == 0:
+            return
+
         # execute the code
         msg_id = kc.execute(code)
 
@@ -3718,8 +3724,7 @@ def jkmagic(kernel_name, **kwargs):
         iopub = kc.iopub_channel
         stdinj = kc.stdin_channel
 
-        # get messages until kernel idle
-        kernel_idle = False
+        # handle iopub messages
         while True:
             try:
                 msg = iopub.get_msg()
@@ -3774,6 +3779,8 @@ def jkmagic(kernel_name, **kwargs):
                         salvus.file(fname)
                         fo.close()
                         os.unlink(fname)
+                        # ir kernel sends png then svg+xml; don't display both
+                        break
 
                     elif mime == 'text/plain':
                         continue
@@ -3790,10 +3797,14 @@ def jkmagic(kernel_name, **kwargs):
                     sys.stdout.write(out_data)
                 if 'text/latex' in content['data']:
                     ldata = content['data']['text/latex']
-                    # convert display to inline for execution output
-                    # this matches jupyter notebook behavior
-                    ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
-                    salvus.html(ldata)
+                    if re.match('\W*begin{tabular}',ldata):
+                        # sagemath R emits latex tabular output, not supported by MathJAX
+                        latex0(ldata)
+                    else:
+                        # convert display to inline for execution output
+                        # this matches jupyter notebook behavior
+                        ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
+                        salvus.html(ldata)
                 elif 'text/markdown' in content['data']:
                     salvus.md(content['data']['text/markdown'])
                 elif 'text/html' in content['data']:
@@ -3810,7 +3821,6 @@ def jkmagic(kernel_name, **kwargs):
             elif msg_type == 'status':
                 if content['execution_state'] == 'idle':
                     # when idle, kernel has executed all input
-                    kernel_idle = True
                     break
                 else:
                     continue
@@ -3825,15 +3835,14 @@ def jkmagic(kernel_name, **kwargs):
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
                 if 'traceback' in content:
-                    for tr in content['traceback']:
+                    tr = content['traceback']
+                    if isinstance(tr, list):
+                        for tr in content['traceback']:
+                            hout(tr)
+                    else:
                         hout(tr)
 
-        if not kernel_idle:
-            # shouldn't happen
-            p("end of processing and kernel not idle")
-
-        p("kernel idle")
-        # get shell messages until command is finished
+        # handle shell messages
         while True:
             try:
                 msg = shell.get_msg(timeout = 0.2)
