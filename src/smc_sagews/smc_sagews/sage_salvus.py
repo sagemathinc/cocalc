@@ -3592,7 +3592,7 @@ import string
 import textwrap
 
 
-# jupyter kernel magic
+# jupyter kernel
 
 class JUPYTER(object):
 
@@ -3607,27 +3607,31 @@ class JUPYTER(object):
 
     def _get_doc(self):
         ds0 = textwrap.dedent(r"""\
-        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet.
+        Use the jupyter command to use any Jupyter kernel that you have installed using from your SageMathCloud worksheet
 
-            | my_python3 = jupyter("python3")
+            | py3 = jupyter("python3")
 
-        After that, begin a sagews cell with the magic command to send statements to the kernel
+        After that, begin a sagews cell with %py3 to send statements to the Python3
+        kernel that you just created:
 
-            | %my_python3
+            | %py3
             | print(42)
 
         You can set the default mode for all cells in the worksheet. After putting the following
         in a cell, click the "restart" button, and you have an anaconda worksheet.
 
             | %auto
-            | a3 = jupyter('anaconda3')
-            | %default_mode a3
+            | %default_mode jupyter('anaconda3')
 
-        Each magic command connects to its own kernel. So you can have more than
-        one instance of the same kernel type.
+        Each call to jupyter creates its own Jupyter kernel. So you can have more than
+        one instance of the same kernel type in the same worksheet session.
 
-            | my_second_python3 = jupyter("python3")
-
+            | p1 = jupyter('python3')
+            | p2 = jupyter('python3')
+            | p1('a = 5')
+            | p2('a = 10')
+            | p1('print(a)')   # prints 5
+            | p1('print(a)')   # prints 10
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()
@@ -3648,7 +3652,7 @@ def _jkmagic(kernel_name, **kwargs):
     r"""
     Called when user issues `my_kernel = jupyter("kernel_name")` from a cell, not intended to be called directly by user.
 
-    Start a jupyter kernel and create a sagews magic function for it. See docstring for class JUPYTER above.
+    Start a jupyter kernel and create a sagews function for it. See docstring for class JUPYTER above.
     Based on http://jupyter-client.readthedocs.io/en/latest/api/index.html
 
     INPUT:
