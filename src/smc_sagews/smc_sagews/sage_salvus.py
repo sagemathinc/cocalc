@@ -28,6 +28,11 @@ except:
 sys.path.append('.')
 
 salvus = None
+def set_salvus(salvus_obj):
+    global salvus
+    salvus = salvus_obj
+    import sage_jupyter
+    sage_jupyter.salvus = salvus_obj
 
 import json
 from uuid import uuid4
@@ -3571,3 +3576,7 @@ def help(*args, **kwds):
 
 - **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
         salvus.md(s)
+
+
+# Import the jupyter kernel client.
+from sage_jupyter import jupyter
