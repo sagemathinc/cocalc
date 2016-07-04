@@ -25,8 +25,10 @@ bash:
 
 clean:
 	@echo 'remove all untagged docker images'
-	-docker images -q --filter "dangling=true" | xargs docker rmi
-	@echo 'remove all docker container (no force, hence not running ones)'
-	-docker ps -aq --no-trunc | xargs docker rm
-	
+    # this runs repeatedly until it fails, because once an image is deleted more become dangling!
+    # it fails, because there is no "--no-run-if-empty" and hence docker complains
+	while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
+	@echo 'remove all docker container (not forced, hence running ones are not deleted)'
+	docker ps -aq --no-trunc | xargs --no-run-if-empty docker rm
+
 

@@ -5,6 +5,11 @@
 
   tasks:
 
+  - name: 'tell apt to always remove (clean) packages after install'
+    lineinfile: create=yes
+                line="DSELECT::Clean "always";"
+                dest="/etc/apt/apt.conf.d/99AutomaticClean"
+
   - name: "rethinkdb apt key"
     apt_key: url=http://download.rethinkdb.com/apt/pubkey.gpg
              state=present
@@ -187,7 +192,7 @@
   gather_facts: no
 
   tasks:
-  - name: 'Additional packages (mainly for users, not building)'
+  - name: 'Additional packages (mainly for users, not building) - batch #1'
     apt: state=present name={{ item }}
     tags:
     - install
@@ -225,6 +230,17 @@
     - dot2tex
     - doxygen
     - dstat
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Additional packages (mainly for users, not building) - batch #2'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    - install-compute-users
+    with_items:
     - emacs
     - emacs-goodies-el
     - encfs
@@ -262,6 +278,8 @@
     - hdf5-helpers
     - hexcurse
     - htop
+    - install
+    - install-compute-users
     - iceweasel
     - ifrench
     - imagemagick
@@ -276,6 +294,17 @@
     - jekyll
     - joe
     - lbzip2
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Additional packages (mainly for users, not building) - batch #3'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    - install-compute-users
+    with_items:
     - libao-dev
     - libapr1-dev
     - libav-tools
@@ -345,6 +374,17 @@
     - libxslt-dev
     - libxvidcore-dev
     - libzmq-dev
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Additional packages (mainly for users, not building) - batch #4'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    - install-compute-users
+    with_items:
     - lilypond
     - linux-tools-common
     - linux-tools-generic
@@ -401,6 +441,17 @@
     - protobuf-compiler
     - protobuf-compiler
     - pv
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Additional packages (mainly for users, not building) - batch #5'
+    apt: state=present name={{ item }}
+    tags:
+    - install
+    - install-compute-users
+    with_items:
     - python-autopep8
     - python-dev
     - python-docutils
@@ -633,7 +684,7 @@
     - python-kwant-doc
     - python3-kwant
 
-# GIAC
+# GIAC (the authentication key is broken, hence we allow unauthenticated packages)
 - hosts: compute
   become: yes
   gather_facts: no
@@ -648,7 +699,7 @@
     apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main' state=present
 
   - name: 'install GIAC'
-    apt: name={{ item }}
+    apt: name={{ item }} allow_unauthenticated=yes
     with_items:
     - giac
     - python-giacpy

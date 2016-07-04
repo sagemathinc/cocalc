@@ -1,0 +1,7 @@
+---
+# include all ansible playbooks for setting up a compute node or project container
+- include: all-install.yaml
+- include: umask_compute.yaml
+- include: terminal-setup.yaml
+- include: julia.yaml
+- include: atop.yaml
