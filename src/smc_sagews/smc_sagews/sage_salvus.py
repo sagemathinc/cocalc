@@ -3518,7 +3518,7 @@ def go(s):
         open(name +'.go','w').write(s.encode("UTF-8"))
         (child_stdin, child_stdout, child_stderr) = os.popen3('go build %s.go'%name)
         err = child_stderr.read()
-        sys.stdout.write("BLAH\n"+child_stdout.read())
+        sys.stdout.write(child_stdout.read())
         sys.stderr.write(err)
         sys.stdout.flush()
         sys.stderr.flush()
