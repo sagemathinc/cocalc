@@ -48,7 +48,7 @@ class JUPYTER(object):
             | %py3
             | print(42)
 
-        You can even draw graphics::
+        You can even draw graphics.
 
             | %py3
             | import numpy as np; import pylab as plt
