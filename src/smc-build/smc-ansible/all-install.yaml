@@ -15,12 +15,6 @@
 
   - name: "rethinkdb ppa"
     apt_repository: repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
-                    state=present
-
-  - name: "apt-get update & upgrade"
-    apt: update_cache=yes cache_valid_time=3600 upgrade=safe
-    # that's cached one hour and upgrades safer uses aptitude's heuristics
-    tags: update
 
   - name: "additional install packages for all machines"
     apt: name={{ item }} install_recommends=yes
@@ -46,6 +40,7 @@
       - python3-pip
       - python3-scipy
       - python3-paramiko
+      - rethinkdb
       - sysbench
       - sysstat
     tags:
