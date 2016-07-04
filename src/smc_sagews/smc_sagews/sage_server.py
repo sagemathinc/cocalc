@@ -1323,7 +1323,7 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         sys.stderr = BufferedOutputStream(salvus.stderr)
         try:
             # initialize more salvus functionality
-            sage_salvus.salvus = salvus
+            sage_salvus.set_salvus(salvus)
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
