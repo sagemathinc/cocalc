@@ -1452,8 +1452,33 @@ def session(conn):
                 except Exception as err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
+                import sys
                 try:
-                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
+                    # check for introspect from jupyter cell
+                    prefix = Salvus._default_mode
+                    if 'top' in mesg:
+                        top = mesg['top']
+                        log('introspect cell top line %s'%top)
+                        if top.startswith("%"):
+                            prefix = top[1:]
+                    try:
+                        # see if prefix is the name of a jupyter kernel function
+                        # to qualify, prefix should be the name of a function
+                        # and that function has free variables "i_am_a_jupyter_client" and "kn"
+                        jkfn = namespace[prefix]
+                        jupyter_client_index = jkfn.func_code.co_freevars.index("i_am_a_jupyter_client")
+                        jkix = jkfn.func_code.co_freevars.index("kn") # e.g. 3
+                        jkname = jkfn.func_closure[jkix].cell_contents # e.g. "python2"
+                        # consider also checking for jkname in list of jupyter kernels
+                        log("jupyter introspect %s: %s"%(prefix, jkname)) # e.g. "p2", "python2"
+                        jupyter_introspect(conn=conn,
+                                           id=mesg['id'],
+                                           line=mesg['line'],
+                                           preparse=mesg.get('preparse', True),
+                                           jkfn=jkfn)
+                    except:
+                        # non-jupyter introspection
+                        introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
             else:
@@ -1470,6 +1495,65 @@ def session(conn):
             else:
                 pass
 
+def jupyter_introspect(conn, id, line, preparse, jkfn):
+    import jupyter_client
+    from Queue import Empty
+
+    try:
+        salvus = Salvus(conn=conn, id=id)
+        kcix = jkfn.func_code.co_freevars.index("kc")
+        kc = jkfn.func_closure[kcix].cell_contents
+        msg_id = kc.complete(line)
+        shell = kc.shell_channel
+        iopub = kc.iopub_channel
+
+        # handle iopub responses
+        while True:
+            try:
+                msg = iopub.get_msg(timeout = 1)
+                msg_type = msg['msg_type']
+                content = msg['content']
+
+            except Empty:
+                # shouldn't happen
+                log("jupyter iopub channel empty")
+                break
+
+            if msg['parent_header'].get('msg_id') != msg_id:
+                continue
+
+            log("jupyter iopub recv %s %s"%(msg_type, str(content)))
+
+            if msg_type == 'status' and content['execution_state'] == 'idle':
+                break
+
+        # handle shell responses
+        while True:
+            try:
+                msg = shell.get_msg(timeout = 10)
+                msg_type = msg['msg_type']
+                content = msg['content']
+
+            except:
+                # shouldn't happen
+                log("jupyter shell channel empty")
+                break
+
+            if msg['parent_header'].get('msg_id') != msg_id:
+                continue
+
+            log("jupyter shell recv %s %s"%(msg_type, str(content)))
+
+            if msg_type == 'complete_reply' and content['status'] == 'ok':
+                # jupyter kernel returns matches like "xyz.append" and smc wants just "append"
+                matches = content['matches']
+                offset = content['cursor_end'] - content['cursor_start']
+                completions = [s[offset:] for s in matches]
+                mesg = message.introspect_completions(id=id, completions=completions, target=line[-offset:])
+                conn.send_json(mesg)
+                break
+    except:
+        log("jupyter completion exception: %s"%sys.exc_info()[0])
 
 def introspect(conn, id, line, preparse):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
@@ -1631,7 +1715,7 @@ def serve(port, host, extra_imports=False):
 
         for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
+                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
                      'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
