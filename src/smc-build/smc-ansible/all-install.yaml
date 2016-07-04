@@ -12,7 +12,6 @@
 
   - name: "rethinkdb apt key"
     apt_key: url=http://download.rethinkdb.com/apt/pubkey.gpg
-             state=present
 
   - name: "rethinkdb ppa"
     apt_repository: repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
@@ -24,7 +23,7 @@
     tags: update
 
   - name: "additional install packages for all machines"
-    apt: state=latest name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
       - atop
       - aptitude
@@ -77,7 +76,7 @@
   tasks:
 
   - name: 'critical packages needed for building SMC source code'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
     - calibre
     - dpkg-dev
@@ -127,7 +126,7 @@
   tasks:
 
   - name: 'packages on Compute VMs'
-    apt: state=latest name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
       - install
     with_items:
@@ -180,7 +179,7 @@
 
   tasks:
   - name: 'getting rid of certain packages causing trouble'
-    apt: state=absent name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
     - mlocate
     tags:
@@ -193,7 +192,7 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #1'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     - install-compute-users
@@ -236,7 +235,7 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #2'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     - install-compute-users
@@ -252,7 +251,6 @@
     - flex
     - fonts-ocr-a
     - gawk
-    - gcc-multilib
     - gcc-multilib
     - gdb
     - ghc
@@ -277,6 +275,7 @@
     - haskell-platform-prof
     - hdf5-helpers
     - hexcurse
+    - hexer
     - htop
     - iceweasel
     - ifrench
@@ -288,7 +287,6 @@
     - irssi
     - ispanish
     - jags
-    - jags
     - jekyll
     - joe
     - lbzip2
@@ -298,7 +296,7 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #3'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     - install-compute-users
@@ -340,8 +338,6 @@
     - libicu-dev
     - libjasper-dev
     - libjemalloc-dev
-    - libjemalloc-dev
-    - libjemalloc-dev
     - libjpeg-dev
     - liblz4-tool
     - libmed1v5
@@ -378,12 +374,12 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #4'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     - install-compute-users
     with_items:
-    - lilypond
+    - libreoffice-common
     - linux-tools-common
     - linux-tools-generic
     - llvm
@@ -431,12 +427,10 @@
     - php-dev
     - pkg-config
     - plink
-    - plink
     - poppler-utils
     - postgresql-client
     - proofgeneral
     - proofgeneral-doc
-    - protobuf-compiler
     - protobuf-compiler
     - pv
 - hosts: compute
@@ -445,7 +439,7 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #5'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     - install-compute-users
@@ -529,6 +523,54 @@
     - yatex
     - zsh
 
+  tasks:
+  - name: 'Additional packages (mainly for users, not building) - LaTeX packages'
+    apt: name={{ item }} install_recommends=yes
+    tags:
+    - install
+    - install-compute-users
+    with_items:
+    - lilypond
+    - texlive-full
+    - texlive-bibtex-extra
+    - texlive-extra-utils
+    - texlive-fonts-extra
+    - texlive-fonts-extra-doc
+    - texlive-formats-extra
+    - texlive-generic-extra
+    - texlive-latex-extra
+    - texlive-latex-extra-doc
+    - texlive-math-extra
+    - texlive-plain-extra
+    - texlive-xetex
+    - texlive-lang-all
+    - texlive-latex-base
+    - texlive-latex-base-doc
+    - texlive-latex-extra
+    - texlive-latex-extra-doc
+    - texlive-latex-recommended
+    - texlive-latex-recommended-doc
+    - texlive-latex3
+    - texlive-luatex
+    - biber
+    - chktex
+    - dblatex
+    - dot2tex
+    - feynmf
+    - fig2ps
+    - fonts-mathjax
+    - fragmaster
+    - lacheck
+    - latex-cjk-all
+    - latexdiff
+    - latexmk
+    - libpod-latex-perl
+    - prerex
+    - preview-latex-style
+    - prosper
+    - tipa
+    - vim-latexsuite
+
 
 # Python3-related packages of interest
 - hosts: compute
@@ -537,7 +579,7 @@
 
   tasks:
   - name: 'Python3-related packages of interest'
-    apt: state=present name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     tags:
     - install
     with_items:
@@ -677,7 +719,7 @@
     apt_repository: repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
-    apt: name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
     - python-kwant-doc
     - python3-kwant
@@ -697,7 +739,7 @@
     apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main' state=present
 
   - name: 'install GIAC'
-    apt: name={{ item }} allow_unauthenticated=yes
+    apt: name={{ item }} allow_unauthenticated=yes install_recommends=yes
     with_items:
     - giac
     - python-giacpy
@@ -715,7 +757,7 @@
     apt_repository: repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
-    apt: name=fenics
+    apt: name=fenics install_recommends=yes
 
 # MPICH
 - hosts: compute
@@ -726,7 +768,7 @@
   tasks:
 
   - name: 'install mpich'
-    apt: name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
     - mpich
     - mpich-doc
@@ -749,7 +791,7 @@
     apt_repository: repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
-    apt: name=pypy
+    apt: name=pypy install_recommends=yes
 
 # Cantera
 - hosts: compute
@@ -763,7 +805,7 @@
     apt_repository: repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
-    apt: name={{ item }}
+    apt: name={{ item }} install_recommends=yes
     with_items:
     - cantera-python
     - cantera-python3
@@ -778,11 +820,33 @@
   tasks:
 
   - name: 'heroku apt keys'
-    apt_key: url='https://toolbelt.heroku.com/apt/release.key' state=present
+    apt_key: url='https://toolbelt.heroku.com/apt/release.key'
   - name: 'heroku apt-repository'
-    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./' state=present
-  - name: "heroku apt-get update"
-    apt:  update_cache=yes
+    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
-    apt: name=heroku-toolbelt
+    apt: name=heroku-toolbelt install_recommends=yes
+
+# R -- from official ubuntu repository
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: r
+
+  tasks:
+  - name: 'R apt keys'
+    apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9 
+  - name: 'R repository url'
+    apt_repository: repo='deb https://cloud.r-project.org//bin/linux/ubuntu {{ ansible_distribution_release }}/'
+  - name: 'R installation'
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - jags
+    - r-doc-html
+    - r-base-dev
+    - r-base-html
+    - r-recommended
+    - littler
+    - python-rpy2
+    - python3-rpy2
+    - ess
 
