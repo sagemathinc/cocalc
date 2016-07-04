@@ -2,53 +2,38 @@
 
 ## What to do if things have gone to hell
 
-See the section below about how to setup a machine to have the kubectl command.  Most importantly, if things go totally to hell, one option is to delete the entire k8s cluster and recreate it from scratch, which takes about 15 minutes.
+See the section below about how to setup a machine to have the kubectl command.  Most importantly, if things go totally to hell, one option is to create a new k8s cluster then delete the old one.
+
 
 ```
-alias c=./control.py
-alias k=kubectl
-
-# delete the cluster (5 min)
 cd cluster
-c delete-cluster
 
-# if possible, you could now upgraded kubernetes by changing what tarball is in ~/kubernetes
+# if possible, you could now upgraded kubernetes by via
+./control.py upgrade-kubernetes --version=???
 
-# create the cluster (5 min)
-c create-cluster --node-disk-size=60 --min-nodes=1 --max-nodes=1
-```
+# Create the cluster, which takes about 5 minutes.
+time ./control.py create-cluster  --min-nodes=10 --max-nodes=10 main2
 
-Immediately, once the cluster is running, add more nodes via the web UI or `c resize --size` or `c autoscale...`.   We recently hit  race condition in which during the initial cluster creation multiple nodes had the same Routes assigned (so `sudo ifconfig cbr0|grep inet` was repeated on multiple nodes).  This led to disaster.
-
-Next, configure the cluster and start everything running.
-Here's how to setup the test namespace; doing the prod one is
-similar -- just allocate more resources (via -r):
+# Create the test and prod namespaces and deploy everything,
+# which takes about 10 seconds.  This requires the ~/secrets
+# directory to exist.
+./create-smc.sh
 
 ```
-# create the namespace
-cd ~/smc/src/k8s/
-c cluster namespace test # or something else
 
-# start haproxy
-cd haproxy/ && c load-ssl ~/secrets/haproxy/ && c run -r 1
-
-# setup rethinkdb to point to outside db cluster and know password
-cd ../rethinkdb && c external db0 db1 db2 db3 db4 db5 && c load-password ~/secrets/rethinkdb/
-
-# load passwords into hub and start
-cd ../smc-hub/ && c load-sendgrid ~/secrets/sendgrid/ && c load-zendesk ~/secrets/zendesk/ && c run -r 1
-
-# start static nginx server
-cd ../smc-webapp-static/ && c run -r 1
-
-# look at our public ip address and add it to cloudflare DNS
-k get services
-
-# datadog
-cd ../datadog/ && c run
+Wait 3 minutes then type
 ```
+kubectl get services haproxy --namespace=prod; kubectl get services haproxy --namespace=test
+```
+to find out the external IP to add to cloudflare.
 
+To delete the old cluster:
 
+```
+# delete the cluster (5 min)
+./control.py select-cluster NAME_OF_CLUSTER
+./control.py delete-cluster
+```
 
 
 ## Setting up a machine for managing k8s

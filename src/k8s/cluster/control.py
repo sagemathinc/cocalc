@@ -44,6 +44,22 @@ def cost_of_cluster(node_size, node_disk_type, node_disk_size, min_nodes, max_no
     print("total       = ", show(total))
     print("total       = ", show([total[0]/30.5, total[1]/30.5], 'daily'))
 
+def available_cluster_ip_range():
+    # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
+    # prevent collisions with other clusters, which is all we need.  However, be nervous.
+    routes = json.loads(util.run(['gcloud', '--format=json', 'compute', 'routes', 'list'], get_output=True))
+    n = 245
+    ranges = [route['destRange'] for route in routes]
+    ranges.sort()
+    print(ranges)
+    while True:
+        for route in ranges:
+            if route.startswith('10.%s'%n):
+                n += 1
+                continue
+        break
+    return '10.%s.0.0/16'%n
+
 def create_cluster(args):
     if '_' in args.name:
         raise ValueError("name must not contain an underscore (_)")
@@ -62,17 +78,7 @@ def create_cluster(args):
         print(c)
         return
 
-    # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
-    # prevent collisions with other clusters, which is all we need.  However, be nervous.
-    routes = json.loads(util.run(['gcloud', '--format=json', 'compute', 'routes', 'list'], get_output=True))
-    n = 245
-    while True:
-        for route in routes:
-            if route['destRange'].startswith('10.%s'%n):
-                n += 1
-                continue
-        break
-    cluster_ip_range = '10.%s.0.0/16'%n
+    cluster_ip_range = available_cluster_ip_range()
 
     # see https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/config-default.sh for env vars
     env = {
