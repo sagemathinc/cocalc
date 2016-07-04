@@ -267,6 +267,33 @@ def update_all_snapshots():
     for pool, snaps in snapshot_info().items():
         update_snapshots(pool, snaps)
 
+# TODO: this entire approach is pointless and broken because when multiple processes
+# append to the same file, the result is broken corruption.
+def update_zpool_active_log():
+    """
+    Update log file showing which ZFS filesystems are mounted, which is used by the backup system.
+    """
+    prefix = "/mnt/smc-storage/{namespace}/".format(namespace=POD_NAMESPACE)
+    try:
+        v = run_on_minion("zpool status -PL|grep {prefix}".format(prefix=prefix),
+                          get_output=True).splitlines()
+    except:
+        # Nothing to do -- get error if no pools are mounted
+        return
+    for x in v:
+        w = x.split()
+        if w:
+            path = w[0].strip()           # '/mnt/smc-storage/test/storage0/foo/bar/abc.zfs/00.img'
+            path = path[len(prefix):]     # 'storage0/foo/bar/abc.zfs/00.img'
+            path = os.path.split(path)[0] # 'storage0/foo/bar/abc.zfs'
+            i = path.find('/')
+            server = path[:i]
+            image = path[i+1:]
+            log = "{timestamp} {image}".format(timestamp=time_to_timestamp(), image=image)
+            run_on_minion("echo '{log}' >> {prefix}/{server}/log/active.log".format(
+                    log=log, prefix=prefix, server=server))
+
+
 def start_storage_daemon():
     print("launching storage daemon")
     install_flexvolume_plugin()
