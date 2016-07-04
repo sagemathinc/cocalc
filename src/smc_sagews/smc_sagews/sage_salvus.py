@@ -3597,7 +3597,7 @@ import textwrap
 class JUPYTER(object):
 
     def __call__(self, kernel_name, **kwargs):
-        return jkmagic(kernel_name, **kwargs)
+        return _jkmagic(kernel_name, **kwargs)
 
     def available_kernels(self):
         '''
@@ -3644,9 +3644,19 @@ from ansi2html import Ansi2HTMLConverter
 import tempfile, sys, re
 import base64
 
-def jkmagic(kernel_name, **kwargs):
+def _jkmagic(kernel_name, **kwargs):
     r"""
-    See docs for jupyter
+    Called when user issues `my_kernel = jupyter("kernel_name")` from a cell, not intended to be called directly by user.
+
+    Start a jupyter kernel and create a sagews magic function for it. See docstring for class JUPYTER above.
+    Based on http://jupyter-client.readthedocs.io/en/latest/api/index.html
+
+    INPUT:
+
+    -  ``kernel_name`` -- name of kernel as it appears in output of `jupyter kernelspec list`
+
+    -  ``debug`` - optional, set true to view jupyter messages
+
     """
     km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
