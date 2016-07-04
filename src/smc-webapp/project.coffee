@@ -51,6 +51,9 @@ misc_page       = require('./misc_page')
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 
+# if a project_id is in this list, do not show the quota warning
+warning_banner_hidden = []
+
 ##################################################
 # Define the project page class
 ##################################################
@@ -114,6 +117,8 @@ class ProjectPage
         delete @store
 
     free_project_warning: () =>
+        if underscore.contains(warning_banner_hidden, @project_id)
+            return
         @projects_store.wait
             until   : (s) => s.get_total_project_quotas(@project_id)
             timeout : 60
@@ -122,30 +127,48 @@ class ProjectPage
                     host     = not quotas.member_host
                     internet = not quotas.network
                     box  = @container.find('.smc-project-free-quota-warning')
+                    {PolicyPricingPageUrl} = require('./customize')
+                    long_warning_server = """
+                    <p>This project runs on a heavily loaded randomly rebooted free server.
+                    Please upgrade your project to a members only server for reliability and faster code execution.</p>"""
+                    long_warning_internet = """
+                    <p>You cannot use any web resources directly from within a project in SMC:
+                    For example, installing software direclty from the internet,
+                    downloading/uploading to sites like GitHub or Bitbucket,
+                    and downloading data from public data portals
+                    will not work without an internet upgrade.</p>"""
+                    long_warning_info = """
+                    <p>For more information about why and how to upgrade this project,
+                    <ul>
+                        <li>learn about <a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Pricing and Subscriptions</a></li>
+                        <li>and read their <a href="#{PolicyPricingPageUrl}#faq" class='faq' target='_blank'>Frequently Asked Questions</a>,</li>
+                        <li>visit your <a href='#' class='billing'>Account Settings / Billing</a> to <em>subscribe</em> to a plan,</li>
+                        <li>and then upgrade <em>this</em> project in <a href='#' class='settings'>Project Settings</a>.</li>
+                    </ul></p>"""
                     if host or internet
-                        html = "<i class='fa fa-exclamation-triangle'></i> WARNING: This project "
+                        extra = ""
+                        html = "<p><i class='fa fa-exclamation-triangle'></i> WARNING: This project runs"
                         if host
-                            html += "runs on a <b>free server</b>, which causes degraded performance, occasional interruptions and project restarts"
-                            if internet
-                                html += ", and "
+                            html += " on a <b>free server</b>"
+                            extra += long_warning_server
                         if internet
-                            html += "does <b>not have full access to the internet</b>."
-                        else
-                            html += '.'
-                        html += " Please upgrade in <b>settings/usage and quotas</b> for a better experience!"
-                        {PolicyPricingPageUrl} = require('./customize')
-                        html += " (<a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Subscriptions</a> and"
-                        html += " <a href='#' class='billing'>Billing</a>)"
+                            html += " without <b>internet access</b>"
+                            extra += long_warning_internet
+                        html += " &mdash; <a href='#' class='learn'>click to learn more</a>. "
+                        html += "<a href='#' class='btn btn-danger btn-xs dismiss'>dismiss</a></p>"
+                        html += "<div class='longtext'>#{extra} #{long_warning_info}</div>"
                         box.find("div").html(html)
+                        box.find('div a.learn').click (evt) ->
+                            box.find('div.longtext').show()
                         box.find("div a.billing").click (evt) ->
                             require('./history').load_target('settings/billing')
                             evt.stopPropagation()
-                        box.find("div a.pricing").click (evt) ->
-                            evt.stopPropagation()
-                        box.show()
-                        box.click =>
+                        box.find("div a.settings").click =>
                             @load_target('settings')
+                        box.find(".dismiss").click (evt) =>
+                            warning_banner_hidden.push(@project_id)
                             box.hide()
+                        box.show()
                     else
                         box.hide()
 
