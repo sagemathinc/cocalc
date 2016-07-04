@@ -61,16 +61,18 @@ def get_service(service):
     return x
 
 def update_etc_hosts():
+    print('udpate_etc_hosts')
     try:
         v = get_service('storage-projects')
     except Exception as err:
         # Expected to happen when node is starting up, etc. - we'll retry later soon!
         print("Failed getting storage service info", err)
         return
-
     if v.get('status', None) == 'Failure':
         return
     try:
+        if 'addresses' not in v['subsets'][0]:
+            return   # nothing to do; no known addresses
         namespace = v['metadata']['namespace']
         hosts = ["{ip}    {namespace}-{name}".format(ip=x['ip'], namespace=namespace,
                               name=x['targetRef']['name'].split('-')[0]) for x in v['subsets'][0]['addresses']]
