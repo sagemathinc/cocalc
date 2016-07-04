@@ -229,11 +229,7 @@
     - dot2tex
     - doxygen
     - dstat
-- hosts: compute
-  become: yes
-  gather_facts: no
 
-  tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #2'
     apt: name={{ item }} install_recommends=yes
     tags:
@@ -290,11 +286,7 @@
     - jekyll
     - joe
     - lbzip2
-- hosts: compute
-  become: yes
-  gather_facts: no
 
-  tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #3'
     apt: name={{ item }} install_recommends=yes
     tags:
@@ -368,11 +360,7 @@
     - libxslt-dev
     - libxvidcore-dev
     - libzmq-dev
-- hosts: compute
-  become: yes
-  gather_facts: no
 
-  tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #4'
     apt: name={{ item }} install_recommends=yes
     tags:
@@ -433,11 +421,7 @@
     - proofgeneral-doc
     - protobuf-compiler
     - pv
-- hosts: compute
-  become: yes
-  gather_facts: no
 
-  tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #5'
     apt: name={{ item }} install_recommends=yes
     tags:
@@ -523,7 +507,6 @@
     - yatex
     - zsh
 
-  tasks:
   - name: 'Additional packages (mainly for users, not building) - LaTeX packages'
     apt: name={{ item }} install_recommends=yes
     tags:
