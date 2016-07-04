@@ -130,20 +130,19 @@ class ProjectPage
                     {PolicyPricingPageUrl} = require('./customize')
                     long_warning_server = """
                     <p>This project runs on a heavily loaded randomly rebooted free server.
-                    Please upgrade your project to a members only server for reliability and faster code execution.</p>"""
+                    Please upgrade your project to run on a members-only server for more reliability and faster code execution.</p>"""
                     long_warning_internet = """
-                    <p>You cannot use any web resources directly from within a project in SMC:
-                    For example, installing software direclty from the internet,
-                    downloading/uploading to sites like GitHub or Bitbucket,
-                    and downloading data from public data portals
-                    will not work without an internet upgrade.</p>"""
+                    <p>This project does not have external network access, so you cannot use internet
+                    resources directly from this project; in particular, you can't
+                    install software from the internet,
+                    download from sites like GitHub,
+                    or download data from public data portals.</p>"""
                     long_warning_info = """
-                    <p>For more information about why and how to upgrade this project,
                     <ul>
-                        <li>learn about <a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Pricing and Subscriptions</a></li>
-                        <li>and read their <a href="#{PolicyPricingPageUrl}#faq" class='faq' target='_blank'>Frequently Asked Questions</a>,</li>
-                        <li>visit your <a href='#' class='billing'>Account Settings / Billing</a> to <em>subscribe</em> to a plan,</li>
-                        <li>and then upgrade <em>this</em> project in <a href='#' class='settings'>Project Settings</a>.</li>
+                        <li>Learn about <a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Pricing and Subscriptions</a></li>
+                        <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" class='faq' target='_blank'>Frequently Asked Questions</a></li>
+                        <li>Visit <a href='#' class='billing'>Billing</a> to <em>subscribe</em> to a plan</li>
+                        <li>Upgrade <em>this</em> project in <a href='#' class='settings'>Project Settings</a></li>
                     </ul></p>"""
                     if host or internet
                         extra = ""
@@ -154,8 +153,8 @@ class ProjectPage
                         if internet
                             html += " without <b>internet access</b>"
                             extra += long_warning_internet
-                        html += " &mdash; <a href='#' class='learn'>click to learn more</a>. "
-                        html += "<a href='#' class='btn btn-danger btn-xs dismiss'>dismiss</a></p>"
+                        html += " &mdash; <a href='#' class='learn'>learn more...</a> "
+                        html += "<a href='#' class='dismiss'>×</a></p>"
                         html += "<div class='longtext'>#{extra} #{long_warning_info}</div>"
                         box.find("div").html(html)
                         box.find('div a.learn').click (evt) ->
