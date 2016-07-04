@@ -4,15 +4,14 @@ USER root
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-RUN apt-get update && apt-get install -y ssh bup
+RUN apt-get update && apt-get install -y ssh bup python3
 
-RUN mkdir -p /projects
+# Script to configure vm and run backup tool, sshfs server, etc.
+ADD run.py /run.py
 
-# Script to configure nfs.
-ADD run.sh /run.sh
-
+# Expose ssh ports
 EXPOSE 22/tcp 22/udp
 
-# Start nfs server
-ENTRYPOINT ["./run.sh"]
+CMD /run.py
+
 

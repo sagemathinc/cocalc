@@ -30,6 +30,8 @@ COPY run.py /run.py
 
 # run.py will create the user corresponding to the project, mount their directory (?), then
 # switch to that user and start the local hub.  The environment variable SMC_PROJECT_ID must be set.
+# ws: no, the mount is done by kubernetes, and the choice of user will be done by docker here,
+# similar to the `USER root` line above.
 
 CMD ["/usr/bin/python", "/run.py"]
 
