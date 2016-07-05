@@ -250,14 +250,14 @@ def update_snapshots(pool, snapshots):
                 delete_snapshot(pool, s)
 
 def snapshot_info():
-    # Get snapshot info for *all* snapshots on all pools
     info = {}
+    # Get all pools (some may not be in result of snapshot listing below!)
+    for pool in run_on_minion(['zfs', 'list', '-r', '-H', '-o', 'name'], get_output=True).split():
+        info[pool] = []
+    # Get snapshot info for *all* snapshots on all pools
     for snapshot in sorted(run_on_minion(['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name'], get_output=True).split()):
         pool, snap = snapshot.split('@')
-        if pool not in info:
-            info[pool] = [snap]
-        else:
-            info[pool].append(snap)
+        info[pool].append(snap)
     return info
 
 def update_all_snapshots():
