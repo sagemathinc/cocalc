@@ -7,3 +7,4 @@
 - include: r.yaml
 - include: julia.yaml
 - include: atop.yaml
+- include: latexmk.yaml
