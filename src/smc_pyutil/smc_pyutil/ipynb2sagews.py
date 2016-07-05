@@ -20,8 +20,16 @@
 #
 #
 
-# This script converts an .ipynb jupyter notebook file to an SMC sagews file
-# Harald Schilly <hsy@sagemath.com>, started June 2016
+"""
+This script converts an .ipynb jupyter notebook file to an SMC sagews file.
+It relies on the sagews command `jupyter()` to instantiate the communication bridge
+to the Jupyter kernel.
+
+Authors:
+
+* Harald Schilly <hsy@sagemath.com>, started June 2016
+"""
+
 from __future__ import print_function
 import sys
 import os
@@ -39,10 +47,10 @@ class IpynbCell(object):
 
     '''
     Sagews vs. Ipynb cells have several corner cases which make a translation a bit complex.
-    This class is only used for creating a suitable ipynb cell representation,
+    This class is only used for creating a single suitable ipynb cell representation,
     that is then inserted into the sagews worksheet.
 
-    # see http://nbformat.readthedocs.io/en/latest/format_description.html
+    see http://nbformat.readthedocs.io/en/latest/format_description.html
     '''
 
     def __init__(self, input='', outputs=None, md=None):
@@ -52,8 +60,10 @@ class IpynbCell(object):
         '''
         if outputs is not None and md is not None:
             raise ArgumentError('Either specify md or outputs -- not both!')
+        # inline: only the essential html, no header with styling, etc.
+        # linkify: detects URLs
         self._ansi2htmlconv = Ansi2HTMLConverter(inline=True, linkify=True)
-        # raw data
+        # input data
         self.input = input or ''
         # cell states data
         self.md = md or ''
@@ -76,6 +86,10 @@ class IpynbCell(object):
         return '<pre><span style="font-family:monospace;">%s</span></pre>' % html
 
     def process_outputs(self, outputs):
+        """
+        Each cell has one or more outputs of different types.
+        They are collected by type and transformed later.
+        """
         stdout = []
         html = []
         # ascii: for actual html content, that has been converted from ansi-encoded ascii
@@ -108,7 +122,6 @@ class IpynbCell(object):
                 print("ERROR: unknown output type '%s':\n%s" %
                       (ot, json.dumps(output, indent=2)))
 
-        # TODO refactor this mess using IpynbCell, etc.
         self.stdout = u'\n'.join(stdout)
         self.html = u'<br/>'.join(html)
         self.error = u'<br/>'.join(errors)
@@ -125,12 +138,13 @@ class IpynbCell(object):
 
         def mkcell(input='', output='', type='stdout', modes=''):
             '''
-            This creates a sagews cell.
+            This is a generalized template for creating a single sagews cell.
 
-            - modes:
+            - sagews modes:
                * '%auto' → 'a'
                * '%hide' → 'i'
                * '%hideall' → 'o'
+
             - type:
                * err/ascii: html formatted error or ascii/ansi content
                * stdout: plain text
@@ -149,6 +163,7 @@ class IpynbCell(object):
                      json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
             return cell
 
+        # depending on the typed arguments, construct the sagews cell
         if html:
             cell = mkcell(input=input, output = html, type='html', modes='')
         elif md:
@@ -184,15 +199,21 @@ class Ipynb2SageWS(object):
                 "%s: Warning --SageMathCloud worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
 
         self.nb = None  # holds the notebook data
-        self.output = None  # send cells to write here
+        self.output = None  # use self.write([line]) to write to output
 
     def convert(self):
+        """
+        Main routine
+        """
         self.read()
         self.open()
         self.kernel()
         self.body()
 
     def read(self):
+        """
+        Reads the ipynb file, regardless of version, and converts to API version 4
+        """
         self.nb = nbformat.read(self.infile, 4)
 
     def write(self, line):
@@ -215,17 +236,26 @@ class Ipynb2SageWS(object):
         self.output.next()
 
     def kernel(self):
+        """
+        The first cell contains a small info text and defines the global jupyter mode,
+        based on the kernel name in the ipynb file!
+        """
         spec = self.nb['metadata']
         name = spec['kernelspec']['name']
         cell = '''\
-        # This cell auto-evaluates and starts the Jupyter kernel with the specified name.
         %auto
-        jupyter_kernel = jupyter("{}")
+        # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
+        # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
+        jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
         %default_mode jupyter_kernel'''.format(name)
         self.write(IpynbCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
-        # see http://nbformat.readthedocs.io/en/latest/format_description.html
+        """
+        Converting all cells of the ipynb as the body of the sagews document.
+
+        see http://nbformat.readthedocs.io/en/latest/format_description.html
+        """
 
         for cell in self.nb.cells:
             ct = cell['cell_type']
@@ -251,7 +281,7 @@ def main():
         sys.stderr.write("""
 Convert a Jupyter Notebook .ipynb file to a SageMathCloud .sagews file.
 
-    Usage: %s path/to/filename.sws [path/to/filename2.sws] ...
+    Usage: %s path/to/filename.ipynb [path/to/filename2.ipynb ...]
 
 Creates corresponding file path/to/filename.sagews, if it doesn't exist.
 """ % sys.argv[0])
