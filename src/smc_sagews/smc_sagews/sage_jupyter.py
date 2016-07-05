@@ -60,7 +60,8 @@ class JUPYTER(object):
         in a cell, click the "restart" button, and you have an anaconda worksheet.
 
             | %auto
-            | %default_mode jupyter('anaconda3')
+            | anaconda3 = jupyter('anaconda3')
+            | %default_mode anaconda3
 
         Each call to jupyter creates its own Jupyter kernel. So you can have more than
         one instance of the same kernel type in the same worksheet session.
