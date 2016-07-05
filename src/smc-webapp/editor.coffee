@@ -2726,47 +2726,47 @@ class PDFLatexDocument
         status = opts.status
         async.series([
             (cb) =>
-                 status?(start:'latex')
-                 @_run_latex opts.latex_command, (err, _log) =>
-                     log += _log
-                     status?(end:'latex', log:_log)
-                     cb(err)
+                status?(start:'latex')
+                @_run_latex opts.latex_command, (err, _log) =>
+                    log += _log
+                    status?(end:'latex', log:_log)
+                    cb(err)
             (cb) =>
-                 if @_need_to_run.sage
-                     status?(start:'sage')
-                     @_run_sage @_need_to_run.sage, (err, _log) =>
-                         log += _log
-                         status?(end:'sage', log:_log)
-                         cb(err)
-                 else
+                if @_need_to_run.sage
+                    status?(start:'sage')
+                    @_run_sage @_need_to_run.sage, (err, _log) =>
+                        log += _log
+                        status?(end:'sage', log:_log)
+                        cb(err)
+                else
+                    cb()
+            (cb) =>
+                if @_need_to_run.bibtex
+                    status?(start:'bibtex')
+                    @_run_bibtex (err, _log) =>
+                        status?(end:'bibtex', log:_log)
+                        log += _log
+                        cb(err)
+                else
                      cb()
             (cb) =>
-                 if @_need_to_run.bibtex
-                     status?(start:'bibtex')
-                     @_run_bibtex (err, _log) =>
-                         status?(end:'bibtex', log:_log)
-                         log += _log
-                         cb(err)
-                 else
-                     cb()
+                if @_need_to_run.latex
+                    status?(start:'latex')
+                    @_run_latex opts.latex_command, (err, _log) =>
+                        log += _log
+                        status?(end:'latex', log:_log)
+                        cb(err)
+                else
+                    cb()
             (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
-            (cb) =>
-                 if @_need_to_run.latex
-                     status?(start:'latex')
-                     @_run_latex opts.latex_command, (err, _log) =>
-                          log += _log
-                          status?(end:'latex', log:_log)
-                          cb(err)
-                 else
-                     cb()
+                if @_need_to_run.latex
+                    status?(start:'latex')
+                    @_run_latex opts.latex_command, (err, _log) =>
+                        log += _log
+                        status?(end:'latex', log:_log)
+                        cb(err)
+                else
+                    cb()
             (cb) =>
                 @update_number_of_pdf_pages(cb)
         ], (err) =>
