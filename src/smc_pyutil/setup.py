@@ -3,6 +3,10 @@
 #   pip install --user --upgrade smc_pyutil/
 ###
 
+# Install requirements:
+# * pid: https://pypi.python.org/pypi/pid -- https://github.com/trbs/pid
+# * ansi2html: https://github.com/ralphbean/ansi2html
+
 # CRITICAL: I don't know any other way to ensure the permissions are
 # right on the templates than this
 import os
@@ -43,7 +47,7 @@ setup(
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
     packages         = ['smc_pyutil'],
-    install_requires = ['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
+    install_requires = ['markdown2', 'psutil', 'PyYAML', 'ansi2html', 'pid'],
     zip_safe         = False,
     classifiers      = [
         'License :: OSI Approved :: GPLv3',
@@ -70,6 +74,7 @@ setup(
             'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
             'smc-top              = smc_pyutil.smc_top:main',
             'smc-git              = smc_pyutil.smc_git:main',
+            'smc-run-latex        = smc_pyutil.run_latex:main',
         ]
     },
     include_package_data = True
