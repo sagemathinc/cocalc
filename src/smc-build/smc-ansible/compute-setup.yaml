@@ -2,6 +2,7 @@
 # include all ansible playbooks for setting up a compute node or project container
 - include: all-install.yaml
 - include: umask_compute.yaml
+- include: compute-proc.yaml
 - include: compute-security-limits.yaml
 - include: terminal-setup.yaml
 - include: r.yaml

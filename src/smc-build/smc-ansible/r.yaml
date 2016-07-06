@@ -6,9 +6,11 @@
 
   tasks:
   - name: 'R apt keys'
-    apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9 
+    apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
+
   - name: 'R repository url'
     apt_repository: repo='deb https://cloud.r-project.org//bin/linux/ubuntu {{ ansible_distribution_release }}/'
+
   - name: 'R installation'
     apt: name={{ item }} install_recommends=yes
     with_items:
@@ -22,3 +24,6 @@
     - python3-rpy2
     - ess
 
+  - name: "install Rscript wrapper (similar to R → Sage's R)"
+    copy: src=files/Rscript dest=/usr/local/bin/Rscript
+          owner=root group=root mode=ugo=rx
