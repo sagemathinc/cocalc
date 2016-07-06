@@ -6,6 +6,7 @@ Ansible: ansible-playbook all-install.yaml --tags=install
 
 put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
 
+hsy: now in ansible/compute-build-md.yaml tagged as motd
 
 # Compute VM's
 
@@ -20,17 +21,23 @@ Ansible: ansible-playbook all-install.yaml --tags=install
     sudo su
     cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install && cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1
 
+hsy: now in ansible/compute-build-md.yaml tagged as inotify and bup1
+
 # BASH
 
 Add this to the top of /etc/bash.bashrc, at least for now, due to bugs in Ubuntu and vim?!
 
     TERM=screen
 
+hsy: this is now part of ansible/terminal-setup.yaml
+
 # OBSPY --
 
 Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-obspy":
 
     echo $'\n'"deb http://deb.obspy.org trusty main"$'\n' >> /etc/apt/sources.list && apt-get update && apt-get install python-obspy
+
+hsy: this is now in ansible/all-install, tagged "obspy"
 
 # ATLAS:
 
@@ -40,9 +47,13 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
     export SAGE_ATLAS_LIB="/usr/lib/"
 
+hsy: this is now ansible/all-install tagged "atlas"
+
 # Add this to /etc/ssh/sshd_config
 
     MaxStartups 128
+
+hsy: now in ansible/compute-build-md.yaml tagges "ssh"
 
 # Freezing SSH host keys
 
@@ -77,9 +88,13 @@ Ansible:  ansible-playbook all-install.yaml --tags=install
 
 Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
+hsy: now in ansible/compute-build-md.yaml tagges tmpreaper
+
 # Cantera system-wide
 
 apt-add-repository ppa:speth/cantera; apt-get update; apt-get install cantera-python cantera-python3 cantera-dev
+
+hsy: in ansible/all-install.yaml
 
 # Python3-related packages of interest
 
@@ -88,6 +103,8 @@ Ansible: ansible-playbook all-install.yaml --tags=install
 # IPython with notebook and octave kernel
 
     umask 022 && sudo apt-get remove ipython && sudo pip install --upgrade ipython notebook octave_kernel && cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \;
+
+ansible: compute-build-md.yaml, tagged ipython (and added bash_kernel)
 
 # Special script to run python2 systemwide from within Sage:
 
@@ -103,10 +120,14 @@ unset LD_LIBRARY_PATH
 /usr/bin/python2 "$@"
 ```
 
+ansible: compute-build-md.yaml, tagged python2sage
+
 # Install the pair-based-crypto library system-wide
 
 
 cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz; cd
+
+ansible: compute-build-md.yaml tagged pairbasedcrypto
 
 # SAGE
 
@@ -115,17 +136,20 @@ Before building sage do:
 
     Change this line in /etc/login.defs:  "UMASK           077"
 
-
+ansible: umask_compute.yaml and referenced from compute-setup.yaml
 
 # Cgroups configuration (!!) -- very important!
 
     echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
     pam-auth-update  # select defaults -- this probably isn't needed.
 
+ansible: compute-build-md.yaml tagged cgroups -- maybe not necessary for docker?
+
 # Open Axiom --- see https://launchpad.net/~pippijn/+archive/ubuntu/ppa
 
     echo $'\n'"deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main"$'\n' >> /etc/apt/sources.list && apt-get update && sudo apt-get install open-axiom*
 
+ansible: all-install.yaml tagged openaxiom
 
 # Primesieve
 
@@ -135,12 +159,17 @@ As root do
 
 Check http://primesieve.org/build.html for the latest version.
 
+ansible: compute-build-md.yaml tagged primesieve
+
 # GAP3
 
 Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3 && sudo  ln -s /projects/sage/gap3/bin/gap.sh /usr/local/bin/gap3
+
     vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
+
+ansible: compute-buld-md.yaml tagged gap3 // sage's gap3 setup not possible, because sage is somewhere else!!!
 
 # OpenCV Computer Vision
 
@@ -148,7 +177,7 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && rm -rf opencv_contrib/modules/hdf && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j4 && sudo make install && sudo sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
 
-
+ansible: compute-build-md.yaml tagged opencv
 
 # KWANT
 
@@ -163,6 +192,7 @@ Ansible: ansible-playbook all-install.yaml --tags=kwant
 
     cd /usr/share/fonts/truetype && ln -s liberation ttf-liberation
 
+ansible: all-install.yaml --tags=octave
 
 # Dropbox: so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 

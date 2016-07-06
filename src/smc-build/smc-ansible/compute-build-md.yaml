@@ -1,0 +1,85 @@
+---
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+
+  - name: "no sysinfo in MOTD"
+    lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
+                line="exit 0"
+                insertafter="^#!/bin/*"
+    tags: motd
+
+  - name: "Install https://github.com/williamstein/python-inotify"
+    shell: "cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install"
+    tags: inotify
+
+  - name: "Install https://github.com/williamstein/bup-1 systemwide"
+    shell: "cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1"
+    tags: bup1
+
+  - name: "/etc/ssh/sshd_config: MaxStartups 128"
+    lineinfile: dest=/etc/ssh/sshd_config
+                insertafter="^#MaxStartups.*"
+                line="MaxStartups 128"
+    tags: ssh
+
+  - name: "remove tmpreaper warning"
+    lineinfile: dest=/etc/tmpreaper.conf
+                backrefs=yes
+                regexp="^SHOWWARNING=.*"
+                line="#SHOWWARNING=true"
+    tags: tmpreaper
+
+  - name: "IPython with notebook and octave+bash kernel / remove ipython"
+    apt: name=ipython state=absent
+    tags: ipython
+  - name: "IPython with notebook and octave+bash kernel / install from pip"
+    tags: ipython
+    pip: executable=pip
+         umask=022
+         name={{ item }}
+    with_items:
+    - ipython
+    - notebook
+    - octave_kernel
+    - bash_kernel
+  - name: "fix permissions in all python2.7/dist-packages"
+    tags: ipython
+    shell: "cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \\;"
+
+  - name: "Special script to run python2 systemwide from within Sage"
+    tags: python2sage
+    copy: src=files/python2-ubuntu.sh
+          dest=/usr/local/bin/python2-ubuntu
+          owner=root group=root mode="u=rx,g=rx,o=rx"
+
+  - name: "install pair-based-crypto library system-wide"
+    tags: pairbasedcrypto
+    shell: "cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz"
+
+  - name: "cgroups configuration -- TODO maybe not needed in docker?"
+    tags: cgroups
+    lineinfile: dest=/etc/pam.d/common-session
+                line="session optional pam_cgroup.so"
+                insertafter=EOF
+
+  - name: "install primesieve"
+    tags: primesieve
+    shell: "cd /tmp && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*"
+
+  - name: "install gap3"
+    tags: gap3
+    shell: "umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3"
+
+  - name: "gap3 symlink"
+    tags: gap3
+    file: src=/projects/sage/gap3/bin/gap.sh
+          dest=/usr/local/bin/gap3
+          state=link
+
+  - name: "install opencv"
+    tags: opencv
+    shell: "cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && rm -rf opencv_contrib/modules/hdf && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j4 && sudo make install && sudo sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv"
+
