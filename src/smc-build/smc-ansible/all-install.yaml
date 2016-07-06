@@ -22,7 +22,6 @@
       - atop
       - aptitude
       - bup
-      - etckeeper
       - htop
       - fio
       - monit
@@ -829,16 +828,16 @@
   - name: 'install atlas'
     apt: name={{ item }} install_recommends=yes
     with_items:
-    - libatlas3gf-base
+    - libatlas3-base
     - liblapack-dev
   # cd /usr/lib/ && ln -s libatlas.so.3gf libatlas.so && ln -s libcblas.so.3gf libcblas.so && ln -s libf77blas.so.3gf libf77blas.so
   # file: src=/file/to/link/to dest=/path/to/symlink
   - name: 'configure atlas installation symlinks'
     file: src=/usr/lib/{{ item.src }} dest=/usr/lib/{{ item.dest }} state=link
     with_items:
-    - { src: 'libatlas.so.3gf',   dest: 'libatlas.so' }
-    - { src: 'libcblas.so.3gf',   dest: 'libcblas.so' }
-    - { src: 'libf77blas.so.3gf', dest: 'libf77blas.so' }
+    - { src: 'libatlas.so.3',   dest: 'libatlas.so' }
+    - { src: 'libcblas.so.3',   dest: 'libcblas.so' }
+    - { src: 'libf77blas.so.3', dest: 'libf77blas.so' }
 
 # OpenAxiom
 - hosts: compute
@@ -847,8 +846,8 @@
   tags: openaxiom
 
   tasks:
-  - name: "obspy apt repository"
-    apt_repository: repo='ppa:pippijn/ppa'
+  - name: "obspy apt repository (for precise, since xenial does not exist)"
+    apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - apt: name="open-axiom*"
          install_recommends=yes
 # Julia
@@ -869,8 +868,8 @@
     - julia-doc
   - name: "fix libzmq version #1 -- see build.md for what is going on here"
     apt: name=libzmq1 state=absent
-  - name: "fix libzmq version #2"
-    file: src=/usr/lib/x86_64-linux-gnu/libzmq.so.3 path=/usr/lib/x86_64-linux-gnu/libzmq.so state=link
+  #- name: "fix libzmq version #2"
+  #  file: src=/usr/lib/x86_64-linux-gnu/libzmq.so.3 path=/usr/lib/x86_64-linux-gnu/libzmq.so state=link
   - name: "fix libzmq version #3 -- prevent apt from installing it again"
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
@@ -882,7 +881,7 @@
 
   tasks:
   - name: "install nemo into julia (after julia has been installed)"
-    shell: "umask 022 && export JULIA_PKGDIR=/usr/local/share/julia/site/ && echo 'Pkg.clone(\"https://github.com/wbhart/Nemo.jl\")' | julia && echo 'Pkg.build(\"Nemo\")' | julia && export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib && cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so && echo 'using Nemo' | julia"
+    shell: "umask 022 && export JULIA_PKGDIR=/usr/local/share/julia/site/ && (echo 'Pkg.init()' | julia) && (echo 'Pkg.clone(\"https://github.com/wbhart/Nemo.jl\")' | julia) && (echo 'Pkg.build(\"Nemo\")' | julia) && export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib && cd $LD_LIBRARY_PATH; ln -s libarb.so.0.0.0 libarb.so && (echo 'using Nemo' | julia)"
 
 # Octave
 - hosts: compute
