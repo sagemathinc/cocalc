@@ -9,9 +9,12 @@
     group: name=showpid state=present system=yes
     tags: users
 
-  - name: "add user 'salvus' to 'showpid'"
-    user: name=salvus groups=showpid append=yes
+  - name: "add important users to 'showpid'"
+    user: name={{ item }} groups=showpid append=yes
     tags: users
+    with_items:
+         - salvus
+         - dd-agent
 
   - name: "user 'monitor' is a systems account in 'showpid'"
     user: name=monitor system=yes shell=/bin/bash groups=showpid append=yes
@@ -31,4 +34,4 @@
   handlers:
 
   - name: remount proc
-    command: mount -o remount,rw,hidepid=2,gid=showpid /proc
+    shell: mount -o remount,rw,hidepid=2,gid=showpid /proc || exit 0

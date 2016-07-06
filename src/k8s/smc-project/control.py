@@ -9,7 +9,7 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='project'
+NAME='smc-project'
 
 def build(tag, rebuild):
     v = ['sudo', 'docker', 'build', '-t', tag]
@@ -47,11 +47,11 @@ def run_on_kubernetes(args):
                            disk_size      = args.disk_size,
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
-        util.run(['kubectl', 'create', '-f', tmp.name])
+        util.update_deployment(tmp.name)
 
 def delete(args):
     validate_project_ids(args)
-    util.run(['kubectl', 'delete', 'pod', "project-" + args.project_id])
+    util.stop_deployment("project-" + args.project_id)
 
 if __name__ == '__main__':
     import argparse
@@ -65,12 +65,12 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='run the given project'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub = subparsers.add_parser('run', help='run the given project', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub.add_argument("-s", "--storage-server", type=int, help="(required) storage server number: 0, 1, 2, 3", required=True)
+    sub.add_argument("-d", "--disk-size",  default='3G', help="disk size")
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-f", "--force",  action="store_true", help="force re-download image in k8s")
-    sub.add_argument("-s", "--storage-server", default=0, type=int, help="storage server number: 0, 1, 2, 3")
-    sub.add_argument("-d", "--disk-size",  default='3G', help="disk size")
-    sub.add_argument('project_id', type=str, help='which node or nodes to run')
+    sub.add_argument('project_id', type=str, help='which project to run')
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('delete', help='kill the running project')

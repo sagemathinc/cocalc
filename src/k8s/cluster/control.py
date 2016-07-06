@@ -44,6 +44,17 @@ def cost_of_cluster(node_size, node_disk_type, node_disk_size, min_nodes, max_no
     print("total       = ", show(total))
     print("total       = ", show([total[0]/30.5, total[1]/30.5], 'daily'))
 
+def print_cluster_cost(args):
+    cost_of_cluster(node_size = args.node_size,
+                    node_disk_type = 'pd-ssd' if args.node_ssd else 'pd-standard',
+                    node_disk_size = args.node_disk_size,
+                    min_nodes = args.min_nodes,
+                    max_nodes = args.max_nodes,
+                    master_size = args.master_size if hasattr(args, 'master_size') else None,
+                    master_disk_type = 'pd-ssd',  # forced by k8s
+                    master_disk_size = args.master_disk_size if hasattr(args, 'master_disk_size') else None,
+                    preemptible = args.preemptible)
+
 def available_cluster_ip_range():
     # Determine available ip range. TODO: this is NOT rock solid -- it's just enough to
     # prevent collisions with other clusters, which is all we need.  However, be nervous.
@@ -60,79 +71,11 @@ def available_cluster_ip_range():
         break
     return '10.%s.0.0/16'%n
 
-def create_cluster(args):
-    if '_' in args.name:
-        raise ValueError("name must not contain an underscore (_)")
-    if args.min_nodes > args.max_nodes:
-        args.max_nodes = args.min_nodes
-    if args.cost:
-        c = cost_of_cluster(node_size = args.node_size,
-                            node_disk_type = 'pd-ssd' if args.node_ssd else 'pd-standard',
-                            node_disk_size = args.node_disk_size,
-                            min_nodes = args.min_nodes,
-                            max_nodes = args.max_nodes,
-                            master_size = args.master_size,
-                            master_disk_type = 'pd-ssd',  # forced by k8s
-                            master_disk_size = args.master_disk_size,
-                            preemptible = args.preemptible)
-        print(c)
-        return
-
+def cluster_env(args, prefix=None):
+    if prefix is None:
+        prefix = util.get_cluster_prefix()
     cluster_ip_range = available_cluster_ip_range()
-
     # see https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/config-default.sh for env vars
-    env = {
-        'KUBE_ENABLE_CLUSTER_MONITORING' : 'google',
-        'KUBE_GCE_ZONE'                  : args.zone,
-        'NODE_SIZE'                      : args.node_size,
-        'NUM_NODES'                      : str(args.min_nodes),
-        'MASTER_SIZE'                    : args.master_size,
-        'MASTER_DISK_SIZE'               : "%sGB"%args.master_disk_size,
-        'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
-        'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
-        'PREEMPTIBLE_NODE'               : 'true' if args.preemptible else 'false',
-        'KUBE_GCE_INSTANCE_PREFIX'       : 'k8s-'+args.name,
-        'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
-        'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
-        'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'CLUSTER_IP_RANGE'               : cluster_ip_range,
-        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
-        'KUBE_OS_DISTRIBUTION'           : 'debian',
-        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
-        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
-        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
-        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
-        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
-        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
-    }
-
-    env.update(os.environ)
-    util.run(join(CLUSTER, 'kube-up.sh'), env=env)
-    update_firewall()
-
-def create_instance_group(args):
-    raise NotImplementedError("this might not work due needing to set CLUSTER_IP_RANGE (?)  -- it could break everything; make sure to carefully test")
-    if '_' in args.name:
-        raise ValueError("name must not contain an underscore (_)")
-    if args.min_nodes > args.max_nodes:
-        args.max_nodes = args.min_nodes
-    if args.cost:
-        c = cost_of_cluster(node_size = args.node_size,
-                            node_disk_type = 'pd-ssd' if args.node_ssd else 'pd-standard',
-                            node_disk_size = args.node_disk_size,
-                            min_nodes = args.min_nodes,
-                            max_nodes = args.max_nodes,
-                            preemptible = not args.non_preemptible)
-        print(c)
-        return
-
-    if not args.name:
-        raise RuntimeError("you must specify a name")
-
-
-    prefix = util.get_cluster_prefix()
-
-    # KUBE_USE_EXISTING_MASTER -- figured out by looking at https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/util.sh
     env = {
         'KUBERNETES_PROVIDER'            : 'gce',
         'KUBE_MASTER'                    : prefix + '-master',
@@ -142,19 +85,61 @@ def create_instance_group(args):
         'NUM_NODES'                      : str(args.min_nodes),
         'NODE_DISK_TYPE'                 : 'pd-ssd' if args.node_ssd else 'pd-standard',
         'NODE_DISK_SIZE'                 : "%sGB"%args.node_disk_size,
-        'PREEMPTIBLE_NODE'               : 'false' if args.non_preemptible else 'true',
+        'PREEMPTIBLE_NODE'               : 'true' if args.preemptible else 'false',
         'KUBE_GCE_INSTANCE_PREFIX'       : prefix,
-        'NEW_GROUP_PREFIX'               : prefix + '-' + args.name,
         'KUBE_ENABLE_NODE_AUTOSCALER'    : 'true' if args.min_nodes < args.max_nodes else 'false',
         'KUBE_AUTOSCALER_MIN_NODES'      : str(args.min_nodes),
         'KUBE_AUTOSCALER_MAX_NODES'      : str(args.max_nodes),
-        'KUBE_ROOT'                      : KUBE_ROOT  # required by the kube-add.sh script
+        'CLUSTER_IP_RANGE'               : cluster_ip_range,
+        'KUBE_GCE_MASTER_PROJECT'        : 'google-containers',   # gcloud compute images list --project google-containers
+        'KUBE_OS_DISTRIBUTION'           : 'debian',
+        'KUBE_GCE_MASTER_IMAGE'          : 'container-v1-3-v20160604',
+        'KUBE_GCE_NODE_IMAGE'            : 'container-v1-3-v20160604',
+        'KUBE_ROOT'                      : KUBE_ROOT,
+        #'KUBE_GCE_MASTER_PROJECT'        : 'ubuntu-os-cloud',   # gcloud compute images list --project google-containers
+        #'KUBE_OS_DISTRIBUTION'           : 'trusty',
+        #'KUBE_GCE_MASTER_IMAGE'          : 'ubuntu-1404-trusty-v20160627',
+        #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
     }
 
+    if hasattr(args, 'master_size'):
+        env['MASTER_SIZE'] = args.master_size
+    if hasattr(args, 'master_disk_size'):
+        env['MASTER_DISK_SIZE'] ="%sGB"%args.master_disk_size
+
     env.update(os.environ)
+    return env
+
+def create_cluster(args):
+    if '_' in args.name:
+        raise ValueError("name must not contain an underscore (_)")
+    if args.min_nodes > args.max_nodes:
+        args.max_nodes = args.min_nodes
+    if args.cost:
+        print_cluster_cost(args)
+        return
+
+    util.run(join(CLUSTER, 'kube-up.sh'), env=cluster_env(args, 'k8s-' + args.name))
+    update_firewall()
+
+def create_instance_group(args):
+    if '_' in args.name:
+        raise ValueError("name must not contain an underscore (_)")
+    if args.min_nodes > args.max_nodes:
+        args.max_nodes = args.min_nodes
+    if not args.name:
+        raise RuntimeError("you must specify an instance group name")
+    if args.cost:
+        print_cluster_cost(args)
+        return
+
     # Copy over and run our own script for adding a new managed instance group!
     # I wrote this script based on reading the kubernetes shell scripts for hours... (ws)
     os.chdir(SCRIPT_PATH)
+
+    env = cluster_env(args)
+    env['NEW_GROUP_PREFIX'] = env['KUBE_GCE_INSTANCE_PREFIX'] + '-' + args.name
+
     util.run('./kube-add.sh', env=env)
 
 def delete_instance_group(args):
@@ -331,7 +316,7 @@ if __name__ == '__main__':
     sub.add_argument("--node-disk-size",   default=100, type=int,    help="size of node disks")
     sub.add_argument("--min-nodes",        default=2,  type=int,    help="min number of nodes; can change later")
     sub.add_argument("--max-nodes",        default=2,  type=int,    help="max number of nodes (if >min, autoscale); can change later")
-    sub.add_argument("--non-preemptible",  action="store_true",     help="do NOT use preemptible nodes")
+    sub.add_argument("--preemptible",      action="store_true",     help="use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating instance group, only estimate monthly cost of the instance group")
     sub.add_argument("name", help="instance group will be named k8s-[cluster]-[name]")
     sub.set_defaults(func=create_instance_group)

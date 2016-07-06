@@ -1290,7 +1290,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
                     target = "#{window.smc_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
-                switch misc.filename_extension(val.filename)
+                switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 
                     when 'webm'
@@ -1316,7 +1316,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                     else
                                         elt.data('width', obj.opts.width / $(window).width())
 
-                    when 'svg', 'png', 'gif', 'jpg'
+                    when 'svg', 'png', 'gif', 'jpg', 'jpeg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")
                         output.append(img)
 
