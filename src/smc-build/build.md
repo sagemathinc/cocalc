@@ -169,7 +169,7 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
 
-ansible: compute-buld-md.yaml tagged gap3 // sage's gap3 setup not possible, because sage is somewhere else!!!
+woulb be in ansible/compute-buld-md.yaml tagged gap3, but it's not possible to install it, because sage is somewhere else! (i.e. it is installed in `/projects/sage/...`)
 
 # OpenCV Computer Vision
 
@@ -204,14 +204,20 @@ ansible: all-install.yaml --tags=octave
 
     cd /tmp && rm -rf neovim && unset MAKE && git clone https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install && rm -rf /tmp/neovim
 
+ansible/compute-build-md.yaml tagged neovim
+
 # MACAULAY2: Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
     apt-get install libntl-dev libntl0  libpari-gmp-tls4 libpari-dev pari-gp2c && cd /tmp/ && rm -rf m2 && mkdir m2 && cd m2 && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm -rf /tmp/m2
 
 
+ansible/compute-build-md.yaml tagged macaulay2
+
 # Julia: from http://julialang.org/downloads/
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
+
+ansible/all-install tagged julia
 
 ## Julia: fix libzmq version
 
@@ -245,6 +251,7 @@ should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux
     cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
     echo 'using Nemo' | julia
 
+ansible: all-install.yaml tagged nemo
 
 To test, do this from Julia:
 
@@ -264,10 +271,14 @@ Ansible: ansible-playbook all-install.yaml --tags=fenics
 
    apt-get install python-pip python3-pip &&   umask 022 && /usr/bin/pip install -U theano && /usr/bin/pip install -U clawpack
 
+this is part of ansible's compute-build-md.yaml with tag pip
+
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets mygene seaborn biopython
     sudo ipython3 kernelspec install-self rethinkdb filterpy
+
+ansible: compute-build-md.yaml tagged ipython3
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -337,6 +348,8 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
 
 Then files were installed into `/usr/local` and pushing that out for everyone.
 
+ansible: compute-build-md.yaml tagged polymake
+
 # Make ROOT data analysis ipython notebook support system-wide work.
 
     cd /usr/lib/x86_64-linux-gnu/root5.34 && wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py && chmod a+r * && echo "import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/', '/usr/local/lib/python2.7/dist-packages'])"$'\n' >  /usr/local/sage/current/local/lib/python/sitecustomize.py
@@ -366,6 +379,7 @@ echo "root     hard    nofile          20000"$'\n' >> /etc/security/limits.conf
    echo "root soft nproc 20000"$'\n' >> /etc/security/limits.conf
    echo "root hard nproc 20000"$'\n' >> /etc/security/limits.conf
 
+ansible: compute-security-limits.yaml
 
 # Create net test user
 
@@ -401,6 +415,8 @@ In /etc/sysctl.conf, put:
 
     sudo pip uninstall crcmod; sudo pip install -U crcmod
 
+
+ansible: compute-build-md.yaml tagged crcmod
 
 # Build Sage (as usual)
 
@@ -443,6 +459,8 @@ In /etc/sysctl.conf, put:
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
     pip3 install --upgrade numba holoviews
 
+ansible: compute-build-md.yaml tagged pip3
+
 # The netcd4 system-wide python package requires some crazy environment variables to work:
 
     export PROJ_DIR=/usr; export NETCDF4_DIR=/usr; export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial/; export HDF5_DIR=/usr/; export C_INCLUDE_PATH=/usr/lib/openmpi/include; export USE_NCCONFIG=0;  export HDF5_INCDIR=/usr/include/hdf5/serial; export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/serial; export HDF5_INCDIR=/usr/include/hdf5/serial
@@ -454,9 +472,14 @@ In /etc/sysctl.conf, put:
     umask 022
     pip install datasift bokeh twitter ctop macs2 pygsl
 
+ansible: compute-build-md.yaml tagged pip
+
 # System-wide git trac
 
     cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command
+
+
+ansible: compute-build-md.yaml tagged gittrac
 
 # Anaconda Python 3 distribution
 
@@ -471,6 +494,8 @@ Add this line
 to
 
     /etc/ssh/sshd_config
+
+ansible: compute-build-md.yaml tagged x11
 
 # HORRIBLE STUFF
 
@@ -490,11 +515,12 @@ Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pe
     SAGEDIR=$(dirname $(readlink -f $(which sage)))
     exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
 
+ansible: r.yaml
+
 # Plink
 
-Install the Ubuntu package (how?):
-
-
+Install the Ubuntu package (how?): plink
 
 Make a link to preserve the usual name: `cd /usr/bin; sudo ln -s /usr/bin/p-link plink`
 
+ansible: all-install.yaml tagged plink

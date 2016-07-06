@@ -52,6 +52,7 @@
           state=latest
           name={{ item }}
     with_items:
+       - pip
        - google-api-python-client
        - jsonschema
 
@@ -174,7 +175,7 @@
 
   tasks:
   - name: 'getting rid of certain packages causing trouble'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} state=absent
     with_items:
     - mlocate
     tags:
@@ -850,6 +851,38 @@
     apt_repository: repo='ppa:pippijn/ppa'
   - apt: name="open-axiom*"
          install_recommends=yes
+# Julia
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: julia
+
+  tasks:
+  - name: "julia apt repo"
+    apt_repository: repo='ppa:staticfloat/juliareleases'
+  - name: "julia apt dependencies repo"
+    apt_repository: repo='ppa:staticfloat/julia-deps'
+  - name: "julia installation"
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - julia
+    - julia-doc
+  - name: "fix libzmq version #1 -- see build.md for what is going on here"
+    apt: name=libzmq1 state=absent
+  - name: "fix libzmq version #2"
+    file: src=/usr/lib/x86_64-linux-gnu/libzmq.so.3 path=/usr/lib/x86_64-linux-gnu/libzmq.so state=link
+  - name: "fix libzmq version #3 -- prevent apt from installing it again"
+    shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
+
+# Nemo (right after Julia!)
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: nemo
+
+  tasks:
+  - name: "install nemo into julia (after julia has been installed)"
+    shell: "umask 022 && export JULIA_PKGDIR=/usr/local/share/julia/site/ && echo 'Pkg.clone(\"https://github.com/wbhart/Nemo.jl\")' | julia && echo 'Pkg.build(\"Nemo\")' | julia && export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib && cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so && echo 'using Nemo' | julia"
 
 # Octave
 - hosts: compute
@@ -861,7 +894,6 @@
   - name: "install ocatave"
     apt: name={{ item }} install_recommends=yes
     with_items:
-    - octave-audio
     - octave-biosig
     - octave-common
     - octave-communications
@@ -895,7 +927,6 @@
     - octave-ocs
     - octave-octcdf
     - octave-odepkg
-    - octave-openmpi-ext
     - octave-optim
     - octave-optiminterp
     - octave-parallel
@@ -920,3 +951,13 @@
   - name: "fix some font for octave"
     file: src=/usr/share/fonts/truetype/liberation dest=/usr/share/fonts/truetype/ttf-liberation state=link
 
+# Plink (whole genome analysis, not the router!)
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: plink
+  tasks:
+  - name: 'install plink'
+    apt: name=plink install_recommends=yes
+  - name: 'symlink from p-link to plink'
+    file: src=/usr/bin/p-link dest=/usr/bin/plink state=link
