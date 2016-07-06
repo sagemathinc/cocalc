@@ -506,7 +506,7 @@ exports.FoldersToolbar = rclass
             # Omit any currently assigned directory
             paths_to_omit = []
 
-            active_items = all_items.filter (val) => not val.deleted
+            active_items = all_items.filter (val) => not val.get('deleted')
             active_items.map (val) =>
                 path = val.get('path')
                 if path  # path might not be set in case something went wrong (this has been hit in production)

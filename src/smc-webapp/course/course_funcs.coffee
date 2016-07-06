@@ -64,4 +64,4 @@ exports.order_list = (opts) ->
     if include_deleted
         list = list.concat(sorted_deleted)
 
-    return {list:list, num_deleted:sorted_deleted.length}
+    return {list:list, deleted:x, num_deleted:sorted_deleted.length}

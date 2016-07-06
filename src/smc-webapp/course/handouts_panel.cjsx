@@ -77,12 +77,12 @@ exports.HandoutsPanel = rclass
             search_key  : 'path'
             search      : @state.search.trim()
 
-        {list, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = course_funcs.order_list
             list             : list
             compare_function : (a,b) => misc.cmp(a.path?.toLowerCase(), b.path?.toLowerCase())
             include_deleted  : @state.show_deleted
 
-        return {shown_handouts:list, num_omitted:num_omitted, num_deleted:num_deleted}
+        return {shown_handouts:list, deleted_handouts:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_show_deleted_button : (num_deleted) ->
         if @state.show_deleted
@@ -98,9 +98,23 @@ exports.HandoutsPanel = rclass
                 </Tip>
             </Button>
 
+    yield_adder : (deleted_handouts) ->
+        deleted_paths = {}
+        deleted_handouts.map (obj) =>
+            if obj.path
+                deleted_paths[obj.path] = obj.handout_id
+
+        (path) =>
+            if deleted_paths[path]?
+                @props.actions.undelete_handout(deleted_paths[path])
+            else
+                @props.actions.add_handout(path)
+
     render : ->
         # Computed data from state changes have to go in render
-        {shown_handouts, num_omitted, num_deleted} = @compute_handouts_list()
+        {shown_handouts, deleted_handouts, num_omitted, num_deleted} = @compute_handouts_list()
+        add_handout = @yield_adder(deleted_handouts)
+
         header =
             <FoldersToolbar
                 search        = {@state.search}
@@ -108,7 +122,7 @@ exports.HandoutsPanel = rclass
                 num_omitted   = {num_omitted}
                 project_id    = {@props.project_id}
                 items         = {@props.all_handouts}
-                add_folders   = {(paths)=>paths.map(@props.actions.add_handout)}
+                add_folders   = {(paths)=>paths.map(add_handout)}
                 item_name     = {"handout"}
                 plural_item_name = {"handouts"}
             />

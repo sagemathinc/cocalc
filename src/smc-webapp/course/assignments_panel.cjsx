@@ -43,12 +43,12 @@ exports.AssignmentsPanel = rclass
 
         f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
 
-        {list, num_deleted} = course_funcs.order_list
+        {list, deleted, num_deleted} = course_funcs.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
             include_deleted  : @state.show_deleted
 
-        return {shown_assignments:list, num_omitted:num_omitted, num_deleted:num_deleted}
+        return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_assignments : (assignments) ->
         for x,i in assignments
@@ -72,8 +72,21 @@ exports.AssignmentsPanel = rclass
                 </Tip>
             </Button>
 
+    yield_adder : (deleted_assignments) ->
+        deleted_paths = {}
+        deleted_assignments.map (obj) =>
+            if obj.path
+                deleted_paths[obj.path] = obj.assignment_id
+
+        (path) =>
+            if deleted_paths[path]?
+                @props.actions.undelete_assignment(deleted_paths[path])
+            else
+                @props.actions.add_assignment(path)
+
     render : ->
-        {shown_assignments, num_omitted, num_deleted} = @compute_assignment_list()
+        {shown_assignments, deleted_assignments, num_omitted, num_deleted} = @compute_assignment_list()
+        add_assignment = @yield_adder(deleted_assignments)
 
         header =
             <FoldersToolbar
@@ -82,7 +95,7 @@ exports.AssignmentsPanel = rclass
                 num_omitted   = {num_omitted}
                 project_id    = {@props.project_id}
                 items         = {@props.all_assignments}
-                add_folders   = {(paths)=>paths.map(@props.actions.add_assignment)}
+                add_folders   = {(paths)=>paths.map(add_assignment)}
                 item_name     = {"assignment"}
                 plural_item_name = {"assignments"}
             />
