@@ -66,11 +66,11 @@ if __name__ == '__main__':
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='run the given project'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub.add_argument("-s", "--storage-server", type=int, help="(required) storage server number: 0, 1, 2, 3", required=True)
+    sub.add_argument("-d", "--disk-size",  default='3G', help="disk size")
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-f", "--force",  action="store_true", help="force re-download image in k8s")
-    sub.add_argument("-s", "--storage-server", default=0, type=int, help="storage server number: 0, 1, 2, 3")
-    sub.add_argument("-d", "--disk-size",  default='3G', help="disk size")
-    sub.add_argument('project_id', type=str, help='which node or nodes to run')
+    sub.add_argument('project_id', type=str, help='which project to run')
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('delete', help='kill the running project')
