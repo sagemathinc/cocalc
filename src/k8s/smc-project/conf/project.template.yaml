@@ -32,3 +32,5 @@ spec:
         server    : "storage{storage_server}"
         path      : "projects/{project_id}.zfs"
         size      : {disk_size}
+  #nodeSelector:
+  #  disk: big
