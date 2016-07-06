@@ -31,7 +31,6 @@ RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
 
 # this runs the meta-playbook "compute-setup" with the modified machines file on localhost
 WORKDIR /smc/src/smc-build/smc-ansible
-COPY container.ini ./container.ini
 RUN ansible-playbook -i container.ini compute-setup.yaml
 
 # Build (mainly involves installing dependencies)
