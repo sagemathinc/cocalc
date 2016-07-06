@@ -1,0 +1,13 @@
+{
+ "display_name": "Python 2 (SageMath)",
+ "argv": [
+  "python",
+  "-E",
+  "-m",
+  "ipykernel",
+  "--matplotlib=inline",
+  "-f",
+  "{connection_file}"
+ ],
+ "language": "python"
+}
