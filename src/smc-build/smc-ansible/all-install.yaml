@@ -881,7 +881,15 @@
 
   tasks:
   - name: "install nemo into julia (after julia has been installed)"
-    shell: "umask 022 && export JULIA_PKGDIR=/usr/local/share/julia/site/ && (echo 'Pkg.init()' | julia) && (echo 'Pkg.clone(\"https://github.com/wbhart/Nemo.jl\")' | julia) && (echo 'Pkg.build(\"Nemo\")' | julia) && export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib && cd $LD_LIBRARY_PATH; ln -s libarb.so.0.0.0 libarb.so && (echo 'using Nemo' | julia)"
+    shell: |
+        umask 022
+        export JULIA_PKGDIR=/usr/local/share/julia/site/
+        echo 'Pkg.init()' | julia
+        echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
+        echo 'Pkg.build("Nemo")' | julia
+        export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
+        cd $LD_LIBRARY_PATH; ln -s libarb.so.0.0.0 libarb.so
+        echo 'using Nemo' | julia
 
 # Octave
 - hosts: compute

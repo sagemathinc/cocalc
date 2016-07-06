@@ -48,11 +48,23 @@
     tags: motd
 
   - name: "Install https://github.com/williamstein/python-inotify"
-    shell: "cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install"
+    shell: |
+        cd /tmp
+        rm -rf python-inotify
+        git clone https://github.com/williamstein/python-inotify
+        cd python-inotify
+        python setup.py install
     tags: inotify
 
   - name: "Install https://github.com/williamstein/bup-1 systemwide"
-    shell: "cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1"
+    shell: |
+        cd /tmp
+        rm -rf python-inotify bup-1
+        git clone https://github.com/williamstein/bup-1
+        cd bup-1
+        make install
+        cd ..
+        rm -rf bup-1
     tags: bup1
 
   - name: "/etc/ssh/sshd_config: MaxStartups 128"
@@ -84,7 +96,10 @@
     - bash_kernel
   - name: "fix permissions in all python2.7/dist-packages"
     tags: ipython
-    shell: "cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \\;"
+    shell: |
+        cd /usr/local/lib/python2.7/dist-packages
+        sudo chmod a+r -R .
+        sudo find . -perm /u+x -execdir chmod a+x {} \;
 
   - name: "IPython3 in Python3"
     tags: ipython3
@@ -117,7 +132,15 @@
 
   - name: "install primesieve"
     tags: primesieve
-    shell: "cd /tmp && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*"
+    shell: |
+        cd /tmp/
+        wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz
+        tar xf primesieve-5.4.1.tar.gz
+        cd primesieve-5.4.1
+        ./configure
+        make -j 1
+        make install
+        rm -rf /tmp/primesieve*
 
   #- name: "install gap3"
   #  tags: gap3
@@ -131,7 +154,24 @@
 
   - name: "install opencv"
     tags: opencv
-    shell: "cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && rm -rf opencv_contrib/modules/hdf && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j1 && sudo make install && sudo sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv"
+    shell: |
+        cd /tmp/
+        rm -rf opencv
+        mkdir opencv
+        cd opencv
+        git clone https://github.com/Itseez/opencv_contrib.git
+        rm -rf opencv_contrib/modules/hdf
+        git clone https://github.com/Itseez/opencv.git
+        cd opencv
+        mkdir build
+        cd build
+        time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules ..
+        time make -j1
+        sudo make install
+        sudo sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/opencv.conf'
+        sudo ldconfig
+        cd /tmp
+        rm -rf opencv
 
   - name: "isntall neovim"
     tags: neovim
@@ -148,7 +188,15 @@
     - pari-gp2c
   - name: "install macaulay2 / deb"
     tags: macaulay2
-    shell: "cd /tmp/ && rm -rf m2 && mkdir m2 && cd m2 && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm -rf /tmp/m2"
+    shell: |
+        cd /tmp/
+        rm -rf m2
+        mkdir m2
+        cd m2
+        wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb
+        wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb
+        sudo dpkg -i *.deb
+        rm -rf /tmp/m2"
 
   - name: "polymake apt package dependencies"
     tags: polymake
@@ -174,7 +222,13 @@
     - xsltproc
   - name: "polymake installation"
     tags: polymake
-    shell: "cd /tmp/ && wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2 && tar xf polymake-3.0r1.tar.bz2 && cd polymake-3.0/ && ./configure && make"
+    shell: |
+        cd /tmp/
+        wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
+        tar xf polymake-3.0r1.tar.bz2
+        cd polymake-3.0/
+        ./configure
+        make
 
   - name: "pip's crcmod -- critical for using google cloud storage #1"
     apt: name=crcmod state=absent
@@ -188,7 +242,12 @@
 
   - name: "git trac"
     tags: gittrac
-    shell: "cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command"
+    shell: |
+        cd /tmp/
+        git clone https://github.com/sagemath/git-trac-command.git
+        cd git-trac-command
+        sudo setup.py install
+        rm -rf /tmp/git-trac-command
 
   - name: "x11 setup"
     tags: x11
