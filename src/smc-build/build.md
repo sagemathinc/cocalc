@@ -217,7 +217,7 @@ ansible/compute-build-md.yaml tagged macaulay2
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
 
-ansible/all-install tagged julia
+ansible/julia.yaml tagged julia
 
 ## Julia: fix libzmq version
 
@@ -240,6 +240,8 @@ test:
 
 should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux-gnu/libzmq.so -> libzmq.so.3`
 
+ansible/julia.yaml tagged julia
+
 # Nemo (after installing Julia)
 
 
@@ -251,12 +253,11 @@ should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux
     cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
     echo 'using Nemo' | julia
 
-ansible: all-install.yaml tagged nemo
+ansible: julia.yaml tagged nemo
 
 To test, do this from Julia:
 
     using Nemo
-
 
 # GIAC
 

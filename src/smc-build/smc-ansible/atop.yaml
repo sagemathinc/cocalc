@@ -9,10 +9,15 @@
     apt: name=atop
          state=present
 
-  - name: "copy atoprc to /etc/atoprc"
-    copy: src=files/atoprc
-          dest=/etc/atoprc
-          owner=root group=root mode=644
+  # buggy?
+  #- name: "copy atoprc to /etc/atoprc"
+  #  copy: src=files/atoprc
+  #        dest=/etc/atoprc
+  #        owner=root group=root mode=644
+  - name: "copy atoprc"
+    shell: |
+           cp files/atoprc /etc/atoprc
+           chmod 644 /etc/atoprc
 
   - name: "stop atop service"
     service: name=atop
