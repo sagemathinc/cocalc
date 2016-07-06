@@ -11,7 +11,7 @@
     lineinfile: dest=/etc/bash.bashrc
                 state=present
                 insertbefore=BOF
-                line: "TERM=screen"
+                line="TERM=screen"
 
   - name: "install the terminal-setup.sh file as /etc/bash-smc.bashrc"
     template: src=files/terminal-setup.sh
