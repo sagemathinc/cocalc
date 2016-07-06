@@ -196,7 +196,7 @@
         wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb
         wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb
         sudo dpkg -i *.deb
-        rm -rf /tmp/m2"
+        rm -rf /tmp/m2
 
   - name: "polymake apt package dependencies"
     tags: polymake
