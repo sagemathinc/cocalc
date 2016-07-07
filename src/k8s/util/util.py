@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import argparse, base64, json, os, requests, subprocess, tempfile, time, yaml
+import argparse, base64, json, os, subprocess, tempfile, time
 
 join = os.path.join
 
@@ -10,6 +10,7 @@ def external_ip():
     """
     The external ip address of the node o which this code is run.
     """
+    import requests
     url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
@@ -106,6 +107,7 @@ def gcloud_auth_token():
         return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
+    import requests
     # Use the API to get info about the given image (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
@@ -178,6 +180,7 @@ def update_service(filename_yaml):
 
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_services() else 'create', '-f', filename_yaml])
 
@@ -187,6 +190,7 @@ def update_deployment(filename_yaml):
 
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
 
@@ -198,6 +202,7 @@ def get_daemonsets():
     return get_resources('daemonsets')
 
 def update_daemonset(filename_yaml):
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_daemonsets() else 'create', '-f', filename_yaml])
 
