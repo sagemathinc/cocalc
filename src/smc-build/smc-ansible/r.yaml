@@ -344,7 +344,6 @@
     - r-cran-yaml
     - r-cran-zelig
     - r-cran-zoo
-    - r-cran-r2jags
     - r-cran-rodbc
     - r-cran-mgcv
     - r-cran-boot
@@ -396,14 +395,18 @@
     - r-bioc-variantannotation
     - r-bioc-xvector
 
-  - name: "R packages from CRAN -- setup"
+  - name: "R packages from CRAN"
     tags: cran
-    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}')\" | R --no-save"
+    # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
+    # deps=true also installes suggested packages, e.g. Rcpp for devtools!
+    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
     with_items:
-    - devtools
+    - devtools  # start with devtools -- https://cran.r-project.org/web/packages/devtools/index.html
     - uuid
     - pbdZMQ
     - repr
-  - name: "IPython Kernel"
+    - rstan  # https://cran.r-project.org/web/packages/rstan/index.html
+
+  - name: "IPython Kernel" # needs devtools, etc.
     tags: ir
     shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir-ubuntu', displayname = 'R (Official Build)')\" | R --no-save"

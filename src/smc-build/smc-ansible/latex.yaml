@@ -5,7 +5,7 @@
 
   tasks:
 
-    - name: 'Additional packages (mainly for users, not building) - LaTeX packages'
+  - name: 'Additional packages (mainly for users, not building) - LaTeX packages'
     apt: name={{ item }} install_recommends=yes
     tags:
     - install
