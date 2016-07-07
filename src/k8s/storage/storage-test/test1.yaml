@@ -7,12 +7,12 @@ spec:
   - name: test1
     image: nginx
     volumeMounts:
-    - name: test
-      mountPath: /test
+    - name: test1
+      mountPath: /test1
     ports:
     - containerPort: 80
   volumes:
-  - name: test
+  - name: test1
     flexVolume:
       driver : "smc/smc-storage"
       options:
@@ -20,3 +20,5 @@ spec:
         server    : 'storage0'
         path      : "abc.zfs"
         size      : "3000m"
+  nodeSelector:
+    vol: test
