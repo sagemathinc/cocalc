@@ -52,7 +52,7 @@
     - prosper
     - tipa
     - vim-latexsuite
-    # - auctex
+    # - auctex # installs some trigger, which takes a very long time to run after each package upgrade
 
   - name: 'create target directory'
     tags: latex

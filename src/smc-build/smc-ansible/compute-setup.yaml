@@ -9,4 +9,4 @@
 - include: julia.yaml
 - include: atop.yaml
 - include: latex.yaml
-- include: compute-build-md.yaml
+- include: compute-extra.yaml

@@ -1,11 +1,12 @@
 ---
 - hosts: compute
   become: yes
-  gather_facts: no
+  gather_facts: yes
 
   tasks:
 
   - name: "update pip"
+    tags: pip
     pip: "executable=pip state=latest name=pip"
 
   - name: "additional pip packages"
@@ -122,7 +123,15 @@
 
   - name: "install pair-based-crypto library system-wide"
     tags: pairbasedcrypto
-    shell: "cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz"
+    shell: |
+        cd /tmp/
+        umask 022
+        wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
+        tar xf pbc-0.5.14.tar.gz
+        cd pbc-0.5.14
+        ./configure --prefix=/usr
+        sudo make install
+        sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz
 
   - name: "cgroups configuration -- TODO maybe not needed in docker?"
     tags: cgroups
@@ -139,9 +148,10 @@
         cd primesieve-5.4.1
         ./configure
         make -j 1
-        make install
+        sudo make install
         rm -rf /tmp/primesieve*
 
+  # this installs into sage!
   #- name: "install gap3"
   #  tags: gap3
   #  shell: "umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3"
@@ -173,6 +183,15 @@
         cd /tmp
         rm -rf opencv
 
+  # Plink (whole genome analysis, not the router!)
+  - name: 'install plink'
+    apt: name=plink install_recommends=yes
+    tags: plink
+  - name: 'symlink from p-link to plink'
+    file: src=/usr/bin/p-link dest=/usr/bin/plink state=link
+    tags: plink
+
+  # Neovim from Github
   - name: "install neovim"
     tags: neovim
     shell: |
@@ -186,6 +205,7 @@
         sudo make install
         rm -rf /tmp/neovim
 
+  # Macaulay2
   - name: "install macaulay2 / apt packages"
     tags: macaulay2
     apt: name={{ item }} install_recommends=yes
@@ -195,7 +215,7 @@
     - libpari-gmp-tls4
     - libpari-dev
     - pari-gp2c
-  - name: "install macaulay2 / deb"
+  - name: "install macaulay2 / deb binaries"
     tags: macaulay2
     shell: |
         cd /tmp/
@@ -207,6 +227,7 @@
         sudo dpkg -i *.deb
         rm -rf /tmp/m2
 
+  # Polymake
   - name: "polymake apt package dependencies"
     tags: polymake
     apt: name={{ item }} install_recommends=yes
@@ -239,6 +260,7 @@
         ./configure
         make
 
+  # CRCMOD
   - name: "pip's crcmod -- critical for using google cloud storage #1"
     apt: name=crcmod state=absent
     tags: crcmod
@@ -249,6 +271,7 @@
          umask=022
          name=crcmod
 
+  # X11
   - name: "git trac"
     tags: gittrac
     shell: |
@@ -263,3 +286,240 @@
     lineinfile: dest=/etc/ssh/sshd_config
                 insertafter=EOF
                 line="X11UseLocalhost no"
+
+# KWANT -- http://kwant-project.org/install
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: kwant
+
+  tasks:
+
+  - name: 'KWANT apt repository'
+    apt_repository: repo='ppa:kwant-project/ppa'
+
+  - name: 'install KWANT'
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - python-kwant-doc
+    - python3-kwant
+
+# GIAC (the authentication key is broken, hence we allow unauthenticated packages)
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: giac
+
+  tasks:
+
+  - name: 'GIAC apt key -- seems to be broken, though'
+    apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
+
+  - name: 'GIAC repository'
+    apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
+
+  - name: 'install GIAC'
+    apt: name={{ item }} allow_unauthenticated=yes install_recommends=yes
+    with_items:
+    - giac
+    - python-giacpy
+
+# FEniCS
+# add-apt-repository ppa:fenics-packages/fenics && apt-get update && apt-get install fenics
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: fenics
+
+  tasks:
+
+  - name: 'FEniCS repository'
+    apt_repository: repo='ppa:fenics-packages/fenics'
+
+  - name: 'install FEniCS'
+    apt: name=fenics install_recommends=yes
+
+# MPICH
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: mpi
+
+  tasks:
+
+  - name: 'install mpich'
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - mpich
+    - mpich-doc
+    - libmpich-dev
+
+  - name: 'update-alternativs for mpich binary'
+    alternatives: name=mpi path=/usr/include/mpich
+  - name: correct MPI executor is mpich
+    alternatives: name=mpirun path=/usr/bin/mpirun.mpich
+
+# PYPY
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: pypy
+
+  tasks:
+
+  - name: 'pypy repository'
+    apt_repository: repo='ppa:pypy/ppa'
+
+  - name: 'install pypy'
+    apt: name=pypy install_recommends=yes
+
+# Cantera
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: cantera
+
+  tasks:
+
+  - name: 'Cantera repository'
+    apt_repository: repo='ppa:speth/cantera'
+
+  - name: 'install Cantera'
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - cantera-python
+    - cantera-python3
+    - cantera-dev
+
+# Heroku, see https://toolbelt.heroku.com/debian and read the shellscript
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: heroku
+
+  tasks:
+
+  - name: 'heroku apt keys'
+    apt_key: url='https://toolbelt.heroku.com/apt/release.key'
+  - name: 'heroku apt-repository'
+    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
+  - name: "heroku install"
+    apt: name=heroku-toolbelt install_recommends=yes
+
+# Obspy
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: obspy
+
+  tasks:
+  - name: "obspy keys"
+    apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
+  - name: "obspy apt repository"
+    apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
+  - apt: name={{ item }} install_recommends=yes
+    with_items:
+    - python-obspy
+    - python3-obspy
+
+# Atlas setup
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: atlas
+
+  tasks:
+  - name: 'install atlas'
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - libatlas3-base
+    - liblapack-dev
+  # file: src=/file/to/link/to dest=/path/to/symlink
+  - name: 'configure atlas installation symlinks'
+    file: src=/usr/lib/{{ item.src }} dest=/usr/lib/{{ item.dest }} state=link
+    with_items:
+    - { src: 'libatlas.so.3',   dest: 'libatlas.so' }
+    - { src: 'libcblas.so.3',   dest: 'libcblas.so' }
+    - { src: 'libf77blas.so.3', dest: 'libf77blas.so' }
+
+# OpenAxiom
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: openaxiom
+
+  tasks:
+  - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
+    apt_key: keyserver=keyserver.ubuntu.com id=D2D8EDD2BA10D39D925BB7ED11CA9C2FE368B17C
+  - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
+    apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
+  - name: "install open axiom"
+    apt: name="open-axiom*"
+         install_recommends=yes
+
+# Octave
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: octave
+
+  tasks:
+  - name: "install ocatave"
+    apt: name={{ item }} install_recommends=yes
+    with_items:
+    - octave-biosig
+    - octave-common
+    - octave-communications
+    - octave-communications-common
+    - octave-control
+    - octave-data-smoothing
+    - octave-dataframe
+    - octave-dbg
+    - octave-doc
+    - octave-econometrics
+    - octave-epstk
+    - octave-financial
+    - octave-fpl
+    - octave-ga
+    - octave-gdf
+    - octave-general
+    - octave-geometry
+    - octave-gsl
+    - octave-htmldoc
+    - octave-image
+    - octave-info
+    - octave-io
+    - octave-lhapdf
+    - octave-linear-algebra
+    - octave-miscellaneous
+    - octave-missing-functions
+    - octave-mpi
+    - octave-nan
+    - octave-nlopt
+    - octave-nurbs
+    - octave-ocs
+    - octave-octcdf
+    - octave-odepkg
+    - octave-optim
+    - octave-optiminterp
+    - octave-parallel
+    - octave-pfstools
+    - octave-pkg-dev
+    - octave-psychtoolbox-3
+    - octave-quaternion
+    - octave-secs2d
+    - octave-signal
+    - octave-sockets
+    - octave-specfun
+    - octave-splines
+    - octave-statistics
+    - octave-strings
+    - octave-struct
+    - octave-sundials
+    - octave-symbolic
+    - octave-tsa
+    - octave-vlfeat
+    - octave-vrml
+    - octave-zenity
+  - name: "fix some font for octave"
+    file: src=/usr/share/fonts/truetype/liberation dest=/usr/share/fonts/truetype/ttf-liberation state=link

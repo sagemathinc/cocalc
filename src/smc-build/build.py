@@ -603,7 +603,7 @@ class BuildSage(object):
 
     def install_sloane(self):
         """
-        Install the Sloane Encyclopaedia tables.  These used to be installed via an optioanl package,
+        Install the Sloane Encyclopaedia tables.  These used to be installed via an optional package,
         but instead one must now run a command from within Sage.
         """
         from sage.all import SloaneEncyclopedia
