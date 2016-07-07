@@ -6,7 +6,8 @@ join = os.path.join
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SCRIPT_PATH)
-sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', '..', 'util')))
+path_to_util = join(SCRIPT_PATH, '..', '..', 'util')
+sys.path.insert(0, path_to_util)
 import util
 
 NAME='cluster-manager'
@@ -16,7 +17,17 @@ def build(tag, rebuild):
     if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
     v.append('.')
-    util.run(v, path=join(SCRIPT_PATH, 'image'))
+
+    path = join(SCRIPT_PATH, 'image')
+    kubectl = join(path, 'kubectl')
+    src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
+    shutil.copyfile(src, kubectl)
+    shutil.copymode(src, kubectl)
+
+    try:
+        util.run(v, path=path)
+    finally:
+        os.unlink(kubectl)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
@@ -34,6 +45,7 @@ def run_on_kubernetes(args):
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
+                           cluster_prefix = util.get_cluster_prefix(),
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)

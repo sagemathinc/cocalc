@@ -20,5 +20,6 @@ RUN \
   apt-get update && apt-get -y install google-cloud-sdk
 
 COPY run.py /run.py
+COPY kubectl /usr/bin/kubectl
 
 CMD "./run.py"
