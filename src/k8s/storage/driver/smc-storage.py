@@ -8,7 +8,9 @@
 # The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs` (for snapshots).
 #
 
-import json, os, shutil, sys, uuid
+import json, os, shutil, socket, sys, time, uuid
+
+LOCK_TIME_S = 120
 
 def LOG(*args):
     open("/tmp/a",'a').write(str(args)+'\n')
@@ -17,7 +19,7 @@ LOG('argsv', sys.argv)
 
 def log(obj):
     LOG("Will return '%s'"%obj)
-    print(json.dumps(obj))
+    print(json.dumps(obj, separators=(',', ':')))
 
 def cmd(s):
     LOG("cmd('%s')"%s)
@@ -29,7 +31,6 @@ def cmd(s):
 
 def init(args):
     LOG('init', args)
-    # TODO: would ensure zfs kernel module is available (?)
     return
 
 def ensure_server_is_mounted(server, namespace):
@@ -49,6 +50,33 @@ def ensure_server_is_mounted(server, namespace):
                 mnt       = mnt)
            )
     return mnt
+
+def lock_filename(path):
+    return os.path.join(path, 'lock')
+
+def check_for_lock(path):
+    lockfile = lock_filename(path)
+    if not os.path.exists(lockfile):
+        # no lock
+        return
+    age_s = time.time() - os.path.getmtime(lockfile)
+    if age_s < LOCK_TIME_S:
+        raise RuntimeError("'{path}' locked by {host}".format(path=path, host=open(lockfile).read()))
+
+def write_lock_file(path):
+    open(lock_filename(path),'w').write(socket.gethostname())
+
+def remove_lock_file(path):
+    lockfile = lock_filename(path)
+    if os.path.exists(lockfile):
+        os.unlink(lockfile)
+
+def update_all_locks(args):
+    for k in cmd("zpool list -HvP -o name").splitlines():
+        v = k.split()
+        if len(v) > 1:
+            path = os.path.split(v[0])[0]
+            write_lock_file(path)
 
 # Attach device to minion
 def attach(args):
@@ -80,8 +108,12 @@ def attach(args):
         os.makedirs(path)
     fs = os.path.splitext(path)[1][1:]
     if fs == 'zfs':
+        check_for_lock(path)
+        write_lock_file(path)
         return attach_zfs(path, size)
     elif fs in ['ext4', 'btrfs']:
+        check_for_lock(path)
+        write_lock_file(path)
         return attach_loop(path, size, fs)
     elif fs == 'share':
         return attach_share(path)
@@ -216,10 +248,17 @@ def detach(args):
         return
     if device.startswith('/dev/loop'):
         # loopback device
+        s = cmd("losetup %s"%device)
+        path = os.path.split(s.split()[-1].strip('()'))[0]
         cmd("losetup -d %s"%device)
+        remove_lock_file(path)
         return
     # ZFS -- export the pool
-    cmd("zpool export %s"%device)
+    s = cmd("zpool list -HvP -o name {device}".format(device=device))
+    img = s.split()[1]
+    path = os.path.split(img)[0]
+    cmd("zpool export {device}".format(device=device))
+    remove_lock_file(path)
 
 if __name__ == '__main__':
     import argparse
@@ -246,6 +285,9 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('detach', help='export ZFS pool and remove snapshot bind mount')
     sub.add_argument('device', type=str, help='mount device')
     sub.set_defaults(func=detach)
+
+    sub = subparsers.add_parser('update-all-locks', help='update all lock files')
+    sub.set_defaults(func=update_all_locks)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

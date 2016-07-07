@@ -7,13 +7,13 @@ PROJECT_ID ?= 31631ff7-66ed-4d5f-93e7-aed0efd8a5d5
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY := build rebuild run bash clean
+PHONY := build rebuild run edit commit clean
 
 default: build
 
 rebuild:
 	@echo "re-building with tag ${TAG}"
-	EXTRA_ARGS="--no-cache" $(MAKE) build
+	EXTRA_ARGS="--no-cache=true" $(MAKE) build
 
 build:
 	@echo "building with tag ${TAG}"
@@ -23,9 +23,18 @@ run:
 	@echo "running image with tag ${TAG} and project id ${PROJECT_ID}"
 	docker run -it -e SMC_PROJECT_ID=${PROJECT_ID} "${TAG}"
 
-bash:
-	@echo "starting bash in image with tag ${TAG} and project id ${PROJECT_ID}"
+edit:
+	@echo "starting bash in image with tag ${TAG} and project id ${PROJECT_ID} -- exit or ctrl-d to get out of it"
 	docker run -it -e SMC_PROJECT_ID=${PROJECT_ID} "${TAG}" bash
+	@echo "you finished working with that image"
+	@echo "you can run 'make commit' to update the image with your new edits"
+
+commit:
+	@echo "commit latest changes (after running bash!) to the image"
+	$(eval ID = $(shell docker ps --all --latest --quiet --no-trunc --filter ancestor=${TAG}))
+	docker commit ${ID} ${TAG}:latest
+	@echo "image ${TAG} has been updated and committed with the ID ${ID}"
+	@echo "maybe run 'make clean' to get rid of untagged/unreferenced leftovers"
 
 clean:
 	@echo 'remove all untagged docker images'

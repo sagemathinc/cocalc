@@ -21,7 +21,7 @@ Ansible: ansible-playbook all-install.yaml --tags=install
     sudo su
     cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install && cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1
 
-hsy: now in ansible/compute-build-md.yaml tagged as inotify and bup1
+hsy: now in ansible/compute-extra.yaml tagged as inotify and bup1
 
 # BASH
 
@@ -37,7 +37,7 @@ Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-o
 
     echo $'\n'"deb http://deb.obspy.org trusty main"$'\n' >> /etc/apt/sources.list && apt-get update && apt-get install python-obspy
 
-hsy: this is now in ansible/all-install, tagged "obspy"
+hsy: this is now in ansible/compute-extra, tagged "obspy"
 
 # ATLAS:
 
@@ -47,13 +47,13 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
     export SAGE_ATLAS_LIB="/usr/lib/"
 
-hsy: this is now ansible/all-install tagged "atlas"
+hsy: this is now ansible/compute-extra tagged "atlas"
 
 # Add this to /etc/ssh/sshd_config
 
     MaxStartups 128
 
-hsy: now in ansible/compute-build-md.yaml tagges "ssh"
+hsy: now in ansible/compute-extra.yaml tagges "ssh"
 
 # Freezing SSH host keys
 
@@ -82,29 +82,29 @@ cause them to be rebuilt.
 
 # Additional packages (mainly for users, not building).
 
-Ansible:  ansible-playbook all-install.yaml --tags=install
+Ansible:  ansible-playbook compute-extra.yaml --tags=install
 
 # tmpreaper
 
 Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
-hsy: now in ansible/compute-build-md.yaml tagges tmpreaper
+hsy: now in ansible/compute-extra.yaml tagges tmpreaper
 
 # Cantera system-wide
 
 apt-add-repository ppa:speth/cantera; apt-get update; apt-get install cantera-python cantera-python3 cantera-dev
 
-hsy: in ansible/all-install.yaml
+hsy: in ansible/compute-extra.yaml
 
 # Python3-related packages of interest
 
-Ansible: ansible-playbook all-install.yaml --tags=install
+Ansible: ansible-playbook compute-extra.yaml --tags=install
 
 # IPython with notebook and octave kernel
 
     umask 022 && sudo apt-get remove ipython && sudo pip install --upgrade ipython notebook octave_kernel && cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \;
 
-ansible: compute-build-md.yaml, tagged ipython (and added bash_kernel)
+ansible: compute-extra.yaml, tagged ipython (and added bash_kernel)
 
 # Special script to run python2 systemwide from within Sage:
 
@@ -120,14 +120,14 @@ unset LD_LIBRARY_PATH
 /usr/bin/python2 "$@"
 ```
 
-ansible: compute-build-md.yaml, tagged python2sage
+ansible: compute-extra.yaml, tagged python2sage
 
 # Install the pair-based-crypto library system-wide
 
 
 cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz; cd
 
-ansible: compute-build-md.yaml tagged pairbasedcrypto
+ansible: compute-extra.yaml tagged pairbasedcrypto
 
 # SAGE
 
@@ -143,13 +143,13 @@ ansible: umask_compute.yaml and referenced from compute-setup.yaml
     echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
     pam-auth-update  # select defaults -- this probably isn't needed.
 
-ansible: compute-build-md.yaml tagged cgroups -- maybe not necessary for docker?
+ansible: compute-extra.yaml tagged cgroups -- maybe not necessary for docker?
 
 # Open Axiom --- see https://launchpad.net/~pippijn/+archive/ubuntu/ppa
 
     echo $'\n'"deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main"$'\n' >> /etc/apt/sources.list && apt-get update && sudo apt-get install open-axiom*
 
-ansible: all-install.yaml tagged openaxiom
+ansible: compute-extra.yaml tagged openaxiom
 
 # Primesieve
 
@@ -159,7 +159,7 @@ As root do
 
 Check http://primesieve.org/build.html for the latest version.
 
-ansible: compute-build-md.yaml tagged primesieve
+ansible: compute-extra.yaml tagged primesieve
 
 # GAP3
 
@@ -177,11 +177,11 @@ woulb be in ansible/compute-buld-md.yaml tagged gap3, but it's not possible to i
 
     cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && rm -rf opencv_contrib/modules/hdf && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j4 && sudo make install && sudo sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
 
-ansible: compute-build-md.yaml tagged opencv
+ansible: compute-extra.yaml tagged opencv
 
 # KWANT
 
-Ansible: ansible-playbook all-install.yaml --tags=kwant
+Ansible: ansible-playbook compute-extra.yaml --tags=kwant
 
 
 # Octave: needed by octave for plotting:
@@ -192,7 +192,7 @@ Ansible: ansible-playbook all-install.yaml --tags=kwant
 
     cd /usr/share/fonts/truetype && ln -s liberation ttf-liberation
 
-ansible: all-install.yaml --tags=octave
+ansible: compute-extra.yaml --tags=octave
 
 # Dropbox: so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
@@ -204,14 +204,14 @@ ansible: all-install.yaml --tags=octave
 
     cd /tmp && rm -rf neovim && unset MAKE && git clone https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install && rm -rf /tmp/neovim
 
-ansible/compute-build-md.yaml tagged neovim
+ansible/compute-extra.yaml tagged neovim
 
 # MACAULAY2: Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
     apt-get install libntl-dev libntl0  libpari-gmp-tls4 libpari-dev pari-gp2c && cd /tmp/ && rm -rf m2 && mkdir m2 && cd m2 && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm -rf /tmp/m2
 
 
-ansible/compute-build-md.yaml tagged macaulay2
+ansible/compute-extra.yaml tagged macaulay2
 
 # Julia: from http://julialang.org/downloads/
 
@@ -261,18 +261,18 @@ To test, do this from Julia:
 
 # GIAC
 
-Ansible: ansible-playbook all-install.yaml --tags=giac
+Ansible: ansible-playbook compute-extra.yaml --tags=giac
 
 # FEnICS: automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
 
-Ansible: ansible-playbook all-install.yaml --tags=fenics
+Ansible: ansible-playbook compute-extra.yaml --tags=fenics
 
 # System-wide Python packages not through apt:
 
    apt-get install python-pip python3-pip &&   umask 022 && /usr/bin/pip install -U theano && /usr/bin/pip install -U clawpack
 
-this is part of ansible's compute-build-md.yaml with tag pip
+this is part of ansible's compute-install.yaml with tag pip
 
 # IPYTHON3 in Python3 systemwide
 
@@ -349,7 +349,7 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
 
 Then files were installed into `/usr/local` and pushing that out for everyone.
 
-ansible: compute-build-md.yaml tagged polymake
+ansible: compute-extra.yaml tagged polymake
 
 # Make ROOT data analysis ipython notebook support system-wide work.
 
@@ -395,7 +395,7 @@ from any admin/monitor machine to this account.
 # MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
 
 
-Ansible: ansible-playbook all-install.yaml --tags=mpi
+Ansible: ansible-playbook compute-extra.yaml --tags=mpi
 
 # KVM HOSTS
 
@@ -417,7 +417,7 @@ In /etc/sysctl.conf, put:
     sudo pip uninstall crcmod; sudo pip install -U crcmod
 
 
-ansible: compute-build-md.yaml tagged crcmod
+ansible: compute-extra.yaml tagged crcmod
 
 # Build Sage (as usual)
 
@@ -460,7 +460,7 @@ ansible: compute-build-md.yaml tagged crcmod
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
     pip3 install --upgrade numba holoviews
 
-ansible: compute-build-md.yaml tagged pip3
+ansible: compute-install.yaml tagged pip3
 
 # The netcd4 system-wide python package requires some crazy environment variables to work:
 
@@ -473,14 +473,14 @@ ansible: compute-build-md.yaml tagged pip3
     umask 022
     pip install datasift bokeh twitter ctop macs2 pygsl
 
-ansible: compute-build-md.yaml tagged pip
+ansible: compute-extra.yaml tagged pip
 
 # System-wide git trac
 
     cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command
 
 
-ansible: compute-build-md.yaml tagged gittrac
+ansible: compute-extra.yaml tagged gittrac
 
 # Anaconda Python 3 distribution
 
@@ -496,7 +496,7 @@ to
 
     /etc/ssh/sshd_config
 
-ansible: compute-build-md.yaml tagged x11
+ansible: compute-extra.yaml tagged x11
 
 # HORRIBLE STUFF
 
@@ -524,4 +524,4 @@ Install the Ubuntu package (how?): plink
 
 Make a link to preserve the usual name: `cd /usr/bin; sudo ln -s /usr/bin/p-link plink`
 
-ansible: all-install.yaml tagged plink
+ansible: compute-extra.yaml tagged plink

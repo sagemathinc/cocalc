@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 MAINTAINER Harald Schilly <hsy@sagemath.com>
-
+LABEL smc.component=project
 USER root
 
 # So we can source (see http://stackoverflow.com/questions/20635472/using-the-run-instruction-in-a-dockerfile-with-source-does-not-work)
