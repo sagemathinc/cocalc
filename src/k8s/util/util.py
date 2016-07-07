@@ -590,3 +590,11 @@ def show_horizontal_pod_autoscalers(namespace=''):
                          age     = age))
 
 
+def get_logs(*names, **kwds):
+    v = ['kubectl', 'logs']
+    for a,b in kwds.items():
+        v.append('--%s'%a)
+        v.append(str(b))
+    return run(v + list(names), get_output=True, verbose=False)
+
+

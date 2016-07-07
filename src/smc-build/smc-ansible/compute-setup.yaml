@@ -5,8 +5,8 @@
 - include: compute-proc.yaml
 - include: compute-security-limits.yaml
 - include: terminal-setup.yaml
-- include: r.yaml
-- include: julia.yaml
 - include: atop.yaml
+- include: compute-extra.yaml
+- include: r.yaml # R depends on compute-extra
+- include: julia.yaml
 - include: latex.yaml
-- include: compute-build-md.yaml

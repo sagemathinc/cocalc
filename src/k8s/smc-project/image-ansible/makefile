@@ -13,7 +13,7 @@ default: build
 
 rebuild:
 	@echo "re-building with tag ${TAG}"
-	EXTRA_ARGS="--no-cache" $(MAKE) build
+	EXTRA_ARGS="--no-cache=true" $(MAKE) build
 
 build:
 	@echo "building with tag ${TAG}"

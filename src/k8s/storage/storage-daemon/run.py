@@ -130,6 +130,9 @@ def run_on_minion(v, *args, **kwds):
         v = ['ssh', minion_ip() ] + v
     return run(v, *args, **kwds)
 
+def smc_storage(*args, **kwds):
+    run_on_minion(["/usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage"] + list(args), **kwds)
+
 def install_flexvolume_plugin():
     # we always copy it over, which at least upgrades it if necessary.
     shutil.copyfile("/install/smc-storage", "/node/plugin/smc-storage")
@@ -293,6 +296,8 @@ def update_zpool_active_log():
             run_on_minion("echo '{log}' >> {prefix}/{server}/log/active.log".format(
                     log=log, prefix=prefix, server=server))
 
+def update_all_lock_files():
+    smc_storage("update-all-locks")
 
 def start_storage_daemon():
     print("launching storage daemon")
@@ -304,7 +309,7 @@ def start_storage_daemon():
     install_sshfs()
     if not is_plugin_loaded():
         restart_kubelet()
-    last_snapshot_update = 0
+    last_snapshot_update = last_lock_update = 0
     while True:
         try:
             update_etc_hosts()
@@ -316,6 +321,12 @@ def start_storage_daemon():
                 last_snapshot_update = time.time()
             except Exception as err:
                 print("ERROR updating snapshots -- ", err)
+        if time.time() - last_lock_update >= 90:
+            try:
+                update_all_lock_files()
+                last_lock_update = time.time()
+            except Exception as err:
+                print("ERROR updating locks -- ", err)
         time.sleep(10)
 
 if __name__ == "__main__":
