@@ -260,6 +260,7 @@
     - golang-go
     - gpicview
     - grace
+    - graphviz
     - gv
     - h5utils
     - haskell-doc

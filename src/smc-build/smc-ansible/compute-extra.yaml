@@ -26,6 +26,9 @@
     - ctop
     - macs2
     - pygsl
+    - numba
+    - scikit-learn
+    - statsmodels
 
   - apt: name=python3-pip
 
@@ -36,6 +39,7 @@
          umask=022
          name={{ item }}
     with_items:
+    - pip3
     - twitter
     - sympy
     - uncertainties
@@ -44,7 +48,7 @@
     - datasift
     - numba
     - holoviews
-    - pip3
+    - statsmodels
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
