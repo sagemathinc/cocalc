@@ -173,9 +173,18 @@
         cd /tmp
         rm -rf opencv
 
-  - name: "isntall neovim"
+  - name: "install neovim"
     tags: neovim
-    shell: "cd /tmp && rm -rf neovim && unset MAKE && git clone --depth=1 https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install && rm -rf /tmp/neovim"
+    shell: |
+        cd /tmp
+        rm -rf neovim
+        unset MAKE
+        git clone --depth=1 https://github.com/neovim/neovim
+        cd neovim
+        make
+        umask 022
+        sudo make install
+        rm -rf /tmp/neovim
 
   - name: "install macaulay2 / apt packages"
     tags: macaulay2

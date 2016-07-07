@@ -34,4 +34,4 @@
   handlers:
 
   - name: remount proc
-    command: mount -o remount,rw,hidepid=2,gid=showpid /proc
+    shell: mount -o remount,rw,hidepid=2,gid=showpid /proc || exit 0
