@@ -187,9 +187,7 @@ def install_ssh_keys():
         os.chmod(target, 0o600)
 
 def restart_kubelet():
-    # Sadly I don't know of any other way to properly restart the minion except to completely reboot it.
-    # Just restarting the service leaves everything very broken.
-    run_on_minion("reboot")
+    run_on_minion("kill `pidof /usr/local/bin/kubelet`")
 
 def create_snapshot(pool, name):
     snapshot = "{timestamp}-{name}".format(timestamp=time_to_timestamp(), name=name)
