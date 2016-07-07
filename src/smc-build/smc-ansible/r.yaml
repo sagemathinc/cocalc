@@ -4,14 +4,14 @@
   gather_facts: yes
   tags: r
   vars:
-    repo: https://cloud.r-project.org/
+    repo: "https://cloud.r-project.org/"
 
   tasks:
   - name: 'R apt keys'
     apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
 
   - name: 'R repository url'
-    apt_repository: "repo=deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
+    apt_repository: repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
 
   - name: 'R installation (official ubuntu repo -- some base packages)'
     apt: name={{ item }} install_recommends=yes
