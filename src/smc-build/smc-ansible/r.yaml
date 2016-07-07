@@ -16,6 +16,11 @@
   - name: 'R installation (official ubuntu repo -- some base packages)'
     apt: name={{ item }} install_recommends=yes
     with_items:
+    - libssl-dev # required for cran's devtools
+    - libssh2-1-dev # for cran's devtools
+    - libcurl4-openssl-dev # also devtools
+    - ipython3 # needed by IRkernel
+    - ipython3-notebook # needed by IRkernel
     - jags
     - r-doc-html
     - r-base-dev
@@ -405,7 +410,7 @@
     - uuid
     - pbdZMQ
     - repr
-    - rstan  # https://cran.r-project.org/web/packages/rstan/index.html
+    - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
 
   - name: "IPython Kernel" # needs devtools, etc.
     tags: ir

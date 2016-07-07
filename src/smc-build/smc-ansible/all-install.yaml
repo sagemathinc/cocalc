@@ -28,6 +28,9 @@
       - python-pip
       - dstat
       - iotop
+      - libssl-dev           # required for R's devtools, but also maybe others
+      - libssh2-1-dev        # -"-
+      - libcurl4-openssl-dev # -"-
       - par2
       - python-apt
       - python-pip

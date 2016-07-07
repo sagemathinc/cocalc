@@ -5,6 +5,8 @@
 
   tasks:
 
+  - apt: name=python-pip
+
   - name: "update pip"
     tags: pip
     pip: "executable=pip state=latest name=pip"
@@ -25,6 +27,8 @@
     - macs2
     - pygsl
 
+  - apt: name=python3-pip
+
   - name: "additional pip3 packages"
     tags: pip3
     pip: executable=pip3
@@ -40,6 +44,7 @@
     - datasift
     - numba
     - holoviews
+    - pip3
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
