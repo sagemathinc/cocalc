@@ -2,7 +2,6 @@
 
 """
 Hub management script
-
 """
 
 import os, shutil, sys, tempfile
@@ -116,6 +115,30 @@ def load_secret(name, args):
         raise RuntimeError("'{file}' must exist".format(file=file))
     util.create_secret(name+'-api-key', file)
 
+def status(args):
+    # Get all pod names
+    v = util.get_pods(run=NAME)
+    print("Getting last %s lines of logs from %s pods"%(args.tail, len(v)))
+    for x in v:
+        lg = util.get_logs(x['NAME'], tail=args.tail, container='smc-hub').splitlines()
+        blocked = concurrent = 0
+        for w in lg:
+            if 'BLOCKED for' in w:   # 2016-07-07T17:39:23.159Z - debug: BLOCKED for 1925ms
+                b = int(w.split()[-1][:-2])
+                blocked = max(blocked, b)
+            if 'concurrent]' in w:   # 2016-07-07T17:41:16.226Z - debug: [1 concurrent] ...
+                concurrent = max(concurrent, int(w.split()[3][1:]))
+        x['blocked'] = blocked
+        x['concurrent'] = concurrent
+        bad = util.run("kubectl describe pod {name} |grep Unhealthy |tail -1 ".format(name=x['NAME']), get_output=True, verbose=False).splitlines()
+        if len(bad) > 0:
+            x['unhealthy'] = bad[-1].split()[0]
+        else:
+            x['unhealthy'] = ''
+    print("%-30s%-12s%-12s%-12s%-12s%-12s"%('NAME', 'CONCURRENT', 'BLOCKED', 'UNHEALTHY', 'RESTARTS', 'AGE'))
+    for x in v:
+        print("%-30s%-12s%-12s%-12s%-12s%-12s"%(x['NAME'], x['concurrent'], x['blocked'], x['unhealthy'], x['RESTARTS'], x['AGE']))
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -160,6 +183,10 @@ if __name__ == '__main__':
     sub.set_defaults(func=lambda args: load_secret('zendesk',args))
 
     util.add_deployment_parsers(NAME, subparsers, default_container='smc-hub')
+
+    sub = subparsers.add_parser('status', help='display status info about concurrent and blocked, based on recent logs')
+    sub.add_argument("-t", "--tail", default=100, type=int, help="how far back to go in log")
+    sub.set_defaults(func=status)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
