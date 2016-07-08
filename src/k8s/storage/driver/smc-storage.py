@@ -12,6 +12,8 @@ import json, os, shutil, socket, sys, time, uuid
 
 LOCK_TIME_S = 120
 
+HOSTNAME = socket.gethostname()
+
 def LOG(*args):
     open("/tmp/a",'a').write(str(args)+'\n')
 
@@ -59,12 +61,16 @@ def check_for_lock(path):
     if not os.path.exists(lockfile):
         # no lock
         return
+    host = open(lockfile).read()
+    if host == HOSTNAME:
+        # we have the lock
+        return
     age_s = time.time() - os.path.getmtime(lockfile)
     if age_s < LOCK_TIME_S:
-        raise RuntimeError("'{path}' locked by {host}".format(path=path, host=open(lockfile).read()))
+        raise RuntimeError("'{path}' locked by {host}".format(path=path, host=host))
 
 def write_lock_file(path):
-    open(lock_filename(path),'w').write(socket.gethostname())
+    open(lock_filename(path),'w').write(HOSTNAME)
 
 def remove_lock_file(path):
     lockfile = lock_filename(path)
