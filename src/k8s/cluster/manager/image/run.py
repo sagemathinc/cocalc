@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os, sys, time
 
+import shared
+
 KUBERNETES_CLUSTER_PREFIX = os.environ['KUBERNETES_CLUSTER_PREFIX']
 
 def log(*args):
@@ -30,10 +32,15 @@ def start_stopped_minions():
     else:
         log("nothing to start")
 
+def label_preemptible_nodes():
+    print("label_preemptible_nodes")
+    shared.label_preemptible_nodes(cmd)
+
 def cluster_manager():
     log("running cluster_manager")
     while True:
         start_stopped_minions()
+        label_preemptible_nodes()
         time.sleep(30)
 
 if __name__ == "__main__":

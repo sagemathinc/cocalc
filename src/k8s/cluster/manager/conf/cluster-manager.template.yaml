@@ -45,3 +45,4 @@ spec:
         - name: cluster-manager-kubectl-secret
           secret:
             secretName: cluster-manager-kubectl-secret
+      {node_selector}

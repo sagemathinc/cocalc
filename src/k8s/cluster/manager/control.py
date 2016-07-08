@@ -8,7 +8,8 @@ SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SCRIPT_PATH)
 path_to_util = join(SCRIPT_PATH, '..', '..', 'util')
 sys.path.insert(0, path_to_util)
-import util
+sys.path.insert(0, join(SCRIPT_PATH, 'image'))
+import shared, util
 
 NAME='cluster-manager'
 
@@ -38,14 +39,27 @@ def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
+def node_selector():
+    # 1 below due to master always being non-preemptible
+    if len(util.run('kubectl get nodes -l preemptible=false --no-headers', get_output=True, verbose=False).strip().split('\n')) > 1:
+        print("good - there are non pre-emptible nodes!")
+        return 'nodeSelector: {preemptible: "false"}'
+    else:
+        print("no non-preemptible nodes")
+        return ''
+
+
 def run_on_kubernetes(args):
     create_kubectl_secret()
+    label_preemptible_nodes()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
                            cluster_prefix = util.get_cluster_prefix(),
+                           node_selector  = node_selector(),
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
@@ -73,6 +87,12 @@ def create_kubectl_secret():
 
 def delete_kubectl_secret():
     util.delete_secret(SECRET_NAME)
+
+
+def label_preemptible_nodes():
+    def cmd(s):
+        return util.run(s, verbose=False, get_output=True)
+    shared.label_preemptible_nodes(cmd)
 
 if __name__ == '__main__':
     import argparse
