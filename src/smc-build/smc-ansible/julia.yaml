@@ -33,7 +33,7 @@
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
-    shell: "echo 'Pkg.add(\"{{ item }}\")' | julia
+    shell: "echo 'Pkg.add(\"{{ item }}\")' | julia"
     with_items:
     - PyCall # https://github.com/stevengj/PyCall.jl
     - IJulia # in jupyter notebook
