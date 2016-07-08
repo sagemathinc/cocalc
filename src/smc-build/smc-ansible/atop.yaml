@@ -6,8 +6,7 @@
   tasks:
 
   - name: "install atop"
-    apt: name=atop
-         state=present
+    apt: name=atop state=latest
 
   # buggy?
   #- name: "copy atoprc to /etc/atoprc"

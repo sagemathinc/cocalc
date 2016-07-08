@@ -17,7 +17,7 @@
     apt_repository: repo='ppa:staticfloat/julia-deps'
 
   - name: "apt-get install packages"
-    apt: state=latest name={{ item }}
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
        - julia
        - julia-doc
@@ -31,6 +31,26 @@
 
   - name: "fix libzmq version #3 -- prevent apt from installing it again"
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
+
+  - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
+    shell: "echo 'Pkg.add(\"{{ item }}\")' | julia"
+    with_items:
+    - PyCall # https://github.com/stevengj/PyCall.jl
+    - IJulia # in jupyter notebook
+    - Interact # https://github.com/JuliaLang/Interact.jl (for IJulia)
+    - PyPlot # https://github.com/stevengj/PyPlot.jl
+    - Bokeh  # https://github.com/JuliaLang/IJulia.jl
+    - Gadfly # https://github.com/dcjones/Gadfly.jl
+    - Mocha  # https://github.com/pluskid/Mocha.jl
+    - DataFrames # https://github.com/JuliaStats/DataFrames.jl
+    - Winston    # 2D plotting
+    - Convex # https://github.com/JuliaOpt/Convex.jl (optimization)
+    - Optim # https://github.com/JuliaOpt/Optim.jl
+    - JuMP # https://github.com/JuliaOpt/JuMP.jl
+    - ParallelAccelerator # https://github.com/IntelLabs/ParallelAccelerator.jl
+    - MXNet # https://github.com/dmlc/MXNet.jl
+    - Graphs # https://github.com/JuliaLang/Graphs.jl
+    - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
 
 # Nemo (right after Julia!)
 - hosts: compute

@@ -135,6 +135,7 @@
 
   - name: "install pair-based-crypto library system-wide"
     tags: pairbasedcrypto
+    ignore_errors: yes
     shell: |
         cd /tmp/
         umask 022
@@ -153,6 +154,7 @@
 
   - name: "install primesieve"
     tags: primesieve
+    ignore_errors: yes
     shell: |
         cd /tmp/
         wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz
@@ -176,6 +178,7 @@
 
   - name: "install opencv"
     tags: opencv
+    ignore_errors: yes
     shell: |
         cd /tmp/
         rm -rf opencv
@@ -206,6 +209,7 @@
   # Neovim from Github
   - name: "install neovim"
     tags: neovim
+    ignore_errors: yes
     shell: |
         cd /tmp
         rm -rf neovim
@@ -229,6 +233,7 @@
     - pari-gp2c
   - name: "install macaulay2 / deb binaries"
     tags: macaulay2
+    ignore_errors: yes
     shell: |
         cd /tmp/
         rm -rf m2
@@ -265,6 +270,7 @@
     - xsltproc
   - name: "polymake installation"
     tags: polymake
+    ignore_errors: yes
     shell: |
         cd /tmp/
         wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
@@ -287,6 +293,7 @@
   # X11
   - name: "git trac"
     tags: gittrac
+    ignore_errors: yes
     shell: |
         cd /tmp/
         git clone https://github.com/sagemath/git-trac-command.git
@@ -460,6 +467,7 @@
   become: yes
   gather_facts: yes
   tags: openaxiom
+  ignore_errors: yes
 
   tasks:
   - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
