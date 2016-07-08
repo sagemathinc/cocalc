@@ -71,7 +71,7 @@ class JUPYTER(object):
             | p1('a = 5')
             | p2('a = 10')
             | p1('print(a)')   # prints 5
-            | p1('print(a)')   # prints 10
+            | p2('print(a)')   # prints 10
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()
@@ -142,25 +142,29 @@ def _jkmagic(kernel_name, **kwargs):
     def big_output(f,*args, **kwargs):
         r"""
         Temporarily raise ceilings on output limits (for data uris and docs).
-        Arbitrary new upper limit is 2000000 for both.
         Restore to prior values after calling the function provided.
         """
         import sage_server
+        p('calling big_output')
+        p('sage_server.MAX_OUTPUT 1 = %d'%sage_server.MAX_OUTPUT)
 
-        BOOST_HTML_SIZE = 2000000
-        BOOST_OUTPUT    = 2000000
+        TEMP_LIMIT = 4000000
+        try:
+            BOOST_HTML_SIZE = TEMP_LIMIT
+            BOOST_OUTPUT    = TEMP_LIMIT
 
-        prev_mhs = sage_server.MAX_HTML_SIZE
-        sage_server.MAX_HTML_SIZE = BOOST_HTML_SIZE
+            prev_mhs = sage_server.MAX_HTML_SIZE
+            sage_server.MAX_HTML_SIZE = BOOST_HTML_SIZE
 
-        prev_mo = sage_server.MAX_OUTPUT
-        sage_server.MAX_OUTPUT = BOOST_OUTPUT
+            prev_mo = sage_server.MAX_OUTPUT
+            sage_server.MAX_OUTPUT = BOOST_OUTPUT
 
-        f(*args, **kwargs)
-
-        sage_server.MAX_HTML_SIZE = prev_mhs
-        sage_server.MAX_OUTPUT = prev_mo
-
+            p('sage_server.MAX_OUTPUT 2 = %d'%sage_server.MAX_OUTPUT)
+            f(*args, **kwargs)
+        finally:
+            sage_server.MAX_HTML_SIZE = prev_mhs
+            sage_server.MAX_OUTPUT = prev_mo
+            p('sage_server.MAX_OUTPUT 3 = %d'%sage_server.MAX_OUTPUT)
         return
 
 
@@ -231,7 +235,6 @@ def _jkmagic(kernel_name, **kwargs):
                             fo.write(data)
                         p(fname)
                         salvus.file(fname)
-                        fo.close()
                         os.unlink(fname)
                         # ir kernel sends png then svg+xml; don't display both
                         break
@@ -262,7 +265,9 @@ def _jkmagic(kernel_name, **kwargs):
                 elif 'text/markdown' in content['data']:
                     salvus.md(content['data']['text/markdown'])
                 elif 'text/html' in content['data']:
-                    big_output(salvus.html, content['data']['text/html'])
+                    p('content len %d'%len(content['data']['text/html']))
+                    #big_output(salvus.html, content['data']['text/html'])
+                    salvus.html(content['data']['text/html'])
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
                     # display_mime(content['data'])
@@ -303,6 +308,7 @@ def _jkmagic(kernel_name, **kwargs):
                 msg_type = msg['msg_type']
                 content = msg['content']
             except Empty:
+                # shouldn't happen
                 p("shell channel empty")
                 break
             if msg['parent_header'].get('msg_id') == msg_id:
@@ -316,7 +322,9 @@ def _jkmagic(kernel_name, **kwargs):
                                     data = payload[0]['data']
                                     if 'text/plain' in data:
                                         text = data['text/plain']
-                                        big_output(hout, text, scroll = True)
+                                        #big_output(hout, text, scroll = True)
+                                        hout(text, scroll = True)
+                    break
             else:
                 # not our reply
                 continue
