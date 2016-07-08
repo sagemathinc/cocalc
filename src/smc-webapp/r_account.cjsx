@@ -161,7 +161,7 @@ EmailAddressSetting = rclass
         <LabeledRow label='Email address'>
             <div>
                 {@props.email_address}
-                <Button className='pull-right' onClick={@start_editing}>Change email...</Button>
+                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
