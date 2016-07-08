@@ -20,10 +20,15 @@ Right now, it is controlled by a few commands which are collected in a Makefile.
 
        /smc/src/smc-build/smc-ansible# ansible-playbook -i container.ini compute-extra.yaml --tags=kwant,giac,fenics,mpi,octave
 
+  or this one runs everything related to the global R installation
+
+       /smc/src/smc-build/smc-ansible# ansible-playbook -i container.ini r.yaml
+
   Notes:
   * the container.ini redirects the machines group "compute" to localhost.
   * the main ansible file collecting all playbooks is called `compute-setup.yaml` -- check its content to see which playbook files are relevant.
 4. after `make edit`, by default the changes are in an untagged image and hence lost at some point. run `make commit` to save them as a new latest image.
+  1. NOTE: when a setup step or installation didn't work out, it is maybe useful to *not* commit at all. Instead, run `make edit` again to try again from the same previous state.
 5. when getting confident, that the `latest` image is looking good, either run `make beta` or `make prod` to update the versioned images.
 6. To reclaim some disk space, run `make clean`
 
