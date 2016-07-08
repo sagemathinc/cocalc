@@ -139,35 +139,6 @@ def _jkmagic(kernel_name, **kwargs):
             h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
 
-    def big_output(f,*args, **kwargs):
-        r"""
-        Temporarily raise ceilings on output limits (for data uris and docs).
-        Restore to prior values after calling the function provided.
-        """
-        import sage_server
-        p('calling big_output')
-        p('sage_server.MAX_OUTPUT 1 = %d'%sage_server.MAX_OUTPUT)
-
-        TEMP_LIMIT = 4000000
-        try:
-            BOOST_HTML_SIZE = TEMP_LIMIT
-            BOOST_OUTPUT    = TEMP_LIMIT
-
-            prev_mhs = sage_server.MAX_HTML_SIZE
-            sage_server.MAX_HTML_SIZE = BOOST_HTML_SIZE
-
-            prev_mo = sage_server.MAX_OUTPUT
-            sage_server.MAX_OUTPUT = BOOST_OUTPUT
-
-            p('sage_server.MAX_OUTPUT 2 = %d'%sage_server.MAX_OUTPUT)
-            f(*args, **kwargs)
-        finally:
-            sage_server.MAX_HTML_SIZE = prev_mhs
-            sage_server.MAX_OUTPUT = prev_mo
-            p('sage_server.MAX_OUTPUT 3 = %d'%sage_server.MAX_OUTPUT)
-        return
-
-
     def run_code(code):
 
         # these are used by the worksheet process
@@ -188,7 +159,7 @@ def _jkmagic(kernel_name, **kwargs):
                 msg = iopub.get_msg()
                 msg_type = msg['msg_type']
                 content = msg['content']
-
+                
             except Empty:
                 # shouldn't happen
                 p("iopub channel empty")
@@ -196,6 +167,9 @@ def _jkmagic(kernel_name, **kwargs):
 
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
+
+            if msg_type == 'status' and content['execution_state'] == 'idle':
+                break
 
             # trace jupyter protocol if debug enabled
             p('iopub', msg_type, str(content)[:300])
@@ -265,8 +239,6 @@ def _jkmagic(kernel_name, **kwargs):
                 elif 'text/markdown' in content['data']:
                     salvus.md(content['data']['text/markdown'])
                 elif 'text/html' in content['data']:
-                    p('content len %d'%len(content['data']['text/html']))
-                    #big_output(salvus.html, content['data']['text/html'])
                     salvus.html(content['data']['text/html'])
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
@@ -322,7 +294,6 @@ def _jkmagic(kernel_name, **kwargs):
                                     data = payload[0]['data']
                                     if 'text/plain' in data:
                                         text = data['text/plain']
-                                        #big_output(hout, text, scroll = True)
                                         hout(text, scroll = True)
                     break
             else:
