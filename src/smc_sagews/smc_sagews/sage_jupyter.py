@@ -72,6 +72,9 @@ class JUPYTER(object):
             | p2('a = 10')
             | p1('print(a)')   # prints 5
             | p2('print(a)')   # prints 10
+
+        For details on supported features and known issues, see the SMC Wiki page:
+        https://github.com/sagemathinc/smc/wiki/sagejupyter
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()
@@ -159,7 +162,7 @@ def _jkmagic(kernel_name, **kwargs):
                 msg = iopub.get_msg()
                 msg_type = msg['msg_type']
                 content = msg['content']
-                
+
             except Empty:
                 # shouldn't happen
                 p("iopub channel empty")
@@ -230,16 +233,19 @@ def _jkmagic(kernel_name, **kwargs):
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):
                         # sagemath R emits latex tabular output, not supported by MathJAX
-                        latex0(ldata)
+                        import sage.misc.latex
+                        sage.misc.latex.latex.eval(ldata)
                     else:
                         # convert display to inline for execution output
                         # this matches jupyter notebook behavior
                         ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
                         salvus.html(ldata)
+                elif 'image/png' in content['data']:
+                    display_mime(content['data'])
                 elif 'text/markdown' in content['data']:
-                    salvus.md(content['data']['text/markdown'])
+                    display_mime(content['data'])
                 elif 'text/html' in content['data']:
-                    salvus.html(content['data']['text/html'])
+                    display_mime(content['data'])
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
                     # display_mime(content['data'])
@@ -261,7 +267,11 @@ def _jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    hout(content['text'],block = False)
+                    if 'name' in content and content['name'] == 'stderr':
+                        sys.stderr.write(content['text'])
+                        sys.stderr.flush()
+                    else:
+                        hout(content['text'],block = False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
