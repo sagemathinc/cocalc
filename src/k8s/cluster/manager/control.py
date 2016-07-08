@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, shutil, sys, tempfile, uuid
+import json, os, shutil, sys, tempfile, uuid, yaml
 join = os.path.join
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
@@ -21,10 +21,9 @@ def build(tag, rebuild):
     path = join(SCRIPT_PATH, 'image')
     kubectl = join(path, 'kubectl')
     src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
-    shutil.copyfile(src, kubectl)
-    shutil.copymode(src, kubectl)
-
     try:
+        shutil.copyfile(src, kubectl)
+        shutil.copymode(src, kubectl)
         util.run(v, path=path)
     finally:
         os.unlink(kubectl)
@@ -40,6 +39,7 @@ def images_on_gcloud(args):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def run_on_kubernetes(args):
+    create_kubectl_secret()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
@@ -52,6 +52,27 @@ def run_on_kubernetes(args):
 
 def delete(args):
     util.stop_deployment(NAME)
+    delete_kubectl_secret()
+
+SECRET_NAME = 'cluster-manager-kubectl-secret'
+def create_kubectl_secret():
+    """
+    Ensure that the kubectl secret needed for using kubectl instead of the pod to
+    use this cluster/namespace exists.
+    """
+    if SECRET_NAME not in util.get_secrets():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = join(tmp, 'config')
+            config = json.loads(util.run(['kubectl', 'config', 'view', '--raw', '-o=json'], get_output=True, verbose=False))
+            prefix = util.get_cluster_prefix()
+            # Include only secret info that is relevant to this cluster (a mild security measure -- we can't restrict namespace btw).
+            for k in ['contexts', 'clusters', 'users']:
+                config[k] = [x for x in config[k] if x['name'].endswith(prefix)]
+            open(join(tmp, 'config'), 'w').write(yaml.dump(config))
+            util.create_secret(SECRET_NAME, tmp)
+
+def delete_kubectl_secret():
+    util.delete_secret(SECRET_NAME)
 
 if __name__ == '__main__':
     import argparse

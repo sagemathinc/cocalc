@@ -38,3 +38,10 @@ spec:
         env:
           - name: KUBERNETES_CLUSTER_PREFIX
             value: {cluster_prefix}
+        volumeMounts:
+          - name: cluster-manager-kubectl-secret
+            mountPath: /root/.kube/
+      volumes:
+        - name: cluster-manager-kubectl-secret
+          secret:
+            secretName: cluster-manager-kubectl-secret

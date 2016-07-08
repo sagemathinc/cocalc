@@ -210,11 +210,13 @@ def stop_daemonset(name):
     if name in get_daemonsets():
         run(['kubectl', 'delete', 'daemonset', name])
 
-
-def create_secret(name, filename):
+def delete_secret(name):
     if name in get_secrets():
         # delete first
         run(['kubectl', 'delete', 'secret', name])
+
+def create_secret(name, filename):
+    delete_secret(name)
     v = ['kubectl', 'create', 'secret', 'generic', name]
     if os.path.exists(filename):
         v.append('--from-file='+filename)
