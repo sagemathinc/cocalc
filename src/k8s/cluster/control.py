@@ -212,7 +212,12 @@ def autoscale_cluster(args):
     util.run(v)
 
 def resize_cluster(args):
-    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', util.get_cluster_prefix() + '-minion-group',
+    prefix = util.get_cluster_prefix()
+    if args.name:
+        group = '{prefix}-{name}-minion-group'.format(prefix=prefix, name=args.name)
+    else:
+        group = '{prefix}-minion-group'.format(prefix=prefix)
+    util.run(['gcloud', 'compute', 'instance-groups', 'managed', 'resize', group,
          '--size', str(args.size)])
 
 def run_all():
@@ -334,6 +339,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('resize', help='set the number of nodes')
     sub.add_argument("--size",  type=int, help="number of nodes", required=True)
+    sub.add_argument("name", type=str, default='', nargs='?', help="if given, autoscale group created using create-instance-group")
     sub.set_defaults(func=resize_cluster)
 
     sub = subparsers.add_parser('run-deployments', help="starts minimal latest versions of all deployments running in the current cluster, **EXCEPT** for rethinkdb.")

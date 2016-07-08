@@ -27,6 +27,11 @@ cd ../cluster
 # create the namespace
 ./control.py namespace prod
 
+# create the cluster manager deployment
+cd manager
+./control.py run
+cd ..
+
 # start haproxy
 cd ../haproxy/ && ./control.py load-ssl ~/secrets/haproxy/ && ./control.py run -r 3 && ./control.py autoscale --min=3 --max=3
 

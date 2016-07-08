@@ -51,7 +51,7 @@
       - install
 
   - name: "system wide pip packages"
-    pip:  executable=pip
+    pip:  executable=pip2
           state=latest
           name={{ item }}
     with_items:
@@ -260,6 +260,9 @@
     - golang-go
     - gpicview
     - grace
+    - graphviz
+    - gsl-bin
+    - gsl-ref-html
     - gv
     - h5utils
     - haskell-doc
@@ -334,6 +337,7 @@
     - libmp3lame-dev
     - libncurses5-dev
     - libnetcdf-dev
+    - libntl5
     - libopencore-amrnb-dev
     - libopencore-amrwb-dev
     - libpam-cgroup
@@ -452,9 +456,6 @@
     - python3-zmq
     - quota
     - quotatool
-    - r-cran-cairodevice
-    - r-cran-rgl
-    - r-recommended
     - racket
     - rcs
     - root-system-bin
@@ -473,6 +474,7 @@
     - subversion
     - subversion-tools
     - sysstat
+    - tcsh
     - tig
     - tinc
     - tmpreaper

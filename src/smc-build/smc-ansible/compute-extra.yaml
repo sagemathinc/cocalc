@@ -5,27 +5,32 @@
 
   tasks:
 
-  - apt: name=python-pip
+  - apt: name={{ item }}
+    with_items:
+    - python-pip
+    #- llvm-3.7
+    #- llvm-3.7-dev # for numba
 
   - name: "update pip"
     tags: pip
-    pip: "executable=pip state=latest name=pip"
+    pip: "executable=pip2 state=latest name=pip"
 
-  - name: "additional pip packages"
+  - name: "additional pip2 packages"
     tags: pip
-    pip: executable=pip
+    pip: executable=pip2
          state=latest
          umask=022
          name={{ item }}
     with_items:
     - theano
-    - clawpack
     - datasift
     - bokeh
     - twitter
+    #- pygsl # broken
+    - scikit-learn
+    - statsmodels
+    - clawpack
     - ctop
-    - macs2
-    - pygsl
 
   - apt: name=python3-pip
 
@@ -36,15 +41,17 @@
          umask=022
          name={{ item }}
     with_items:
+    - pip
     - twitter
     - sympy
     - uncertainties
     - zope.interface
     - scikit-learn
     - datasift
-    - numba
+    - macs2
+    # - numba # TODO figure this out later, some error with llvm
     - holoviews
-    - pip3
+    - statsmodels
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -91,7 +98,7 @@
     tags: ipython
   - name: "IPython with notebook and octave+bash kernel / install from pip"
     tags: ipython
-    pip: executable=pip
+    pip: executable=pip2
          state=forcereinstall
          umask=022
          name={{ item }}
@@ -216,7 +223,7 @@
     apt: name={{ item }} install_recommends=yes
     with_items:
     - libntl-dev
-    - libntl0
+    - libntl5
     - libpari-gmp-tls4
     - libpari-dev
     - pari-gp2c
@@ -253,7 +260,8 @@
     - libxml-perl
     - libxml-writer-perl
     - libxml2-dev
-    - w3c-dtd-xhtml
+    - w3c-markup-validator
+    - w3c-xsd-xslt
     - xsltproc
   - name: "polymake installation"
     tags: polymake
@@ -271,7 +279,7 @@
     tags: crcmod
   - name: "pip's crcmod -- critical for using google cloud storage #2"
     tags: crcmod
-    pip: executable=pip
+    pip: executable=pip2
          state=forcereinstall
          umask=022
          name=crcmod
