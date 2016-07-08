@@ -1,13 +1,12 @@
 # set tags by prefixing the make command
-TAG ?= smc-project-ansible
-
-# that's a completely new random uuid
-PROJECT_ID ?= 31631ff7-66ed-4d5f-93e7-aed0efd8a5d5
+NAME    ?= smc-project-base
+VERSION ?= latest
+TAG      = ${NAME}:${VERSION}
 
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY := build rebuild run edit commit clean
+PHONY := build rebuild run edit commit clean tag prod
 
 default: build
 
@@ -19,25 +18,32 @@ build:
 	@echo "building with tag ${TAG}"
 	docker build ${EXTRA_ARGS} --pull --rm "--tag=${TAG}" .
 
-run:
-	@echo "running image with tag ${TAG} and project id ${PROJECT_ID}"
-	docker run -it -e SMC_PROJECT_ID=${PROJECT_ID} "${TAG}"
-
 edit:
-	@echo "starting bash in image with tag ${TAG} and project id ${PROJECT_ID} -- exit or ctrl-d to get out of it"
-	docker run -it -e SMC_PROJECT_ID=${PROJECT_ID} "${TAG}" bash
+	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
+	docker run -it "${TAG}" bash
 	@echo "you finished working with that image"
 	@echo "you can run 'make commit' to update the image with your new edits"
 
 commit:
-	@echo "commit latest changes (after running bash!) to the image"
+	@echo "commit latest changes (after "edit"ing) to the image"
 	$(eval ID = $(shell docker ps --all --latest --quiet --no-trunc --filter ancestor=${TAG}))
-	docker commit ${ID} ${TAG}:latest
+	docker commit ${ID} ${TAG}
 	@echo "image ${TAG} has been updated and committed with the ID ${ID}"
 	@echo "maybe run 'make clean' to get rid of untagged/unreferenced leftovers"
 
+tag:
+	@echo "tagging latest ${NAME} image with ${VERSION}"
+	$(eval ID = $(shell docker images --quiet --no-trunc ${NAME}:latest))
+	docker tag ${ID} ${NAME}:${VERSION}
+
+prod: VERSION = prod
+prod: tag
+
+beta: VERSION = beta
+beta: tag
+
 clean:
-	@echo 'remove all untagged docker images'
+	@echo 'remove all untagged docker images -- do not worry about errors'
 	# this runs repeatedly until it fails, because once an image is deleted more become dangling!
 	# it fails, because there is no "--no-run-if-empty" and hence docker complains
 	while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done

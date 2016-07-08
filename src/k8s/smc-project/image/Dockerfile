@@ -1,26 +1,15 @@
-FROM ubuntu:16.04
+FROM smc-project-base:prod
+LABEL smc.component=project
+MAINTAINER Harald Schilly <hsy@sagemath.com>
 
-USER root
-
-# So we can source (see http://stackoverflow.com/questions/20635472/using-the-run-instruction-in-a-dockerfile-with-source-does-not-work)
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-
-MAINTAINER William Stein <wstein@sagemath.com>
-
-# Install Node.js
-RUN \
-  apt-get update && \
-  apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo  && \
-  curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
-  apt-get install -y nodejs
-
-# Grab source code for SMC
-RUN git clone https://github.com/sagemathinc/smc.git
+# Refresh SMC
+WORKDIR /
+RUN rm -rf /smc
+RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
 
 # Build (mainly involves installing dependencies)
 WORKDIR /smc/src/
 RUN \
-  cd /smc/src && \
   . ./smc-env && \
   ./install.py pyutil && \
   ./install.py project
