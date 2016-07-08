@@ -10,6 +10,8 @@
                 line="DSELECT::Clean "always";"
                 dest="/etc/apt/apt.conf.d/99AutomaticClean"
 
+  - apt: update_cache=yes cache_valid_time=3600
+
   - name: "rethinkdb apt key"
     apt_key: url=http://download.rethinkdb.com/apt/pubkey.gpg
 
@@ -17,10 +19,10 @@
     apt_repository: repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
 
   - name: "additional install packages for all machines"
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
-      - atop
       - aptitude
+      - bash-completion
       - bup
       - htop
       - fio
@@ -75,7 +77,7 @@
   tasks:
 
   - name: 'critical packages needed for building SMC source code'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - calibre
     - dpkg-dev
@@ -125,7 +127,7 @@
   tasks:
 
   - name: 'packages on Compute VMs'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
       - install
     with_items:
@@ -191,7 +193,7 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #1'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     - install-compute-users
@@ -229,7 +231,7 @@
     - dstat
 
   - name: 'Additional packages (mainly for users, not building) - batch #2'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     - install-compute-users
@@ -289,7 +291,7 @@
     - lbzip2
 
   - name: 'Additional packages (mainly for users, not building) - batch #3'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     - install-compute-users
@@ -364,7 +366,7 @@
     - libzmq-dev
 
   - name: 'Additional packages (mainly for users, not building) - batch #4'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     - install-compute-users
@@ -424,7 +426,7 @@
     - pv
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     - install-compute-users
@@ -510,7 +512,7 @@
 
   tasks:
   - name: 'Python3-related packages of interest'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     with_items:

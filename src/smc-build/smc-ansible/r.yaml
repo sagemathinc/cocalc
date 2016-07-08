@@ -14,7 +14,7 @@
     apt_repository: repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
 
   - name: 'R installation (official ubuntu repo -- some base packages)'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - libssl-dev # required for cran's devtools
     - libssh2-1-dev # for cran's devtools
@@ -38,7 +38,7 @@
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R installation (official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-abind
     - r-cran-acepack
@@ -71,7 +71,7 @@
     - r-cran-class
 
   - name: 'R installation (official ubuntu repo) #1'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-cluster
     - r-cran-cmprsk
@@ -127,7 +127,7 @@
     - r-cran-fextremes
 
   - name: 'R installation (official ubuntu repo) #2'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-fgarch
     - r-cran-fimport
@@ -178,7 +178,7 @@
     - r-cran-jsonlite
 
   - name: 'R installation (official ubuntu repo) #3'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-kernlab
     - r-cran-kernsmooth
@@ -226,7 +226,7 @@
     - r-cran-mvtnorm
 
   - name: 'R installation (official ubuntu repo) #4'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-ncdf4
     - r-cran-nlme
@@ -282,7 +282,7 @@
     - r-cran-rinside
 
   - name: 'R installation (official ubuntu repo) #5'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-cran-rjags
     - r-cran-rjava
@@ -357,7 +357,7 @@
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R bioconductor installation (from official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} install_recommends=yes state=latest
     with_items:
     - r-bioc-affy
     - r-bioc-affyio
