@@ -6,7 +6,7 @@ TAG      = ${NAME}:${VERSION}
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY := build rebuild run edit commit clean tag prod
+PHONY := build rebuild run edit commit clean tag prod squash
 
 default: build
 
@@ -18,11 +18,21 @@ build:
 	@echo "building with tag ${TAG}"
 	docker build ${EXTRA_ARGS} --pull --rm "--tag=${TAG}" .
 
+squash:
+	@echo "remove all intermediate layers after several edit steps"
+	$(eval ID = $(shell docker create ${NAME}:latest bash))
+	@echo container ID = ${ID}
+	docker export ${ID} | docker import - ${NAME}:squashed
+	docker tag ${NAME}:squashed ${NAME}:latest
+	docker rmi ${NAME}:squashed
+	@echo "squashing completed. consider running 'make clean' to free some space ..."
+
 edit:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
 	docker run -it "${TAG}" bash
 	@echo "you finished working with that image"
 	@echo "you can run 'make commit' to update the image with your new edits"
+	@echo "also consider to run 'make squash' after several edit steps!'
 
 commit:
 	@echo "commit latest changes (after "edit"ing) to the image"

@@ -2,17 +2,14 @@ FROM smc-project-base:prod
 LABEL smc.component=project
 MAINTAINER Harald Schilly <hsy@sagemath.com>
 
-# Refresh SMC
+# Refresh SMC and build the project (mainly building dependencies ...)
 WORKDIR /
-RUN rm -rf /smc
-RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
-
-# Build (mainly involves installing dependencies)
-WORKDIR /smc/src/
-RUN \
-  . ./smc-env && \
-  ./install.py pyutil && \
-  ./install.py project
+RUN rm -rf /smc && \
+    git clone --depth 1 https://github.com/sagemathinc/smc.git && \
+    cd /smc/src/ && \
+    . ./smc-env && \
+    ./install.py pyutil && \
+    ./install.py project
 
 COPY run.py /run.py
 
