@@ -123,7 +123,7 @@ redux_app = (state, action) ->
             # Typically action.change has exactly one key, the name of a Store.
             # We merge in what is in action.change[name] to state[name] below.
             action.change.map (val, store) ->
-                new_val = state.get(store)?.merge(val) ? val
+                new_val = state.get(store)?.mergeDeep(val) ? val
                 state = state.set(store, new_val)
             return state
         when 'REMOVE_STORE'

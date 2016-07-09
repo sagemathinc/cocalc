@@ -53,6 +53,7 @@ class ChatActions extends Actions
         console.log("SYNC_DB_CHANGE", changes)
         for x in changes
             if x.insert
+                x.insert.history = immutable.Stack(immutable.fromJS(x.insert.history))
                 messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
@@ -64,27 +65,37 @@ class ChatActions extends Actions
         if not @syncdb?
             # TODO: give an error or try again later?
             return
+        sender_id = @redux.getStore('account').get_account_id()
+        time_stamp = salvus_client.server_time()
         @syncdb.update
             set :
-                sender_id : @redux.getStore('account').get_account_id()
+                sender_id : sender_id
                 event     : "chat"
-                payload   : {content: mesg}
+                history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             where :
-                date: salvus_client.server_time()
+                date: time_stamp
         @syncdb.save()
 
     set_input: (input) =>
         @setState(input:input)
 
     # Doesn't work
-    change_message: (message, new_content) =>
-        #key = message.get('date')
-        #console.log("CHANGE MESSAGE", key, new_content)
+    send_edit: (message, raw_new_content) =>
+        new_content = misc_page.sanitize_html(raw_new_content)
 
-        #@mergeState(messages:
-        #    "#{key}":
-        #        payload:
-        #            content:new_content)
+        console.log("Trying to update content of", message.toJS(), "with", new_content)
+        change_object = immutable.fromJS
+            content   : new_content
+            author_id : @redux.getStore('account').get_account_id()
+            date      : salvus_client.server_time()
+
+        new_message = message.update('history', (stack) => stack.push(change_object))
+        console.log("New message obj:", new_message.toJS())
+
+        new_messages = @redux.getStore(@name).get('messages').set(message.get('date') - 0, new_message)
+        console.log("OLD MESSAGES:",@redux.getStore(@name).get('messages').toJS())
+        console.log("NEW MESSAGES:", new_messages.toJS())
+        #@setState(messages : new_messages)
 
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
@@ -113,8 +124,15 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
             else
                 v = {}
                 for x in syncdb.select()
-                    if x.edits
-                        x.edits = immutable.Stack(x.edits)
+                    if x.history
+                        x.history = immutable.Stack(immutable.fromJS(x.history))
+                    else if x.payload # for old chats with payload: content
+                        initial = immutable.fromJS
+                            content   : x.payload.content
+                            author_id : x.sender_id
+                            date      : x.date
+                        x.history = immutable.Stack([initial])
+                        delete x.payload
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -125,7 +143,8 @@ Message = rclass
 
     propTypes:
         # example message object
-        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
+        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","date":"2015-08-26T21:52:51.329Z", "history": <Stack>}
+        # "history" : [{author_id: "...", content:"full content", "date": ...}, ...]
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
         content        : rtypes.string
@@ -141,7 +160,7 @@ Message = rclass
         actions        : rtypes.object
 
     getInitialState: ->
-        edited_message  : @props.message.get('payload')?.get('content') ? ''
+        edited_message  : @newest_content()
         show_edit_input : false
 
     shouldComponentUpdate: (next) ->
@@ -154,6 +173,9 @@ Message = rclass
                @state.show_edit_input != next.show_edit_input or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
+    newest_content: ->
+        @props.message.get('history')?.peek().get('content') ? ''
+
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
 
@@ -164,7 +186,7 @@ Message = rclass
 
     last_edited: ->
         <div className="pull-left small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
-            last edit by {#@props.message.get('edits').peek().get('editor_account_id')}
+            last edit by {@props.message.get('history').peek().get('author_id')}
         </div>
 
     show_user_name: ->
@@ -206,7 +228,7 @@ Message = rclass
         </Col>
 
     content_column: ->
-        value = @props.message.get('payload')?.get('content') ? ''
+        value = @newest_content()
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -281,13 +303,8 @@ Message = rclass
             @setState(edited_message:'')
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
-            if mesg.length? and mesg.trim().length >= 1 and mesg != @props.content
-                #@props.actions.change_message(@props.message, mesg)
-                #@props.actions.user_edited(@props.user_map.get(@props.account_id).get('first_name'))
-                #console.log("ONKEYDOWN:", @props.message.get('payload')?.get('content'), mesg)
-                #console.log("The account name is:", @props.user_map.get(@props.message.get('sender_id')).get('first_name'))
-                #console.log("The person who edited this is: ", @props.editor_id)
-                @props.actions.save_edit_state(true)
+            if mesg.length? and mesg.trim().length >= 1 and mesg != @newest_content
+                @props.actions.send_edit(@props.message, mesg)
                 @setState(show_edit_input:false)
 
     render: ->
@@ -342,7 +359,6 @@ ChatLog = rclass
                      account_id       = {@props.account_id}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
-                     content          = {@props.messages.get(date).get('payload')?.get('content') ? ''}
                      timestamp        = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
