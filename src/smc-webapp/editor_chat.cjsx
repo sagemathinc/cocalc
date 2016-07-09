@@ -50,6 +50,7 @@ redux_name = (project_id, path) ->
 class ChatActions extends Actions
     _syncdb_change: (changes) =>
         m = messages = @redux.getStore(@name).get('messages')
+        console.log("SYNC_DB_CHANGE", changes)
         for x in changes
             if x.insert
                 messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
@@ -75,10 +76,21 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
+    # Doesn't work
+    change_message: (message, new_content) =>
+        #key = message.get('date')
+        #console.log("CHANGE MESSAGE", key, new_content)
+
+        #@mergeState(messages:
+        #    "#{key}":
+        #        payload:
+        #            content:new_content)
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
+
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -101,6 +113,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
             else
                 v = {}
                 for x in syncdb.select()
+                    if x.edits
+                        x.edits = immutable.Stack(x.edits)
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -114,6 +128,8 @@ Message = rclass
         # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
+        content        : rtypes.string
+        timestamp      : rtypes.any
         sender_name    : rtypes.string
         user_map       : rtypes.object
         project_id     : rtypes.string    # optional -- improves relative links if given
@@ -122,6 +138,11 @@ Message = rclass
         show_avatar    : rtypes.bool
         is_prev_sender : rtypes.bool
         is_next_sender : rtypes.bool
+        actions        : rtypes.object
+
+    getInitialState: ->
+        edited_message  : @props.message.get('payload')?.get('content') ? ''
+        show_edit_input : false
 
     shouldComponentUpdate: (next) ->
         return @props.message != next.message or
@@ -130,6 +151,7 @@ Message = rclass
                @props.show_avatar != next.show_avatar or
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
+               @state.show_edit_input != next.show_edit_input or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     sender_is_viewer: ->
@@ -140,6 +162,11 @@ Message = rclass
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
+    last_edited: ->
+        <div className="pull-left small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
+            last edit by {#@props.message.get('edits').peek().get('editor_account_id')}
+        </div>
+
     show_user_name: ->
         <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'10px'}>
             {@props.sender_name}
@@ -147,6 +174,8 @@ Message = rclass
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
+        #console.log("props message sender_id", account)
+        #console.log("props account id", @props.account_id)
         if @props.is_prev_sender
             margin_top = '5px'
         else
@@ -178,7 +207,6 @@ Message = rclass
 
     content_column: ->
         value = @props.message.get('payload')?.get('content') ? ''
-
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -211,18 +239,56 @@ Message = rclass
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
             <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: borderRadius}>
-                        <Markdown value={value}
-                                  project_id={@props.project_id}
-                                  file_path={@props.file_path} />
+                    <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
+                        {@render_markdown(value) if not @state.show_edit_input}
+                        {@render_input() if @state.show_edit_input}
+                        {@last_edited()}
                         {@get_timeago()}
                     </ListGroupItem>
                 </ListGroup>
             </Panel>
         </Col>
 
+    render_markdown: (value) ->
+        <div>
+            <Markdown value={value}
+                      project_id={@props.project_id}
+                      file_path={@props.file_path} />
+        </div>
+
+    render_input: ->
+        <div>
+            <Input
+                autofocus = {true}
+                rows      = 4
+                type      = 'textarea'
+                ref       = 'editedMessage'
+                onKeyDown = {@on_keydown}
+                value     = {@state.edited_message}
+                onChange  = {(value)=>@setState(edited_message:@refs.editedMessage.getValue())}
+                />
+        </div>
+
     blank_column:  ->
         <Col key={2} xs={2}></Col>
+
+    edit_message: ->
+        @setState(show_edit_input:true)
+
+    on_keydown : (e) ->
+        if e.keyCode==27 # ESC
+            e.preventDefault()
+            @setState(edited_message:'')
+        else if e.keyCode==13 and not e.shiftKey # 13: enter key
+            mesg = @refs.editedMessage.getValue()
+            if mesg.length? and mesg.trim().length >= 1 and mesg != @props.content
+                #@props.actions.change_message(@props.message, mesg)
+                #@props.actions.user_edited(@props.user_map.get(@props.account_id).get('first_name'))
+                #console.log("ONKEYDOWN:", @props.message.get('payload')?.get('content'), mesg)
+                #console.log("The account name is:", @props.user_map.get(@props.message.get('sender_id')).get('first_name'))
+                #console.log("The person who edited this is: ", @props.editor_id)
+                @props.actions.save_edit_state(true)
+                @setState(show_edit_input:false)
 
     render: ->
         cols = [@avatar_column(), @content_column(), @blank_column()]
@@ -237,12 +303,13 @@ ChatLog = rclass
     displayName: "ChatLog"
 
     propTypes:
-        messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
-        user_map   : rtypes.object              # immutable js map {collaborators} --> account info
-        account_id : rtypes.string
-        project_id : rtypes.string   # optional -- used to render links more effectively
-        file_path  : rtypes.string   # optional -- ...
-        font_size  : rtypes.number
+        messages     : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
+        user_map     : rtypes.object              # immutable js map {collaborators} --> account info
+        account_id   : rtypes.string
+        project_id   : rtypes.string   # optional -- used to render links more effectively
+        file_path    : rtypes.string   # optional -- ...
+        font_size    : rtypes.number
+        actions      : rtypes.object
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -272,16 +339,19 @@ ChatLog = rclass
                 sender_name = "Unknown"
 
             v.push <Message key={date}
-                     account_id  = {@props.account_id}
-                     user_map    = {@props.user_map}
-                     message     = {@props.messages.get(date)}
-                     project_id  = {@props.project_id}
-                     file_path   = {@props.file_path}
-                     font_size   = {@props.font_size}
+                     account_id       = {@props.account_id}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     content          = {@props.messages.get(date).get('payload')?.get('content') ? ''}
+                     timestamp        = {date}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
                      is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
                      is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
                      show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
                      sender_name      = {sender_name}
+                     actions          = {@props.actions}
                     />
         return v
 
@@ -459,7 +529,8 @@ ChatRoom = (name) -> rclass
                             user_map     = {@props.user_map}
                             project_id   = {@props.project_id}
                             font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head} />
+                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                            actions      = {@props.actions} />
                     </Panel>
                 </Col>
             </Row>
