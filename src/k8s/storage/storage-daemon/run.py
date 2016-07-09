@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, json, os, requests, shutil, socket, subprocess, time
+import datetime, json, os, requests, shutil, signal, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
 
@@ -8,45 +8,64 @@ HOSTS = '/node/etc/hosts'
 # see https://github.com/kubernetes/kubernetes/blob/release-1.0/docs/user-guide/downward-api.md
 POD_NAMESPACE = os.environ.get('POD_NAMESPACE', 'default')
 
-def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
-    t = time.time()
-    if isinstance(v, str):
-        cmd = v
-        shell = True
-    else:
-        cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
-    if path != '.':
-        cur = os.path.abspath(os.curdir)
-        if verbose:
-            print('chdir %s'%path)
-        os.chdir(path)
+def log(*args, **kwds):
+    print(time_to_timestamp(), *args, **kwds)
+
+alarm_time=0
+def mysig(a,b):
+    raise KeyboardInterrupt
+def alarm(seconds):
+    seconds = int(seconds)
+    signal.signal(signal.SIGALRM, mysig)
+    global alarm_time
+    alarm_time = seconds
+    signal.alarm(seconds)
+def cancel_alarm():
+    signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=True, timeout=15):
     try:
-        if verbose:
-            print(cmd)
-        if shell:
-            kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
+        alarm(timeout)
+        t = time.time()
+        if isinstance(v, str):
+            cmd = v
+            shell = True
         else:
-            kwds = {'env':env}
-        if get_output:
-            output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
-        else:
-            if subprocess.call(v, **kwds):
-                raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
-            output = None
-        seconds = time.time() - t
-        if verbose:
-            print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
-        return output
-    finally:
+            cmd = ' '.join([(x if len(x.split())<=1 else '"%s"'%x) for x in v])
         if path != '.':
-            os.chdir(cur)
+            cur = os.path.abspath(os.curdir)
+            if verbose:
+                log('chdir %s'%path)
+            os.chdir(path)
+        try:
+            if verbose:
+                log(cmd)
+            if shell:
+                kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
+            else:
+                kwds = {'env':env}
+            if get_output:
+                output = subprocess.Popen(v, stdout=subprocess.PIPE, **kwds).stdout.read().decode()
+            else:
+                if subprocess.call(v, **kwds):
+                    raise RuntimeError("error running '{cmd}'".format(cmd=cmd))
+                output = None
+            seconds = time.time() - t
+            if verbose:
+                log("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+            return output
+        finally:
+            if path != '.':
+                os.chdir(cur)
+    finally:
+        cancel_alarm()
 
 def get_service(service):
     """
     Get in json format the kubernetes information about the given service.
     """
     if not os.environ['KUBERNETES_SERVICE_HOST']:
-        print('KUBERNETES_SERVICE_HOST environment variable not set')
+        log('KUBERNETES_SERVICE_HOST environment variable not set')
         return None
     URL = "https://{KUBERNETES_SERVICE_HOST}:{KUBERNETES_SERVICE_PORT}/api/v1/namespaces/{POD_NAMESPACE}/endpoints/{service}"
     URL = URL.format(KUBERNETES_SERVICE_HOST=os.environ['KUBERNETES_SERVICE_HOST'],
@@ -55,18 +74,18 @@ def get_service(service):
                      service=service)
     token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
     headers={'Authorization':'Bearer {token}'.format(token=token)}
-    print("Getting k8s information about '{service}' from '{URL}'".format(service=service, URL=URL))
+    log("Getting k8s information about '{service}' from '{URL}'".format(service=service, URL=URL))
     x = requests.get(URL, headers=headers, verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt').json()
-    print("Got {x}".format(x=x))
+    log("Got {x}".format(x=x))
     return x
 
 def update_etc_hosts():
-    print('udpate_etc_hosts')
+    log('udpate_etc_hosts')
     try:
         v = get_service('storage-projects')
     except Exception as err:
         # Expected to happen when node is starting up, etc. - we'll retry later soon!
-        print("Failed getting storage service info", err)
+        log("Failed getting storage service info", err)
         return
     if v.get('status', None) == 'Failure':
         return
@@ -90,7 +109,7 @@ def update_etc_hosts():
             new = current[:i] + block + current[j+len(end):]
         open(HOSTS,'w').write(new)
     except Exception as err:
-        print("Problem in update_etc_hosts", err)
+        log("Problem in update_etc_hosts", err)
 
 MINION_IP = 'unknown'
 def enable_ssh_access_to_minion():
@@ -145,33 +164,33 @@ def is_plugin_loaded():
         else:
             return False
     except Exception as err:
-        print(err)
+        log(err)
         return False
 
 def install_zfs():
     try:
         run_on_minion('zpool status')
-        print("OK: zfs is installed")
+        log("OK: zfs is installed")
     except:
-        print("zfs not installed, so installing it")
+        log("zfs not installed, so installing it")
         run(['scp', '-r', '/install/gke-zfs', minion_ip()+":"])
         run_on_minion("cd /root/gke-zfs/3.16.0-4-amd64/ && ./install.sh")
 
 def install_bindfs():
     try:
         run_on_minion('which bindfs')
-        print("OK: bindfs is installed")
+        log("OK: bindfs is installed")
     except:
-        print("bindfs not installed, so installing it")
+        log("bindfs not installed, so installing it")
         run_on_minion(["apt-get", "update"])
         run_on_minion(["apt-get", "install", "-y", "bindfs"])
 
 def install_sshfs():
     try:
         run_on_minion('which sshfs')
-        print("OK: bindfs is installed")
+        log("OK: bindfs is installed")
     except:
-        print("bindfs not installed, so installing it")
+        log("bindfs not installed, so installing it")
         run_on_minion(["apt-get", "update"])
         run_on_minion(["apt-get", "install", "-y", "sshfs"])
 
@@ -297,8 +316,11 @@ def update_zpool_active_log():
 def update_all_lock_files():
     smc_storage("update-all-locks")
 
+def zpool_clear_errors():
+    smc_storage("zpool-clear-errors")
+
 def start_storage_daemon():
-    print("launching storage daemon")
+    log("launching storage daemon")
     install_flexvolume_plugin()
     enable_ssh_access_to_minion()
     install_ssh_keys()
@@ -307,24 +329,30 @@ def start_storage_daemon():
     install_sshfs()
     if not is_plugin_loaded():
         restart_kubelet()
-    last_snapshot_update = last_lock_update = 0
+    last_snapshot_update = last_lock_update = last_zpool_clear_errors = 0
     while True:
         try:
             update_etc_hosts()
         except Exception as err:
-            print("ERROR updating etc hosts -- ", err)
+            log("ERROR updating etc hosts -- ", err)
         if time.time() - last_snapshot_update >= 60*2.5:
             try:
                 update_all_snapshots()
                 last_snapshot_update = time.time()
             except Exception as err:
-                print("ERROR updating snapshots -- ", err)
+                log("ERROR updating snapshots -- ", err)
         if time.time() - last_lock_update >= 90:
             try:
                 update_all_lock_files()
                 last_lock_update = time.time()
             except Exception as err:
-                print("ERROR updating locks -- ", err)
+                log("ERROR updating locks -- ", err)
+        if time.time() - last_zpool_clear_errors >= 20:
+            try:
+                zpool_clear_errors()
+                last_zpool_clear_errors = time.time()
+            except Exception as err:
+                log("ERROR zpool_clear_errors -- ", err)
         time.sleep(10)
 
 if __name__ == "__main__":

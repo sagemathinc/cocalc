@@ -8,7 +8,7 @@
 # The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs` (for snapshots).
 #
 
-import json, os, shutil, socket, sys, time, uuid
+import json, os, shutil, signal, socket, sys, time, uuid
 
 LOCK_TIME_S = 120
 
@@ -23,13 +23,29 @@ def log(obj):
     LOG("Will return '%s'"%obj)
     print(json.dumps(obj, separators=(',', ':')))
 
+alarm_time=0
+def mysig(a,b):
+    raise KeyboardInterrupt
+def alarm(seconds):
+    seconds = int(seconds)
+    signal.signal(signal.SIGALRM, mysig)
+    global alarm_time
+    alarm_time = seconds
+    signal.alarm(seconds)
+def cancel_alarm():
+    signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
 def cmd(s):
-    LOG("cmd('%s')"%s)
-    z = os.popen(s+" 2>&1 ")
-    t = z.read()
-    if z.close():
-        raise RuntimeError(t)
-    return t
+    try:
+        alarm(20)
+        LOG("cmd('%s')"%s)
+        z = os.popen(s+" 2>&1 ")
+        t = z.read()
+        if z.close():
+            raise RuntimeError(t)
+        return t
+    finally:
+        cancel_alarm()
 
 def init(args):
     LOG('init', args)
@@ -266,6 +282,23 @@ def detach(args):
     cmd("zpool export {device}".format(device=device))
     remove_lock_file(path)
 
+def zpool_clear_errors(args):
+    LOG("zpool_clear_errors")
+    try:
+        w = cmd("zpool status -xP|grep 'pool:'").splitlines()
+    except:
+        LOG("zpool_clear_errors -- no errors")
+        return
+    for k in w:
+        v = k.split(':')
+        if len(v) > 1:
+            try:
+                LOG("attempting to clear errors for %s"%v[1])
+                cmd("zpool clear %s"%v[1])
+            except Exception as err:
+                LOG("failed to clear -- %r"%err)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='SMC Storage k8s vendor driver')
@@ -294,6 +327,9 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('update-all-locks', help='update all lock files')
     sub.set_defaults(func=update_all_locks)
+
+    sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
+    sub.set_defaults(func=zpool_clear_errors)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
