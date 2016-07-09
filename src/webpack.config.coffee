@@ -235,13 +235,13 @@ videoChatSide = new HtmlWebpackPlugin
                         filename : "webrtc/group_chat_side.html"
                         inject   : 'head'
                         template : 'webapp-lib/webrtc/group_chat_side.html'
-                        chunks   : []
+                        chunks   : ['css']
                         minify   : htmlMinifyOpts
 videoChatCell = new HtmlWebpackPlugin
                         filename : "webrtc/group_chat_cell.html"
                         inject   : 'head'
                         template : 'webapp-lib/webrtc/group_chat_cell.html'
-                        chunks   : []
+                        chunks   : ['css']
                         minify   : htmlMinifyOpts
 
 # global css loader configuration
@@ -461,3 +461,4 @@ module.exports =
         minifyCSS            : true
         collapseWhitespace   : true
         conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+
