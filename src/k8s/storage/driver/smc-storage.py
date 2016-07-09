@@ -8,7 +8,7 @@
 # The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs` (for snapshots).
 #
 
-import json, os, shutil, signal, socket, sys, time, uuid
+import datetime, json, os, shutil, signal, socket, sys, time, uuid
 
 LOCK_TIME_S = 120
 
@@ -35,9 +35,14 @@ def alarm(seconds):
 def cancel_alarm():
     signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
-def cmd(s):
+def cmd(s, timeout=20):
+    if isinstance(s, list):
+        for i, x in enumerate(s):
+            if len(x.split()) > 1:
+                s[i] = "'%s'"%x
+        s = ' '.join(s)
     try:
-        alarm(20)
+        alarm(timeout)
         LOG("cmd('%s')"%s)
         z = os.popen(s+" 2>&1 ")
         t = z.read()
@@ -298,6 +303,94 @@ def zpool_clear_errors(args):
             except Exception as err:
                 LOG("failed to clear -- %r"%err)
 
+#
+# SNAPSHOT SUPPORT
+#
+
+def create_snapshot(pool, name):
+    snapshot = "{timestamp}-{name}".format(timestamp=time_to_timestamp(), name=name)
+    cmd(['zfs', 'snapshot', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)], timeout=3)
+
+def delete_snapshot(pool, snapshot):
+    cmd(['zfs', 'destroy', "{pool}@{snaphot}".format(pool=pool, snapshot=snapshot)], timeout=3)
+
+# Lengths of time in minutes.
+SNAPSHOT_INTERVALS = {
+    'five'    : 5,
+    'hourly'  : 60,
+    'daily'   : 60*24,
+    'weekly'  : 60*24*7,
+    'monthly' : 60*24*7*4
+}
+
+# How many of each type of snapshot to retain
+SNAPSHOT_COUNTS = {
+    'five'    : 12*6,   # 6 hours worth of five-minute snapshots
+    'hourly'  : 24*7,   # 1 week of hourly snapshots
+    'daily'   : 30,     # 1 month of daily snapshots
+    'weekly'  : 8,      # 2 months of weekly snapshots
+    'monthly' : 6       # 6 months of monthly snapshots
+}
+
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
+TIMESTAMP_N = len("2016-06-27-141131")
+def time_to_timestamp(tm=None):
+    if tm is None:
+        tm = time.time()
+    return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
+
+def timestamp_to_time(timestamp):
+    d = datetime.datetime.strptime(timestamp, TIMESTAMP_FORMAT)
+    #return d.timestamp()  # python3
+    return time.mktime(d.timetuple())
+
+def update_snapshots(pool, snapshots):
+    """
+    Update the rolling ZFS snapshots on the given pool.
+    """
+    # determine which snapshots we need to make
+    now = time.time()
+    for name, interval in SNAPSHOT_INTERVALS.items():
+        if SNAPSHOT_COUNTS[name] <= 0: # not making any of these
+            continue
+        # Is there a snapshot with the given name that is within the given
+        # interval of now?  If not, make snapshot.
+        v = [s for s in snapshots if s.endswith('-'+name)]
+        if len(v) > 0:
+            newest = v[-1]
+            t = timestamp_to_time(newest[:TIMESTAMP_N])
+            age_m = (now - t)/60.0   # age in minutes since snapshot
+        else:
+            age_m = 999999999999  # 'infinite'
+        if age_m > interval:
+            # make this snapshot
+            create_snapshot(pool, name)
+        # Are there too many snapshots of the given type?  If so, delete them:
+        if len(v) > SNAPSHOT_COUNTS[name]:
+            for s in v[ : len(v) - SNAPSHOT_COUNTS[name]]:
+                delete_snapshot(pool, s)
+
+def snapshot_info():
+    info = {}
+    # Get all pools (some may not be in result of snapshot listing below!)
+    for pool in cmd(['zfs', 'list', '-r', '-H', '-o', 'name']).split():
+        info[pool] = []
+    # Get snapshot info for *all* snapshots on all pools
+    for snapshot in sorted(cmd(['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name']).split()):
+        pool, snap = snapshot.split('@')
+        info[pool].append(snap)
+    return info
+
+def zpool_update_snapshots(args):
+    """
+    Update the rolling ZFS snapshots on all mounted zpool's.
+    """
+    LOG("zpool_update_snapshots")
+    for pool, snaps in snapshot_info().items():
+        try:
+            update_snapshots(pool, snaps)
+        except Exception as err:
+            LOG("error updating snapshot of %s -- %r"%(pool, err))
 
 if __name__ == '__main__':
     import argparse
@@ -327,6 +420,9 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('update-all-locks', help='update all lock files')
     sub.set_defaults(func=update_all_locks)
+
+    sub = subparsers.add_parser('zpool-update-snapshots', help='update all zpool snapshots')
+    sub.set_defaults(func=zpool_update_snapshots)
 
     sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
     sub.set_defaults(func=zpool_clear_errors)

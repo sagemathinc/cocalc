@@ -23,7 +23,7 @@ def alarm(seconds):
 def cancel_alarm():
     signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
-def run(v, shell=False, path='.', get_output=False, env=None, verbose=True, timeout=15):
+def run(v, shell=False, path='.', get_output=False, env=None, verbose=True, timeout=20):
     try:
         alarm(timeout)
         t = time.time()
@@ -208,84 +208,13 @@ def install_ssh_keys():
 def restart_kubelet():
     run_on_minion("kill `pidof /usr/local/bin/kubelet`")
 
-def create_snapshot(pool, name):
-    snapshot = "{timestamp}-{name}".format(timestamp=time_to_timestamp(), name=name)
-    run_on_minion(['zfs', 'snapshot', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)])
-
-def delete_snapshot(pool, snapshot):
-    run_on_minion(['zfs', 'destroy', "{pool}@{snaphot}".format(pool=pool, snapshot=snapshot)])
-
-# Lengths of time in minutes.
-SNAPSHOT_INTERVALS = {
-    'five'    : 5,
-    'hourly'  : 60,
-    'daily'   : 60*24,
-    'weekly'  : 60*24*7,
-    'monthly' : 60*24*7*4
-}
-
-# How many of each type of snapshot to retain
-SNAPSHOT_COUNTS = {
-    'five'    : 12*6,   # 6 hours worth of five-minute snapshots
-    'hourly'  : 24*7,   # 1 week of hourly snapshots
-    'daily'   : 30,     # 1 month of daily snapshots
-    'weekly'  : 8,      # 2 months of weekly snapshots
-    'monthly' : 6       # 6 months of monthly snapshots
-}
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
-TIMESTAMP_N = len("2016-06-27-141131")
 def time_to_timestamp(tm=None):
     if tm is None:
         tm = time.time()
     return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
 
-def timestamp_to_time(timestamp):
-    return datetime.datetime.strptime(timestamp, TIMESTAMP_FORMAT).timestamp()
-
-def update_snapshots(pool, snapshots):
-    """
-    Update the rolling ZFS snapshots on the given pool.
-    """
-    # determine which snapshots we need to make
-    now = time.time()
-    for name, interval in SNAPSHOT_INTERVALS.items():
-        if SNAPSHOT_COUNTS[name] <= 0: # not making any of these
-            continue
-        # Is there a snapshot with the given name that is within the given
-        # interval of now?  If not, make snapshot.
-        v = [s for s in snapshots if s.endswith('-'+name)]
-        if len(v) > 0:
-            newest = v[-1]
-            t = timestamp_to_time(newest[:TIMESTAMP_N])
-            age_m = (now - t)/60.0   # age in minutes since snapshot
-        else:
-            age_m = 999999999999  # 'infinite'
-        if age_m > interval:
-            # make this snapshot
-            create_snapshot(pool, name)
-        # Are there too many snapshots of the given type?  If so, delete them:
-        if len(v) > SNAPSHOT_COUNTS[name]:
-            for s in v[ : len(v) - SNAPSHOT_COUNTS[name]]:
-                delete_snapshot(pool, s)
-
-def snapshot_info():
-    info = {}
-    # Get all pools (some may not be in result of snapshot listing below!)
-    for pool in run_on_minion(['zfs', 'list', '-r', '-H', '-o', 'name'], get_output=True).split():
-        info[pool] = []
-    # Get snapshot info for *all* snapshots on all pools
-    for snapshot in sorted(run_on_minion(['zfs', 'list', '-r', '-H', '-t', 'snapshot', '-o', 'name'], get_output=True).split()):
-        pool, snap = snapshot.split('@')
-        info[pool].append(snap)
-    return info
-
-def update_all_snapshots():
-    """
-    Update the rolling ZFS snapshots on all mounted zpool's.
-    """
-    for pool, snaps in snapshot_info().items():
-        update_snapshots(pool, snaps)
 
 # TODO: this entire approach is pointless and broken because when multiple processes
 # append to the same file, the result is broken corruption.
@@ -312,6 +241,9 @@ def update_zpool_active_log():
             log = "{timestamp} {image}".format(timestamp=time_to_timestamp(), image=image)
             run_on_minion("echo '{log}' >> {prefix}/{server}/log/active.log".format(
                     log=log, prefix=prefix, server=server))
+
+def update_all_snapshots():
+    smc_storage("zpool-update-snapshots")
 
 def update_all_lock_files():
     smc_storage("update-all-locks")
