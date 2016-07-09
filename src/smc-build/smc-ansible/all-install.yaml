@@ -571,7 +571,6 @@
     - python3-django-model-utils
     - python3-django-tables2
     - python3-django-xmlrpc
-    - python3-django-*
     - python3-dkim
     - python3-dns
     - python3-dnsq
@@ -604,7 +603,6 @@
     - python3-greenlet
     - python3-gsw
     - python3-h5py
-    - python3-googleapi
     - python3-httplib2
     - python3-icalendar
     - python3-idna

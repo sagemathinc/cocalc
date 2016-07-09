@@ -410,6 +410,10 @@
     - uuid
     - pbdZMQ
     - repr
+    - "data.table"
+    - dplyr
+    - tidyr
+    - WGCNA
     - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
 
   - name: "IPython Kernel" # needs devtools, etc.
