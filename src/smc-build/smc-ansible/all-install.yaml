@@ -249,6 +249,7 @@
     - gawk
     - gcc-multilib
     - gdb
+    - gfan
     - ghc
     - ghc-doc
     - ghc-haddock
@@ -420,6 +421,7 @@
     - pkg-config
     - poppler-utils
     - postgresql-client
+    - povray
     - proofgeneral
     - proofgeneral-doc
     - protobuf-compiler
@@ -438,6 +440,7 @@
     - python-glpk
     - python-h5py
     - python-mode
+    - python-networkx
     - python-numpy
     - python-pandas
     - python-pip
@@ -511,28 +514,48 @@
   gather_facts: no
 
   tasks:
-  - name: 'Python3-related packages of interest'
+  - name: 'Python3-related packages of interest # 0'
     apt: name={{ item }} install_recommends=yes state=latest
     tags:
     - install
     with_items:
+    - astropy-utils
+    - python-astropy-doc
+    - python-photutils
     - bpython3
     - diveintopython3
     - libpython3-dev
     - libzmq3-dev
+    - python3-3to2
     - python3-aeidon
+    - python3-ase
+    - python3-apsw
+    - python3-arrow
     - python3-alabaster
     - python3-anyjson
+    - python3-astropy
+    - python3-astropy-affiliated
+    - python3-astropy-helpers
+    - python3-async
     - python3-args
     - python3-astropy
     - python3-audioread
+    - python3-avro
     - python3-babel
+    - python3-biom-format
+    - python3-biopython
+    - python3-biopython-sql
     - python3-bottle
+    - python3-boto3
     - python3-bs4
     - python3-bsddb3
     - python3-celery
+    - python3-circuits
     - python3-changelog
     - python3-cherrypy3
+    - python3-coffin
+    - python3-cobra
+    - python3-columbus
     - python3-crypto
     - python3-cryptography
     - python3-csb
@@ -548,8 +571,11 @@
     - python3-django-model-utils
     - python3-django-tables2
     - python3-django-xmlrpc
+    - python3-django-*
+    - python3-dkim
     - python3-dns
     - python3-dnsq
+    - python3-djvu
     - python3-doc
     - python3-docutils
     - python3-ecdsa
@@ -564,15 +590,21 @@
     - python3-flask-principal
     - python3-flask-script
     - python3-flask-sqlalchemy
+    - python3-frozendict
     - python3-fysom
     - python3-gdal
     - python3-genshi
     - python3-geoip
+    - python3-geojson
+    - python3-geopy
+    - python3-geopandas
+    - python3-github
     - python3-gmpy2
     - python3-gnupg
     - python3-greenlet
     - python3-gsw
     - python3-h5py
+    - python3-googleapi
     - python3-httplib2
     - python3-icalendar
     - python3-idna
@@ -581,9 +613,12 @@
     - python3-jsmin
     - python3-lesscpy
     - python3-levenshtein
+    - python3-liblinear
     - python3-linop
+    - python3-lxml
     - python3-mako
     - python3-matplotlib
+    - python3-markdown
     - python3-mia
     - python3-misaka
     - python3-mock
@@ -591,12 +626,21 @@
     - python3-mpi4py
     - python3-mpmath
     - python3-msgpack
+    - python3-mysqldb
+    - python3-netcdf4
+    - python3-networkx
     - python3-nine
+    - python3-nltk
     - python3-nose
     - python3-nose2
     - python3-nose2-cov
     - python3-numexpr
     - python3-numpy
+  - name: 'Python3-related packages of interest # 1'
+    apt: name={{ item }} install_recommends=yes state=latest
+    tags:
+    - install
+    with_items:
     - python3-oauth
     - python3-openssl
     - python3-pandas
@@ -609,32 +653,69 @@
     - python3-pil
     - python3-pip
     - python3-pkginfo
+    - python3-plotly
     - python3-ply
     - python3-potr
+    - python3-postgresql
+    - python3-potr
+    - python3-praw
     - python3-progressbar
+    - python3-protorpc-standalone
+    - python3-psutil
+    - python3-pulp
     - python3-pyasn1
+    - python3-pycurl
+    - python3-pydot
     - python3-pygments
     - python3-pygraph
+    - python3-pygit2
+    - python3-pyinotify
     - python3-pyramid
     - python3-pyro4
+    - python3-pytest
+    - python3-pytest-cov
+    - python3-pyramid
     - python3-pyscss
     - python3-rdflib
     - python3-releases
+    - python3-requests
+    - python3-requests-cache
+    - python3-requests-futures
     - python3-rsa
+    - python3-seaborn
+    - python3-scoop
     - python3-scipy
+    - python3-simpy3
+    - python3-skimage
+    - python3-skbio
     - python3-shortuuid
+    - python3-solv
+    - python3-sphinx
+    - python3-spur
     - python3-simplejson
     - python3-six
     - python3-skimage
     - python3-sphere
     - python3-sphinx
     - python3-sqlalchemy
+    - python3-sure
+    - python3-sunlight
+    - python3-sympy
     - python3-tables
+    - python3-tabulate
     - python3-testtools
+    - python3-tz
     - python3-urllib3
     - python3-venv
     - python3-virtualenv
+    - python3-w3lib
+    - python3-wand
+    - python3-whoosh
+    - python3-wheel
+    - python3-whois
+    - python3-wget
     - python3-werkzeug
+    - python3-ws4py
     - python3-xlrd
     - python3-xlsxwriter
     - python3-yaml

@@ -247,7 +247,7 @@
   # Polymake
   - name: "polymake apt package dependencies"
     tags: polymake
-    apt: name={{ item }} install_recommends=yes
+    apt: name={{ item }} state=latest install_recommends=yes
     with_items:
     - ant
     - ant-optional
@@ -268,16 +268,18 @@
     - w3c-markup-validator
     - w3c-xsd-xslt
     - xsltproc
-  - name: "polymake installation"
-    tags: polymake
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
-        tar xf polymake-3.0r1.tar.bz2
-        cd polymake-3.0/
-        ./configure
-        make
+  #- name: "polymake installation"
+  #  tags: polymake
+  #  ignore_errors: yes
+  #  shell: |
+  #      cd /tmp/
+  #      wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
+  #      tar xf polymake-3.0r1.tar.bz2
+  #      cd polymake-3.0/
+  #      ./configure
+  #      make
+  - name: "polymake installation, from debian"
+    apt: name=polymake state=latest install_recommends=yes
 
   # CRCMOD
   - name: "pip's crcmod -- critical for using google cloud storage #1"
