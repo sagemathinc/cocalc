@@ -119,12 +119,6 @@ def bup_save_all(interval_h):
     """
     Update the bup archive for each image that has changed within the
     last interval_h hours.
-
-    The definition of "image has changed" is that there is a recent entry for it
-    in the '/data/log/change.log' file.
-
-    Each time we make a bup backup, we append a new entry t the end of
-    the '/data/log/bups.log' file.
     """
     raise NotImplemented
 

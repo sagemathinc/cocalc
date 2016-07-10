@@ -152,9 +152,9 @@ def attach(args):
 def size_to_bytes(size):
     size = size.lower().strip('b')
     if size.endswith('m'):
-        size = int(size[:-1])*10485760
+        size = int(round(float(size[:-1])*1048576))  # 1048576=1024**2
     elif size.endswith('g'):
-        size = int(size[:-1])*10485760*1024
+        size = int(round(float(size[:-1])*1048576*1024))
     else:
         raise ValueError("size (='%s') must end in M or G"%size)
     return size
@@ -164,7 +164,7 @@ def attach_zfs(path, size):
     - path -- (string) absolute path to directory that contains image file(s).
     - size -- (string) size of pool, e.g., '3G' or '3500M'
     """
-    images = [x for x in os.listdir(path) if x.endswith('.img')]
+    images = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('.img')]
     pool_file = os.path.join(path, 'pool')
     if len(images) == 0 or not os.path.exists(pool_file):
         image = os.path.join(path, "00.img")
@@ -176,11 +176,49 @@ def attach_zfs(path, size):
         cmd("zfs set dedup=on %s"%pool)
     else:
         pool = open(pool_file).read().strip()
-        #adjust_pool_size_if_necessary(path, size, images, pool)
     return {'device':pool}
 
-def adjust_pool_size_if_necessary(path, requested_size, images, pool):
-    raise NotImplementedError
+def adjust_pool_size_if_necessary(path, requested_size, verbose=False):
+    images = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('.img')]
+    req_size_bytes = size_to_bytes(requested_size)
+    cur_size_bytes = sum(os.stat(image).st_size for image in images)
+    if req_size_bytes == cur_size_bytes:
+        if verbose:
+            print("pool size is as requested")
+        return
+    if req_size_bytes > cur_size_bytes:
+        if verbose: print("increase the size of the pool")
+        image = images[-1]
+        amount_bytes = req_size_bytes - cur_size_bytes
+        if verbose:
+            print("will increase by %s bytes"%amount_bytes)
+        new_size_bytes = amount_bytes + os.stat(image).st_size
+        cmd("dd if=/dev/zero of={image} bs=1 count=0 seek={new_size_bytes}".format(
+            image=image, new_size_bytes=new_size_bytes), verbose=verbose)
+        try:
+            pool = open(os.path.join(path, 'pool')).read().strip()
+            cmd("zpool online -e {pool} {image}".format(pool=pool, image=image), verbose=verbose)
+        except Exception as err:
+            if "no such pool" in str(err):
+                return
+            else:
+                raise
+    else:
+        if verbose: print("decrease the usable size of the pool")
+        # TODO: quota
+        # and relax quota above as part of strategy
+        raise NotImplementedError
+
+def zpool_resize(args):
+    """
+    Handle the command line resize subcommand.
+    """
+    path = args.path
+    requested_size = args.size
+    pool_file = os.path.join(path, 'pool')
+    if not os.path.exists(pool_file):
+        raise RuntimeError("no such file '%s'"%pool_file)
+    adjust_pool_size_if_necessary(path, requested_size, verbose=not args.quiet)
 
 def attach_loop(path, size, fs):
     images = [x for x in os.listdir(path) if x.endswith('.img')]
@@ -241,9 +279,12 @@ def mount(args):
         namespace = params.get("namespace", '')
         if not namespace:
             raise RuntimeError("namespace must be explicitly specified")
+        size = params.get("size", '')
+        if not size:
+            raise RuntimeError("size must be specified")
         mount_point = ensure_server_is_mounted(server, namespace)
         path = os.path.join(mount_point, path)
-        return mount_zfs(path, mount_dir)
+        return mount_zfs(path, mount_dir, size)
     elif fs == 'ext4':
         cmd("mount %s %s"%(device, mount_dir))
     elif fs == 'btrfs':
@@ -257,7 +298,7 @@ def mount(args):
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
 
-def mount_zfs(path, mount_dir):
+def mount_zfs(path, mount_dir, size):
     pool_file = os.path.join(path, 'pool')
     pool = open(pool_file).read().strip()
     try:
@@ -265,6 +306,9 @@ def mount_zfs(path, mount_dir):
     except Exception as err:
         if 'give it a new name' not in str(err):
             raise
+
+    adjust_pool_size_if_necessary(path, size)
+
     cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
     # Also bindfs (FUSE!) mount the snapshots, since otherwise new ones won't work in the container!
     snapshots = os.path.join(mount_dir, '.snapshots')
@@ -545,6 +589,12 @@ if __name__ == '__main__':
     sub.add_argument('-q', '--quiet', action="store_true")
     sub.add_argument('path', type=str, help='absolute path to images')
     sub.set_defaults(func=zpool_defragment)
+
+    sub = subparsers.add_parser('zpool-resize', help='resize an zpool')
+    sub.add_argument('path', type=str, help='absolute path to images')
+    sub.add_argument('size', type=str, help='new size')
+    sub.add_argument('-q', '--quiet', action="store_true")
+    sub.set_defaults(func=zpool_resize)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
