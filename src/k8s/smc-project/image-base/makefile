@@ -22,9 +22,7 @@ squash:
 	@echo "remove all intermediate layers after several edit steps"
 	$(eval ID = $(shell docker create ${NAME}:latest bash))
 	@echo container ID = ${ID}
-	docker export ${ID} | docker import - ${NAME}:squashed
-	docker tag ${NAME}:squashed ${NAME}:latest
-	docker rmi ${NAME}:squashed
+	docker export ${ID} | docker import - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."
 
 edit:

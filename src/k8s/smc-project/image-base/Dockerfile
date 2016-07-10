@@ -28,6 +28,7 @@ RUN apt-get update && \
 
 # Grab source code for SMC
 RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
+COPY update.sh /update.sh
 
 # this runs the meta-playbook "compute-setup" with the modified machines file on localhost
 WORKDIR /smc/src/smc-build/smc-ansible
