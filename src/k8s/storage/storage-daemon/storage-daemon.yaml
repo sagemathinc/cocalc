@@ -28,6 +28,9 @@ spec:
           mountPath: /node/plugin
         - name: storage-ssh
           mountPath: /ssh
+        - name: secret-rethinkdb
+          mountPath: /secrets/rethinkdb/
+          readOnly: true
         resources:
           requests:
             memory: "100Mi"
@@ -59,3 +62,6 @@ spec:
       - name: storage-ssh
         secret:
           secretName: storage-ssh
+      - name: secret-rethinkdb
+        secret:
+          secretName: rethinkdb-password
