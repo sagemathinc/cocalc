@@ -171,7 +171,6 @@ Message = rclass
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
         content        : rtypes.string
-        timestamp      : rtypes.any
         sender_name    : rtypes.string
         editor_name    : rtypes.string
         user_map       : rtypes.object
@@ -315,6 +314,7 @@ Message = rclass
                 onKeyDown = {@on_keydown}
                 value     = {@state.edited_message}
                 onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
+                onFocus   = {@focus_endpoint}
                 />
         </div>
 
@@ -338,6 +338,11 @@ Message = rclass
             else if mesg.length? and mesg.trim().length >= 1
                 @props.actions.send_edit(@props.message, mesg)
                 @setState(show_edit_input:false)
+
+    focus_endpoint: (e) ->
+        val = e.target.value
+        e.target.value = ''
+        e.target.value = val
 
     render: ->
         cols = [@avatar_column(), @content_column(), @blank_column()]
@@ -398,7 +403,6 @@ ChatLog = rclass
                      account_id       = {@props.account_id}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
-                     timestamp        = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
                      font_size        = {@props.font_size}
