@@ -146,7 +146,6 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
             else
                 v = {}
                 #console.log("DATA ON LOAD:", syncdb.select())
-                db = syncdb.select()
                 for x in syncdb.select()
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -170,7 +169,6 @@ Message = rclass
         # "history" : [{author_id: "...", content:"full content", "date": ...}, ...]
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
-        content        : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
         user_map       : rtypes.object
@@ -202,7 +200,7 @@ Message = rclass
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     newest_content: ->
-        @props.message.get('history')?.peek().get('content') ? ''
+        @props.message.get('history').peek().get('content') ? ''
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
@@ -304,6 +302,7 @@ Message = rclass
                       file_path={@props.file_path} />
         </div>
 
+    # TODO: Make this a codemirror input
     render_input: ->
         <div>
             <Input
@@ -333,11 +332,9 @@ Message = rclass
                 show_edit_input : false
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
-            if mesg == @newest_content()
-                @setState(show_edit_input:false)
-            else if mesg.length? and mesg.trim().length >= 1
+            if mesg.length? and mesg.trim().length >= 1 and mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
-                @setState(show_edit_input:false)
+            @setState(show_edit_input:false)
 
     focus_endpoint: (e) ->
         val = e.target.value
