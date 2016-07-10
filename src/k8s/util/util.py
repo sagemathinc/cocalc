@@ -317,6 +317,34 @@ def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None
     if resize:
         resizefs_disk(name)
 
+def delete_persistent_disks(names, maxtime_s=60):
+    """
+    Try up to the given number of seconds to delete the given persistent disk.
+    This can fail if the disk is attached to a machine.
+    """
+    if not isinstance(names, list):
+        names = names.split()
+    start_time = time.time()
+    while time.time() - start_time < maxtime_s:
+        v = run(['gcloud', 'compute', 'disks', 'list'] + names, get_output=True).splitlines()[1:]
+        print(v)
+        to_delete = [x.split()[0] for x in v]
+        if len(to_delete) == 0:
+            print("all disks deleted")
+            return
+        try:
+            run(['gcloud', '-q', 'compute', 'disks', 'delete'] + to_delete)
+            return
+        except Exception as err:
+            print(repr(err))
+            if time.time() - start_time + 5 > maxtime_s:
+                raise RuntimeError("unable to delete all disks after trying for %s seconds"%maxtime_s)
+            print("waiting 5 seconds before trying again...")
+            time.sleep(5)
+
+
+
+
 def get_persistent_disk_names():
     return [x.split()[0] for x in run(['gcloud', 'compute', 'disks', 'list'], get_output=True).splitlines()[1:]]
 
