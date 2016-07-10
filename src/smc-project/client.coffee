@@ -498,6 +498,8 @@ class exports.Client extends EventEmitter
             debounce : 750
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
+        dbg = @dbg("watch_file")
+        dbg("watching file '#{path}'")
         g = new Gaze(path, {debounceDelay:opts.debounce})
         g.on('error', opts.cb)
         g.on('ready', () => opts.cb(undefined, g))

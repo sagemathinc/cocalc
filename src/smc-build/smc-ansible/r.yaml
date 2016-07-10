@@ -31,9 +31,14 @@
     - python3-rpy2
     - ess
 
-  - name: "install Rscript wrapper (similar to R → Sage's R)"
-    copy: src=files/Rscript dest=/usr/local/bin/Rscript
-          owner=root group=root mode=ugo=rx
+  # why buggy?
+  #- name: "install Rscript wrapper (similar to R → Sage's R)"
+  #  copy: src=files/Rscript dest=/usr/local/bin/Rscript
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy Rscript wrapper (similar to R → Sage's R)"
+    shell: |
+           cp iles/Rscript /usr/local/bin/Rscript
+           chmod ugo=rx /usr/local/bin/Rscript
 
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
@@ -410,6 +415,10 @@
     - uuid
     - pbdZMQ
     - repr
+    - "data.table"
+    - dplyr
+    - tidyr
+    - WGCNA
     - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
 
   - name: "IPython Kernel" # needs devtools, etc.
