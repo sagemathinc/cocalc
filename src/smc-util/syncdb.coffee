@@ -208,7 +208,7 @@ class exports.SynchronizedDB extends EventEmitter
         opts = defaults opts,
             set        : required
             where      : required
-            is_equal   : (a, b) => a == b
+            is_equal   : (a, b) => a == b # applies to equality of `where`
         if not @_doc?
             return
         {set, where, is_equal} = opts
