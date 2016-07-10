@@ -439,6 +439,10 @@ def update_snapshots(pool, snapshots):
                 delete_snapshot(pool, s)
 
 def snapshot_info():
+
+    # TODO: option to only include pools for which the image file has changed since last time we
+    # made a snapshot.  Most pools probably sit unused.
+
     info = {}
     # Get all pools (some may not be in result of snapshot listing below!)
     for pool in cmd(['zfs', 'list', '-r', '-H', '-o', 'name']).split():
@@ -454,11 +458,38 @@ def zpool_update_snapshots(args):
     Update the rolling ZFS snapshots on all mounted zpool's.
     """
     LOG("zpool_update_snapshots")
+    project_ids = []
     for pool, snaps in snapshot_info().items():
         try:
             update_snapshots(pool, snaps)
         except Exception as err:
             LOG("error updating snapshot of %s -- %r"%(pool, err))
+        project_id = pool_to_project_id(pool)
+        if project_id is not None:
+            project_ids.append(project_id)
+    return {"project_ids":project_ids}
+
+# TODO: it would be faster to do all the pool-->project_id computation in a single call to zpool status...
+def pool_to_project_id(pool):
+    """
+    Given a mounted ZFS pool, return the corresponding project id, if there is one.
+    This is just heuristically based on the path to the images, e.g., if it ends with
+      .../projects/f8cf98ed-299e-4423-a167-870e8658e085.zfs/00.img
+    then the project id is 'f8cf98ed-299e-4423-a167-870e8658e085'.
+
+    Returns None if not a project.
+    """
+    s = cmd("zpool status -P {pool}".format(pool=pool))
+    pattern = "/projects/"
+    i = s.find(pattern)
+    if i == -1:
+        return None
+    s = s[i+len(pattern):]
+    i = s.find('.')
+    if i == -1:
+        return None
+    return s[:i]
+
 
 def zpool_status(pool):
     x = cmd("zpool status %s"%pool)
@@ -579,7 +610,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('update-all-locks', help='update all lock files')
     sub.set_defaults(func=update_all_locks)
 
-    sub = subparsers.add_parser('zpool-update-snapshots', help='update all zpool snapshots')
+    sub = subparsers.add_parser('zpool-update-snapshots', help='update all zpool snapshots; outputs to stdout json data about what happened')
     sub.set_defaults(func=zpool_update_snapshots)
 
     sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
@@ -608,3 +639,4 @@ if __name__ == '__main__':
         except Exception as msg:
             log({'status':'Failure', 'message':repr(msg)})
             sys.exit(1)
+            #raise
