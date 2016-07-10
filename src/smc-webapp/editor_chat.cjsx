@@ -82,6 +82,19 @@ class ChatActions extends Actions
 
         @syncdb.save()
 
+    declare_editing: (message) =>
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
+        author_id = @redux.getStore('account').get_account_id()
+        @syncdb.update
+            set :
+                editing : message.get('editing')?.merge({author_id : true}).toJS() ? {author_id : true}
+            where :
+                date: message.get('date')
+            is_equal: (a, b) => (a - 0) == (b - 0)
+        @syncdb.save()
+
     send_edit: (message, raw_new_content) =>
         #console.log("CHAT EDITING")
         mesg = misc_page.sanitize_html(raw_new_content)
@@ -101,7 +114,7 @@ class ChatActions extends Actions
             where :
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
-            @syncdb.save()
+        @syncdb.save()
 
     set_input: (input) =>
         @setState(input:input)
@@ -160,6 +173,7 @@ Message = rclass
         content        : rtypes.string
         timestamp      : rtypes.any
         sender_name    : rtypes.string
+        editor_name    : rtypes.string
         user_map       : rtypes.object
         project_id     : rtypes.string    # optional -- improves relative links if given
         file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
@@ -173,6 +187,10 @@ Message = rclass
         edited_message  : @newest_content()
         show_edit_input : false
 
+    componentWillReceiveProps: (newProps) ->
+        if @state.edited_message == @newest_content()
+            @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
+
     shouldComponentUpdate: (next) ->
         return @props.message != next.message or
                @props.user_map != next.user_map or
@@ -180,6 +198,7 @@ Message = rclass
                @props.show_avatar != next.show_avatar or
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
+               @props.editor_name != next.editor_name or
                @state.show_edit_input != next.show_edit_input or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
@@ -196,7 +215,7 @@ Message = rclass
 
     last_edited: ->
         <div className="pull-left small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
-            last edit by {@props.message.get('history').peek().get('author_id')}
+            last edit by {@props.editor_name}
         </div>
 
     show_user_name: ->
@@ -231,7 +250,7 @@ Message = rclass
         # TODO: do something better when we don't know the user (or when sender account_id is bogus)
         <Col key={0} xsHidden={true} sm={1} style={style} >
             <div>
-                {<Avatar account={account} /> if account? and @props.show_avatar }
+                {<Avatar account={account} /> if account? and @props.show_avatar}
             </div>
         </Col>
 
@@ -272,7 +291,7 @@ Message = rclass
                     <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
                         {@render_markdown(value) if not @state.show_edit_input}
                         {@render_input() if @state.show_edit_input}
-                        {@last_edited()}
+                        {@last_edited() if @props.message.get('history').size > 1}
                         {@get_timeago()}
                     </ListGroupItem>
                 </ListGroup>
@@ -280,7 +299,7 @@ Message = rclass
         </Col>
 
     render_markdown: (value) ->
-        <div>
+        <div style={paddingBottom: '1px', marginBottom: '5px'}>
             <Markdown value={value}
                       project_id={@props.project_id}
                       file_path={@props.file_path} />
@@ -289,13 +308,13 @@ Message = rclass
     render_input: ->
         <div>
             <Input
-                autofocus = {true}
+                autoFocus = {true}
                 rows      = 4
                 type      = 'textarea'
                 ref       = 'editedMessage'
                 onKeyDown = {@on_keydown}
                 value     = {@state.edited_message}
-                onChange  = {(value)=>@setState(edited_message:@refs.editedMessage.getValue())}
+                onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
                 />
         </div>
 
@@ -303,15 +322,20 @@ Message = rclass
         <Col key={2} xs={2}></Col>
 
     edit_message: ->
+        #@props.actions.declare_editing(@props.message)
         @setState(show_edit_input:true)
 
     on_keydown : (e) ->
         if e.keyCode==27 # ESC
             e.preventDefault()
-            @setState(edited_message:'')
+            @setState
+                edited_message  : @newest_content()
+                show_edit_input : false
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
-            if mesg.length? and mesg.trim().length >= 1 and mesg != @newest_content
+            if mesg == @newest_content()
+                @setState(show_edit_input:false)
+            else if mesg.length? and mesg.trim().length >= 1
                 @props.actions.send_edit(@props.message, mesg)
                 @setState(show_edit_input:false)
 
@@ -363,6 +387,13 @@ ChatLog = rclass
             else
                 sender_name = "Unknown"
 
+            # last_editor
+            editor_account = @props.user_map.get(@props.messages.get(date).get('history').peek().get('author_id'))
+            if editor_account?
+                editor_name = editor_account.get('first_name') + ' ' + editor_account.get('last_name')
+            else
+                editor_name = "Unknown"
+
             v.push <Message key={date}
                      account_id       = {@props.account_id}
                      user_map         = {@props.user_map}
@@ -375,6 +406,7 @@ ChatLog = rclass
                      is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
                      show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
                      sender_name      = {sender_name}
+                     editor_name      = {editor_name}
                      actions          = {@props.actions}
                     />
         return v
