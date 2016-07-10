@@ -336,7 +336,7 @@ def create_snapshot(pool, name):
     cmd(['zfs', 'snapshot', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)], timeout=3)
 
 def delete_snapshot(pool, snapshot):
-    cmd(['zfs', 'destroy', "{pool}@{snaphot}".format(pool=pool, snapshot=snapshot)], timeout=3)
+    cmd(['zfs', 'destroy', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)], timeout=3)
 
 # Lengths of time in minutes.
 SNAPSHOT_INTERVALS = {
