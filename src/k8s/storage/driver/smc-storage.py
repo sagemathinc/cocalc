@@ -120,9 +120,9 @@ def attach(args):
     if not server:
         raise RuntimeError("must specify server 'ip_address:/path'")
 
-    size = params.get("size", '1G')
+    size = params.get("size", '')
     if not size:
-        raise RuntimeError("size can't be 0")
+        raise RuntimeError("size must be specified")
 
     namespace = params.get("namespace", '')
     if not namespace:
@@ -179,15 +179,25 @@ def attach_zfs(path, size):
     return {'device':pool}
 
 def adjust_pool_size_if_necessary(path, requested_size, verbose=False):
+    # CRITICAL: we assume the pool is imported in this function!
     images = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('.img')]
     req_size_bytes = size_to_bytes(requested_size)
     cur_size_bytes = sum(os.stat(image).st_size for image in images)
-    if req_size_bytes == cur_size_bytes:
-        if verbose:
-            print("pool size is as requested")
-        return
+    # NOTE: pool is *assumed* to be imported, so setting the quota should work.
+    pool = open(os.path.join(path, 'pool')).read().strip()
+    try:
+        cmd("zfs set quota={req_size_bytes} {pool}".format(req_size_bytes=req_size_bytes, pool=pool), verbose=verbose)
+    except Exception as err:
+        if 'size is less than' in str(err):
+            # set quota to the current used space -- (yes, this would let a user
+            # cheat a little... but we can have a strategy to warn them).
+            req_size_bytes = size_to_bytes(cmd("zpool list -H -o alloc {pool}", verbose=verbose)) + size_to_bytes('1M')
+            cmd("zfs set quota={req_size_bytes} {pool}".format(req_size_bytes=req_size_bytes, pool=pool), verbose=verbose)
+            return
+
     if req_size_bytes > cur_size_bytes:
-        if verbose: print("increase the size of the pool")
+        if verbose:
+            print("increase the size of the pool")
         image = images[-1]
         amount_bytes = req_size_bytes - cur_size_bytes
         if verbose:
@@ -195,19 +205,9 @@ def adjust_pool_size_if_necessary(path, requested_size, verbose=False):
         new_size_bytes = amount_bytes + os.stat(image).st_size
         cmd("dd if=/dev/zero of={image} bs=1 count=0 seek={new_size_bytes}".format(
             image=image, new_size_bytes=new_size_bytes), verbose=verbose)
-        try:
-            pool = open(os.path.join(path, 'pool')).read().strip()
-            cmd("zpool online -e {pool} {image}".format(pool=pool, image=image), verbose=verbose)
-        except Exception as err:
-            if "no such pool" in str(err):
-                return
-            else:
-                raise
-    else:
-        if verbose: print("decrease the usable size of the pool")
-        # TODO: quota
-        # and relax quota above as part of strategy
-        raise NotImplementedError
+        cmd("zpool online -e {pool} {image}".format(pool=pool, image=image), verbose=verbose)
+    # NOTE: the else condition, which would be to shrink the pool... is a no-op, since
+    # we already set the quota above.
 
 def zpool_resize(args):
     """
