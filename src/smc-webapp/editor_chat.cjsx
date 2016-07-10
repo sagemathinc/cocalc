@@ -50,17 +50,19 @@ redux_name = (project_id, path) ->
 class ChatActions extends Actions
     _syncdb_change: (changes) =>
         m = messages = @redux.getStore(@name).get('messages')
-        console.log("SYNC_DB_CHANGE", changes)
         for x in changes
             if x.insert
+                #console.log('change', x.insert)
+                # OPTIMIZATION: make into custom conversion to immutable
                 x.insert.history = immutable.Stack(immutable.fromJS(x.insert.history))
-                messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
+                messages = messages.set("#{x.insert.date - 0}", immutable.fromJS(x.insert))
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
             @setState(messages: messages)
 
     send_chat: (mesg) =>
+        #console.log("CHAT SENDING")
         mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
@@ -74,28 +76,35 @@ class ChatActions extends Actions
                 history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             where :
                 date: time_stamp
+            is_equal: (a, b) => (a - 0) == (b - 0)
+
+        #console.log("-- History:", [{author_id: sender_id, content:mesg, date:time_stamp}] )
+
         @syncdb.save()
+
+    send_edit: (message, raw_new_content) =>
+        #console.log("CHAT EDITING")
+        mesg = misc_page.sanitize_html(raw_new_content)
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
+        author_id = @redux.getStore('account').get_account_id()
+        # OPTIMIZATION: send less data over the network?
+        time_stamp = salvus_client.server_time()
+        #console.log("Current history", message.get('history').toJS())
+        #console.log("New history", [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS()))
+        #console.log("Get date:", message.get('date'), typeof message.get('date'))
+
+        @syncdb.update
+            set :
+                history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
+            where :
+                date: message.get('date')
+            is_equal: (a, b) => (a - 0) == (b - 0)
+            @syncdb.save()
 
     set_input: (input) =>
         @setState(input:input)
-
-    # Doesn't work
-    send_edit: (message, raw_new_content) =>
-        new_content = misc_page.sanitize_html(raw_new_content)
-
-        console.log("Trying to update content of", message.toJS(), "with", new_content)
-        change_object = immutable.fromJS
-            content   : new_content
-            author_id : @redux.getStore('account').get_account_id()
-            date      : salvus_client.server_time()
-
-        new_message = message.update('history', (stack) => stack.push(change_object))
-        console.log("New message obj:", new_message.toJS())
-
-        new_messages = @redux.getStore(@name).get('messages').set(message.get('date') - 0, new_message)
-        console.log("OLD MESSAGES:",@redux.getStore(@name).get('messages').toJS())
-        console.log("NEW MESSAGES:", new_messages.toJS())
-        #@setState(messages : new_messages)
 
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
@@ -123,6 +132,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 alert_message(type:'error', message:"json in #{@filename} is broken")
             else
                 v = {}
+                #console.log("DATA ON LOAD:", syncdb.select())
+                db = syncdb.select()
                 for x in syncdb.select()
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -132,7 +143,6 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                             author_id : x.sender_id
                             date      : x.date
                         x.history = immutable.Stack([initial])
-                        delete x.payload
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -196,8 +206,6 @@ Message = rclass
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
-        #console.log("props message sender_id", account)
-        #console.log("props account id", @props.account_id)
         if @props.is_prev_sender
             margin_top = '5px'
         else
