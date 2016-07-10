@@ -206,19 +206,19 @@ class exports.SynchronizedDB extends EventEmitter
     # the given where criterion.
     update: (opts) =>
         opts = defaults opts,
-            set   : required
-            where : required
+            set        : required
+            where      : required
+            is_equal   : (a, b) => a == b
         if not @_doc?
             return
-        set   = opts.set
-        where = opts.where
+        {set, where, is_equal} = opts
         #console.log("update(set='#{misc.to_json(set)}',where='#{misc.to_json(where)}')")
         i = 0
         for hash, val of @_data
             match = true
             x = val.data
             for k, v of where
-                if x[k] != v
+                if not is_equal(x[k], v)
                     match = false
                     break
             if match
