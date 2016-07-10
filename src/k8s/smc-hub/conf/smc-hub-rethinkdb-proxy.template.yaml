@@ -97,12 +97,6 @@ spec:
         - name: secret-rethinkdb
           secret:
             secretName: rethinkdb-password
-
-
-      volumes:
-        - name: secret-rethinkdb
-          secret:
-            secretName: rethinkdb-password
         - name: secret-sendgrid
           secret:
             secretName: sendgrid-api-key
