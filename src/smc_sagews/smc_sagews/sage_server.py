@@ -190,15 +190,21 @@ def truncate_text(s, max_size):
 
 def truncate_text_warn(s, max_size, name):
     r"""
-    INPUTS
-    - s - string to be truncated
-    - max-size - truncation limit
-    - name - name of limiting parameter
-    
-    OUTPUT
-    string, possibly truncated
-    did_truncate - boolean
-    warning message
+    Truncate text if too long and format a warning message.
+
+    INPUT:
+
+    - ``s`` -- string to be truncated
+    - ``max-size`` - integer truncation limit
+    - ``name`` - string, name of limiting parameter
+
+    OUTPUT:
+
+    a triple:
+
+    - string -- possibly truncated input string
+    - boolean -- true if input string was truncated
+    - string -- warning message if input string was truncated
     """
     tmsg = "WARNING: Output: %s truncated by %s to %s.  Type 'smc?' to learn how to raise the output limit."
     lns = len(s)
