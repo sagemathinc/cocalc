@@ -35,7 +35,9 @@ def alarm(seconds):
 def cancel_alarm():
     signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
-def cmd(s, timeout=20):
+def cmd(s, timeout=20, verbose=False):
+    if verbose:
+        print(s)
     if isinstance(s, list):
         for i, x in enumerate(s):
             if len(x.split()) > 1:
@@ -147,7 +149,21 @@ def attach(args):
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
 
+def size_to_bytes(size):
+    size = size.lower().strip('b')
+    if size.endswith('m'):
+        size = int(size[:-1])*10485760
+    elif size.endswith('g'):
+        size = int(size[:-1])*10485760*1024
+    else:
+        raise ValueError("size (='%s') must end in M or G"%size)
+    return size
+
 def attach_zfs(path, size):
+    """
+    - path -- (string) absolute path to directory that contains image file(s).
+    - size -- (string) size of pool, e.g., '3G' or '3500M'
+    """
     images = [x for x in os.listdir(path) if x.endswith('.img')]
     pool_file = os.path.join(path, 'pool')
     if len(images) == 0 or not os.path.exists(pool_file):
@@ -160,7 +176,11 @@ def attach_zfs(path, size):
         cmd("zfs set dedup=on %s"%pool)
     else:
         pool = open(pool_file).read().strip()
+        #adjust_pool_size_if_necessary(path, size, images, pool)
     return {'device':pool}
+
+def adjust_pool_size_if_necessary(path, requested_size, images, pool):
+    raise NotImplementedError
 
 def attach_loop(path, size, fs):
     images = [x for x in os.listdir(path) if x.endswith('.img')]
@@ -250,7 +270,11 @@ def mount_zfs(path, mount_dir):
     snapshots = os.path.join(mount_dir, '.snapshots')
     if not os.path.exists(snapshots):
         os.makedirs(snapshots)
+    # Make snapshots available in the container
     cmd("bindfs %s %s"%(os.path.join(mount_dir, '.zfs', 'snapshot'), snapshots))
+    # Delete any image files that all laying around but not part of the pool.
+    # These could get left when doing defrag in case of a timeout or loss of remote.
+    zpool_delete_unused_images(path, verbose=False)
 
 def unmount(args):
     LOG('unmount', args)
@@ -392,6 +416,96 @@ def zpool_update_snapshots(args):
         except Exception as err:
             LOG("error updating snapshot of %s -- %r"%(pool, err))
 
+def zpool_status(pool):
+    x = cmd("zpool status %s"%pool)
+    d = {}
+    while x:
+        i = x.find(":")
+        key = x[:i].strip()
+        x = x[i+1:]
+        j = x.find(":")
+        if j == -1:
+            val = x
+            break
+        else:
+            j = x[:j].rfind('\n')
+            val = x[:j]
+            x = x[j+1:].strip()
+        d[key] = val.strip()
+    return d
+
+def zpool_image_files(pool):
+    status = zpool_status(pool)
+    v = []
+    for x in status['config'].splitlines():
+        y = x.strip()
+        if y.startswith('/'):
+            v.append(y.split()[0])
+    return v
+
+def defragment_zfs_pool(path, verbose=True):
+    """
+    INPUT:
+
+    - path -- (string) the full path to a directory that contains img file that define a ZFS pool.
+
+    The pool must already be imported.
+    """
+    # Get info about the pool (will raise an error if not imported)
+    pool   = open(os.path.join(path, 'pool')).read()
+    status = zpool_status(pool)
+    if status['state'] != 'ONLINE':
+        raise RuntimeError("pool at '%s' must be online"%path)
+    # Determine the size of the device in the pool:
+    images = zpool_image_files(pool)
+    if len(images) != 1:
+        raise RuntimeError("there must be exactly one image file")
+    cur_image = images[0]
+    size_byte = os.stat(cur_image).st_size
+
+    # Ensure there is sufficient space to defrag:
+    if size_byte > int(cmd("df --block-size=1 '%s'"%path, verbose=verbose).splitlines()[1].split()[3]):
+        raise RuntimeError("there might not be sufficient free disk space to defrag '%s'"%path)
+
+    # Create new sparse image file:
+    i = 0
+    while True:
+        new_image = os.path.join(path, '0%s.img'%i)
+        if not os.path.exists(new_image):
+            break
+        i += 1
+
+    cmd("truncate -s %s %s"%(size_byte, new_image), verbose=verbose)
+
+    # Replace existing image by new one:
+    cmd("zpool replace {pool} {cur_image} {new_image}".format(
+            pool=pool, cur_image=cur_image, new_image=new_image), verbose=verbose)
+
+    # Wait until resilvering is complete:
+    while True:
+        status = zpool_status(pool)
+        if status.get('action', '').lower().startswith("wait for the resilver"):
+            if verbose: print(status.get('scan',''))
+            time.sleep(7)
+        else:
+            break
+
+    # Delete unused image files:
+    zpool_delete_unused_images(path, verbose=verbose)
+
+def zpool_delete_unused_images(path, verbose=False):
+    pool   = open(os.path.join(path, 'pool')).read()
+    images = set(zpool_image_files(pool))
+    for x in os.listdir(path):
+        if x.endswith('.img'):
+            full_path = os.path.join(path, x)
+            if full_path not in images:
+                if verbose: print("removing '%s'"%full_path)
+                os.unlink(full_path)
+
+def zpool_defragment(args):
+    defragment_zfs_pool(args.path, verbose=not args.quiet)
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='SMC Storage k8s vendor driver')
@@ -426,6 +540,11 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
     sub.set_defaults(func=zpool_clear_errors)
+
+    sub = subparsers.add_parser('zpool-defragment', help='defragment **mounted** ZFS pool')
+    sub.add_argument('-q', '--quiet', action="store_true")
+    sub.add_argument('path', type=str, help='absolute path to images')
+    sub.set_defaults(func=zpool_defragment)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
