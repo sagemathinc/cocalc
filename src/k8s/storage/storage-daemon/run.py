@@ -150,7 +150,7 @@ def run_on_minion(v, *args, **kwds):
     return run(v, *args, **kwds)
 
 def smc_storage(*args, **kwds):
-    run_on_minion(["/usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage"] + list(args), **kwds)
+    return run_on_minion(["/usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage"] + list(args), **kwds)
 
 def install_flexvolume_plugin():
     # we always copy it over, which at least upgrades it if necessary.
@@ -243,7 +243,34 @@ def update_zpool_active_log():
                     log=log, prefix=prefix, server=server))
 
 def update_all_snapshots():
-    smc_storage("zpool-update-snapshots")
+    v = json.loads(smc_storage("zpool-update-snapshots", get_output=True))
+    db_set_last_snapshot(v['new_snapshots'])
+
+RETHINKDB_SECRET = '/secrets/rethinkdb/rethinkdb'
+import rethinkdb
+
+def rethinkdb_connection():
+    auth_key = open(RETHINKDB_SECRET).read().strip()
+    if not auth_key:
+        auth_key = None
+    return rethinkdb.connect(host='rethinkdb-driver', timeout=4, auth_key=auth_key)
+
+def db_set_last_snapshot(new_snapshots):
+    """
+    new_snapshots should be a dictionary with keys the project_id's and values timestamps.
+
+    This function will connect to the database if possible, and set the last_snapshot field of
+    each project (in the projects table) to the given timestamp.
+    """
+    print("db_set_last_snapshot", new_snapshots)
+    if len(new_snapshots) == 0:
+        return
+    # Open connection to the database
+    conn = rethinkdb_connection()
+    # Do the queries
+    for project_id, timestamp in new_snapshots.items():
+        rethinkdb.db("smc").table("projects").get(project_id).update({'last_snapshot':timestamp}).run(conn)
+    conn.close()
 
 def update_all_lock_files():
     smc_storage("update-all-locks")

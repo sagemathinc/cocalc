@@ -376,8 +376,10 @@ def zpool_clear_errors(args):
 #
 
 def create_snapshot(pool, name):
-    snapshot = "{timestamp}-{name}".format(timestamp=time_to_timestamp(), name=name)
+    timestamp = time_to_timestamp()
+    snapshot = "{timestamp}-{name}".format(timestamp=timestamp, name=name)
     cmd(['zfs', 'snapshot', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)], timeout=3)
+    return timestamp
 
 def delete_snapshot(pool, snapshot):
     cmd(['zfs', 'destroy', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshot)], timeout=3)
@@ -418,6 +420,7 @@ def update_snapshots(pool, snapshots):
     """
     # determine which snapshots we need to make
     now = time.time()
+    newest_snaptime = None
     for name, interval in SNAPSHOT_INTERVALS.items():
         if SNAPSHOT_COUNTS[name] <= 0: # not making any of these
             continue
@@ -432,11 +435,12 @@ def update_snapshots(pool, snapshots):
             age_m = 999999999999  # 'infinite'
         if age_m > interval:
             # make this snapshot
-            create_snapshot(pool, name)
+            newest_snaptime = create_snapshot(pool, name)
         # Are there too many snapshots of the given type?  If so, delete them:
         if len(v) > SNAPSHOT_COUNTS[name]:
             for s in v[ : len(v) - SNAPSHOT_COUNTS[name]]:
                 delete_snapshot(pool, s)
+    return newest_snaptime
 
 def snapshot_info():
 
@@ -458,16 +462,16 @@ def zpool_update_snapshots(args):
     Update the rolling ZFS snapshots on all mounted zpool's.
     """
     LOG("zpool_update_snapshots")
-    project_ids = []
+    new_snapshots = {}
     for pool, snaps in snapshot_info().items():
         try:
-            update_snapshots(pool, snaps)
+            new_snaptime = update_snapshots(pool, snaps)
+            if new_snaptime is not None:
+                project_id = pool_to_project_id(pool)
+                new_snapshots[project_id] = new_snaptime
         except Exception as err:
             LOG("error updating snapshot of %s -- %r"%(pool, err))
-        project_id = pool_to_project_id(pool)
-        if project_id is not None:
-            project_ids.append(project_id)
-    return {"project_ids":project_ids}
+    return {"new_snapshots":new_snapshots}
 
 # TODO: it would be faster to do all the pool-->project_id computation in a single call to zpool status...
 def pool_to_project_id(pool):
