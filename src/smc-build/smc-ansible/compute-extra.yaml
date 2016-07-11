@@ -9,6 +9,7 @@
     tags: pip2
     with_items:
     - python-pip
+    - python3-pip
     #- llvm-3.7
     #- llvm-3.7-dev # for numba
 
@@ -35,8 +36,6 @@
     - networkx
     - macs2
 
-  - apt: name=python3-pip
-
   - name: "additional pip3 packages"
     tags: [ pip3, update ]
     pip: executable=pip3
@@ -54,6 +53,9 @@
     # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
+    - mygene
+    - seaborn
+    - biopython
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -125,9 +127,6 @@
     with_items:
     - ipython
     - ipywidgets
-    - mygene
-    - seaborn
-    - biopython
 
   - name: "Special script to run python2 systemwide from within Sage"
     tags: python2sage
