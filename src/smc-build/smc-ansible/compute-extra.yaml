@@ -12,11 +12,11 @@
     #- llvm-3.7-dev # for numba
 
   - name: "update pip"
-    tags: pip
+    tags: [ pip3, update ]
     pip: "executable=pip2 state=latest name=pip"
 
   - name: "additional pip2 packages"
-    tags: pip
+    tags: [ pip3, update ]
     pip: executable=pip2
          state=latest
          umask=022
@@ -31,11 +31,12 @@
     - statsmodels
     - clawpack
     - ctop
+    - networkx
 
   - apt: name=python3-pip
 
   - name: "additional pip3 packages"
-    tags: pip3
+    tags: [ pip3, update ]
     pip: executable=pip3
          state=latest
          umask=022
@@ -95,9 +96,9 @@
 
   - name: "IPython with notebook and octave+bash kernel / remove ipython"
     apt: name=ipython state=absent
-    tags: ipython
+    tags: [ ipython, install, update ]
   - name: "IPython with notebook and octave+bash kernel / install from pip"
-    tags: ipython
+    tags: [ ipython, install, update ]
     pip: executable=pip2
          state=forcereinstall
          umask=022
@@ -108,14 +109,14 @@
     - octave_kernel
     - bash_kernel
   - name: "fix permissions in all python2.7/dist-packages"
-    tags: ipython
+    tags: [ ipython, install, update ]
     shell: |
         cd /usr/local/lib/python2.7/dist-packages
         sudo chmod a+r -R .
         sudo find . -perm /u+x -execdir chmod a+x {} \;
 
   - name: "IPython3 in Python3"
-    tags: ipython3
+    tags: [ ipython3, install, update ]
     pip: executable=pip3
          state=forcereinstall
          umask=022

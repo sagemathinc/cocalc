@@ -6,12 +6,12 @@
   tasks:
 
   - name: 'Additional packages (mainly for users, not building) - LaTeX packages'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
-    - latex
+    - update
     with_items:
+    - aspell-*
     - lilypond
     - texlive-full
     - texlive-bibtex-extra

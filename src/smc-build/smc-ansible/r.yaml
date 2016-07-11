@@ -10,11 +10,12 @@
   - name: 'R apt keys'
     apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
 
-  - name: 'R repository url'
+  - name: 'Official R repository url'
     apt_repository: repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
 
-  - name: 'R installation (official ubuntu repo -- some base packages)'
-    apt: name={{ item }} install_recommends=yes state=latest
+  - name: 'R installation (some base packages)'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - libssl-dev # required for cran's devtools
     - libssh2-1-dev # for cran's devtools
@@ -43,7 +44,8 @@
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R installation (official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-abind
     - r-cran-acepack
@@ -76,7 +78,8 @@
     - r-cran-class
 
   - name: 'R installation (official ubuntu repo) #1'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-cluster
     - r-cran-cmprsk
@@ -132,7 +135,8 @@
     - r-cran-fextremes
 
   - name: 'R installation (official ubuntu repo) #2'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-fgarch
     - r-cran-fimport
@@ -183,7 +187,8 @@
     - r-cran-jsonlite
 
   - name: 'R installation (official ubuntu repo) #3'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-kernlab
     - r-cran-kernsmooth
@@ -231,7 +236,8 @@
     - r-cran-mvtnorm
 
   - name: 'R installation (official ubuntu repo) #4'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-ncdf4
     - r-cran-nlme
@@ -287,7 +293,8 @@
     - r-cran-rinside
 
   - name: 'R installation (official ubuntu repo) #5'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-rjags
     - r-cran-rjava
@@ -362,7 +369,8 @@
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R bioconductor installation (from official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-bioc-affy
     - r-bioc-affyio
@@ -406,7 +414,7 @@
     - r-bioc-xvector
 
   - name: "R packages from CRAN"
-    tags: cran
+    tags: [cran, install, update]
     # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
     # deps=true also installes suggested packages, e.g. Rcpp for devtools!
     shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
@@ -422,5 +430,5 @@
     - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
 
   - name: "IPython Kernel" # needs devtools, etc.
-    tags: ir
+    tags: [ir, install, update]
     shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir-ubuntu', displayname = 'R (Official Build)')\" | R --no-save"
