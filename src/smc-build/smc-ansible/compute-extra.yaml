@@ -5,18 +5,19 @@
 
   tasks:
 
-  - apt: name={{ item }}
+  - apt: "name={{ item }} state=latest"
+    tags: pip2
     with_items:
     - python-pip
     #- llvm-3.7
     #- llvm-3.7-dev # for numba
 
   - name: "update pip"
-    tags: [ pip3, update ]
+    tags: [ pip2, update ]
     pip: "executable=pip2 state=latest name=pip"
 
   - name: "additional pip2 packages"
-    tags: [ pip3, update ]
+    tags: [ pip2, update ]
     pip: executable=pip2
          state=latest
          umask=022
@@ -32,6 +33,7 @@
     - clawpack
     - ctop
     - networkx
+    - macs2
 
   - apt: name=python3-pip
 
@@ -49,7 +51,6 @@
     - zope.interface
     - scikit-learn
     - datasift
-    - macs2
     # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
