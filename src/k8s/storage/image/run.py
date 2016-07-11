@@ -7,9 +7,6 @@ def log(*args, **kwds):
     print(*args, **kwds)
 
 DATA = '/data' # mount point of data volume
-LOG = os.path.join(DATA, 'log')
-if not os.path.exists(LOG):
-    os.makedirs(LOG)
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
 
@@ -86,13 +83,6 @@ def bup_save(path):
     Save to the bup archive for the given path.
 
     An example is path='foo.zfs' if there is a directory /data/foo.zfs
-
-    Will write an entry to /data/log/bups.log each time we do this, which is a single line in JSON format
-    with keys timestamp, path, action, time and optionally error. E.g.,
-
-    {"path":"testzfs.zfs","time":5.1827569007873535,"timestamp":"2016-07-04-173809","action":"save"}
-
-    means we saved testzfs.zfs at 2016-07-04-173809 and it took about 5 seconds.
     """
     full_path = os.path.join(DATA, path)
     if not os.path.exists(full_path):
@@ -106,27 +96,13 @@ def bup_save(path):
     run(['bup', 'init'], env=env)
     tm = time.time()
     timestamp = datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
-    log = {'timestamp':timestamp, 'path':path, 'action':'save'}
-    try:
-        run("tar cSf - '{full_path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
-            (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp), env=env)
-    except Exception as err:
-        log['error'] = repr(err)
-    log['time'] = time.time() - tm
-    open(os.path.join(LOG, 'bups.log'), 'a').write(json.dumps(log, separators=(',', ':'))+'\n')
+    run("tar cSf - '{full_path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
+        (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp), env=env)
 
 def bup_save_all(interval_h):
     """
     Update the bup archive for each image that has changed within the
     last interval_h hours.
-    """
-    raise NotImplemented
-
-def rotate_all_logs(maxlines=10000, minlines=1000):
-    """
-    For each logfile /data/log/foo.log with more than maxlines lines,
-    move all but the last minlines lines to /data/log/foo.log.1.gz,
-    rotating any other foo.log.n.gz log files.
     """
     raise NotImplemented
 
