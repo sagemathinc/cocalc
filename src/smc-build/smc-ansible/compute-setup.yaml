@@ -2,7 +2,12 @@
 # include all ansible playbooks for setting up a compute node or project container
 # run each of them individually in a container via e.g.
 # ansible-playbook -i container.ini compute-extra.yaml
-- apt: update_cache=yes cache_valid_time=3600
+- hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+  - apt: update_cache=yes cache_valid_time=3600
+
 - include: all-install.yaml
 - include: umask_compute.yaml
 - include: compute-proc.yaml
@@ -13,6 +18,12 @@
 - include: r.yaml # R depends on compute-extra
 - include: julia.yaml
 - include: latex.yaml
-- apt: update_cache=yes cache_valid_time=3600 upgrade=safe
+
+- hosts: all
+  become: yes
+  gather_facts: no
   tags: update
-- include: clear-pip-cache.yaml
+  tasks:
+  - apt: update_cache=yes cache_valid_time=3600 upgrade=safe
+
+- include: cleanup.yaml
