@@ -1,6 +1,10 @@
 FROM ubuntu:16.04
 MAINTAINER Harald Schilly <hsy@sagemath.com>
 LABEL smc.component=project-base
+ENV LC_ALL C.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV TERM screen
 USER root
 
 # So we can source (see http://stackoverflow.com/questions/20635472/using-the-run-instruction-in-a-dockerfile-with-source-does-not-work)
@@ -11,6 +15,9 @@ RUN apt-get update && \
     apt-get install --yes \
       aptitude \
       apt-utils \
+      wget \
+      build-essential \
+      m4 \
       curl \
       git \
       vim \
@@ -24,13 +31,9 @@ RUN apt-get update && \
     apt-get install --yes nodejs && \
     apt-add-repository ppa:ansible/ansible && \
     apt-get update && \
-    apt-get install --yes ansible
+    apt-get install --yes ansible && \
+    locale-gen en_US.UTF-8 de_DE.UTF-8 fr_FR.UTF-8 ru_RU.UTF-8 es_ES.UTF-8
 
-# Grab source code for SMC
-RUN git clone --depth 1 https://github.com/sagemathinc/smc.git
-COPY update.sh /update.sh
+COPY manage.sh /manage.sh
 
-# this runs the meta-playbook "compute-setup" with the modified machines file on localhost
-WORKDIR /smc/src/smc-build/smc-ansible
-RUN ansible-playbook -i container.ini compute-setup.yaml
-
+ENTRYPOINT ["/bin/bash", "/manage.sh"]

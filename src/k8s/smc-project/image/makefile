@@ -11,7 +11,7 @@ EXTRA_ARGS ?=
 
 PHONY := build rebuild run clean tag prod
 
-default: build
+default: rebuild
 
 rebuild:
 	@echo "re-building with tag ${TAG}"

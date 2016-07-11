@@ -4,12 +4,14 @@ MAINTAINER Harald Schilly <hsy@sagemath.com>
 
 # Refresh SMC and build the project (mainly building dependencies ...)
 WORKDIR /
-RUN rm -rf /smc && \
+RUN rm -f /manage.sh && \
+    rm -rf /smc/ && \
     git clone --depth 1 https://github.com/sagemathinc/smc.git && \
     cd /smc/src/ && \
     . ./smc-env && \
     ./install.py pyutil && \
-    ./install.py project
+    ./install.py project && \
+    rm -rf /smc/
 
 COPY run.py /run.py
 

@@ -13,6 +13,7 @@ default: build
 rebuild:
 	@echo "re-building with tag ${TAG}"
 	EXTRA_ARGS="--no-cache=true" $(MAKE) build
+	$(MAKE) install
 
 build:
 	@echo "building with tag ${TAG}"
@@ -25,15 +26,26 @@ squash:
 	docker export ${ID} | docker import - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."
 
+install:
+	@echo "runs all ansible install tasks -- do this once after rebuilding the image"
+	docker run -it "${TAG}" install
+	$(MAKE) commit
+
+update:
+	@echo "runs all ansible tasks marked as 'update'"
+	docker run -it "${TAG}" update
+	$(MAKE) commit
+	@echo "consider to run 'make squash' after several such update steps!"
+
 edit:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
 	docker run -it "${TAG}" bash
 	@echo "you finished working with that image"
-	@echo "you can run 'make commit' to update the image with your new edits"
-	@echo "also consider to run 'make squash' after several edit steps!'
+	@echo "Run 'make commit' to update the image with your new edits -- otherwise they're discarded"
+	@echo "also consider to run 'make squash' after several edit steps!"
 
 commit:
-	@echo "commit latest changes (after "edit"ing) to the image"
+	@echo "commit latest changes (after "edit"ing) of the container to the image"
 	$(eval ID = $(shell docker ps --all --latest --quiet --no-trunc --filter ancestor=${TAG}))
 	docker commit ${ID} ${TAG}
 	@echo "image ${TAG} has been updated and committed with the ID ${ID}"
