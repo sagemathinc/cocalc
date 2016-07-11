@@ -3180,6 +3180,34 @@ def load_html_resource(filename):
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
+def attach(*args):
+    r"""
+    Load file(s) into the Sage worksheet process and add to list of attached files.
+    All attached files that have changed since they were last loaded are reloaded
+    when any worksheet cell executes.
+
+    INPUT:
+
+    - ``files`` - list of strings, filenames to attach
+
+    .. SEEALSO::
+
+        :meth:`sage.repl.attach.attach` docstring has details on how attached files
+        are handled
+    """
+    import sage.repl.attach
+
+    if len(args) == 1:
+        if isinstance(args[0], (unicode,str)):
+            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (list, tuple)):
+            args = args[0]
+
+    for fname in args:
+        load(fname)
+        sage.repl.attach.add_attached_file(fname)
+        print fname,"attached"
+
 # Monkey-patched the load command
 def load(*args, **kwds):
     """
