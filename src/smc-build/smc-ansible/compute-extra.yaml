@@ -9,6 +9,7 @@
     tags: pip2
     with_items:
     - python-pip
+    - python3-pip
     #- llvm-3.7
     #- llvm-3.7-dev # for numba
 
@@ -35,8 +36,6 @@
     - networkx
     - macs2
 
-  - apt: name=python3-pip
-
   - name: "additional pip3 packages"
     tags: [ pip3, update ]
     pip: executable=pip3
@@ -54,6 +53,9 @@
     # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
+    - mygene
+    - seaborn
+    - biopython
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -125,9 +127,6 @@
     with_items:
     - ipython
     - ipywidgets
-    - mygene
-    - seaborn
-    - biopython
 
   - name: "Special script to run python2 systemwide from within Sage"
     tags: python2sage
@@ -226,7 +225,7 @@
   # Macaulay2
   - name: "install macaulay2 / apt packages"
     tags: macaulay2
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libntl-dev
     - libntl5
@@ -249,7 +248,7 @@
   # Polymake
   - name: "polymake apt package dependencies"
     tags: polymake
-    apt: name={{ item }} state=latest install_recommends=yes
+    apt: "name={{ item }} state=latest install_recommends=yes"
     with_items:
     - ant
     - ant-optional
@@ -323,7 +322,8 @@
     apt_repository: repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - python-kwant-doc
     - python3-kwant
@@ -343,7 +343,8 @@
     apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
 
   - name: 'install GIAC'
-    apt: name={{ item }} allow_unauthenticated=yes install_recommends=yes
+    apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
+    tags: update
     with_items:
     - giac
     - python-giacpy
@@ -361,7 +362,8 @@
     apt_repository: repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
-    apt: name=fenics install_recommends=yes
+    tags: update
+    apt: name=fenics install_recommends=yes state=latest
 
 # MPICH
 - hosts: compute
@@ -372,7 +374,8 @@
   tasks:
 
   - name: 'install mpich'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - mpich
     - mpich-doc
@@ -395,7 +398,8 @@
     apt_repository: repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
-    apt: name=pypy install_recommends=yes
+    tags: update
+    apt: name=pypy install_recommends=yes state=latest
 
 # Cantera
 - hosts: compute
@@ -409,7 +413,8 @@
     apt_repository: repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - cantera-python
     - cantera-python3
@@ -428,7 +433,8 @@
   - name: 'heroku apt-repository'
     apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
-    apt: name=heroku-toolbelt install_recommends=yes
+    tags: update
+    apt: name=heroku-toolbelt install_recommends=yes state=latest
 
 # Obspy
 - hosts: compute
@@ -441,7 +447,9 @@
     apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
   - name: "obspy apt repository"
     apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
-  - apt: name={{ item }} install_recommends=yes
+  - name: 'install obspy packages'
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - python-obspy
     - python3-obspy
@@ -454,7 +462,8 @@
 
   tasks:
   - name: 'install atlas'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libatlas3-base
     - liblapack-dev
@@ -479,8 +488,10 @@
   - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
     apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - name: "install open axiom"
+    tags: update
     apt: name="open-axiom*"
          install_recommends=yes
+         state=latest
 
 # Octave
 - hosts: compute
@@ -490,7 +501,8 @@
 
   tasks:
   - name: "install ocatave"
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - octave-biosig
     - octave-common

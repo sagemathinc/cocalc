@@ -38,7 +38,7 @@
   #        owner=root group=root mode=ugo=rx
   - name: "copy Rscript wrapper (similar to R → Sage's R)"
     shell: |
-           cp iles/Rscript /usr/local/bin/Rscript
+           cp files/Rscript /usr/local/bin/Rscript
            chmod ugo=rx /usr/local/bin/Rscript
 
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
