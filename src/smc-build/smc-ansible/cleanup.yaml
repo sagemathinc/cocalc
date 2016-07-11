@@ -1,0 +1,10 @@
+---
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags:
+  - install
+  - update
+  tasks:
+  - name: "delete local pip cache"
+    shell: rm -rf ~/.cache/pip
