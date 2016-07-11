@@ -12,6 +12,7 @@
     - update
     with_items:
     - aspell-*
+    - dot2tex
     - lilypond
     - texlive-full
     - texlive-bibtex-extra

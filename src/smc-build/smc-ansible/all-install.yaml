@@ -228,7 +228,6 @@
     - cvs
     - cython
     - dieharder
-    - dot2tex
     - doxygen
     - dstat
 
@@ -550,7 +549,6 @@
     - python-coverage
     - python-crontab
     - python-cvxopt
-    - python-ffc
     - python-fftw
     - python-flake8
     - python-fs
@@ -649,6 +647,8 @@
     - python-syfi
     - python-symeig
     - python-sympy
+    - python-fiat
+    - python-ffc
     - python-tables
     - python-termcolor
     - python-termstyle
