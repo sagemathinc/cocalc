@@ -28,6 +28,13 @@ case "$1" in
         exec bash
         ;;
 
+    test)
+       # runs the integration tests to figure out, how well everything works in here
+       init
+       cd ..
+       py.test-3 compute-integration-tests.py
+       ;;
+
     *)
         echo $"Usage: $0 {install|update|bash}"
         exit 1

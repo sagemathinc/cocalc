@@ -36,4 +36,4 @@ RUN apt-get update && \
 
 COPY manage.sh /manage.sh
 
-ENTRYPOINT ["/bin/bash", "/manage.sh"]
+ENTRYPOINT ["/manage.sh"]

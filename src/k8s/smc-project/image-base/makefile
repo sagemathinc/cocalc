@@ -6,14 +6,13 @@ TAG      = ${NAME}:${VERSION}
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY := build rebuild run edit commit clean tag prod squash
+PHONY := build rebuild run edit commit clean tag prod squash test
 
 default: build
 
 rebuild:
 	@echo "re-building with tag ${TAG}"
 	EXTRA_ARGS="--no-cache=true" $(MAKE) build
-	$(MAKE) install
 
 build:
 	@echo "building with tag ${TAG}"
@@ -37,11 +36,14 @@ update:
 	$(MAKE) commit
 	@echo "consider to run 'make squash' after several such update steps!"
 
-edit:
+test:
+	@echo "runs all integration tests"
+	docker run -it "${TAG}" test
+
+edit run:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
 	docker run -it "${TAG}" bash
-	@echo "you finished working with that image"
-	@echo "Run 'make commit' to update the image with your new edits -- otherwise they're discarded"
+	@echo "!!! >>>> Run 'make commit' to update the image with your new edits -- otherwise they're discarded <<<< !!!"
 	@echo "also consider to run 'make squash' after several edit steps!"
 
 commit:
@@ -63,11 +65,11 @@ beta: VERSION = beta
 beta: tag
 
 clean:
+	@echo 'remove all docker container (not forced, hence running ones are not deleted)'
+	docker ps -aq --no-trunc | xargs --no-run-if-empty docker rm
 	@echo 'remove all untagged docker images -- do not worry about errors'
 	# this runs repeatedly until it fails, because once an image is deleted more become dangling!
 	# it fails, because there is no "--no-run-if-empty" and hence docker complains
 	while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
-	@echo 'remove all docker container (not forced, hence running ones are not deleted)'
-	docker ps -aq --no-trunc | xargs --no-run-if-empty docker rm
 
 
