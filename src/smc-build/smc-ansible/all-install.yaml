@@ -783,6 +783,7 @@
     - python3-mock
     - python3-mockito
     - python3-mpi4py
+    - python3-mpld3
     - python3-mpmath
     - python3-msgpack
     - python3-mysqldb
