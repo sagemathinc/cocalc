@@ -190,15 +190,21 @@ def truncate_text(s, max_size):
 
 def truncate_text_warn(s, max_size, name):
     r"""
-    INPUTS
-    - s - string to be truncated
-    - max-size - truncation limit
-    - name - name of limiting parameter
-    
-    OUTPUT
-    string, possibly truncated
-    did_truncate - boolean
-    warning message
+    Truncate text if too long and format a warning message.
+
+    INPUT:
+
+    - ``s`` -- string to be truncated
+    - ``max-size`` - integer truncation limit
+    - ``name`` - string, name of limiting parameter
+
+    OUTPUT:
+
+    a triple:
+
+    - string -- possibly truncated input string
+    - boolean -- true if input string was truncated
+    - string -- warning message if input string was truncated
     """
     tmsg = "WARNING: Output: %s truncated by %s to %s.  Type 'smc?' to learn how to raise the output limit."
     lns = len(s)
@@ -897,6 +903,17 @@ class Salvus(object):
             Salvus._postfix = postfix
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
+
+        def reload_attached_files_if_mod_smc():
+            # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+            from sage.repl.attach import modified_file_iterator
+            for filename, mtime in modified_file_iterator():
+                basename = os.path.basename(filename)
+                timestr = time.strftime('%T', mtime)
+                print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+                from sage_salvus import load
+                load(filename)
+
         if namespace is None:
             namespace = self.namespace
 
@@ -921,6 +938,7 @@ class Salvus(object):
                     p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
+                    reload_attached_files_if_mod_smc()
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -1735,7 +1753,7 @@ def serve(port, host, extra_imports=False):
         for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
-                     'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
+                     'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
                      'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
