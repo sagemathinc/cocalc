@@ -84,7 +84,7 @@ class ChatActions extends Actions
         @syncdb.save()
         @setState(last_sent: mesg)
 
-    toggle_editing: (message, is_editing) =>
+    set_editing: (message, is_editing) =>
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -95,7 +95,7 @@ class ChatActions extends Actions
         else
             editing = message.get('editing').remove(author_id)
 
-        console.log("TOGGLE EDITORS:", editing.toJS())
+        console.log("Currently Editing:", editing.toJS())
         @syncdb.update
             set :
                 editing : editing.toJS()
@@ -200,13 +200,12 @@ Message = rclass
 
     getInitialState: ->
         edited_message  : @newest_content()
-        show_edit_input : false
 
     componentWillReceiveProps: (newProps) ->
         if @state.edited_message == @newest_content()
             @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
 
-    shouldComponentUpdate: (next) ->
+    shouldComponentUpdate: (next, next_state) ->
         return @props.message != next.message or
                @props.user_map != next.user_map or
                @props.account_id != next.account_id or
@@ -214,11 +213,17 @@ Message = rclass
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
                @props.editor_name != next.editor_name or
-               @state.show_edit_input != next.show_edit_input or
+               @state.edited_message != next_state.edited_message
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
+
+    #componentWillUnmount: () ->
+    #    @props.actions.set_editing(@props.message, false)
 
     newest_content: ->
         @props.message.get('history').peek().get('content') ? ''
+
+    is_editing: ->
+        @props.message.get('editing').includes(@props.account_id)
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
@@ -230,7 +235,7 @@ Message = rclass
 
     editing_status: ->
         other_editors = @props.message.get('editing').remove(@props.account_id)
-        if @state.show_edit_input
+        if @is_editing()
             if other_editors.size == 1
                 # This user and someone else is also editing
                 text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
@@ -328,8 +333,8 @@ Message = rclass
             <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
                     <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
-                        {@render_markdown(value) if not @state.show_edit_input}
-                        {@render_input() if @state.show_edit_input}
+                        {@render_markdown(value) if not @is_editing()}
+                        {@render_input() if @is_editing()}
                         {@editing_status() if @props.message.get('history').size > 1}
                         {@get_timeago()}
                     </ListGroupItem>
@@ -363,20 +368,17 @@ Message = rclass
         if e.keyCode==27 # ESC
             e.preventDefault()
             @setState
-                edited_message  : @newest_content()
-                show_edit_input : false
-            @props.actions.toggle_editing(@props.message, false)
+                edited_message : @newest_content()
+            @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
             if mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
             else
-                @props.actions.toggle_editing(@props.message, false)
-            @setState(show_edit_input:false)
+                @props.actions.set_editing(@props.message, false)
 
     edit_message: ->
-        @props.actions.toggle_editing(@props.message, true)
-        @setState(show_edit_input:true)
+        @props.actions.set_editing(@props.message, true)
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -433,7 +435,6 @@ ChatLog = rclass
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
-        console.log("sorted_dates", sorted_dates)
         v = []
         for date, i in sorted_dates
             sender_name = @get_user_name(@props.messages.get(date).get('sender_id'))
