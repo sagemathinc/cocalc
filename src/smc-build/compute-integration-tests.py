@@ -26,9 +26,9 @@ BINARIES = [
     ('java', 'OpenJDK Runtime', '-version'),
     ('dot', 'dot - graphviz', '-V'),
     ('convert', 'ImageMagick'),
-    ('ipython', '4'),
-    ('ipython3', '4'),
-    ('ssh', 'OpenSSH_6', '-V'),
+    ('ipython', '5'),
+    ('ipython3', '5'),
+    ('ssh', 'OpenSSH_7', '-V'),
     ('primesieve', 'primesieve 5', '--version', 1),
     ('plink', 'PLINK!', '', 1), # actually, p-link with a symlink to it
     ('polymake', 'polymake version 3'),
@@ -42,7 +42,7 @@ BINARIES = [
     ('mpiexec', 'HYDRA'), # TODO there are several mpi versions, check that this one is the "good" one
     ('R', 'R version 3'),
     ('ocaml', 'version 4.', '-version'),
-    ('clang', 'LLVM'),
+    ('clang', 'clang version 3'),
 ]
 
 # python 2 libs
