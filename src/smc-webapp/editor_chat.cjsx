@@ -82,6 +82,7 @@ class ChatActions extends Actions
         #console.log("-- History:", [{author_id: sender_id, content:mesg, date:time_stamp}] )
 
         @syncdb.save()
+        @setState(last_sent: mesg)
 
     toggle_editing: (message, is_editing) =>
         if not @syncdb?
@@ -124,6 +125,9 @@ class ChatActions extends Actions
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
         @syncdb.save()
+
+    set_to_last_input: =>
+        @setState(input:@redux.getStore(@name).get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)
@@ -243,6 +247,9 @@ Message = rclass
                 # Multiple editors
                 text = "#{other_editors.size} people are editing this message"
 
+        if @newest_content() == ''
+            text = "Deleted by #{@props.editor_name}"
+
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
@@ -352,13 +359,6 @@ Message = rclass
                 />
         </div>
 
-    blank_column:  ->
-        <Col key={2} xs={2}></Col>
-
-    edit_message: ->
-        @props.actions.toggle_editing(@props.message, true)
-        @setState(show_edit_input:true)
-
     on_keydown : (e) ->
         if e.keyCode==27 # ESC
             e.preventDefault()
@@ -368,16 +368,23 @@ Message = rclass
             @props.actions.toggle_editing(@props.message, false)
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
-            if mesg.length? and mesg.trim().length >= 1 and mesg != @newest_content()
+            if mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
             else
                 @props.actions.toggle_editing(@props.message, false)
             @setState(show_edit_input:false)
 
+    edit_message: ->
+        @props.actions.toggle_editing(@props.message, true)
+        @setState(show_edit_input:true)
+
     focus_endpoint: (e) ->
         val = e.target.value
         e.target.value = ''
         e.target.value = val
+
+    blank_column:  ->
+        <Col key={2} xs={2}></Col>
 
     render: ->
         cols = [@avatar_column(), @content_column(), @blank_column()]
@@ -497,6 +504,8 @@ ChatRoom = (name) -> rclass
             if mesg.length? and mesg.trim().length >= 1
                 @props.actions.send_chat(mesg)
                 @clear_input()
+        else if e.keyCode==38 and @refs.input.getValue() == ''
+            @props.actions.set_to_last_input()
 
     clear_input: ->
         @props.actions.set_input('')
