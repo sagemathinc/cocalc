@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, json, os, requests, shutil, signal, socket, subprocess, time
+import datetime, json, os, requests, rethinkdb, shutil, signal, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
 
@@ -215,6 +215,9 @@ def time_to_timestamp(tm=None):
         tm = time.time()
     return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
 
+def timestamp_to_rethinkdb(timestamp):
+    i = timestamp.rfind('-')
+    return rethinkdb.iso8601(timestamp[:i].replace('-','') + 'T' + timestamp[i+1:].replace(':','') + 'Z')
 
 # TODO: this entire approach is pointless and broken because when multiple processes
 # append to the same file, the result is broken corruption.
@@ -269,7 +272,8 @@ def db_set_last_snapshot(new_snapshots):
     conn = rethinkdb_connection()
     # Do the queries
     for project_id, timestamp in new_snapshots.items():
-        rethinkdb.db("smc").table("projects").get(project_id).update({'last_snapshot':timestamp}).run(conn)
+        last_snapshot = timestamp_to_rethinkdb(timestamp)
+        rethinkdb.db("smc").table("projects").get(project_id).update({'last_snapshot':last_snapshot}).run(conn)
     conn.close()
 
 def update_all_lock_files():
