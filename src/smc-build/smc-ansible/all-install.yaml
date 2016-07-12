@@ -607,6 +607,10 @@
     - python-pymc
     - python-pyorbital
     - python-pystache
+    - python-pytest
+    - python-pytest-cov
+    - python-pytest-timeout
+    - python-pytest-mock
     - python-regex
     - python-requests-cache
     - python-requests-toolbelt
@@ -835,6 +839,8 @@
     - python3-pyro4
     - python3-pytest
     - python3-pytest-cov
+    - python3-pytest-timeout
+    - python3-pytest-mock
     - python3-pyramid
     - python3-pyscss
     - python3-rdflib

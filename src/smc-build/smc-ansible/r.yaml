@@ -427,7 +427,16 @@
     - dplyr
     - tidyr
     - WGCNA
-    - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
+
+  - name: "RSTAN from CRAN"
+    # https://cran.r-project.org/web/packages/rstan/index.html
+    # takes a long time to build and uses a lot of memory, that's expected, but hence it's not tagged in "update"
+    tags: [cran, install]
+    # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
+    # deps=true also installes suggested packages, e.g. Rcpp for devtools!
+    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
+    with_items:
+    - rstan
 
   - name: "IPython Kernel" # needs devtools, etc.
     tags: [ir, install, update]
