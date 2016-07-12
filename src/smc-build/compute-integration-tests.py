@@ -2,25 +2,35 @@
 # Compute Image Integration Tests
 # Goal of this testsuite is, to make sure that all relevant software, libraries and packages are installed.
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
-
+import pytest
 from textwrap import dedent
-import unittest
-from subprocess import getoutput as run
+from subprocess import getstatusoutput, CalledProcessError
+
+def run(cmd, expected_status = 0):
+    status, output = getstatusoutput(cmd)
+    if status == expected_status:
+        return output
+    else:
+        raise CalledProcessError(cmd = cmd, returncode = status)
 
 # binaries: each of them is:
 # 1. name (also as string)
 # 2. optional string to search in output
 # 3. optional command line params (default: --version)
+# 4. optional status code, because sometimes --version gives retcode of 1
 BINARIES = [
-    'git', 'latexmk', 'bash', 'gcc', 'clang',
+    'git', 'latexmk', 'bash', 'gcc', 'clang', 'pdftk', 'julia', 'autopep8',
+    ('hg', 'Mercurial'),
+    ('cvs', 'Concurrent Versions System'),
+    ('gp', 'GP/PARI CALCULATOR'),
+    ('java', 'OpenJDK Runtime', '-version'),
     ('dot', 'dot - graphviz', '-V'),
-    'pdftk',
     ('convert', 'ImageMagick'),
     ('ipython', '4'),
     ('ipython3', '4'),
     ('ssh', 'OpenSSH_6', '-V'),
-    ('primesieve', 'primesieve 5'),
-    ('plink', 'PLINK!', ''), # actually, p-link with a symlink to it
+    ('primesieve', 'primesieve 5', '--version', 1),
+    ('plink', 'PLINK!', '', 1), # actually, p-link with a symlink to it
     ('polymake', 'polymake version 3'),
     ('pdflatex', 'pdfTeX 3.14'),
     ('python2', 'python 2.7'),
@@ -29,8 +39,10 @@ BINARIES = [
     ('axiom', 'AXIOMsys', '-h'),
     ('open-axiom', 'OpenAxiom 1'),
     ('giac', '1.2'),
-    ('mpiexec', 'HYDRA'),
-    ('ocaml', 'version 4.', '-version')
+    ('mpiexec', 'HYDRA'), # TODO there are several mpi versions, check that this one is the "good" one
+    ('R', 'R version 3'),
+    ('ocaml', 'version 4.', '-version'),
+    ('clang', 'LLVM'),
 ]
 
 # python 2 libs
@@ -40,56 +52,63 @@ PY2 = [
 
 # python 3 libs
 PY3 = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'statsmodels'
+    'numpy', 'scipy', 'matplotlib', 'pandas', # 'statsmodels'
 ]
 
-class SMCSoftwareTest(unittest.TestCase):
+# R libs
+R = [
+    'rstan',
+]
 
-    def test_git(self):
-        git = run('git --version')
-        print(git)
-        self.assertTrue('git' in git)
+# http://pytest.org/latest/parametrize.html#parametrized-test-functions
+@pytest.mark.parametrize("bin", BINARIES)
+def test_bin(bin):
+    assert len(bin) > 0
 
-    def test_latex(self):
-        latexmk = run('latexmk --version')
-        print(latexmk)
-        self.assertTrue('Latexmk' in latexmk)
+# http://pytest.org/latest/parametrize.html#parametrized-test-functions
+@pytest.mark.parametrize("bin", BINARIES)
+def test_binaries(bin):
+    if isinstance(bin, str):
+        cmd = bin
+        token = bin.lower()
+        args = '--version'
+        status = 0
+    else:
+        cmd = bin[0]
+        token = bin[1] if len(bin) >= 2 else bin[0].lower()
+        args = bin[2] if len(bin) >= 3 else '--version'
+        status = bin[3] if len(bin) >= 4 else 0
+    v = run('{cmd} {args}'.format(**locals()), status)
+    assert token.lower() in v.lower()
 
-    def test_binaries(self):
-        for bin in BINARIES:
-            if isinstance(bin, str):
-                cmd = bin
-                token = bin.lower()
-                args = '--version'
-            else:
-                cmd = bin[0]
-                token = bin[1] if len(bin) >= 2 else bin[0].lower()
-                args = bin[2] if len(bin) == 3 else '--version'
-            v = run('{cmd} {args}'.format(**locals()))
-            self.assertIn(token.lower(), v.lower())
+@pytest.mark.parametrize("exe,libs", zip(['python2', 'python3'], [PY2, PY3]))
+def test_python(exe, libs):
+    CMD = dedent('''\
+    {exe} -c "from __future__ import print_function
+    import {lib}
+    print('{exe} {lib}: ', end='')
+    try:
+        print({lib}.__version__)
+    except:
+        print({lib}.version())
+    "''')
+    for lib in libs:
+        v = run(CMD.format(**locals()))
+        print(v)
+        assert lib.lower() in v.lower()
 
-    def test_python(self):
-        CMD = dedent('''\
-        {exe} -c "from __future__ import print_function
-        import {lib}
-        print('{exe} {lib}: ', end='')
-        try:
-            print({lib}.__version__)
-        except:
-            print({lib}.version())
-        "''')
-        for exe, libs in zip(['python2', 'python3'], [PY2, PY3]):
-            for lib in libs:
-                print(run(CMD.format(**locals())))
+@pytest.mark.parametrize('lib', R)
+def test_r(lib):
+    CMD = '''echo "require('{lib}'); packageVersion('{lib}') " | R --vanilla --silent'''
+    v = run(CMD.format(**locals()))
+    print(v)
+    assert lib.lower() in v.lower()
 
-    @unittest.expectedFailure
-    def test_doesnt_exist(self):
-        self.assertIn('text', run('doesnt_exist'))
 
-    def test_isupper(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
-
+def test_doesnt_exist():
+    with pytest.raises(CalledProcessError):
+        'doesnt_exist' in run('doesnt_exist')
 
 if __name__ == '__main__':
-    unittest.main()
+    #pytest.main()
+    print('run $ py.test compute-integration-tests.py')
