@@ -6,6 +6,7 @@
 #    /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage
 #
 # The minion node must also have ZFS installed (so, e.g,. `zpool list` works) and `bindfs` (for snapshots).
+# All relevant install is done by the storage-daemon pods -- you do nothing manually.
 #
 
 import datetime, json, os, shutil, signal, socket, sys, time, uuid
@@ -417,10 +418,17 @@ def timestamp_to_time(timestamp):
 def update_snapshots(pool, snapshots):
     """
     Update the rolling ZFS snapshots on the given pool.
+
+    If no files have changed since the most recent snapshot, do nothing.
     """
     # determine which snapshots we need to make
     now = time.time()
     newest_snaptime = None
+    if len(snapshots) > 0:
+        snapshots.sort()   # we assume snapshots are named so they sort in order
+        if len(cmd(['zfs', 'diff', "{pool}@{snapshot}".format(pool=pool, snapshot=snapshots[-1])], verbose=False).splitlines()) == 0:
+            # no files changed since last snapshot -- do nothing.
+            return
     for name, interval in SNAPSHOT_INTERVALS.items():
         if SNAPSHOT_COUNTS[name] <= 0: # not making any of these
             continue
