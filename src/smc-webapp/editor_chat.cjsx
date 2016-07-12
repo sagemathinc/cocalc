@@ -55,6 +55,7 @@ class ChatActions extends Actions
                 #console.log('change', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
                 x.insert.history = immutable.Stack(immutable.fromJS(x.insert.history))
+                x.insert.editing = immutable.Set(x.insert.editing)
                 messages = messages.set("#{x.insert.date - 0}", immutable.fromJS(x.insert))
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
@@ -82,14 +83,21 @@ class ChatActions extends Actions
 
         @syncdb.save()
 
-    declare_editing: (message) =>
+    toggle_editing: (message, is_editing) =>
         if not @syncdb?
             # TODO: give an error or try again later?
             return
         author_id = @redux.getStore('account').get_account_id()
+
+        if is_editing
+            editing = message.get('editing').add(author_id)
+        else
+            editing = message.get('editing').remove(author_id)
+
+        console.log("TOGGLE EDITORS:", editing.toJS())
         @syncdb.update
             set :
-                editing : message.get('editing')?.merge({author_id : true}).toJS() ? {author_id : true}
+                editing : editing.toJS()
             where :
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
@@ -104,13 +112,14 @@ class ChatActions extends Actions
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
         time_stamp = salvus_client.server_time()
-        #console.log("Current history", message.get('history').toJS())
+        #console.log("Current history", message.get(    'history').toJS())
         #console.log("New history", [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS()))
         #console.log("Get date:", message.get('date'), typeof message.get('date'))
 
         @syncdb.update
             set :
                 history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
+                editing : message.get('editing').remove(author_id).toJS()
             where :
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
@@ -155,6 +164,10 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                             author_id : x.sender_id
                             date      : x.date
                         x.history = immutable.Stack([initial])
+                    if x.editing
+                        x.editing = immutable.Set(x.editing)
+                    else
+                        x.editing = immutable.Set()
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -176,6 +189,7 @@ Message = rclass
         file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
         font_size      : rtypes.number
         show_avatar    : rtypes.bool
+        get_user_name  : rtypes.func
         is_prev_sender : rtypes.bool
         is_next_sender : rtypes.bool
         actions        : rtypes.object
@@ -210,13 +224,34 @@ Message = rclass
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
-    last_edited: ->
-        <div className="pull-left small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
-            last edit by {@props.editor_name}
+    editing_status: ->
+        other_editors = @props.message.get('editing').remove(@props.account_id)
+        if @state.show_edit_input
+            if other_editors.size == 1
+                # This user and someone else is also editing
+                text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
+                color = "#E55435"
+            else if other_editors.size > 1
+                # Multiple other editors
+                text = "#{other_editors.size} other users are also editing this!"
+                color = "#E55435"
+        else
+            if other_editors.size == 1
+                # One person is editing
+                text = "#{@props.get_user_name(other_editors.first())} is editing this message"
+            else if other_editors.size > 1
+                # Multiple editors
+                text = "#{other_editors.size} people are editing this message"
+
+        text ?= "Last edit by #{@props.editor_name}"
+        color ?= "#888"
+
+        <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+            {text}
         </div>
 
     show_user_name: ->
-        <div className={"small"} style={color:'#888', marginBottom:'1px', marginLeft:'10px'}>
+        <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
             {@props.sender_name}
         </div>
 
@@ -288,7 +323,7 @@ Message = rclass
                     <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
                         {@render_markdown(value) if not @state.show_edit_input}
                         {@render_input() if @state.show_edit_input}
-                        {@last_edited() if @props.message.get('history').size > 1}
+                        {@editing_status() if @props.message.get('history').size > 1}
                         {@get_timeago()}
                     </ListGroupItem>
                 </ListGroup>
@@ -321,7 +356,7 @@ Message = rclass
         <Col key={2} xs={2}></Col>
 
     edit_message: ->
-        #@props.actions.declare_editing(@props.message)
+        @props.actions.toggle_editing(@props.message, true)
         @setState(show_edit_input:true)
 
     on_keydown : (e) ->
@@ -330,10 +365,13 @@ Message = rclass
             @setState
                 edited_message  : @newest_content()
                 show_edit_input : false
+            @props.actions.toggle_editing(@props.message, false)
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
             if mesg.length? and mesg.trim().length >= 1 and mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
+            else
+                @props.actions.toggle_editing(@props.message, false)
             @setState(show_edit_input:false)
 
     focus_endpoint: (e) ->
@@ -365,6 +403,13 @@ ChatLog = rclass
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
+    get_user_name: (account_id) ->
+        account = @props.user_map.get(account_id)
+        if account?
+            account_name = account.get('first_name') + ' ' + account.get('last_name')
+        else
+            account_name = "Unknown"
+
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
             if index + 1 == dates.length
@@ -381,20 +426,11 @@ ChatLog = rclass
             return current_message.get('sender_id') == prev_message.get('sender_id')
 
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        console.log("sorted_dates", sorted_dates)
         v = []
         for date, i in sorted_dates
-            sender_account = @props.user_map.get(@props.messages.get(date).get('sender_id'))
-            if sender_account?
-                sender_name = sender_account.get('first_name') + ' ' + sender_account.get('last_name')
-            else
-                sender_name = "Unknown"
-
-            # last_editor
-            editor_account = @props.user_map.get(@props.messages.get(date).get('history').peek().get('author_id'))
-            if editor_account?
-                editor_name = editor_account.get('first_name') + ' ' + editor_account.get('last_name')
-            else
-                editor_name = "Unknown"
+            sender_name = @get_user_name(@props.messages.get(date).get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date).get('history').peek().get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
@@ -406,10 +442,12 @@ ChatLog = rclass
                      is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
                      is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
                      show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     get_user_name    = {@get_user_name}
                      sender_name      = {sender_name}
-                     editor_name      = {editor_name}
+                     editor_name      = {last_editor_name}
                      actions          = {@props.actions}
                     />
+
         return v
 
     render: ->
@@ -447,6 +485,7 @@ ChatRoom = (name) -> rclass
         input : ''
 
     keydown : (e) ->
+        # TODO: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
@@ -464,7 +503,7 @@ ChatRoom = (name) -> rclass
 
     render_input: ->
         tip = <span>
-            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter for a newline without submitting your chat.
+            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter for a newline without submitting your chat. Double click to edit past chats.
         </span>
 
         return <div>
@@ -481,6 +520,7 @@ ChatRoom = (name) -> rclass
             <div style={marginTop: '-12px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
+                    Double click to edit past chats.
                     Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
                     Emoticons: {misc.emoticons}.
                 </Tip>
