@@ -53,6 +53,11 @@ path-append  "/projects/data/homer/bin"
 path-append  "/projects/data/weblogo"
 export PATH
 
+# locales
+export LC_ALL=C.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
+
 # less: setup highlighting when searching for a string
 export LESS_TERMCAP_so=$'\E[;7m'
 export LESS_TERMCAP_se=$'\E[;27m'

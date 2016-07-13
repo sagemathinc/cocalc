@@ -9,8 +9,10 @@
     lineinfile: create=yes
                 line="DSELECT::Clean "always";"
                 dest="/etc/apt/apt.conf.d/99AutomaticClean"
+    tags: update
 
   - apt: update_cache=yes cache_valid_time=3600
+    tags: update
 
   - name: "rethinkdb apt key"
     apt_key: url=http://download.rethinkdb.com/apt/pubkey.gpg
@@ -51,23 +53,22 @@
       - sysstat
     tags:
       - install
+      - update
 
-  - name: "system wide pip packages"
-    pip:  executable=pip2
-          state=latest
-          name={{ item }}
+  - name: "system wide pip2 packages"
+    pip:  "executable=pip2 state=latest name={{ item }}"
     with_items:
        - pip
-       - google-api-python-client
        - jsonschema
+       - google-api-python-client
+    tags: update
 
   - name: "system wide pip3 packages"
-    pip:  executable=pip3
-          state=latest
-          name={{ item }}
+    pip:  "executable=pip3 state=latest name={{ item }}"
     with_items:
        - rethinkdb
        - dateutils
+    tags: update
 
 # Install critical packages needed for building SMC source code:
 - hosts: all
@@ -77,7 +78,10 @@
   tasks:
 
   - name: 'critical packages needed for building SMC source code'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags:
+    - install
+    - update
     with_items:
     - calibre
     - dpkg-dev
@@ -116,8 +120,6 @@
     - wget
     - xfsprogs
     - zlib1g-dev
-    tags:
-    - install
 
 # Compute VM's
 - hosts: compute
@@ -127,9 +129,10 @@
   tasks:
 
   - name: 'packages on Compute VMs'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
       - install
+      - update
     with_items:
     - calibre
     - dpkg-dev
@@ -193,13 +196,12 @@
 
   tasks:
   - name: 'Additional packages (mainly for users, not building) - batch #1'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
+    - update
     with_items:
     - asciidoc
-    - aspell-*
     - attr
     - autoconf
     - axiom
@@ -226,15 +228,14 @@
     - cvs
     - cython
     - dieharder
-    - dot2tex
     - doxygen
     - dstat
 
   - name: 'Additional packages (mainly for users, not building) - batch #2'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
+    - update
     with_items:
     - emacs
     - emacs-goodies-el
@@ -292,10 +293,10 @@
     - lbzip2
 
   - name: 'Additional packages (mainly for users, not building) - batch #3'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
+    - update
     with_items:
     - libao-dev
     - libapr1-dev
@@ -367,10 +368,10 @@
     - libzmq-dev
 
   - name: 'Additional packages (mainly for users, not building) - batch #4'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
+    - update
     with_items:
     - libreoffice-common
     - linux-tools-common
@@ -379,6 +380,8 @@
     - lrzip
     - lua5.2
     - lua5.2-*
+    - luadoc
+    - lua-mode
     - lynx-cur
     - lzip
     - m4
@@ -428,10 +431,10 @@
     - pv
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
-    - install-compute-users
+    - update
     with_items:
     - python-autopep8
     - python-dev
@@ -508,6 +511,167 @@
     - yatex
     - zsh
 
+# Python2-related packages of interest
+- hosts: compute
+  become: yes
+  gather_facts: no
+
+  tasks:
+  - name: 'Python2-related packages of interest # 0'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags:
+    - install
+    - update
+    with_items:
+    - python-argh
+    - python-args
+    - python-astrometry
+    - python-astroml
+    - python-astropy
+    - python-astropy-affiliated
+    - python-aplpy
+    - python-apsw
+    - python-arrow
+    - python-autopep8
+    - python-bcrypt
+    - python-bibtex
+    - python-biom-format
+    - python-biopython
+    - python-biopython-sql
+    - python-bitarray
+    - python-brian
+    - python-brotli
+    - python-bson
+    - python-bz2file
+    - python-cachecontrol
+    - python-celery
+    - python-cjson
+    - python-coverage
+    - python-crontab
+    - python-cvxopt
+    - python-fftw
+    - python-flake8
+    - python-fs
+    - python-frozendict
+    - python-future
+    - python-geopandas
+    - python-gmpy
+    - python-gmpy2
+    - python-git
+    - python-github
+    - python-gnuplot
+    - python-h5py
+    - python-hdf5storage
+    - python-neuroshare
+    - python-hunspell
+    - python-igraph
+    - python-jsonpickle
+    - python-nipy
+    - python-nipype
+    - python-leveldb
+    - python-levenshtein
+    - python-linop
+    - python-logilab-common
+    - python-logilab-constraint
+    - python-lua
+    - python-lz4
+    - python-lzo
+    - python-matplotlib
+    - python-matplotlib-data
+    - python-mlpy
+    - python-mockito
+    - python-mpi4py
+    - python-mpikmeans
+    - python-mpld3
+    - python-mplexporter
+    - python-mpmath
+    - python-nose
+    - python-nose-cov
+    - python-nose2
+    - python-nose2-cov
+    - python-numexpr
+    - python-openopt
+    - python-pandas
+    - python-patsy
+    - python-pebl
+    - python-pep8
+    - python-pexpect
+    - python-persistent
+    - python-pp
+    - python-protobuf
+    - python-pulp
+    - python-pychart
+    - python-pyepl
+    - python-pypdf
+    - python-pypdf2
+    - python-pymc
+    - python-pyorbital
+    - python-pystache
+    - python-pytest
+    - python-pytest-cov
+    - python-pytest-timeout
+    - python-pytest-mock
+    - python-regex
+    - python-requests-cache
+    - python-requests-toolbelt
+    - python-rfc3339
+    - python-rpy2
+  - name: 'Python2-related packages of interest # 1'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags:
+    - install
+    - update
+    with_items:
+    - python-scipy
+    - python-sciscipy
+    - python-scitools
+    - python-scp
+    - python-scoop
+    - python-scrypt
+    - python-seaborn
+    - python-screed
+    - python-simpy
+    - python-simpy3
+    - python-skbio
+    - python-sklearn
+    - python-sklearn-pandas
+    - python-skimage
+    - python-solv
+    - python-spur
+    - python-sql
+    - python-sqlalchemy-utils
+    - python-sqlite
+    - python-sqlkit
+    - python-statsmodels
+    - python-stetl
+    - python-stemmer
+    - python-subprocess32
+    - python-sunpy
+    - python-sugar
+    - python-syfi
+    - python-symeig
+    - python-sympy
+    - python-fiat
+    - python-ffc
+    - python-tables
+    - python-termcolor
+    - python-termstyle
+    - python-tau
+    - python-tweepy
+    - python-tzlocal
+    - python-ujson
+    - python-vipscc
+    - python-wand
+    - python-wget
+    - python-wheel
+    - python-whoosh
+    - python-xlwt
+    - python-xlrd
+    - python-xlsxwriter
+    - python3-simpy
+    - python-zmq
+    - python-z3
+
 # Python3-related packages of interest
 - hosts: compute
   become: yes
@@ -515,9 +679,10 @@
 
   tasks:
   - name: 'Python3-related packages of interest # 0'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
+    - update
     with_items:
     - astropy-utils
     - python-astropy-doc
@@ -622,6 +787,7 @@
     - python3-mock
     - python3-mockito
     - python3-mpi4py
+    - python3-mpld3
     - python3-mpmath
     - python3-msgpack
     - python3-mysqldb
@@ -635,9 +801,10 @@
     - python3-numexpr
     - python3-numpy
   - name: 'Python3-related packages of interest # 1'
-    apt: name={{ item }} install_recommends=yes state=latest
+    apt: "name={{ item }} install_recommends=yes state=latest"
     tags:
     - install
+    - update
     with_items:
     - python3-oauth
     - python3-openssl
@@ -672,6 +839,8 @@
     - python3-pyro4
     - python3-pytest
     - python3-pytest-cov
+    - python3-pytest-timeout
+    - python3-pytest-mock
     - python3-pyramid
     - python3-pyscss
     - python3-rdflib

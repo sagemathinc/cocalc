@@ -253,7 +253,7 @@ def divide_into_blocks(code):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
-        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('elif')):
+        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('try') or blocks[i-1][-1].lstrip().startswith('elif')):
             merge()
 
         # lines starting with elif

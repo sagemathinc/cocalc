@@ -52,6 +52,8 @@ def run_on_kubernetes(args):
     namespace = util.get_current_namespace()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
+    # ensure there is a rethinkdb secret, even if blank, so that daemon will start with reduced functionality
+    util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     t = open('storage-daemon.yaml').read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image        = tag,

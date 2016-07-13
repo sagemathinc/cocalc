@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, json, os, requests, shutil, signal, socket, subprocess, time
+import datetime, json, os, requests, rethinkdb, shutil, signal, socket, subprocess, time
 
 HOSTS = '/node/etc/hosts'
 
@@ -150,7 +150,7 @@ def run_on_minion(v, *args, **kwds):
     return run(v, *args, **kwds)
 
 def smc_storage(*args, **kwds):
-    run_on_minion(["/usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage"] + list(args), **kwds)
+    return run_on_minion(["/usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/smc-storage"] + list(args), **kwds)
 
 def install_flexvolume_plugin():
     # we always copy it over, which at least upgrades it if necessary.
@@ -215,6 +215,9 @@ def time_to_timestamp(tm=None):
         tm = time.time()
     return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
 
+def timestamp_to_rethinkdb(timestamp):
+    i = timestamp.rfind('-')
+    return rethinkdb.iso8601(timestamp[:i].replace('-','') + 'T' + timestamp[i+1:].replace(':','') + 'Z')
 
 # TODO: this entire approach is pointless and broken because when multiple processes
 # append to the same file, the result is broken corruption.
@@ -243,7 +246,35 @@ def update_zpool_active_log():
                     log=log, prefix=prefix, server=server))
 
 def update_all_snapshots():
-    smc_storage("zpool-update-snapshots")
+    v = json.loads(smc_storage("zpool-update-snapshots", get_output=True))
+    db_set_last_snapshot(v['new_snapshots'])
+
+RETHINKDB_SECRET = '/secrets/rethinkdb/rethinkdb'
+import rethinkdb
+
+def rethinkdb_connection():
+    auth_key = open(RETHINKDB_SECRET).read().strip()
+    if not auth_key:
+        auth_key = None
+    return rethinkdb.connect(host='rethinkdb-driver', timeout=4, auth_key=auth_key)
+
+def db_set_last_snapshot(new_snapshots):
+    """
+    new_snapshots should be a dictionary with keys the project_id's and values timestamps.
+
+    This function will connect to the database if possible, and set the last_snapshot field of
+    each project (in the projects table) to the given timestamp.
+    """
+    print("db_set_last_snapshot", new_snapshots)
+    if len(new_snapshots) == 0:
+        return
+    # Open connection to the database
+    conn = rethinkdb_connection()
+    # Do the queries
+    for project_id, timestamp in new_snapshots.items():
+        last_snapshot = timestamp_to_rethinkdb(timestamp)
+        rethinkdb.db("smc").table("projects").get(project_id).update({'last_snapshot':last_snapshot}).run(conn)
+    conn.close()
 
 def update_all_lock_files():
     smc_storage("update-all-locks")

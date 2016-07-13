@@ -1067,7 +1067,7 @@ NewProjectCreator = rclass
                         <Button
                             disabled = {@state.title_text == '' or @state.state == 'saving'}
                             bsStyle  = 'success'
-                            onClick  = {@create_project} >
+                            onClick  = {=>@create_project(false)} >
                             Create project without upgrades
                         </Button>
                         <Button
