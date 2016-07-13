@@ -503,50 +503,43 @@ ChatRoom = (name) -> rclass
     getInitialState: ->
         input : ''
 
+    mark_as_read: ->
+        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
-        else if e.keyCode==13 and not e.shiftKey # 13: enter key
-            @scroll_to_bottom()
-            e.preventDefault()
-            mesg = @refs.input.getValue()
-            # block sending empty messages
-            if mesg.length? and mesg.trim().length >= 1
-                @props.actions.send_chat(mesg)
-                @clear_input()
+        else if e.keyCode==13 and e.shiftKey # 13: enter key
+            @send_chat(e)
         else if e.keyCode==38 and @refs.input.getValue() == ''
+            # Up arrow on an empty input
             @props.actions.set_to_last_input()
+
+    send_chat: (e) ->
+        @scroll_to_bottom()
+        e.preventDefault()
+        mesg = @refs.input.getValue()
+        # block sending empty messages
+        if mesg.length? and mesg.trim().length >= 1
+            @props.actions.send_chat(mesg)
+            @clear_input()
 
     clear_input: ->
         @props.actions.set_input('')
 
-    render_input: ->
+    render_bottom_tip: ->
         tip = <span>
-            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter for a newline without submitting your chat. Double click to edit past chats.
+            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter to send your chat. Double click to edit past chats.
         </span>
 
-        return <div>
-            <Input
-                autoFocus
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'input'
-                onKeyDown = {@keydown}
-                value     = {@props.input}
-                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
-                onChange  = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                />
-            <div style={marginTop: '-12px', marginBottom: '15px', color:'#666'}>
-                <Tip title='Use Markdown' tip={tip}>
-                    Shift+Enter for newline.
-                    Double click to edit past chats.
-                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-                    Emoticons: {misc.emoticons}.
-                </Tip>
-            </div>
-        </div>
+        <Tip title='Use Markdown' tip={tip}>
+            Shift+Enter to send your message.
+            Double click chat bubbles to edit them.
+            Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+            Emoticons: {misc.emoticons}.
+        </Tip>
 
     chat_log_style:
         overflowY    : "auto"
@@ -557,9 +550,8 @@ ChatRoom = (name) -> rclass
         paddingRight : "10px"
 
     chat_input_style:
-        height       : "0vh"
         margin       : "0"
-        padding      : "0"
+        padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
 
     is_at_bottom: ->
@@ -627,7 +619,7 @@ ChatRoom = (name) -> rclass
                               user_map    = {@props.user_map} />
                     </div>
                 </Col>
-                <Col xs={4}>
+                <Col xs={4} style={padding:'2px'}>
                     <ButtonGroup style={float:'right'}>
                         <Button onClick={@show_timetravel} bsStyle='info'>
                             <Icon name='history'/> TimeTravel
@@ -639,7 +631,7 @@ ChatRoom = (name) -> rclass
                 </Col>
             </Row>
             <Row>
-                <Col md={12}>
+                <Col md={12} style={padding:'0px 2px 0px 2px'}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
                         <ChatLog
                             messages     = {@props.messages}
@@ -653,10 +645,27 @@ ChatRoom = (name) -> rclass
                 </Col>
             </Row>
             <Row>
+                <Col md={11} style={padding:'0px 2px 0px 2px'}>
+                    <Input
+                        autoFocus   = {true}
+                        rows        = 4
+                        type        = 'textarea'
+                        ref         = 'input'
+                        onKeyDown   = {@keydown}
+                        value       = {@props.input}
+                        placeholder = {'Type a message...'}
+                        onClick     = {@mark_as_read}
+                        onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                        style       = {@chat_input_style}
+                        />
+                </Col>
+                <Col md={1} style={height:'98.6px', padding:'0px 2px 0px 2px'}>
+                    <Button onClick={@send_chat} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
+                </Col>
+            </Row>
+            <Row>
                 <Col md={12}>
-                    <div style={@chat_input_style}>
-                        {@render_input()}
-                    </div>
+                    {@render_bottom_tip()}
                 </Col>
             </Row>
         </Grid>
