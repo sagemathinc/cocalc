@@ -52,11 +52,12 @@ class ChatActions extends Actions
         m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
-                # console.log('Received', x.insert)
+                console.log('Received', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
+                if not x.insert.editing
+                     x.insert.editing = {}
                 message = immutable.fromJS(x.insert)
                 message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
-                message = message.set('editing', immutable.Set(x.insert.editing))
                 messages = messages.set("#{x.insert.date - 0}", message)
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
@@ -92,7 +93,8 @@ class ChatActions extends Actions
         author_id = @redux.getStore('account').get_account_id()
 
         if is_editing
-            editing = message.get('editing').add(author_id)
+            # TODO: Save edit changes
+            editing = message.get('editing').set(author_id, 'TODO')
         else
             editing = message.get('editing').remove(author_id)
 
@@ -159,7 +161,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 alert_message(type:'error', message:"json in #{@filename} is broken")
             else
                 v = {}
-                #console.log("DATA ON LOAD:", syncdb.select())
+                console.log("DATA ON LOAD:", syncdb.select())
                 for x in syncdb.select()
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -169,10 +171,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                             author_id : x.sender_id
                             date      : x.date
                         x.history = immutable.Stack([initial])
-                    if x.editing
-                        x.editing = immutable.Set(x.editing)
-                    else
-                        x.editing = immutable.Set()
+                    if not x.editing
+                        x.editing = {}
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -229,7 +229,7 @@ Message = rclass
         @props.message.get('history').peek().get('content') ? ''
 
     is_editing: ->
-        @props.message.get('editing').includes(@props.account_id)
+        @props.message.get('editing').has(@props.account_id)
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
@@ -240,7 +240,7 @@ Message = rclass
         </div>
 
     editing_status: ->
-        other_editors = @props.message.get('editing').remove(@props.account_id)
+        other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
         if @is_editing()
             if other_editors.size == 1
                 # This user and someone else is also editing
@@ -256,6 +256,7 @@ Message = rclass
             else
                 text = "You are now editing ... Shift+Enter to submit changes."
         else
+            console.log(other_editors.toJS(), other_editors.size)
             if other_editors.size == 1
                 # One person is editing
                 text = "#{@props.get_user_name(other_editors.first())} is editing this message"
