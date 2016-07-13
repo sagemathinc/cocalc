@@ -52,11 +52,12 @@ class ChatActions extends Actions
         m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
-                #console.log('change', x.insert)
+                # console.log('Received', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
-                x.insert.history = immutable.Stack(immutable.fromJS(x.insert.history))
-                x.insert.editing = immutable.Set(x.insert.editing)
-                messages = messages.set("#{x.insert.date - 0}", immutable.fromJS(x.insert))
+                message = immutable.fromJS(x.insert)
+                message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
+                message = message.set('editing', immutable.Set(x.insert.editing))
+                messages = messages.set("#{x.insert.date - 0}", message)
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
@@ -200,10 +201,15 @@ Message = rclass
 
     getInitialState: ->
         edited_message  : @newest_content()
+        new_changes     : false
 
     componentWillReceiveProps: (newProps) ->
+        changes = false
         if @state.edited_message == @newest_content()
             @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
+        else
+            changes = true
+        @setState(new_changes : changes)
 
     shouldComponentUpdate: (next, next_state) ->
         return @props.message != next.message or
@@ -244,6 +250,11 @@ Message = rclass
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
                 color = "#E55435"
+            else if @state.new_changes
+                text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
+                color = "#E55435"
+            else
+                text = "You are now editing ... Shift+Enter to submit changes."
         else
             if other_editors.size == 1
                 # One person is editing
@@ -335,7 +346,7 @@ Message = rclass
                     <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
                         {@render_markdown(value) if not @is_editing()}
                         {@render_input() if @is_editing()}
-                        {@editing_status() if @props.message.get('history').size > 1}
+                        {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
                         {@get_timeago()}
                     </ListGroupItem>
                 </ListGroup>
@@ -370,7 +381,7 @@ Message = rclass
             @setState
                 edited_message : @newest_content()
             @props.actions.set_editing(@props.message, false)
-        else if e.keyCode==13 and not e.shiftKey # 13: enter key
+        else if e.keyCode==13 and e.shiftKey # 13: enter key
             mesg = @refs.editedMessage.getValue()
             if mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
