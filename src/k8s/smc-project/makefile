@@ -34,9 +34,9 @@ beta: tag
 
 clean:
 	@echo 'remove all docker container (not forced, hence running ones are not deleted)'
-	docker ps -aq --no-trunc | xargs --no-run-if-empty docker rm
+	-docker ps -aq --no-trunc | xargs --no-run-if-empty docker rm
 	@echo 'remove all untagged docker images -- do not worry about errors'
 	# this runs repeatedly until it fails, because once an image is deleted more become dangling!
 	# it fails, because there is no "--no-run-if-empty" and hence docker complains
-	while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
+	-while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
 
