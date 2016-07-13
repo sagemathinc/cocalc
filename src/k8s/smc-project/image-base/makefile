@@ -24,7 +24,7 @@ update:
 
 test:
 	@echo "runs all integration tests"
-	$(RUN)" test
+	$(RUN) test
 
 edit run:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
