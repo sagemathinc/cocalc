@@ -116,11 +116,16 @@ class ProjectPage
         delete @actions
         delete @store
 
+    get_total_project_quotas: (s, project_id) =>
+        quotas = s.get_total_project_quotas(project_id)
+        quotas.project_id = project_id
+        return quotas
+
     free_project_warning: () =>
         if underscore.contains(warning_banner_hidden, @project_id)
             return
         @projects_store.wait
-            until   : (s) => s.get_total_project_quotas(@project_id)
+            until   : (s) => @get_total_project_quotas(s, @project_id)
             timeout : 60
             cb      : (err, quotas) =>
                 if not err and quotas?

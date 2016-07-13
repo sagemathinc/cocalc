@@ -539,6 +539,7 @@ class ProjectsStore extends Store
 
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas : (project_id) =>
+        console.log('gtpq', project_id)
         base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
         if not base_values?
             return
