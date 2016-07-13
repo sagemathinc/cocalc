@@ -274,14 +274,10 @@ def divide_into_blocks(code):
 CHARS0 = string.ascii_letters + string.digits + '_'
 CHARS  = CHARS0 + '.'
 def guess_last_expression(obj):  # TODO: bad guess -- need to use a parser to go any further.
-    from sage_server import log
     i = len(obj)-1
     while i >= 0 and obj[i] in CHARS:
         i -= 1
-    #return obj[i+1:]
-    retval = obj[i+1:]
-    log("HAL guess obj: %s  last exp: %s"%(obj, retval))
-    return retval
+    return obj[i+1:]
 
 def is_valid_identifier(target):
     if len(target) == 0: return False
@@ -312,7 +308,6 @@ def introspect(code, namespace, preparse=True):
 
     An object: {'result':, 'target':, 'expr':, 'status':, 'get_help':, 'get_completions':, 'get_source':}
     """
-    from sage_server import log
     # result: the docstring, source code, or list of completions (at
     # return, it might thus be either a list or a string)
     result = []
@@ -350,11 +345,8 @@ def introspect(code, namespace, preparse=True):
         # evaluation works.
         expr        = code0[i:]%literals
         before_expr = code0[:i]%literals
-        
-        log("HAL before: %s  expr: %s"%(before_expr, expr))
 
         if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
-            log("HAL easy case")
             # Easy case: this is just completion on a simple identifier in the namespace.
             get_help = False; get_completions = True; get_source = False
             target = expr
@@ -385,11 +377,9 @@ def introspect(code, namespace, preparse=True):
                         target = expr
 
         if get_completions and target == expr:
-            log("HAL target: %s"%target)
             j      = len(expr)
             v      = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
         else:
-            log("HAL try to evaluate")
 
             # We will try to evaluate
             # obj.  This is danerous and a priori could take
@@ -406,7 +396,6 @@ def introspect(code, namespace, preparse=True):
                 signal.alarm(1)
                 import sage.all_cmdline
                 if before_expr.strip():
-                    log("HAL exec %s"%before_expr)
                     try:
                         exec (before_expr if not preparse else preparse_code(before_expr)) in namespace
                     except Exception, msg:
@@ -415,7 +404,6 @@ def introspect(code, namespace, preparse=True):
                         # traceback.print_exc()
                 # We first try to evaluate the part of the expression before the name
                 try:
-                    log("HAL eval %s"%obj)
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
                 except (SyntaxError, TypeError, AttributeError):
                     # If that fails, we try on a subexpression.
@@ -485,7 +473,6 @@ def introspect(code, namespace, preparse=True):
                     v = [x[j:] for x in v if x.startswith(target)]
                 else:
                     v = []
-                log("HAL v: %s"%" ".join(v))
 
         if get_completions:
             result = list(sorted(set(v), lambda x,y:cmp(x.lower(),y.lower())))
