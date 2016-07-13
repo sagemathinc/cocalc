@@ -45,14 +45,26 @@ BINARIES = [
     ('clang', 'clang version 3'),
 ]
 
+PY_COMMON = [
+    'numpy', 'scipy', 'matplotlib', 'pandas'
+]
+
 # python 2 libs
-PY2 = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'statsmodels'
+PY2 = PY_COMMON + [
+    'statsmodels'
 ]
 
 # python 3 libs
-PY3 = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', # 'statsmodels'
+PY3 =  PY_COMMON + [
+
+]
+
+PY_SAGE = PY_COMMON + [
+    # 'sage' # there is no sage.__version__ ???
+]
+
+PY3_ANACONDA = PY_COMMON + [
+    'tensorflow'
 ]
 
 # R libs
@@ -81,7 +93,10 @@ def test_binaries(bin):
     v = run('{cmd} {args}'.format(**locals()), status)
     assert token.lower() in v.lower()
 
-@pytest.mark.parametrize("exe,libs", zip(['python2', 'python3'], [PY2, PY3]))
+PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
+PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
+
+@pytest.mark.parametrize("exe,libs", zip(PY_EXES, PY_LIBS))
 def test_python(exe, libs):
     CMD = dedent('''\
     {exe} -c "from __future__ import print_function
