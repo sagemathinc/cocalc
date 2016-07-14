@@ -52,12 +52,12 @@ class ChatActions extends Actions
         m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
-                console.log('Received', x.insert)
+                # Assumes all fields to be provided in x.insert
+                # console.log('Received', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
-                if not x.insert.editing
-                     x.insert.editing = {}
                 message = immutable.fromJS(x.insert)
                 message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
+                message = message.set('editing', immutable.Map(x.insert.editing))
                 messages = messages.set("#{x.insert.date - 0}", message)
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
@@ -65,7 +65,6 @@ class ChatActions extends Actions
             @setState(messages: messages)
 
     send_chat: (mesg) =>
-        #console.log("CHAT SENDING")
         mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
@@ -98,9 +97,10 @@ class ChatActions extends Actions
         else
             editing = message.get('editing').remove(author_id)
 
-        console.log("Currently Editing:", editing.toJS())
+        # console.log("Currently Editing:", editing.toJS())
         @syncdb.update
             set :
+                history : message.get('history').toJS()
                 editing : editing.toJS()
             where :
                 date: message.get('date')
@@ -108,7 +108,6 @@ class ChatActions extends Actions
         @syncdb.save()
 
     send_edit: (message, raw_new_content) =>
-        #console.log("CHAT EDITING")
         mesg = misc_page.sanitize_html(raw_new_content)
         if not @syncdb?
             # TODO: give an error or try again later?
@@ -116,9 +115,6 @@ class ChatActions extends Actions
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
         time_stamp = salvus_client.server_time()
-        #console.log("Current history", message.get(    'history').toJS())
-        #console.log("New history", [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS()))
-        #console.log("Get date:", message.get('date'), typeof message.get('date'))
 
         @syncdb.update
             set :
@@ -161,7 +157,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 alert_message(type:'error', message:"json in #{@filename} is broken")
             else
                 v = {}
-                console.log("DATA ON LOAD:", syncdb.select())
+                # console.log("DATA ON LOAD:", syncdb.select())
                 for x in syncdb.select()
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
@@ -256,7 +252,6 @@ Message = rclass
             else
                 text = "You are now editing ... Shift+Enter to submit changes."
         else
-            console.log(other_editors.toJS(), other_editors.size)
             if other_editors.size == 1
                 # One person is editing
                 text = "#{@props.get_user_name(other_editors.first())} is editing this message"
