@@ -46,7 +46,7 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'numpy', 'scipy', 'matplotlib', 'pandas'
+    'numpy', 'scipy', 'matplotlib', 'pandas', 'markdown'
 ]
 
 # python 2 libs

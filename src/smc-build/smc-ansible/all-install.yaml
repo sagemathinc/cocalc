@@ -26,6 +26,8 @@
       - aptitude
       - bash-completion
       - bup
+      - cron
+      - supervisor
       - htop
       - fio
       - monit
@@ -578,6 +580,8 @@
     - python-lzo
     - python-matplotlib
     - python-matplotlib-data
+    - python-markdown
+    - python-meld3
     - python-mlpy
     - python-mockito
     - python-mpi4py
@@ -782,6 +786,7 @@
     - python3-mako
     - python3-matplotlib
     - python3-markdown
+    - python3-meld3
     - python3-mia
     - python3-misaka
     - python3-mock

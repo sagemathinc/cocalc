@@ -6,5 +6,5 @@
   - install
   - update
   tasks:
-  - name: "delete local pip cache"
-    shell: rm -rf ~/.cache/pip
+  - name: "delete root's pip cache"
+    file: path='/root/.cache/pip' state=absent
