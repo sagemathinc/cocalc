@@ -60,6 +60,13 @@ TODO: automate...
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
+# avoid git errors when there is no author configured
+os.environ["GIT_AUTHOR_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_AUTHOR_EMAIL"] = "office@sagemath.com"
+os.environ["GIT_COMMITTER_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_COMMITTER_EMAIL"] = "office@sagemath.com"
+
+
 # Enable logging
 logging.basicConfig()
 log = logging.getLogger('')
