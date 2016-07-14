@@ -258,9 +258,8 @@ Message = rclass
             else if other_editors.size > 1
                 # Multiple editors
                 text = "#{other_editors.size} people are editing this message"
-
-        if @newest_content() == ''
-            text = "Deleted by #{@props.editor_name}"
+            else if @newest_content() == ''
+                text = "Deleted by #{@props.editor_name}"
 
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
