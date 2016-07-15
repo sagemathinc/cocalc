@@ -56,7 +56,7 @@ import sage_parsing, sage_salvus
 uuid = sage_salvus.uuid
 
 try:
-    from sage.repl.attach import modified_file_iterator
+    from sage.repl.attach import load_attach_path, modified_file_iterator
     def reload_attached_files_if_mod_smc():
         # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
         for filename, mtime in modified_file_iterator():
@@ -66,10 +66,9 @@ try:
             from sage_salvus import load
             load(filename)
 except:
-    print("attach not available")
+    print("sage_server: attach not available")
     def reload_attached_files_if_mod_smc():
         pass
-
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
