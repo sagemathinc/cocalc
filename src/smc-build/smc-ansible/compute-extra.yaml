@@ -38,7 +38,12 @@
     - bayespy==0.3.6
     - pandasql
     - blaze
-    - "git+https://github.com/jakevdp/JSAnimation.git"
+
+  - tags: [ pip2, update ]
+    pip: executable=pip2
+         umask=022
+         name='git+https://github.com/jakevdp/JSAnimation.git'
+         editable=false
 
   - name: "additional pip3 packages"
     tags: [ pip3, update ]
