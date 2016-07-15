@@ -3218,7 +3218,7 @@ try:
 except ImportError:
     print("sage_salvus: attach not available")
     def attach(*args):
-        sys.stderr.write("attach not available\n")
+        sys.stderr.write("Error: The 'attach' functionality is not available.\n")
         sys.stderr.flush()
 
 
