@@ -3199,10 +3199,6 @@ try:
         """
         # can't (yet) pass "attach = True" to load(), so do this
 
-        if not attach_available():
-            print("attach not available")
-            return
-
         if len(args) == 1:
             if isinstance(args[0], (unicode,str)):
                 args = tuple(args[0].replace(',',' ').split())
