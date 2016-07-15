@@ -33,13 +33,24 @@
     - ess
 
   # why buggy?
-  #- name: "install Rscript wrapper (similar to R → Sage's R)"
-  #  copy: src=files/Rscript dest=/usr/local/bin/Rscript
+  #- name: "install R wrapper (R-sage → Sage's R)"
+  #  copy: src=files/R-sage dest=/usr/local/bin/R-sage
   #        owner=root group=root mode=ugo=rx
-  - name: "copy Rscript wrapper (similar to R → Sage's R)"
+  - name: "copy R wrapper (R-sage → Sage's R)"
+    tags: [install, update]
     shell: |
-           cp files/Rscript /usr/local/bin/Rscript
-           chmod ugo=rx /usr/local/bin/Rscript
+           cp files/R-sage /usr/local/bin/R-sage
+           chmod ugo=rx /usr/local/bin/R-sage
+
+  # why buggy?
+  #- name: "install Rscript wrapper (similar to R → Sage's R)"
+  #  copy: src=files/Rscript-sage dest=/usr/local/bin/Rscript-sage
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy Rscript wrapper (similar to R-sage → Sage's R)"
+    tags: [install, update]
+    shell: |
+           cp files/Rscript-sage /usr/local/bin/Rscript-sage
+           chmod ugo=rx /usr/local/bin/Rscript-sage
 
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
@@ -427,6 +438,24 @@
     - dplyr
     - tidyr
     - WGCNA
+    - fields
+    - circular
+    - glmnet
+    - brian
+    - rugarch
+    - quantmod
+    - swirl
+    - psych
+    - UsingR
+    - readr
+    - forecast
+    - NORMT3
+    - ggmap
+    - np
+    - crs
+    - SemiParBIVProbit
+    - maptree
+    - nortest
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html

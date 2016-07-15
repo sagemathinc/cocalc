@@ -514,6 +514,7 @@ class BuildSage(object):
         raise RuntimeError(r"""TODO: change 'local/lib/python/site-packages/notebook/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
 
     def install_jsanimation(self):
+        # maybe just pip install git+https://github.com/jakevdp/JSAnimation.git ?
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
 
     def install_psage(self):

@@ -35,6 +35,10 @@
     - ctop
     - networkx
     - macs2
+    - bayespy==0.3.6
+    - pandasql
+    - blaze
+    - "git+https://github.com/jakevdp/JSAnimation.git"
 
   - name: "additional pip3 packages"
     tags: [ pip3, update ]
@@ -46,6 +50,7 @@
     - pip
     - twitter
     - sympy
+    - bokeh
     - uncertainties
     - zope.interface
     - scikit-learn
@@ -56,6 +61,9 @@
     - mygene
     - seaborn
     - biopython
+    - bayespy
+    - pandasql
+    - blaze
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo

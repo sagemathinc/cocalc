@@ -525,6 +525,7 @@
     - install
     - update
     with_items:
+    - psychopy
     - python-argh
     - python-args
     - python-astrometry

@@ -3,6 +3,7 @@
 # Goal of this testsuite is, to make sure that all relevant software, libraries and packages are installed.
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
 import pytest
+import itertools as it
 from textwrap import dedent
 from subprocess import getstatusoutput, CalledProcessError
 
@@ -46,30 +47,82 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'markdown'
+    'numpy', 'scipy', 'matplotlib', 'pandas', 'pandasql', 'markdown', 'plotly'
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
-    'statsmodels'
+    'statsmodels', 'patsy', 'blaze', 'bokeh'
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
-
+    # 'statsmodels', # broken right now (2016-07-14), some scipy error
+    'patsy', 'blaze', 'bokeh'
 ]
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
+    'mahotas', 'patsy', 'statsmodels'
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow'
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh'
 ]
 
-# R libs
-R = [
+# This should be the offical R from the CRAN ubuntu repos and Sage's R
+R_exes = ['/usr/bin/R', 'sage -R']
+
+R_libs = [
     'rstan',
+    'ggplot2',
+    'stringr',
+    'plyr',
+    'reshape2',
+    'zoo',
+    'car',
+    'mvtnorm',
+    'e1071',
+    'Rcpp',
+    'lattice',
+    'KernSmooth',
+    'Matrix',
+    'cluster',
+    'codetools',
+    'mgcv',
+    'rpart',
+    'survival',
+    'fields',
+    'circular',
+    'glmnet',
+    'Cairo',
+    'XML',
+    'data.table',
+    'brian',
+    'rugarch',
+    'quantmod',
+    'swirl',
+    'psych',
+    'spatstat',
+    'UsingR',
+    'readr',
+    'MCMCpack',
+    'ROCR',
+    'forecast',
+    'numDeriv',
+    'NORMT3',
+    'ggmap',
+    'np',
+    'crs',
+    'SemiParBIVProbit',
+    'combinat',
+    'maptree',
+    # 'agricolae', # no longer exists for modern R 3.3.1
+    'nortest',
+    'gplots',
+    'Hmisc',
+    'survey',
+    'maps'
 ]
 
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
@@ -112,9 +165,9 @@ def test_python(exe, libs):
         print(v)
         assert lib.lower() in v.lower()
 
-@pytest.mark.parametrize('lib', R)
-def test_r(lib):
-    CMD = '''echo "require('{lib}'); packageVersion('{lib}') " | R --vanilla --silent'''
+@pytest.mark.parametrize('exe,lib', it.product(R_exes, R_libs))
+def test_r(exe, lib):
+    CMD = '''echo "require('{lib}'); packageVersion('{lib}') " | {exe} --vanilla --silent'''
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
