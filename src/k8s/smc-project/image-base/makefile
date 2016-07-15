@@ -6,7 +6,7 @@ PHONY += run edit commit clean squash test
 
 squash:
 	@echo "remove all intermediate layers after several edit steps"
-	$(eval ID = $(shell docker create ${NAME}:latest bash))
+	$(eval ID = $(shell docker create ${NAME}:latest))
 	@echo container ID = ${ID}
 	docker export ${ID} | docker import - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."

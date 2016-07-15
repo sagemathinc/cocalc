@@ -9,6 +9,10 @@ init () {
     cd /smc/src/smc-build/smc-ansible
 }
 
+salvus () {
+    sudo -H -u salvus bash -c "umask 022; exec \"$@\""
+}
+
 case "$1" in
     install)
         # this runs the meta-playbook "compute-setup" with the modified machines file on localhost
@@ -25,17 +29,18 @@ case "$1" in
 
     bash)
         # fork to be a command-line
-        exec bash
+        init
+        salvus bash
         ;;
 
     test)
        # runs the integration tests to figure out, how well everything works in here
        init
        cd ..
-       py.test-3 compute-integration-tests.py
+       salvus py.test-3 compute-integration-tests.py
        ;;
 
     *)
-        echo $"Usage: $0 {install|update|bash}"
+        echo $"Usage: $0 {install|update|bash|test}"
         exit 1
 esac

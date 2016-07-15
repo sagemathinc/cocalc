@@ -21,4 +21,5 @@ ENTRYPOINT []
 CMD ["/usr/bin/supervisord"]
 
 # Expose local hub port, etc....
-EXPOSE 6000
+# Shouldn't we use port 5463 as an easter egg? :-)
+EXPOSE 6000, 6001
