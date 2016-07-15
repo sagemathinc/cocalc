@@ -17,6 +17,14 @@ elif sys.argv[1] == 'start':
 
 path = os.path.split(os.path.realpath(__file__))[0] + '/..'
 target = os.path.abspath(os.path.join(path, 'local_hub.coffee'))
-cmd  = "forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s"%(sys.argv[1], target)
+
+# optionally, pass in tcp/raw port numbers for local_hub.coffee
+local_hub_args = ''
+if len(sys.argv) >= 3:
+    local_hub_args += '--tcp_port %s ' % sys.argv[2]
+if len(sys.argv) >= 4:
+    local_hub_args += '--raw_port %s ' % sys.argv[3]
+
+cmd  = "forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s %s"%(sys.argv[1], target, local_hub_args)
 
 os.system(cmd)
