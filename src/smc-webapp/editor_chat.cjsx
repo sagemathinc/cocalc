@@ -25,6 +25,7 @@ Chat
 
 # standard non-SMC libraries
 immutable = require('immutable')
+{IS_MOBILE} = require('./feature')
 
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
@@ -194,6 +195,7 @@ Message = rclass
         is_prev_sender : rtypes.bool
         is_next_sender : rtypes.bool
         actions        : rtypes.object
+        show_heads     : rtypes.bool
 
     getInitialState: ->
         edited_message  : @newest_content()
@@ -215,7 +217,7 @@ Message = rclass
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
                @props.editor_name != next.editor_name or
-               @state.edited_message != next_state.edited_message
+               @state.edited_message != next_state.edited_message or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     #componentWillUnmount: () ->
@@ -320,7 +322,7 @@ Message = rclass
         font_size = "#{@props.font_size}px"
 
         if @props.show_avatar
-            marginBottom = "20px" # the default value actually..
+            marginBottom = "1vh"
         else
             marginBottom = "3px"
 
@@ -395,13 +397,22 @@ Message = rclass
         <Col key={2} xs={2}></Col>
 
     render: ->
-        cols = [@avatar_column(), @content_column(), @blank_column()]
-        # mirror right-left for sender's view
-        if @sender_is_viewer()
-            cols = cols.reverse()
-        <Row>
-            {cols}
-        </Row>
+        if @props.include_avatar_col
+            cols = [@avatar_column(), @content_column(), @blank_column()]
+            # mirror right-left for sender's view
+            if @sender_is_viewer()
+                cols = cols.reverse()
+            <Row>
+                {cols}
+            </Row>
+        else
+            cols = [@content_column(), @blank_column()]
+            # mirror right-left for sender's view
+            if @sender_is_viewer()
+                cols = cols.reverse()
+            <Row>
+                {cols}
+            </Row>
 
 ChatLog = rclass
     displayName: "ChatLog"
@@ -414,6 +425,7 @@ ChatLog = rclass
         file_path    : rtypes.string   # optional -- ...
         font_size    : rtypes.number
         actions      : rtypes.object
+        show_heads   : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -455,7 +467,8 @@ ChatLog = rclass
                      font_size        = {@props.font_size}
                      is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
                      is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                     show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     include_avatar_col = {@props.show_heads}
                      get_user_name    = {@get_user_name}
                      sender_name      = {sender_name}
                      editor_name      = {last_editor_name}
@@ -549,6 +562,18 @@ ChatRoom = (name) -> rclass
         padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
 
+    mobile_chat_log_style:
+        overflowY    : "auto"
+        overflowX    : "hidden"
+        height       : "60vh"
+        margin       : "0"
+        padding      : "0"
+
+    mobile_chat_input_style:
+        margin       : "0"
+        padding      : "4px 7px 4px 7px"
+        marginTop    : "5px"
+
     is_at_bottom: ->
         # 20 for covering margin of bottom message
         @props.saved_position + @props.offset + 20 > @props.height
@@ -598,72 +623,135 @@ ChatRoom = (name) -> rclass
     render : ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
-        <Grid>
-            <Row style={marginBottom:'5px'}>
-                <Col xs={4}>
-                    <Button className='smc-small-only' bsSize='large'
-                            onClick={@show_files}><Icon name='toggle-up'/> Files
-                    </Button>
-                </Col>
-                <Col xs={4}>
-                    <div style={float:'right'}>
+        if not IS_MOBILE
+            <Grid>
+                <Row style={marginBottom:'5px'}>
+                    <Col xs={2} mdHidden >
+                        <Button className='smc-small-only'
+                                onClick={@show_files}>
+                                <Icon name='toggle-up'/> Files
+                        </Button>
+                    </Col>
+                    <Col xs={4} md={6} style={padding:'0px'}>
                         <UsersViewingDocument
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
                               account_id  = {@props.account_id}
                               user_map    = {@props.user_map} />
-                    </div>
-                </Col>
-                <Col xs={4} style={padding:'2px'}>
-                    <ButtonGroup style={float:'right'}>
-                        <Button onClick={@show_timetravel} bsStyle='info'>
-                            <Icon name='history'/> TimeTravel
+                    </Col>
+                    <Col xs={6} md={6} style={padding:'2px', textAlign:'right'}>
+                        <ButtonGroup>
+                            <Button onClick={@show_timetravel} bsStyle='info'>
+                                <Icon name='history'/> TimeTravel
+                            </Button>
+                            <Button onClick={@scroll_to_bottom}>
+                                <Icon name='arrow-down'/> Scroll to Bottom
+                            </Button>
+                        </ButtonGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={12} style={padding:'0px 2px 0px 2px'}>
+                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                            <ChatLog
+                                messages     = {@props.messages}
+                                account_id   = {@props.account_id}
+                                user_map     = {@props.user_map}
+                                project_id   = {@props.project_id}
+                                font_size    = {@props.font_size}
+                                file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                                actions      = {@props.actions}
+                                show_heads   = true />
+                        </Panel>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
+                        <Input
+                            autoFocus   = {true}
+                            rows        = 4
+                            type        = 'textarea'
+                            ref         = 'input'
+                            onKeyDown   = {@keydown}
+                            value       = {@props.input}
+                            placeholder = {'Type a message...'}
+                            onClick     = {@mark_as_read}
+                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                            style       = {@chat_input_style}
+                            />
+                    </Col>
+                    <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px'}>
+                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={12}>
+                        {@render_bottom_tip()}
+                    </Col>
+                </Row>
+            </Grid>
+
+        else
+        ##########################################
+        # MOBILE HACK
+        ##########################################
+            <Grid>
+                <Row style={marginBottom:'5px'}>
+                    <Col xs={3} style={padding:'0px'}>
+                        <UsersViewingDocument
+                              file_use_id = {@props.file_use_id}
+                              file_use    = {@props.file_use}
+                              account_id  = {@props.account_id}
+                              user_map    = {@props.user_map} />
+                    </Col>
+                    <Col xs={9} style={padding:'2px', textAlign:'right'}>
+                        <ButtonGroup>
+                            <Button onClick={@show_timetravel} bsStyle='info'>
+                                <Icon name='history'/> TimeTravel
+                            </Button>
+                            <Button onClick={@scroll_to_bottom}>
+                                <Icon name='arrow-down'/> Scroll to Bottom
+                            </Button>
+                        </ButtonGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={12} style={padding:'0px 2px 0px 2px'}>
+                        <Panel style={@mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                            <ChatLog
+                                messages     = {@props.messages}
+                                account_id   = {@props.account_id}
+                                user_map     = {@props.user_map}
+                                project_id   = {@props.project_id}
+                                font_size    = {@props.font_size}
+                                file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                                actions      = {@props.actions}
+                                show_heads   = {false} />
+                        </Panel>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={10} style={padding:'0px 2px 0px 2px'}>
+                        <Input
+                            autoFocus   = {false}
+                            rows        = 2
+                            type        = 'textarea'
+                            ref         = 'input'
+                            onKeyDown   = {@keydown}
+                            value       = {@props.input}
+                            placeholder = {'Type a message...'}
+                            onClick     = {@mark_as_read}
+                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                            style       = {@mobile_chat_input_style}
+                            />
+                    </Col>
+                    <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
+                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
+                            <Icon name='chevron-circle-right'/>
                         </Button>
-                        <Button onClick={@scroll_to_bottom}>
-                            <Icon name='arrow-down'/> Scroll to Bottom
-                        </Button>
-                    </ButtonGroup>
-                </Col>
-            </Row>
-            <Row>
-                <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                    <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog
-                            messages     = {@props.messages}
-                            account_id   = {@props.account_id}
-                            user_map     = {@props.user_map}
-                            project_id   = {@props.project_id}
-                            font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                            actions      = {@props.actions} />
-                    </Panel>
-                </Col>
-            </Row>
-            <Row>
-                <Col md={11} style={padding:'0px 2px 0px 2px'}>
-                    <Input
-                        autoFocus   = {true}
-                        rows        = 4
-                        type        = 'textarea'
-                        ref         = 'input'
-                        onKeyDown   = {@keydown}
-                        value       = {@props.input}
-                        placeholder = {'Type a message...'}
-                        onClick     = {@mark_as_read}
-                        onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                        style       = {@chat_input_style}
-                        />
-                </Col>
-                <Col md={1} style={height:'98.6px', padding:'0px 2px 0px 2px'}>
-                    <Button onClick={@send_chat} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
-                </Col>
-            </Row>
-            <Row>
-                <Col md={12}>
-                    {@render_bottom_tip()}
-                </Col>
-            </Row>
-        </Grid>
+                    </Col>
+                </Row>
+            </Grid>
 
 # boilerplate fitting this into SMC below
 

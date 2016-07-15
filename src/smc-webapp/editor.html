@@ -25,10 +25,12 @@ Editor for files in a project
 <div id="salvus-editor-templates" class="hide">
 
     <!-- Template for the entire editor, both tabs and the actual content -->
-    <div class="salvus-editor" style="margin-left:3em;">
-        <div class="row" style="margin-top:1ex;">
-            <!-- The editor content gets displayed here -->
-            <div class="salvus-editor-content">
+    <div class="salvus-editor">
+        <div class="row">
+            <div class="col-xs-12">
+                <!-- The editor content gets displayed here -->
+                <div class="salvus-editor-content">
+                </div>
             </div>
         </div>
     </div>
@@ -476,7 +478,7 @@ Editor for files in a project
     </div>
 
 
-    <div class="salvus-editor-history" style="border: 1px solid grey; padding-top: 6px; padding-right: 5px;">
+    <div class="salvus-editor-history" style="border: 1px solid grey; padding-top: 6px; padding-right: 5px; position:fixed; left:0; width:100%;">
         <span class="salvus-editor-history-controls">
             <span style="color:#666; font-size:14pt; font-weight: bold; margin-left:1em">
                 <i class="fa fa-history"></i>
@@ -1018,7 +1020,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <div class="salvus-editor-textedit-buttonbar" style="margin: 2px">
+    <div class="salvus-editor-textedit-buttonbar">
         <span class="btn-group">
             <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
             <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
