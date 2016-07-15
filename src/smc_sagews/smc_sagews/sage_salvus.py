@@ -3218,7 +3218,8 @@ try:
 except ImportError:
     print("sage_salvus: attach not available")
     def attach(*args):
-        print("attach not available")
+        sys.stderr.write("attach not available\n")
+        sys.stderr.flush()
 
 
 # Monkey-patched the load command
