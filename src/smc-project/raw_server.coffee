@@ -46,7 +46,7 @@ exports.start_raw_server = (opts) ->
                         cb()
         (cb) ->
             if port?
-                cb(port)
+                cb()
             else
                 misc_node.free_port (err, _port) ->
                     port = _port; cb(err)
