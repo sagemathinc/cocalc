@@ -3180,42 +3180,52 @@ def load_html_resource(filename):
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
-def attach(*args):
-    r"""
-    Load file(s) into the Sage worksheet process and add to list of attached files.
-    All attached files that have changed since they were last loaded are reloaded
-    the next time a worksheet cell is executed.
+try:
+    from sage.repl.attach import load_attach_path, modified_file_iterator
+    def attach(*args):
+        r"""
+        Load file(s) into the Sage worksheet process and add to list of attached files.
+        All attached files that have changed since they were last loaded are reloaded
+        the next time a worksheet cell is executed.
 
-    INPUT:
+        INPUT:
 
-    - ``files`` - list of strings, filenames to attach
+        - ``files`` - list of strings, filenames to attach
 
-    .. SEEALSO::
+        .. SEEALSO::
 
-        :meth:`sage.repl.attach.attach` docstring has details on how attached files
-        are handled
-    """
-    # can't (yet) pass "attach = True" to load(), so do this
+            :meth:`sage.repl.attach.attach` docstring has details on how attached files
+            are handled
+        """
+        # can't (yet) pass "attach = True" to load(), so do this
 
-    import sage.repl.attach
+        from sage_server import attach_available
 
-    if len(args) == 1:
-        if isinstance(args[0], (unicode,str)):
-            args = tuple(args[0].replace(',',' ').split())
-        if isinstance(args[0], (list, tuple)):
-            args = args[0]
+        if not attach_available():
+            print("attach not available")
+            return
 
-    from sage.repl.attach import load_attach_path
-    for fname in args:
-        for path in load_attach_path():
-            fpath = os.path.join(path, fname)
-            fpath = os.path.expanduser(fpath)
-            if os.path.isfile(fpath):
-                load(fname)
-                sage.repl.attach.add_attached_file(fpath)
-                break
-        else:
-            raise IOError('did not find file %r to attach' % fname)
+        if len(args) == 1:
+            if isinstance(args[0], (unicode,str)):
+                args = tuple(args[0].replace(',',' ').split())
+            if isinstance(args[0], (list, tuple)):
+                args = args[0]
+
+        for fname in args:
+            for path in load_attach_path():
+                fpath = os.path.join(path, fname)
+                fpath = os.path.expanduser(fpath)
+                if os.path.isfile(fpath):
+                    load(fname)
+                    sage.repl.attach.add_attached_file(fpath)
+                    break
+            else:
+                raise IOError('did not find file %r to attach' % fname)
+except ImportError:
+    print("sage_salvus: attach not available")
+    def attach(*args):
+        print("attach not available")
+
 
 # Monkey-patched the load command
 def load(*args, **kwds):
