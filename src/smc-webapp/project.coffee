@@ -148,7 +148,6 @@ class ProjectPage
                         <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" class='faq' target='_blank'>Frequently Asked Questions</a></li>
                     </ul></p><div class="warning_banner_upgrade_this_project"></div>"""
                     if host or internet
-<<<<<<< HEAD
                         extra = ""
                         html = "<p><i class='fa fa-exclamation-triangle'></i> WARNING: This project runs"
                         if host
