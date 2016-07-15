@@ -65,8 +65,6 @@ try:
             print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
             from sage_salvus import load
             load(filename)
-    def attach_available():
-        return True
 except:
     print("sage_server: attach not available")
     def reload_attached_files_if_mod_smc():
