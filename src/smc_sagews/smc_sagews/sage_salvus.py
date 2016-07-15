@@ -3199,8 +3199,6 @@ try:
         """
         # can't (yet) pass "attach = True" to load(), so do this
 
-        from sage_server import attach_available
-
         if not attach_available():
             print("attach not available")
             return
