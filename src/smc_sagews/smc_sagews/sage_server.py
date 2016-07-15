@@ -55,6 +55,22 @@ import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
+try:
+    from sage.repl.attach import modified_file_iterator
+    def reload_attached_files_if_mod_smc():
+        # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+        for filename, mtime in modified_file_iterator():
+            basename = os.path.basename(filename)
+            timestr = time.strftime('%T', mtime)
+            print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+            from sage_salvus import load
+            load(filename)
+except:
+    print("attach not available")
+    def reload_attached_files_if_mod_smc():
+        pass
+
+
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
@@ -903,16 +919,6 @@ class Salvus(object):
             Salvus._postfix = postfix
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
-
-        def reload_attached_files_if_mod_smc():
-            # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
-            from sage.repl.attach import modified_file_iterator
-            for filename, mtime in modified_file_iterator():
-                basename = os.path.basename(filename)
-                timestr = time.strftime('%T', mtime)
-                print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
-                from sage_salvus import load
-                load(filename)
 
         if namespace is None:
             namespace = self.namespace
