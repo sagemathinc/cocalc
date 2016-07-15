@@ -7,6 +7,12 @@
 
   tasks:
 
+  - name: "start bash.bashrc with TERM=screen (bug in vim?)"
+    lineinfile: dest=/etc/bash.bashrc
+                state=present
+                insertbefore=BOF
+                line="TERM=screen"
+
   - name: "install the terminal-setup.sh file as /etc/bash-smc.bashrc"
     template: src=files/terminal-setup.sh
               dest=/etc/bash-smc.bashrc

@@ -42,11 +42,11 @@ spec:
           failureThreshold: 5      # quick bursts of high concurrents are normal, so we don't kill until many fails
         resources:
           requests:
-            cpu: 100m
-            memory: "400Mi"
+            cpu: {hub_cpu_request}
+            memory: {hub_memory_request}
           limits:
-            cpu: "1"
-            memory: 2Gi
+            cpu: 1
+            memory: 3Gi
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
@@ -88,17 +88,11 @@ spec:
                 fieldPath: metadata.namespace
         resources:
           requests:
-            cpu: "150m"
-            memory: "400Mi"
+            cpu: {rethink_cpu_request}
+            memory: {rethink_memory_request}
           limits:
-            cpu: "2000m"
-            memory: "2000Mi"
-      volumes:
-        - name: secret-rethinkdb
-          secret:
-            secretName: rethinkdb-password
-
-
+            cpu: 2
+            memory: 5Gi
       volumes:
         - name: secret-rethinkdb
           secret:

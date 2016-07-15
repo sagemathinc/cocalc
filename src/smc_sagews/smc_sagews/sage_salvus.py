@@ -28,6 +28,11 @@ except:
 sys.path.append('.')
 
 salvus = None
+def set_salvus(salvus_obj):
+    global salvus
+    salvus = salvus_obj
+    import sage_jupyter
+    sage_jupyter.salvus = salvus_obj
 
 import json
 from uuid import uuid4
@@ -3175,6 +3180,48 @@ def load_html_resource(filename):
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
+try:
+    from sage.repl.attach import load_attach_path, modified_file_iterator
+    def attach(*args):
+        r"""
+        Load file(s) into the Sage worksheet process and add to list of attached files.
+        All attached files that have changed since they were last loaded are reloaded
+        the next time a worksheet cell is executed.
+
+        INPUT:
+
+        - ``files`` - list of strings, filenames to attach
+
+        .. SEEALSO::
+
+            :meth:`sage.repl.attach.attach` docstring has details on how attached files
+            are handled
+        """
+        # can't (yet) pass "attach = True" to load(), so do this
+
+        if len(args) == 1:
+            if isinstance(args[0], (unicode,str)):
+                args = tuple(args[0].replace(',',' ').split())
+            if isinstance(args[0], (list, tuple)):
+                args = args[0]
+
+        for fname in args:
+            for path in load_attach_path():
+                fpath = os.path.join(path, fname)
+                fpath = os.path.expanduser(fpath)
+                if os.path.isfile(fpath):
+                    load(fname)
+                    sage.repl.attach.add_attached_file(fpath)
+                    break
+            else:
+                raise IOError('did not find file %r to attach' % fname)
+except ImportError:
+    print("sage_salvus: attach not available")
+    def attach(*args):
+        sys.stderr.write("Error: The 'attach' functionality is not available.\n")
+        sys.stderr.flush()
+
+
 # Monkey-patched the load command
 def load(*args, **kwds):
     """
@@ -3571,3 +3618,7 @@ def help(*args, **kwds):
 
 - **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
         salvus.md(s)
+
+
+# Import the jupyter kernel client.
+from sage_jupyter import jupyter

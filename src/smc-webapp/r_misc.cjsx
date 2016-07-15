@@ -545,11 +545,14 @@ exports.SearchInput = rclass
         @set_value('')
         @refs.input.getInputDOMNode().focus()
 
-    clear_search_button : ->
-        s = if @state.value?.length > 0 then 'warning' else "default"
-        <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
-            <Icon name='times-circle' />
-        </Button>
+    search_button : ->
+        if @props.buttonAfter?
+            return @props.buttonAfter
+        else
+            s = if @state.value?.length > 0 then 'warning' else "default"
+            <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
+                <Icon name='times-circle' />
+            </Button>
 
     set_value : (value) ->
         @setState(value:value)
@@ -591,7 +594,7 @@ exports.SearchInput = rclass
             type        = 'text'
             placeholder = {@props.placeholder}
             value       = {@state.value}
-            buttonAfter = {@clear_search_button()}
+            buttonAfter = {@search_button()}
             onChange    = {=>@set_value(@refs.input.getValue())}
             onKeyDown   = {@key_down}
             onKeyUp     = {@key_up}

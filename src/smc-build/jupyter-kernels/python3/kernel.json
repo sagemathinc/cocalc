@@ -1,0 +1,13 @@
+{
+ "display_name": "Python 3",
+ "argv": [
+  "/usr/bin/python3",
+  "-E",
+  "-m",
+  "ipykernel",
+  "--matplotlib=inline",
+  "-f",
+  "{connection_file}"
+ ],
+ "language": "python"
+}

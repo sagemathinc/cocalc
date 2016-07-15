@@ -14,7 +14,7 @@ setup(
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
     packages         = ['smc_sagews'],
-    install_requires = ['markdown2'],
+    install_requires = ['markdown2', 'ansi2html'],
     zip_safe        = False,
     classifiers     = [
         'License :: OSI Approved :: GPLv3',

@@ -54,7 +54,7 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     sub.add_argument('number', type=int, help='which node or nodes to run', nargs='*')
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run (or use recent image if not specified)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
-    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (ignored if disk already exists)')
+    sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (can be used to dynamically increase size!)')
     sub.add_argument('--type', default='standard', help='"standard" or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.add_argument('--health-delay', default=60, type=int, help='time in seconds before starting health checks')
     sub.set_defaults(func=run_on_kubernetes)
@@ -249,8 +249,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('external', help='create service that is external to kubernetes')
     sub.add_argument('instances', type=str, help='one or more names of GCE instances serving RethinkDB', nargs='+')
     sub.set_defaults(func=external)
-
-    util.add_edit_parser(NAME, subparsers)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

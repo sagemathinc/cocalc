@@ -6,6 +6,7 @@ Ansible: ansible-playbook all-install.yaml --tags=install
 
 put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
 
+hsy: now in ansible/compute-build-md.yaml tagged as motd
 
 # Compute VM's
 
@@ -20,17 +21,23 @@ Ansible: ansible-playbook all-install.yaml --tags=install
     sudo su
     cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install && cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1
 
+hsy: now in ansible/compute-extra.yaml tagged as inotify and bup1
+
 # BASH
 
 Add this to the top of /etc/bash.bashrc, at least for now, due to bugs in Ubuntu and vim?!
 
     TERM=screen
 
+hsy: this is now part of ansible/terminal-setup.yaml
+
 # OBSPY --
 
 Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-obspy":
 
     echo $'\n'"deb http://deb.obspy.org trusty main"$'\n' >> /etc/apt/sources.list && apt-get update && apt-get install python-obspy
+
+hsy: this is now in ansible/compute-extra, tagged "obspy"
 
 # ATLAS:
 
@@ -40,9 +47,13 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
     export SAGE_ATLAS_LIB="/usr/lib/"
 
+hsy: this is now ansible/compute-extra tagged "atlas"
+
 # Add this to /etc/ssh/sshd_config
 
     MaxStartups 128
+
+hsy: now in ansible/compute-extra.yaml tagges "ssh"
 
 # Freezing SSH host keys
 
@@ -71,23 +82,29 @@ cause them to be rebuilt.
 
 # Additional packages (mainly for users, not building).
 
-Ansible:  ansible-playbook all-install.yaml --tags=install
+Ansible:  ansible-playbook compute-extra.yaml --tags=install
 
 # tmpreaper
 
 Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
+hsy: now in ansible/compute-extra.yaml tagges tmpreaper
+
 # Cantera system-wide
 
 apt-add-repository ppa:speth/cantera; apt-get update; apt-get install cantera-python cantera-python3 cantera-dev
 
+hsy: in ansible/compute-extra.yaml
+
 # Python3-related packages of interest
 
-Ansible: ansible-playbook all-install.yaml --tags=install
+Ansible: ansible-playbook compute-extra.yaml --tags=install
 
 # IPython with notebook and octave kernel
 
     umask 022 && sudo apt-get remove ipython && sudo pip install --upgrade ipython notebook octave_kernel && cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \;
+
+ansible: compute-extra.yaml, tagged ipython (and added bash_kernel)
 
 # Special script to run python2 systemwide from within Sage:
 
@@ -103,10 +120,14 @@ unset LD_LIBRARY_PATH
 /usr/bin/python2 "$@"
 ```
 
+ansible: compute-extra.yaml, tagged python2sage
+
 # Install the pair-based-crypto library system-wide
 
 
 cd /tmp/; umask 022; wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz && tar xf pbc-0.5.14.tar.gz && cd pbc-0.5.14 && ./configure --prefix=/usr && sudo make install && sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz; cd
+
+ansible: compute-extra.yaml tagged pairbasedcrypto
 
 # SAGE
 
@@ -115,17 +136,20 @@ Before building sage do:
 
     Change this line in /etc/login.defs:  "UMASK           077"
 
-
+ansible: umask_compute.yaml and referenced from compute-setup.yaml
 
 # Cgroups configuration (!!) -- very important!
 
     echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
     pam-auth-update  # select defaults -- this probably isn't needed.
 
+ansible: compute-extra.yaml tagged cgroups -- maybe not necessary for docker?
+
 # Open Axiom --- see https://launchpad.net/~pippijn/+archive/ubuntu/ppa
 
     echo $'\n'"deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main"$'\n' >> /etc/apt/sources.list && apt-get update && sudo apt-get install open-axiom*
 
+ansible: compute-extra.yaml tagged openaxiom
 
 # Primesieve
 
@@ -135,12 +159,17 @@ As root do
 
 Check http://primesieve.org/build.html for the latest version.
 
+ansible: compute-extra.yaml tagged primesieve
+
 # GAP3
 
 Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3 && sudo  ln -s /projects/sage/gap3/bin/gap.sh /usr/local/bin/gap3
+
     vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
+
+woulb be in ansible/compute-buld-md.yaml tagged gap3, but it's not possible to install it, because sage is somewhere else! (i.e. it is installed in `/projects/sage/...`)
 
 # OpenCV Computer Vision
 
@@ -148,11 +177,11 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && rm -rf opencv_contrib/modules/hdf && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j4 && sudo make install && sudo sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
 
-
+ansible: compute-extra.yaml tagged opencv
 
 # KWANT
 
-Ansible: ansible-playbook all-install.yaml --tags=kwant
+Ansible: ansible-playbook compute-extra.yaml --tags=kwant
 
 
 # Octave: needed by octave for plotting:
@@ -163,6 +192,7 @@ Ansible: ansible-playbook all-install.yaml --tags=kwant
 
     cd /usr/share/fonts/truetype && ln -s liberation ttf-liberation
 
+ansible: compute-extra.yaml --tags=octave
 
 # Dropbox: so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
@@ -174,14 +204,20 @@ Ansible: ansible-playbook all-install.yaml --tags=kwant
 
     cd /tmp && rm -rf neovim && unset MAKE && git clone https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install && rm -rf /tmp/neovim
 
+ansible/compute-extra.yaml tagged neovim
+
 # MACAULAY2: Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
     apt-get install libntl-dev libntl0  libpari-gmp-tls4 libpari-dev pari-gp2c && cd /tmp/ && rm -rf m2 && mkdir m2 && cd m2 && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm -rf /tmp/m2
 
 
+ansible/compute-extra.yaml tagged macaulay2
+
 # Julia: from http://julialang.org/downloads/
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
+
+ansible/julia.yaml tagged julia
 
 ## Julia: fix libzmq version
 
@@ -204,6 +240,8 @@ test:
 
 should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux-gnu/libzmq.so -> libzmq.so.3`
 
+ansible/julia.yaml tagged julia
+
 # Nemo (after installing Julia)
 
 
@@ -215,29 +253,33 @@ should contain `lrwxrwxrwx 1 root root     11 May  9 12:55 /usr/lib/x86_64-linux
     cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
     echo 'using Nemo' | julia
 
+ansible: julia.yaml tagged nemo
 
 To test, do this from Julia:
 
     using Nemo
 
-
 # GIAC
 
-Ansible: ansible-playbook all-install.yaml --tags=giac
+Ansible: ansible-playbook compute-extra.yaml --tags=giac
 
 # FEnICS: automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
 
-Ansible: ansible-playbook all-install.yaml --tags=fenics
+Ansible: ansible-playbook compute-extra.yaml --tags=fenics
 
 # System-wide Python packages not through apt:
 
    apt-get install python-pip python3-pip &&   umask 022 && /usr/bin/pip install -U theano && /usr/bin/pip install -U clawpack
 
+this is part of ansible's compute-install.yaml with tag pip
+
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets mygene seaborn biopython
     sudo ipython3 kernelspec install-self rethinkdb filterpy
+
+ansible: compute-build-md.yaml tagged ipython3
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -307,6 +349,8 @@ Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before 
 
 Then files were installed into `/usr/local` and pushing that out for everyone.
 
+ansible: compute-extra.yaml tagged polymake
+
 # Make ROOT data analysis ipython notebook support system-wide work.
 
     cd /usr/lib/x86_64-linux-gnu/root5.34 && wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py && chmod a+r * && echo "import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/', '/usr/local/lib/python2.7/dist-packages'])"$'\n' >  /usr/local/sage/current/local/lib/python/sitecustomize.py
@@ -336,6 +380,7 @@ echo "root     hard    nofile          20000"$'\n' >> /etc/security/limits.conf
    echo "root soft nproc 20000"$'\n' >> /etc/security/limits.conf
    echo "root hard nproc 20000"$'\n' >> /etc/security/limits.conf
 
+ansible: compute-security-limits.yaml
 
 # Create net test user
 
@@ -350,7 +395,7 @@ from any admin/monitor machine to this account.
 # MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
 
 
-Ansible: ansible-playbook all-install.yaml --tags=mpi
+Ansible: ansible-playbook compute-extra.yaml --tags=mpi
 
 # KVM HOSTS
 
@@ -371,6 +416,8 @@ In /etc/sysctl.conf, put:
 
     sudo pip uninstall crcmod; sudo pip install -U crcmod
 
+
+ansible: compute-extra.yaml tagged crcmod
 
 # Build Sage (as usual)
 
@@ -413,6 +460,8 @@ In /etc/sysctl.conf, put:
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
     pip3 install --upgrade numba holoviews
 
+ansible: compute-install.yaml tagged pip3
+
 # The netcd4 system-wide python package requires some crazy environment variables to work:
 
     export PROJ_DIR=/usr; export NETCDF4_DIR=/usr; export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial/; export HDF5_DIR=/usr/; export C_INCLUDE_PATH=/usr/lib/openmpi/include; export USE_NCCONFIG=0;  export HDF5_INCDIR=/usr/include/hdf5/serial; export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/serial; export HDF5_INCDIR=/usr/include/hdf5/serial
@@ -424,9 +473,14 @@ In /etc/sysctl.conf, put:
     umask 022
     pip install datasift bokeh twitter ctop macs2 pygsl
 
+ansible: compute-extra.yaml tagged pip
+
 # System-wide git trac
 
     cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command
+
+
+ansible: compute-extra.yaml tagged gittrac
 
 # Anaconda Python 3 distribution
 
@@ -441,6 +495,8 @@ Add this line
 to
 
     /etc/ssh/sshd_config
+
+ansible: compute-extra.yaml tagged x11
 
 # HORRIBLE STUFF
 
@@ -460,11 +516,12 @@ Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pe
     SAGEDIR=$(dirname $(readlink -f $(which sage)))
     exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
 
+ansible: r.yaml
+
 # Plink
 
-Install the Ubuntu package (how?):
-
-
+Install the Ubuntu package (how?): plink
 
 Make a link to preserve the usual name: `cd /usr/bin; sudo ln -s /usr/bin/p-link plink`
 
+ansible: compute-extra.yaml tagged plink

@@ -40,7 +40,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
+{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -52,28 +52,88 @@ class ChatActions extends Actions
         m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
-                messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
+                # Assumes all fields to be provided in x.insert
+                # console.log('Received', x.insert)
+                # OPTIMIZATION: make into custom conversion to immutable
+                message = immutable.fromJS(x.insert)
+                message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
+                message = message.set('editing', immutable.Map(x.insert.editing))
+                messages = messages.set("#{x.insert.date - 0}", message)
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
             @setState(messages: messages)
 
     send_chat: (mesg) =>
-        mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
             return
+        sender_id = @redux.getStore('account').get_account_id()
+        time_stamp = salvus_client.server_time()
         @syncdb.update
             set :
-                sender_id : @redux.getStore('account').get_account_id()
+                sender_id : sender_id
                 event     : "chat"
-                payload   : {content: mesg}
+                history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             where :
-                date: salvus_client.server_time()
+                date: time_stamp
+            is_equal: (a, b) => (a - 0) == (b - 0)
+
+        #console.log("-- History:", [{author_id: sender_id, content:mesg, date:time_stamp}] )
+
         @syncdb.save()
+        @setState(last_sent: mesg)
+
+    set_editing: (message, is_editing) =>
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
+        author_id = @redux.getStore('account').get_account_id()
+
+        if is_editing
+            # TODO: Save edit changes
+            editing = message.get('editing').set(author_id, 'TODO')
+        else
+            editing = message.get('editing').remove(author_id)
+
+        # console.log("Currently Editing:", editing.toJS())
+        @syncdb.update
+            set :
+                history : message.get('history').toJS()
+                editing : editing.toJS()
+            where :
+                date: message.get('date')
+            is_equal: (a, b) => (a - 0) == (b - 0)
+        @syncdb.save()
+
+    send_edit: (message, mesg) =>
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
+        author_id = @redux.getStore('account').get_account_id()
+        # OPTIMIZATION: send less data over the network?
+        time_stamp = salvus_client.server_time()
+
+        @syncdb.update
+            set :
+                history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
+                editing : message.get('editing').remove(author_id).toJS()
+            where :
+                date: message.get('date')
+            is_equal: (a, b) => (a - 0) == (b - 0)
+        @syncdb.save()
+
+    set_to_last_input: =>
+        @setState(input:@redux.getStore(@name).get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)
+
+    save_scroll_state: (position, height, offset) =>
+        # height == 0 means chat room is not rendered
+        if height != 0
+            @setState(saved_position:position, height:height, offset:offset)
+
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -95,7 +155,18 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 alert_message(type:'error', message:"json in #{@filename} is broken")
             else
                 v = {}
+                # console.log("DATA ON LOAD:", syncdb.select())
                 for x in syncdb.select()
+                    if x.history
+                        x.history = immutable.Stack(immutable.fromJS(x.history))
+                    else if x.payload # for old chats with payload: content
+                        initial = immutable.fromJS
+                            content   : x.payload.content
+                            author_id : x.sender_id
+                            date      : x.date
+                        x.history = immutable.Stack([initial])
+                    if not x.editing
+                        x.editing = {}
                     v[x.date - 0] = x
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
@@ -106,38 +177,133 @@ Message = rclass
 
     propTypes:
         # example message object
-        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
-        message    : rtypes.object.isRequired  # immutable.js message object
-        account_id : rtypes.string.isRequired
-        user_map   : rtypes.object
-        project_id : rtypes.string    # optional -- improves relative links if given
-        file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
-        font_size  : rtypes.number
+        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","date":"2015-08-26T21:52:51.329Z", "history": <Stack>}
+        # "history" : [{author_id: "...", content:"full content", "date": ...}, ...]
+        message        : rtypes.object.isRequired  # immutable.js message object
+        account_id     : rtypes.string.isRequired
+        sender_name    : rtypes.string
+        editor_name    : rtypes.string
+        user_map       : rtypes.object
+        project_id     : rtypes.string    # optional -- improves relative links if given
+        file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
+        font_size      : rtypes.number
+        show_avatar    : rtypes.bool
+        get_user_name  : rtypes.func
+        is_prev_sender : rtypes.bool
+        is_next_sender : rtypes.bool
+        actions        : rtypes.object
 
-    shouldComponentUpdate: (next) ->
-        return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
+    getInitialState: ->
+        edited_message  : @newest_content()
+        new_changes     : false
+
+    componentWillReceiveProps: (newProps) ->
+        changes = false
+        if @state.edited_message == @newest_content()
+            @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
+        else
+            changes = true
+        @setState(new_changes : changes)
+
+    shouldComponentUpdate: (next, next_state) ->
+        return @props.message != next.message or
+               @props.user_map != next.user_map or
+               @props.account_id != next.account_id or
+               @props.show_avatar != next.show_avatar or
+               @props.is_prev_sender != next.is_prev_sender or
+               @props.is_next_sender != next.is_next_sender or
+               @props.editor_name != next.editor_name or
+               @state.edited_message != next_state.edited_message
+               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
+
+    #componentWillUnmount: () ->
+    #    @props.actions.set_editing(@props.message, false)
+
+    newest_content: ->
+        @props.message.get('history').peek().get('content') ? ''
+
+    is_editing: ->
+        @props.message.get('editing').has(@props.account_id)
 
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        if @sender_is_viewer()
-            pull = "pull-right small"
-        else
-            pull = "pull-left small"
-        <div className={pull} style={color:'#888', marginTop:'2px'}>
+        <div className="pull-right small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
+        </div>
+
+    editing_status: ->
+        other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
+        if @is_editing()
+            if other_editors.size == 1
+                # This user and someone else is also editing
+                text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
+                color = "#E55435"
+            else if other_editors.size > 1
+                # Multiple other editors
+                text = "#{other_editors.size} other users are also editing this!"
+                color = "#E55435"
+            else if @state.new_changes
+                text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
+                color = "#E55435"
+            else
+                text = "You are now editing ... Shift+Enter to submit changes."
+        else
+            if other_editors.size == 1
+                # One person is editing
+                text = "#{@props.get_user_name(other_editors.first())} is editing this message"
+            else if other_editors.size > 1
+                # Multiple editors
+                text = "#{other_editors.size} people are editing this message"
+            else if @newest_content() == ''
+                text = "Deleted by #{@props.editor_name}"
+
+        text ?= "Last edit by #{@props.editor_name}"
+        color ?= "#888"
+
+        <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+            {text}
+        </div>
+
+    show_user_name: ->
+        <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
+            {@props.sender_name}
         </div>
 
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
-        if account?  # TODO: do something better when we don't know the user (or when sender account_id is bogus)
-            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
-                <Avatar account={account} />
-            </Col>
+        if @props.is_prev_sender
+            margin_top = '5px'
+        else
+            margin_top = '27px'
+
+        if @sender_is_viewer()
+            textAlign = 'left'
+            marginRight = '11px'
+        else
+            textAlign = 'right'
+            marginLeft = '11px'
+
+        style =
+            display       : "inline-block"
+            marginTop     : margin_top
+            marginLeft    : marginLeft
+            marginRight   : marginRight
+            padding       : '0px'
+            textAlign     : textAlign
+            verticalAlign : "middle"
+            width         : '4%'
+
+        # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+        <Col key={0} xsHidden={true} sm={1} style={style} >
+            <div>
+                {<Avatar account={account} /> if account? and @props.show_avatar}
+            </div>
+        </Col>
 
     content_column: ->
-        value = @props.message.get('payload')?.get('content') ? ''
+        value = @newest_content()
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -151,24 +317,83 @@ Message = rclass
 
         font_size = "#{@props.font_size}px"
 
-        <Col key={1} xs={8}>
-            <Panel style={wordWrap:"break-word"}>
+        if @props.show_avatar
+            marginBottom = "20px" # the default value actually..
+        else
+            marginBottom = "3px"
+
+        if not @props.is_prev_sender and @sender_is_viewer()
+            marginTop = "17px"
+
+        if not @props.is_prev_sender and not @props.is_next_sender
+            borderRadius = '10px 10px 10px 10px'
+        else if not @props.is_prev_sender
+            borderRadius = '10px 10px 5px 5px'
+        else if not @props.is_next_sender
+            borderRadius = '5px 5px 10px 10px'
+
+        <Col key={1} xs={10} sm={9}>
+            {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
+            <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem style={background:color; fontSize: font_size}>
-                        <Markdown value={value}
-                                  project_id={@props.project_id}
-                                  file_path={@props.file_path} />
+                    <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
+                        {@render_markdown(value) if not @is_editing()}
+                        {@render_input() if @is_editing()}
+                        {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                        {@get_timeago()}
                     </ListGroupItem>
-                    {@get_timeago()}
                 </ListGroup>
             </Panel>
         </Col>
 
+    render_markdown: (value) ->
+        <div style={paddingBottom: '1px', marginBottom: '5px'}>
+            <Markdown value={value}
+                      project_id={@props.project_id}
+                      file_path={@props.file_path} />
+        </div>
+
+    # TODO: Make this a codemirror input
+    render_input: ->
+        <div>
+            <Input
+                autoFocus = {true}
+                rows      = 4
+                type      = 'textarea'
+                ref       = 'editedMessage'
+                onKeyDown = {@on_keydown}
+                value     = {@state.edited_message}
+                onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
+                onFocus   = {@focus_endpoint}
+                />
+        </div>
+
+    on_keydown : (e) ->
+        if e.keyCode==27 # ESC
+            e.preventDefault()
+            @setState
+                edited_message : @newest_content()
+            @props.actions.set_editing(@props.message, false)
+        else if e.keyCode==13 and e.shiftKey # 13: enter key
+            mesg = @refs.editedMessage.getValue()
+            if mesg != @newest_content()
+                @props.actions.send_edit(@props.message, mesg)
+            else
+                @props.actions.set_editing(@props.message, false)
+
+    edit_message: ->
+        @props.actions.set_editing(@props.message, true)
+
+    focus_endpoint: (e) ->
+        val = e.target.value
+        e.target.value = ''
+        e.target.value = val
+
     blank_column:  ->
-        <Col key={2} xs={3}></Col>
+        <Col key={2} xs={2}></Col>
 
     render: ->
-        cols = [ @avatar_column(), @content_column(), @blank_column()]
+        cols = [@avatar_column(), @content_column(), @blank_column()]
         # mirror right-left for sender's view
         if @sender_is_viewer()
             cols = cols.reverse()
@@ -180,29 +405,62 @@ ChatLog = rclass
     displayName: "ChatLog"
 
     propTypes:
-        messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
-        user_map   : rtypes.object              # immutable js map {collaborators} --> account info
-        account_id : rtypes.string
-        project_id : rtypes.string   # optional -- used to render links more effectively
-        file_path  : rtypes.string   # optional -- ...
-        font_size  : rtypes.number
+        messages     : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
+        user_map     : rtypes.object              # immutable js map {collaborators} --> account info
+        account_id   : rtypes.string
+        project_id   : rtypes.string   # optional -- used to render links more effectively
+        file_path    : rtypes.string   # optional -- ...
+        font_size    : rtypes.number
+        actions      : rtypes.object
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
+    get_user_name: (account_id) ->
+        account = @props.user_map.get(account_id)
+        if account?
+            account_name = account.get('first_name') + ' ' + account.get('last_name')
+        else
+            account_name = "Unknown"
+
     list_messages: ->
-        v = {}
-        @props.messages.map (mesg, date) =>
-            v[date] = <Message key={date}
-                        account_id = {@props.account_id}
-                        user_map   = {@props.user_map}
-                        message    = {mesg}
-                        project_id = {@props.project_id}
-                        file_path  = {@props.file_path}
-                        font_size  = {@props.font_size}
-                      />
-        k = misc.keys(v).sort(misc.cmp_Date)
-        return (v[date] for date in k)
+        is_next_message_sender = (index, dates, messages) ->
+            if index + 1 == dates.length
+                return false
+            current_message = messages.get(dates[index])
+            next_message = messages.get(dates[index + 1])
+            return current_message.get('sender_id') == next_message.get('sender_id')
+
+        is_prev_message_sender = (index, dates, messages) ->
+            if index == 0
+                return false
+            current_message = messages.get(dates[index])
+            prev_message = messages.get(dates[index - 1])
+            return current_message.get('sender_id') == prev_message.get('sender_id')
+
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        v = []
+        for date, i in sorted_dates
+            sender_name = @get_user_name(@props.messages.get(date).get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date).get('history').peek().get('author_id'))
+
+            v.push <Message key={date}
+                     account_id       = {@props.account_id}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     get_user_name    = {@get_user_name}
+                     sender_name      = {sender_name}
+                     editor_name      = {last_editor_name}
+                     actions          = {@props.actions}
+                    />
+
+        return v
 
     render: ->
         <div>
@@ -214,8 +472,11 @@ ChatRoom = (name) -> rclass
 
     reduxProps :
         "#{name}" :
-            messages : rtypes.immutable
-            input    : rtypes.string
+            messages       : rtypes.immutable
+            input          : rtypes.string
+            saved_position : rtypes.number
+            height         : rtypes.number
+            offset         : rtypes.number
         users :
             user_map : rtypes.immutable
         account :
@@ -226,6 +487,7 @@ ChatRoom = (name) -> rclass
 
     propTypes :
         redux       : rtypes.object
+        actions     : rtypes.object
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
@@ -234,46 +496,43 @@ ChatRoom = (name) -> rclass
     getInitialState: ->
         input : ''
 
+    mark_as_read: ->
+        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+
     keydown : (e) ->
+        # TODO: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
-        else if e.keyCode==13 and not e.shiftKey # 13: enter key
-            @scroll_to_bottom()
-            e.preventDefault()
-            mesg = @refs.input.getValue()
-            # block sending empty messages
-            if mesg.length? and mesg.length >= 1
-                @props.redux.getActions(@props.name).send_chat(mesg)
-                @clear_input()
+        else if e.keyCode==13 and e.shiftKey # 13: enter key
+            @send_chat(e)
+        else if e.keyCode==38 and @refs.input.getValue() == ''
+            # Up arrow on an empty input
+            @props.actions.set_to_last_input()
+
+    send_chat: (e) ->
+        @scroll_to_bottom()
+        e.preventDefault()
+        mesg = @refs.input.getValue()
+        # block sending empty messages
+        if mesg.length? and mesg.trim().length >= 1
+            @props.actions.send_chat(mesg)
+            @clear_input()
 
     clear_input: ->
-        @props.redux.getActions(@props.name).set_input('')
+        @props.actions.set_input('')
 
-    render_input: ->
+    render_bottom_tip: ->
         tip = <span>
-            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter for a newline without submitting your chat.
+            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter to send your chat. Double click to edit past chats.
         </span>
 
-        return <div>
-            <Input
-                autoFocus
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'input'
-                onKeyDown = {@keydown}
-                value     = {@props.input}
-                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
-                onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
-                />
-            <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
-                <Tip title='Use Markdown' tip={tip}>
-                    Shift+Enter for newline.
-                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-                    Emoticons: {misc.emoticons}.
-                </Tip>
-            </div>
-        </div>
+        <Tip title='Use Markdown' tip={tip}>
+            Shift+Enter to send your message.
+            Double click chat bubbles to edit them.
+            Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+            Emoticons: {misc.emoticons}.
+        </Tip>
 
     chat_log_style:
         overflowY    : "auto"
@@ -284,33 +543,45 @@ ChatRoom = (name) -> rclass
         paddingRight : "10px"
 
     chat_input_style:
-        height       : "0vh"
         margin       : "0"
-        padding      : "0"
+        padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
 
+    is_at_bottom: ->
+        # 20 for covering margin of bottom message
+        @props.saved_position + @props.offset + 20 > @props.height
+
     scroll_to_bottom: ->
-        if not @refs.log_container?
-            @_scrolled = false
-            return
-        node = ReactDOM.findDOMNode(@refs.log_container)
-        node.scrollTop = node.scrollHeight
-        @_ignore_next_scroll = true
-        @_scrolled = false
+        if @refs.log_container?
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            node.scrollTop = node.scrollHeight
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @_use_saved_position = false
+
+    scroll_to_position: ->
+        if @refs.log_container?
+            @_use_saved_position = not @is_at_bottom()
+            node = ReactDOM.findDOMNode(@refs.log_container)
+            if @_use_saved_position
+                node.scrollTop = @props.saved_position
+            else
+                @scroll_to_bottom()
 
     on_scroll: (e) ->
-        if @_ignore_next_scroll
-            @_ignore_next_scroll = false
-            return
-        @_scrolled = true
+        @_use_saved_position = true
+        node = ReactDOM.findDOMNode(@refs.log_container)
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
         e.preventDefault()
 
     componentDidMount: ->
-        if not @_scrolled
-            @scroll_to_bottom()
+        @scroll_to_position()
+
+    componentWillReceiveProps: (next) ->
+        if @props.messages != next.messages and @is_at_bottom()
+            @_use_saved_position = false
 
     componentDidUpdate: ->
-        if not @_scrolled
+        if not @_use_saved_position
             @scroll_to_bottom()
 
     show_files : ->
@@ -341,14 +612,19 @@ ChatRoom = (name) -> rclass
                               user_map    = {@props.user_map} />
                     </div>
                 </Col>
-                <Col xs={4}>
-                    <Button onClick={@show_timetravel} bsStyle='info' style={float:'right'}>
-                        <Icon name='history'/> TimeTravel
-                    </Button>
+                <Col xs={4} style={padding:'2px'}>
+                    <ButtonGroup style={float:'right'}>
+                        <Button onClick={@show_timetravel} bsStyle='info'>
+                            <Icon name='history'/> TimeTravel
+                        </Button>
+                        <Button onClick={@scroll_to_bottom}>
+                            <Icon name='arrow-down'/> Scroll to Bottom
+                        </Button>
+                    </ButtonGroup>
                 </Col>
             </Row>
             <Row>
-                <Col md={12}>
+                <Col md={12} style={padding:'0px 2px 0px 2px'}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
                         <ChatLog
                             messages     = {@props.messages}
@@ -356,15 +632,33 @@ ChatRoom = (name) -> rclass
                             user_map     = {@props.user_map}
                             project_id   = {@props.project_id}
                             font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head} />
+                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                            actions      = {@props.actions} />
                     </Panel>
                 </Col>
             </Row>
             <Row>
+                <Col md={11} style={padding:'0px 2px 0px 2px'}>
+                    <Input
+                        autoFocus   = {true}
+                        rows        = 4
+                        type        = 'textarea'
+                        ref         = 'input'
+                        onKeyDown   = {@keydown}
+                        value       = {@props.input}
+                        placeholder = {'Type a message...'}
+                        onClick     = {@mark_as_read}
+                        onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                        style       = {@chat_input_style}
+                        />
+                </Col>
+                <Col md={1} style={height:'98.6px', padding:'0px 2px 0px 2px'}>
+                    <Button onClick={@send_chat} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
+                </Col>
+            </Row>
+            <Row>
                 <Col md={12}>
-                    <div style={@chat_input_style}>
-                        {@render_input()}
-                    </div>
+                    {@render_bottom_tip()}
                 </Col>
             </Row>
         </Grid>
@@ -376,7 +670,7 @@ render = (redux, project_id, path) ->
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Redux>
 
 exports.render = (project_id, path, dom_node, redux) ->

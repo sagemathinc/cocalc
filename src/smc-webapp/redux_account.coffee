@@ -73,6 +73,17 @@ class AccountActions extends Actions
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
+    # deletes the account and then signs out everywhere
+    delete_account : ->
+        salvus_client.delete_account
+            account_id : @redux.getStore('account').get_account_id()
+            timeout       : 40
+            cb            : (err) =>
+                if err?
+                    @setState('account_deletion_error' : "Error trying to delete the account: #{err}")
+                else
+                    @sign_out(true)
+
     forgot_password : (email) ->
         salvus_client.forgot_password
             email_address : email

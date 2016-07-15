@@ -4,15 +4,22 @@ USER root
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
+RUN apt-get update && apt-get install -y ssh bup python3
+
+# Install RethinkDB python3 client
 RUN \
-  apt-get update && apt-get install -y iscsitarget
+  apt-get install -y python3-pip && \
+  pip3 install rethinkdb && \
+  apt-get remove -y python3-pip dpkg-dev && \
+  apt-get autoremove -y  && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /core
 
-# Copy configuration files
-COPY iscsitarget /etc/default/iscsitarget
-COPY ietd.conf   /etc/ietd/ietd.conf
-COPY run.sh      /run.sh
+# Script to configure vm and run backup tool, sshfs server, etc.
+ADD run.py /run.py
 
-EXPOSE 860 3260
+# Expose ssh ports
+EXPOSE 22/tcp 22/udp
 
-# Run ietd server
-CMD /run.sh
+CMD /run.py
+
+

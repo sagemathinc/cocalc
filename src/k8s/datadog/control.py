@@ -33,10 +33,8 @@ def config():
         yield tmp.name
 
 def run_on_kubernetes(args):
-    # TODO
-    print("WARNING: update_deployent doesn't work. first do delete, then run again")
     with config() as cfn:
-        util.update_deployment(cfn)
+        util.update_daemonset(cfn)
 
 def stop_on_kubernetes(args):
     with config() as cfn:
@@ -48,17 +46,17 @@ def print_template(args):
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
+    parser = argparse.ArgumentParser(description='Control daemonset {name}'.format(name=NAME))
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('template', help='show the template after rendering')
     sub.set_defaults(func=print_template)
 
-    sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster; you must also call "build -p" to push an image'.format(name=NAME))
+    sub = subparsers.add_parser('run', help='create/update {name} daemonset on the currently selected kubernetes cluster; you must also call "build -p" to push an image'.format(name=NAME))
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
-    sub = subparsers.add_parser('delete', help='delete the deployment')
+    sub = subparsers.add_parser('delete', help='delete the daemonset')
     sub.set_defaults(func=stop_on_kubernetes)
 
     util.add_deployment_parsers(NAME, subparsers)

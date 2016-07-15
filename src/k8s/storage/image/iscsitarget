@@ -1,5 +1,0 @@
-ISCSITARGET_ENABLE=true
-ISCSITARGET_MAX_SLEEP=3
-# ietd options
-# See ietd(8) for details
-ISCSITARGET_OPTIONS=""

@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: project-{project_id}
+  labels:
+    run: project
+    project_id : {project_id}
+spec:
+  containers:
+  - name: project
+    image: {image}
+    imagePullPolicy: {pull_policy}
+    volumeMounts:
+    - name: project
+      mountPath: /projects/{project_id}
+    env:
+      - name: SMC_PROJECT_ID
+        value: {project_id}
+    resources:
+      requests:
+        memory: "40Mi"
+        cpu: "5m"
+      limits:
+        memory: "1000Mi"
+        cpu: "1000m"
+  volumes:
+  - name: project
+    flexVolume:
+      driver : "smc/smc-storage"
+      options:
+        namespace : {namespace}
+        server    : "storage{storage_server}"
+        path      : "projects/{project_id}.zfs"
+        size      : {disk_size}
+  #nodeSelector:
+  #  disk: big

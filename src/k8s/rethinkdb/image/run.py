@@ -29,6 +29,9 @@ def get_replicas():
     d = get_service('rethinkdb-cluster')
     if d is None:  # not in kubernetes
         return []
+    if len(d['subsets']) == 0:
+        # no other nodes yet (no service?)
+        return []
     return [x['ip'] for x in d['subsets'][0].get('addresses',[])]
 
 def other_replicas():
@@ -40,17 +43,18 @@ def start_rethinkdb():
         os.makedirs('/data')
     os.chdir('/data')
     NAME = socket.gethostname().split('-')[0]
-    # CRITICAL: http admin interface **Must** oly be on 127.0.0.1 to avoid potential security issues!
+    # CRITICAL: http admin interface **Must** only be on 127.0.0.1 to avoid potential security issues!
     v = ['rethinkdb', '--bind-cluster', 'all', '--bind-driver', 'all', '--bind-http', '127.0.0.1', '--server-name', NAME]
     for ip in other_replicas():
         v.append("--join")
         v.append(ip)
     print("opening password file")
-    if open('/secrets/rethinkdb/rethinkdb').read().strip():
+    if os.path.exists('/secrets/rethinkdb/rethinkdb') and open('/secrets/rethinkdb/rethinkdb').read().strip():
         print('there is a password')
         # Just in case we don't have a password already, but there is one set.
         v.append('--initial-password')
         v.append('auto')
+    subprocess.call("touch /data/rethinkdb_data/log_file; tail -f /data/rethinkdb_data/log_file & ", shell=True)
     print(" ".join(v))
     subprocess.call(v)
 

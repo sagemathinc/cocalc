@@ -60,6 +60,13 @@ TODO: automate...
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
+# avoid git errors when there is no author configured
+os.environ["GIT_AUTHOR_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_AUTHOR_EMAIL"] = "office@sagemath.com"
+os.environ["GIT_COMMITTER_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_COMMITTER_EMAIL"] = "office@sagemath.com"
+
+
 # Enable logging
 logging.basicConfig()
 log = logging.getLogger('')
@@ -256,7 +263,8 @@ SAGE_PIP_PACKAGES = [
     'yattag',
     'pyyaml',
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
-    'charm-crypto'   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
+    'bash_kernel' # the jupyter bash kernel
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -506,6 +514,7 @@ class BuildSage(object):
         raise RuntimeError(r"""TODO: change 'local/lib/python/site-packages/notebook/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
 
     def install_jsanimation(self):
+        # maybe just pip install git+https://github.com/jakevdp/JSAnimation.git ?
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
 
     def install_psage(self):
@@ -602,7 +611,7 @@ class BuildSage(object):
 
     def install_sloane(self):
         """
-        Install the Sloane Encyclopaedia tables.  These used to be installed via an optioanl package,
+        Install the Sloane Encyclopaedia tables.  These used to be installed via an optional package,
         but instead one must now run a command from within Sage.
         """
         from sage.all import SloaneEncyclopedia

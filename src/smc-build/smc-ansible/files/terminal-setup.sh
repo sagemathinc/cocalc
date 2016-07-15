@@ -18,10 +18,10 @@ path-remove () {
     PATH=${PATH/#"$1:"/}   #delete any instance at the beginning
 }
 
-export ANACONDA3="/projects/anaconda3"
+export ANACONDA3="/ext/anaconda"
 
 anaconda3 () {
-    source $ANACONDA3/bin/activate root
+    source "$ANACONDA3/bin/activate" root
 }
 
 exit-anaconda () {
@@ -47,12 +47,19 @@ fi
 
 export SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS
 
+path-prepend "/ext/bin"
 path-prepend "$HOME/.local/bin"
 path-prepend "$HOME/bin"
-path-append  "/projects/data/homer/bin"
-path-append  "/projects/data/weblogo"
 export PATH
+
+# locales -- compare with k8s/smc-project's base image Dockerfile
+export LC_ALL=C.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
 
 # less: setup highlighting when searching for a string
 export LESS_TERMCAP_so=$'\E[;7m'
 export LESS_TERMCAP_se=$'\E[;27m'
+
+# run an additional setup script when it exists in /ext/init.sh
+test -x /ext/init.sh && /ext/init.sh
