@@ -1,6 +1,0 @@
----
-- hosts: compute
-  become: yes
-  gather_facts: no
-  tasks:
-  - shell: rm -rf ~/.cache/pip

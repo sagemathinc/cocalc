@@ -10,11 +10,12 @@
   - name: 'R apt keys'
     apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
 
-  - name: 'R repository url'
+  - name: 'Official R repository url'
     apt_repository: repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
 
-  - name: 'R installation (official ubuntu repo -- some base packages)'
-    apt: name={{ item }} install_recommends=yes
+  - name: 'R installation (some base packages)'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - libssl-dev # required for cran's devtools
     - libssh2-1-dev # for cran's devtools
@@ -31,14 +32,31 @@
     - python3-rpy2
     - ess
 
-  - name: "install Rscript wrapper (similar to R → Sage's R)"
-    copy: src=files/Rscript dest=/usr/local/bin/Rscript
-          owner=root group=root mode=ugo=rx
+  # why buggy?
+  #- name: "install R wrapper (R-sage → Sage's R)"
+  #  copy: src=files/R-sage dest=/usr/local/bin/R-sage
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy R wrapper (R-sage → Sage's R)"
+    tags: [install, update]
+    shell: |
+           cp files/R-sage /usr/local/bin/R-sage
+           chmod ugo=rx /usr/local/bin/R-sage
+
+  # why buggy?
+  #- name: "install Rscript wrapper (similar to R → Sage's R)"
+  #  copy: src=files/Rscript-sage dest=/usr/local/bin/Rscript-sage
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy Rscript wrapper (similar to R-sage → Sage's R)"
+    tags: [install, update]
+    shell: |
+           cp files/Rscript-sage /usr/local/bin/Rscript-sage
+           chmod ugo=rx /usr/local/bin/Rscript-sage
 
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R installation (official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-abind
     - r-cran-acepack
@@ -71,7 +89,8 @@
     - r-cran-class
 
   - name: 'R installation (official ubuntu repo) #1'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-cluster
     - r-cran-cmprsk
@@ -127,7 +146,8 @@
     - r-cran-fextremes
 
   - name: 'R installation (official ubuntu repo) #2'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-fgarch
     - r-cran-fimport
@@ -178,7 +198,8 @@
     - r-cran-jsonlite
 
   - name: 'R installation (official ubuntu repo) #3'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-kernlab
     - r-cran-kernsmooth
@@ -226,7 +247,8 @@
     - r-cran-mvtnorm
 
   - name: 'R installation (official ubuntu repo) #4'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-ncdf4
     - r-cran-nlme
@@ -282,7 +304,8 @@
     - r-cran-rinside
 
   - name: 'R installation (official ubuntu repo) #5'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-cran-rjags
     - r-cran-rjava
@@ -357,7 +380,8 @@
     # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
     # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
   - name: 'R bioconductor installation (from official ubuntu repo) #0'
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
     with_items:
     - r-bioc-affy
     - r-bioc-affyio
@@ -401,7 +425,7 @@
     - r-bioc-xvector
 
   - name: "R packages from CRAN"
-    tags: cran
+    tags: [cran, install, update]
     # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
     # deps=true also installes suggested packages, e.g. Rcpp for devtools!
     shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
@@ -410,8 +434,39 @@
     - uuid
     - pbdZMQ
     - repr
-    - rstan  # https://cran.r-project.org/web/packages/rstan/index.html -- takes a long time to build and uses a lot of memory, that's expected
+    - "data.table"
+    - dplyr
+    - tidyr
+    - WGCNA
+    - fields
+    - circular
+    - glmnet
+    - brian
+    - rugarch
+    - quantmod
+    - swirl
+    - psych
+    - UsingR
+    - readr
+    - forecast
+    - NORMT3
+    - ggmap
+    - np
+    - crs
+    - SemiParBIVProbit
+    - maptree
+    - nortest
+
+  - name: "RSTAN from CRAN"
+    # https://cran.r-project.org/web/packages/rstan/index.html
+    # takes a long time to build and uses a lot of memory, that's expected, but hence it's not tagged in "update"
+    tags: [cran, install]
+    # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
+    # deps=true also installes suggested packages, e.g. Rcpp for devtools!
+    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
+    with_items:
+    - rstan
 
   - name: "IPython Kernel" # needs devtools, etc.
-    tags: ir
+    tags: [ir, install, update]
     shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir-ubuntu', displayname = 'R (Official Build)')\" | R --no-save"

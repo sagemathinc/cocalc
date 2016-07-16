@@ -71,7 +71,10 @@ class JUPYTER(object):
             | p1('a = 5')
             | p2('a = 10')
             | p1('print(a)')   # prints 5
-            | p1('print(a)')   # prints 10
+            | p2('print(a)')   # prints 10
+
+        For details on supported features and known issues, see the SMC Wiki page:
+        https://github.com/sagemathinc/smc/wiki/sagejupyter
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()
@@ -139,31 +142,6 @@ def _jkmagic(kernel_name, **kwargs):
             h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
 
-    def big_output(f,*args, **kwargs):
-        r"""
-        Temporarily raise ceilings on output limits (for data uris and docs).
-        Arbitrary new upper limit is 2000000 for both.
-        Restore to prior values after calling the function provided.
-        """
-        import sage_server
-
-        BOOST_HTML_SIZE = 2000000
-        BOOST_OUTPUT    = 2000000
-
-        prev_mhs = sage_server.MAX_HTML_SIZE
-        sage_server.MAX_HTML_SIZE = BOOST_HTML_SIZE
-
-        prev_mo = sage_server.MAX_OUTPUT
-        sage_server.MAX_OUTPUT = BOOST_OUTPUT
-
-        f(*args, **kwargs)
-
-        sage_server.MAX_HTML_SIZE = prev_mhs
-        sage_server.MAX_OUTPUT = prev_mo
-
-        return
-
-
     def run_code(code):
 
         # these are used by the worksheet process
@@ -192,6 +170,9 @@ def _jkmagic(kernel_name, **kwargs):
 
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
+
+            if msg_type == 'status' and content['execution_state'] == 'idle':
+                break
 
             # trace jupyter protocol if debug enabled
             p('iopub', msg_type, str(content)[:300])
@@ -231,7 +212,6 @@ def _jkmagic(kernel_name, **kwargs):
                             fo.write(data)
                         p(fname)
                         salvus.file(fname)
-                        fo.close()
                         os.unlink(fname)
                         # ir kernel sends png then svg+xml; don't display both
                         break
@@ -253,16 +233,19 @@ def _jkmagic(kernel_name, **kwargs):
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):
                         # sagemath R emits latex tabular output, not supported by MathJAX
-                        latex0(ldata)
+                        import sage.misc.latex
+                        sage.misc.latex.latex.eval(ldata)
                     else:
                         # convert display to inline for execution output
                         # this matches jupyter notebook behavior
                         ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
                         salvus.html(ldata)
+                elif 'image/png' in content['data']:
+                    display_mime(content['data'])
                 elif 'text/markdown' in content['data']:
-                    salvus.md(content['data']['text/markdown'])
+                    display_mime(content['data'])
                 elif 'text/html' in content['data']:
-                    big_output(salvus.html, content['data']['text/html'])
+                    display_mime(content['data'])
                 elif 'text/plain' in content['data']:
                     # don't show text/plain if there is latex content
                     # display_mime(content['data'])
@@ -284,7 +267,11 @@ def _jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    hout(content['text'],block = False)
+                    if 'name' in content and content['name'] == 'stderr':
+                        sys.stderr.write(content['text'])
+                        sys.stderr.flush()
+                    else:
+                        hout(content['text'],block = False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -303,6 +290,7 @@ def _jkmagic(kernel_name, **kwargs):
                 msg_type = msg['msg_type']
                 content = msg['content']
             except Empty:
+                # shouldn't happen
                 p("shell channel empty")
                 break
             if msg['parent_header'].get('msg_id') == msg_id:
@@ -316,7 +304,8 @@ def _jkmagic(kernel_name, **kwargs):
                                     data = payload[0]['data']
                                     if 'text/plain' in data:
                                         text = data['text/plain']
-                                        big_output(hout, text, scroll = True)
+                                        hout(text, scroll = True)
+                    break
             else:
                 # not our reply
                 continue

@@ -5,18 +5,20 @@
 
   tasks:
 
-  - apt: name={{ item }}
+  - apt: "name={{ item }} state=latest"
+    tags: pip2
     with_items:
     - python-pip
+    - python3-pip
     #- llvm-3.7
     #- llvm-3.7-dev # for numba
 
   - name: "update pip"
-    tags: pip
+    tags: [ pip2, update ]
     pip: "executable=pip2 state=latest name=pip"
 
   - name: "additional pip2 packages"
-    tags: pip
+    tags: [ pip2, update ]
     pip: executable=pip2
          state=latest
          umask=022
@@ -31,11 +33,21 @@
     - statsmodels
     - clawpack
     - ctop
+    - networkx
+    - macs2
+    - bayespy==0.3.6
+    - pandasql
+    - blaze
+    - cvxpy
 
-  - apt: name=python3-pip
+  - tags: [ pip2, update ]
+    pip: executable=pip2
+         umask=022
+         name='git+https://github.com/jakevdp/JSAnimation.git'
+         editable=false
 
   - name: "additional pip3 packages"
-    tags: pip3
+    tags: [ pip3, update ]
     pip: executable=pip3
          state=latest
          umask=022
@@ -44,14 +56,21 @@
     - pip
     - twitter
     - sympy
+    - bokeh
     - uncertainties
     - zope.interface
     - scikit-learn
     - datasift
-    - macs2
     # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
+    - mygene
+    - seaborn
+    - biopython
+    - bayespy
+    - pandasql
+    - blaze
+    - cvxpy
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -95,9 +114,9 @@
 
   - name: "IPython with notebook and octave+bash kernel / remove ipython"
     apt: name=ipython state=absent
-    tags: ipython
+    tags: [ ipython, install, update ]
   - name: "IPython with notebook and octave+bash kernel / install from pip"
-    tags: ipython
+    tags: [ ipython, install, update ]
     pip: executable=pip2
          state=forcereinstall
          umask=022
@@ -108,14 +127,14 @@
     - octave_kernel
     - bash_kernel
   - name: "fix permissions in all python2.7/dist-packages"
-    tags: ipython
+    tags: [ ipython, install, update ]
     shell: |
         cd /usr/local/lib/python2.7/dist-packages
         sudo chmod a+r -R .
         sudo find . -perm /u+x -execdir chmod a+x {} \;
 
   - name: "IPython3 in Python3"
-    tags: ipython3
+    tags: [ ipython3, install, update ]
     pip: executable=pip3
          state=forcereinstall
          umask=022
@@ -123,9 +142,6 @@
     with_items:
     - ipython
     - ipywidgets
-    - mygene
-    - seaborn
-    - biopython
 
   - name: "Special script to run python2 systemwide from within Sage"
     tags: python2sage
@@ -135,6 +151,7 @@
 
   - name: "install pair-based-crypto library system-wide"
     tags: pairbasedcrypto
+    ignore_errors: yes
     shell: |
         cd /tmp/
         umask 022
@@ -153,6 +170,7 @@
 
   - name: "install primesieve"
     tags: primesieve
+    ignore_errors: yes
     shell: |
         cd /tmp/
         wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz
@@ -176,6 +194,7 @@
 
   - name: "install opencv"
     tags: opencv
+    ignore_errors: yes
     shell: |
         cd /tmp/
         rm -rf opencv
@@ -206,6 +225,7 @@
   # Neovim from Github
   - name: "install neovim"
     tags: neovim
+    ignore_errors: yes
     shell: |
         cd /tmp
         rm -rf neovim
@@ -220,7 +240,7 @@
   # Macaulay2
   - name: "install macaulay2 / apt packages"
     tags: macaulay2
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libntl-dev
     - libntl5
@@ -229,6 +249,7 @@
     - pari-gp2c
   - name: "install macaulay2 / deb binaries"
     tags: macaulay2
+    ignore_errors: yes
     shell: |
         cd /tmp/
         rm -rf m2
@@ -242,7 +263,7 @@
   # Polymake
   - name: "polymake apt package dependencies"
     tags: polymake
-    apt: name={{ item }} install_recommends=yes
+    apt: "name={{ item }} state=latest install_recommends=yes"
     with_items:
     - ant
     - ant-optional
@@ -263,15 +284,18 @@
     - w3c-markup-validator
     - w3c-xsd-xslt
     - xsltproc
-  - name: "polymake installation"
-    tags: polymake
-    shell: |
-        cd /tmp/
-        wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
-        tar xf polymake-3.0r1.tar.bz2
-        cd polymake-3.0/
-        ./configure
-        make
+  #- name: "polymake installation"
+  #  tags: polymake
+  #  ignore_errors: yes
+  #  shell: |
+  #      cd /tmp/
+  #      wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
+  #      tar xf polymake-3.0r1.tar.bz2
+  #      cd polymake-3.0/
+  #      ./configure
+  #      make
+  - name: "polymake installation, from debian"
+    apt: name=polymake state=latest install_recommends=yes
 
   # CRCMOD
   - name: "pip's crcmod -- critical for using google cloud storage #1"
@@ -287,6 +311,7 @@
   # X11
   - name: "git trac"
     tags: gittrac
+    ignore_errors: yes
     shell: |
         cd /tmp/
         git clone https://github.com/sagemath/git-trac-command.git
@@ -312,7 +337,8 @@
     apt_repository: repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - python-kwant-doc
     - python3-kwant
@@ -332,7 +358,8 @@
     apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
 
   - name: 'install GIAC'
-    apt: name={{ item }} allow_unauthenticated=yes install_recommends=yes
+    apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
+    tags: update
     with_items:
     - giac
     - python-giacpy
@@ -350,7 +377,8 @@
     apt_repository: repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
-    apt: name=fenics install_recommends=yes
+    tags: update
+    apt: name=fenics install_recommends=yes state=latest
 
 # MPICH
 - hosts: compute
@@ -361,7 +389,8 @@
   tasks:
 
   - name: 'install mpich'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - mpich
     - mpich-doc
@@ -384,7 +413,8 @@
     apt_repository: repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
-    apt: name=pypy install_recommends=yes
+    tags: update
+    apt: name=pypy install_recommends=yes state=latest
 
 # Cantera
 - hosts: compute
@@ -398,7 +428,8 @@
     apt_repository: repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - cantera-python
     - cantera-python3
@@ -417,7 +448,8 @@
   - name: 'heroku apt-repository'
     apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
-    apt: name=heroku-toolbelt install_recommends=yes
+    tags: update
+    apt: name=heroku-toolbelt install_recommends=yes state=latest
 
 # Obspy
 - hosts: compute
@@ -430,7 +462,9 @@
     apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
   - name: "obspy apt repository"
     apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
-  - apt: name={{ item }} install_recommends=yes
+  - name: 'install obspy packages'
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - python-obspy
     - python3-obspy
@@ -443,7 +477,8 @@
 
   tasks:
   - name: 'install atlas'
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libatlas3-base
     - liblapack-dev
@@ -460,6 +495,7 @@
   become: yes
   gather_facts: yes
   tags: openaxiom
+  ignore_errors: yes
 
   tasks:
   - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
@@ -467,8 +503,10 @@
   - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
     apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - name: "install open axiom"
+    tags: update
     apt: name="open-axiom*"
          install_recommends=yes
+         state=latest
 
 # Octave
 - hosts: compute
@@ -478,7 +516,8 @@
 
   tasks:
   - name: "install ocatave"
-    apt: name={{ item }} install_recommends=yes
+    tags: update
+    apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - octave-biosig
     - octave-common

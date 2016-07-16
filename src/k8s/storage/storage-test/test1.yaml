@@ -7,12 +7,12 @@ spec:
   - name: test1
     image: nginx
     volumeMounts:
-    - name: test1
+    - name: test
       mountPath: /test1
     ports:
     - containerPort: 80
   volumes:
-  - name: test1
+  - name: test
     flexVolume:
       driver : "smc/smc-storage"
       options:

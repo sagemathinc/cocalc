@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-import datetime, json, os, shutil, subprocess, time
+import datetime, json, os, rethinkdb, shutil, sys, subprocess, time
+
+# Every project with changes (=a snapshot was made of the zpool)
+# has a new bup backup of itself made every this many hours:
+BUP_SAVE_INTERVAL_H = 6
 
 # NOTE/TODO: there is some duplication of code between here and storage-daemon/run.py.
 
 def log(*args, **kwds):
     print(*args, **kwds)
+    sys.stdout.flush()
 
 DATA = '/data' # mount point of data volume
-LOG = os.path.join(DATA, 'log')
-if not os.path.exists(LOG):
-    os.makedirs(LOG)
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
+
+def time_to_timestamp(tm=None):
+    if tm is None:
+        tm = time.time()
+    return datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
+
+def timestamp_to_rethinkdb(timestamp):
+    i = timestamp.rfind('-')
+    return rethinkdb.iso8601(timestamp[:i].replace('-','') + 'T' + timestamp[i+1:].replace(':','') + 'Z')
 
 def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
     t = time.time()
@@ -23,11 +34,11 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
     if path != '.':
         cur = os.path.abspath(os.curdir)
         if verbose:
-            print('chdir %s'%path)
+            log('chdir %s'%path)
         os.chdir(path)
     try:
         if verbose:
-            print(cmd)
+            log(cmd)
         if shell:
             kwds = {'shell':True, 'executable':'/bin/bash', 'env':env}
         else:
@@ -40,7 +51,7 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
             output = None
         seconds = time.time() - t
         if verbose:
-            print("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
+            log("TOTAL TIME: {seconds} seconds -- to run '{cmd}'".format(seconds=seconds, cmd=cmd))
         return output
     finally:
         if path != '.':
@@ -77,64 +88,74 @@ def run_sshd():
 
 def event_loop():
     log('event_loop')
+    last_bup_save_all = 0
     while True:
-        # nothing implemented yet
-        time.sleep(5)
+        # Every 5 minutes, call bup_save_all to make bup backups of all projects that have
+        # chnages that haven't been backed up for at least BUP_SAVE_INTERVAL_H hours.
+        if time.time() - last_bup_save_all >= 60*5:
+            bup_save_all(BUP_SAVE_INTERVAL_H)
+            last_bup_save_all = time.time()
+
+        log('waiting 30s...')
+        time.sleep(30)
 
 def bup_save(path):
     """
     Save to the bup archive for the given path.
 
     An example is path='foo.zfs' if there is a directory /data/foo.zfs
-
-    Will write an entry to /data/log/bups.log each time we do this, which is a single line in JSON format
-    with keys timestamp, path, action, time and optionally error. E.g.,
-
-    {"path":"testzfs.zfs","time":5.1827569007873535,"timestamp":"2016-07-04-173809","action":"save"}
-
-    means we saved testzfs.zfs at 2016-07-04-173809 and it took about 5 seconds.
     """
+    log("bup_save('%s')"%path)
     full_path = os.path.join(DATA, path)
     if not os.path.exists(full_path):
         raise ValueError("no path '%s'"%full_path)
-    # The /0 is so that we could have a new /1, /2 bup dir, etc., when bup/0 starts to have too many commits,
-    # or we want to change the format somehow, etc.
-    bup_dir = os.path.join(full_path, 'bup/0')
+    bup_dir = os.path.join(full_path, 'bup')
     if not os.path.exists(bup_dir):
         os.makedirs(bup_dir)
     env = {'BUP_DIR': bup_dir}
     run(['bup', 'init'], env=env)
     tm = time.time()
     timestamp = datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
-    log = {'timestamp':timestamp, 'path':path, 'action':'save'}
-    try:
-        run("tar cSf - '{full_path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
-            (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp), env=env)
-    except Exception as err:
-        log['error'] = repr(err)
-    log['time'] = time.time() - tm
-    open(os.path.join(LOG, 'bups.log'), 'a').write(json.dumps(log, separators=(',', ':'))+'\n')
+    run("tar cSf - '{full_path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
+        (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp), env=env)
+    return timestamp
 
-def bup_save_all(interval_h):
-    """
-    Update the bup archive for each image that has changed within the
-    last interval_h hours.
+RETHINKDB_SECRET = '/secrets/rethinkdb/rethinkdb'
+def rethinkdb_connection():
+    auth_key = open(RETHINKDB_SECRET).read().strip()
+    if not auth_key:
+        auth_key = None
+    return rethinkdb.connect(host='rethinkdb-driver', timeout=5, auth_key=auth_key)
 
-    The definition of "image has changed" is that there is a recent entry for it
-    in the '/data/log/change.log' file.
+def path_to_project(project_id):
+    return os.path.join(DATA, 'projects', project_id) + '.zfs'
 
-    Each time we make a bup backup, we append a new entry t the end of
-    the '/data/log/bups.log' file.
+def bup_save_all(age_h):
     """
-    raise NotImplemented
+    Make a bup snapshot of every project that has had a snapshot but no backup
+    for at least age_h hours.
+    """
+    log("bup_save_all(%s)"%age_h)
+    conn = rethinkdb_connection()
+    for x in rethinkdb.db('smc').table('projects').between(age_h*60*60,
+               rethinkdb.maxval, index='seconds_since_backup').pluck('project_id').run(conn):
+        project_id = x['project_id']
+        path = path_to_project(project_id)
+        if not os.path.exists(path):
+            # project isn't hosted here.
+            continue
+        log("backing up '%s'"%project_id)
+        # create the backup
+        timestamp = bup_save(path)
+        # convert time of backup to rethinkdb format
+        last_backup = timestamp_to_rethinkdb(timestamp)
+        # record in database that this backup is done.
+        rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
 
-def rotate_all_logs(maxlines=10000, minlines=1000):
+def bup_extract(path):
     """
-    For each logfile /data/log/foo.log with more than maxlines lines,
-    move all but the last minlines lines to /data/log/foo.log.1.gz,
-    rotating any other foo.log.n.gz log files.
+
     """
-    raise NotImplemented
 
 def main():
     sshd_config()
