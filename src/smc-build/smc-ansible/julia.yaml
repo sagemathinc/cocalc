@@ -11,10 +11,10 @@
   tasks:
 
   - name: "julia ppa"
-    apt_repository: repo='ppa:staticfloat/juliareleases'
+    apt_repository: mode=644 repo='ppa:staticfloat/juliareleases'
 
   - name: "julia dependencies ppa"
-    apt_repository: repo='ppa:staticfloat/julia-deps'
+    apt_repository: mode=644 repo='ppa:staticfloat/julia-deps'
 
   - name: "apt-get install packages"
     apt: name={{ item }} install_recommends=yes state=latest

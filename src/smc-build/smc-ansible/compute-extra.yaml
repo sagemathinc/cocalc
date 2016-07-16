@@ -334,7 +334,7 @@
   tasks:
 
   - name: 'KWANT apt repository'
-    apt_repository: repo='ppa:kwant-project/ppa'
+    apt_repository: mode=644 repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
     tags: update
@@ -355,7 +355,7 @@
     apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
 
   - name: 'GIAC repository'
-    apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
+    apt_repository: mode=644 repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
 
   - name: 'install GIAC'
     apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
@@ -374,7 +374,7 @@
   tasks:
 
   - name: 'FEniCS repository'
-    apt_repository: repo='ppa:fenics-packages/fenics'
+    apt_repository: mode=644 repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
     tags: update
@@ -410,7 +410,7 @@
   tasks:
 
   - name: 'pypy repository'
-    apt_repository: repo='ppa:pypy/ppa'
+    apt_repository: mode=644 repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
     tags: update
@@ -425,7 +425,7 @@
   tasks:
 
   - name: 'Cantera repository'
-    apt_repository: repo='ppa:speth/cantera'
+    apt_repository: mode=644 repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
     tags: update
@@ -446,7 +446,7 @@
   - name: 'heroku apt keys'
     apt_key: url='https://toolbelt.heroku.com/apt/release.key'
   - name: 'heroku apt-repository'
-    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
+    apt_repository: mode=644 repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
     tags: update
     apt: name=heroku-toolbelt install_recommends=yes state=latest
@@ -461,7 +461,7 @@
   - name: "obspy keys"
     apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
   - name: "obspy apt repository"
-    apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
+    apt_repository: mode=644 repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
   - name: 'install obspy packages'
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -501,7 +501,7 @@
   - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
     apt_key: keyserver=keyserver.ubuntu.com id=D2D8EDD2BA10D39D925BB7ED11CA9C2FE368B17C
   - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
-    apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
+    apt_repository: mode=644 repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - name: "install open axiom"
     tags: update
     apt: name="open-axiom*"
