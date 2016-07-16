@@ -39,6 +39,7 @@
     - pandasql
     - blaze
     - cvxpy
+    - bqplot
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -71,7 +72,7 @@
     - pandasql
     - blaze
     - cvxpy
-
+    - bqplot
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
