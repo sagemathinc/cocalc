@@ -5,6 +5,16 @@
 
   tasks:
 
+  - name: 'create salvus admin user'
+    user: name=salvus shell=/bin/bash groups=sudo,adm,dip,video,plugdev append=yes
+
+  - name: 'no sudo password for adm users'
+    lineinfile: dest=/etc/sudoers
+                state=present
+                regexp='^%ADM ALL\='
+                line='%ADM ALL=(ALL) NOPASSWD:ALL'
+                validate='visudo -cf %s'
+
   - name: 'tell apt to always remove (clean) packages after install'
     lineinfile: create=yes
                 line="DSELECT::Clean "always";"
