@@ -32,6 +32,10 @@
   - name: "fix libzmq version #3 -- prevent apt from installing it again"
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
+  - name: "install PyCall julia with system wide python"
+    tags: install
+    shell: "umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; echo 'ENV[\"PYTHON\"]=\"/usr/bin/python\"; Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\"); ' | julia"
+
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
     shell: "umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; echo 'Pkg.add(\"{{ item }}\")' | julia; echo 'using {{ item }}' | julia"
     tags: install
