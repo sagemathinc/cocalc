@@ -51,6 +51,7 @@
     - MXNet # https://github.com/dmlc/MXNet.jl
     - Graphs # https://github.com/JuliaLang/Graphs.jl
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
+    - SCS # Solving optimization problems
 
 # Nemo (right after Julia!)
 - hosts: compute
