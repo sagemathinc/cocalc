@@ -34,6 +34,7 @@
 
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
     shell: "echo 'Pkg.add(\"{{ item }}\")' | julia"
+    tags: install
     with_items:
     - PyCall # https://github.com/stevengj/PyCall.jl
     - IJulia # in jupyter notebook

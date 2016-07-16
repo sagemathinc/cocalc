@@ -52,22 +52,22 @@ PY_COMMON = [
 
 # python 2 libs
 PY2 = PY_COMMON + [
-    'statsmodels', 'patsy', 'blaze', 'bokeh'
+    'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy'
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh'
+    'patsy', 'blaze', 'bokeh', 'cvxpy'
 ]
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
-    'mahotas', 'patsy', 'statsmodels'
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy'
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh'
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy'
 ]
 
 # This should be the offical R from the CRAN ubuntu repos and Sage's R
@@ -179,4 +179,4 @@ def test_doesnt_exist():
 
 if __name__ == '__main__':
     #pytest.main()
-    print('run $ py.test compute-integration-tests.py')
+    print('run $ py.test %s' % __file__)
