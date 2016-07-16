@@ -54,6 +54,10 @@
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
     - SCS # Solving optimization problems
 
+  - name: "update julia packages"
+    tags: update
+    shell: "umask 022; echo 'Pkg.update()' | julia"
+
 # Nemo (right after Julia!)
 - hosts: compute
   become: yes
