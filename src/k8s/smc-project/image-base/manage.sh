@@ -6,17 +6,17 @@ init () {
     cd /
     rm -rf /smc/
     git clone --depth 1 https://github.com/sagemathinc/smc.git
-    cd /smc/src/smc-build/smc-ansible
 }
 
 salvus () {
-    sudo -H -u salvus bash -c "umask 022; exec \"$@\""
+    sudo -H -u salvus bash -c "umask 022; exec $@"
 }
 
 case "$1" in
     install)
         # this runs the meta-playbook "compute-setup" with the modified machines file on localhost
         init
+        cd /smc/src/smc-build/smc-ansible
         ansible-playbook -i container.ini compute-setup.yaml
         ;;
 
@@ -24,6 +24,7 @@ case "$1" in
         # this runs the meta-playbook "compute-setup" with the tags "update"
         # they're supposed to check for upgraded packages and do not compile so much -- hence finishes faster
         init
+        cd /smc/src/smc-build/smc-ansible
         ansible-playbook -i container.ini compute-setup.yaml --tags=update
         ;;
 
@@ -34,11 +35,11 @@ case "$1" in
         ;;
 
     test)
-       # runs the integration tests to figure out, how well everything works in here
-       init
-       cd ..
-       salvus py.test-3 compute-integration-tests.py
-       ;;
+        # runs the integration tests to figure out, how well everything works in here
+        init
+        cd /smc/src/smc-build
+        salvus py.test-3 compute-integration-tests.py
+        ;;
 
     *)
         echo $"Usage: $0 {install|update|bash|test}"
