@@ -48,6 +48,10 @@
     - Convex # https://github.com/JuliaOpt/Convex.jl (optimization)
     - Optim # https://github.com/JuliaOpt/Optim.jl
     - JuMP # https://github.com/JuliaOpt/JuMP.jl
+    - Clp # solver
+    - Ipopt # https://github.com/JuliaOpt/Ipopt.jl
+    - ECOS # https://github.com/JuliaOpt/ECOS.jl
+    - GLPK # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
     - ParallelAccelerator # https://github.com/IntelLabs/ParallelAccelerator.jl
     - MXNet # https://github.com/dmlc/MXNet.jl
     - Graphs # https://github.com/JuliaLang/Graphs.jl

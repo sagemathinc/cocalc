@@ -72,6 +72,7 @@
     - blaze
     - cvxpy
 
+
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
                 line="exit 0"
