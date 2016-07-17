@@ -28,20 +28,26 @@ case "$1" in
         ansible-playbook -i container.ini compute-setup.yaml --tags=update
         ;;
 
-    bash)
+    run)
         # fork to be a command-line
         init
         salvus bash
+        ;;
+
+    root)
+        # fork to be a command-line as root
+        init
+        bash
         ;;
 
     test)
         # runs the integration tests to figure out, how well everything works in here
         init
         cd /smc/src/smc-build
-        salvus py.test-3 compute-integration-tests.py
+        py.test-3 compute-integration-tests.py
         ;;
 
     *)
-        echo $"Usage: $0 {install|update|bash|test}"
+        echo $"Usage: $0 {install|update|bash|root|test}"
         exit 1
 esac
