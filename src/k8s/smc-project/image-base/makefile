@@ -40,7 +40,7 @@ root:
 	@echo "also consider to run 'make squash' after several edit steps!"
 
 commit:
-	@echo "commit latest changes (after "edit"ing) of the container to the image"
+	@echo "commit latest changes (after 'edit'ing) of the container to the image"
 	$(eval ID = $(shell docker ps --all --latest --quiet --no-trunc --filter ancestor=${TAG}))
 	docker commit ${ID} ${TAG}
 	@echo "image ${TAG} has been updated and committed with the ID ${ID}"
