@@ -47,12 +47,14 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'markdown', 'plotly'
+    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
+    'numexpr', 'tables', 'h5py', 'theano', 'numba', 'dask'
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
-    'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy'
+    'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
+    'clawpack', # py2 only :-(
 ]
 
 # python 3 libs
@@ -63,7 +65,7 @@ PY3 =  PY_COMMON + [
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
-    'mahotas', 'patsy', 'statsmodels', 'cvxpy'
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack'
 ]
 
 PY3_ANACONDA = PY_COMMON + [

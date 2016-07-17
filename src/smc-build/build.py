@@ -173,6 +173,7 @@ SAGE_PIP_PACKAGES = [
     'tables',
     'scikit_learn',
     'theano',
+    'dask',
     'scikit-image',
     'Shapely',
     'SimPy',
@@ -265,6 +266,7 @@ SAGE_PIP_PACKAGES = [
     'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
     'bash_kernel', # the jupyter bash kernel
     'cvxpy', # convex optimization toolbox by univ stanford
+    'pydataset', # datasets from R for pandas
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     ]
 

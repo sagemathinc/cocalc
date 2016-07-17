@@ -10,8 +10,6 @@
     with_items:
     - python-pip
     - python3-pip
-    #- llvm-3.7
-    #- llvm-3.7-dev # for numba
 
   - name: "update pip"
     tags: [ pip2, update ]
@@ -40,6 +38,9 @@
     - blaze
     - cvxpy
     - bqplot
+    - pydataset
+    - theano
+    - dask
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -62,7 +63,6 @@
     - zope.interface
     - scikit-learn
     - datasift
-    # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
     - mygene
@@ -73,6 +73,16 @@
     - blaze
     - cvxpy
     - bqplot
+    - pydataset
+    - theano
+    - dask
+
+  - name: "numba in py2 and py3"
+    # might change to llvm 3.8 later, etc.
+    tags: [ pip2, pip3, install, update ]
+    shell: |
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip2 install llvmlite numba
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip3 install llvmlite numba
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -521,6 +531,7 @@
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
+    - octave
     - octave-biosig
     - octave-common
     - octave-communications

@@ -389,6 +389,10 @@
     - linux-tools-common
     - linux-tools-generic
     - llvm
+    - llvm-dev
+    - llvm-runtime
+    - llvm-3.7     # for numba
+    - llvm-3.7-dev # for numba
     - lrzip
     - lua5.2
     - lua5.2-*
@@ -422,8 +426,6 @@
     - ocaml-batteries-included
     - ocaml-mode
     - ocaml-native-compilers
-    - octave
-    - octave-symbolic
     - opam
     - opam-docs
     - opam-docs
