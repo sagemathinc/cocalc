@@ -47,7 +47,7 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'pandasql', 'markdown', 'plotly'
+    'numpy', 'scipy', 'matplotlib', 'pandas', 'markdown', 'plotly'
 ]
 
 # python 2 libs
@@ -67,7 +67,7 @@ PY_SAGE = PY_COMMON + [
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy'
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask'
 ]
 
 # This should be the offical R from the CRAN ubuntu repos and Sage's R
