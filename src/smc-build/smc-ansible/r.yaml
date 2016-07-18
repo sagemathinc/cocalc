@@ -424,6 +424,14 @@
     - r-bioc-variantannotation
     - r-bioc-xvector
 
+  - name: "R bioconductor packages from CRAN"
+    tags: [cran, install, update]
+    shell: >
+        echo 'library(BiocInstaller); biocLite(c("geneplotter", "puma", "affyPLM", "ddCt",
+        "affydata", "hgu133plus2.db", "oligo", "gcrma", "GEOquery",
+        "hgu95av2cdf", "hgu133plus2cdf", "hgu95av2.db",
+        "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus"))' | R --no-save
+
   - name: "R packages from CRAN"
     tags: [cran, install, update]
     # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html

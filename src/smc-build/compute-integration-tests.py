@@ -48,28 +48,35 @@ BINARIES = [
 
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
-    'numexpr', 'tables', 'h5py', 'theano', 'numba', 'dask'
+    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
+    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'pysal'
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only :-(
+    'numba', 'xarray',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy'
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray',
 ]
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
-    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack'
+    # 'numba', # would be cool to have numba in sagemath
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack', 'mercurial',
+    'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'clawpack', 'shapely', 'simpy', 'gmpy2',
+    'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
+    'jinja2', 'Bio'
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask'
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask', 'nltk',
+    'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray',
 ]
 
 # This should be the offical R from the CRAN ubuntu repos and Sage's R
@@ -162,7 +169,7 @@ def test_python(exe, libs):
     except:
         print({lib}.version())
     "''')
-    for lib in libs:
+    for lib in set(libs):
         v = run(CMD.format(**locals()))
         print(v)
         assert lib.lower() in v.lower()
@@ -176,6 +183,10 @@ def test_r(exe, lib):
 
 
 def test_doesnt_exist():
+    '''
+    This should throw, i.e. it does a string-in-string test which is true,
+    but the return value isn't 0.
+    '''
     with pytest.raises(CalledProcessError):
         'doesnt_exist' in run('doesnt_exist')
 

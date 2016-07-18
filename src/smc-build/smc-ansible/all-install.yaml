@@ -254,7 +254,6 @@
     - encfs
     - epstool
     - ffmpeg
-    - ffmpeg
     - fig2ps
     - fish
     - flex
@@ -404,6 +403,7 @@
     - markdown
     - maven
     - mc
+    - mencoder
     - meld
     - mercurial
     - mesa-utils
@@ -460,6 +460,8 @@
     - python-networkx
     - python-numpy
     - python-pandas
+    - python-geopandas
+    - python3-geopandas
     - python-pip
     - python-scikits-learn
     - python-scikits.statsmodels
@@ -476,6 +478,9 @@
     - python3
     - python3-setuptools
     - python3-zmq
+    - pyro4
+    - python2-pyro4
+    - python3-pyro4
     - quota
     - quotatool
     - racket
@@ -564,6 +569,7 @@
     - python-coverage
     - python-crontab
     - python-cvxopt
+    - python-descartes
     - python-fftw
     - python-flake8
     - python-fs
@@ -602,6 +608,7 @@
     - python-mpld3
     - python-mplexporter
     - python-mpmath
+    - python-mpltoolkits.basemap
     - python-nose
     - python-nose-cov
     - python-nose2
@@ -746,6 +753,7 @@
     - python3-decorator
     - python3-defer
     - python3-dev
+    - python3-descartes
     - python3-distutils-extra
     - python3-django
     - python3-django-filters
@@ -806,6 +814,7 @@
     - python3-mockito
     - python3-mpi4py
     - python3-mpld3
+    - python3-mpltoolkits.basemap
     - python3-mpmath
     - python3-msgpack
     - python3-mysqldb

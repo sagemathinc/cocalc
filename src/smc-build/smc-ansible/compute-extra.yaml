@@ -41,6 +41,11 @@
     - pydataset
     - theano
     - dask
+    - distributed
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -76,6 +81,12 @@
     - pydataset
     - theano
     - dask
+    - distributed
+    - xlwt
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
