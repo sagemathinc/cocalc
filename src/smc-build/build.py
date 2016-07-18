@@ -172,6 +172,7 @@ SAGE_PIP_PACKAGES = [
     'numexpr',
     'tables',
     'scikit_learn',
+    'gensim',
     'theano',
     'dask',
     'scikit-image',
@@ -521,7 +522,7 @@ class BuildSage(object):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
 
     def install_psage(self):
-        self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
+        self.cmd("cd /tmp/&& rm -rf psage && git clone https://github.com/williamstein/psage.git && cd psage&& sage setup.py install && rm -rf /tmp/psage")
 
     def install_pycryptoplus(self):
         self.cmd("cd /tmp/ && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf /tmp/python-cryptoplus")
@@ -800,7 +801,7 @@ class BuildSage(object):
                 return
         except Exception, msg:
             pass
-        cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
+        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap.git", "/tmp")
         cmd("python setup.py install", "/tmp/basemap")
         shutil.rmtree("/tmp/basemap")
 
