@@ -3222,6 +3222,27 @@ except ImportError:
         sys.stderr.flush()
 
 
+# Monkey-patch the save command
+def save(obj, filename=None, compress=True, **kwds):
+    """
+    Workaround save() of function or class loaded or defined at top level in worksheet: put object into __main__ module.
+
+    Limitations:
+
+    XXX Does not fix the problem if pickle.dumps() is called instead of save()
+
+    XXX Docstring is incomplete pending review of PR
+
+    """
+    objmod = getattr(obj, '__module__', None)
+    if objmod is None or getattr(obj, '__module__', None) == '__builtin__':
+        smb = sys.modules['__builtin__']
+        if not obj.__name__ in dir(smb):
+            setattr(obj, '__module__', '__main__')
+            smm = sys.modules['__main__']
+            setattr(smm, obj.__name__, obj)
+            sage.structure.sage_object.save(obj, filename=filename, compress=compress, **kwds)
+
 # Monkey-patched the load command
 def load(*args, **kwds):
     """
