@@ -7,6 +7,9 @@ project_id = os.environ['SMC_PROJECT_ID']
 if not os.path.exists('/projects'):
     os.makedirs('/projects')
 
+# fix permissions -- it's octal (!) and in Py3 it would be 0o711
+os.chmod('/projects', 0711)
+
 project_path = '/projects/' + project_id
 
 call(['/usr/local/bin/smc-compute', 'create_user', project_id])
@@ -32,7 +35,8 @@ os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = username
 os.environ['MAIL'] = '/var/mail/%s'%username
 
 os.chdir(project_path)
-call(["smc-start"])
+# optional args: tcp port and raw port
+call("smc-start 6000 6001".split())
 call('tail -f .smc/local_hub/local_hub.log', shell=True)
 
 

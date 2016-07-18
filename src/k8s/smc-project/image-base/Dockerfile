@@ -16,6 +16,8 @@ RUN apt-get update && \
       aptitude \
       apt-utils \
       wget \
+      cron \
+      supervisor \
       build-essential \
       m4 \
       curl \

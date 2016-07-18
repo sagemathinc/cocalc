@@ -55,10 +55,10 @@ def run_on_kubernetes(args):
         rethink_cpu_request = hub_cpu_request = '10m'
         rethink_memory_request = hub_memory_request = '200Mi'
     else:
-        hub_cpu_request = '300m'
+        hub_cpu_request = '500m'
         hub_memory_request = '1Gi'
-        rethink_cpu_request = '300m'
-        rethink_memory_request = '1Gi'
+        rethink_cpu_request = '500m'
+        rethink_memory_request = '2Gi'
 
 
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')

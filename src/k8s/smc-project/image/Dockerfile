@@ -16,7 +16,10 @@ RUN rm -f /manage.sh && \
 # run.py will create the user corresponding to the project, mount their directory (?), then
 # switch to that user and start the local hub.  The environment variable SMC_PROJECT_ID must be set.
 COPY run.py /run.py
-ENTRYPOINT ["/usr/bin/python", "/run.py"]
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ENTRYPOINT []
+CMD ["/usr/bin/supervisord"]
 
 # Expose local hub port, etc....
-EXPOSE 6000
+# Shouldn't we use port 5463 as an easter egg? :-)
+EXPOSE 6000, 6001

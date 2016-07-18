@@ -66,7 +66,6 @@ class ChatActions extends Actions
             @setState(messages: messages)
 
     send_chat: (mesg) =>
-        mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -108,8 +107,7 @@ class ChatActions extends Actions
             is_equal: (a, b) => (a - 0) == (b - 0)
         @syncdb.save()
 
-    send_edit: (message, raw_new_content) =>
-        mesg = misc_page.sanitize_html(raw_new_content)
+    send_edit: (message, mesg) =>
         if not @syncdb?
             # TODO: give an error or try again later?
             return

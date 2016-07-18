@@ -10,8 +10,6 @@
     with_items:
     - python-pip
     - python3-pip
-    #- llvm-3.7
-    #- llvm-3.7-dev # for numba
 
   - name: "update pip"
     tags: [ pip2, update ]
@@ -35,6 +33,25 @@
     - ctop
     - networkx
     - macs2
+    - bayespy==0.3.6
+    - pandasql
+    - blaze
+    - cvxpy
+    - bqplot
+    - pydataset
+    - theano
+    - dask
+    - distributed
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
+
+  - tags: [ pip2, update ]
+    pip: executable=pip2
+         umask=022
+         name='git+https://github.com/jakevdp/JSAnimation.git'
+         editable=false
 
   - name: "additional pip3 packages"
     tags: [ pip3, update ]
@@ -46,16 +63,37 @@
     - pip
     - twitter
     - sympy
+    - bokeh
     - uncertainties
     - zope.interface
     - scikit-learn
     - datasift
-    # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
     - mygene
     - seaborn
     - biopython
+    - bayespy
+    - pandasql
+    - blaze
+    - cvxpy
+    - bqplot
+    - pydataset
+    - theano
+    - dask
+    - distributed
+    - xlwt
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
+
+  - name: "numba in py2 and py3"
+    # might change to llvm 3.8 later, etc.
+    tags: [ pip2, pip3, install, update ]
+    shell: |
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip2 install llvmlite numba
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip3 install llvmlite numba
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -319,7 +357,7 @@
   tasks:
 
   - name: 'KWANT apt repository'
-    apt_repository: repo='ppa:kwant-project/ppa'
+    apt_repository: mode=644 repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
     tags: update
@@ -340,7 +378,7 @@
     apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
 
   - name: 'GIAC repository'
-    apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
+    apt_repository: mode=644 repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
 
   - name: 'install GIAC'
     apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
@@ -359,7 +397,7 @@
   tasks:
 
   - name: 'FEniCS repository'
-    apt_repository: repo='ppa:fenics-packages/fenics'
+    apt_repository: mode=644 repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
     tags: update
@@ -395,7 +433,7 @@
   tasks:
 
   - name: 'pypy repository'
-    apt_repository: repo='ppa:pypy/ppa'
+    apt_repository: mode=644 repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
     tags: update
@@ -410,7 +448,7 @@
   tasks:
 
   - name: 'Cantera repository'
-    apt_repository: repo='ppa:speth/cantera'
+    apt_repository: mode=644 repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
     tags: update
@@ -431,7 +469,7 @@
   - name: 'heroku apt keys'
     apt_key: url='https://toolbelt.heroku.com/apt/release.key'
   - name: 'heroku apt-repository'
-    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
+    apt_repository: mode=644 repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
     tags: update
     apt: name=heroku-toolbelt install_recommends=yes state=latest
@@ -446,7 +484,7 @@
   - name: "obspy keys"
     apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
   - name: "obspy apt repository"
-    apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
+    apt_repository: mode=644 repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
   - name: 'install obspy packages'
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -486,7 +524,7 @@
   - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
     apt_key: keyserver=keyserver.ubuntu.com id=D2D8EDD2BA10D39D925BB7ED11CA9C2FE368B17C
   - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
-    apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
+    apt_repository: mode=644 repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - name: "install open axiom"
     tags: update
     apt: name="open-axiom*"
@@ -504,6 +542,7 @@
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
+    - octave
     - octave-biosig
     - octave-common
     - octave-communications
