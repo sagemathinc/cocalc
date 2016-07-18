@@ -639,7 +639,7 @@ ChatRoom = (name) -> rclass
                               account_id  = {@props.account_id}
                               user_map    = {@props.user_map} />
                     </Col>
-                    <Col xs={6} md={6} style={padding:'2px', textAlign:'right'}>
+                    <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             <Button onClick={@show_timetravel} bsStyle='info'>
                                 <Icon name='history'/> TimeTravel
