@@ -1,3 +1,8 @@
+###
+Put a header here...?
+###
+
+
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon, Space} = require('./r_misc')
 misc = require('smc-util/misc')
@@ -8,6 +13,7 @@ misc = require('smc-util/misc')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
+{ProjectTitle} = require('./projects')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -15,6 +21,8 @@ redux_name = (project_id) ->
     if project_id
         return "paying-and-upgrading-#{project_id}"
     return "paying-and-upgrading"
+
+exports.upgrade_project_redux_name = redux_name
 
 class PayingAndUpgradingActions extends Actions
     init: (@project_id) =>
@@ -28,6 +36,8 @@ exports.init_redux = init_redux = (redux, project_id) ->
     actions.init(project_id)
 
     redux.createStore(name)
+
+exports.init_project_upgrade_redux = init_redux
 
 UpgradeProject = (name) -> rclass
     reduxProps:
@@ -44,11 +54,12 @@ UpgradeProject = (name) -> rclass
             show_all          : rtypes.bool
         billing :
             customer      : rtypes.object
+        account :
+            stripe_customer : rtypes.immutable
 
     propTypes :
         project_id                           : rtypes.string
-        upgrades_you_can_use                 : rtypes.object
-        upgrades_you_applied_to_all_projects : rtypes.object
+        projects_store                       : rtypes.object
         quota_params                         : rtypes.object.isRequired # from the schema
         actions                              : rtypes.object.isRequired # projects actions
 
@@ -113,11 +124,11 @@ UpgradeProject = (name) -> rclass
         # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
 
         # how much upgrade you currently use on this one project
-        current = @props.upgrades_you_applied_to_this_project
+        current = redux.getStore('projects').get_upgrades_you_applied_to_project(@props.project_id)
         # how much upgrade you have used between all projects
-        used_upgrades = @props.upgrades_you_applied_to_all_projects
+        used_upgrades = redux.getStore('projects').get_total_upgrades_you_have_applied()
         # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+        remaining = misc.map_diff(redux.getStore('account').get_total_upgrades(), used_upgrades)
         # maximums you can use, including the upgrades already on this project
         limits = misc.map_sum(current, remaining)
         # additionally, the limits are capped by the maximum per project
@@ -137,7 +148,6 @@ UpgradeProject = (name) -> rclass
             upgrading : true
 
         limits = @get_quota_limits()
-        console.log(JSON.stringify(limits))
         for name, data of @props.quota_params
             factor = data.display_factor
             if name == 'network' or name == 'member_host'
@@ -168,7 +178,7 @@ UpgradeProject = (name) -> rclass
         state =
             upgrading : false
 
-        current = @props.upgrades_you_applied_to_this_project
+        current = redux.getStore('projects').get_upgrades_you_applied_to_project(@props.project_id)
 
         for name, data of @props.quota_params
             factor = data.display_factor
@@ -203,15 +213,71 @@ UpgradeProject = (name) -> rclass
             Reset
         </Button>
 
+    get_projects_with_upgrade_type_contributed_by_user : (upgrade_type) ->
+        projects_to_list = []
+        upgrades = @props.projects_store.get_total_upgrades_you_have_applied()
+        for row in upgrades
+            if row['upgrades']
+                if row['upgrades'][upgrade_type] > 0
+                    if row['project_id'] != @props.project_id
+                        projects_to_list.push(row['project_id'])
+        return projects_to_list
+
+    downgrade_project : (project_id, upgrade_to_downgrade, val) ->
+        upgrades_applied = @props.projects_store.get_upgrades_you_applied_to_project(project_id)
+        upgrades_applied[upgrade_to_downgrade] = val
+        @props.redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades_applied)
+
+    render_downgrade_other_projects : (upgrade_type) ->
+        projects_to_list = @get_projects_with_upgrade_type_contributed_by_user(upgrade_type)
+        for project_id in projects_to_list
+            <Row>
+                <Col sm=4>
+                    <ProjectTitle
+                        project_id={project_id}
+                        project_map={@props.project_map}
+                    />
+                </Col>
+                <Col sm=8 style={'padding': 0} className={'downgrade-checkbox'}>
+                    <Input
+                        ref      = {"downgrade_#{name}"}
+                        type     = 'checkbox'
+                        checked  = {true}
+                        onChange = {=>@downgrade_project(project_id, upgrade_type, 0)}
+                        style    = {'margin': 0}
+                    />
+                </Col>
+            </Row>
+
+    reset_upgrade_for_all_projects : (name) ->
+        # get upgrades
+        #@setState('saving': true)
+        upgrades = @props.projects_store.get_total_upgrades_you_have_applied()
+        for row in upgrades
+            if row['upgrades']
+                row['upgrades'][name] = 0
+                @props.redux.getActions('projects').apply_upgrades_to_project(row['project_id'], row['upgrades'])
+        #@setState('saving': false)
+
     render_addon : (misc, name, display_unit, limit, val, remaining) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit) if remaining > 0}{@render_reset_button(name) if val > 0}</div>
 
+    render_downgrade_other_projects_menuitem : (name) ->
+        <MenuItem onClick={=>@setState('downgrade_other_projects': name)}>Downgrading other projects</MenuItem>
+
+    render_reset_upgrade_for_all_projects_menuitem : (name) ->
+        <MenuItem onClick={=>@reset_upgrade_for_all_projects(name)}>Resetting this upgrade type for all projects</MenuItem>
+
+    scroll_to_add_subscription_top : ->
+        $('html, body').animate({ scrollTop: $(".add_subscription_top").offset().top }, 2000);
+
     render_get_more_of_this_upgrade : (name) ->
+        # results in member_host
         # Detrimine if user has subscription that has given upgrade. Like cores requires permium subscription
-        <DropdownButton title='Get more of this upgrade by' bsSize='xsmall'>
-            <MenuItem>Purchasing an additional subscription</MenuItem>
-            <MenuItem>Downgrading other projects</MenuItem>
-            <MenuItem>Resetting this upgrade type for all projects</MenuItem>
+        <DropdownButton title='Get more of this upgrade by' bsSize='xsmall' id='get_more_of_this_upgrade'>
+            <MenuItem onClick={=>@scroll_to_add_subscription_top()}>Purchasing an additional subscription</MenuItem>
+            {@render_downgrade_other_projects_menuitem(name) if @get_projects_with_upgrade_type_contributed_by_user(name).length > 0}
+            {@render_reset_upgrade_for_all_projects_menuitem(name) if @get_projects_with_upgrade_type_contributed_by_user(name).length > 0}
         </DropdownButton>
 
     render_upgrade_input : (name, val, bs_style, misc, display_unit, limit, remaining) ->
@@ -233,10 +299,15 @@ UpgradeProject = (name) -> rclass
             onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
         />
 
-    render_height_space : ->
-        <div style={'height':'34px !important'}></div>
+    render_out_of_upgrades_get_more_dropdown : (name) ->
+        <div style={'height':'34px !important'}>You're out of upgrades {@render_get_more_of_this_upgrade(name)}</div>
+
+    render_out_of_upgrades : (name) ->
+
+        <div style={'height':'34px !important'}>You're out of upgrades {@render_get_more_of_this_upgrade(name)}</div>
 
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
+        #console.log(@state["downgrade_other_projects"]);
         if not data?
             return
 
@@ -254,23 +325,29 @@ UpgradeProject = (name) -> rclass
                 label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
-                    </Tip>
-                    ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
-                    <Space /><Space />
-                    {@render_get_more_of_this_upgrade(name)}
-                </Col>
-                <Col sm=6>
-                    <form>
-                        {if not (show_remaining == 0 and val == 0) then @render_upgrade_checkbox(name, val, label) else @render_height_space()}
-                    </form>
-                </Col>
-            </Row>
-
+            <div>
+                <Row key={name}>
+                    <Col sm=5>
+                        <Tip title={display} tip={desc}>
+                            <strong>{display}</strong><Space/>
+                        </Tip>
+                        ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                    </Col>
+                    <Col sm=2>
+                        {@render_get_more_of_this_upgrade(name)}
+                    </Col>
+                    <Col sm=5>
+                        <form>
+                            {if not (show_remaining == 0 and val == 0) then @render_upgrade_checkbox(name, val, label) else @render_out_of_upgrades(name)}
+                        </form>
+                    </Col>
+                </Row>
+                <Row key={name+'_downgrade'}>
+                    <Col sm=12>
+                        {@render_downgrade_other_projects(name) if @state["downgrade_other_projects"] == name}
+                    </Col>
+                </Row>
+            </div>
 
         else if input_type == 'number'
             remaining = misc.round2(remaining * display_factor)
@@ -295,21 +372,28 @@ UpgradeProject = (name) -> rclass
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
                 label = <span></span>
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
-                    </Tip>
-                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
-                    <Space /><Space />
-                    {@render_get_more_of_this_upgrade(name)}
-                </Col>
-                <Col sm=6>
-                    {if (show_remaining == 0 and val == 0) then @render_height_space() else @render_upgrade_input(name, val, bs_style, misc, display_unit, limit, show_remaining)}
-                    {label}
-                </Col>
-            </Row>
+            <div>
+                <Row key={name}>
+                    <Col sm=5>
+                        <Tip title={display} tip={desc}>
+                            <strong>{display}</strong><Space/>
+                        </Tip>
+                        ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    </Col>
+                    <Col sm=2>
+                        {@render_get_more_of_this_upgrade(name)}
+                    </Col>
+                    <Col sm=5>
+                        {if (show_remaining == 0 and val == 0) then @render_out_of_upgrades(name) else @render_upgrade_input(name, val, bs_style, misc, display_unit, limit, show_remaining)}
+                        {label}
+                    </Col>
+                </Row>
+                <Row key={name+'_downgrade'}>
+                    <Col sm=12>
+                        {@render_downgrade_other_projects(name) if @state["downgrade_other_projects"] == name}
+                    </Col>
+                </Row>
+            </div>
         else
             console.warn('Invalid input type in render_upgrade_row: ', input_type)
             return
@@ -338,23 +422,28 @@ UpgradeProject = (name) -> rclass
         return changed
 
     render_upgrades_adjustor : ->
-        if misc.is_zero_map(@props.upgrades_you_can_use)
+        if misc.is_zero_map(redux.getStore('account').get_total_upgrades())
             # user has no upgrades on their account
             <NoUpgrades cancel={@cancel_upgrading} />
         else
             quota_params = @props.quota_params
             # how much upgrade you have used between all projects
-            used_upgrades = @props.upgrades_you_applied_to_all_projects
+            used_upgrades = redux.getStore('projects').get_total_upgrades_you_have_applied()
 
             # how much upgrade you currently use on this one project
-            current = @props.upgrades_you_applied_to_this_project
+            current = redux.getStore('projects').get_upgrades_you_applied_to_project(@props.project_id)
             # how much unused upgrade you have remaining
-            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+            remaining = misc.map_diff(redux.getStore('account').get_total_upgrades(), used_upgrades)
 
             # maximums you can use, including the upgrades already on this project
             limits = misc.map_sum(current, remaining)
             ordered_fields = PROJECT_UPGRADES.field_order
             ordered_quota_params = {}
+            console.log(JSON.stringify(@props.project_id));
+            console.log(quota_params);
+            console.log(remaining);
+            console.log(current, @props.project_id);
+            console.log(limits);
             for name in ordered_fields
                 ordered_quota_params[name] = @props.quota_params[name]
             <Alert bsStyle='info'>
@@ -406,12 +495,11 @@ UpgradeProject = (name) -> rclass
         @setState(upgrading: false)
 
     render_main : ->
-
+        upgrades = @props.redux.getStore('projects').get_total_upgrades_you_have_applied()
         subs = @props.customer?.subscriptions?.total_count ? 0
         <div>
-            {<div id="upgrade_before_creation"></div> if subs == 0}
+            <div className="add_subscription_top"></div>
             <BillingPageSimplifiedRedux redux={@redux} />
-            {<div id="upgrade_before_creation"></div> if subs > 0}
             {@render_upgrades_adjustor() if subs > 0}
             <ButtonToolbar>
                 <Button
@@ -444,13 +532,13 @@ render = (redux, project_id) ->
             <UpgradeProject_connected
                 redux                                = {redux}
                 project_id                           = {project_id}
-                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
-                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                upgrades_you_applied_to_this_project = {redux.getStore('projects').get_upgrades_you_applied_to_project(project_id)}
+                projects_store                       = {redux.getStore('projects')}
                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 actions                              = {redux.getActions(name)} />
         </Redux>
     </div>
+
+exports.UpgradeProject = UpgradeProject
 
 exports.free = (project_id, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)

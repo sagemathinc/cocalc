@@ -118,7 +118,7 @@ class ProjectPage
 
     get_total_project_quotas: (s, project_id) =>
         quotas = s.get_total_project_quotas(project_id)
-        quotas.project_id = project_id
+        quotas?.project_id = project_id
         return quotas
 
     free_project_warning: () =>
