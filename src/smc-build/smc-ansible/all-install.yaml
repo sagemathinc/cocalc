@@ -788,7 +788,6 @@
     - python3-frozendict
     - python3-fysom
     - python3-gdal
-    - python3-genshi
     - python3-geoip
     - python3-geojson
     - python3-geopy
