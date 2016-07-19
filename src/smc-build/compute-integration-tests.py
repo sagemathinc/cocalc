@@ -49,20 +49,20 @@ BINARIES = [
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
-    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'pysal'
+    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'pysal', 'openpyxl',
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only :-(
-    'numba', 'xarray',
+    'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray',
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 PY_SAGE = PY_COMMON + [
@@ -71,12 +71,12 @@ PY_SAGE = PY_COMMON + [
     'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack', 'mercurial',
     'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'clawpack', 'shapely', 'simpy', 'gmpy2',
     'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
-    'jinja2', 'Bio'
+    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3',
 ]
 
 PY3_ANACONDA = PY_COMMON + [
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray',
+    'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray', 'symengine', 'pymc',
 ]
 
 # This should be the offical R from the CRAN ubuntu repos and Sage's R

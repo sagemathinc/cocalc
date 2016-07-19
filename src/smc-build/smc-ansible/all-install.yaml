@@ -239,6 +239,7 @@
     - csh
     - cvs
     - cython
+    - cython3
     - dieharder
     - doxygen
     - dstat
@@ -365,6 +366,9 @@
     - libqt4-dev
     - libroot-bindings-python-dev
     - libroot-graf2d-postscript5.34
+    - libsodium-dev
+    - libsodium18
+    - libsuitesparse-dev
     - libswscale-dev
     - libtbb-dev
     - libtheora-dev
@@ -609,12 +613,14 @@
     - python-mplexporter
     - python-mpmath
     - python-mpltoolkits.basemap
+    - python-nacl
     - python-nose
     - python-nose-cov
     - python-nose2
     - python-nose2-cov
     - python-numexpr
     - python-openopt
+    - python-openpyxl
     - python-pandas
     - python-patsy
     - python-pebl
@@ -818,6 +824,7 @@
     - python3-mpmath
     - python3-msgpack
     - python3-mysqldb
+    - python3-nacl
     - python3-netcdf4
     - python3-networkx
     - python3-nine
@@ -835,6 +842,7 @@
     with_items:
     - python3-oauth
     - python3-openssl
+    - python3-openpyxl
     - python3-pandas
     - python3-pandocfilters
     - python3-paramiko

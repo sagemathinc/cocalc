@@ -46,6 +46,8 @@
     - toolz
     - cytoolz
     - pysal
+    - ncpol2sdpa
+    - hdbscan
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -87,6 +89,9 @@
     - toolz
     - cytoolz
     - pysal
+    - ncpol2sdpa
+    - hdbscan
+    - pymc
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -94,6 +99,12 @@
     shell: |
         LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip2 install llvmlite numba
         LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip3 install llvmlite numba
+
+  - name: "pymc3 in py2 and py3"
+    tags: [ pip2, pip3, install, update ]
+    shell: |
+        pip2 install git+https://github.com/pymc-devs/pymc3
+        pip3 install git+https://github.com/pymc-devs/pymc3
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo

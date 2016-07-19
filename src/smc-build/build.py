@@ -183,6 +183,10 @@ SAGE_PIP_PACKAGES = [
     'scikit-image',
     'Shapely',
     'SimPy',
+    'ncpol2sdpa',
+    'hdbscan',
+    'openpyxl',
+    'pymc',
     'xlrd',
     'xlwt',
     'pyproj',
@@ -193,6 +197,7 @@ SAGE_PIP_PACKAGES = [
     'munkres',
     'oct2py',
     'psutil',
+    'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
     'mahotas',

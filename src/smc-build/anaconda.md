@@ -50,6 +50,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
       - jjhelmus
       - juanlu001
       - obspy
+      - bokeh
       - r
       - mro
       - bioconda
@@ -65,7 +66,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 1. activate the environment (see above)
 1. `umask 002`
 
-       conda install -y basemap bcolz blist boost bsdiff4 btrees bz2file  cherrypy chest cloudpickle coverage cssselect csvkit cubes cvxopt cymem dask distributed xarray datrie db dill django docopt toolz cytoolz
+       conda install -y basemap bcolz blist boost bsdiff4 btrees bz2file  cherrypy chest cloudpickle coverage cssselect csvkit cubes cvxopt cymem dask distributed xarray datrie db dill django docopt toolz cytoolz datashader python-symengine pymc gdal
 
        conda install -y ecdsa ephem execnet  feedparser flake8 flask-wtf flask-login future gensim geos gunicorn heapdict html5lib  lancet libnetcdf line_profiler llvm locket lockfile logilab-common mako markdown2 mdp mock markdown descartes pysal
 
