@@ -41,7 +41,7 @@ project_store   = require('./project_store')
 {alert_message} = require('./alerts')
 misc_page       = require('./misc_page')
 
-{redux}         = require('./smc-react')
+{redux, ReactDOM} = require('./smc-react')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('./editor')
@@ -116,11 +116,16 @@ class ProjectPage
         delete @actions
         delete @store
 
+    get_total_project_quotas: (s, project_id) =>
+        quotas = s.get_total_project_quotas(project_id)
+        quotas?.project_id = project_id
+        return quotas
+
     free_project_warning: () =>
         if underscore.contains(warning_banner_hidden, @project_id)
             return
         @projects_store.wait
-            until   : (s) => s.get_total_project_quotas(@project_id)
+            until   : (s) => @get_total_project_quotas(s, @project_id)
             timeout : 60
             cb      : (err, quotas) =>
                 if not err and quotas?
@@ -141,9 +146,7 @@ class ProjectPage
                     <ul>
                         <li>Learn about <a href='#{PolicyPricingPageUrl}' class='pricing' target='_blank'>Pricing and Subscriptions</a></li>
                         <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" class='faq' target='_blank'>Frequently Asked Questions</a></li>
-                        <li>Visit <a href='#' class='billing'>Billing</a> to <em>subscribe</em> to a plan</li>
-                        <li>Upgrade <em>this</em> project in <a href='#' class='settings'>Project Settings</a></li>
-                    </ul></p>"""
+                    </ul></p><div class="warning_banner_upgrade_this_project"></div>"""
                     if host or internet
                         extra = ""
                         html = "<p><i class='fa fa-exclamation-triangle'></i> WARNING: This project runs"
@@ -153,12 +156,14 @@ class ProjectPage
                         if internet
                             html += " without <b>internet access</b>"
                             extra += long_warning_internet
-                        html += " &mdash; <a href='#' class='learn'>learn more...</a> "
+                        html += " &mdash; <a href='#' class='learn'>learn more or upgrade...</a> "
                         html += "<a href='#' class='dismiss'>×</a></p>"
                         html += "<div class='longtext'>#{extra} #{long_warning_info}</div>"
                         box.find("div").html(html)
                         box.find('div a.learn').click (evt) ->
                             box.find('div.longtext').show()
+                            banner = box.find('.warning_banner_upgrade_this_project')
+                            require('./paying_and_upgrading').init_upgrade_project(banner.get(0), quotas.project_id, redux)
                         box.find("div a.billing").click (evt) ->
                             require('./history').load_target('settings/billing')
                             evt.stopPropagation()
@@ -168,8 +173,6 @@ class ProjectPage
                             warning_banner_hidden.push(@project_id)
                             box.hide()
                         box.show()
-                    else
-                        box.hide()
 
 
     init_new_tab_in_navbar: () =>
