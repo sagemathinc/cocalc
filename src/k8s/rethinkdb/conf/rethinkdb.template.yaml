@@ -61,10 +61,10 @@ spec:
                 fieldPath: metadata.namespace
         resources:
           requests:
-            memory: "1000Mi"
+            memory: "2000Mi"
             cpu: "400m"
           limits:
-            memory: "4000Mi"
+            memory: "8000Mi"
             cpu: "2000m"
       volumes:
       dnsPolicy: ClusterFirst

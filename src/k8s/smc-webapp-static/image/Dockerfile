@@ -14,8 +14,9 @@ COPY google_analytics /smc/src/data/config/
 # Pull latest version of code and rebuild
 RUN cd /smc/src && . ./smc-env && git pull && git fetch origin && git checkout ${commit:-HEAD} && ./install.py webapp build
 
-# Delete everything except the static site that we want to serve (no point in wasting space)
-RUN rsync -axHL /smc/src/static/ /static/  && rm -rf /smc
+# Move static to /static, to make it a little more straightforward.
+# Note -- we now leave smc/src around, so it's easier for debugging purposes.
+RUN mv /smc/src/static/ /static/
 
 # Remove build pre-requisites that are no longer needed for just running the nginx static server
 RUN \

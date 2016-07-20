@@ -34,19 +34,17 @@ spec:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
         name: storage{number}
-        ports:
-          - name: nfs
-            containerPort: 2049
-          - name: mountd
-            containerPort: 20048
-          - name: rpcbind
-            containerPort: 111
         securityContext:
           privileged: true
         terminationMessagePath: /dev/termination-log
         volumeMounts:
-        - mountPath: /projects
-          name: storage-projects
+        - mountPath: /data
+          name: data
+        - mountPath: /ssh
+          name: storage-ssh
+        - mountPath: /secrets/rethinkdb/
+          name: secret-rethinkdb
+          readOnly: true
         resources:
           requests:
             memory: "100Mi"
@@ -58,7 +56,14 @@ spec:
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: storage-projects
+      - name: data
         gcePersistentDisk:
           fsType: ext4
           pdName: {pd_name}
+      - name: storage-ssh
+        secret:
+          secretName: storage-ssh
+      - name: secret-rethinkdb
+        secret:
+          secretName: rethinkdb-password
+

@@ -1,14 +1,16 @@
 # SMC libraries
 misc = require('smc-util/misc')
 {defaults, required} = misc
+{salvus_client} = require('../salvus_client')
 
 # React libraries
 {React, rclass, rtypes, Actions}  = require('../smc-react')
 
 {Button, ButtonToolbar, ButtonGroup, Input, Row, Col} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, Space, TimeAgo, Tip} = require('../r_misc')
+{ErrorDisplay, Icon, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
 
+# Move these to funcs file
 exports.STEPS = (peer) ->
     if peer
         return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'return_graded']
@@ -76,6 +78,7 @@ exports.step_ready = (step, n) ->
         when 'peer_collect'
             return ' who should have peer graded it'
 
+# I don't think this is used anywhere...
 exports.DirectoryLink = rclass
     displayName : "DirectoryLink"
 
@@ -363,5 +366,182 @@ exports.StudentAssignmentInfo = rclass
                            "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
                     </Col>
                 </Row>
+            </Col>
+        </Row>
+
+# Multiple result selector
+# use on_change and search to control the search bar
+# Coupled with Assignments Panel and Handouts Panel
+exports.MultipleAddSearch = MultipleAddSearch = rclass
+    propTypes :
+        add_selected     : rtypes.func.isRequired   # Submit user selected results
+        do_search        : rtypes.func.isRequired   # Submit search query
+        is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
+        err              : rtypes.object            # Search error
+        search_results   : rtypes.array             # contents to put in the selection box after getting search result back
+        real_time        : rtypes.bool              # Controls whether add_selected is called on submit or on change
+        item_name        : rtypes.string
+
+    getDefaultProps : ->
+        real_time        : false
+        item_name        : 'result'
+
+    getInitialState : ->
+        selected_items : '' # currently selected options
+        show_selector : false
+
+    componentWillReceiveProps : (newProps) ->
+        @setState
+            show_selector : newProps.search_results? and newProps.search_results != @props.search_results
+
+    clear_and_focus_search_input : ->
+        @setState(show_selector : false)
+        @refs.search_input.clear_and_focus_search_input()
+
+    # TODO: Check if this works
+    search_button : ->
+        if @props.is_searching
+            # Currently doing a search, so show a spinner
+            <Button>
+                <Icon name="circle-o-notch" spin />
+            </Button>
+        else if @state.show_selector
+            # There is something in the selection box -- so only action is to clear the search box.
+            <Button onClick={@clear_and_focus_search_input}>
+                <Icon name="times-circle" />
+            </Button>
+        else
+            # Waiting for user to start a search
+            <Button onClick={@props.do_search}>
+                <Icon name="search" />
+            </Button>
+
+    add_button_clicked : (e) ->
+        e.preventDefault()
+        @props.add_selected(@state.selected_items)
+        @clear_and_focus_search_input()
+
+    render_results_list : ->
+        for item in @props.search_results
+            <option key={item} value={item} label={item}>{item}</option>
+
+    render_add_selector : ->
+        <div>
+            <Input type='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : @refs.selector.getValue())}>
+                {@render_results_list()}
+            </Input>
+            <ButtonToolbar>
+                {@render_add_selector_button()}
+                <Button onClick={@clear_and_focus_search_input}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </div>
+
+    render_add_selector_button : ->
+        num_items_selected = @state.selected_items?.length ? 0
+        btn_text = switch @props.search_results.length
+            when 0 then "No #{@props.item_name} found"
+            when 1 then "Add #{@props.item_name}"
+            else switch num_items_selected
+                when 0 then "Select #{@props.item_name} above"
+                when 1 then "Add selected #{@props.item_name}"
+                else "Add #{num_items_selected} #{@props.item_name}s"
+        disabled = @props.search_results.length == 0 or (@props.search_results.length >= 2 and num_items_selected == 0)
+        <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+
+    render : ->
+        <div>
+            <SearchInput
+                autoFocus     = {true}
+                ref           = 'search_input'
+                default_value = ''
+                placeholder   = "Add #{@props.item_name} by folder name (enter to see available folders)..."
+                on_submit     = {@props.do_search}
+                on_escape     = {@clear_and_focus_search_input}
+                buttonAfter   = {@search_button()}
+            />
+            {@render_add_selector() if @state.show_selector}
+         </div>
+
+# Definitely not a good abstraction.
+# Purely for code reuse (bad reason..)
+# Complects FilterSearchBar and AddSearchBar...
+exports.FoldersToolbar = rclass
+    propTypes :
+        search        : rtypes.string
+        search_change : rtypes.func.isRequired      # search_change(current_search_value)
+        num_omitted   : rtypes.number
+        project_id    : rtypes.string
+        items         : rtypes.object.isRequired
+        add_folders   : rtypes.func                 # add_folders (Iterable<T>)
+        item_name     : rtypes.string
+        plural_item_name : rtypes.string
+
+    getDefaultProps : ->
+        item_name : "item"
+        plural_item_name : "items"
+
+    getInitialState : ->
+        add_is_searching : false
+
+    do_add_search : (search) ->
+        if @state.add_is_searching
+            return
+        @setState(add_is_searching:true)
+        salvus_client.find_directories
+            project_id : @props.project_id
+            query      : "*#{search.trim()}*"
+            cb         : (err, resp) =>
+                if err
+                    @setState(add_is_searching:false, err:err, add_search_results:undefined)
+                else
+                    filtered_results = @filter_results(resp.directories, search, @props.items)
+                    @setState(add_is_searching:false, add_search_results:filtered_results)
+
+    # Filter directories based on contents of all_items
+    filter_results : (directories, search, all_items) ->
+        if directories.length > 0
+            # Omit any -collect directory (unless explicitly searched for).
+            # Omit any currently assigned directory
+            paths_to_omit = []
+
+            active_items = all_items.filter (val) => not val.get('deleted')
+            active_items.map (val) =>
+                path = val.get('path')
+                if path  # path might not be set in case something went wrong (this has been hit in production)
+                    paths_to_omit.push(path)
+
+            should_omit = (path) =>
+                if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
+                    # omit assignment collection folders unless explicitly searched (could cause confusion...)
+                    return true
+                return paths_to_omit.includes(path)
+
+            directories = directories.filter (x) => not should_omit(x)
+            directories.sort()
+        return directories
+
+    render : ->
+        <Row>
+            <Col md=3>
+                <SearchInput
+                    placeholder   = {"Find #{@props.plural_item_name}..."}
+                    default_value = {@props.search}
+                    on_change     = {@props.search_change}
+                />
+            </Col>
+            <Col md=4>
+              {<h5>(Omitting {@props.num_omitted} {if @props.num_ommitted > 1 then @props.plural_item_name else @props.item_name})</h5> if @props.num_omitted}
+            </Col>
+            <Col md=5>
+                <MultipleAddSearch
+                    add_selected   = {@props.add_folders}
+                    do_search      = {@do_add_search}
+                    is_searching   = {@state.add_is_searching}
+                    item_name      = {@props.item_name}
+                    err            = {undefined}
+                    search_results = {@state.add_search_results}
+                 />
             </Col>
         </Row>

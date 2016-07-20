@@ -8,12 +8,13 @@ set -v
 
 umask 022
 
-cd /projects/anaconda3
+cd ${ANACONDA3:-/ext/anaconda}
 . bin/activate root
 conda update --all --yes
 conda clean --all --yes
 . deactivate
 
-push .
+# only run push if it exists
+hash push 2>/dev/null && push .
 
 

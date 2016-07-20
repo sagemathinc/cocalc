@@ -1,0 +1,53 @@
+# This is really a template for generating the yaml that describes the deployments
+# for each of the storage nodes.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: project-{project_id}
+  labels:
+    run        : project{project_id}
+    project_id : {project_id}
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  selfLink: /apis/extensions/v1beta1/namespaces/deployments/project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project_id : {project_id}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+          project_id : {project_id}
+    spec:
+      containers:
+      - name: project
+        image: {image}
+        imagePullPolicy: {pull_policy}
+        volumeMounts:
+        - name: project
+          mountPath: /projects/{project_id}
+        env:
+          - name: SMC_PROJECT_ID
+            value: {project_id}
+        resources:
+          requests:
+            memory: "40Mi"
+            cpu: "5m"
+          limits:
+            memory: "1000Mi"
+            cpu: "1000m"
+      volumes:
+      - name: project
+        flexVolume:
+          driver : "smc/smc-storage"
+          options:
+            namespace : {namespace}
+            server    : "storage{storage_server}"
+            path      : "projects/{project_id}.zfs"
+            size      : {disk_size}

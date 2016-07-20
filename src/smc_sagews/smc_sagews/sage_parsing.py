@@ -253,7 +253,7 @@ def divide_into_blocks(code):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
-        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('elif')):
+        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('try') or blocks[i-1][-1].lstrip().startswith('elif')):
             merge()
 
         # lines starting with elif
@@ -346,7 +346,8 @@ def introspect(code, namespace, preparse=True):
         expr        = code0[i:]%literals
         before_expr = code0[:i]%literals
 
-        if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+        chrs = set('.()[]?')
+        if not any(c in expr for c in chrs):
             # Easy case: this is just completion on a simple identifier in the namespace.
             get_help = False; get_completions = True; get_source = False
             target = expr
@@ -405,7 +406,7 @@ def introspect(code, namespace, preparse=True):
                 # We first try to evaluate the part of the expression before the name
                 try:
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
-                except SyntaxError:
+                except (SyntaxError, TypeError, AttributeError):
                     # If that fails, we try on a subexpression.
                     # TODO: This will not be needed when
                     # this code is re-written to parse using an

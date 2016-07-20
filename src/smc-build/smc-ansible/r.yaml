@@ -1,0 +1,480 @@
+# R -- from official ubuntu repository
+- hosts: compute
+  become: yes
+  gather_facts: yes
+  tags: r
+  vars:
+    repo: "https://cloud.r-project.org/"
+
+  tasks:
+  - name: 'R apt keys'
+    apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
+
+  - name: 'Official R repository url'
+    apt_repository: mode=644 repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
+
+  - name: 'R installation (some base packages)'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - libssl-dev # required for cran's devtools
+    - libssh2-1-dev # for cran's devtools
+    - libcurl4-openssl-dev # also devtools
+    - ipython3 # needed by IRkernel
+    - ipython3-notebook # needed by IRkernel
+    - jags
+    - r-doc-html
+    - r-base-dev
+    - r-base-html
+    - r-recommended
+    - littler
+    - python-rpy2
+    - python3-rpy2
+    - ess
+
+  # why buggy?
+  #- name: "install R wrapper (R-sage → Sage's R)"
+  #  copy: src=files/R-sage dest=/usr/local/bin/R-sage
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy R wrapper (R-sage → Sage's R)"
+    tags: [install, update]
+    shell: |
+           cp files/R-sage /usr/local/bin/R-sage
+           chmod ugo=rx /usr/local/bin/R-sage
+
+  # why buggy?
+  #- name: "install Rscript wrapper (similar to R → Sage's R)"
+  #  copy: src=files/Rscript-sage dest=/usr/local/bin/Rscript-sage
+  #        owner=root group=root mode=ugo=rx
+  - name: "copy Rscript wrapper (similar to R-sage → Sage's R)"
+    tags: [install, update]
+    shell: |
+           cp files/Rscript-sage /usr/local/bin/Rscript-sage
+           chmod ugo=rx /usr/local/bin/Rscript-sage
+
+    # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
+    # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
+  - name: 'R installation (official ubuntu repo) #0'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-abind
+    - r-cran-acepack
+    - r-cran-ade4
+    - r-cran-afex
+    - r-cran-amelia
+    - r-cran-amore
+    - r-cran-ape
+    - r-cran-base64enc
+    - r-cran-batchjobs
+    - r-cran-bayesfactor
+    - r-cran-bayesm
+    - r-cran-bbmisc
+    - r-cran-beeswarm
+    - r-cran-biasedurn
+    - r-cran-bio3d
+    - r-cran-bitops
+    - r-cran-blockmodeling
+    - r-cran-bms
+    - r-cran-boolnet
+    - r-cran-bradleyterry2
+    - r-cran-brew
+    - r-cran-brglm
+    - r-cran-cairodevice
+    - r-cran-car
+    - r-cran-caret
+    - r-cran-catools
+    - r-cran-checkmate
+    - r-cran-chron
+    - r-cran-class
+
+  - name: 'R installation (official ubuntu repo) #1'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-cluster
+    - r-cran-cmprsk
+    - r-cran-coda
+    - r-cran-codetools
+    - r-cran-coin
+    - r-cran-colorspace
+    - r-cran-combinat
+    - r-cran-contfrac
+    - r-cran-conting
+    - r-cran-crayon
+    - r-cran-cubature
+    - r-cran-date
+    - r-cran-dbi
+    - r-cran-deal
+    - r-cran-deldir
+    - r-cran-deoptimr
+    - r-cran-desolve
+    - r-cran-diagnosismed
+    - r-cran-dichromat
+    - r-cran-digest
+    - r-cran-domc
+    - r-cran-doparallel
+    - r-cran-dosefinding
+    - r-cran-dosnow
+    - r-cran-downloader
+    - r-cran-e1071
+    - r-cran-eco
+    - r-cran-ecodist
+    - r-cran-effects
+    - r-cran-elliptic
+    - r-cran-energy
+    - r-cran-epi
+    - r-cran-epibasix
+    - r-cran-epicalc
+    - r-cran-epir
+    - r-cran-epitools
+    - r-cran-erm
+    - r-cran-estimability
+    - r-cran-etm
+    - r-cran-evaluate
+    - r-cran-evd
+    - r-cran-expm
+    - r-cran-fail
+    - r-cran-fasianoptions
+    - r-cran-fassets
+    - r-cran-fastcluster
+    - r-cran-fastmatch
+    - r-cran-fbasics
+    - r-cran-fbonds
+    - r-cran-fcopulae
+    - r-cran-fexoticoptions
+    - r-cran-fextremes
+
+  - name: 'R installation (official ubuntu repo) #2'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-fgarch
+    - r-cran-fimport
+    - r-cran-fmultivar
+    - r-cran-fnonlinear
+    - r-cran-foptions
+    - r-cran-foreach
+    - r-cran-foreign
+    - r-cran-formatr
+    - r-cran-formula
+    - r-cran-fportfolio
+    - r-cran-fregression
+    - r-cran-ftrading
+    - r-cran-funitroots
+    - r-cran-futile.logger
+    - r-cran-futile.options
+    - r-cran-g.data
+    - r-cran-gam
+    - r-cran-gbm
+    - r-cran-gdata
+    - r-cran-geepack
+    - r-cran-genabel
+    - r-cran-genabel.data
+    - r-cran-genetics
+    - r-cran-getopt
+    - r-cran-ggplot2
+    - r-cran-gmaps
+    - r-cran-gmodels
+    - r-cran-gnm
+    - r-cran-gplots
+    - r-cran-gregmisc
+    - r-cran-gridextra
+    - r-cran-gsl
+    - r-cran-gss
+    - r-cran-gtable
+    - r-cran-gtools
+    - r-cran-haplo.stats
+    - r-cran-hdf5
+    - r-cran-hmisc
+    - r-cran-httpuv
+    - r-cran-hwriter
+    - r-cran-hypergeo
+    - r-cran-igraph
+    - r-cran-inline
+    - r-cran-int64
+    - r-cran-iterators
+    - r-cran-its
+    - r-cran-jsonlite
+
+  - name: 'R installation (official ubuntu repo) #3'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-kernlab
+    - r-cran-kernsmooth
+    - r-cran-labeling
+    - r-cran-lambda.r
+    - r-cran-lattice
+    - r-cran-latticeextra
+    - r-cran-learnbayes
+    - r-cran-lhs
+    - r-cran-littler
+    - r-cran-lme4
+    - r-cran-lmtest
+    - r-cran-logspline
+    - r-cran-lpsolve
+    - r-cran-lsmeans
+    - r-cran-magrittr
+    - r-cran-maldiquant
+    - r-cran-maldiquantforeign
+    - r-cran-mapdata
+    - r-cran-mapproj
+    - r-cran-maps
+    - r-cran-mass
+    - r-cran-matchit
+    - r-cran-matrix
+    - r-cran-matrixmodels
+    - r-cran-matrixstats
+    - r-cran-maxlik
+    - r-cran-mcmcpack
+    - r-cran-medadherence
+    - r-cran-memoise
+    - r-cran-mfilter
+    - r-cran-mime
+    - r-cran-minqa
+    - r-cran-misc3d
+    - r-cran-misctools
+    - r-cran-mixtools
+    - r-cran-mnormt
+    - r-cran-mnp
+    - r-cran-modeltools
+    - r-cran-msm
+    - r-cran-multcomp
+    - r-cran-multicore
+    - r-cran-munsell
+    - r-cran-mvnormtest
+    - r-cran-mvtnorm
+
+  - name: 'R installation (official ubuntu repo) #4'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-ncdf4
+    - r-cran-nlme
+    - r-cran-nloptr
+    - r-cran-nnet
+    - r-cran-nnls
+    - r-cran-numderiv
+    - r-cran-nws
+    - r-cran-optparse
+    - r-cran-pbapply
+    - r-cran-pbivnorm
+    - r-cran-pbkrtest
+    - r-cran-permute
+    - r-cran-phangorn
+    - r-cran-pkgkitten
+    - r-cran-plotrix
+    - r-cran-plyr
+    - r-cran-polspline
+    - r-cran-polyclip
+    - r-cran-polycub
+    - r-cran-praise
+    - r-cran-profilemodel
+    - r-cran-proto
+    - r-cran-pscl
+    - r-cran-psy
+    - r-cran-pvclust
+    - r-cran-pwt
+    - r-cran-pwt8
+    - r-cran-qtl
+    - r-cran-quadprog
+    - r-cran-quantreg
+    - r-cran-qvcalc
+    - r-cran-r.methodss3
+    - r-cran-r.oo
+    - r-cran-r.utils
+    - r-cran-randomfields
+    - r-cran-randomforest
+    - r-cran-raschsampler
+    - r-cran-rcolorbrewer
+    - r-cran-rcpp
+    - r-cran-rcpparmadillo
+    - r-cran-rcppeigen
+    - r-cran-rcurl
+    - r-cran-readbrukerflexdata
+    - r-cran-readmzxmldata
+    - r-cran-readxl
+    - r-cran-relimp
+    - r-cran-reshape
+    - r-cran-reshape2
+    - r-cran-rggobi
+    - r-cran-rgl
+    - r-cran-rglpk
+    - r-cran-rinside
+
+  - name: 'R installation (official ubuntu repo) #5'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-cran-rjags
+    - r-cran-rjava
+    - r-cran-rjson
+    - r-cran-rmpi
+    - r-cran-rms
+    - r-cran-rmysql
+    - r-cran-rneos
+    - r-cran-rnetcdf
+    - r-cran-rniftilib
+    - r-cran-robustbase
+    - r-cran-rocr
+    - r-cran-rpart
+    - r-cran-rpostgresql
+    - r-cran-rquantlib
+    - r-cran-rsclient
+    - r-cran-rsdmx
+    - r-cran-rserve
+    - r-cran-rsolnp
+    - r-cran-rsprng
+    - r-cran-rsqlite
+    - r-cran-rsymphony
+    - r-cran-runit
+    - r-cran-sandwich
+    - r-cran-scales
+    - r-cran-scatterplot3d
+    - r-cran-segmented
+    - r-cran-sendmailr
+    - r-cran-seqinr
+    - r-cran-seroincidence
+    - r-cran-slam
+    - r-cran-sm
+    - r-cran-sn
+    - r-cran-snow
+    - r-cran-sp
+    - r-cran-spam
+    - r-cran-sparsem
+    - r-cran-spatial
+    - r-cran-spatstat
+    - r-cran-spc
+    - r-cran-stabledist
+    - r-cran-statmod
+    - r-cran-stringi
+    - r-cran-stringr
+    - r-cran-strucchange
+    - r-cran-survival
+    - r-cran-teachingdemos
+    - r-cran-tensor
+    - r-cran-testthat
+    - r-cran-timedate
+    - r-cran-timeseries
+    - r-cran-truncnorm
+    - r-cran-tseries
+    - r-cran-urca
+    - r-cran-vcd
+    - r-cran-vcdextra
+    - r-cran-vegan
+    - r-cran-vgam
+    - r-cran-vioplot
+    - r-cran-wdi
+    - r-cran-xml
+    - r-cran-xtable
+    - r-cran-xts
+    - r-cran-yaml
+    - r-cran-zelig
+    - r-cran-zoo
+    - r-cran-rodbc
+    - r-cran-mgcv
+    - r-cran-boot
+    - r-mathlib
+
+    # picks from the list of r packages in that repo (avoiding those with graphic interfaces, etc.)
+    # get it via $ apt-cache search r- | grep -e '^r-' | cut -d" " -f1 | xargs -L1 echo "    -"
+  - name: 'R bioconductor installation (from official ubuntu repo) #0'
+    apt: "name={{ item }} install_recommends=yes state=latest"
+    tags: [install, update]
+    with_items:
+    - r-bioc-affy
+    - r-bioc-affyio
+    - r-bioc-altcdfenvs
+    - r-bioc-annotate
+    - r-bioc-annotationdbi
+    - r-bioc-aroma.light
+    - r-bioc-biobase
+    - r-bioc-biocgenerics
+    - r-bioc-biocinstaller
+    - r-bioc-biocparallel
+    - r-bioc-biomart
+    - r-bioc-biostrings
+    - r-bioc-biovizbase
+    - r-bioc-bsgenome
+    - r-bioc-cummerbund
+    - r-bioc-ebseq
+    - r-bioc-edger
+    - r-bioc-genefilter
+    - r-bioc-genomeinfodb
+    - r-bioc-genomicalignments
+    - r-bioc-genomicfeatures
+    - r-bioc-genomicranges
+    - r-bioc-graph
+    - r-bioc-gviz
+    - r-bioc-hilbertvis
+    - r-bioc-hypergraph
+    - r-bioc-iranges
+    - r-bioc-limma
+    - r-bioc-makecdfenv
+    - r-bioc-multtest
+    - r-bioc-preprocesscore
+    - r-bioc-qvalue
+    - r-bioc-rsamtools
+    - r-bioc-rtracklayer
+    - r-bioc-s4vectors
+    - r-bioc-shortread
+    - r-bioc-snpstats
+    - r-bioc-summarizedexperiment
+    - r-bioc-variantannotation
+    - r-bioc-xvector
+
+  - name: "R bioconductor packages from CRAN"
+    tags: [cran, install, update]
+    shell: >
+        echo 'library(BiocInstaller); biocLite(c("geneplotter", "puma", "affyPLM", "ddCt",
+        "affydata", "hgu133plus2.db", "oligo", "gcrma", "GEOquery",
+        "hgu95av2cdf", "hgu133plus2cdf", "hgu95av2.db",
+        "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus"))' | R --no-save
+
+  - name: "R packages from CRAN"
+    tags: [cran, install, update]
+    # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
+    # deps=true also installes suggested packages, e.g. Rcpp for devtools!
+    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
+    with_items:
+    - devtools  # start with devtools -- https://cran.r-project.org/web/packages/devtools/index.html
+    - uuid
+    - pbdZMQ
+    - repr
+    - "data.table"
+    - dplyr
+    - tidyr
+    - WGCNA
+    - fields
+    - circular
+    - glmnet
+    - brian
+    - rugarch
+    - quantmod
+    - swirl
+    - psych
+    - UsingR
+    - readr
+    - forecast
+    - NORMT3
+    - ggmap
+    - np
+    - crs
+    - SemiParBIVProbit
+    - maptree
+    - nortest
+
+  - name: "RSTAN from CRAN"
+    # https://cran.r-project.org/web/packages/rstan/index.html
+    # takes a long time to build and uses a lot of memory, that's expected, but hence it's not tagged in "update"
+    tags: [cran, install]
+    # https://stat.ethz.ch/R-manual/R-devel/library/utils/html/install.packages.html
+    # deps=true also installes suggested packages, e.g. Rcpp for devtools!
+    shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
+    with_items:
+    - rstan
+
+  - name: "IPython Kernel" # needs devtools, etc.
+    tags: [ir, install, update]
+    shell: "echo \"library(devtools); install_github('IRkernel/IRkernel'); IRkernel::installspec(name = 'ir-ubuntu', displayname = 'R (Official Build)')\" | R --no-save"

@@ -40,7 +40,7 @@ def get_persistent_disks(context, namespace):
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
@@ -50,6 +50,8 @@ def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+
+    ensure_ssh()
     for number in args.number:
         deployment_name = "{name}{number}".format(name=NAME, number=number)
         ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
@@ -75,12 +77,37 @@ def all_node_numbers():
                 pass
     return v
 
+def ensure_persistent_disk_exists(context, namespace, number, size, disk_type):
+    name = pd_name(context, namespace, number)
+    util.ensure_persistent_disk_exists(name, size=size, disk_type=disk_type)
+
+def delete_persistent_disks(context, namespace, numbers):
+    names = [pd_name(context, namespace, number) for number in numbers]
+    util.delete_persistent_disks(names, maxtime_s=60*3)  # try for up to 3 minutes
+
 def delete(args):
     if len(args.number) == 0:
+        if args.obliterate_disk:
+            raise ValueError("you must explicitly specify the nodes when using --obliterate-disk")
         args.number = all_node_numbers()
     for number in args.number:
-        util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
         deployment_name = "{name}{number}".format(name=NAME, number=number)
+        util.stop_deployment(deployment_name)
+    if args.obliterate_disk and args.number:
+        context = util.get_cluster_prefix()
+        namespace = util.get_current_namespace()
+        what = "%s-%s"%(context, namespace)
+        if args.obliterate_disk == what:
+            delete_persistent_disks(context, namespace, args.number)
+        else:
+            raise ValueError("to obliterate the disk you must do --obliterate-disk=%s"%what)
+
+def ensure_ssh():
+    if 'storage-ssh' not in util.get_secrets():
+        # generate a public/private ssh key pair that will be used for sshfs
+        with tempfile.TemporaryDirectory() as tmp:
+            util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
+            util.create_secret('storage-ssh', tmp)
 
 if __name__ == '__main__':
     import argparse
@@ -116,7 +143,8 @@ if __name__ == '__main__':
     util.add_logs_parser(NAME, subparsers)
 
     sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
-    sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
+    sub.add_argument('number', type=int, help='which node or nodes to stop running; stops all if not given', nargs='*')
+    sub.add_argument("--obliterate-disk", type=str, default='', help="give --obliterate-disk=k8s-[cluster]-[namespace] to delete the deployment *and* delete the persistent disk; try with --obliterate-disk=help to get the current value of k8s-[cluster]-[namespace]")
     sub.set_defaults(func=delete)
 
     util.add_images_parser(NAME, subparsers)

@@ -77,7 +77,7 @@ EmailAddressSetting = rclass
     getInitialState : ->
         state      : 'view'   # view --> edit --> saving --> view or edit
         password   : ''
-        email_adress : ''
+        email_address : ''    # The new email address
 
     start_editing : ->
         @setState
@@ -124,42 +124,34 @@ EmailAddressSetting = rclass
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
-    render_value : ->
-        switch @state.state
-            when 'view'
-                <div>{@props.email_address}
-                     <Button className='pull-right' onClick={@start_editing}>Change email</Button>
-                </div>
-            when 'edit', 'saving'
-                <Well>
-                    Current email address
-                    <pre>{@props.email_address}</pre>
-                    New email address
-                    <Input
-                        autoFocus
-                        type        = 'email_address'
-                        ref         = 'email_address'
-                        value       = {@state.email_address}
-                        placeholder = 'user@example.com'
-                        onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
-                    />
-                    Current password
-                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
-                        <Input
-                            type        = 'password'
-                            ref         = 'password'
-                            value       = {@state.password}
-                            placeholder = 'Current password'
-                            onChange    = {=>@setState(password : @refs.password.getValue())}
-                        />
-                    </form>
-                    <ButtonToolbar>
-                        {@change_button()}
-                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
-                    </ButtonToolbar>
-                    {@render_error()}
-                    {@render_saving()}
-                </Well>
+    render_edit : ->
+        <Well style={marginTop: '3ex'}>
+            New email address
+            <Input
+                autoFocus
+                type        = 'email_address'
+                ref         = 'email_address'
+                value       = {@state.email_address}
+                placeholder = 'user@example.com'
+                onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
+            />
+            Current password
+            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                <Input
+                    type        = 'password'
+                    ref         = 'password'
+                    value       = {@state.password}
+                    placeholder = 'Current password'
+                    onChange    = {=>@setState(password : @refs.password.getValue())}
+                />
+            </form>
+            <ButtonToolbar>
+                {@change_button()}
+                <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+            </ButtonToolbar>
+            {@render_error()}
+            {@render_saving()}
+        </Well>
 
     render_saving : ->
         if @state.state == 'saving'
@@ -167,7 +159,11 @@ EmailAddressSetting = rclass
 
     render : ->
         <LabeledRow label='Email address'>
-            {@render_value()}
+            <div>
+                {@props.email_address}
+                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
+            </div>
+            {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
 PasswordSetting = rclass
@@ -229,7 +225,7 @@ PasswordSetting = rclass
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
-            </Button>
+                </Button>
         else
             <Button disabled bsStyle='success'>Change password</Button>
 
@@ -246,41 +242,35 @@ PasswordSetting = rclass
                 {score[result.score]} (crack time: {result.crack_time_display})
             </div>
 
-    render_value : ->
-        switch @state.state
-            when 'view'
-                <Button className='pull-right' onClick={@change_password}  style={marginTop: '8px'}>
-                    Change password
-                </Button>
-            when 'edit', 'saving'
-                <Well style={marginTop:'10px'}>
-                    Current password
-                    <Input
-                        autoFocus
-                        type        = 'password'
-                        ref         = 'old_password'
-                        value       = {@state.old_password}
-                        placeholder = 'Current password'
-                        onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
-                    />
-                    New password
-                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
-                        <Input
-                            type        = 'password'
-                            ref         = 'new_password'
-                            value       = {@state.new_password}
-                            placeholder = 'New password'
-                            onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
-                        />
-                    </form>
-                    {@password_meter()}
-                    <ButtonToolbar>
-                        {@change_button()}
-                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
-                    </ButtonToolbar>
-                    {@render_error()}
-                    {@render_saving()}
-                </Well>
+    render_edit : ->
+        <Well style={marginTop:'3ex'}>
+            Current password
+            <Input
+                autoFocus
+                type        = 'password'
+                ref         = 'old_password'
+                value       = {@state.old_password}
+                placeholder = 'Current password'
+                onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
+            />
+            New password
+            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
+                <Input
+                    type        = 'password'
+                    ref         = 'new_password'
+                    value       = {@state.new_password}
+                    placeholder = 'New password'
+                    onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
+                />
+            </form>
+            {@password_meter()}
+            <ButtonToolbar>
+                {@change_button()}
+                <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+            </ButtonToolbar>
+            {@render_error()}
+            {@render_saving()}
+        </Well>
 
     render_saving : ->
         if @state.state == 'saving'
@@ -288,7 +278,12 @@ PasswordSetting = rclass
 
     render : ->
         <LabeledRow label='Password'>
-            {@render_value()}
+            <div style={height:'30px'}>
+                <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}  style={marginTop: '8px'}>
+                    Change password...
+                </Button>
+            </div>
+            {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
 # TODO: issue -- if edit an account setting in another browser and in the middle of editing
@@ -421,11 +416,13 @@ AccountSettings = rclass
 
     render_sign_out_buttons : ->
         <ButtonToolbar className='pull-right'>
-            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
-                <Icon name='sign-out'/> Sign out
+            <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
+                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
+                <Icon name='sign-out'/> Sign out...
             </Button>
-            <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
-                <Icon name='sign-out'/> Sign out everywhere
+            <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
+                onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
+                <Icon name='sign-out'/> Sign out everywhere...
             </Button>
         </ButtonToolbar>
 
@@ -478,9 +475,10 @@ AccountSettings = rclass
                 <Col xs=12>
                     <DeleteAccount
                         style={marginTop:'1ex'}
-                        initial_click={()=>@setState(show_delete_confirmation:true)}
-                        confirm_click={=>@props.redux.getActions('account').delete_account()}
-                        cancel_click={()=>@setState(show_delete_confirmation:false)}
+                        initial_click = {()=>@setState(show_delete_confirmation:true)}
+                        confirm_click = {=>@props.redux.getActions('account').delete_account()}
+                        cancel_click  = {()=>@setState(show_delete_confirmation:false)}
+                        user_name     = {@props.first_name + ' ' + @props.last_name}
                         show_confirmation={@state.show_delete_confirmation}
                         />
                 </Col>
@@ -495,23 +493,28 @@ DeleteAccount = rclass
         initial_click     : rtypes.func.isRequired
         confirm_click     : rtypes.func.isRequired
         cancel_click      : rtypes.func.isRequired
+        user_name         : rtypes.string.isRequired
         show_confirmation : rtypes.bool
         style             : rtypes.object
 
     render : ->
-        if not @props.show_confirmation
-            <Button
-                disabled={@props.show_confirmation}
-                className='pull-right'
-                bsStyle='danger'
-                style={@props.style}
-                onClick=@props.initial_click>
-            <Icon name='trash' /> Delete Account
-            </Button>
-        else
-            <DeleteAccountConfirmation
+        <div>
+            <div style={height:'26px'}>
+                <Button
+                    disabled={@props.show_confirmation}
+                    className='pull-right'
+                    bsStyle='danger'
+                    style={@props.style}
+                    onClick=@props.initial_click>
+                <Icon name='trash' /> Delete Account...
+                </Button>
+            </div>
+            {<DeleteAccountConfirmation
                 confirm_click={@props.confirm_click}
-                cancel_click={@props.cancel_click}/>
+                cancel_click={@props.cancel_click}
+                required_text={@props.user_name}
+             /> if @props.show_confirmation}
+        </div>
 
 # Concious choice to make them actually click the confirm delete button.
 DeleteAccountConfirmation = rclass
@@ -520,19 +523,18 @@ DeleteAccountConfirmation = rclass
     propTypes:
         confirm_click : rtypes.func.isRequired
         cancel_click  : rtypes.func.isRequired
+        required_text : rtypes.string.isRequired
 
     # Loses state on rerender from cancel. But this is what we want.
     getInitialState: ->
         confirmation_text : ''
 
-    required_text : 'delete this account'
-
     render : ->
-        <Well style={marginTop: '15px', textAlign:'center'}>
+        <Well style={marginTop: '26px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To proceed, type <span style={fontWeight:'bold'}>delete this account</span> below.
+            To proceed, enter your first and last name below.
             <Input
                 autoFocus
                 value       = {@state.confirmation_text}
@@ -543,7 +545,7 @@ DeleteAccountConfirmation = rclass
             />
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
-                    disabled={@state.confirmation_text != @required_text}
+                    disabled={@state.confirmation_text != @props.required_text}
                     bsStyle='danger'
                     onClick={@props.confirm_click}
                 >
@@ -1347,6 +1349,7 @@ ugly_error = (err) ->
 # loaded; otherwise returns undefined and starts load
 zxcvbn = undefined
 password_score = (password) ->
+    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/smc/issues/687
     # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
     if zxcvbn?
         if zxcvbn != 'loading'

@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import argparse, base64, json, os, requests, subprocess, tempfile, time, yaml
+import argparse, base64, json, os, subprocess, tempfile, time
 
 join = os.path.join
 
@@ -10,6 +10,7 @@ def external_ip():
     """
     The external ip address of the node o which this code is run.
     """
+    import requests
     url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"
     headers = {"Metadata-Flavor":"Google"}
     return requests.get(url, headers=headers).content.decode()
@@ -74,12 +75,13 @@ def get_all_contexts():
 
 def set_context(name):
     options = [x for x in get_all_contexts() if name in x]
-    if len(options) == 1:
+    if len(options) > 1:
+        print("WARNING -- AMBIGUOUS so taking first of %s"%options)
+    if len(options) >= 1:
         run(['kubectl', 'config', 'use-context', options[0]])
-    elif len(options) == 0:
-        raise RuntimeError("unknown context '%s'"%name)
     else:
-        raise RuntimeError("AMBIGUOUS: which of %s?"%options)
+        raise RuntimeError("unknown context '%s'"%name)
+
 
 def gcloud_docker_repo(tag):
     return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
@@ -105,6 +107,7 @@ def gcloud_auth_token():
         return open(access_token).read().strip()
 
 def get_gcloud_image_info(name):
+    import requests
     # Use the API to get info about the given image (see http://stackoverflow.com/questions/31523945/how-to-remove-a-pushed-image-in-google-container-registry)
     repo = '{project}/{name}'.format(project=get_default_gcloud_project_name(), name=name)
     url = "https://gcr.io/v2/{repo}/tags/list".format(repo=repo)
@@ -177,6 +180,7 @@ def update_service(filename_yaml):
 
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_services() else 'create', '-f', filename_yaml])
 
@@ -186,6 +190,7 @@ def update_deployment(filename_yaml):
 
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
 
@@ -197,6 +202,7 @@ def get_daemonsets():
     return get_resources('daemonsets')
 
 def update_daemonset(filename_yaml):
+    import yaml
     name = yaml.load(open(filename_yaml).read())['metadata']['name']
     run(['kubectl', 'replace' if name in get_daemonsets() else 'create', '-f', filename_yaml])
 
@@ -204,11 +210,13 @@ def stop_daemonset(name):
     if name in get_daemonsets():
         run(['kubectl', 'delete', 'daemonset', name])
 
-
-def create_secret(name, filename):
+def delete_secret(name):
     if name in get_secrets():
         # delete first
         run(['kubectl', 'delete', 'secret', name])
+
+def create_secret(name, filename):
+    delete_secret(name)
     v = ['kubectl', 'create', 'secret', 'generic', name]
     if os.path.exists(filename):
         v.append('--from-file='+filename)
@@ -309,6 +317,34 @@ def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None
     if resize:
         resizefs_disk(name)
 
+def delete_persistent_disks(names, maxtime_s=60):
+    """
+    Try up to the given number of seconds to delete the given persistent disk.
+    This can fail if the disk is attached to a machine.
+    """
+    if not isinstance(names, list):
+        names = names.split()
+    start_time = time.time()
+    while time.time() - start_time < maxtime_s:
+        v = run(['gcloud', 'compute', 'disks', 'list'] + names, get_output=True).splitlines()[1:]
+        print(v)
+        to_delete = [x.split()[0] for x in v]
+        if len(to_delete) == 0:
+            print("all disks deleted")
+            return
+        try:
+            run(['gcloud', '-q', 'compute', 'disks', 'delete'] + to_delete)
+            return
+        except Exception as err:
+            print(repr(err))
+            if time.time() - start_time + 5 > maxtime_s:
+                raise RuntimeError("unable to delete all disks after trying for %s seconds"%maxtime_s)
+            print("waiting 5 seconds before trying again...")
+            time.sleep(5)
+
+
+
+
 def get_persistent_disk_names():
     return [x.split()[0] for x in run(['gcloud', 'compute', 'disks', 'list'], get_output=True).splitlines()[1:]]
 
@@ -384,7 +420,7 @@ def get_secret(name):
     else:
         d = {}
         for k, v in json.loads(run(['kubectl', 'get', 'secrets', name, '-o', 'json'], get_output=True))['data'].items():
-            d[k] = base64.b64decode(v)
+            d[k] = base64.b64decode(v) if v is not None else v
         return d
 
 def random_password(n=31):
@@ -409,7 +445,7 @@ def autoscale_pods(deployment, min=None, max=None, cpu_percent=None):
     v.append(deployment)
     run(v)
 
-def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None):
+def add_exec_parser(name, subparsers, command_name,  command, custom_selector=None, default_container=''):
     def f(args):
         if custom_selector is not None:
             selector = custom_selector(args)
@@ -419,21 +455,24 @@ def add_exec_parser(name, subparsers, command_name,  command, custom_selector=No
     sub = subparsers.add_parser(command_name, help='run '+command_name+' on node(s)')
     sub.add_argument('number', type=int, nargs='*', help='pods by number to connect to (0, 1, etc.); connects to all using tmux if more than one')
     sub.add_argument("-n" , "--no-sync",  action="store_true", help="do not tmux synchronize panes")
-    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=f)
 
-def add_bash_parser(name, subparsers, custom_selector=None):
-    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"', custom_selector=custom_selector)
+def add_bash_parser(name, subparsers, custom_selector=None, default_container=''):
+    add_exec_parser(name, subparsers, 'bash', 'bash -c "export TERM=xterm; clear; bash"',
+                    custom_selector=custom_selector, default_container=default_container)
 
 # NOTE: explicit terminal size not supported by k8s or docker; but, we can explicitly set
 # it below by doing "stty cols 150;"
-def add_top_parser(name, subparsers, custom_selector=None):
+def add_top_parser(name, subparsers, custom_selector=None, default_container=''):
     c = 'bash -c "TERM=xterm top || (apt-get update&& apt-get install -y top&& TERM=xterm top)"'
-    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector)
+    add_exec_parser(name, subparsers, 'top', c, custom_selector=custom_selector,
+                   default_container=default_container)
 
-def add_htop_parser(name, subparsers, custom_selector=None):
+def add_htop_parser(name, subparsers, custom_selector=None, default_container=''):
     c = 'bash -c "TERM=xterm htop || (apt-get update&& apt-get install -y htop&& TERM=xterm htop)"'
-    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector)
+    add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
+                    default_container=default_container)
 
 def add_edit_parser(name, subparsers):
     def f(args):
@@ -467,15 +506,14 @@ def add_images_parser(NAME, subparsers):
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
-def add_deployment_parsers(NAME, subparsers):
+def add_deployment_parsers(NAME, subparsers, default_container=''):
     add_edit_parser(NAME, subparsers)
     add_autoscale_parser(NAME, subparsers)
     add_images_parser(NAME, subparsers)
-    add_logs_parser(NAME, subparsers)
-
-    add_bash_parser(NAME, subparsers)
-    add_top_parser(NAME, subparsers)
-    add_htop_parser(NAME, subparsers)
+    add_logs_parser(NAME, subparsers, default_container=default_container)
+    add_bash_parser(NAME, subparsers, default_container=default_container)
+    add_top_parser(NAME, subparsers, default_container=default_container)
+    add_htop_parser(NAME, subparsers, default_container=default_container)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
@@ -496,10 +534,10 @@ def logs(deployment_name, grep_args, container):
     except:
         return
 
-def add_logs_parser(NAME, subparsers):
+def add_logs_parser(NAME, subparsers, default_container=''):
     sub = subparsers.add_parser('logs', help='tail log files for all pods at once')
     sub.add_argument('grep_args', type=str, nargs='*', help='if given, passed to grep, so you can do "./control.py logs blah stuff"')
-    sub.add_argument("-c" , "--container",  default='', type=str, help="name of container in pod to exec code on")
+    sub.add_argument("-c" , "--container",  default=default_container, type=str, help="name of container in pod to exec code on")
     sub.set_defaults(func=lambda args: logs(NAME, args.grep_args, args.container))
 
 
@@ -538,14 +576,11 @@ def set_namespace(namespace):
     run(['kubectl', 'config', 'set-context', context, '--namespace', namespace])
 
 def get_current_namespace():
-    return json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True))["contexts"][0]["context"]["namespace"]
-
-def get_prompt():
     x = json.loads(run(['kubectl', 'config', 'view', '-o', 'json'], get_output=True, verbose=0))
     for c in x['contexts']:
         if c['name'] == x['current-context']:
-            return c['context']['cluster'] + "." + c['context']['namespace']
-    return 'no-cluster'
+            return c['context']['namespace']
+    raise RuntimeError("no current namespace")
 
 def show_horizontal_pod_autoscalers(namespace=''):
     """
@@ -588,5 +623,13 @@ def show_horizontal_pod_autoscalers(namespace=''):
                          minpods = v['spec']['minReplicas'],
                          maxpods = v['spec']['maxReplicas'],
                          age     = age))
+
+
+def get_logs(*names, **kwds):
+    v = ['kubectl', 'logs']
+    for a,b in kwds.items():
+        v.append('--%s'%a)
+        v.append(str(b))
+    return run(v + list(names), get_output=True, verbose=False)
 
 

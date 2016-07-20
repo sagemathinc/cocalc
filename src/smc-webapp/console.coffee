@@ -258,6 +258,12 @@ class Console extends EventEmitter
             catch e
                 console.log("issue parsing message -- ", e)
 
+    reconnect_if_no_recent_data: =>
+        #console.log 'check for recent data'
+        if not @_got_remote_data? or new Date() - @_got_remote_data >= 15000
+            #console.log 'reconnecting since no recent data'
+            @session?.reconnect()
+
     set_session: (session) =>
         if @session?
             # Don't allow set_session to be called multiple times, since both sessions could
@@ -275,6 +281,7 @@ class Console extends EventEmitter
         # but can also be the result of a device attributes request, etc.
         @terminal.on 'data',  (data) =>
             @session.write_data(data)
+            setTimeout(@reconnect_if_no_recent_data, 3000)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
@@ -285,7 +292,8 @@ class Console extends EventEmitter
 
             # The remote server sends data back to us to display:
             @session.on 'data',  (data) =>
-                #console.log("got #{data.length} data")
+                #console.log("terminal got #{data.length} characters")
+                @_got_remote_data = new Date()
                 if @_rendering_is_paused
                     @_render_buffer += data
                 else
@@ -297,6 +305,7 @@ class Console extends EventEmitter
                 @element.find("a[href=#refresh]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
             @session.on 'reconnect', () =>
+                @_got_remote_data = new Date()
                 #console.log("terminal: reconnect")
                 @element.find(".salvus-console-terminal").css('opacity':'1')
                 @element.find("a[href=#refresh]").removeClass('btn-success').find(".fa").removeClass('fa-spin')

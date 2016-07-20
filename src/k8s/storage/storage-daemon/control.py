@@ -19,6 +19,7 @@ def create_install_path():
     remove_install_path()
     os.makedirs("install-tmp")
     shutil.copyfile("../driver/smc-storage.py", 'install-tmp/smc-storage')
+    shutil.copymode("../driver/smc-storage.py", 'install-tmp/smc-storage')
     util.run(['git', 'clone', 'https://github.com/sagemathinc/gke-zfs'], path=join(SCRIPT_PATH, 'install-tmp'))
 
 def remove_install_path():
@@ -47,10 +48,12 @@ def images_on_gcloud(args):
         print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
 
 def run_on_kubernetes(args):
-    context = util.get_kube_context()
+    context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
+    # ensure there is a rethinkdb secret, even if blank, so that daemon will start with reduced functionality
+    util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
     t = open('storage-daemon.yaml').read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image        = tag,

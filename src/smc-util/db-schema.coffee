@@ -571,6 +571,7 @@ schema.projects =
         users                     : ["that.r.row('users').keys()", {multi:true}]
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
+        seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
         created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
         storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
