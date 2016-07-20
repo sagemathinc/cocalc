@@ -106,6 +106,7 @@ NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
 SOURCE_MAP    = !! process.env.SOURCE_MAP
+QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
@@ -332,20 +333,18 @@ plugins = [
     setNODE_ENV,
     banner,
     jade2html,
-    videoChatSide,
-    videoChatCell,
     #commonsChunkPlugin,
-    assetsPlugin,
     #extractCSS,
     #copyWebpackPlugin
     #webpackSHAHash,
-    statsWriterPlugin,
     #new PrintChunksPlugin(),
     mathjaxVersionedSymlink,
     #linkFilesIntoTargetPlugin,
 ]
 
-plugins = plugins.concat(policyPages)
+if not QUICK_BUILD or PRODMODE
+    plugins = plugins.concat(policyPages)
+    plugins = plugins.concat([videoChatSide, videoChatCell, assetsPlugin, statsWriterPlugin])
 
 if PRODMODE
     console.log "production mode: enabling compression"
