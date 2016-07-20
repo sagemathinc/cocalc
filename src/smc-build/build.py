@@ -192,6 +192,7 @@ SAGE_PIP_PACKAGES = [
     'pyproj',
     'bitarray',
     'h5py',
+    'ipdb', # https://github.com/sagemathinc/smc/issues/319
     'netcdf4',
     'lxml',
     'munkres',
