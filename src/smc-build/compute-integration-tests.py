@@ -134,6 +134,13 @@ R_libs = [
     'maps'
 ]
 
+JULIA = [
+    'Interact',
+    'PyPlot',
+    'SymPy',
+    'JuMP'
+]
+
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
 @pytest.mark.parametrize("bin", BINARIES)
 def test_bin(bin):
@@ -181,6 +188,12 @@ def test_r(exe, lib):
     print(v)
     assert lib.lower() in v.lower()
 
+@pytest.mark.parametrize("lib", JULIA)
+def test_julia(lib):
+    CMD = '''echo "using {lib}" | julia'''
+    v = run(CMD.format(**locals()))
+    print(v)
+    assert lib.lower() in v.lower()
 
 def test_doesnt_exist():
     '''
