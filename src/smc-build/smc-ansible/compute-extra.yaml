@@ -89,9 +89,7 @@
     - toolz
     - cytoolz
     - pysal
-    - ncpol2sdpa
     - hdbscan
-    - pymc
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
