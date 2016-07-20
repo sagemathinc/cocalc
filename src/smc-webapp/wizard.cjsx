@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -63,9 +63,9 @@ class WizardActions extends Actions
             lang: lang
     reset: ->
         @set
-            cat0       : null
-            cat1       : null
-            cat2       : null
+            cat0       : null # idx integer
+            cat1       : null # idx integer
+            cat2       : null # idx integer
             catlist0   : []
             catlist1   : []
             catlist2   : []
@@ -74,6 +74,7 @@ class WizardActions extends Actions
             hits       : []
             search_str : null
             search_sel : null
+            submittable: false
             cat1_top   : ["Intro", "Tutorial", "Help"]
     hide: =>
         @set(show: false)
@@ -98,10 +99,9 @@ class WizardActions extends Actions
         # this is the essential task of the wizard:
         # call the callback with the selected code snippet
         cb
-            code  : 'code'
+            code  : @get('code')
             lang  : @get('lang')
-            title : 'title'
-            descr : 'description'
+            descr : @get('description')
     load_data: () ->
         if not DATA?
             require.ensure [], =>
@@ -112,14 +112,22 @@ class WizardActions extends Actions
             @init_data(DATA)
     data_lang: () ->
         @get('data').get(@get('lang'))
+    get_catlist0: () ->
+        @data_lang().keySeq().toArray().sort(@cat_sort)
+    get_catlist1: () ->
+        k0 = @get_catlist0()[@get('cat0')]
+        @data_lang().get(k0).keySeq().toArray().sort(@cat_sort)
+    get_catlist2: () ->
+        k0 = @get_catlist0()[@get('cat0')]
+        k1 = @get_catlist1()[@get('cat1')]
+        @data_lang().getIn([k0, k1]).map((el) -> el.get(0)).toArray()
     select_lang: (lang) ->
         @reset()
-        catlist0 = @get('data').get(lang).keySeq().toArray().sort(@cat_sort)
-        @set
-            lang     : lang
-            catlist0 : catlist0
+        @set(lang: lang)
+        catlist0 = @get_catlist0()
+        @set(catlist0 : catlist0)
         if catlist0.length == 1
-            @set_selected_category(0, catlist0[0], 0)
+            @set_selected_category(0, 0)
     search: (search_str) ->
         @reset()
         if not search_str? or search_str.length == 0
@@ -155,8 +163,9 @@ class WizardActions extends Actions
 
     show_doc: (doc) ->
         @set
-            code  : doc.getIn([1, 0])
-            descr : doc.getIn([1, 1])
+            code        : doc.getIn([1, 0])
+            descr       : doc.getIn([1, 1])
+            submittable : true
 
     cat_sort: (a, b) =>
         # ordering operator, such that some entries are in front
@@ -166,37 +175,89 @@ class WizardActions extends Actions
             return 1 - i
         return ord(a) - ord(b) or a > b
 
-    set_selected_category: (level, selected, idx) ->
+    cursor : (dir) ->
+        # dir: only 1 or -1!
+        # +1 → downward, higher idx number, first in list
+        # -1 → upwards, lower index, last in list
+        cat0 = @get('cat0')
+        cat1 = @get('cat1')
+        cat2 = @get('cat2')
+        # console.log 'cat0', cat0, 'cat1', cat1, 'cat2', cat2
+        top_or_bottom = (list) ->
+            if dir < 0 then list.length - 1 else 0
+        # dealing with some corner cases first
+        if not cat0?
+            catlist0 = @get_catlist0()
+            if catlist0?.length > 0
+                @set_selected_category(0, top_or_bottom(catlist0))
+        else if not cat1?
+            catlist1 = @get_catlist1()
+            if catlist1?.length > 0
+                @set_selected_category(1, top_or_bottom(catlist1))
+        else if not cat2?
+            catlist2 = @get_catlist2()
+            if catlist2?.length > 0
+                idx = if dir > 0 then 0 else catlist2.length - 1
+                @set_selected_category(2, idx)
+        else # cat0 1 and 2 are defined (i.e. we have a selection)
+            l0 = @get('catlist0').size
+            l1 = @get('catlist1').size
+            l2 = @get('catlist2').size
+            cat2_next = cat2 + dir
+
+            if cat2_next < 0
+                cat1_next = cat1 - 1
+            else if cat2_next >= l2
+                cat2_next = 0
+                cat1_next = cat1 + 1
+
+            if cat1_next < 0
+                cat0_next = cat0 - 1
+            else if cat1_next >= l1
+                cat1_next = 0
+                cat0_next = cat0 + 1
+
+            cat0_next = (cat0_next) % l0
+            if cat0_next < 0
+                cat0_next = l0 - 1
+
+            if cat0_next?
+                @set_selected_category(0, cat0_next)
+            if cat1_next?
+                @set_selected_category(1, cat1_next)
+            @set_selected_category(2, cat2_next)
+
+    set_selected_category: (level, idx) ->
         lang = @data_lang()
         switch level
             when 0, 1
-                @set(code: '', descr: '', cat2 : null)
+                @set(code: '', descr: '', cat2 : null, submittable: false)
         switch level
             when 0
-                catlist1 = lang.get(selected).keySeq().toArray().sort(@cat_sort)
+                @set(cat0: if idx == -1 then @get('catlist0').size - 1 else idx)
+                catlist1 = @get_catlist1()
                 @set
-                    cat0     : selected
                     cat1     : null
                     cat2     : null
                     catlist1 : catlist1
                     catlist2 : []
                 if catlist1.length == 1
-                    @set_selected_category(1, catlist1[0], 0)
+                    @set_selected_category(1, 0)
             when 1
                 cat0     = @get('cat0')
-                catlist2 = lang.getIn([cat0, selected]).map((el) -> el.get(0)).toArray()
+                @set(cat1 : if idx == -1 then @get('catlist1').size - 1 else idx)
+                catlist2 = @get_catlist2()
                 @set
-                    cat1     : selected
                     cat2     : null
                     catlist2 : catlist2
                 if catlist2.length == 1
-                    @set_selected_category(2, catlist2[0], 0)
+                    @set_selected_category(2, 0)
             when 2
-                cat0 = @get('cat0')
-                cat1 = @get('cat1')
-                doc  = lang.getIn([cat0, cat1, idx])
-                @set
-                    cat2  : idx
+                k0 = @get('catlist0').get(@get('cat0'))
+                k1 = @get('catlist1').get(@get('cat1'))
+                idx = if idx == -1 then @get('catlist2').size - 1 else idx
+                doc = lang.getIn([k0, k1, idx])
+                @set(cat2 : idx)
                 @show_doc(doc)
 
 WizardHeader = rclass
@@ -245,8 +306,8 @@ WizardBody = rclass
         lang       : rtypes.string.isRequired
         code       : rtypes.string
         descr      : rtypes.string
-        cat0       : rtypes.string
-        cat1       : rtypes.string
+        cat0       : rtypes.number
+        cat1       : rtypes.number
         cat2       : rtypes.number
         catlist0   : rtypes.arrayOf(rtypes.string)
         catlist1   : rtypes.arrayOf(rtypes.string)
@@ -265,8 +326,8 @@ WizardBody = rclass
         @scrollTo1()
         @scrollTo2()
 
-    category_selection: (level, selected, idx) ->
-        @props.actions.set_selected_category(level, selected, idx)
+    category_selection: (level, idx) ->
+        @props.actions.set_selected_category(level, idx)
 
     category_list: (level) ->
         cat  = @props["cat#{level}"]
@@ -276,10 +337,8 @@ WizardBody = rclass
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
         <ul className='list-group' ref="list_#{level}">
             {list.map (name, idx) =>
-                click  = @category_selection.bind(@, level, name, idx)
-                # level 0 and 1 by name, level 2 by index
-                comp   = if level == 2 then idx else name
-                active = if comp == cat then 'active' else ''
+                click  = @category_selection.bind(@, level, idx)
+                active = if idx == cat then 'active' else ''
                 <li className={"list-group-item " + active} onClick={click} key={idx}>{name}</li>
             }
         </ul>
@@ -364,11 +423,12 @@ RWizard = (name) -> rclass
             catlist0    : rtypes.arrayOf(rtypes.string)
             catlist1    : rtypes.arrayOf(rtypes.string)
             catlist2    : rtypes.arrayOf(rtypes.string)
-            cat0        : rtypes.string
-            cat1        : rtypes.string
+            cat0        : rtypes.number
+            cat1        : rtypes.number
             cat2        : rtypes.number
             search_str  : rtypes.string
             search_sel  : rtypes.number
+            submittable : rtypes.bool
             hits        : rtypes.arrayOf(rtypes.array)
 
     propTypes :
@@ -381,17 +441,26 @@ RWizard = (name) -> rclass
     close : ->
         @props.actions.hide()
 
+    submit : ->
+        @props.actions.insert(@props.cb)
+        @close()
+
     handle_key : (evt) ->
-        evt.preventDefault()
-        evt.stopPropagation()
+        evt.preventDefault() # which
+        evt.stopPropagation() # does
+        evt.nativeEvent.stopImmediatePropagation() # what ?!
         key = evt.keyCode
         if key not in [13, 38, 40, 37, 39]
             return
         switch key
             when 13 #return
-                console.log 'select'
-            when 38, 40 # up or down
-                console.log 'up or down', key
+                if @props.submittable
+                    @submit()
+            when 38 # up
+                @props.actions.cursor(-1)
+            when 40 # down
+                @props.actions.cursor(1)
+        return false
 
     render : ->
         <Modal show={@props.show}
@@ -423,7 +492,7 @@ RWizard = (name) -> rclass
 
             <Modal.Footer>
                 <Button onClick={@props.actions.hide}>Cancel</Button>
-                <Button onClick={=> @props.actions.insert(@props.cb)} bsStyle='success'>Insert Code</Button>
+                <Button onClick={@submit} disabled={not @props.submittable} bsStyle='success'>Insert Code</Button>
             </Modal.Footer>
         </Modal>
 
