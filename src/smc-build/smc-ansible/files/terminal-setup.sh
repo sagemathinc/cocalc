@@ -64,5 +64,5 @@ export LESS_TERMCAP_se=$'\E[;27m'
 # Julia packages are globally installed right here
 export JULIA_PKGDIR=/usr/local/share/julia/site/
 
-# run an additional setup script when it exists in /ext/init.sh
-test -x /ext/init.sh && /ext/init.sh
+# source an additional setup script when it exists in /ext/init.sh
+test -x /ext/init.sh && . /ext/init.sh
