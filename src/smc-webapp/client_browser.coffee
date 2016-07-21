@@ -71,6 +71,11 @@ class Connection extends client.Connection
         # because the primus connection authenticates based on secure https cookies,
         # which are there.   So we could make everything painful and hard to program and
         # actually get zero security gain.
+        #
+        # **CRITICAL:** If the smc object isn't defined in your Google Chrome console session,
+        # you have to change the context to *top*!   See
+        # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
+        #
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
