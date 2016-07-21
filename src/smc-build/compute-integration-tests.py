@@ -183,14 +183,15 @@ def test_python(exe, libs):
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, R_libs))
 def test_r(exe, lib):
-    CMD = '''echo "require('{lib}'); packageVersion('{lib}') " | {exe} --vanilla --silent'''
+    CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
 
+# julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
 def test_julia(lib):
-    CMD = '''echo "using {lib}" | julia'''
+    CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
