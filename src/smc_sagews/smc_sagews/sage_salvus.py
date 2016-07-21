@@ -3488,14 +3488,11 @@ def sage_chat(chatroom=None, height="258px"):
 
 
 ########################################################
-# Documentation of magics
+# Documentation of modes
 ########################################################
-def magics(dummy=None):
+def modes():
     """
-    Type %magics to print all SageMathCloud magic commands or
-    magics() to get a list of them.
-
-    To use a magic command, either type
+    To use a mode command, either type
 
         %command <a line of code>
 
@@ -3504,7 +3501,7 @@ def magics(dummy=None):
         %command
         [rest of cell]
 
-    Create your own magic command by defining a function that takes
+    Create your own mode command by defining a function that takes
     a string as input and outputs a string. (Yes, it is that simple.)
     """
     import re
@@ -3517,14 +3514,10 @@ def magics(dummy=None):
     for k,v in sage.interfaces.all.__dict__.iteritems():
         if isinstance(v, sage.interfaces.expect.Expect):
             magic_cmds.add('%'+k)
-    magic_cmds.update(['%cython', '%time', '%magics', '%auto', '%hide', '%hideall',
+    magic_cmds.update(['%cython', '%time', '%auto', '%hide', '%hideall',
                        '%fork', '%runfile', '%default_mode', '%typeset_mode'])
     v = list(sorted(magic_cmds))
-    if dummy is None:
-        return v
-    else:
-        for s in v:
-            print(s)
+    return v
 
 ########################################################
 # Go magic
