@@ -1023,6 +1023,8 @@ exports.commands =
                      """
         magics:
             insert : "magics()"
+        jupyterkernels:
+            insert : "%jupyter.available_kernels"
         mode_typeset:
             insert : "%typeset_mode True"
         mode_auto:
@@ -1045,6 +1047,12 @@ exports.commands =
             insert : "%julia"
         mode_javascript:
             insert : "%javascript\n/* Use print(...) for output */"
+        mode_jupyter_bridge:
+            insert : """
+                    a3 = jupyter("anaconda3")
+                    # start new cells with %a3
+                    # or set %default_mode a3
+                     """
         mode_md:
             insert : "%md"
         mode_python:
@@ -1496,6 +1504,7 @@ initialize_sage_python_r_toolbar = () ->
             ["HTML", "#mode_html"],
             ["Javascript", "#mode_javascript"],
             ["Julia", "#mode_julia"],
+            ["Jupyter Bridge", "#mode_jupyter_bridge"],
             ["Markdown", "#mode_md"],
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
@@ -1507,6 +1516,7 @@ initialize_sage_python_r_toolbar = () ->
         [
             ["General help", "#help"],
             ["Magic mode commands", "#magics"],
+            ["Jupyter kernels", "#jupyterkernels"],
             ["SageMath Documentation"],
             ["Overview", "#sagemathdoc"],
             ["Tutorial", "#sagemathtutorial"],
