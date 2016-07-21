@@ -525,3 +525,11 @@ Install the Ubuntu package (how?): plink
 Make a link to preserve the usual name: `cd /usr/bin; sudo ln -s /usr/bin/p-link plink`
 
 ansible: compute-extra.yaml tagged plink
+
+# BQPlot
+
+hsy: not sure how to really install it … it's a lib and an extension to jupyter
+
+    pip install -U bqplot
+    jupyter nbextension enable --py bqplot
+    

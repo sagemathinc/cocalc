@@ -3180,42 +3180,47 @@ def load_html_resource(filename):
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 
-def attach(*args):
-    r"""
-    Load file(s) into the Sage worksheet process and add to list of attached files.
-    All attached files that have changed since they were last loaded are reloaded
-    the next time a worksheet cell is executed.
+try:
+    from sage.repl.attach import load_attach_path, modified_file_iterator
+    def attach(*args):
+        r"""
+        Load file(s) into the Sage worksheet process and add to list of attached files.
+        All attached files that have changed since they were last loaded are reloaded
+        the next time a worksheet cell is executed.
 
-    INPUT:
+        INPUT:
 
-    - ``files`` - list of strings, filenames to attach
+        - ``files`` - list of strings, filenames to attach
 
-    .. SEEALSO::
+        .. SEEALSO::
 
-        :meth:`sage.repl.attach.attach` docstring has details on how attached files
-        are handled
-    """
-    # can't (yet) pass "attach = True" to load(), so do this
+            :meth:`sage.repl.attach.attach` docstring has details on how attached files
+            are handled
+        """
+        # can't (yet) pass "attach = True" to load(), so do this
 
-    import sage.repl.attach
+        if len(args) == 1:
+            if isinstance(args[0], (unicode,str)):
+                args = tuple(args[0].replace(',',' ').split())
+            if isinstance(args[0], (list, tuple)):
+                args = args[0]
 
-    if len(args) == 1:
-        if isinstance(args[0], (unicode,str)):
-            args = tuple(args[0].replace(',',' ').split())
-        if isinstance(args[0], (list, tuple)):
-            args = args[0]
+        for fname in args:
+            for path in load_attach_path():
+                fpath = os.path.join(path, fname)
+                fpath = os.path.expanduser(fpath)
+                if os.path.isfile(fpath):
+                    load(fname)
+                    sage.repl.attach.add_attached_file(fpath)
+                    break
+            else:
+                raise IOError('did not find file %r to attach' % fname)
+except ImportError:
+    print("sage_salvus: attach not available")
+    def attach(*args):
+        sys.stderr.write("Error: The 'attach' functionality is not available.\n")
+        sys.stderr.flush()
 
-    from sage.repl.attach import load_attach_path
-    for fname in args:
-        for path in load_attach_path():
-            fpath = os.path.join(path, fname)
-            fpath = os.path.expanduser(fpath)
-            if os.path.isfile(fpath):
-                load(fname)
-                sage.repl.attach.add_attached_file(fpath)
-                break
-        else:
-            raise IOError('did not find file %r to attach' % fname)
 
 # Monkey-patched the load command
 def load(*args, **kwds):
@@ -3483,14 +3488,11 @@ def sage_chat(chatroom=None, height="258px"):
 
 
 ########################################################
-# Documentation of magics
+# Documentation of modes
 ########################################################
-def magics(dummy=None):
+def modes():
     """
-    Type %magics to print all SageMathCloud magic commands or
-    magics() to get a list of them.
-
-    To use a magic command, either type
+    To use a mode command, either type
 
         %command <a line of code>
 
@@ -3499,30 +3501,26 @@ def magics(dummy=None):
         %command
         [rest of cell]
 
-    Create your own magic command by defining a function that takes
+    Create your own mode command by defining a function that takes
     a string as input and outputs a string. (Yes, it is that simple.)
     """
     import re
-    magic_cmds = set()
+    mode_cmds = set()
     for s in open(os.path.realpath(__file__), 'r').xreadlines():
         s = s.strip()
         if s.startswith('%'):
-            magic_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
-    magic_cmds.discard('%s')
+            mode_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
+    mode_cmds.discard('%s')
     for k,v in sage.interfaces.all.__dict__.iteritems():
         if isinstance(v, sage.interfaces.expect.Expect):
-            magic_cmds.add('%'+k)
-    magic_cmds.update(['%cython', '%time', '%magics', '%auto', '%hide', '%hideall',
+            mode_cmds.add('%'+k)
+    mode_cmds.update(['%cython', '%time', '%auto', '%hide', '%hideall',
                        '%fork', '%runfile', '%default_mode', '%typeset_mode'])
-    v = list(sorted(magic_cmds))
-    if dummy is None:
-        return v
-    else:
-        for s in v:
-            print(s)
+    v = list(sorted(mode_cmds))
+    return v
 
 ########################################################
-# Go magic
+# Go mode
 ########################################################
 def go(s):
     """

@@ -11,10 +11,10 @@
   tasks:
 
   - name: "julia ppa"
-    apt_repository: repo='ppa:staticfloat/juliareleases'
+    apt_repository: mode=644 repo='ppa:staticfloat/juliareleases'
 
   - name: "julia dependencies ppa"
-    apt_repository: repo='ppa:staticfloat/julia-deps'
+    apt_repository: mode=644 repo='ppa:staticfloat/julia-deps'
 
   - name: "apt-get install packages"
     apt: name={{ item }} install_recommends=yes state=latest
@@ -32,12 +32,17 @@
   - name: "fix libzmq version #3 -- prevent apt from installing it again"
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
+  - name: "install PyCall without a system wide python -- triggers install of miniconda/Conda.jl"
+    tags: install
+    shell: "umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; echo 'ENV[\"PYTHON\"]=\"\"; Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\");' | julia"
+
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
-    shell: "echo 'Pkg.add(\"{{ item }}\")' | julia"
+    shell: "umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; echo 'Pkg.add(\"{{ item }}\"); using {{ item }};' | julia"
+    tags: install
     with_items:
-    - PyCall # https://github.com/stevengj/PyCall.jl
     - IJulia # in jupyter notebook
     - Interact # https://github.com/JuliaLang/Interact.jl (for IJulia)
+    - SymPy
     - PyPlot # https://github.com/stevengj/PyPlot.jl
     - Bokeh  # https://github.com/JuliaLang/IJulia.jl
     - Gadfly # https://github.com/dcjones/Gadfly.jl
@@ -47,12 +52,26 @@
     - Convex # https://github.com/JuliaOpt/Convex.jl (optimization)
     - Optim # https://github.com/JuliaOpt/Optim.jl
     - JuMP # https://github.com/JuliaOpt/JuMP.jl
+    - Clp # solver
+    - Ipopt # https://github.com/JuliaOpt/Ipopt.jl
+    - ECOS # https://github.com/JuliaOpt/ECOS.jl
+    - GLPK # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
     - ParallelAccelerator # https://github.com/IntelLabs/ParallelAccelerator.jl
     - MXNet # https://github.com/dmlc/MXNet.jl
     - Graphs # https://github.com/JuliaLang/Graphs.jl
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
+    - SCS # Solving optimization problems
+    - RDatasets # https://github.com/johnmyleswhite/RDatasets.jl
 
-# Nemo (right after Julia!)
+  - name: "update julia packages"
+    tags: update
+    shell: "umask 022; echo 'Pkg.update()' | julia"
+
+  - name: "call build for all packages -- http://docs.julialang.org/en/release-0.4/stdlib/pkg/#Base.Pkg.build"
+    tags: [install, update]
+    shell: "umask 022; echo 'Pkg.build()' | julia"
+
+# Nemo
 - hosts: compute
   become: yes
   gather_facts: no

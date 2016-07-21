@@ -189,7 +189,7 @@ UsersViewingDocument = rclass
                 </OverlayTrigger>
         else
             rest =
-                <span style={fontSize:"small", cursor:"pointer", marginBottom:"4px", marginRight:"10px"}>
+                <span style={fontSize:"small", cursor:"pointer", marginBottom:"4px"}>
                 </span>
             users_to_display.push(rest)
 

@@ -55,6 +55,21 @@ import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
+try:
+    from sage.repl.attach import load_attach_path, modified_file_iterator
+    def reload_attached_files_if_mod_smc():
+        # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+        for filename, mtime in modified_file_iterator():
+            basename = os.path.basename(filename)
+            timestr = time.strftime('%T', mtime)
+            print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+            from sage_salvus import load
+            load(filename)
+except:
+    print("sage_server: attach not available")
+    def reload_attached_files_if_mod_smc():
+        pass
+
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
@@ -904,16 +919,6 @@ class Salvus(object):
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
 
-        def reload_attached_files_if_mod_smc():
-            # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
-            from sage.repl.attach import modified_file_iterator
-            for filename, mtime in modified_file_iterator():
-                basename = os.path.basename(filename)
-                timestr = time.strftime('%T', mtime)
-                print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
-                from sage_salvus import load
-                load(filename)
-
         if namespace is None:
             namespace = self.namespace
 
@@ -1754,7 +1759,7 @@ def serve(port, host, extra_imports=False):
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
+                     'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
                      'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
 

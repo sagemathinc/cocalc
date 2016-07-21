@@ -346,7 +346,7 @@ def introspect(code, namespace, preparse=True):
         expr        = code0[i:]%literals
         before_expr = code0[:i]%literals
 
-        chrs = set('.()[]?')
+        chrs = set('.()[]? ')
         if not any(c in expr for c in chrs):
             # Easy case: this is just completion on a simple identifier in the namespace.
             get_help = False; get_completions = True; get_source = False

@@ -9,13 +9,13 @@ RUN      = docker run -it "${VOL}" "${TAG}"
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY = clean build rebuild tag prod beta
+PHONY = clean build rebuild tag prod beta snapshot
 
 default: rebuild
 
 rebuild:
 	@echo "re-building with tag ${TAG}"
-	EXTRA_ARGS="--no-cache=true" $(MAKE) build
+	EXTRA_ARGS="--pull=true --no-cache=true" $(MAKE) build
 
 build:
 	@echo "building with tag ${TAG}"
@@ -40,3 +40,7 @@ clean:
 	# it fails, because there is no "--no-run-if-empty" and hence docker complains
 	-while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
 
+snapshot:
+	$(eval DATE = $(shell date -u +"%Y-%m-%d-%H%M%S"))
+	gcloud compute disks snapshot extern-compute --snapshot-names extern-compute-${DATE}
+	@echo snapshot created: extern-compute-${DATE}

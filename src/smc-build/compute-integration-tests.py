@@ -2,7 +2,10 @@
 # Compute Image Integration Tests
 # Goal of this testsuite is, to make sure that all relevant software, libraries and packages are installed.
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
+import os
+import sys
 import pytest
+import itertools as it
 from textwrap import dedent
 from subprocess import getstatusoutput, CalledProcessError
 
@@ -46,30 +49,98 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'numpy', 'scipy', 'matplotlib', 'pandas', 'markdown'
+    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
+    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
+    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'pysal', 'openpyxl',
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
-    'statsmodels'
+    'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
+    'clawpack', # py2 only :-(
+    'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
-
+    # 'statsmodels', # broken right now (2016-07-14), some scipy error
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
+    # 'numba', # would be cool to have numba in sagemath
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack', 'mercurial',
+    'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'clawpack', 'shapely', 'simpy', 'gmpy2',
+    'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
+    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3',
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow'
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask', 'nltk',
+    'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray', 'symengine', 'pymc',
 ]
 
-# R libs
-R = [
+# This should be the offical R from the CRAN ubuntu repos and Sage's R
+R_exes = ['/usr/bin/R', 'sage -R']
+
+R_libs = [
     'rstan',
+    'ggplot2',
+    'stringr',
+    'plyr',
+    'reshape2',
+    'zoo',
+    'car',
+    'mvtnorm',
+    'e1071',
+    'Rcpp',
+    'lattice',
+    'KernSmooth',
+    'Matrix',
+    'cluster',
+    'codetools',
+    'mgcv',
+    'rpart',
+    'survival',
+    'fields',
+    'circular',
+    'glmnet',
+    'Cairo',
+    'XML',
+    'data.table',
+    'brian',
+    'rugarch',
+    'quantmod',
+    'swirl',
+    'psych',
+    'spatstat',
+    'UsingR',
+    'readr',
+    'MCMCpack',
+    'ROCR',
+    'forecast',
+    'numDeriv',
+    'NORMT3',
+    'ggmap',
+    'np',
+    'crs',
+    'SemiParBIVProbit',
+    'combinat',
+    'maptree',
+    # 'agricolae', # no longer exists for modern R 3.3.1
+    'nortest',
+    'gplots',
+    'Hmisc',
+    'survey',
+    'maps'
+]
+
+JULIA = [
+    'Interact',
+    'PyPlot',
+    'SymPy',
+    'JuMP'
 ]
 
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
@@ -107,23 +178,47 @@ def test_python(exe, libs):
     except:
         print({lib}.version())
     "''')
-    for lib in libs:
+    for lib in set(libs):
         v = run(CMD.format(**locals()))
         print(v)
         assert lib.lower() in v.lower()
 
-@pytest.mark.parametrize('lib', R)
-def test_r(lib):
-    CMD = '''echo "require('{lib}'); packageVersion('{lib}') " | R --vanilla --silent'''
+@pytest.mark.parametrize('exe,lib', it.product(R_exes, R_libs))
+def test_r(exe, lib):
+    CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
 
+# julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
+@pytest.mark.parametrize("lib", JULIA)
+def test_julia(lib):
+    CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
+    v = run(CMD.format(**locals()))
+    print(v)
+    assert lib.lower() in v.lower()
 
+# test, that certain env variables are set
+# see smc-ansible/files/terminal-setup.sh and similar
+# TODO check that referenced paths really exist, etc.
+
+ENV_VARS = [
+    "ANACONDA3", "JULIA_PKGDIR", "SAGE_ATLAS_LIB"
+]
+
+@pytest.mark.parametrize("name", ENV_VARS)
+def test_env_vars(name):
+    assert name in os.environ
+
+# sanity self-check
 def test_doesnt_exist():
+    '''
+    This should throw, i.e. it does a string-in-string test which is true,
+    but the return value isn't 0.
+    '''
     with pytest.raises(CalledProcessError):
         'doesnt_exist' in run('doesnt_exist')
 
 if __name__ == '__main__':
     #pytest.main()
-    print('run $ py.test compute-integration-tests.py')
+    print('run $ py.test %s' % __file__)

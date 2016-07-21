@@ -61,5 +61,8 @@ export LANGUAGE=en_US:en
 export LESS_TERMCAP_so=$'\E[;7m'
 export LESS_TERMCAP_se=$'\E[;27m'
 
-# run an additional setup script when it exists in /ext/init.sh
-test -x /ext/init.sh && /ext/init.sh
+# Julia packages are globally installed right here
+export JULIA_PKGDIR=/usr/local/share/julia/site/
+
+# source an additional setup script when it exists in /ext/init.sh
+test -x /ext/init.sh && . /ext/init.sh
