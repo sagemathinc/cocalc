@@ -3505,22 +3505,22 @@ def modes():
     a string as input and outputs a string. (Yes, it is that simple.)
     """
     import re
-    magic_cmds = set()
+    mode_cmds = set()
     for s in open(os.path.realpath(__file__), 'r').xreadlines():
         s = s.strip()
         if s.startswith('%'):
-            magic_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
-    magic_cmds.discard('%s')
+            mode_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
+    mode_cmds.discard('%s')
     for k,v in sage.interfaces.all.__dict__.iteritems():
         if isinstance(v, sage.interfaces.expect.Expect):
-            magic_cmds.add('%'+k)
-    magic_cmds.update(['%cython', '%time', '%auto', '%hide', '%hideall',
+            mode_cmds.add('%'+k)
+    mode_cmds.update(['%cython', '%time', '%auto', '%hide', '%hideall',
                        '%fork', '%runfile', '%default_mode', '%typeset_mode'])
-    v = list(sorted(magic_cmds))
+    v = list(sorted(mode_cmds))
     return v
 
 ########################################################
-# Go magic
+# Go mode
 ########################################################
 def go(s):
     """
