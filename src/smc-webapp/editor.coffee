@@ -646,7 +646,7 @@ class exports.Editor
             return 0
         else
             e = @project_page.container
-            return e.position().top + e.height()
+            return e.position().top + e.height() - 1
 
     refresh: () =>
         @_window_resize_while_editing()
@@ -3717,6 +3717,7 @@ class Course extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
+            left               : 0
         args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
@@ -3744,13 +3745,22 @@ class Chat extends FileEditorWrapper
     init_wrapped: () =>
         editor_chat = require('./editor_chat')
         @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
+        if not IS_MOBILE
+            @element.css
+                'overflow-y'       : 'auto'
+                padding            : '7px'
+                border             : '1px solid #aaa'
+                width              : '100vw'
+                'background-color' : 'white'
+                left               : 0
+                bottom             : 0
+        else
+            @element.css
+                padding            : '7px'
+                'border-top'       : '1px solid #aaa'
+                width              : '100vw'
+                'background-color' : 'white'
+                bottom             : 0
         args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
         @wrapped =
             save    : undefined
@@ -3783,6 +3793,7 @@ class GitEditor extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
+            left               : 0
         args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
         @wrapped =
             save    : undefined
@@ -3814,6 +3825,7 @@ class Archive extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
+            left               : 0
         args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
@@ -4437,7 +4449,7 @@ class HTML_MD_Editor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
-        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()
@@ -4484,6 +4496,7 @@ class ReactCodemirror extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
+            left               : 0
         args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
@@ -4517,6 +4530,7 @@ class TemplateEditor extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
+            left               : 0
         args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
         @wrapped =
             save    : undefined
