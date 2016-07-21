@@ -2,6 +2,8 @@
 # Compute Image Integration Tests
 # Goal of this testsuite is, to make sure that all relevant software, libraries and packages are installed.
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
+import os
+import sys
 import pytest
 import itertools as it
 from textwrap import dedent
@@ -196,6 +198,19 @@ def test_julia(lib):
     print(v)
     assert lib.lower() in v.lower()
 
+# test, that certain env variables are set
+# see smc-ansible/files/terminal-setup.sh and similar
+# TODO check that referenced paths really exist, etc.
+
+ENV_VARS = [
+    "ANACONDA3", "JULIA_PKGDIR", "SAGE_ATLAS_LIB"
+]
+
+@pytest.mark.parametrize("name", ENV_VARS)
+def test_env_vars(name):
+    assert name in os.environ
+
+# sanity self-check
 def test_doesnt_exist():
     '''
     This should throw, i.e. it does a string-in-string test which is true,

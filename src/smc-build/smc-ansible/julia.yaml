@@ -67,6 +67,10 @@
     tags: update
     shell: "umask 022; echo 'Pkg.update()' | julia"
 
+  - name: "call build for all packages -- http://docs.julialang.org/en/release-0.4/stdlib/pkg/#Base.Pkg.build"
+    tags: [install, update]
+    shell: "umask 022; echo 'Pkg.build()' | julia"
+
 # Nemo
 - hosts: compute
   become: yes
