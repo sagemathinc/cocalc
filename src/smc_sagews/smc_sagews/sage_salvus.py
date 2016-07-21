@@ -3225,20 +3225,10 @@ except ImportError:
 # Monkey-patch the save command
 def save(obj, filename=None, compress=True, **kwds):
     """
-    Save ``obj`` to the file with name ``filename``.
-
     .. NOTE::
 
         sage_salvus.save() is a workaround to allow saving a function or class
-        loaded or defined at top level
-
-    .. WARNING::
-
-        Not applicable if pickle.dumps() is called instead of save()
-
-    .. SEEALSO::
-
-        :func:`sage_object.save`
+        loaded or defined at top level.
     """
     objmod = getattr(obj, '__module__', None)
     if objmod is None or getattr(obj, '__module__', None) == '__builtin__':
@@ -3248,6 +3238,8 @@ def save(obj, filename=None, compress=True, **kwds):
             smm = sys.modules['__main__']
             setattr(smm, obj.__name__, obj)
             sage.structure.sage_object.save(obj, filename=filename, compress=compress, **kwds)
+
+save.__doc__ = sage.structure.sage_object.save.__doc__ + save.__doc__
 
 # Monkey-patched the load command
 def load(*args, **kwds):
