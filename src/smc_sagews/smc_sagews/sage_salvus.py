@@ -3225,14 +3225,20 @@ except ImportError:
 # Monkey-patch the save command
 def save(obj, filename=None, compress=True, **kwds):
     """
-    Workaround save() of function or class loaded or defined at top level in worksheet: put object into __main__ module.
+    Save ``obj`` to the file with name ``filename``.
 
-    Limitations:
+    .. NOTE::
 
-    XXX Does not fix the problem if pickle.dumps() is called instead of save()
+        sage_salvus.save() is a workaround to allow saving a function or class
+        loaded or defined at top level
 
-    XXX Docstring is incomplete pending review of PR
+    .. WARNING::
 
+        Not applicable if pickle.dumps() is called instead of save()
+
+    .. SEEALSO::
+
+        :func:`sage_object.save`
     """
     objmod = getattr(obj, '__module__', None)
     if objmod is None or getattr(obj, '__module__', None) == '__builtin__':
