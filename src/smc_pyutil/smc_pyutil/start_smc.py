@@ -21,12 +21,10 @@ def started():
     return os.path.exists("%s/local_hub/local_hub.port"%SMC)
 
 def main():
-    # optionally, tcp port and raw port numbers
+    # concatenate all additional arguments and pass them to the node.js server
     port_args = ''
     if len(sys.argv) >= 3:
-        port_args += ' %s' % sys.argv[2]
-    if len(sys.argv) >= 4:
-        port_args += ' %s' % sys.argv[3]
+        port_args = ' '.join(sys.argv[2:])
 
     # Start local hub server
     cmd("smc-local-hub start" + port_args)
