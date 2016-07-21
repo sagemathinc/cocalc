@@ -22,12 +22,10 @@ def started():
 
 def main():
     # concatenate all additional arguments and pass them to the node.js server
-    port_args = ''
-    if len(sys.argv) >= 3:
-        port_args = ' '.join(sys.argv[2:])
+    port_args = ' '.join(sys.argv[2:])
 
     # Start local hub server
-    cmd("smc-local-hub start" + port_args)
+    cmd("smc-local-hub start " + port_args)
 
     i=0
     while not started():
