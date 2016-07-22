@@ -36,7 +36,7 @@ os.environ['MAIL'] = '/var/mail/%s'%username
 
 os.chdir(project_path)
 # optional args: tcp port and raw port
-call("smc-start 6000 6001".split())
+call("smc-start --tcp_port 6000 --raw_port 6001".split())
 call('tail -f .smc/local_hub/local_hub.log', shell=True)
 
 

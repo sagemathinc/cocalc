@@ -9,17 +9,13 @@ RUN      = docker run -it "${VOL}" "${TAG}"
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY = clean build rebuild tag prod beta snapshot
+PHONY = clean build tag prod beta snapshot
 
-default: rebuild
-
-rebuild:
-	@echo "re-building with tag ${TAG}"
-	EXTRA_ARGS="--pull=true --no-cache=true" $(MAKE) build
+default: build
 
 build:
-	@echo "building with tag ${TAG}"
-	docker build ${EXTRA_ARGS} --rm "--tag=${TAG}" .
+	@echo "re-building with tag ${TAG}"
+	docker build ${EXTRA_ARGS} --no-cache=true --rm "--tag=${TAG}" .
 
 tag:
 	@echo "tagging latest ${NAME} image with ${VERSION}"

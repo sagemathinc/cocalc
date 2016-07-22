@@ -12,7 +12,7 @@ There are some versions of that image:
 
 Right now, it is controlled by a few commands which are collected in a Makefile.
 The most important targets are:
-* `rebuild` → `install` → `update` cycle
+* `build` → `install` → `update` cycle
 * `run` and `root` for salvus (umask 022) for sagemath and anaconda or root shells (apt and pip installs)
 * `commit` (after `root` or `run`)
 * `beta` and `prod` to tag the `latest` image
@@ -24,7 +24,7 @@ In any case, the detailed workflow is sometimg like this:
 
 ### Workflow
 
-1. `make rebuild` to start from scratch:
+1. `make build` to start from scratch:
   * pull latest version of the ubuntu image
   * execute the Dockerfile
   * note, this alone doesn't give you much -- this just leads to a rather empty but functional image
@@ -53,7 +53,7 @@ This image is based on `smc-project-base:prod` -- notice, it's `prod`!
 The sole intention of this step is to add a small layer on top of the base image,
 such that SMC projects can run inside it.
 
-`make rebuild` should be used to update it, which essentially runs the `Dockerfile` without caching.
+`make build` should be used to update it, which essentially runs the `Dockerfile` without caching.
 
 1. get the files from the current master in SMC's repo and build the project.
 2. install a special `run.py` file for starting the project's local hub server.

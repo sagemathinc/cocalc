@@ -16,7 +16,7 @@ RUN rm -f /manage.sh && \
 # run.py will create the user corresponding to the project, mount their directory (?), then
 # switch to that user and start the local hub.  The environment variable SMC_PROJECT_ID must be set.
 COPY run.py /run.py
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY smc-project.conf /etc/supervisor/conf.d/smc-project.conf
 ENTRYPOINT []
 CMD ["/usr/bin/supervisord"]
 

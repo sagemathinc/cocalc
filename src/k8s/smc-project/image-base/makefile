@@ -1,5 +1,8 @@
 NAME ?= smc-project-base
 
+# for build: tells docker to also update the linux base image
+EXTRA_ARGS=--pull
+
 include ../makefile
 
 PHONY += run root commit clean squash test
@@ -8,7 +11,7 @@ squash:
 	@echo "remove all intermediate layers after several edit steps"
 	$(eval ID = $(shell docker create ${NAME}:latest))
 	@echo container ID = ${ID}
-	# no idea, if --change ENTRYPOINT is necessary
+	# no idea, if --change ENTRYPOINT is really necessary
 	docker export ${ID} | docker import --change 'ENTRYPOINT ["./manage.sh"]' - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."
 
