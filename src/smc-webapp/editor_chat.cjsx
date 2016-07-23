@@ -152,15 +152,23 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
         cb            : (err, syncdb) ->
             if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
-            else if not syncdb.valid_data
-                alert_message(type:'error', message:"json in #{@filename} is broken")
             else
+                store.syncdb = actions.syncdb = syncdb
+
+                if not syncdb.valid_data
+                    # This should never happen, but obviously it can -- just open the file and randomly edit with vim!
+                    # If there were any corrupted chats, append them as a new chat at the bottom, then delete from syncdb.
+                    corrupted = (x.corrupt for x in syncdb.select() when x.corrupt?)
+                    actions.send_chat("Corrupted chat: " + corrupted.join('\n\n'))
+                    syncdb.delete_with_field(field:'corrupt')
+
                 v = {}
-                # console.log("DATA ON LOAD:", syncdb.select())
                 for x in syncdb.select()
+                    if x.corrupt?
+                        continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
-                    else if x.payload # for old chats with payload: content
+                    else if x.payload? # for old chats with payload: content
                         initial = immutable.fromJS
                             content   : x.payload.content
                             author_id : x.sender_id
@@ -169,9 +177,10 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                     if not x.editing
                         x.editing = {}
                     v[x.date - 0] = x
+
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
-                store.syncdb = actions.syncdb = syncdb
+
 
 Message = rclass
     displayName: "Message"
@@ -202,7 +211,7 @@ Message = rclass
     componentWillReceiveProps: (newProps) ->
         changes = false
         if @state.edited_message == @newest_content()
-            @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
+            @setState(edited_message : newProps.message.get('history')?.peek()?.get('content') ? '')
         else
             changes = true
         @setState(new_changes : changes)
@@ -222,7 +231,7 @@ Message = rclass
     #    @props.actions.set_editing(@props.message, false)
 
     newest_content: ->
-        @props.message.get('history').peek().get('content') ? ''
+        @props.message.get('history').peek()?.get('content') ? ''
 
     is_editing: ->
         @props.message.get('editing').has(@props.account_id)
@@ -429,7 +438,7 @@ ChatLog = rclass
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
     get_user_name: (account_id) ->
-        account = @props.user_map.get(account_id)
+        account = @props.user_map?.get(account_id)
         if account?
             account_name = account.get('first_name') + ' ' + account.get('last_name')
         else
@@ -453,8 +462,8 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            sender_name = @get_user_name(@props.messages.get(date).get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date).get('history').peek().get('author_id'))
+            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
