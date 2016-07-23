@@ -628,7 +628,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
     sub.set_defaults(func=zpool_clear_errors)
 
-    sub = subparsers.add_parser('zpool-defragment', help='defragment **mounted** ZFS pool')
+    sub = subparsers.add_parser('zpool-defragment', help='defragment **mounted** ZFS pool (WARNING: slow since all data over network)')
     sub.add_argument('-q', '--quiet', action="store_true")
     sub.add_argument('path', type=str, help='absolute path to images')
     sub.set_defaults(func=zpool_defragment)
