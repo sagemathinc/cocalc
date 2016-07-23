@@ -474,13 +474,13 @@ def add_htop_parser(name, subparsers, custom_selector=None, default_container=''
     add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
                     default_container=default_container)
 
-def add_edit_parser(name, subparsers):
+def add_edit_parser(name, subparsers, **ignored):
     def f(args):
         run(['kubectl', 'edit', 'deployment', name])
     sub = subparsers.add_parser('edit', help='edit the deployment')
     sub.set_defaults(func=f)
 
-def add_autoscale_parser(name, subparsers):
+def add_autoscale_parser(name, subparsers, **ignored):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
@@ -502,18 +502,16 @@ def images_on_gcloud(NAME, args):
     for x in v:
         print("%-40s%-40s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
 
-def add_images_parser(NAME, subparsers):
+def add_images_parser(NAME, subparsers, **ignored):
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
-def add_deployment_parsers(NAME, subparsers, default_container=''):
-    add_edit_parser(NAME, subparsers)
-    add_autoscale_parser(NAME, subparsers)
-    add_images_parser(NAME, subparsers)
-    add_logs_parser(NAME, subparsers, default_container=default_container)
-    add_bash_parser(NAME, subparsers, default_container=default_container)
-    add_top_parser(NAME, subparsers, default_container=default_container)
-    add_htop_parser(NAME, subparsers, default_container=default_container)
+def add_deployment_parsers(NAME, subparsers, default_container='', exclude=None):
+    if isinstance(exclude, str):
+        exclude = set(exclude.split())
+    for parser in 'edit autoscale images logs bash top htop'.split():
+        if not exclude or parser not in exclude:
+            globals()['add_{parser}_parser'.format(parser=parser)](NAME, subparsers, default_container=default_container)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))

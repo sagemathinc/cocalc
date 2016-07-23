@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+#
+# Manage running projects
+#
+
 import json, os, shutil, sys, tempfile, uuid, yaml
 join = os.path.join
 
@@ -8,10 +12,9 @@ SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SCRIPT_PATH)
 path_to_util = join(SCRIPT_PATH, '..', '..', 'util')
 sys.path.insert(0, path_to_util)
-sys.path.insert(0, join(SCRIPT_PATH, 'image'))
-import shared, util
+import util
 
-NAME='cluster-manager'
+NAME='project-manager'
 
 def build(tag, rebuild):
     v = ['sudo', 'docker', 'build', '-t', tag]
@@ -48,10 +51,8 @@ def node_selector():
         print("no non-preemptible nodes")
         return ''
 
-
 def run_on_kubernetes(args):
     create_kubectl_secret()
-    label_preemptible_nodes()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
@@ -88,11 +89,6 @@ def create_kubectl_secret():
 def delete_kubectl_secret():
     util.delete_secret(SECRET_NAME)
 
-
-def label_preemptible_nodes():
-    def cmd(s):
-        return util.run(s, verbose=False, get_output=True)
-    shared.label_preemptible_nodes(cmd)
 
 if __name__ == '__main__':
     import argparse
