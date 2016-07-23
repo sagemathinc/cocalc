@@ -22,9 +22,13 @@ RUN \
   wget -qO- https://deb.nodesource.com/setup_6.x | bash - && \
   apt-get install -y nodejs
 
-#COPY run.coffee /run.coffee
-COPY run.js /run.js
+COPY run.coffee /run.coffee
+COPY package.json /package.json
 COPY kubectl /usr/bin/kubectl
 
-ENTRYPOINT ["/sbin/dumb-init", "/run.js"]
+# Install node modules defined in package.json (rethinkdb and coffe-script)
+RUN \
+  npm install
+
+ENTRYPOINT ["/sbin/dumb-init", "/node_modules/.bin/coffee", "run.coffee"]
 
