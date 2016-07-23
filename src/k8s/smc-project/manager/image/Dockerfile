@@ -27,8 +27,10 @@ COPY package.json /package.json
 COPY kubectl /usr/bin/kubectl
 
 # Install node modules defined in package.json (rethinkdb and coffe-script)
-RUN \
-  npm install
+RUN npm install
+
+# Make it so the node modules we just installed are visible
+ENV NODE_PATH=/node_modules
 
 ENTRYPOINT ["/sbin/dumb-init", "/node_modules/.bin/coffee", "run.coffee"]
 

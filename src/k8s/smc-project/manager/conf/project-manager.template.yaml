@@ -41,8 +41,14 @@ spec:
         volumeMounts:
           - name: cluster-manager-kubectl-secret
             mountPath: /root/.kube/
+          - name: secret-rethinkdb
+            mountPath: /secrets/rethinkdb/
+            readOnly: true
       volumes:
         - name: cluster-manager-kubectl-secret
           secret:
             secretName: cluster-manager-kubectl-secret
+        - name: secret-rethinkdb
+          secret:
+            secretName: rethinkdb-password
       {node_selector}
