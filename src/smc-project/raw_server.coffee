@@ -19,6 +19,7 @@ exports.start_raw_server = (opts) ->
         host       : required
         data_path  : required
         home       : required
+        port       : undefined
         cb         : cb
     {project_id, base_url, host, data_path, home, cb} = opts
     winston.info("starting raw http server...")
@@ -26,7 +27,7 @@ exports.start_raw_server = (opts) ->
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
 
-    port = undefined
+    port = opts.port # either undefined or the port number
 
     async.series([
         (cb) ->
@@ -44,8 +45,11 @@ exports.start_raw_server = (opts) ->
                             winston.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            misc_node.free_port (err, _port) ->
-                port = _port; cb(err)
+            if port?
+                cb()
+            else
+                misc_node.free_port (err, _port) ->
+                    port = _port; cb(err)
         (cb) ->
             fs.writeFile(raw_port_file, port, cb)
         (cb) ->
