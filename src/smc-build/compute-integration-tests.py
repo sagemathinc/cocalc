@@ -51,33 +51,36 @@ BINARIES = [
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
-    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'pysal', 'openpyxl',
+    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'openpyxl', 'sympy',
 ]
 
 # python 2 libs
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
-    'clawpack', # py2 only :-(
+    # 'clawpack', # py2 only, and it dosesn't have a version info
     'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa',
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa', 'datasift', 'theano', 'seaborn', 'biopython',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels',
 ]
 
 PY_SAGE = PY_COMMON + [
     # 'sage' # there is no sage.__version__ ???
     # 'numba', # would be cool to have numba in sagemath
-    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'clawpack', 'mercurial',
-    'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'clawpack', 'shapely', 'simpy', 'gmpy2',
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'tensorflow',
+    # 'clawpack', # no canonical version info
+    'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
-    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3',
+    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal',
 ]
 
 PY3_ANACONDA = PY_COMMON + [
-    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxopt', 'cvxpy', 'numba', 'dask', 'nltk',
+    # 'cvxopt', # no version
+    'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray', 'symengine', 'pymc',
 ]
 
@@ -85,7 +88,7 @@ PY3_ANACONDA = PY_COMMON + [
 R_exes = ['/usr/bin/R', 'sage -R']
 
 R_libs = [
-    'rstan',
+    'rstan', # works, but still uses a lot of memory for compiling
     'ggplot2',
     'stringr',
     'plyr',
@@ -109,7 +112,7 @@ R_libs = [
     'Cairo',
     'XML',
     'data.table',
-    'brian',
+    # 'brian', # doesn't exist for Sage's older R, i.e. 3.2.4
     'rugarch',
     'quantmod',
     'swirl',
@@ -136,11 +139,30 @@ R_libs = [
     'maps'
 ]
 
+# see smc-ansible/julia.yaml
 JULIA = [
-    'Interact',
-    'PyPlot',
+    'IJulia', # in jupyter notebook
+    'Interact', # https://github.com/JuliaLang/Interact.jl (for IJulia)
     'SymPy',
-    'JuMP'
+    'PyPlot', # https://github.com/stevengj/PyPlot.jl
+    'Bokeh',  # https://github.com/JuliaLang/IJulia.jl
+    'Gadfly', # https://github.com/dcjones/Gadfly.jl
+    'Mocha',  # https://github.com/pluskid/Mocha.jl
+    'DataFrames', # https://github.com/JuliaStats/DataFrames.jl
+    'Winston',    # 2D plotting
+    'Convex', # https://github.com/JuliaOpt/Convex.jl (optimization)
+    'Optim', # https://github.com/JuliaOpt/Optim.jl
+    'JuMP', # https://github.com/JuliaOpt/JuMP.jl
+    'Clp', # solver
+    'Ipopt', # https://github.com/JuliaOpt/Ipopt.jl
+    'ECOS', # https://github.com/JuliaOpt/ECOS.jl
+    'GLPK', # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
+    'ParallelAccelerator', # https://github.com/IntelLabs/ParallelAccelerator.jl
+    'MXNet', # https://github.com/dmlc/MXNet.jl
+    'Graphs', # https://github.com/JuliaLang/Graphs.jl
+    'Bio', # https://github.com/BioJulia/Bio.jl (bioinformatics)
+    'SCS', # Solving optimization problems
+    'RDatasets',
 ]
 
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
@@ -183,7 +205,7 @@ def test_python(exe, libs):
         print(v)
         assert lib.lower() in v.lower()
 
-@pytest.mark.parametrize('exe,lib', it.product(R_exes, R_libs))
+@pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
 def test_r(exe, lib):
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     v = run(CMD.format(**locals()))
@@ -197,6 +219,86 @@ def test_julia(lib):
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
+
+# check, that openmpi via the hydra executor is working
+# http://mpitutorial.com/tutorials/mpi-hello-world/
+# 1. mpicc mpi.c -o mpi
+# 2. mpiexec -n 4 ./mpi → 4 lines for each subprocess
+MPI_C = r'''\
+#include <mpi.h>
+#include <stdio.h>
+int main(int argc, char** argv) {
+    MPI_Init(NULL, NULL);
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len);
+    printf("Hello world from processor %s, rank %d"
+           " out of %d processors\n",
+           processor_name, world_rank, world_size);
+    MPI_Finalize();
+}
+'''
+
+def test_mpi(tmpdir):
+    """
+    The assumption for this test is, that a working mpi implementation is installed
+    and accessible through mpicc and mpiexec. They should most likely be mpich version 3
+    and the hydra executor -- http://www.mpich.org/downloads/
+    (at least, that's what has always been working in ubuntu and on GCE)
+    """
+    tmpdir.chdir()
+    mpi_c = tmpdir.join('mpi.c')
+    mpi_c.write(MPI_C)
+    os.system("mpicc mpi.c -o mpi")
+    v = run("mpiexec -n 4 ./mpi")
+    assert len(v.splitlines()) == 4
+    assert "rank 3 out of 4 processors" in v
+    print(v)
+
+# OpenMP test
+# gcc -o openmp -fopenmp openmp.c
+OPENMP_C = r'''\
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+#include <time.h>
+int main()
+{
+  int n, N = 10000000;
+  double* v = (double*)malloc(N*sizeof(double));
+  double* w = (double*)malloc(N*sizeof(double));
+  double* out = (double*)malloc(N*sizeof(double));
+  clock_t start = clock();
+  #pragma omp parallel num_threads(4)
+  {
+    #pragma omp for
+    for(int n=0; n<N; ++n)
+    {
+      out[n] = v[n] + w[n];
+    }
+  }
+  printf("\n num_seconds: %f\n", (double)(clock()-start) / (double)CLOCKS_PER_SEC);
+  free(v);
+  free(w);
+  free(out);
+}
+
+'''
+def test_openmp(tmpdir):
+    """
+    This runs a C program with OpenMP pragma statements.
+    """
+    tmpdir.chdir()
+    openmp_c = tmpdir.join('openmp.c')
+    openmp_c.write(OPENMP_C)
+    os.system("gcc -o openmp -fopenmp openmp.c")
+    v = run("./openmp")
+    assert float(v.split()[-1]) < 1.
+    print(v)
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar

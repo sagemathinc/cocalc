@@ -48,6 +48,7 @@
     - pysal
     - ncpol2sdpa
     - hdbscan
+    - pandas-profiling
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -90,6 +91,7 @@
     - cytoolz
     - pysal
     - hdbscan
+    - pandas-profiling
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
