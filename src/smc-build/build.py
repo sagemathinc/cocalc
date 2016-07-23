@@ -193,6 +193,7 @@ SAGE_PIP_PACKAGES = [
     'bitarray',
     'h5py',
     'ipdb', # https://github.com/sagemathinc/smc/issues/319
+    'pandas-profiling',
     'netcdf4',
     'lxml',
     'munkres',
@@ -495,6 +496,7 @@ class BuildSage(object):
         self.install_cairo()
         self.install_psage()
         self.install_pycryptoplus()
+        # self.install_tensorflow() # doesn't work
         # FAILED:
         self.install_neuron()
 
@@ -859,6 +861,18 @@ class BuildSage(object):
         open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
         shutil.rmtree(path)
 
+    def install_tensorflow(self):
+        """
+        Check for updated wheel packages here:
+        https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
+
+        Status: Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+        it also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+        """
+        cmd("pip install --no-deps --upgrade 'protobuf>=3.0.0a3'")
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp27-none-linux_x86_64.whl'
+        cmd("pip install --no-deps --upgrade %s" % TF_BINARY_URL)
+
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
         src = os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'src')
@@ -884,5 +898,6 @@ class BuildSage(object):
 
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+
 
 
