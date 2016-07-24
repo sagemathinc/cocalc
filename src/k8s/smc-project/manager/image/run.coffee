@@ -25,22 +25,34 @@ connect_to_rethinkdb = (cb) ->
 # dynamically updates the projects object.
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run').pluck('project_id', 'run')
-    query.changes(includeInitial:true).run conn, (err, cursor) ->
+    query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
             console.log('error setting up rethinkdb query', err)
             cb?(err)
             return
+        state = 'initializing'
         cursor.each (err, x) ->
             if err
                 console.log('error in changefeed', err)
                 process.exit(1)
+            if x.state
+                state = x.state
+                if state == 'ready'
+                    # done loading run info -- reconcile everything
+                    READY = true
+                    reconcile_all()
+                    return
             if x.new_val
-                z = projects[x.new_val.project_id] ?= {}
+                project_id = x.new_val.project_id
+                z = projects[project_id] ?= {}
                 z.run = x.new_val.run
             else if x.old_val  # no new value -- removed from changefeed result, so now false.
-                z = projects[x.old_val.project_id] ?= {}
+                project_id = x.old_val.project_id
+                z = projects[project_id] ?= {}
                 z.run = false
-            return undefined  # otherwise last value gets returned, which stops iteration!
+            if state == 'ready' and project_id?
+                reconcile(project_id)
+            return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
         cb?()
 
 # Maintain current status of all project deployments
@@ -65,6 +77,7 @@ init_kubectl_watch = (cb) ->
             for i in [0...v.length]
                 k[headers[i]] = v[i]
             x.kubernetes = k
+            reconcile(project_id)
 
     stdout = ''
     r.stdout.on 'data', (data) ->
@@ -87,8 +100,35 @@ init_kubectl_watch = (cb) ->
 
     cb?()
 
+# get changed to true when we first run reconcile_all
+_reconcile_ready = false
+reconcile = (project_id) ->
+    if not _reconcile_ready
+        return
+    x = projects[project_id]
+    if x.run
+        if not x.kubernetes? or x.kubernetes.DESIRED != '1'
+            kubectl_start_project(project_id)
+    else
+        if x.kubernetes.DESIRED == '1'
+            kubectl_stop_project(project_id)
+
+reconcile_all = () ->
+    _reconcile_ready = true
+    for project_id, _ of projects
+        reconcile(project_id)
+
+
 # Start a project running
-kubectl_start_project = (project_id, cb) ->
+kubectl_start_project = (project_id) ->
+    console.log 'kubectl_start_project ', project_id
+
+# Stop a project from running
+kubectl_stop_project = (project_id) ->
+    console.log 'kubectl_stop_project ', project_id
+    child_process.exec "kubectl delete deployments smc-project-#{project_id}", (err, stdout, stderr) =>
+        console.log("kubectl_stop_project '#{project_id}' ", err, stdout, stderr)
+
 
 # Start the main control loop.  This queries rethinkdb
 # for all projects that are supposed to be running, and
