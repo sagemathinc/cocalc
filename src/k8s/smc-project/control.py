@@ -51,7 +51,7 @@ def run_on_kubernetes(args):
 
 def delete(args):
     validate_project_ids(args)
-    util.stop_deployment("project-" + args.project_id)
+    util.stop_deployment(NAME + "-" + args.project_id)
 
 if __name__ == '__main__':
     import argparse
