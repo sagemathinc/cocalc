@@ -20,7 +20,39 @@
 ###############################################################################
 
 ###
-Chat
+Chat message JSON format:
+
+sender_id : String which is the original message sender's account id
+event     : Can only be "chat" right now.
+date      : A date string
+history   : Array of "History" objects (described below)
+editing   : Object of <account id's> : <"TODO">
+
+"TODO" Will likely contain their last edit in the future
+
+ --- History object ---
+author_id : String which is this message version's author's account id
+content   : The raw display content of the message
+date      : The date this edit was sent
+
+Example object:
+{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
+"event":"chat",
+"history":[
+        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
+        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
+        ],
+"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
+---
+
+Chat message types after immutable conversion:
+(immutable.Map)
+sender_id : String
+event     : String
+date      : Date Object
+history   : immutable.Stack of immutable.Maps
+editing   : immutable.Map
+
 ###
 
 # standard non-SMC libraries
@@ -186,9 +218,6 @@ Message = rclass
     displayName: "Message"
 
     propTypes:
-        # example message object
-        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","date":"2015-08-26T21:52:51.329Z", "history": <Stack>}
-        # "history" : [{author_id: "...", content:"full content", "date": ...}, ...]
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
         sender_name    : rtypes.string

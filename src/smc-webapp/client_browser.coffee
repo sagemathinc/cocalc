@@ -236,6 +236,10 @@ class Connection extends client.Connection
         @_write = (data) =>
             conn.write(data)
 
+    # return latest ping/pong time (latency) if connected; otherwise, return undefined
+    latency: () =>
+        if @_connected
+            return @_conn.latency
 
     _fix_connection: (delete_cookies) =>
         if delete_cookies
