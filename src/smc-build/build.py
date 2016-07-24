@@ -220,7 +220,6 @@ SAGE_PIP_PACKAGES = [
     'colorpy',
     #'rootpy',    # supports ROOT data analysis framework  -- broken "import ROOT" doesn't work anymore
     'tabulate',
-    'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
     'ez_setup',   # needed by fipy
     #'pysparse',    # needed by fipy; for the ==1.2-dev213 bullshit, see http://stackoverflow.com/questions/25459011/how-to-build-pysparse-on-ubuntu; it's amazing how bad pypi and python packaging are.  Wow.

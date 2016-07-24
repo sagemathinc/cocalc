@@ -74,7 +74,7 @@ PY_SAGE = PY_COMMON + [
     'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'tensorflow',
     # 'clawpack', # no canonical version info
     'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
-    'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
+    'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
     'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal',
 ]
 
