@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 
     def selector(args):
-        return {'run':'project'}
+        return {'run':'smc-project'}
 
     util.add_bash_parser(NAME, subparsers, custom_selector=selector)
     util.add_top_parser(NAME,  subparsers, custom_selector=selector)

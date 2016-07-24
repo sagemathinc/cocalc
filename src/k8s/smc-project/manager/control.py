@@ -22,15 +22,20 @@ def build(tag, rebuild):
         v.append("--no-cache")
     v.append('.')
 
-    path = join(SCRIPT_PATH, 'image')
-    kubectl = join(path, 'kubectl')
+    path     = join(SCRIPT_PATH, 'image')
+    kubectl  = join(path, 'kubectl')
+
+    yaml = '{name}.template.yaml'.format(name=NAME)
+    template = join(path, yaml)
     src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
     try:
+        shutil.copyfile(join(SCRIPT_PATH, 'conf', yaml), template)
         shutil.copyfile(src, kubectl)
         shutil.copymode(src, kubectl)
         util.run(v, path=path)
     finally:
         os.unlink(kubectl)
+        os.unlink(template)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)

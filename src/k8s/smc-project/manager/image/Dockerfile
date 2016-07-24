@@ -36,5 +36,8 @@ ENV NODE_PATH=/node_modules
 # Copy over other scripts
 COPY run.coffee /run.coffee
 
+# Copy in template
+COPY smc-project.template.yaml /smc-project.template.yaml
+
 ENTRYPOINT ["/sbin/dumb-init", "/usr/bin/coffee", "run.coffee"]
 

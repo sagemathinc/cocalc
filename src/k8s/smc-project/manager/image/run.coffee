@@ -3,8 +3,10 @@
 
 ###
 
+child_process = require('child_process')
 fs        = require('fs')
 async     = require('async')
+temp      = require('temp')    # https://www.npmjs.com/package/temp
 
 rethinkdb = require('rethinkdb')
 conn      = undefined  # connection to rethinkdb
@@ -21,19 +23,21 @@ connect_to_rethinkdb = (cb) ->
         conn = _conn
         cb?(err)
 
+log = console.log
+
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run').pluck('project_id', 'run')
     query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
-            console.log('error setting up rethinkdb query', err)
+            log('error setting up rethinkdb query', err)
             cb?(err)
             return
         state = 'initializing'
         cursor.each (err, x) ->
             if err
-                console.log('error in changefeed', err)
+                log('error in changefeed', err)
                 process.exit(1)
             if x.state
                 state = x.state
@@ -59,12 +63,11 @@ init_projects_changefeed = (cb) ->
 init_kubectl_watch = (cb) ->
     # The Headers include: NAME   DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE  LABELS
     # kubectl get deployments --show-labels --selector=run=smc-project --watch
-    r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
-                                        '--selector=run=smc-project', '--watch'])
+
     headers = undefined
     process = (line) ->
         v = line.match(/\S+/g)   # split on whitespace
-        if v.length == 0
+        if not v or v.length == 0
             return
         if line.indexOf('smc-project') == -1
             # Headers
@@ -79,26 +82,37 @@ init_kubectl_watch = (cb) ->
             x.kubernetes = k
             reconcile(project_id)
 
-    stdout = ''
-    r.stdout.on 'data', (data) ->
-        stdout += data.toString()
-        while true
-            i = stdout.indexOf('\n')
-            if i == -1
-                break
-            line = stdout.slice(0,i)
-            stdout = stdout.slice(i+1)
+    # Initialize
+    cmd "kubectl get deployments --show-labels --selector=run=smc-project", (err, output) ->
+        if err
+            cb?(err)
+            return
+        for line in output.split('\n')
             process(line)
 
-    r.on 'exit', (code) ->
-        console.log("kubectl terminated", code)
-        process.exit(1)
+        # Now watch
+        r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
+                                            '--selector=run=smc-project', '--watch', '--no-headers'])
+        stdout = ''
+        r.stdout.on 'data', (data) ->
+            stdout += data.toString()
+            while true
+                i = stdout.indexOf('\n')
+                if i == -1
+                    break
+                line = stdout.slice(0,i)
+                stdout = stdout.slice(i+1)
+                process(line)
 
-    r.on 'error', (err) ->
-        console.log("kubectl subprocess error", err)
-        process.exit(1)
+        r.on 'exit', (code) ->
+            log("kubectl terminated", code)
+            process.exit(1)
 
-    cb?()
+        r.on 'error', (err) ->
+            log("kubectl subprocess error", err)
+            process.exit(1)
+
+        cb?()
 
 # get changed to true when we first run reconcile_all
 _reconcile_ready = false
@@ -108,9 +122,11 @@ reconcile = (project_id) ->
     x = projects[project_id]
     if x.run
         if not x.kubernetes? or x.kubernetes.DESIRED != '1'
+            log("starting because x = ", x)
             kubectl_start_project(project_id)
     else
         if x.kubernetes.DESIRED == '1'
+            log("stopping because x = ", x)
             kubectl_stop_project(project_id)
 
 reconcile_all = () ->
@@ -118,16 +134,69 @@ reconcile_all = () ->
     for project_id, _ of projects
         reconcile(project_id)
 
+replace_all = (string, search, replace) ->
+    string.split(search).join(replace)
+
+# Used for starting projects:
+deployment_template = fs.readFileSync('smc-project.template.yaml').toString()
+deployment_yaml = (project_id) ->
+    params =  #TODO
+        project_id     : project_id
+        image          : 'gcr.io/sage-math-inc/smc-project:foo2'
+        namespace      : 'test'
+        storage_server : '0'
+        disk_size      : '1G'
+        pull_policy    : 'IfNotPresent'
+    s = deployment_template
+    for k, v of params
+        s = replace_all(s, "{#{k}}", v)
+    return s
+
+cmd = (s, cb) ->
+    log("running '#{s}'")
+    child_process.exec s, (err, stdout, stderr) ->
+        #log("output of '#{s}' -- ", stdout, stderr)
+        cb?(err, stdout + stderr)
 
 # Start a project running
-kubectl_start_project = (project_id) ->
-    console.log 'kubectl_start_project ', project_id
+kubectl_start_project = (project_id, cb) ->
+    log 'kubectl_start_project ', project_id
+    info = undefined
+    async.series([
+        (cb) ->
+            temp.open {suffix:'.yaml'}, (err, _info) ->
+                info = _info
+                cb(err)
+        (cb) ->
+            fs.write(info.fd, deployment_yaml(project_id))
+            fs.close(info.fd, cb)
+        (cb) ->
+            cmd("kubectl create -f #{info.path}", cb)
+    ], (err) ->
+        if err
+            log "failed to start '#{project_id}': ", err
+            # Try again in a few seconds  (TODO...)
+            setTimeout((()->reconcile(project_id)), 5000)
+        else
+            log "started '#{project_id}'"
+        if info?
+            try
+                fs.unlink(info.path)
+            catch
+                # ignore
+        cb?(err)
+    )
 
 # Stop a project from running
 kubectl_stop_project = (project_id) ->
-    console.log 'kubectl_stop_project ', project_id
-    child_process.exec "kubectl delete deployments smc-project-#{project_id}", (err, stdout, stderr) =>
-        console.log("kubectl_stop_project '#{project_id}' ", err, stdout, stderr)
+    log 'kubectl_stop_project ', project_id
+    cmd "kubectl delete deployments smc-project-#{project_id}", (err) ->
+        if err
+            log "failed to stop '#{project_id}': ", err
+            # Try again in a few seconds  (TODO...)
+            setTimeout((()->reconcile(project_id)), 5000)
+        else
+            log "stopped '#{project_id}'"
 
 
 # Start the main control loop.  This queries rethinkdb
@@ -135,10 +204,9 @@ kubectl_stop_project = (project_id) ->
 # maintains a changefeed of that result.  It first makes
 # sure that Kubernetes is in sync with this, and does an
 # action whenever things change.
-control_loop = (cb) ->
-    f = ->
-        #console.log 'doing nothing...'
-    setInterval(f, 30000)
+sleep = (cb) ->
+    f = ->  # do nothing
+    setInterval(f, 60000)
 
 
 main = () ->
@@ -148,13 +216,12 @@ main = () ->
         (cb) ->
             init_projects_changefeed(cb)
         (cb) ->
-            control_loop(cb)
+            sleep(cb)
     ], (err) ->
-        console.log("DONE", err)
+        log("DONE", err)
     )
 
-#main()
-control_loop()
+main()
 
 # For debugging/dev
 exports.main = main

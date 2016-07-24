@@ -24,6 +24,7 @@ spec:
     metadata:
       labels:
           project_id : {project_id}
+          run        : smc-project
     spec:
       containers:
       - name: project
