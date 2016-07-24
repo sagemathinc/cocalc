@@ -198,6 +198,8 @@ Message = rclass
         new_changes     : false
 
     componentWillReceiveProps: (newProps) ->
+        if @state.history_size != @props.message.get('history').size
+            @setState(history_size:@props.message.get('history').size)
         changes = false
         if @state.edited_message == @newest_content()
             @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
@@ -244,7 +246,7 @@ Message = rclass
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
                 color = "#E55435"
-            else if @state.new_changes
+            else if @state.history_size != @props.message.get('history').size and @state.new_changes
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
