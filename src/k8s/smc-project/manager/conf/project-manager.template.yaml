@@ -1,0 +1,54 @@
+# This is really a template for generating the yaml that describes the deployments
+# for each of the storage nodes.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: project-manager
+  labels:
+    run : project-manager
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  selfLink: /apis/extensions/v1beta1/namespaces/deployments/project-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run : project-manager
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+          run : project-manager
+    spec:
+      containers:
+      - name: project-manager
+        image: {image}
+        imagePullPolicy: {pull_policy}
+        resources:
+          requests:
+            memory: "30Mi"
+            cpu: "5m"
+          limits:
+            memory: "100Mi"
+            cpu: "300m"
+        env:
+          - name: KUBERNETES_CLUSTER_PREFIX
+            value: {cluster_prefix}
+        volumeMounts:
+          - name: cluster-manager-kubectl-secret
+            mountPath: /root/.kube/
+          - name: secret-rethinkdb
+            mountPath: /secrets/rethinkdb/
+            readOnly: true
+      volumes:
+        - name: cluster-manager-kubectl-secret
+          secret:
+            secretName: cluster-manager-kubectl-secret
+        - name: secret-rethinkdb
+          secret:
+            secretName: rethinkdb-password
+      {node_selector}

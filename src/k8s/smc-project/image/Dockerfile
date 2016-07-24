@@ -18,7 +18,7 @@ RUN rm -f /manage.sh && \
 COPY run.py /run.py
 COPY smc-project.conf /etc/supervisor/conf.d/smc-project.conf
 ENTRYPOINT []
-CMD ["/usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
 # Expose local hub port, etc....
 # Shouldn't we use port 5463 as an easter egg? :-)
