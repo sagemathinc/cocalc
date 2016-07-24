@@ -8,18 +8,43 @@ async     = require('async')
 
 rethinkdb = require('rethinkdb')
 conn      = undefined  # connection to rethinkdb
-
-connect_to_rethinkdb = (cb) ->
-    authKey = fs.readFileSync("/secrets/rethinkdb/rethinkdb").toString().trim()
-    rethinkdb.connect {authKey:authKey, host:"rethinkdb-driver", timeout:15}, (err, _conn) ->
-        conn = _conn
-        cb(err)
-
+DATABASE  = 'smc'
 
 projects = {}
 
+connect_to_rethinkdb = (cb) ->
+    try
+        authKey = fs.readFileSync("/secrets/rethinkdb/rethinkdb").toString().trim()
+    catch
+        authKey = undefined
+    rethinkdb.connect {authKey:authKey, host:"rethinkdb-driver", timeout:15}, (err, _conn) ->
+        conn = _conn
+        cb?(err)
+
+# Create a changefeed of all potentially requested-to-be-running projects, which
+# dynamically updates the projects object.
+init_projects_changefeed = (cb) ->
+    query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run').pluck('project_id', 'run')
+    query.changes(includeInitial:true).run conn, (err, cursor) ->
+        if err
+            console.log('error setting up rethinkdb query', err)
+            cb?(err)
+            return
+        cursor.each (err, x) ->
+            if err
+                console.log('error in changefeed', err)
+                process.exit(1)
+            if x.new_val
+                z = projects[x.new_val.project_id] ?= {}
+                z.run = x.new_val.run
+            else if x.old_val  # no new value -- removed from changefeed result, so now false.
+                z = projects[x.old_val.project_id] ?= {}
+                z.run = false
+            return undefined  # otherwise last value gets returned, which stops iteration!
+        cb?()
+
 # Maintain current status of all project deployments
-connect_to_kubernetes = (cb) ->
+init_kubectl_watch = (cb) ->
     # The Headers include: NAME   DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE  LABELS
     # kubectl get deployments --show-labels --selector=run=smc-project --watch
     r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
@@ -53,17 +78,14 @@ connect_to_kubernetes = (cb) ->
             process(line)
 
     r.on 'exit', (code) ->
-        console.log("kubernetes terminated", code)
-        process.exit()
+        console.log("kubectl terminated", code)
+        process.exit(1)
 
     r.on 'error', (err) ->
-        console.log("kubernetes subprocess error", err)
-        process.exit()
+        console.log("kubectl subprocess error", err)
+        process.exit(1)
 
     cb?()
-
-# Get status of a particular project
-kubectl_get_project = (project_id, cb) ->
 
 # Start a project running
 kubectl_start_project = (project_id, cb) ->
@@ -75,14 +97,16 @@ kubectl_start_project = (project_id, cb) ->
 # action whenever things change.
 control_loop = (cb) ->
     f = ->
-        console.log 'doing nothing...'
+        #console.log 'doing nothing...'
     setInterval(f, 30000)
 
 
 main = () ->
     async.series([
         (cb) ->
-            async.parallel([connect_to_kubectl, connect_to_rethinkdb], cb)
+            async.parallel([init_kubectl_watch, connect_to_rethinkdb], cb)
+        (cb) ->
+            init_projects_changefeed(cb)
         (cb) ->
             control_loop(cb)
     ], (err) ->
@@ -93,5 +117,8 @@ main = () ->
 control_loop()
 
 # For debugging/dev
-exports.connect_to_kubernetes = connect_to_kubernetes
+exports.main = main
+exports.connect_to_rethinkdb = connect_to_rethinkdb
+exports.init_kubectl_watch = init_kubectl_watch
+exports.init_projects_changefeed = init_projects_changefeed
 exports.projects = projects

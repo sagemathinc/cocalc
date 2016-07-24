@@ -566,11 +566,15 @@ schema.projects =
         course :
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+        run :
+            type : 'bool'
+            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
+        run                       : [] # so can easily tell which projects should be running
         seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
         created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
