@@ -17,8 +17,9 @@ squash:
 
 install:
 	@echo "runs all ansible install tasks -- do this once after rebuilding the image"
-	$(RUN) install
-	$(MAKE) commit
+	$(eval ID = $(shell $(CREATE) install))
+	docker start -ai ${ID}
+	@echo "to commit, run ${COMMIT}"
 
 update:
 	@echo "runs all ansible tasks marked as 'update'"
