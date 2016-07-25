@@ -17,7 +17,7 @@ squash:
 
 install:
 	@echo "runs all ansible install tasks -- do this once after rebuilding the image"
-	$(RUN) update
+	$(RUN) install
 	$(MAKE) commit
 
 update:
