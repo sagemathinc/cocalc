@@ -49,6 +49,8 @@
     - ncpol2sdpa
     - hdbscan
     - pandas-profiling
+    - wordcloud
+    - cobra
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -92,6 +94,8 @@
     - pysal
     - hdbscan
     - pandas-profiling
+    - wordcloud
+    - cobra
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -146,9 +150,6 @@
                 line="#SHOWWARNING=true"
     tags: tmpreaper
 
-  - name: "IPython with notebook and octave+bash kernel / remove ipython"
-    apt: name=ipython state=absent
-    tags: [ ipython, install, update ]
   - name: "IPython with notebook and octave+bash kernel / install from pip"
     tags: [ ipython, install, update ]
     pip: executable=pip2
@@ -608,5 +609,6 @@
     - octave-vlfeat
     - octave-vrml
     - octave-zenity
+    - libsbml5-octave
   - name: "fix some font for octave"
     file: src=/usr/share/fonts/truetype/liberation dest=/usr/share/fonts/truetype/ttf-liberation state=link

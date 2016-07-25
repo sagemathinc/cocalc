@@ -4,6 +4,7 @@
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
 import os
 import sys
+import shutil
 import pytest
 import itertools as it
 from textwrap import dedent
@@ -38,6 +39,7 @@ BINARIES = [
     ('pdflatex', 'pdfTeX 3.14'),
     ('python2', 'python 2.7'),
     ('python3', 'python 3'),
+    ('/ext/anaconda/bin/python', 'python 3'),
     ('xelatex', 'xetex'),
     ('axiom', 'AXIOMsys', '-h'),
     ('open-axiom', 'OpenAxiom 1'),
@@ -51,7 +53,7 @@ BINARIES = [
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
-    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'openpyxl', 'sympy',
+    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'openpyxl', 'sympy', 'wordcloud',
 ]
 
 # python 2 libs
@@ -65,7 +67,7 @@ PY2 = PY_COMMON + [
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa', 'datasift', 'theano', 'seaborn', 'biopython',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra',
 ]
 
 PY_SAGE = PY_COMMON + [
@@ -75,7 +77,7 @@ PY_SAGE = PY_COMMON + [
     # 'clawpack', # no canonical version info
     'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
-    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal',
+    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra',
 ]
 
 PY3_ANACONDA = PY_COMMON + [
@@ -84,7 +86,7 @@ PY3_ANACONDA = PY_COMMON + [
     'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray', 'symengine', 'pymc',
 ]
 
-# This should be the offical R from the CRAN ubuntu repos and Sage's R
+# This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
 R_exes = ['/usr/bin/R', 'sage -R']
 
 R_libs = [
@@ -168,12 +170,7 @@ JULIA = [
 
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
 @pytest.mark.parametrize("bin", BINARIES)
-def test_bin(bin):
-    assert len(bin) > 0
-
-# http://pytest.org/latest/parametrize.html#parametrized-test-functions
-@pytest.mark.parametrize("bin", BINARIES)
-def test_binaries(bin):
+def test_binaries(bin, bindata):
     if isinstance(bin, str):
         cmd = bin
         token = bin.lower()
@@ -184,12 +181,15 @@ def test_binaries(bin):
         token = bin[1] if len(bin) >= 2 else bin[0].lower()
         args = bin[2] if len(bin) >= 3 else '--version'
         status = bin[3] if len(bin) >= 4 else 0
-    v = run('{cmd} {args}'.format(**locals()), status)
-    assert token.lower() in v.lower()
+    out = run('{cmd} {args}'.format(**locals()), status)
+    assert token.lower() in out.lower()
+    # when successful, add info to bindata fixture with full path
+    bindata.append([shutil.which(cmd), out])
 
 PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
 PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
-PY_TESTS = list(it.chain.from_iterable(zip(it.repeat(exe), lib) for exe, lib in zip(PY_EXES, PY_LIBS)))
+PY_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in zip(PY_EXES, PY_LIBS))
+PY_TESTS = list(it.chain.from_iterable(PY_PAIRS))
 
 @pytest.mark.parametrize("exe,lib", PY_TESTS)
 def test_python(exe, lib, libdata):
@@ -206,16 +206,16 @@ def test_python(exe, lib, libdata):
     except:
         print({lib}.version())
     "''')
-    v = run(CMD.format(**locals()))
-    assert lib.lower() in v.lower()
-    libdata.append(('Python', exe, lib, v.splitlines()[-1]))
+    out = run(CMD.format(**locals()))
+    assert lib.lower() in out.lower()
+    libdata.append(('Python', exe, lib, out.splitlines()[-1]))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
 def test_r(exe, lib, libdata):
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
-    v = run(CMD.format(**locals()))
-    assert lib.lower() in v.lower()
-    version = v.split('\n')[-2]
+    out = run(CMD.format(**locals()))
+    assert lib.lower() in out.lower()
+    version = out.split('\n')[-2]
     if version.startswith('[1]'):
         libdata.append(('R', exe, lib, version[5:-1]))
     else:
@@ -223,12 +223,16 @@ def test_r(exe, lib, libdata):
 
 # julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
-def test_julia(lib, libdata):
+def test_julia(lib):
     CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
-    v = run(CMD.format(**locals()))
-    print(v)
-    assert lib.lower() in v.lower()
-    libdata.append(('Julia', 'julia', lib, v))
+    out = run(CMD.format(**locals()))
+    assert lib.lower() in out.lower()
+
+def test_julia_installed(libdata):
+    vers_data = run('''echo 'for (k, v) in Pkg.installed(); println(k, "=>", v); end' | julia''')
+    for line in vers_data.splitlines():
+        lib, vers = line.split('=>')
+        libdata.append(('Julia', 'julia', lib, vers))
 
 # check, that openmpi via the hydra executor is working
 # http://mpitutorial.com/tutorials/mpi-hello-world/

@@ -41,6 +41,7 @@
     tags: install
     with_items:
     - IJulia # in jupyter notebook
+    - JSON
     - Interact # https://github.com/JuliaLang/Interact.jl (for IJulia)
     - SymPy
     - PyPlot # https://github.com/stevengj/PyPlot.jl

@@ -163,6 +163,9 @@
     - libreadline-dev
     - libsqlite3-dev
     - libssl-dev
+    - libsbml5
+    - libsbml5-dev
+    - libsbml5-python
     - lsof
     - m4
     - make
@@ -296,6 +299,7 @@
     - ingerman
     - inkscape
     - iotop
+    - ipython
     - ipython3
     - irssi
     - ispanish
