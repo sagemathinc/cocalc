@@ -152,7 +152,7 @@ deployment_template = fs.readFileSync('smc-project.template.yaml').toString()
 deployment_yaml = (project_id) ->
     params =  #TODO
         project_id     : project_id
-        image          : 'gcr.io/sage-math-inc/smc-project:foo2'
+        image          : process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
         namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
         storage_server : '0'
         disk_size      : '1G'

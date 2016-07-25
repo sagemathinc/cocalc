@@ -62,10 +62,16 @@ def run_on_kubernetes(args):
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
 
+    if args.project_tag:
+        default_image = util.gcloud_docker_repo('smc-project:' + args.project_tag)
+    else:
+        default_image = util.gcloud_most_recent_image('smc-project')
+
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
                            namespace      = util.get_current_namespace(),
                            cluster_prefix = util.get_cluster_prefix(),
+                           default_image  = default_image,
                            node_selector  = node_selector(),
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
@@ -110,6 +116,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('run', help='run the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
+    sub.add_argument("--project-tag", default="", help="tag to use when starting projects (will default to newest when this deployment started)")
     sub.add_argument("-f", "--force",  action="store_true", help="force re-download image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 

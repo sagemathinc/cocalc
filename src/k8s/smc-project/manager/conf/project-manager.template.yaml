@@ -38,6 +38,8 @@ spec:
         env:
           - name: KUBERNETES_NAMESPACE
             value: {namespace}
+          - name: DEFAULT_IMAGE
+            value: {default_image}
         volumeMounts:
           - name: cluster-manager-kubectl-secret
             mountPath: /root/.kube/

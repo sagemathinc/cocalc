@@ -9,7 +9,7 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='smc-project'
+NAME='smc-project'  # DO *NOT* change this; it's also assumed elsewhere, e.g., in manager/control.py
 
 def build(tag, rebuild):
     v = ['sudo', 'docker', 'build', '-t', tag]
