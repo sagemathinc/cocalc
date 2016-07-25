@@ -34,15 +34,13 @@ def validate_project_ids(args):
 
 def run_on_kubernetes(args):
     validate_project_ids(args)
-    context = util.get_cluster_prefix()
-    namespace = util.get_current_namespace()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
                            project_id     = args.project_id,
-                           namespace      = namespace,
+                           namespace      = util.get_current_namespace(),
                            storage_server = args.storage_server,
                            disk_size      = args.disk_size,
                            pull_policy    = util.pull_policy(args)))

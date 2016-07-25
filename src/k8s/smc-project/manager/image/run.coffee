@@ -1,12 +1,22 @@
 ###
+This is a service that watches:
 
+ - projects in RethinkDB to see which are requested to be run,
+ - the running projects in kubernetes to see which are actually running.
 
+When there is a discrepancy it resolves it.
+
+(c) 2016, William Stein, SageMathInc.
+
+LICENSE: GPLv3
+
+NOTE: This code doesn't depend on the rest of the SMC library.
 ###
 
 child_process = require('child_process')
-fs        = require('fs')
-async     = require('async')
-temp      = require('temp')    # https://www.npmjs.com/package/temp
+fs            = require('fs')
+async         = require('async')
+temp          = require('temp')    # https://www.npmjs.com/package/temp
 
 rethinkdb = require('rethinkdb')
 conn      = undefined  # connection to rethinkdb
@@ -143,7 +153,7 @@ deployment_yaml = (project_id) ->
     params =  #TODO
         project_id     : project_id
         image          : 'gcr.io/sage-math-inc/smc-project:foo2'
-        namespace      : 'test'
+        namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
         storage_server : '0'
         disk_size      : '1G'
         pull_policy    : 'IfNotPresent'

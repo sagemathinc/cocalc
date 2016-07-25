@@ -64,6 +64,7 @@ def run_on_kubernetes(args):
 
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
+                           namespace      = util.get_current_namespace(),
                            cluster_prefix = util.get_cluster_prefix(),
                            node_selector  = node_selector(),
                            pull_policy    = util.pull_policy(args)))
