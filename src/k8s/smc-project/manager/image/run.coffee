@@ -33,7 +33,8 @@ connect_to_rethinkdb = (cb) ->
         conn = _conn
         cb?(err)
 
-log = console.log
+log = (m...) ->
+    console.log("#{(new Date()).toISOString()}:",  m...)
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
@@ -151,8 +152,9 @@ replace_all = (string, search, replace) ->
     string.split(search).join(replace)
 
 # Used for starting projects:
-deployment_template = fs.readFileSync('smc-project.template.yaml').toString()
+deployment_template = undefined
 deployment_yaml = (project_id, storage_server, disk_size, resources) ->
+    deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
         project_id     : project_id
         image          : process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
@@ -164,7 +166,6 @@ deployment_yaml = (project_id, storage_server, disk_size, resources) ->
     s = deployment_template
     for k, v of params
         s = replace_all(s, "{#{k}}", "#{v}")
-    console.log("s = ", s)
     return s
 
 cmd = (s, cb) ->
@@ -176,6 +177,10 @@ cmd = (s, cb) ->
 # Start a project running
 kubectl_start_project = (project_id, cb) ->
     log 'kubectl_start_project ', project_id
+    if projects[project_id].starting?
+        projects[project_id].starting.push(cb)
+        return
+    projects[project_id].starting = [cb]
     info = storage_server = disk_size = resources = undefined
     async.series([
         (cb) ->
@@ -214,27 +219,85 @@ kubectl_start_project = (project_id, cb) ->
                 fs.unlink(info.path)
             catch
                 # ignore
-        cb?(err)
+        w = projects[project_id].starting
+        delete projects[project_id].starting
+        for cb in w
+            cb?(err)
     )
 
 get_storage_server = (project_id, cb) ->
     storage_server = projects[project_id]?.storage_server
-    if not storage_server?
-        # TODO -- need to choose based on load balancing or just randomly
-        storage_server = 0
-    cb(undefined, storage_server)
+    if storage_server?
+        cb(undefined, storage_server)
+        return
+    async.series([
+        (cb) ->
+            # assign project to a storage server
+            get_all_storage_servers (err, x) ->
+                if err
+                    cb(err)
+                else if x.length == 0
+                    cb("no storage servers")
+                else
+                    storage_server = random_choice(x)
+                    cb()
+        (cb) ->
+            # save assignment to database, so will reuse it next time.
+            query = rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_server:storage_server).run(conn, cb)
+    ], (err) ->
+        cb(err, storage_server)
+    )
+
+random_choice = (array) ->
+    array[Math.floor(Math.random() * array.length)]
+
+# Determine a valid storage server -- this code is ugly because it can get called many times in
+# parallel, we want to cache the result, but only for a few seconds.
+storage_servers = undefined
+storage_servers_cbs = undefined
+get_all_storage_servers = (cb) ->
+    if storage_servers?
+        log 'using already defined storage_server ', storage_servers
+        cb(undefined, storage_servers)
+    else
+        if storage_servers_cbs?
+            storage_servers_cbs.push(cb)
+            return
+        storage_servers_cbs = [cb]
+        cmd 'kubectl get pods --selector="storage=projects" --show-labels --no-headers', (err, output) ->
+            if err
+                w = storage_servers_cbs
+                storage_servers_cbs = undefined
+                for cb in w
+                    cb(err)
+            else
+                storage_servers = []
+                for line in output.split('\n')
+                    v = line.match(/\S+/g)
+                    if v
+                        storage_servers.push(parseInt(v[v.length-1].split(',')[0].split('=')[1]))
+                setTimeout((()->storage_servers = undefined), 10000)  # cache for 10s
+                log 'got new storage servers list ', storage_servers
+                w = storage_servers_cbs
+                storage_servers_cbs = undefined
+                for cb in w
+                    cb(undefined, storage_servers)
 
 get_disk_size = (project_id, cb) ->
     cb(undefined, projects[project_id]?.disk_size ? '3G')
 
 get_resources = (project_id, cb) ->
     # TODO
-    resources = projects[project_id]?.resources ? {requests:{memory:"30Mi",cpu:"30m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+    resources = projects[project_id]?.resources ? {requests:{memory:"100Mi",cpu:"30m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
     cb(undefined, resources)
 
 # Stop a project from running
-kubectl_stop_project = (project_id) ->
+kubectl_stop_project = (project_id, cb) ->
     log 'kubectl_stop_project ', project_id
+    if projects[project_id].stopping?
+        projects[project_id].stopping.push(cb)
+        return
+    projects[project_id].stopping = [cb]
     cmd "kubectl delete deployments smc-project-#{project_id}", (err) ->
         if err
             log "failed to stop '#{project_id}': ", err
@@ -242,6 +305,11 @@ kubectl_stop_project = (project_id) ->
             setTimeout((()->reconcile(project_id)), 5000)
         else
             log "stopped '#{project_id}'"
+        w = projects[project_id].stopping
+        delete projects[project_id].stopping
+        for cb in w
+            cb?(err)
+
 
 
 # Start the main control loop.  This queries rethinkdb
@@ -274,3 +342,4 @@ exports.connect_to_rethinkdb = connect_to_rethinkdb
 exports.init_kubectl_watch = init_kubectl_watch
 exports.init_projects_changefeed = init_projects_changefeed
 exports.projects = projects
+exports.get_all_storage_servers = get_all_storage_servers

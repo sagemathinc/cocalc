@@ -283,7 +283,6 @@ def get_pod_ip(**selector):
             return s['status']['podIP']
     return None
 
-
 def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None):
     """
     Ensure that there is a persistent disk with the given name.

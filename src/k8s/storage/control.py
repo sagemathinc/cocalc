@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     util.add_logs_parser(NAME, subparsers)
 
-    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
+    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks, unless you pass the --obliterate-disk option')
     sub.add_argument('number', type=int, help='which node or nodes to stop running; stops all if not given', nargs='*')
     sub.add_argument("--obliterate-disk", type=str, default='', help="give --obliterate-disk=k8s-[cluster]-[namespace] to delete the deployment *and* delete the persistent disk; try with --obliterate-disk=help to get the current value of k8s-[cluster]-[namespace]")
     sub.set_defaults(func=delete)

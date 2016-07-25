@@ -80,7 +80,14 @@ def run_on_kubernetes(args):
 
 def delete(args):
     util.stop_deployment(NAME)
-    delete_kubectl_secret()
+
+def logs(args):
+    v = util.run(['kubectl', 'get', 'pods', '--selector', 'run=project-manager', '--no-headers'], verbose=False, get_output=True).split()
+    if len(v) == 0:
+        print('no pods')
+    else:
+        util.run(['kubectl', 'logs', '--tail=100', '-f', v[0]])
+
 
 SECRET_NAME = 'cluster-manager-kubectl-secret'
 def create_kubectl_secret():
@@ -125,6 +132,10 @@ if __name__ == '__main__':
     sub.set_defaults(func=delete)
 
     util.add_deployment_parsers(NAME, subparsers, exclude='autoscale')
+
+    # Must be after add_deployment_parsers!
+    sub = subparsers.add_parser('logs', help='tail log')
+    sub.set_defaults(func=logs)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
