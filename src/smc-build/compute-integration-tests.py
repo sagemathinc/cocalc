@@ -74,7 +74,7 @@ PY_SAGE = PY_COMMON + [
     'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'tensorflow',
     # 'clawpack', # no canonical version info
     'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
-    'goslate', 'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
+    'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
     'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal',
 ]
 
@@ -165,6 +165,7 @@ JULIA = [
     'RDatasets',
 ]
 
+
 # http://pytest.org/latest/parametrize.html#parametrized-test-functions
 @pytest.mark.parametrize("bin", BINARIES)
 def test_bin(bin):
@@ -188,37 +189,46 @@ def test_binaries(bin):
 
 PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
 PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
+PY_TESTS = list(it.chain.from_iterable(zip(it.repeat(exe), lib) for exe, lib in zip(PY_EXES, PY_LIBS)))
 
-@pytest.mark.parametrize("exe,libs", zip(PY_EXES, PY_LIBS))
-def test_python(exe, libs):
+@pytest.mark.parametrize("exe,lib", PY_TESTS)
+def test_python(exe, lib, libdata):
     CMD = dedent('''\
     {exe} -c "from __future__ import print_function
+    from types import ModuleType
     import {lib}
-    print('{exe} {lib}: ', end='')
+    print({lib})
     try:
-        print({lib}.__version__)
+        if type({lib}.__version__) == ModuleType:
+            print({lib}.__version__.version)
+        else:
+            print({lib}.__version__)
     except:
         print({lib}.version())
     "''')
-    for lib in set(libs):
-        v = run(CMD.format(**locals()))
-        print(v)
-        assert lib.lower() in v.lower()
+    v = run(CMD.format(**locals()))
+    assert lib.lower() in v.lower()
+    libdata.append(('Python', exe, lib, v.splitlines()[-1]))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
-def test_r(exe, lib):
+def test_r(exe, lib, libdata):
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     v = run(CMD.format(**locals()))
-    print(v)
     assert lib.lower() in v.lower()
+    version = v.split('\n')[-2]
+    if version.startswith('[1]'):
+        libdata.append(('R', exe, lib, version[5:-1]))
+    else:
+        print("no version info: %s" % version)
 
 # julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
-def test_julia(lib):
+def test_julia(lib, libdata):
     CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
     v = run(CMD.format(**locals()))
     print(v)
     assert lib.lower() in v.lower()
+    libdata.append(('Julia', 'julia', lib, v))
 
 # check, that openmpi via the hydra executor is working
 # http://mpitutorial.com/tutorials/mpi-hello-world/
@@ -309,7 +319,7 @@ ENV_VARS = [
 ]
 
 @pytest.mark.parametrize("name", ENV_VARS)
-def test_env_vars(name):
+def test_env(name):
     assert name in os.environ
 
 # sanity self-check
