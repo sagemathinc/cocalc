@@ -38,13 +38,15 @@ log = console.log
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
 init_projects_changefeed = (cb) ->
-    query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run').pluck('project_id', 'run')
+    query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
+    query = query.pluck('project_id', 'run', 'storage_server', 'disk_size', 'resources')
     query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
             log('error setting up rethinkdb query', err)
             cb?(err)
             return
         state = 'initializing'
+        fields = ['run', 'storage_server', 'disk_size', 'resources']
         cursor.each (err, x) ->
             if err
                 log('error in changefeed', err)
@@ -59,7 +61,8 @@ init_projects_changefeed = (cb) ->
             if x.new_val
                 project_id = x.new_val.project_id
                 z = projects[project_id] ?= {}
-                z.run = x.new_val.run
+                for field in fields
+                    z[field] = x.new_val[field]
             else if x.old_val  # no new value -- removed from changefeed result, so now false.
                 project_id = x.old_val.project_id
                 z = projects[project_id] ?= {}
@@ -149,17 +152,19 @@ replace_all = (string, search, replace) ->
 
 # Used for starting projects:
 deployment_template = fs.readFileSync('smc-project.template.yaml').toString()
-deployment_yaml = (project_id) ->
-    params =  #TODO
+deployment_yaml = (project_id, storage_server, disk_size, resources) ->
+    params =
         project_id     : project_id
         image          : process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
         namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
-        storage_server : '0'
-        disk_size      : '1G'
+        storage_server : storage_server
+        disk_size      : disk_size
+        resources      : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
         pull_policy    : 'IfNotPresent'
     s = deployment_template
     for k, v of params
-        s = replace_all(s, "{#{k}}", v)
+        s = replace_all(s, "{#{k}}", "#{v}")
+    console.log("s = ", s)
     return s
 
 cmd = (s, cb) ->
@@ -171,14 +176,29 @@ cmd = (s, cb) ->
 # Start a project running
 kubectl_start_project = (project_id, cb) ->
     log 'kubectl_start_project ', project_id
-    info = undefined
+    info = storage_server = disk_size = resources = undefined
     async.series([
         (cb) ->
             temp.open {suffix:'.yaml'}, (err, _info) ->
                 info = _info
                 cb(err)
         (cb) ->
-            fs.write(info.fd, deployment_yaml(project_id))
+            async.parallel([
+                (cb) ->
+                    get_storage_server project_id, (err, r) ->
+                        storage_server = r
+                        cb(err)
+                (cb) ->
+                    get_disk_size project_id, (err, r) ->
+                        disk_size = r
+                        cb(err)
+                (cb) ->
+                    get_resources project_id, (err, r) ->
+                        resources = r
+                        cb(err)
+            ], cb)
+        (cb) ->
+            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources))
             fs.close(info.fd, cb)
         (cb) ->
             cmd("kubectl create -f #{info.path}", cb)
@@ -196,6 +216,21 @@ kubectl_start_project = (project_id, cb) ->
                 # ignore
         cb?(err)
     )
+
+get_storage_server = (project_id, cb) ->
+    storage_server = projects[project_id]?.storage_server
+    if not storage_server?
+        # TODO -- need to choose based on load balancing or just randomly
+        storage_server = 0
+    cb(undefined, storage_server)
+
+get_disk_size = (project_id, cb) ->
+    cb(undefined, projects[project_id]?.disk_size ? '3G')
+
+get_resources = (project_id, cb) ->
+    # TODO
+    resources = projects[project_id]?.resources ? {requests:{memory:"30Mi",cpu:"30m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+    cb(undefined, resources)
 
 # Stop a project from running
 kubectl_stop_project = (project_id) ->

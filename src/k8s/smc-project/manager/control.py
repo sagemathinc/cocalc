@@ -25,11 +25,12 @@ def build(tag, rebuild):
     path     = join(SCRIPT_PATH, 'image')
     kubectl  = join(path, 'kubectl')
 
-    yaml = '{name}.template.yaml'.format(name=NAME)
+    yaml = '{name}.template.yaml'.format(name='smc-project')
     template = join(path, yaml)
+    print(template)
     src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
     try:
-        shutil.copyfile(join(SCRIPT_PATH, 'conf', yaml), template)
+        shutil.copyfile(join(SCRIPT_PATH, '..', 'conf', yaml), template)
         shutil.copyfile(src, kubectl)
         shutil.copymode(src, kubectl)
         util.run(v, path=path)

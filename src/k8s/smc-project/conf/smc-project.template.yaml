@@ -36,13 +36,7 @@ spec:
         env:
           - name: SMC_PROJECT_ID
             value: {project_id}
-        resources:
-          requests:
-            memory: "40Mi"
-            cpu: "5m"
-          limits:
-            memory: "1000Mi"
-            cpu: "1000m"
+        resources: {resources}
       volumes:
       - name: project
         flexVolume:

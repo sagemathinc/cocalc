@@ -37,12 +37,17 @@ def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+    
+    resources = {'requests':{'memory':"40Mi", 'cpu':'5m'}, 'limits':{'memory': "1000Mi", 'cpu': "1000m"}}
+    resources = '{' + yaml.dump(resources).replace('\n',',')[:-1] + '}'
+
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
                            project_id     = args.project_id,
                            namespace      = util.get_current_namespace(),
                            storage_server = args.storage_server,
                            disk_size      = args.disk_size,
+                           resources      = resources,
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)

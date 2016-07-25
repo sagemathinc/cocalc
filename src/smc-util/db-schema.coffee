@@ -569,6 +569,18 @@ schema.projects =
         run :
             type : 'bool'
             desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
+        storage_server :
+            type : 'number'
+            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+        disk_size :
+            type : 'number'
+            desc : 'Size in megabytes of the project disk.'
+        resources :
+            type : 'map'
+            desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
+        preemptible :
+            type : 'bool'
+            desc : 'If true, allow to run on preemptible nodes.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
