@@ -5,6 +5,8 @@ VERSION ?= latest
 TAG      = ${NAME}:${VERSION}
 VOL      = --volume=/ext:/ext
 RUN      = docker run -it "${VOL}" "${TAG}"
+CREATE   = docker create -it "${VOL}" "${TAG}"
+COMMIT   = docker commit ${ID} ${TAG}
 
 # extra arguments for docker build
 EXTRA_ARGS ?=
