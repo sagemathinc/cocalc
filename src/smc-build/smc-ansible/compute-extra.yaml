@@ -96,7 +96,7 @@
     - pandas-profiling
     - wordcloud
     - cobra
-    - ncpol2sdpa
+    #- ncpol2sdpa # should work, but strange 'UnicodeDecodeError: 'ascii' codec can't decode byte ...' on install
     - gensim
 
   - name: "numba in py2 and py3"
