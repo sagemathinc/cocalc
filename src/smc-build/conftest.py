@@ -27,12 +27,10 @@ OUT_FN = expanduser('~/smc-compute-env')
 def pytest_terminal_summary(terminalreporter):
     if len(LIB_VERSIONS) > 0:
         libs = pd.DataFrame(LIB_VERSIONS, columns=['Language', 'Executable', 'Library', 'Version'])
+
     if len(BIN_VERSIONS) > 0:
         bins = pd.DataFrame(BIN_VERSIONS, columns=['Path', 'Information'])
         bins.sort_values('Path', inplace=True)
-
-    libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
-    bins.to_csv(open(OUT_FN + '.bins.csv', 'w'))
 
     with open(OUT_FN + '.html', 'w') as sce:
         sce.write('<!DOCTYPE html>\n')
@@ -45,6 +43,7 @@ def pytest_terminal_summary(terminalreporter):
         sce.write('<h1>SMC Compute Environment</h1>\n')
 
         if 'bins' in locals():
+            bins.to_csv(open(OUT_FN + '.bins.csv', 'w'))
             sce.write('<h2>Executables</h2>\n')
             sce.write('<table class="bins"><thead><th>Path</th><th>Information</th></thead><tbody>')
             for idx, (name, info) in bins.iterrows():
@@ -55,6 +54,7 @@ def pytest_terminal_summary(terminalreporter):
             sce.write('</tbody></table>')
 
         if 'libs' in locals():
+            libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
             sce.write('<h2>Library Versions</h2>\n')
             for language in libs.Language.unique():
                 sce.write('<h3>%s</h3>' % language)
