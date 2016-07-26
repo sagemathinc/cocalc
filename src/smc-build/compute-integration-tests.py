@@ -52,8 +52,9 @@ BINARIES = [
 
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
-    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'lxml', 'psutil', 'rpy2', 'xlrd', 'xlwt',
-    'gensim', 'toolz', 'cytoolz', 'geopandas', 'descartes', 'openpyxl', 'sympy', 'wordcloud',
+    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
+    'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio',
+    # 'wordcloud', 'lxml', 'descartes', # these don't have a version info
 ]
 
 # python 2 libs
@@ -66,8 +67,8 @@ PY2 = PY_COMMON + [
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa', 'datasift', 'theano', 'seaborn', 'biopython',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra',
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'ncpol2sdpa', 'datasift', 'theano', 'seaborn',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
 ]
 
 PY_SAGE = PY_COMMON + [
@@ -76,14 +77,14 @@ PY_SAGE = PY_COMMON + [
     'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'tensorflow',
     # 'clawpack', # no canonical version info
     'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
-    'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'biopython', 'guppy', 'skimage',
-    'jinja2', 'Bio', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra',
+    'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
+    'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
 ]
 
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'snappy', 'skimage', 'Bio', 'numba', 'xarray', 'symengine', 'pymc',
+    'ggplot', 'snappy', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
@@ -198,12 +199,15 @@ def test_python(exe, lib, libdata):
     from types import ModuleType
     import {lib}
     print({lib})
-    try:
-        if type({lib}.__version__) == ModuleType:
-            print({lib}.__version__.version)
-        else:
-            print({lib}.__version__)
-    except:
+    for v in ['__version__', '__VERSION__']:
+        if hasattr({lib}, v):
+            vers = getattr({lib}, v)
+            if type(vers) == ModuleType:
+                print(vers.version)
+            else:
+                print(vers)
+            break
+    else:
         print({lib}.version())
     "''')
     out = run(CMD.format(**locals()))
