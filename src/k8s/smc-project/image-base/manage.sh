@@ -9,7 +9,8 @@ init () {
 }
 
 salvus () {
-    sudo -H -u salvus bash -c "umask 022; exec -l $@"
+    x="umask 022; exec -l $@"
+    sudo -H -u salvus bash -c "$x"
 }
 
 case "$1" in
