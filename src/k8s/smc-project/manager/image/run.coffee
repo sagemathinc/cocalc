@@ -38,9 +38,9 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
+FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
-    FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
     query = query.pluck(['project_id'].concat(FIELDS))
     query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
@@ -61,8 +61,16 @@ init_projects_changefeed = (cb) ->
             if x.new_val
                 project_id = x.new_val.project_id
                 z = projects[project_id] ?= {}
+                changed = {}
                 for field in FIELDS
-                    z[field] = x.new_val[field]
+                    if z[field] != x.new_val[field]
+                        z[field] = x.new_val[field]
+                        changed[field] = true
+                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size)
+                    # Currently running with no change to run state.
+                    # Something changed which can be done via editing the deployment using kubectl
+                    kubectl_update_project(project_id)
+                    return
             else if x.old_val  # no new value -- removed from changefeed result, so now false.
                 project_id = x.old_val.project_id
                 z = projects[project_id] ?= {}
@@ -127,18 +135,19 @@ init_kubectl_watch = (cb) ->
 
 # get changed to true when we first run reconcile_all
 _reconcile_ready = false
-reconcile = (project_id) ->
+reconcile = (project_id, cb) ->
     if not _reconcile_ready
+        cb?()
         return
     x = projects[project_id]
     if x.run
         if not x.kubernetes? or x.kubernetes.DESIRED != '1'
             log("starting because x = ", x)
-            kubectl_start_project(project_id)
+            kubectl_update_project(project_id, cb)
     else
         if x.kubernetes.DESIRED == '1'
             log("stopping because x = ", x)
-            kubectl_stop_project(project_id)
+            kubectl_stop_project(project_id, cb)
 
 reconcile_all = () ->
     _reconcile_ready = true
@@ -173,13 +182,7 @@ cmd = (s, cb) ->
         #log("output of '#{s}' -- ", stdout, stderr)
         cb?(err, stdout + stderr)
 
-# Start a project running
-kubectl_start_project = (project_id, cb) ->
-    log 'kubectl_start_project ', project_id
-    if projects[project_id].starting?
-        projects[project_id].starting.push(cb)
-        return
-    projects[project_id].starting = [cb]
+write_deployment_yaml_file = (project_id, cb) ->
     info = storage_server = disk_size = resources = preemptible = undefined
     async.series([
         (cb) ->
@@ -208,18 +211,46 @@ kubectl_start_project = (project_id, cb) ->
         (cb) ->
             fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources, preemptible))
             fs.close(info.fd, cb)
+    ], (err) ->
+        cb(err, info.path)
+    )
+
+# Start a project running
+kubectl_update_project = (project_id, cb) ->
+    log 'kubectl_update_project ', project_id
+    if projects[project_id].starting?
+        projects[project_id].starting.push(cb)
+        return
+    projects[project_id].starting = [cb]
+    path = action = undefined
+    async.series([
         (cb) ->
-            cmd("kubectl create -f #{info.path}", cb)
+            write_deployment_yaml_file project_id, (err, _path) ->
+                path = _path
+                cb(err)
+        (cb) ->
+            s = "kubectl get deployments --no-headers --selector=run=smc-project,project_id=#{project_id} | wc -l"
+            cmd s, (err, num) ->
+                if err
+                    cb(err)
+                else
+                    if num.trim() == '0'
+                        action = 'create'
+                    else
+                        action = 'replace'
+                    cb()
+        (cb) ->
+            cmd("kubectl #{action} -f #{path}", cb)
     ], (err) ->
         if err
-            log "failed to start '#{project_id}': ", err
+            log "failed to update '#{project_id}': ", err
             # Try again in a few seconds  (TODO...)
             setTimeout((()->reconcile(project_id)), 5000)
         else
-            log "started '#{project_id}'"
-        if info?
+            log "updated '#{project_id}'"
+        if path?
             try
-                fs.unlink(info.path)
+                fs.unlink(path)
             catch
                 # ignore
         w = projects[project_id].starting
