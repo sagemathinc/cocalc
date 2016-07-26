@@ -37,6 +37,8 @@ spec:
           - name: SMC_PROJECT_ID
             value: {project_id}
         resources: {resources}
+      nodeSelector:
+        preemptible: "{preemptible}"
       volumes:
       - name: project
         flexVolume:

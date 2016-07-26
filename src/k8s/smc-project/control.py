@@ -37,7 +37,7 @@ def run_on_kubernetes(args):
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
-    
+
     resources = {'requests':{'memory':"40Mi", 'cpu':'5m'}, 'limits':{'memory': "1000Mi", 'cpu': "1000m"}}
     resources = '{' + yaml.dump(resources).replace('\n',',')[:-1] + '}'
 
@@ -48,6 +48,7 @@ def run_on_kubernetes(args):
                            storage_server = args.storage_server,
                            disk_size      = args.disk_size,
                            resources      = resources,
+                           preemptible    = 'true' if args.preemptible else 'false',
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
@@ -68,9 +69,10 @@ if __name__ == '__main__':
                      help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
-    sub = subparsers.add_parser('run', help='run the given project', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sub = subparsers.add_parser('run', help='run the given project (WARNING: right now this will NOT work -- instead use the manager...)', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("-s", "--storage-server", type=int, help="(required) storage server number: 0, 1, 2, 3", required=True)
     sub.add_argument("-d", "--disk-size",  type=str, help="disk size", required=True)
+    sub.add_argument("-p", "--preemptible",  type=str, help="preemptible", required=True)
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
     sub.add_argument("-f", "--force",  action="store_true", help="force re-download image in k8s")
     sub.add_argument('project_id', type=str, help='which project to run')

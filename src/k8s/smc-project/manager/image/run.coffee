@@ -40,18 +40,17 @@ log = (m...) ->
 # dynamically updates the projects object.
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
-    query = query.pluck('project_id', 'run', 'storage_server', 'disk_size', 'resources')
+    FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
+    query = query.pluck(['project_id'].concat(FIELDS))
     query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
             log('error setting up rethinkdb query', err)
             cb?(err)
             return
         state = 'initializing'
-        fields = ['run', 'storage_server', 'disk_size', 'resources']
         cursor.each (err, x) ->
             if err
-                log('error in changefeed', err)
-                process.exit(1)
+                throw "error in changefeed -- #{err}"
             if x.state
                 state = x.state
                 if state == 'ready'
@@ -62,7 +61,7 @@ init_projects_changefeed = (cb) ->
             if x.new_val
                 project_id = x.new_val.project_id
                 z = projects[project_id] ?= {}
-                for field in fields
+                for field in FIELDS
                     z[field] = x.new_val[field]
             else if x.old_val  # no new value -- removed from changefeed result, so now false.
                 project_id = x.old_val.project_id
@@ -119,12 +118,10 @@ init_kubectl_watch = (cb) ->
                 process(line)
 
         r.on 'exit', (code) ->
-            log("kubectl terminated", code)
-            process.exit(1)
+            throw "kubectl terminated -- #{code}"
 
         r.on 'error', (err) ->
-            log("kubectl subprocess error", err)
-            process.exit(1)
+            throw "kubectl subprocess error -- #{err}"
 
         cb?()
 
@@ -153,7 +150,7 @@ replace_all = (string, search, replace) ->
 
 # Used for starting projects:
 deployment_template = undefined
-deployment_yaml = (project_id, storage_server, disk_size, resources) ->
+deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible) ->
     deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
         project_id     : project_id
@@ -161,11 +158,13 @@ deployment_yaml = (project_id, storage_server, disk_size, resources) ->
         namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
         storage_server : storage_server
         disk_size      : disk_size
+        preemptible    : if preemptible  then 'true' else 'false'
         resources      : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
         pull_policy    : 'IfNotPresent'
     s = deployment_template
     for k, v of params
         s = replace_all(s, "{#{k}}", "#{v}")
+    #log('s = ', s)
     return s
 
 cmd = (s, cb) ->
@@ -181,7 +180,7 @@ kubectl_start_project = (project_id, cb) ->
         projects[project_id].starting.push(cb)
         return
     projects[project_id].starting = [cb]
-    info = storage_server = disk_size = resources = undefined
+    info = storage_server = disk_size = resources = preemptible = undefined
     async.series([
         (cb) ->
             temp.open {suffix:'.yaml'}, (err, _info) ->
@@ -201,9 +200,13 @@ kubectl_start_project = (project_id, cb) ->
                     get_resources project_id, (err, r) ->
                         resources = r
                         cb(err)
+                (cb) ->
+                    get_preemptible project_id, (err, r) ->
+                        preemptible = r
+                        cb(err)
             ], cb)
         (cb) ->
-            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources))
+            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources, preemptible))
             fs.close(info.fd, cb)
         (cb) ->
             cmd("kubectl create -f #{info.path}", cb)
@@ -291,6 +294,9 @@ get_resources = (project_id, cb) ->
     resources = projects[project_id]?.resources ? {requests:{memory:"100Mi",cpu:"30m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
     cb(undefined, resources)
 
+get_preemptible = (project_id, cb) ->
+    cb(undefined, projects[project_id]?.preemptible ? true)
+
 # Stop a project from running
 kubectl_stop_project = (project_id, cb) ->
     log 'kubectl_stop_project ', project_id
@@ -309,8 +315,6 @@ kubectl_stop_project = (project_id, cb) ->
         delete projects[project_id].stopping
         for cb in w
             cb?(err)
-
-
 
 # Start the main control loop.  This queries rethinkdb
 # for all projects that are supposed to be running, and
