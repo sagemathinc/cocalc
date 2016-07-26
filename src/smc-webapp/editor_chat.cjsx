@@ -664,13 +664,13 @@ ChatRoom = (name) -> rclass
         if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={2} mdHidden >
+                    <Col xs={2} mdHidden>
                         <Button className='smc-small-only'
                                 onClick={@show_files}>
                                 <Icon name='toggle-up'/> Files
                         </Button>
                     </Col>
-                    <Col xs={4} md={6} style={padding:'0px'}>
+                    <Col xs={4} md={4} style={padding:'0px'}>
                         <UsersViewingDocument
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
@@ -690,7 +690,7 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll}>
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
