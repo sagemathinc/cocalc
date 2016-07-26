@@ -1,4 +1,5 @@
 import pytest
+from os.path import expanduser
 import pandas as pd
 pd.set_option('display.max_colwidth', -1) # also for to_html !
 from pprint import pprint
@@ -19,17 +20,21 @@ def libdata():
 def bindata():
     return BIN_VERSIONS
 
+# Basename for the output file, needs to be in a writeable & predictable location inside the container
+OUT_FN = expanduser('~/smc-compute-env')
+
 # generating the report
 def pytest_terminal_summary(terminalreporter):
-    pprint(LIB_VERSIONS)
-    pprint(BIN_VERSIONS)
     if len(LIB_VERSIONS) > 0:
         libs = pd.DataFrame(LIB_VERSIONS, columns=['Language', 'Executable', 'Library', 'Version'])
     if len(BIN_VERSIONS) > 0:
         bins = pd.DataFrame(BIN_VERSIONS, columns=['Path', 'Information'])
         bins.sort_values('Path', inplace=True)
 
-    with open('smc-compute-env.html', 'w') as sce:
+    libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
+    bins.to_csv(open(OUT_FN + '.bins.csv', 'w'))
+
+    with open(OUT_FN + '.html', 'w') as sce:
         sce.write('<!DOCTYPE html>\n')
         sce.write('''<html><head>
         <style>
@@ -54,5 +59,5 @@ def pytest_terminal_summary(terminalreporter):
             for language in libs.Language.unique():
                 sce.write('<h3>%s</h3>' % language)
                 lang = libs[libs.Language == language]
-                lang = lang.pivot(index='Library', columns='Executable', values='Version').fillna('-')
+                lang = lang.pivot(index='Library', columns='Executable', values='Version').fillna('')
                 sce.write(lang.to_html())
