@@ -58,6 +58,7 @@ editing   : immutable.Map
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE} = require('./feature')
+underscore = require('underscore')
 
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
@@ -91,6 +92,7 @@ class ChatActions extends Actions
                 message = immutable.fromJS(x.insert)
                 message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
                 message = message.set('editing', immutable.Map(x.insert.editing))
+                message = message.set('show_history', immutable.Map(x.insert.show_history))
                 messages = messages.set("#{x.insert.date - 0}", message)
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
@@ -156,17 +158,38 @@ class ChatActions extends Actions
             is_equal: (a, b) => (a - 0) == (b - 0)
         @syncdb.save()
 
+    set_show_history: (message, is_history) =>
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
+        author_id = @redux.getStore('account').get_account_id()
+
+        if is_history
+            show_history = message.get('show_history').set(author_id, 'true')
+        else
+            show_history = message.get('show_history').remove(author_id)
+
+        @syncdb.update
+            set :
+                show_history : show_history.toJS()
+            where :
+                date: message.get('date')
+            is_equal: (a, b) => (a - 0) == (b - 0)
+        @syncdb.save()
+
     set_to_last_input: =>
         @setState(input:@redux.getStore(@name).get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)
 
+    #set_edited_input: (edited_input) =>
+    #    @setState(edited_input:edited_input)
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
-
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -208,6 +231,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                         x.history = immutable.Stack([initial])
                     if not x.editing
                         x.editing = {}
+                    if not x.show_history
+                        x.show_history = {}
                     v[x.date - 0] = x
 
                 actions.setState(messages : immutable.fromJS(v))
@@ -219,6 +244,8 @@ Message = rclass
 
     propTypes:
         message        : rtypes.object.isRequired  # immutable.js message object
+        history        : rtypes.array
+        history_author : rtypes.array
         account_id     : rtypes.string.isRequired
         sender_name    : rtypes.string
         editor_name    : rtypes.string
@@ -232,12 +259,21 @@ Message = rclass
         is_next_sender : rtypes.bool
         actions        : rtypes.object
         show_heads     : rtypes.bool
+        focus_end      : rtypes.func
+        #edited_input   : rtypes.string
+        #edit_func      : rtypes.func
 
     getInitialState: ->
         edited_message  : @newest_content()
+        history_size    : @props.message.get('history').size
         new_changes     : false
 
     componentWillReceiveProps: (newProps) ->
+        #if @props.edited_input != newProps.edited_input
+        #    @props.actions.set_edited_input()
+        #if @refs.editedMessage
+        #    @setState(edited_message: @refs.editedMessage.getValue())
+        #console.log('component will receive props is called')
         if @state.history_size != @props.message.get('history').size
             @setState(history_size:@props.message.get('history').size)
         changes = false
@@ -248,6 +284,7 @@ Message = rclass
         @setState(new_changes : changes)
 
     shouldComponentUpdate: (next, next_state) ->
+        #@props.edited_input != next.edited_input or
         return @props.message != next.message or
                @props.user_map != next.user_map or
                @props.account_id != next.account_id or
@@ -258,25 +295,65 @@ Message = rclass
                @state.edited_message != next_state.edited_message or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
+    #componentWillUpdate: ->
+    #    console.log('component will update is called')
+    #componentDidMount: ->
+        #console.log(@props.edited_input)
+        #@props.action.set_edited_input('')
+
+    #componentDidUpdate: ->
+     #   console.log(@props.edited_input)
+    #    @props.actions.set_edited_input('this changed from a test')
+    #    console.log(@props.edited_input)
+        #if @refs.editedMessage?
+            #console.log(@props.edited_input)
+            #@props.action.set_edited_input('testing')
+            #if @state.edited_message == @refs.editedMessage.getValue()
+                #console.log('component did update is called', @state.edited_message)
+                #@setState(edited_message: @refs.editedMessage.getValue())
+                #console.log('component did update after call', @state.edited_message)
+
     #componentWillUnmount: () ->
     #    @props.actions.set_editing(@props.message, false)
 
     newest_content: ->
         @props.message.get('history').peek()?.get('content') ? ''
 
-    is_editing: ->
-        @props.message.get('editing').has(@props.account_id)
-
     sender_is_viewer: ->
         @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        <div className="pull-right small" style={color:'#888', marginTop:'-8px', marginBottom:'1px'}>
+        <div className="pull-right small" style={color:'#888'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
+    show_history: ->
+        <div className="small" style={color:'#888', position:'absolute', left:'500px'} onClick={@enable_history}>
+            <Icon name='history'/>
+        </div>
+
+    hide_history: ->
+        <div className="small" style={color:'#888', position:'absolute', left:'500px'} onClick={@disable_history}>
+            <Icon name='history'/>
+        </div>
+
+    disable_history: ->
+        @props.actions.set_show_history(@props.message, false)
+
+    enable_history: ->
+        @props.actions.set_show_history(@props.message, true)
+
+    show_user_name: ->
+        <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
+            {@props.sender_name}
+        </div>
+
+    is_editing: ->
+        @props.message.get('editing').has(@props.account_id)
+
     editing_status: ->
         other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
+        current_user = @props.user_map.get(@props.account_id).get('first_name') + ' ' + @props.user_map.get(@props.account_id).get('last_name')
         if @is_editing()
             if other_editors.size == 1
                 # This user and someone else is also editing
@@ -298,21 +375,34 @@ Message = rclass
             else if other_editors.size > 1
                 # Multiple editors
                 text = "#{other_editors.size} people are editing this message"
-            else if @newest_content() == ''
+            else if @newest_content().trim() == ''
                 text = "Deleted by #{@props.editor_name}"
 
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+        <div className="pull-left small" style={color:color}>
             {text}
         </div>
 
-    show_user_name: ->
-        <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
-            {@props.sender_name}
-        </div>
+    edit_message: ->
+        #@props.actions.set_edited_input(@props.message.get('history').peek()?.get('content') ? '')
+        @props.actions.set_editing(@props.message, true)
 
+    on_keydown : (e) ->
+        if e.keyCode==27 # ESC
+            e.preventDefault()
+            @setState
+                edited_message : @newest_content()
+            @props.actions.set_editing(@props.message, false)
+        else if e.keyCode==13 and e.shiftKey # 13: enter key
+            mesg = @refs.editedMessage.getValue()
+            if mesg != @newest_content()
+                @props.actions.send_edit(@props.message, mesg)
+            else
+                @props.actions.set_editing(@props.message, false)
+
+    # All the columns
     avatar_column: ->
         account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
         if @props.is_prev_sender
@@ -346,6 +436,7 @@ Message = rclass
 
     content_column: ->
         value = @newest_content()
+
         if @sender_is_viewer()
             color = '#f5f5f5'
         else
@@ -367,7 +458,7 @@ Message = rclass
         if not @props.is_prev_sender and @sender_is_viewer()
             marginTop = "17px"
 
-        if not @props.is_prev_sender and not @props.is_next_sender
+        if not @props.is_prev_sender and not @props.is_next_sender and not @props.message.get('show_history').has(@props.account_id)
             borderRadius = '10px 10px 10px 10px'
         else if not @props.is_prev_sender
             borderRadius = '10px 10px 5px 5px'
@@ -376,18 +467,28 @@ Message = rclass
 
         <Col key={1} xs={10} sm={9}>
             {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
-            <Panel style={background:color, wordWrap:"break-word", marginBottom: marginBottom, marginTop: marginTop, borderRadius: borderRadius}>
+            <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius}>
+                    <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
                         {@render_markdown(value) if not @is_editing()}
                         {@render_input() if @is_editing()}
                         {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                        {@show_history() if not @props.message.get('show_history').has(@props.account_id) and @props.message.get('history').size > 1}
+                        {@hide_history() if @props.message.get('show_history').has(@props.account_id) and @props.message.get('history').size > 1}
                         {@get_timeago()}
                     </ListGroupItem>
+                    <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
                 </ListGroup>
             </Panel>
+            {@render_history_title(color, font_size) if @props.message.get('show_history').has(@props.account_id)}
+            {@render_history(color, font_size) if @props.message.get('show_history').has(@props.account_id)}
+            {@render_history_footer(color, font_size) if @props.message.get('show_history').has(@props.account_id)}
         </Col>
 
+    blank_column:  ->
+        <Col key={2} xs={0} sm={2}></Col>
+
+    # All the render methods
     render_markdown: (value) ->
         <div style={paddingBottom: '1px', marginBottom: '5px'}>
             <Markdown value={value}
@@ -395,8 +496,40 @@ Message = rclass
                       file_path={@props.file_path} />
         </div>
 
+    render_history_title: (color, font_size) ->
+        <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px'}>
+            <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
+        </ListGroupItem>
+
+    render_history_footer: (color, font_size) ->
+        <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
+        </ListGroupItem>
+
+    render_history: (color, font_size) ->
+        for date of @props.history and @props.history_author
+            value = @props.history[date]
+            value = misc.smiley
+                s: value
+                wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+            value = misc_page.sanitize_html(value)
+            author = @props.user_map.get(@props.history_author[date]).get('first_name') + ' ' + @props.user_map.get(@props.history_author[date]).get('last_name')
+            if @props.history[date].trim() == ''
+                text = "Message deleted by"
+            else
+                text = "Author:"
+            <ListGroupItem key={date} style={background:color, fontSize: font_size, paddingBottom:'20px'}>
+                <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                    <Markdown value={value}/>
+                </div>
+                <div className="pull-left small" style={color:'#888'}>
+                    {text + ' ' + author}
+                </div>
+            </ListGroupItem>
+
     # TODO: Make this a codemirror input
     render_input: ->
+        #=>@props.edit_func
+        #onChange  = {#=>@setState(edited_message: @refs.editedMessage.getValue())}
         <div>
             <Input
                 autoFocus = {true}
@@ -406,33 +539,8 @@ Message = rclass
                 onKeyDown = {@on_keydown}
                 value     = {@state.edited_message}
                 onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
-                onFocus   = {@focus_endpoint}
-                />
+                onFocus   = {@props.focus_end} />
         </div>
-
-    on_keydown : (e) ->
-        if e.keyCode==27 # ESC
-            e.preventDefault()
-            @setState
-                edited_message : @newest_content()
-            @props.actions.set_editing(@props.message, false)
-        else if e.keyCode==13 and e.shiftKey # 13: enter key
-            mesg = @refs.editedMessage.getValue()
-            if mesg != @newest_content()
-                @props.actions.send_edit(@props.message, mesg)
-            else
-                @props.actions.set_editing(@props.message, false)
-
-    edit_message: ->
-        @props.actions.set_editing(@props.message, true)
-
-    focus_endpoint: (e) ->
-        val = e.target.value
-        e.target.value = ''
-        e.target.value = val
-
-    blank_column:  ->
-        <Col key={2} xs={2}></Col>
 
     render: ->
         if @props.include_avatar_col
@@ -464,6 +572,9 @@ ChatLog = rclass
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
+        focus_end    : rtypes.func
+        #edit_func    : rtypes.func
+        #edited_input : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -493,11 +604,20 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
+            historyList = @props.messages.get(date).get('history').pop().toJS()
+            h = []
+            a = []
+            for j of historyList
+                h.push(historyList[j].content)
+                a.push(historyList[j].author_id)
+
             sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
             last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
+                     history          = {h}
+                     history_author   = {a}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
                      project_id       = {@props.project_id}
@@ -511,6 +631,7 @@ ChatLog = rclass
                      sender_name      = {sender_name}
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
+                     focus_end        = {@props.focus_end}
                     />
 
         return v
@@ -530,6 +651,7 @@ ChatRoom = (name) -> rclass
             saved_position : rtypes.number
             height         : rtypes.number
             offset         : rtypes.number
+            #edited_input   : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -545,9 +667,17 @@ ChatRoom = (name) -> rclass
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
+       # edited_input: rtypes.string
 
     getInitialState: ->
-        input : ''
+        input          : ''
+        preview        : ''
+        preview_button : false
+        is_preview_on  : true
+
+    #edit_func: ->
+    #    @props.actions.set_edited_input(@refs.editedMessage.getValue())
+    #    console.log(@props.edited_input)
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -563,6 +693,11 @@ ChatRoom = (name) -> rclass
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
 
+    focus_endpoint: (e) ->
+        val = e.target.value
+        e.target.value = ''
+        e.target.value = val
+
     send_chat: (e) ->
         @scroll_to_bottom()
         e.preventDefault()
@@ -575,25 +710,15 @@ ChatRoom = (name) -> rclass
     clear_input: ->
         @props.actions.set_input('')
 
-    render_bottom_tip: ->
-        tip = <span>
-            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter to send your chat. Double click to edit past chats.
-        </span>
+    button_off_click: ->
+        if @refs.off?
+            @setState(preview_button:true)
+            @setState(is_preview_on:false)
 
-        <Tip title='Use Markdown' tip={tip}>
-            Shift+Enter to send your message.
-            Double click chat bubbles to edit them.
-            Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-            Emoticons: {misc.emoticons}.
-        </Tip>
-
-    chat_log_style:
-        overflowY    : "auto"
-        overflowX    : "hidden"
-        height       : "60vh"
-        margin       : "0"
-        padding      : "0"
-        paddingRight : "10px"
+    button_on_click: ->
+        if @refs.on?
+            @setState(preview_button:false)
+            @setState(is_preview_on:true)
 
     chat_input_style:
         margin       : "0"
@@ -611,6 +736,13 @@ ChatRoom = (name) -> rclass
         margin       : "0"
         padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
+
+    preview_style:
+        background   : '#f5f5f5'
+        fontSize     : '14px'
+        borderRadius : '10px 10px 10px 10px'
+        borderColor  : '#000'
+        paddingBottom: '20px'
 
     is_at_bottom: ->
         # 20 for covering margin of bottom message
@@ -638,14 +770,29 @@ ChatRoom = (name) -> rclass
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
         e.preventDefault()
 
+    set_preview_state: ->
+        if @refs.log_container?
+            @setState(preview:@props.input)
+
+    componentWillMount: ->
+        @set_preview_state = underscore.debounce(@set_preview_state, 500)
+
     componentDidMount: ->
+        #console.log(@props.edited_input)
+        #@props.actions.set_edited_input('')
         @scroll_to_position()
 
     componentWillReceiveProps: (next) ->
-        if @props.messages != next.messages and @is_at_bottom()
+        #console.log('chatroom component will receive props is called')
+        if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
             @_use_saved_position = false
 
+    #componentWillUpdate: ->
+        #console.log('chatroom component will update is called')
+
     componentDidUpdate: ->
+        #console.log(@props.edited_input)
+        #console.log('chatroom component did update is called')
         if not @_use_saved_position
             @scroll_to_bottom()
 
@@ -658,9 +805,76 @@ ChatRoom = (name) -> rclass
             foreground         : true
             foreground_project : true
 
+    # All render methods
+    render_bottom_tip: ->
+        tip = <span>
+            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter to send your chat. Double click to edit past chats.
+        </span>
+
+        <Tip title='Use Markdown' tip={tip}>
+            Shift+Enter to send your message.
+            Double click chat bubbles to edit them.
+            Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+            Emoticons: {misc.emoticons}.
+        </Tip>
+
+    render_preview_message: ->
+        @set_preview_state()
+        if @state.preview.length > 0
+            value = @state.preview
+            value = misc.smiley
+                s: value
+                wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+            value = misc_page.sanitize_html(value)
+
+            <Row style={position:'absolute', bottom:'0px', width:'97.2%'}>
+                <Col xs={0} sm={2}></Col>
+
+                <Col xs={10} sm={9}>
+                    <ListGroup fill>
+                        <ListGroupItem style={@preview_style}>
+                            <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                                <Markdown value={value}/>
+                            </div>
+                            <div className="pull-right small" style={color:'#888'}>
+                                This is a preview of your message
+                            </div>
+                        </ListGroupItem>
+                        <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
+                    </ListGroup>
+                </Col>
+
+                <Col sm={1}></Col>
+            </Row>
+
+    render_preview_button_on: ->
+        <Button ref='on' className='smc-big-only' onClick={@button_on_click}>
+            <Icon name='toggle-on'/> Toggle Preview On
+        </Button>
+
+    render_preview_button_off: ->
+        <Button ref='off' className='smc-big-only' onClick={@button_off_click}>
+            <Icon name='toggle-off'/> Toggle Preview Off
+        </Button>
+
     render : ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
+
+        if @props.input.length > 0 and @state.is_preview_on
+            paddingBottom = '75px'
+        else
+            paddingBottom = '0px'
+
+        chat_log_style =
+            overflowY    : "auto"
+            overflowX    : "hidden"
+            height       : "60vh"
+            margin       : "0"
+            padding      : "0"
+            paddingRight : "10px"
+            paddingBottom: paddingBottom
+
         if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
@@ -685,12 +899,14 @@ ChatRoom = (name) -> rclass
                             <Button onClick={@scroll_to_bottom}>
                                 <Icon name='arrow-down'/> Scroll to Bottom
                             </Button>
+                            {@render_preview_button_on() if @state.preview_button}
+                            {@render_preview_button_off() if not @state.preview_button}
                         </ButtonGroup>
                     </Col>
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll}>
+                        <Panel style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -700,6 +916,7 @@ ChatRoom = (name) -> rclass
                                 file_path    = {if @props.path? then misc.path_split(@props.path).head}
                                 actions      = {@props.actions}
                                 show_heads   = true />
+                            {@render_preview_message() if @props.input.length > 0 and @state.is_preview_on}
                         </Panel>
                     </Col>
                 </Row>
@@ -715,6 +932,7 @@ ChatRoom = (name) -> rclass
                             placeholder = {'Type a message...'}
                             onClick     = {@mark_as_read}
                             onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                            onFocus     = {@focus_endpoint}
                             style       = {@chat_input_style}
                             />
                     </Col>
