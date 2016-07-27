@@ -55,6 +55,8 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
       - r
       - mro
       - bioconda
+      - pypi
+      - plotly
       - conda-forge
       - defaults
     show_channel_urls: True
@@ -73,7 +75,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath
 
-       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim
+       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly
 
 not possible to install (conflict with python 3.5):
 
