@@ -30,7 +30,11 @@ update:
 
 test:
 	@echo "runs all integration tests"
-	$(RUN) test
+	$(eval ID = $(shell $(CREATE) test))
+	docker start -ai ${ID}
+	-docker cp ${ID}:/smc-compute-env.libs.csv .
+	-docker cp ${ID}:/smc-compute-env.bins.csv .
+	-docker cp ${ID}:/smc-compute-env.html .
 
 run:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
