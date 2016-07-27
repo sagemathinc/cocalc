@@ -6,6 +6,10 @@
 # Additionally, via the conftest.py file, a test report is generated in the $HOME directory.
 # It lists all software and libraries with their version numbers.
 
+# A failure is an actual problem, which either means that the library is broken or the test has to be adjusted.
+# Additionally, via the conftest.py file, a test report is generated in the $HOME directory.
+# It lists all software and libraries with their version numbers.
+
 import os
 import sys
 import shutil
@@ -27,8 +31,7 @@ def run(cmd, expected_status = 0):
 # 3. optional command line params (default: --version)
 # 4. optional status code, because sometimes --version gives retcode of 1
 # Hint: to get a list of executables, run $ bash -c 'compgen -c | sort | less'
-BINARIES = [
-    'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
+, 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips',
     'ruby', 'erb', 'flex', 'm4', 'fish',
@@ -240,23 +243,31 @@ def test_python(exe, lib, libdata):
     print({lib})''')
     novers = lib in PY_NOVERS
     if not novers:
-        CMD += dedent('''
-        for v in ['__version__', '__VERSION__']:
-            if hasattr({lib}, v):
-                vers = getattr({lib}, v)
-                if type(vers) == ModuleType:
+                    CMD += dedent('''
+           """
+    Listing, which julia packages are installed. This needs to be run as root,
+    since it updates the git repo (?) of the metadata in the site/v0.X directory.
+    However, via sudo, the env variable for the global julia directory is not set.
+    """
+    jcmd = 'for (k, v) in Pkg.installed(); println(k, "=>", v); end'
+    jenv = 'sudo JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
+    vers_data = run('''echo '{jcmd}' | {jenv}'''.format(**locals()))
+    vers_info = [line.split('=>') for v in ['__version__', '__VERSION__']:
+        if hasattr({lib}, v):
+            vers = getattr({lib}, v)
+            if type(vers) == ModuleType:
                     print(vers.version)
-                else:
+            else:
                     print(vers)
-                break
-        else:
-            print({lib}.version())
+            break
+    else:
+        print({lib}.version())
         ''')
     CMD += '"'
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    vers_info = 'NA' if novers else out.splitlines()[-1]
-    libdata.append(('Python', exe, lib, vers_info))
+    vers_info = 'NA' if novers else 
+    libdata.append(('Pythoes()[-1]vers_info))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
 def test_r(exe, lib, libdata):
@@ -278,13 +289,13 @@ def test_julia(lib):
 
 def test_julia_installed(libdata):
     """
-    Listing, which julia packages are installed. This needs to be run as root,
+    Listing, which julia packages are installed. This needs to be run as salvus,
     since it updates the git repo (?) of the metadata in the site/v0.X directory.
-    However, via sudo, the env variable for the global julia directory is not set.
+    Therefore, all files in the the global julia directory need to be owned by salvus.
     """
     jcmd = 'for (k, v) in Pkg.installed(); println(k, "=>", v); end'
-    jenv = 'sudo JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
-    vers_data = run('''echo '{jcmd}' | {jenv}'''.format(**locals()))
+    jenv = 'JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
+ cho '{jcmd}' | {jenv}'''.format(**locals()))
     vers_info = [line.split('=>') for line in vers_data.splitlines()]
     for lib, vers in sorted(vers_info):
         libdata.append(('Julia', 'julia', lib, vers))
