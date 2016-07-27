@@ -41,7 +41,7 @@ log = (m...) ->
 FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
-    query = query.pluck(['project_id'].concat(FIELDS))
+    query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
     query.changes(includeInitial:true, includeStates:true).run conn, (err, cursor) ->
         if err
             log('error setting up rethinkdb query', err)
@@ -54,9 +54,8 @@ init_projects_changefeed = (cb) ->
             if x.state
                 state = x.state
                 if state == 'ready'
-                    # done loading run info -- reconcile everything
-                    READY = true
-                    reconcile_all()
+                    # done loading initial state of all projects.
+                    cb?()
                     return
             if x.new_val
                 project_id = x.new_val.project_id
@@ -78,7 +77,6 @@ init_projects_changefeed = (cb) ->
             if state == 'ready' and project_id?
                 reconcile(project_id)
             return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
-        cb?()
 
 # Maintain current status of all project deployments
 init_kubectl_watch = (cb) ->
@@ -100,7 +98,8 @@ init_kubectl_watch = (cb) ->
             k = {}
             for i in [0...v.length]
                 k[headers[i]] = v[i]
-            x.kubernetes = k
+            x.kubernetes_watch = k
+            write_kubernetes_data_to_rethinkdb(project_id)
             reconcile(project_id)
 
     # Initialize
@@ -133,6 +132,19 @@ init_kubectl_watch = (cb) ->
 
         cb?()
 
+write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
+    cur = projects[project_id].kubernetes
+    kubernetes_watch = projects[project_id].kubernetes_watch
+    desired   = parseInt(kubernetes_watch.DESIRED)
+    available = parseInt(kubernetes_watch.AVAILABLE)
+    if cur?.desired == desired and cur?.available == available
+        cb?()
+        return
+    query = rethinkdb.db(DATABASE).table('projects').get(project_id)
+    log 'write_kubernetes_data_to_rethinkdb ', {desired:desired, available:available}
+    query = query.update(kubernetes:{desired:desired, available:available})
+    query.run(conn, (err)->cb?(err))
+
 # get changed to true when we first run reconcile_all
 _reconcile_ready = false
 reconcile = (project_id, cb) ->
@@ -140,19 +152,21 @@ reconcile = (project_id, cb) ->
         cb?()
         return
     x = projects[project_id]
+    desired = x.kubernetes_watch?.DESIRED
     if x.run
-        if not x.kubernetes? or x.kubernetes.DESIRED != '1'
+        if desired != '1'
             log("starting because x = ", x)
             kubectl_update_project(project_id, cb)
     else
-        if x.kubernetes.DESIRED == '1'
+        if desired == '1'
             log("stopping because x = ", x)
             kubectl_stop_project(project_id, cb)
 
-reconcile_all = () ->
+reconcile_all = (cb) ->
     _reconcile_ready = true
     for project_id, _ of projects
         reconcile(project_id)
+    cb?()
 
 replace_all = (string, search, replace) ->
     string.split(search).join(replace)
@@ -347,27 +361,9 @@ kubectl_stop_project = (project_id, cb) ->
         for cb in w
             cb?(err)
 
-# Start the main control loop.  This queries rethinkdb
-# for all projects that are supposed to be running, and
-# maintains a changefeed of that result.  It first makes
-# sure that Kubernetes is in sync with this, and does an
-# action whenever things change.
-sleep = (cb) ->
-    f = ->  # do nothing
-    setInterval(f, 60000)
-
-
 main = () ->
-    async.series([
-        (cb) ->
-            async.parallel([init_kubectl_watch, connect_to_rethinkdb], cb)
-        (cb) ->
-            init_projects_changefeed(cb)
-        (cb) ->
-            sleep(cb)
-    ], (err) ->
+    async.series [connect_to_rethinkdb, init_projects_changefeed, init_kubectl_watch, reconcile_all], (err) ->
         log("DONE", err)
-    )
 
 main()
 
