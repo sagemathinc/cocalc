@@ -321,8 +321,8 @@ get_disk_size = (project_id, cb) ->
     cb(undefined, projects[project_id]?.disk_size ? '3G')
 
 get_resources = (project_id, cb) ->
-    # TODO
-    resources = projects[project_id]?.resources ? {requests:{memory:"100Mi",cpu:"30m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+    # TODO -- note that 200Mi really is pretty much the minimum needed to run the local hub at all!
+    resources = projects[project_id]?.resources ? {requests:{memory:"200Mi",cpu:"50m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
     cb(undefined, resources)
 
 get_preemptible = (project_id, cb) ->
