@@ -8,7 +8,7 @@
   tags: julia
   gather_facts: no # set it to yes, if you need to use {{ ansible_distribution_release }} to know if it is vivid etc.
   vars:
-    pkgdir: "/usr/local/share/julia/site/"
+    pkgdir: "/usr/local/share/julia/site"
     pkgext: "/ext/julia-site"
 
   tasks:
@@ -108,7 +108,7 @@
         echo 'Pkg.init()' | julia
         echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
         echo 'Pkg.build("Nemo")' | julia
-        export LD_LIBRARY_PATH={{ pkgdir }}v0.4/Nemo/local/lib
+        export LD_LIBRARY_PATH={{ pkgdir }}/v0.4/Nemo/local/lib
         cd $LD_LIBRARY_PATH
         ln -s libarb.so.0.0.0 libarb.so
         echo 'using Nemo' | julia
