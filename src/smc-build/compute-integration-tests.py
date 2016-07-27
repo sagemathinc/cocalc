@@ -2,6 +2,10 @@
 # Compute Image Integration Tests
 # Goal of this testsuite is, to make sure that all relevant software, libraries and packages are installed.
 # Each test either checks that it exists, maybe runs it, or even executes a short test, or display the version number.
+# A failure is an actual problem, which either means that the library is broken or the test has to be adjusted.
+# Additionally, via the conftest.py file, a test report is generated in the $HOME directory.
+# It lists all software and libraries with their version numbers.
+
 import os
 import sys
 import shutil
@@ -17,19 +21,47 @@ def run(cmd, expected_status = 0):
     else:
         raise CalledProcessError(cmd = cmd, returncode = status)
 
-# binaries: each of them is:
-# 1. name (also as string)
+# binaries: each entry in this list is either a string or a tuple. entries:
+# 1. name
 # 2. optional string to search in output
 # 3. optional command line params (default: --version)
 # 4. optional status code, because sometimes --version gives retcode of 1
+# Hint: to get a list of executables, run $ bash -c 'compgen -c | sort | less'
 BINARIES = [
-    'git', 'latexmk', 'bash', 'gcc', 'clang', 'pdftk', 'julia', 'autopep8',
+    'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
+    'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
+    'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips',
+    'ruby', 'erb', 'flex', 'm4', 'fish',
+    'htop', 'h5dump', 'inkscape', 'libreoffice',
+    'lilypond', 'lzma', 'make', 'markdown',
+    ('feynmf', None, None, 255),
+    ('docbook2pdf', 'docbook-utils'),
+    ('latex', 'pdfTeX'),
+    ('haskell-compiler', 'glasgow haskell'),
+    ('gfortran', 'fortran'),
+    ('f77', 'fortran'),
+    ('f95', 'fortran'),
+    ('hg', 'mercurial'),
+    ('yacc', 'bison'),
+    ('lua', None, '-v'),
+    ('lneato', None, '-V', 1),
+    ('lrzip', None, '-V'),
+    ('jags', 'JAGS', '/dev/null'),
+    ('h5math', 'h5totxt', '-V'),
+    ('go', 'go', 'version'),
+    ('f2py', '2', '-v'),
+    ('dotty', 'dotty', '-V', 1),
+    ('clojure', '1.6', "-e '(clojure-version)'"),
+    ('7z', '7-Zip', '-h'),
+    ('asy', 'Asymptote', '-version'),
+    ('avconv', 'ffmpeg', None, 1),
+    ('cheetah', 'CHEETAH', '', 1),
     ('hg', 'Mercurial'),
     ('cvs', 'Concurrent Versions System'),
     ('gp', 'GP/PARI CALCULATOR'),
     ('java', 'OpenJDK Runtime', '-version'),
     ('dot', 'dot - graphviz', '-V'),
-    ('convert', 'ImageMagick'),
+    ('convert', 'ImageMagick', '-version'),
     ('ipython', '5'),
     ('ipython3', '5'),
     ('ssh', 'OpenSSH_7', '-V'),
@@ -53,14 +85,14 @@ BINARIES = [
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
-    'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio',
-    # 'wordcloud', 'lxml', 'descartes', # these don't have a version info
+    'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
+
 
 # python 2 libs
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
-    # 'clawpack', # py2 only, and it dosesn't have a version info
+    'clawpack', # py2 only, and it dosesn't have a version info
     'numba', 'xarray', 'ncpol2sdpa',
 ]
 
@@ -72,10 +104,10 @@ PY3 =  PY_COMMON + [
 ]
 
 PY_SAGE = PY_COMMON + [
-    # 'sage' # there is no sage.__version__ ???
+    'sage' # there is no sage.__version__ ???
     # 'numba', # would be cool to have numba in sagemath
-    'mahotas', 'patsy', 'statsmodels', 'cvxpy', 'tensorflow',
-    # 'clawpack', # no canonical version info
+    'mahotas', 'patsy', 'statsmodels', 'cvxpy',
+    'clawpack', # no canonical version info
     'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
@@ -84,7 +116,13 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'snappy', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim',
+    'ggplot', 'snappy', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+]
+
+# these don't have a version info, so just check if they can be imported
+# they still need to be listed in the applicable areas to test above!
+PY_NOVERS = [
+    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
@@ -179,14 +217,15 @@ def test_binaries(bin, bindata):
         status = 0
     else:
         cmd = bin[0]
-        token = bin[1] if len(bin) >= 2 else bin[0].lower()
-        args = bin[2] if len(bin) >= 3 else '--version'
+        token = bin[1] if (len(bin) >= 2 and bin[1] is not None) else bin[0].lower()
+        args = bin[2] if (len(bin) >= 3 and bin[2] is not None) else '--version'
         status = bin[3] if len(bin) >= 4 else 0
     out = run('{cmd} {args}'.format(**locals()), status)
     assert token.lower() in out.lower()
     # when successful, add info to bindata fixture with full path
     bindata.append([shutil.which(cmd), out])
 
+# testing python libs: test iterates over pairings of executable path and list of packages
 PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
 PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
 PY_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in zip(PY_EXES, PY_LIBS))
@@ -198,21 +237,26 @@ def test_python(exe, lib, libdata):
     {exe} -c "from __future__ import print_function
     from types import ModuleType
     import {lib}
-    print({lib})
-    for v in ['__version__', '__VERSION__']:
-        if hasattr({lib}, v):
-            vers = getattr({lib}, v)
-            if type(vers) == ModuleType:
-                print(vers.version)
-            else:
-                print(vers)
-            break
-    else:
-        print({lib}.version())
-    "''')
+    print({lib})''')
+    novers = lib in PY_NOVERS
+    if not novers:
+        CMD += dedent('''
+        for v in ['__version__', '__VERSION__']:
+            if hasattr({lib}, v):
+                vers = getattr({lib}, v)
+                if type(vers) == ModuleType:
+                    print(vers.version)
+                else:
+                    print(vers)
+                break
+        else:
+            print({lib}.version())
+        ''')
+    CMD += '"'
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    libdata.append(('Python', exe, lib, out.splitlines()[-1]))
+    vers_info = 'NA' if novers else out.splitlines()[-1]
+    libdata.append(('Python', exe, lib, vers_info))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
 def test_r(exe, lib, libdata):
@@ -233,9 +277,16 @@ def test_julia(lib):
     assert lib.lower() in out.lower()
 
 def test_julia_installed(libdata):
-    vers_data = run('''echo 'for (k, v) in Pkg.installed(); println(k, "=>", v); end' | julia''')
-    for line in vers_data.splitlines():
-        lib, vers = line.split('=>')
+    """
+    Listing, which julia packages are installed. This needs to be run as root,
+    since it updates the git repo (?) of the metadata in the site/v0.X directory.
+    However, via sudo, the env variable for the global julia directory is not set.
+    """
+    jcmd = 'for (k, v) in Pkg.installed(); println(k, "=>", v); end'
+    jenv = 'sudo JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
+    vers_data = run('''echo '{jcmd}' | {jenv}'''.format(**locals()))
+    vers_info = [line.split('=>') for line in vers_data.splitlines()]
+    for lib, vers in sorted(vers_info):
         libdata.append(('Julia', 'julia', lib, vers))
 
 # check, that openmpi via the hydra executor is working

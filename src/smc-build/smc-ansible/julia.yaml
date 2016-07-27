@@ -76,7 +76,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: nemo
+  tags: [install, nemo]
 
   tasks:
   - name: "install nemo into julia (after julia has been installed)"
