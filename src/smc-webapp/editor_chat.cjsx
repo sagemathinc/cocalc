@@ -303,7 +303,6 @@ Message = rclass
 
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
-        date = <TimeAgo date={new Date(@props.message.get('date'))} />
 
         if not @is_editing() and other_editors.size == 0
             edit = "Last edit "
