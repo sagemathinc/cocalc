@@ -16,7 +16,7 @@ def build(tag, rebuild):
     if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
     v.append('.')
-    util.run(v, path=join(SCRIPT_PATH, 'image'))
+    util.run(v, path=join(SCRIPT_PATH, 'image-dev'))
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)

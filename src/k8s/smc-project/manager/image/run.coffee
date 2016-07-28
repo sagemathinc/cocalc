@@ -334,9 +334,18 @@ get_all_storage_servers = (cb) ->
 get_disk_size = (project_id, cb) ->
     cb(undefined, projects[project_id]?.disk_size ? '3G')
 
+DEFAULT_RESOURCES = {requests:{memory:"200Mi",cpu:"50m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+
 get_resources = (project_id, cb) ->
     # TODO -- note that 200Mi really is pretty much the minimum needed to run the local hub at all!
-    resources = projects[project_id]?.resources ? {requests:{memory:"200Mi",cpu:"50m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+    resources = projects[project_id]?.resources ? DEFAULT_RESOURCES
+    resources.requests        ?= {}
+    resources.requests.memory ?= DEFAULT_RESOURCES.requests.memory
+    resources.requests.cpu    ?= DEFAULT_RESOURCES.requests.cpu
+    resources.limits          ?= {}
+    resources.limits.memory   ?= DEFAULT_RESOURCES.limits.memory
+    resources.limits.cpu      ?= DEFAULT_RESOURCES.limits.cpu
+
     cb(undefined, resources)
 
 get_preemptible = (project_id, cb) ->
