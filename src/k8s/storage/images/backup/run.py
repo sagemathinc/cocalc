@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import datetime, json, os, rethinkdb, shutil, sys, subprocess, time
 
+# TODO: make this get passed in via environ, and do nothing if not there.
+GCLOUD_BUCKET = "smc-k8s-storage-backup"
+
 # Every project with changes (=a snapshot was made of the zpool)
 # has a new bup backup of itself made every this many hours:
 BUP_SAVE_INTERVAL_H = 6
@@ -128,7 +131,27 @@ def bup_extract(path):
 
     """
 
+def bup_upload_to_gcloud(project_id):
+    """
+    Upload the bup backup of this project to the gcloud bucket.
+    """
+    path = path_to_project(project_id)
+    if not os.path.exists(path):
+        raise RuntimeError("project not hosted here")
+    bup = os.path.join(path, 'bup')
+    if not os.path.exists(bup):
+        log("no bup directory to upload -- done")
+        return
+    target = os.path.join('gs://{bucket}/{projects}/{project_id}/{bup}/')
+
+def setup():
+    gcloud = "/root/.config/gcloud/"
+    if not os.path.exists(gcloud):
+        os.makedirs(gcloud)
+    shutil.copy("/secrets/gcloud/access-token", os.path.join(gcloud, "access_token"))
+
 def main():
+    setup()
     event_loop()
 
 if __name__ == "__main__":

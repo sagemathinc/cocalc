@@ -4,7 +4,7 @@ USER root
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-RUN apt-get update && apt-get install -y ssh bup python3
+RUN apt-get update && apt-get install -y bup python3
 
 # Install RethinkDB python3 client
 RUN \
@@ -14,16 +14,12 @@ RUN \
   apt-get autoremove -y  && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /core
 
-# Script to configure vm and run backup tool, sshfs server, etc.
-ADD run.py /run.py
-
 # Also install gcloud SDK, so we can use Google Cloud Storage to upload backups
-
 RUN \
   apt-get update && \
-  apt-get install -y lsb-release ssh bup python3 wget
+  apt-get install -y lsb-release wget
 
-# Install dumb-init, which is CRITICAL since otherwise we'll get millions of zombie python subprocesses from gcloud.
+# Install dumb-init, which is CRITICAL since otherwise we'll get millions of zombie subprocesses from gcloud.
 RUN \
   wget -qO- https://github.com/Yelp/dumb-init/releases/download/v1.0.0/dumb-init_1.0.0_amd64 > /sbin/dumb-init  && \
   chmod +x /sbin/dumb-init
@@ -43,12 +39,7 @@ RUN \
   apt-get autoremove -y  && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /core
 
-# Script to configure VM and run backup tool, sshfs server, etc.
 ADD run.py /run.py
-
-# Expose ssh ports
-EXPOSE 22/tcp 22/udp
-
 CMD /run.py
 
 

@@ -61,6 +61,9 @@ spec:
         - mountPath: /secrets/rethinkdb/
           name: secret-rethinkdb
           readOnly: true
+        - mountPath: /secrets/gcloud/
+          name: secret-gcloud-access-token
+          readOnly: true
         resources:
           requests:
             memory: "300Mi"
@@ -83,4 +86,7 @@ spec:
       - name: secret-rethinkdb
         secret:
           secretName: rethinkdb-password
+      - name: secret-gcloud-access-token
+        secret:
+          secretName: gcloud-access-token
 

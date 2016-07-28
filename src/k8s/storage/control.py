@@ -46,6 +46,7 @@ def get_persistent_disks(context, namespace):
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
 def run_on_kubernetes(args):
+    create_gcloud_secret()
     context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
@@ -118,6 +119,18 @@ def ensure_ssh():
         with tempfile.TemporaryDirectory() as tmp:
             util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
             util.create_secret('storage-ssh', tmp)
+
+SECRET_NAME = 'gcloud-access-token'
+
+def create_gcloud_secret():
+    if SECRET_NAME not in util.get_secrets():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = join(tmp, 'access-token')
+            shutil.copyfile(os.path.join(os.environ['HOME'], '.config', 'gcloud', 'access_token'), target)
+            util.create_secret(SECRET_NAME, tmp)
+
+def delete_kubectl_secret():
+    util.delete_secret(SECRET_NAME)
 
 if __name__ == '__main__':
     import argparse
