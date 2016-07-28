@@ -757,13 +757,21 @@ exports.define_codemirror_extensions = () ->
             that.replaceRange(str, from, to)
 
         if completions.length == 1
-            insert(target + completions[0])
+            # do not include target in appended completion if it has a '*'
+            if target.indexOf('*') == -1
+                insert(target + completions[0])
+            else
+                insert(completions[0])
             return
 
         sel = $("<select>").css('width','auto')
         complete = $("<div>").addClass("salvus-completions").append(sel)
         for c in completions
-            sel.append($("<option>").text(target + c))
+            # do not include target in appended completion if it has a '*'
+            if target.indexOf('*') == -1
+                sel.append($("<option>").text(target + c))
+            else
+                sel.append($("<option>").text(c))
         sel.find(":first").attr("selected", true)
         sel.attr("size", Math.min(completions_size, completions.length))
         pos = @cursorCoords(from)
