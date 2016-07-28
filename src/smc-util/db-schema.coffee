@@ -581,6 +581,9 @@ schema.projects =
         preemptible :
             type : 'bool'
             desc : 'If true, allow to run on preemptible nodes.'
+        idle_timeout :
+            type : 'number'
+            desc : 'If given and nonzero, project will be killed if it is idle for this many minutes, where idle *means* that last_edited has not been updated.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]

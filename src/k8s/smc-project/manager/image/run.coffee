@@ -38,7 +38,7 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
+FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
     query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
@@ -78,6 +78,22 @@ init_projects_changefeed = (cb) ->
                 reconcile(project_id)
             return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
 
+# Periodically check for idle running projects, and if so switch
+# them from the run=true to run=false.
+idle_timeout_check = () ->
+    now = new Date()
+    for project_id, project of projects
+        if project.run and project.idle_timeout and now - project.last_edited >= project.idle_timeout * 1000*60
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(run:false).run conn, (err) ->
+                if err
+                    log "idle_timeout_check '#{project_id}' -- ERROR", err
+                else
+                    log "idle_timeout_check '#{project_id}' -- set run=false"
+
+start_idle_timeout_monitor = (cb) ->
+    setInterval(idle_timeout_check, 60*1000)
+    cb()
+
 # Maintain current status of all project deployments
 init_kubectl_watch = (cb) ->
     # The Headers include: NAME   DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE  LABELS
@@ -110,9 +126,9 @@ init_kubectl_watch = (cb) ->
         for line in output.split('\n')
             process(line)
 
-        # Now watch
+        # Now watch (NOTE: don't do --no-headers here, in case there wasn't nothing output above)
         r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
-                                            '--selector=run=smc-project', '--watch', '--no-headers'])
+                                            '--selector=run=smc-project', '--watch'])
         stdout = ''
         r.stdout.on 'data', (data) ->
             stdout += data.toString()
@@ -255,6 +271,8 @@ kubectl_update_project = (project_id, cb) ->
                     cb()
         (cb) ->
             cmd("kubectl #{action} -f #{path}", cb)
+        (cb) ->
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(last_edited:new Date()).run(conn, cb)
     ], (err) ->
         if err
             log "failed to update '#{project_id}': ", err
@@ -371,8 +389,15 @@ kubectl_stop_project = (project_id, cb) ->
             cb?(err)
 
 main = () ->
-    async.series [connect_to_rethinkdb, init_projects_changefeed, init_kubectl_watch, reconcile_all], (err) ->
-        log("DONE", err)
+    async.series [connect_to_rethinkdb,
+                  init_projects_changefeed,
+                  init_kubectl_watch,
+                  reconcile_all,
+                  start_idle_timeout_monitor], (err) ->
+        if err
+            log("FAILED TO INITIALIZE! ", err)
+        else
+            log("SUCCESSFULLY INITIALIZED; now RUNNING")
 
 main()
 
