@@ -187,7 +187,6 @@
     - wget
     - xfsprogs
     - zlib1g-dev
-    - asymptote
     - pdf2svg
     - phantomjs
 
@@ -216,6 +215,8 @@
     - install
     - update
     with_items:
+    - 4ti2
+    - 4ti2-doc
     - asciidoc
     - attr
     - autoconf
