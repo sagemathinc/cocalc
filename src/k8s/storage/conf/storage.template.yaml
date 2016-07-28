@@ -31,27 +31,44 @@ spec:
           instance : "{number}"
     spec:
       containers:
-      - image: "{image}"
+
+      - image: "{image}-ssh"
         imagePullPolicy: {pull_policy}
-        name: storage{number}
+        name: ssh
         securityContext:
           privileged: true
-        terminationMessagePath: /dev/termination-log
         volumeMounts:
         - mountPath: /data
           name: data
         - mountPath: /ssh
           name: storage-ssh
+        resources:
+          requests:
+            memory: "70Mi"
+            cpu: "200m"
+          limits:
+            memory: "300Mi"
+            cpu: "1000m"
+
+      - image: "{image}-backup"
+        imagePullPolicy: {pull_policy}
+        name: backup
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /data
+          name: data
         - mountPath: /secrets/rethinkdb/
           name: secret-rethinkdb
           readOnly: true
         resources:
           requests:
-            memory: "100Mi"
-            cpu: "40m"
+            memory: "300Mi"
+            cpu: "50m"
           limits:
-            memory: "1000Mi"
+            memory: "500Mi"
             cpu: "500m"
+
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

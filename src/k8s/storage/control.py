@@ -9,20 +9,26 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='storage'
+NAME     = 'storage'
+SERVICES = os.listdir(os.path.join(SCRIPT_PATH, 'images'))
+
+def full_tag(tag, service):
+    return "{tag}-{service}".format(service=service, tag=tag)
 
 def build(tag, rebuild):
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
-    util.run(v, path=join(SCRIPT_PATH, 'image'))
+    for service in SERVICES:
+        v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
+        if rebuild:
+            v.append("--no-cache")
+        v.append('.')
+        util.run(v, path=join(SCRIPT_PATH, 'images', service))
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
     if not args.local:
-        util.gcloud_docker_push(tag)
+        for service in SERVICES:
+            util.gcloud_docker_push(full_tag(tag, service))
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -48,7 +54,11 @@ def run_on_kubernetes(args):
     if 'storage-projects' not in util.get_services():
         util.run(['kubectl', 'create', '-f', 'conf/service.yaml'])
     args.local = False # so tag is for gcloud
+
     tag = util.get_tag(args, NAME, build)
+    if not args.tag:
+        tag = tag[:tag.rfind('-')]   # get rid of the final -[service] part of the tag.
+
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
 
     ensure_ssh()

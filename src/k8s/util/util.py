@@ -191,8 +191,13 @@ def update_deployment(filename_yaml):
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
     import yaml
-    name = yaml.load(open(filename_yaml).read())['metadata']['name']
-    run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    content = open(filename_yaml).read()
+    name = yaml.load(content)['metadata']['name']
+    try:
+        run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    except:
+        print(content)
+        raise
 
 def stop_deployment(name):
     if name in get_deployments():

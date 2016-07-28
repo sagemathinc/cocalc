@@ -57,35 +57,6 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
         if path != '.':
             os.chdir(cur)
 
-def sshd_config():
-    log('sshd_config')
-    open("/etc/ssh/sshd_config",'a').write("""
-# Enable very fast (but less secure) cipher; all we need since already on a LAN.
-Ciphers arcfour128
-
-# Security: make it so ssh to storage machine can *ONLY* be used
-# to sshfs mount /data and nothing else.  Not critical, but might as well reduce attack surfaces.
-Match User root
-    ChrootDirectory /data
-    ForceCommand internal-sftp
-""")
-
-def install_secret_ssh_keys():
-    log('install_secret_ssh_keys')
-    # Copy over ssh keys from the k8s secret
-    path = '/root/.ssh'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    src = os.path.join('/ssh', 'id-rsa.pub')
-    target = os.path.join(path, 'authorized_keys')
-    shutil.copyfile(src, target)
-    os.chmod(target, 0o600)
-    os.chmod(path, 0o600)
-
-def run_sshd():
-    log('run_sshd')
-    os.system("service ssh start")
-
 def event_loop():
     log('event_loop')
     last_bup_save_all = 0
@@ -158,9 +129,6 @@ def bup_extract(path):
     """
 
 def main():
-    sshd_config()
-    install_secret_ssh_keys()
-    run_sshd()
     event_loop()
 
 if __name__ == "__main__":
