@@ -91,7 +91,7 @@ def event_loop():
     last_bup_save_all = 0
     while True:
         # Every 5 minutes, call bup_save_all to make bup backups of all projects that have
-        # chnages that haven't been backed up for at least BUP_SAVE_INTERVAL_H hours.
+        # changes that haven't been backed up for at least BUP_SAVE_INTERVAL_H hours.
         if time.time() - last_bup_save_all >= 60*5:
             bup_save_all(BUP_SAVE_INTERVAL_H)
             last_bup_save_all = time.time()
