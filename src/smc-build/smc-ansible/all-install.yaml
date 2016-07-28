@@ -426,6 +426,7 @@
     - mono-tools-devel
     - mosh
     - mysql-client
+    - nano
     - ncbi-blast+
     - ncompress
     - netcdf-bin
@@ -452,6 +453,7 @@
     - proofgeneral-doc
     - protobuf-compiler
     - pv
+    - pyro
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -498,6 +500,7 @@
     - ruby-dev
     - samtools
     - sbcl
+    - scala
     - scilab
     - scons
     - sloccount
