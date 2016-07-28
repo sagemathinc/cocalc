@@ -304,9 +304,18 @@ Message = rclass
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
-            {text}
-        </div>
+        if not @is_editing() and other_editors.size == 0
+            edit = "Last edit "
+            name = " by #{@props.editor_name}"
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {edit}
+                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                {name}
+            </div>
+        else
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {text}
+            </div>
 
     show_user_name: ->
         <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
