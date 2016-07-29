@@ -35,7 +35,7 @@ spec:
       - image: "{image}-ssh"
         imagePullPolicy: {pull_policy}
         name: ssh
-        securityContext:
+        securityContext:  # needed for ssh ports (?)
           privileged: true
         volumeMounts:
         - mountPath: /data
@@ -53,8 +53,6 @@ spec:
       - image: "{image}-backup"
         imagePullPolicy: {pull_policy}
         name: backup
-        securityContext:
-          privileged: true
         volumeMounts:
         - mountPath: /data
           name: data
@@ -66,11 +64,34 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: "300Mi"
-            cpu: "50m"
+            memory: "100Mi"
+            cpu: "20m"
           limits:
             memory: "500Mi"
             cpu: "500m"
+
+      - image: "{image}-open"
+        imagePullPolicy: {pull_policy}
+        name: open
+        env:
+          - name: STORAGE_SERVER
+            value: "{number}"
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /secrets/rethinkdb/
+          name: secret-rethinkdb
+          readOnly: true
+        - mountPath: /secrets/gcloud/   # to use gsutil
+          name: secret-gcloud-config
+          readOnly: true
+        resources:
+          requests:
+            memory: "200Mi"
+            cpu: "100m"
+          limits:
+            memory: "500Mi"
+            cpu: "1000m"
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always

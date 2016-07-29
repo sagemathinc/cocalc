@@ -122,12 +122,12 @@ def bup_save_all(age_h):
         try:
             # create the backup
             timestamp = bup_save(path)
-            # upload backup to google cloud storage
-            bup_upload_to_gcloud(project_id)
             # convert time of backup to rethinkdb format
             last_backup = timestamp_to_rethinkdb(timestamp)
             # record in database that this backup is done.
             rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
+            # upload backup to google cloud storage
+            bup_upload_to_gcloud(project_id)
         except Exception as err:
             # Report an error in the log.  If anything failed above will try again during next loop.
             # TODO: we need to somehow recover in case repo were corrupted or something else, or this
@@ -168,6 +168,38 @@ def bup_upload_to_gcloud(project_id):
              '{bup}/{path}/'.format(bup=bup, path=path),
              '{target}/{path}/'.format(target=target, path=path)])
     # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
+
+    log("record in database that we successfully backed project up to gcloud")
+    rethinkdb.db('smc').table('projects').get(project_id).update(
+        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp)}).run(conn)
+
+#def bup_download_from_gcloud(project_id):
+#    src = os.path.join('gs://{bucket}/projects/{project_id}/bup'.format(
+#            bucket=GCLOUD_BUCKET, project_id=project_id))
+#    try:
+#        run(['gsutil', 'ls', src])
+#    except Exception as err:
+#        if 'matched no objects' in str(err):
+#            # there isn't anything to download
+#            return
+#        else:
+#            raise
+#    path = path_to_project(project_id)
+#    if not os.path.exists(path):
+#        os.makedirs(path)
+#    bup = os.path.join(path, 'bup')
+#    log("bup_download: rsync pack files")
+#    objects = os.path.join(bup, 'objects')
+#    if not os.path.exists(objects):
+#        os.makedirs(objects)
+#    run(['gsutil', '-m', 'rsync', '-r', src + '/objects/', bup+'/objects/'])
+#    refs = os.path.join(bup, 'refs')
+#    if not os.path.exists(refs):
+#        os.makedirs(refs)
+#    log("bup_download: rsync'ing refs files")
+#    run(['gsutil', '-m', 'rsync', '-c', '-r', src + "/refs/", bup+'/refs/'])
+#    log("bup_download: creating HEAD")
+#    open(os.path.join(bup, 'HEAD'),'w').write('ref: refs/heads/master')
 
 def setup():
     gcloud = "/root/.config/"
