@@ -38,7 +38,7 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout']
+FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout', 'storage_ready']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
     query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
@@ -65,7 +65,7 @@ init_projects_changefeed = (cb) ->
                     if z[field] != x.new_val[field]
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size)
+                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
@@ -170,7 +170,7 @@ reconcile = (project_id, cb) ->
     x = projects[project_id]
     desired = x.kubernetes_watch?.DESIRED
     if x.run
-        if desired != '1'
+        if x.storage_ready and desired != '1'
             log("starting because x = ", x)
             kubectl_update_project(project_id, cb)
     else

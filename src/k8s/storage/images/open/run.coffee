@@ -22,7 +22,7 @@ connect_to_rethinkdb = (cb) ->
 # Create a changefeed of all projects that are (requested to be) running and
 # are hosted on this storage server.  The main point of this service is to
 # ensure that these projects are available to use.
-FIELDS = ['run', 'disk_size', 'last_backup_to_gcloud']
+FIELDS = ['run', 'storage_ready', 'last_backup_to_gcloud']
 projects = {}
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run').filter(storage_server:STORAGE_SERVER)
@@ -40,19 +40,42 @@ init_projects_changefeed = (cb) ->
                 z = projects[project_id] ?= {}
                 for k, v of x.new_val
                     z[k] = v
-                if z.run and not z.init
-                    init(project_id)
+                if z.run and not z.storage_ready
+                    init_storage(project_id)
                     return
             else if x.old_val  # no new value -- removed from changefeed result, so now not running.
                 delete projects[x.old_val.project_id]
             return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
         cb?()
 
-init = (project_id, cb) ->
-    log("init: #{project_id}", projects[project_id])
-    # ensure the image file exists locally; if not, download it from gcloud or create it.
-
-    cb?()
+init_storage = (project_id) ->
+    project = projects[project_id]
+    if project.initializing
+        return
+    project.initializing = true
+    log("init: #{project_id}", project)
+    async.series([
+        (cb) ->
+            if not project.last_backup_to_gcloud
+                log("init: #{project_id} -- never backed up to gcloud; no need to restore")
+                cb()
+            else
+                log("init: #{project_id} -- was backed up to gcloud; must restore")
+                # Files were backed up to gcloud but storage_ready is false now,
+                # so we need to copy them back from gcloud to here, extract them,
+                # and mark things ready.
+                # TODO here
+                cb()
+        (cb) ->
+            # Declare storage ready (the driver will create paths, allocate image files, etc.).
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_ready:true).run(conn, cb)
+    ], (err) ->
+        project.initializing = false
+        if err
+            log("init: #{project_id} ERROR -- ", err)
+        else
+            log("init: #{project_id} SUCCESS")
+    )
 
 main = () ->
     async.series [connect_to_rethinkdb, init_projects_changefeed], (err) ->
