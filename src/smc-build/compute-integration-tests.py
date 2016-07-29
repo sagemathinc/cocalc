@@ -37,7 +37,8 @@ BINARIES = [
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme',
-    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'obspy3-plot',
+    'lilypond', 'lzma', 'make', 'markdown', 'maxima',
+    ('obspy3-plot', 'obspy-plot'),
     'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
     'sbcl', 't1asm', 'xpra',
     ('echo ":quit" | scala', 'Scala', ''),
@@ -102,7 +103,7 @@ BINARIES = [
 ]
 
 PY_COMMON = [
-    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
+    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
@@ -123,11 +124,11 @@ PY3 =  PY_COMMON + [
 ]
 
 PY_SAGE = PY_COMMON + [
-    'sage' # there is no sage.__version__ ???
+    'sage', # there is no sage.__version__ ???
     # 'numba', # would be cool to have numba in sagemath
     'mahotas', 'patsy', 'statsmodels', 'cvxpy',
     'clawpack', # no canonical version info
-    'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
+    'mercurial', 'projlib', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
 ]
@@ -135,13 +136,13 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'snappy', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
 ]
 
 # these don't have a version info, so just check if they can be imported
 # they still need to be listed in the applicable areas to test above!
 PY_NOVERS = [
-    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage',
+    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage', 'mercurial',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
@@ -291,7 +292,7 @@ def test_r(exe, lib, libdata):
 # julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
 def test_julia(lib):
-    CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
+    CMD = '''echo 'using {lib}; Pkg.status("{lib}")' | julia'''
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
 
@@ -302,8 +303,7 @@ def test_julia_installed(libdata):
     Therefore, all files in the the global julia directory need to be owned by salvus.
     """
     jcmd = 'for (k, v) in Pkg.installed(); println(k, ":::", v); end'
-    jenv = 'JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
-    vers_data = run('''echo '{jcmd}' | {jenv}'''.format(**locals()))
+    vers_data = run('''echo '{jcmd}' | julia'''.format(**locals()))
     vers_info = [line.split(':::') for line in vers_data.splitlines()]
     for lib, vers in sorted(vers_info):
         libdata.append(('Julia', 'julia', lib, vers))

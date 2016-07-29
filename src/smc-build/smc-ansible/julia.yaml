@@ -92,7 +92,11 @@
 
   - name: "fix ownership of site dir to be salvus"
     tags: [install, update]
-    shell: "chown -R salvus. {{ pkgdir }}"
+    shell: "chown -R salvus. {{ pkgdir }}/"
+
+  - name: "fix permissions of site dir"
+    tags: [install, update]
+    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \;"
 
 # Nemo
 - hosts: compute
