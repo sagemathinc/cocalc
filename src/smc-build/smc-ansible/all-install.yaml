@@ -239,6 +239,7 @@
     - checkinstall
     - clang
     - clojure1.6
+    - coffeescript
     - cmake
     - csh
     - cvs
@@ -649,6 +650,7 @@
     - python-pytest-cov
     - python-pytest-timeout
     - python-pytest-mock
+    - python-pytest-xdist
     - python-regex
     - python-requests-cache
     - python-requests-toolbelt
