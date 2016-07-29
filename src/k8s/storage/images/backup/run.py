@@ -119,12 +119,20 @@ def bup_save_all(age_h):
             # project isn't hosted here.
             continue
         log("backing up '%s'"%project_id)
-        # create the backup
-        timestamp = bup_save(path)
-        # convert time of backup to rethinkdb format
-        last_backup = timestamp_to_rethinkdb(timestamp)
-        # record in database that this backup is done.
-        rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
+        try:
+            # create the backup
+            timestamp = bup_save(path)
+            # upload backup to google cloud storage
+            bup_upload_to_gcloud(project_id)
+            # convert time of backup to rethinkdb format
+            last_backup = timestamp_to_rethinkdb(timestamp)
+            # record in database that this backup is done.
+            rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
+        except Exception as err:
+            # Report an error in the log.  If anything failed above will try again during next loop.
+            # TODO: we need to somehow recover in case repo were corrupted or something else, or this
+            # could really go to hell.
+            log("ERROR backing up '{project_id}' -- ".format(project_id=project_id), err)
 
 def bup_extract(path):
     """
@@ -142,7 +150,24 @@ def bup_upload_to_gcloud(project_id):
     if not os.path.exists(bup):
         log("no bup directory to upload -- done")
         return
-    target = os.path.join('gs://{bucket}/{projects}/{project_id}/{bup}/')
+    target = os.path.join('gs://{bucket}/projects/{project_id}/bup'.format(
+            bucket=GCLOUD_BUCKET, project_id=project_id))
+
+    # Upload new pack file objects -- don't use -c, since it would be very (!!) slow on these
+    # huge files, and isn't needed, since time stamps are enough.  We also don't save the
+    # midx and bloom files, since they are automatically recreated by bup from the pack files.
+    log('gsutil upload: rsync new pack files')
+    run(['gsutil', '-m', 'rsync', '-x', '.*\.bloom|.*\.midx', '-r',
+         '{bup}/objects/'.format(bup=bup),
+         '{target}/objects/'.format(target=target)])
+    # Upload refs/logs; using -c below is critical, since filenames don't change
+    # but content does (and timestamps aren't used by gsutil!).
+    log('gsutil upload refs/logs')
+    for path in ['refs', 'logs']:
+        run(['gsutil', '-m', 'rsync', '-c', '-r',
+             '{bup}/{path}/'.format(bup=bup, path=path),
+             '{target}/{path}/'.format(target=target, path=path)])
+    # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
 
 def setup():
     gcloud = "/root/.config/"

@@ -31,6 +31,12 @@ RUN \
   wget -qO- https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
   apt-get update && apt-get -y install google-cloud-sdk
 
+# Install crcmod so that gsutil rsync isn't super slow
+RUN \
+  apt-get -y install gcc python-dev python-setuptools && \
+  easy_install -U pip && \
+  pip install -U crcmod
+
 # Install RethinkDB python3 client -- used for coordinating backups
 RUN \
   apt-get install -y python3-pip && \

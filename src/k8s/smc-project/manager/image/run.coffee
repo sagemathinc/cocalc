@@ -396,6 +396,7 @@ main = () ->
                   start_idle_timeout_monitor], (err) ->
         if err
             log("FAILED TO INITIALIZE! ", err)
+            process.exit(1)
         else
             log("SUCCESSFULLY INITIALIZED; now RUNNING")
 
