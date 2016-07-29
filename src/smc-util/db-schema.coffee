@@ -574,7 +574,7 @@ schema.projects =
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
             type : 'bool'
-            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true."
+            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
             type : 'number'
             desc : 'Size in megabytes of the project disk.'
