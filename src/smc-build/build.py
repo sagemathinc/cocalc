@@ -282,6 +282,8 @@ SAGE_PIP_PACKAGES = [
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     'wordcloud', # https://github.com/amueller/word_cloud
     'cobra', # https://cobrapy.readthedocs.io/en/stable/
+    'python-libsbml', # dependency of cobra
+    'markdown',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -324,7 +326,7 @@ R_PACKAGES = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # not available for 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
