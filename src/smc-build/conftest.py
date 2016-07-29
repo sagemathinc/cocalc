@@ -42,6 +42,15 @@ def pytest_terminal_summary(terminalreporter):
         </style></head><body>''')
         sce.write('<h1>SMC Compute Environment</h1>\n')
 
+        if 'libs' in locals():
+            libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
+            sce.write('<h2>Library Versions</h2>\n')
+            for language in libs.Language.unique():
+                sce.write('<h3>%s</h3>' % language)
+                lang = libs[libs.Language == language]
+                lang = lang.pivot(index='Library', columns='Executable', values='Version').fillna('')
+                sce.write(lang.to_html())
+
         if 'bins' in locals():
             bins.to_csv(open(OUT_FN + '.bins.csv', 'w'))
             sce.write('<h2>Executables</h2>\n')
@@ -53,11 +62,3 @@ def pytest_terminal_summary(terminalreporter):
                 sce.write('<tr><td><b>{name}</b></td><td>{info_html}</td></tr>'.format(**locals()))
             sce.write('</tbody></table>')
 
-        if 'libs' in locals():
-            libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
-            sce.write('<h2>Library Versions</h2>\n')
-            for language in libs.Language.unique():
-                sce.write('<h3>%s</h3>' % language)
-                lang = libs[libs.Language == language]
-                lang = lang.pivot(index='Library', columns='Executable', values='Version').fillna('')
-                sce.write(lang.to_html())

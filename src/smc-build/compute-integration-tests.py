@@ -61,7 +61,6 @@ BINARIES = [
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),
-    ('hg', 'mercurial'),
     ('yacc', 'bison'),
     ('lua', None, '-v'),
     ('lneato', None, '-V', 1),
@@ -102,8 +101,9 @@ BINARIES = [
     ('clang', 'clang version 3'),
 ]
 
+# python libs that are installed everywhere
 PY_COMMON = [
-    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown',
+    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
@@ -113,36 +113,38 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa',
+    'numba', 'xarray', 'ncpol2sdpa', 'projlib',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano', 'seaborn',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'projlib',
 ]
 
+# python libs in sagemath
 PY_SAGE = PY_COMMON + [
     'sage', # there is no sage.__version__ ???
     # 'numba', # would be cool to have numba in sagemath
     'mahotas', 'patsy', 'statsmodels', 'cvxpy',
     'clawpack', # no canonical version info
-    'mercurial', 'projlib', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
+    'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
 ]
 
+# and in anaconda
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'projlib',
 ]
 
 # these don't have a version info, so just check if they can be imported
 # they still need to be listed in the applicable areas to test above!
 PY_NOVERS = [
-    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage', 'mercurial',
+    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage', 'mercurial', 'guppy',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
@@ -243,6 +245,9 @@ def test_binaries(bin, bindata):
     out = run('{cmd} {args}'.format(**locals()), status)
     assert token.lower() in out.lower()
     # when successful, add info to bindata fixture with full path
+    # cmd might be 'echo foo | cmd bar -', hence this
+    if '|' in cmd:
+        cmd = cmd.rsplit('|', 1)[-1].strip().split()[0]
     bindata.append([shutil.which(cmd), out])
 
 # testing python libs: test iterates over pairings of executable path and list of packages
@@ -276,7 +281,8 @@ def test_python(exe, lib, libdata):
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
     vers_info = 'ok' if novers else out.splitlines()[-1]
-    libdata.append(('Python', exe, lib, vers_info))
+    # some have really long version info strings, limit to 15
+    libdata.append(('Python', exe, lib, vers_info[:15]))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
 def test_r(exe, lib, libdata):
