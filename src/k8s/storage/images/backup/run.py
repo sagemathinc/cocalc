@@ -145,10 +145,10 @@ def bup_upload_to_gcloud(project_id):
     target = os.path.join('gs://{bucket}/{projects}/{project_id}/{bup}/')
 
 def setup():
-    gcloud = "/root/.config/gcloud/"
+    gcloud = "/root/.config/"
     if not os.path.exists(gcloud):
         os.makedirs(gcloud)
-    shutil.copy("/secrets/gcloud/access-token", os.path.join(gcloud, "access_token"))
+    run('tar xvf /secrets/gcloud/gcloud.tar', path="/root/.config/")
 
 def main():
     setup()

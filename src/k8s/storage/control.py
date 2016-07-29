@@ -120,13 +120,13 @@ def ensure_ssh():
             util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
             util.create_secret('storage-ssh', tmp)
 
-SECRET_NAME = 'gcloud-access-token'
+SECRET_NAME = 'gcloud-config'
 
 def create_gcloud_secret():
     if SECRET_NAME not in util.get_secrets():
         with tempfile.TemporaryDirectory() as tmp:
-            target = join(tmp, 'access-token')
-            shutil.copyfile(os.path.join(os.environ['HOME'], '.config', 'gcloud', 'access_token'), target)
+            target = join(tmp, 'gcloud.tar')
+            util.run("tar cvf %s --exclude gcloud/logs gcloud"%target, path=os.path.join(os.environ['HOME'], '.config'))
             util.create_secret(SECRET_NAME, tmp)
 
 def delete_kubectl_secret():
