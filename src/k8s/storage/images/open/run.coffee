@@ -1,14 +1,30 @@
-rethinkdb = require('rethinkdb')
-async     = require('async')
+###
+PURPOSE: open projects
+AUTHOR: William Stein, 2016 (c) SageMath, Inc.
+LICENSE: GPLv3
+###
+
+fs            = require('fs')
+child_process = require('child_process')
+
+rethinkdb     = require('rethinkdb')
+async         = require('async')
 
 # a nonnegative integer -- the number of this storage server
 STORAGE_SERVER = parseInt(process.env['STORAGE_SERVER'])
+GCLOUD_BUCKET  = process.env['GCLOUD_BUCKET']
 
 conn      = undefined  # connection to rethinkdb
 DATABASE  = 'smc'
 
 log = (m...) ->
     console.log("#{(new Date()).toISOString()}:",  m...)
+
+run = (s, cb) ->
+    log("running '#{s}'")
+    child_process.exec s, (err, stdout, stderr) ->
+        #log("output of '#{s}' -- ", stdout, stderr)
+        cb?(err, stdout + stderr)
 
 connect_to_rethinkdb = (cb) ->
     try
@@ -64,8 +80,7 @@ init_storage = (project_id) ->
                 # Files were backed up to gcloud but storage_ready is false now,
                 # so we need to copy them back from gcloud to here, extract them,
                 # and mark things ready.
-                # TODO here
-                cb()
+                restore_from_gcloud(project_id, cb)
         (cb) ->
             # Declare storage ready (the driver will create paths, allocate image files, etc.).
             rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_ready:true).run(conn, cb)
@@ -76,6 +91,35 @@ init_storage = (project_id) ->
         else
             log("init: #{project_id} SUCCESS")
     )
+
+###
+restore_from_gcloud -- restores the given project_id data from the bup repo in
+google cloud storage to '/data/projects/[project_id].zfs'.
+###
+restore_from_gcloud = (project_id, cb) ->
+    dbg = (m) -> log("restore_from_gcloud('#{project_id}')", m)
+    source = "gs://#{GCLOUD_BUCKET}/projects/#{project_id}.zfs"
+    target = "/data/projects/#{project_id}.zfs/bup/"
+    dbg("restore from '#{src}'")
+    async.series([
+        (cb) ->
+            dbg("get files from gcloud storage")
+            async.parallel([
+                (cb) ->
+                    dbg("rsync pack files from gcloud")
+                    run("mkdir -p #{target}/objects/ && gsutil -m rsync -r #{source}/bup/objects/ #{target}/objects/", cb)
+                (cb) ->
+                    dbg("rsync refs files from gcloud")
+                    run("mkdir -p #{target}/refs/ && gsutil -m rsync -c -r #{source}/bup/refs/ #{target}/refs/", cb)
+                (cb) ->
+                    dbg("creating HEAD")
+                    fs.writeFile("#{target}/HEAD", 'ref: refs/heads/master', cb)
+            ], cb)
+        (cb) ->
+            dbg("extract bup repo")
+            run("cd / && bup -d #{target} join `bup -d #{target} ls | tail -1` | tar xv", cb)
+    ], cb)
+
 
 main = () ->
     async.series [connect_to_rethinkdb, init_projects_changefeed], (err) ->

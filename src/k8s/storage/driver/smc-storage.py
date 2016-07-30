@@ -78,7 +78,7 @@ def ensure_server_is_mounted(server, namespace):
     return mnt
 
 def lock_filename(path):
-    return os.path.join(path, 'lock')
+    return os.path.join(path, 'lock')  # used elsewhere, e.g., in storage/images/backup/run.py
 
 def check_for_lock(path):
     lockfile = lock_filename(path)

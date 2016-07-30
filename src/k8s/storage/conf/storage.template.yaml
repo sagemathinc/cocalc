@@ -62,6 +62,9 @@ spec:
         - mountPath: /secrets/gcloud/
           name: secret-gcloud-config
           readOnly: true
+        env:
+          - name: GCLOUD_BUCKET
+            value: "{gcloud_bucket}"
         resources:
           requests:
             memory: "100Mi"
@@ -76,6 +79,8 @@ spec:
         env:
           - name: STORAGE_SERVER
             value: "{number}"
+          - name: GCLOUD_BUCKET
+            value: "{gcloud_bucket}"
         volumeMounts:
         - mountPath: /data
           name: data

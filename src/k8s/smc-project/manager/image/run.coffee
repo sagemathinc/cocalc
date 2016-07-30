@@ -119,7 +119,7 @@ init_kubectl_watch = (cb) ->
             reconcile(project_id)
 
     # Initialize
-    cmd "kubectl get deployments --show-labels --selector=run=smc-project", (err, output) ->
+    run "kubectl get deployments --show-labels --selector=run=smc-project", (err, output) ->
         if err
             cb?(err)
             return
@@ -206,7 +206,7 @@ deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible
     #log('s = ', s)
     return s
 
-cmd = (s, cb) ->
+run = (s, cb) ->
     log("running '#{s}'")
     child_process.exec s, (err, stdout, stderr) ->
         #log("output of '#{s}' -- ", stdout, stderr)
@@ -260,7 +260,7 @@ kubectl_update_project = (project_id, cb) ->
                 cb(err)
         (cb) ->
             s = "kubectl get deployments --no-headers --selector=run=smc-project,project_id=#{project_id} | wc -l"
-            cmd s, (err, num) ->
+            run s, (err, num) ->
                 if err
                     cb(err)
                 else
@@ -270,7 +270,7 @@ kubectl_update_project = (project_id, cb) ->
                         action = 'replace'
                     cb()
         (cb) ->
-            cmd("kubectl #{action} -f #{path}", cb)
+            run("kubectl #{action} -f #{path}", cb)
         (cb) ->
             rethinkdb.db(DATABASE).table('projects').get(project_id).update(last_edited:new Date()).run(conn, cb)
     ], (err) ->
@@ -330,7 +330,7 @@ get_all_storage_servers = (cb) ->
             storage_servers_cbs.push(cb)
             return
         storage_servers_cbs = [cb]
-        cmd 'kubectl get pods --selector="storage=projects" --show-labels --no-headers', (err, output) ->
+        run 'kubectl get pods --selector="storage=projects" --show-labels --no-headers', (err, output) ->
             if err
                 w = storage_servers_cbs
                 storage_servers_cbs = undefined
@@ -376,7 +376,7 @@ kubectl_stop_project = (project_id, cb) ->
         projects[project_id].stopping.push(cb)
         return
     projects[project_id].stopping = [cb]
-    cmd "kubectl delete deployments smc-project-#{project_id}", (err) ->
+    run "kubectl delete deployments smc-project-#{project_id}", (err) ->
         if err
             log "failed to stop '#{project_id}': ", err
             # Try again in a few seconds  (TODO...)

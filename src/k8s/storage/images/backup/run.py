@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import datetime, json, os, rethinkdb, shutil, sys, subprocess, time
+import datetime, json, os, rethinkdb, shutil, socket, subprocess, sys, time
 
 # TODO: make this get passed in via environ, and do nothing if not there.
-GCLOUD_BUCKET = "smc-k8s-storage-backup"
+GCLOUD_BUCKET = os.environ['GCLOUD_BUCKET']
 
 # Every project with changes (=a snapshot was made of the zpool)
 # has a new bup backup of itself made every this many hours:
@@ -95,11 +95,16 @@ def bup_save(path):
     return timestamp
 
 RETHINKDB_SECRET = '/secrets/rethinkdb/rethinkdb'
+conn = None
 def rethinkdb_connection():
+    global conn
+    if conn is not None:
+        return conn
     auth_key = open(RETHINKDB_SECRET).read().strip()
     if not auth_key:
         auth_key = None
-    return rethinkdb.connect(host='rethinkdb-driver', timeout=5, auth_key=auth_key)
+    conn = rethinkdb.connect(host='rethinkdb-driver', timeout=5, auth_key=auth_key)
+    return conn
 
 def path_to_project(project_id):
     return os.path.join(DATA, 'projects', project_id) + '.zfs'
@@ -114,32 +119,31 @@ def bup_save_all(age_h):
     for x in rethinkdb.db('smc').table('projects').between(age_h*60*60,
                rethinkdb.maxval, index='seconds_since_backup').pluck('project_id').run(conn):
         project_id = x['project_id']
-        path = path_to_project(project_id)
-        if not os.path.exists(path):
-            # project isn't hosted here.
-            continue
-        log("backing up '%s'"%project_id)
         try:
-            # create the backup
-            timestamp = bup_save(path)
-            # convert time of backup to rethinkdb format
-            last_backup = timestamp_to_rethinkdb(timestamp)
-            # record in database that this backup is done.
-            rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
-            # upload backup to google cloud storage
-            bup_upload_to_gcloud(project_id)
+            bup_save_and_upload(project_id)
         except Exception as err:
             # Report an error in the log.  If anything failed above will try again during next loop.
             # TODO: we need to somehow recover in case repo were corrupted or something else, or this
             # could really go to hell.
-            log("ERROR backing up '{project_id}' -- ".format(project_id=project_id), err)
+            log("bup_save_all - ERROR backing up '{project_id}' -- ".format(project_id=project_id), err)
 
-def bup_extract(path):
-    """
+def bup_save_and_upload(project_id):
+    path = path_to_project(project_id)
+    if not os.path.exists(path):
+        log("bup_save_and_upload('%s') -- WARNING: project isn't hosted here or has never been opened here"%project_id)
+        return
+    log("backing up '%s'"%project_id)
+    # create the backup
+    timestamp = bup_save(path)
+    # convert time of backup to rethinkdb format
+    last_backup = timestamp_to_rethinkdb(timestamp)
+    # record in database that this backup is done.
+    conn = rethinkdb_connection()
+    rethinkdb.db('smc').table('projects').get(project_id).update({'last_backup':last_backup}).run(conn)
+    # upload backup to google cloud storage
+    bup_upload_to_gcloud(project_id, timestamp)
 
-    """
-
-def bup_upload_to_gcloud(project_id):
+def bup_upload_to_gcloud(project_id, timestamp):
     """
     Upload the bup backup of this project to the gcloud bucket.
     """
@@ -150,7 +154,7 @@ def bup_upload_to_gcloud(project_id):
     if not os.path.exists(bup):
         log("no bup directory to upload -- done")
         return
-    target = os.path.join('gs://{bucket}/projects/{project_id}/bup'.format(
+    target = os.path.join('gs://{bucket}/projects/{project_id}.zfs/bup'.format(
             bucket=GCLOUD_BUCKET, project_id=project_id))
 
     # Upload new pack file objects -- don't use -c, since it would be very (!!) slow on these
@@ -171,35 +175,44 @@ def bup_upload_to_gcloud(project_id):
 
     log("record in database that we successfully backed project up to gcloud")
     rethinkdb.db('smc').table('projects').get(project_id).update(
-        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp)}).run(conn)
+        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp)}).run(rethinkdb_connection())
 
-#def bup_download_from_gcloud(project_id):
-#    src = os.path.join('gs://{bucket}/projects/{project_id}/bup'.format(
-#            bucket=GCLOUD_BUCKET, project_id=project_id))
-#    try:
-#        run(['gsutil', 'ls', src])
-#    except Exception as err:
-#        if 'matched no objects' in str(err):
-#            # there isn't anything to download
-#            return
-#        else:
-#            raise
-#    path = path_to_project(project_id)
-#    if not os.path.exists(path):
-#        os.makedirs(path)
-#    bup = os.path.join(path, 'bup')
-#    log("bup_download: rsync pack files")
-#    objects = os.path.join(bup, 'objects')
-#    if not os.path.exists(objects):
-#        os.makedirs(objects)
-#    run(['gsutil', '-m', 'rsync', '-r', src + '/objects/', bup+'/objects/'])
-#    refs = os.path.join(bup, 'refs')
-#    if not os.path.exists(refs):
-#        os.makedirs(refs)
-#    log("bup_download: rsync'ing refs files")
-#    run(['gsutil', '-m', 'rsync', '-c', '-r', src + "/refs/", bup+'/refs/'])
-#    log("bup_download: creating HEAD")
-#    open(os.path.join(bup, 'HEAD'),'w').write('ref: refs/heads/master')
+def archive(project_id):
+    """
+    Do a final bup save of this project, upload to google cloud storage,
+    delete all files from local disk, and mark project as no longer storage_ready.
+    """
+    def dbg(*args):
+        log('archive("%s")'%project_id, *args)
+    # First check if volume is recently mounted, in which case absolutely
+    # refuse to archive.
+    dbg("making lock")
+    path = path_to_project(project_id)
+    try:
+        lock = os.path.join(path, 'lock')  # name also used in driver/smc-storage
+        if os.path.exists(lock) and time.time() - os.path.getmtime(lock) < 300:
+            raise RuntimeError("project '%s' is probably locked and currently mounted; can't archive."%project_id)
+        # Write lock file to guarantee that this project won't suddenly get mounted right as we are archiving it.
+        open(lock, 'w').write(socket.gethostname())
+        bup_save_and_upload(project_id)
+        log("deleting local files")
+        try:
+            shutil.rmtree(path)
+        except Exception as err:
+            # this should never happen and would just waste disk space.
+            dbg("error deleting files -- ", err)
+        conn = rethinkdb_connection()
+        query = rethinkdb.db('smc').table('projects').get(project_id)
+        log("set storage_ready to false so next open will use GCS")
+        query.update({'storage_ready':False}).run(conn)
+        log("clear the storage server from the database, so any server can be used next time.")
+        query.replace(rethinkdb.row.without('storage_server')).run(conn)
+    finally:
+        try:
+            if os.path.exists(lock):
+                os.unlink(lock)
+        except:
+            pass
 
 def setup():
     gcloud = "/root/.config/"

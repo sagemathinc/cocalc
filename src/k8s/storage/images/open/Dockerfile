@@ -4,7 +4,7 @@ USER root
 
 RUN \
   apt-get update && \
-  apt-get install -y wget
+  apt-get install -y wget bup
 
 # Avoid zombie python subprocesses from gsutil
 RUN \
