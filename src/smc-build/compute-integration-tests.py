@@ -113,14 +113,14 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa', 'projlib',
+    'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'projlib',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
 ]
 
 # python libs in sagemath

@@ -96,7 +96,7 @@
 
   - name: "fix permissions of site dir"
     tags: [install, update]
-    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \;"
+    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
 
 # Nemo
 - hosts: compute
