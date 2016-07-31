@@ -86,12 +86,13 @@ def bup_save(path):
     bup_dir = os.path.join(full_path, 'bup')
     if not os.path.exists(bup_dir):
         os.makedirs(bup_dir)
+    lock = os.path.join(full_path, 'lock')
     env = {'BUP_DIR': bup_dir}
     run(['bup', 'init'], env=env)
     tm = time.time()
     timestamp = datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
-    run("tar cSf - '{full_path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
-        (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp), env=env)
+    run("tar cSf - '{full_path}' --exclude {bup_dir} --exclude {lock} | bup split -n '{timestamp}'".format
+        (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp, lock=lock), env=env)
     return timestamp
 
 RETHINKDB_SECRET = '/secrets/rethinkdb/rethinkdb'

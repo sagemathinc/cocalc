@@ -99,8 +99,8 @@ google cloud storage to '/data/projects/[project_id].zfs'.
 restore_from_gcloud = (project_id, cb) ->
     dbg = (m) -> log("restore_from_gcloud('#{project_id}')", m)
     source = "gs://#{GCLOUD_BUCKET}/projects/#{project_id}.zfs"
-    target = "/data/projects/#{project_id}.zfs/bup/"
-    dbg("restore from '#{src}'")
+    target = "/data/projects/#{project_id}.zfs/bup"
+    dbg("restore from '#{source}'")
     async.series([
         (cb) ->
             dbg("get files from gcloud storage")
@@ -111,10 +111,10 @@ restore_from_gcloud = (project_id, cb) ->
                 (cb) ->
                     dbg("rsync refs files from gcloud")
                     run("mkdir -p #{target}/refs/ && gsutil -m rsync -c -r #{source}/bup/refs/ #{target}/refs/", cb)
-                (cb) ->
-                    dbg("creating HEAD")
-                    fs.writeFile("#{target}/HEAD", 'ref: refs/heads/master', cb)
             ], cb)
+        (cb) ->
+            dbg("creating HEAD")  # do after above to ensure directory is created.
+            fs.writeFile("#{target}/HEAD", 'ref: refs/heads/master', cb)
         (cb) ->
             dbg("extract bup repo")
             run("cd / && bup -d #{target} join `bup -d #{target} ls | tail -1` | tar xv", cb)

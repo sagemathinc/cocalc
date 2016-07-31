@@ -57,7 +57,7 @@ def gcloud_bucket(namespace):
     url = 'gs://{bucket}'.format(bucket=bucket)
     if url+'/' not in util.run(['gsutil', 'ls'], get_output=True).splitlines():
         # create the bucket
-        util.run(['gsutil', 'mb', '-c', 'nearline', '-l', 'us-central1', url])
+        util.run(['gsutil', 'mb', '-l', 'us-central1', url])
     return bucket
 
 def run_on_kubernetes(args):
