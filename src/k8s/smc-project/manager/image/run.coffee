@@ -169,13 +169,20 @@ reconcile = (project_id, cb) ->
         return
     x = projects[project_id]
     desired = x.kubernetes_watch?.DESIRED
+    dbg = (m...) -> log("reconcile('#{project_id}')", m...)
     if x.run
+        if not x.storage_server?
+            # This will assign a storage server, which will eventually cause storage_ready to
+            # be true, allowing things to run.
+            dbg("assign storage server")
+            get_storage_server(project_id, cb)
+            return
         if x.storage_ready and desired != '1'
-            log("starting because x = ", x)
+            dbg("starting because x = ", x)
             kubectl_update_project(project_id, cb)
     else
         if desired == '1'
-            log("stopping because x = ", x)
+            dbg("stopping because x = ", x)
             kubectl_stop_project(project_id, cb)
 
 reconcile_all = (cb) ->
@@ -311,7 +318,7 @@ get_storage_server = (project_id, cb) ->
             # save assignment to database, so will reuse it next time.
             query = rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_server:storage_server).run(conn, cb)
     ], (err) ->
-        cb(err, storage_server)
+        cb?(err, storage_server)
     )
 
 random_choice = (array) ->
