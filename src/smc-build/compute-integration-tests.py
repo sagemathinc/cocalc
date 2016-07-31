@@ -90,7 +90,7 @@ BINARIES = [
     ('pdflatex', 'pdfTeX 3.14'),
     ('python2', 'python 2.7'),
     ('python3', 'python 3'),
-    ('/ext/anaconda/bin/python', 'python 3'),
+    ('$ANACONDA3/bin/python', 'python 3'),
     ('xelatex', 'xetex'),
     ('axiom', 'AXIOMsys', '-h'),
     ('open-axiom', 'OpenAxiom 1'),
@@ -113,14 +113,14 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa', 'projlib',
+    'numba', 'xarray', 'ncpol2sdpa',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'projlib',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
 ]
 
 # python libs in sagemath
@@ -138,17 +138,11 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'projlib',
-]
-
-# these don't have a version info, so just check if they can be imported
-# they still need to be listed in the applicable areas to test above!
-PY_NOVERS = [
-    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage', 'mercurial', 'guppy',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
-R_exes = ['/usr/bin/R', 'sage -R']
+R_exes = ['/usr/bin/R', 'sage -R', '$ANACONDA3/bin/R']
 
 R_libs = [
     'rstan', # works, but still uses a lot of memory for compiling
@@ -180,7 +174,7 @@ R_libs = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # doesn't exist for Sage's older 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -242,6 +236,7 @@ def test_binaries(bin, bindata):
         token = bin[1] if (len(bin) >= 2 and bin[1] is not None) else bin[0].lower()
         args = bin[2] if (len(bin) >= 3 and bin[2] is not None) else '--version'
         status = bin[3] if len(bin) >= 4 else 0
+    cmd = os.path.expandvars(cmd)
     out = run('{cmd} {args}'.format(**locals()), status)
     assert token.lower() in out.lower()
     # when successful, add info to bindata fixture with full path
@@ -251,49 +246,68 @@ def test_binaries(bin, bindata):
     bindata.append([shutil.which(cmd), out])
 
 # testing python libs: test iterates over pairings of executable path and list of packages
-PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
+PY_EXES = ['python2', 'python3', 'sage -python', '$ANACONDA3/bin/python']
 PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
 PY_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in zip(PY_EXES, PY_LIBS))
 PY_TESTS = list(it.chain.from_iterable(PY_PAIRS))
 
 @pytest.mark.parametrize("exe,lib", PY_TESTS)
 def test_python(exe, lib, libdata):
+    exe = os.path.expandvars(exe)
     CMD = dedent('''\
     {exe} -c "from __future__ import print_function
     from types import ModuleType
     import {lib}
-    print({lib})''')
-    novers = lib in PY_NOVERS
-    if not novers:
-        CMD += dedent('''
-        for v in ['__version__', '__VERSION__']:
-            if hasattr({lib}, v):
-                vers = getattr({lib}, v)
-                if type(vers) == ModuleType:
-                        print(vers.version)
-                else:
-                        print(vers)
-                break
-        else:
-            print({lib}.version())
-            ''')
-    CMD += '"'
+    print({lib})"''')
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    vers_info = 'ok' if novers else out.splitlines()[-1]
-    # some have really long version info strings, limit to 15
-    libdata.append(('Python', exe, lib, vers_info[:15]))
+
+@pytest.mark.parametrize("exe", PY_EXES)
+def test_python_versions(exe, libdata):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "from __future__ import print_function
+    import pkg_resources
+    mod_names = set(dist.project_name for dist in __import__('pkg_resources').working_set)
+    for name in sorted(mod_names):
+        try:
+            v = pkg_resources.get_distribution(name).version
+        except:
+            v = "ok"
+        print(name + ':::' + v)
+    "''')
+    vers_data = run(CMD.format(**locals()))
+    vers_data = [line for line in vers_data.splitlines() if ':::' in line]
+    vers_info = [line.split(':::') for line in vers_data]
+    for lib, version in sorted(vers_info):
+        libdata.append(('Python', exe, lib, version))
 
 @pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
-def test_r(exe, lib, libdata):
+def test_r(exe, lib):
+    exe = os.path.expandvars(exe)
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    version = out.split('\n')[-2]
-    if version.startswith('[1]'):
-        libdata.append(('R', exe, lib, version[5:-1]))
-    else:
-        print("no version info: %s" % version)
+
+@pytest.mark.parametrize('exe', R_exes)
+def test_r_installed(exe, libdata):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    vers <- installed.packages()[,c("Package", "Version")]
+    apply(vers, 1, function(x) { cat(x["Package"], ":::", x["Version"], "\n", sep="") })
+    ''')
+    vers_data = run('''echo '{CMD}' | {exe} --vanilla --silent'''.format(**locals()))
+    # filter input and useless other output
+    vers_data = [line for line in vers_data.splitlines() if ':::' in line][1:]
+    vers_info = [line.split(':::') for line in vers_data]
+    # sometimes, the same lib appears several times
+    names = set()
+    for lib, version in sorted(vers_info):
+        if lib in names:
+            continue
+        else:
+            names.add(lib)
+            libdata.append(('R', exe, lib, version))
 
 # julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
