@@ -221,7 +221,13 @@ passport_login = (opts) ->
             dbg("set remember_me cookies in client")
             expires = new Date(new Date().getTime() + ttl*1000)
             cookies = new Cookies(opts.req, opts.res)
-            cookies.set(BASE_URL + 'remember_me', remember_me_value, {expires:expires})
+            root_domain = window.location.hostname
+            # We are setting a wildcard cookie so one can login at sage.cocalc.com and
+            # be logged in automatically when go to cocalc.com
+            # We assume simple tlds like .com, .net, .org
+            root_domain = window.location.hostname.split('.')
+            root_domain = '.'+root_domain[-2]+'.'+root_domain[-1]
+            cookies.set(root_domain + 'remember_me', remember_me_value, {expires:expires})
             dbg("set remember_me cookie in database")
             opts.database.save_remember_me
                 account_id : account_id
