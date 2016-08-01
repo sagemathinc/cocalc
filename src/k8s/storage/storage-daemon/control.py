@@ -27,21 +27,21 @@ def remove_install_path():
         shutil.rmtree("install-tmp")
 
 def build(tag, rebuild):
-    create_install_path()
+    try:
+        create_install_path()
 
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
-    util.run(v, path=SCRIPT_PATH)
-
-    remove_install_path()
+        v = ['sudo', 'docker', 'build', '-t', tag]
+        if rebuild:  # will cause a git pull to happen
+            v.append("--no-cache")
+        v.append('.')
+        util.run(v, path=SCRIPT_PATH)
+    finally:
+        remove_install_path()
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
-    if not args.local:
-        util.gcloud_docker_push(tag)
+    util.gcloud_docker_push(tag)
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -50,7 +50,6 @@ def images_on_gcloud(args):
 def run_on_kubernetes(args):
     context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
-    args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     # ensure there is a rethinkdb secret, even if blank, so that daemon will start with reduced functionality
     util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
@@ -73,8 +72,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
-    sub.add_argument("-l", "--local", action="store_true",
-                     help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} daemonset on the currently selected kubernetes cluster'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
