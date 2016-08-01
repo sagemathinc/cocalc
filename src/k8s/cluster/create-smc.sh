@@ -48,3 +48,9 @@ cd ../smc-webapp-static/ && ./control.py run -r 3  && ./control.py autoscale --m
 cd ../smc-project/manager
 ./control.py run
 cd ..
+
+# TODOs
+# start disk-space watcher, which automatically increases disk space.
+
+# start cluster manager, which ensures pre-emptible nodes restart quickly.
+
