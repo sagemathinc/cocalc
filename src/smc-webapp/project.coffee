@@ -254,6 +254,7 @@ class ProjectPage
                     @actions.open_file
                         path       : segments.slice(1).join('/')
                         foreground : foreground
+                        foreground_project : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(segments.slice(1).join('/'))
                 @display_tab("project-new-file")
