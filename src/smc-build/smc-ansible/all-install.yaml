@@ -245,7 +245,7 @@
     - coinor-csdp
     - coinor-libcoinutils-dev
     - coinor-libcoinmp-dev
-    - coinor-libcbc-de
+    - coinor-libcbc-dev
     - coinor-symphony
     - coinor-libvol0
     - coinor-libvol0-dev
