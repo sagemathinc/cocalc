@@ -248,7 +248,7 @@
     - coinor-libcbc-dev
     - coinor-symphony
     - coinor-libvol0
-    - coinor-libvol0-dev
+    - coinor-libvol-dev
     - coinor-libosi-dev
     - cmake
     - csh
