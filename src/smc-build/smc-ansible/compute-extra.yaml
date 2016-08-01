@@ -558,6 +558,7 @@
     with_items:
     - octave
     - octave-biosig
+    - octave-bim
     - octave-common
     - octave-communications
     - octave-communications-common

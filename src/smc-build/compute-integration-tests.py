@@ -35,10 +35,14 @@ BINARIES = [
     'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
-    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests',
-    'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme',
-    'lilypond', 'lzma', 'make', 'markdown', 'maxima',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'gst', 'ElmerSolver',
+    'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
+    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim',
     ('obspy3-plot', 'obspy-plot'),
+    ('clp', 'Coin LP', '-help'),
+    ('cbc', 'CBC MILP Solver', '-help'),
+    ('csdb', 'CSDP', ''),
+    ('spark', 'Examiner', '-version'),
     'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
     'sbcl', 't1asm', 'xpra',
     ('echo ":quit" | scala', 'Scala', ''),
@@ -141,10 +145,16 @@ PY3_ANACONDA = PY_COMMON + [
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
 ]
 
-# This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
-R_exes = ['/usr/bin/R', 'sage -R', '$ANACONDA3/bin/R']
+# Tests for R setups and libraries
 
-R_libs = [
+# the very basic packages
+R_libs_common = [
+    'IRkernel', 'IRdisplay', 'base', 'boot', 'car', 'curl', 'data.table',
+    'ggplot2', 'httr', 'plyr', 'tools', 'survival', 'zoo', 'yaml',
+]
+
+# some extras in sage's R and the systemwide R from CRAN
+R_libs_extra = [
     'rstan', # works, but still uses a lot of memory for compiling
     'ggplot2',
     'stringr',
@@ -195,6 +205,13 @@ R_libs = [
     'survey',
     'maps'
 ]
+
+# This is the system wirde offical R from the CRAN ubuntu repos, Sage's R and Anaconda
+R_setups = {
+    '/usr/bin/R': R_libs_common + R_libs_extra,
+    'sage -R': R_libs_common + R_libs_extra,
+    '$ANACONDA3/bin/R': R_libs_common
+}
 
 # see smc-ansible/julia.yaml
 JULIA = [
@@ -282,14 +299,17 @@ def test_python_versions(exe, libdata):
     for lib, version in sorted(vers_info):
         libdata.append(('Python', exe, lib, version))
 
-@pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
+R_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in R_setups.items())
+R_TESTS = list(it.chain.from_iterable(R_PAIRS))
+
+@pytest.mark.parametrize('exe,lib', R_TESTS)
 def test_r(exe, lib):
     exe = os.path.expandvars(exe)
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
 
-@pytest.mark.parametrize('exe', R_exes)
+@pytest.mark.parametrize('exe', R_setups.keys())
 def test_r_installed(exe, libdata):
     exe = os.path.expandvars(exe)
     CMD = dedent('''

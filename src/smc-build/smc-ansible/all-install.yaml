@@ -240,6 +240,16 @@
     - clang
     - clojure1.6
     - coffeescript
+    - coinor-cbc
+    - coinor-clp
+    - coinor-csdp
+    - coinor-libcoinutils-dev
+    - coinor-libcoinmp-dev
+    - coinor-libcbc-de
+    - coinor-symphony
+    - coinor-libvol0
+    - coinor-libvol0-dev
+    - coinor-libosi-dev
     - cmake
     - csh
     - cvs
@@ -255,6 +265,7 @@
     - install
     - update
     with_items:
+    - elmer
     - emacs
     - emacs-goodies-el
     - encfs
@@ -278,6 +289,7 @@
     - glpk-doc
     - gmsh
     - gnugo
+    - gnu-smalltalk
     - golang-go
     - gpicview
     - grace
@@ -294,6 +306,7 @@
     - hdf5-helpers
     - hexcurse
     - hexer
+    - hsbrainfuck
     - htop
     - iceweasel
     - ifrench
@@ -432,6 +445,7 @@
     - ncompress
     - netcdf-bin
     - netcdf-doc
+    - nim
     - noweb
     - ocaml
     - ocaml-batteries-included
@@ -495,6 +509,7 @@
     - python3-pyro4
     - quota
     - quotatool
+    - qsopt-ex
     - racket
     - rcs
     - root-system-bin
@@ -508,6 +523,7 @@
     - smem
     - smlnj
     - software-properties-common
+    - spark
     - sparkleshare
     - spell
     - sshfs
@@ -520,6 +536,7 @@
     - tmpreaper
     - tmux
     - tree
+    - trilinos-dev
     - tuareg-mode
     - unison-all
     - unrar-free
@@ -645,6 +662,7 @@
     - python-pypdf2
     - python-pymc
     - python-pyorbital
+    - python-pyoperators
     - python-pystache
     - python-pytest
     - python-pytest-cov

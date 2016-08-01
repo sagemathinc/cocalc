@@ -34,7 +34,7 @@ def pytest_terminal_summary(terminalreporter):
 
     with open(OUT_FN + '.html', 'w') as sce:
         sce.write('<!DOCTYPE html>\n')
-        sce.write('''<html><head>
+        sce.write('''<html><head><meta charset="utf-8">
         <style>
         body {font-family: monospace; font-size: 0.85rem; width: 900px; margin: auto;}
         table {border-collapse: collapse;}
