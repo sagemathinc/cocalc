@@ -384,6 +384,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
+  ignore_errors: yes
   tags: giac
 
   tasks:
