@@ -109,7 +109,7 @@ $.fn.process_smc_links = (opts={}) ->
             y = $(x)
             href = y.attr('href')
             if href?
-                if href.indexOf(document.location.origin) == 0 and document.location.origin.indexOf('/projects/') != -1
+                if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
                     # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
                     # link directly inside this browser tab.
                     # TODO: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
