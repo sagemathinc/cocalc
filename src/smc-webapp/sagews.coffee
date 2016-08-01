@@ -622,7 +622,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         else
             toplineno = cib.start + 1
         # added topline for jupyter decorator autocompletion
-        topline = cm.getLine(toplineno + 1)
+        topline = cm.getLine(toplineno)
         line = cm.getLine(pos.line).slice(0, pos.ch)
         if pos.ch == 0 or line[pos.ch-1] in ")]}'\"\t "
             if @editor.opts.spaces_instead_of_tabs
