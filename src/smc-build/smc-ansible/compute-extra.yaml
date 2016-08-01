@@ -381,26 +381,26 @@
     - python3-kwant
 
 # GIAC (the authentication key is broken, hence we allow unauthenticated packages)
-- hosts: compute
-  become: yes
-  gather_facts: no
-  ignore_errors: yes
-  tags: giac
-
-  tasks:
-
-  - name: 'GIAC apt key -- seems to be broken, though'
-    apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
-
-  - name: 'GIAC repository'
-    apt_repository: mode=644 repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
-
-  - name: 'install GIAC'
-    apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
-    tags: update
-    with_items:
-    - giac
-    - python-giacpy
+#- hosts: compute
+#  become: yes
+#  gather_facts: no
+#  ignore_errors: yes
+#  tags: giac
+#
+#  tasks:
+#
+#  - name: 'GIAC apt key -- seems to be broken, though'
+#    apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
+#
+#  - name: 'GIAC repository'
+#    apt_repository: mode=644 repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
+#
+#  - name: 'install GIAC'
+#    apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
+#    tags: update
+#    with_items:
+#    - giac
+#    - python-giacpy
 
 # FEniCS
 # add-apt-repository ppa:fenics-packages/fenics && apt-get update && apt-get install fenics
