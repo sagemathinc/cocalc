@@ -34,6 +34,9 @@ async         = require('async')
 temp          = require('temp')    # https://www.npmjs.com/package/temp
 
 rethinkdb = require('rethinkdb')
+
+{retry_wrapper} = require('./util.coffee')
+
 conn      = undefined  # connection to rethinkdb
 DATABASE  = 'smc'
 
@@ -80,7 +83,7 @@ init_projects_changefeed = (cb) ->
                     if z[field] != x.new_val[field]
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
+                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready or changed.idle_timeout)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
@@ -178,7 +181,7 @@ write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
 
 # get changed to true when we first run reconcile_all
 _reconcile_ready = false
-reconcile = (project_id, cb) ->
+reconcile = retry_wrapper (project_id, cb) ->
     if not _reconcile_ready
         cb?()
         return
@@ -298,8 +301,6 @@ kubectl_update_project = (project_id, cb) ->
     ], (err) ->
         if err
             log "failed to update '#{project_id}': ", err
-            # Try again in a few seconds  (TODO...)
-            setTimeout((()->reconcile(project_id)), 5000)
         else
             log "updated '#{project_id}'"
         if path?
@@ -399,8 +400,6 @@ kubectl_stop_project = (project_id, cb) ->
     run "kubectl delete deployments smc-project-#{project_id}", (err) ->
         if err
             log "failed to stop '#{project_id}': ", err
-            # Try again in a few seconds  (TODO...)
-            setTimeout((()->reconcile(project_id)), 5000)
         else
             log "stopped '#{project_id}'"
         w = projects[project_id].stopping

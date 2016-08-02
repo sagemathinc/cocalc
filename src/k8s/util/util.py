@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import argparse, base64, json, os, subprocess, tempfile, time
+import argparse, base64, json, os, shutil, subprocess, tempfile, time
 
 join = os.path.join
 
@@ -634,4 +634,13 @@ def get_logs(*names, **kwds):
         v.append(str(b))
     return run(v + list(names), get_output=True, verbose=False)
 
-
+class util_coffee:
+    def __init__(self, path):
+        self.path = path
+    def __enter__(self):
+        shutil.copyfile(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'util.coffee'), os.path.join(self.path, 'util.coffee'))
+    def __exit__(self, type, value, traceback):
+        try:
+            os.unlink(os.path.join(self.path, 'util.coffee'))
+        except:
+            pass
