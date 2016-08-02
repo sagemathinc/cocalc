@@ -308,6 +308,7 @@ def introspect(code, namespace, preparse=True):
 
     An object: {'result':, 'target':, 'expr':, 'status':, 'get_help':, 'get_completions':, 'get_source':}
     """
+    import re
     # result: the docstring, source code, or list of completions (at
     # return, it might thus be either a list or a string)
     result = []
@@ -366,7 +367,8 @@ def introspect(code, namespace, preparse=True):
                 get_help = False; get_completions = True; get_source = False
                 i      = expr.rfind('.')
                 target = expr[i+1:]
-                if target == '' or is_valid_identifier(target):
+                if target == '' or is_valid_identifier(target) or '*' in expr:
+                    # this case includes list.*end<tab>
                     obj    = expr[:i]
                 else:
                     expr = guess_last_expression(target)
@@ -379,7 +381,16 @@ def introspect(code, namespace, preparse=True):
 
         if get_completions and target == expr:
             j      = len(expr)
-            v      = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+            if '*' in expr:
+                # this case includes *_factors<TAB>
+                try:
+                    pattern = expr.replace("*",".*").replace("?",".")
+                    reg = re.compile(pattern+"$")
+                    v = filter(reg.match, namespace.keys() + _builtin_completions)
+                except:
+                    pass
+            else:
+                v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
         else:
 
             # We will try to evaluate
@@ -412,7 +423,10 @@ def introspect(code, namespace, preparse=True):
                     # this code is re-written to parse using an
                     # AST, instead of using this lame hack.
                     obj = guess_last_expression(obj)
-                    O = eval(obj if not preparse else preparse_code(obj), namespace)
+                    try:
+                        O = eval(obj if not preparse else preparse_code(obj), namespace)
+                    except:
+                        pass
             finally:
                 signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
@@ -470,8 +484,16 @@ def introspect(code, namespace, preparse=True):
                         v += O.trait_names()
                     if not target.startswith('_'):
                         v = [x for x in v if x and not x.startswith('_')]
-                    j = len(target)
-                    v = [x[j:] for x in v if x.startswith(target)]
+                    if '*' in expr:
+                        try:
+                            pattern = target.replace("*",".*").replace("?",".")
+                            reg = re.compile(pattern+"$")
+                            v = filter(reg.match, v)
+                        except:
+                            pass
+                    else:
+                        j = len(target)
+                        v = [x[j:] for x in v if x.startswith(target)]
                 else:
                     v = []
 

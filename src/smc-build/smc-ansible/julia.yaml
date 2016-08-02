@@ -92,7 +92,11 @@
 
   - name: "fix ownership of site dir to be salvus"
     tags: [install, update]
-    shell: "chown -R salvus. {{ pkgdir }}"
+    shell: "chown -R salvus. {{ pkgdir }}/"
+
+  - name: "fix permissions of site dir"
+    tags: [install, update]
+    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
 
 # Nemo
 - hosts: compute
@@ -104,11 +108,11 @@
   - name: "install nemo into julia (after julia has been installed)"
     shell: |
         umask 022
-        export JULIA_PKGDIR={{ pkgdir }}
+        export JULIA_PKGDIR=/usr/local/share/julia/site/
         echo 'Pkg.init()' | julia
         echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
         echo 'Pkg.build("Nemo")' | julia
-        export LD_LIBRARY_PATH={{ pkgdir }}/v0.4/Nemo/local/lib
+        export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
         cd $LD_LIBRARY_PATH
         ln -s libarb.so.0.0.0 libarb.so
         echo 'using Nemo' | julia

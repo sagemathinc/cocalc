@@ -13,6 +13,21 @@ LICENSE: GPLv3
 NOTE: This code doesn't depend on the rest of the SMC library.
 ###
 
+{DEFAULT_QUOTAS} = require('./upgrade-spec.coffee')
+
+DEFAULTS =
+    resources   :
+        requests:
+            memory : "#{DEFAULT_QUOTAS.req_memory}Mi"
+            cpu    : "#{Math.ceil(DEFAULT_QUOTAS.req_cores*1000)}m"
+        limits:
+            memory : "#{DEFAULT_QUOTAS.memory}Mi"
+            cpu    : "#{Math.ceil(DEFAULT_QUOTAS.cores*1000)}m"
+
+    disk        : "#{DEFAULT_QUOTAS.disk_quota}m"
+
+    preemptible : not DEFAULT_QUOTAS.member_host
+
 child_process = require('child_process')
 fs            = require('fs')
 async         = require('async')
@@ -38,7 +53,7 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible']
+FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout', 'storage_ready']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
     query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
@@ -65,7 +80,7 @@ init_projects_changefeed = (cb) ->
                     if z[field] != x.new_val[field]
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size)
+                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
@@ -77,6 +92,22 @@ init_projects_changefeed = (cb) ->
             if state == 'ready' and project_id?
                 reconcile(project_id)
             return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
+
+# Periodically check for idle running projects, and if so switch
+# them from the run=true to run=false.
+idle_timeout_check = () ->
+    now = new Date()
+    for project_id, project of projects
+        if project.run and project.idle_timeout and now - project.last_edited >= project.idle_timeout * 1000*60
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(run:false).run conn, (err) ->
+                if err
+                    log "idle_timeout_check '#{project_id}' -- ERROR", err
+                else
+                    log "idle_timeout_check '#{project_id}' -- set run=false"
+
+start_idle_timeout_monitor = (cb) ->
+    setInterval(idle_timeout_check, 60*1000)
+    cb()
 
 # Maintain current status of all project deployments
 init_kubectl_watch = (cb) ->
@@ -103,16 +134,16 @@ init_kubectl_watch = (cb) ->
             reconcile(project_id)
 
     # Initialize
-    cmd "kubectl get deployments --show-labels --selector=run=smc-project", (err, output) ->
+    run "kubectl get deployments --show-labels --selector=run=smc-project", (err, output) ->
         if err
             cb?(err)
             return
         for line in output.split('\n')
             process(line)
 
-        # Now watch
+        # Now watch (NOTE: don't do --no-headers here, in case there wasn't nothing output above)
         r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
-                                            '--selector=run=smc-project', '--watch', '--no-headers'])
+                                            '--selector=run=smc-project', '--watch'])
         stdout = ''
         r.stdout.on 'data', (data) ->
             stdout += data.toString()
@@ -153,13 +184,20 @@ reconcile = (project_id, cb) ->
         return
     x = projects[project_id]
     desired = x.kubernetes_watch?.DESIRED
+    dbg = (m...) -> log("reconcile('#{project_id}')", m...)
     if x.run
-        if desired != '1'
-            log("starting because x = ", x)
+        if not x.storage_server?
+            # This will assign a storage server, which will eventually cause storage_ready to
+            # be true, allowing things to run.
+            dbg("assign storage server")
+            get_storage_server(project_id, cb)
+            return
+        if x.storage_ready and desired != '1'
+            dbg("starting because x = ", x)
             kubectl_update_project(project_id, cb)
     else
         if desired == '1'
-            log("stopping because x = ", x)
+            dbg("stopping because x = ", x)
             kubectl_stop_project(project_id, cb)
 
 reconcile_all = (cb) ->
@@ -190,7 +228,7 @@ deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible
     #log('s = ', s)
     return s
 
-cmd = (s, cb) ->
+run = (s, cb) ->
     log("running '#{s}'")
     child_process.exec s, (err, stdout, stderr) ->
         #log("output of '#{s}' -- ", stdout, stderr)
@@ -244,7 +282,7 @@ kubectl_update_project = (project_id, cb) ->
                 cb(err)
         (cb) ->
             s = "kubectl get deployments --no-headers --selector=run=smc-project,project_id=#{project_id} | wc -l"
-            cmd s, (err, num) ->
+            run s, (err, num) ->
                 if err
                     cb(err)
                 else
@@ -254,7 +292,9 @@ kubectl_update_project = (project_id, cb) ->
                         action = 'replace'
                     cb()
         (cb) ->
-            cmd("kubectl #{action} -f #{path}", cb)
+            run("kubectl #{action} -f #{path}", cb)
+        (cb) ->
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(last_edited:new Date()).run(conn, cb)
     ], (err) ->
         if err
             log "failed to update '#{project_id}': ", err
@@ -293,7 +333,7 @@ get_storage_server = (project_id, cb) ->
             # save assignment to database, so will reuse it next time.
             query = rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_server:storage_server).run(conn, cb)
     ], (err) ->
-        cb(err, storage_server)
+        cb?(err, storage_server)
     )
 
 random_choice = (array) ->
@@ -312,7 +352,7 @@ get_all_storage_servers = (cb) ->
             storage_servers_cbs.push(cb)
             return
         storage_servers_cbs = [cb]
-        cmd 'kubectl get pods --selector="storage=projects" --show-labels --no-headers', (err, output) ->
+        run 'kubectl get pods --selector="storage=projects" --show-labels --no-headers', (err, output) ->
             if err
                 w = storage_servers_cbs
                 storage_servers_cbs = undefined
@@ -332,15 +372,22 @@ get_all_storage_servers = (cb) ->
                     cb(undefined, storage_servers)
 
 get_disk_size = (project_id, cb) ->
-    cb(undefined, projects[project_id]?.disk_size ? '3G')
+    cb(undefined, projects[project_id]?.disk_size ? DEFAULTS.disk)
 
 get_resources = (project_id, cb) ->
     # TODO -- note that 200Mi really is pretty much the minimum needed to run the local hub at all!
-    resources = projects[project_id]?.resources ? {requests:{memory:"200Mi",cpu:"50m"}, limits:{memory:"1000Mi",cpu:"1000m"}}
+    resources = projects[project_id]?.resources ? DEFAULTS.resources
+    resources.requests        ?= {}
+    resources.requests.memory ?= DEFAULTS.resources.requests.memory
+    resources.requests.cpu    ?= DEFAULTS.resources.requests.cpu
+    resources.limits          ?= {}
+    resources.limits.memory   ?= DEFAULTS.resources.limits.memory
+    resources.limits.cpu      ?= DEFAULTS.resources.limits.cpu
+
     cb(undefined, resources)
 
 get_preemptible = (project_id, cb) ->
-    cb(undefined, projects[project_id]?.preemptible ? true)
+    cb(undefined, projects[project_id]?.preemptible ? DEFAULTS.preemptible)
 
 # Stop a project from running
 kubectl_stop_project = (project_id, cb) ->
@@ -349,7 +396,7 @@ kubectl_stop_project = (project_id, cb) ->
         projects[project_id].stopping.push(cb)
         return
     projects[project_id].stopping = [cb]
-    cmd "kubectl delete deployments smc-project-#{project_id}", (err) ->
+    run "kubectl delete deployments smc-project-#{project_id}", (err) ->
         if err
             log "failed to stop '#{project_id}': ", err
             # Try again in a few seconds  (TODO...)
@@ -362,8 +409,16 @@ kubectl_stop_project = (project_id, cb) ->
             cb?(err)
 
 main = () ->
-    async.series [connect_to_rethinkdb, init_projects_changefeed, init_kubectl_watch, reconcile_all], (err) ->
-        log("DONE", err)
+    async.series [connect_to_rethinkdb,
+                  init_projects_changefeed,
+                  init_kubectl_watch,
+                  reconcile_all,
+                  start_idle_timeout_monitor], (err) ->
+        if err
+            log("FAILED TO INITIALIZE! ", err)
+            process.exit(1)
+        else
+            log("SUCCESSFULLY INITIALIZED; now RUNNING")
 
 main()
 

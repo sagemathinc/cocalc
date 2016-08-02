@@ -5,7 +5,7 @@ Basic script to do a little bit toward automating creating rethinkdb cluster.
 """
 
 
-import os, shutil, sys, tempfile
+import os, shutil, sys, tempfile, time
 join = os.path.join
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
@@ -91,7 +91,16 @@ def forward_admin(args):
     forward_port(args, 8080, mesg)
 
 def forward_db(args):
-    forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+    # While loop since the port forward will fail for a little while in some cases, e.g.,
+    # if the database server is pre-empted; this is normal for testing/dev cluster.
+    while True:
+        try:
+            forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+        except KeyboardInterrupt:
+            return
+        except:
+            pass
+        time.sleep(3000)
 
 def forward_port(args, port, mesg):
     if args.number == -1:

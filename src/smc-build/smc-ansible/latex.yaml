@@ -35,6 +35,8 @@
     - texlive-latex-recommended-doc
     - texlive-latex3
     - texlive-luatex
+    - asymptote
+    - asymptote-doc
     - biber
     - chktex
     - dblatex

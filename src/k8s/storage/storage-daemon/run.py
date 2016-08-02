@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, json, os, requests, rethinkdb, shutil, signal, socket, subprocess, time
+import datetime, json, os, requests, rethinkdb, shutil, signal, socket, subprocess, sys, time
 
 HOSTS = '/node/etc/hosts'
 
@@ -10,6 +10,7 @@ POD_NAMESPACE = os.environ.get('POD_NAMESPACE', 'default')
 
 def log(*args, **kwds):
     print(time_to_timestamp(), *args, **kwds)
+    sys.stdout.flush()
 
 alarm_time=0
 def mysig(a,b):
@@ -118,7 +119,7 @@ def enable_ssh_access_to_minion():
     if os.path.exists('/root/.ssh'):
         shutil.rmtree('/root/.ssh')
     run(['ssh-keygen', '-b', '2048', '-N', '', '-f', '/root/.ssh/id_rsa'])
-    # make root user of minion allow login using this (and only this) key.
+    # make root user of minion allow login using this key.
     run('cat /root/.ssh/id_rsa.pub >> /node/root/.ssh/authorized_keys')
     open("/root/.ssh/config",'w').write("StrictHostKeyChecking no\nUserKnownHostsFile=/dev/null\n")
     # record hostname of minion

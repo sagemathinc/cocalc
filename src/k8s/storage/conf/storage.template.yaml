@@ -31,27 +31,75 @@ spec:
           instance : "{number}"
     spec:
       containers:
-      - image: "{image}"
+
+      - image: "{image}-ssh"
         imagePullPolicy: {pull_policy}
-        name: storage{number}
-        securityContext:
+        name: ssh
+        securityContext:  # needed for ssh ports (?)
           privileged: true
-        terminationMessagePath: /dev/termination-log
         volumeMounts:
         - mountPath: /data
           name: data
         - mountPath: /ssh
           name: storage-ssh
+        resources:
+          requests:
+            memory: "70Mi"
+            cpu: "200m"
+          limits:
+            memory: "300Mi"
+            cpu: "1000m"
+
+      - image: "{image}-backup"
+        imagePullPolicy: {pull_policy}
+        name: backup
+        volumeMounts:
+        - mountPath: /data
+          name: data
         - mountPath: /secrets/rethinkdb/
           name: secret-rethinkdb
           readOnly: true
+        - mountPath: /secrets/gcloud/
+          name: secret-gcloud-config
+          readOnly: true
+        env:
+          - name: STORAGE_SERVER
+            value: "{number}"
+          - name: GCLOUD_BUCKET
+            value: "{gcloud_bucket}"
         resources:
           requests:
             memory: "100Mi"
-            cpu: "40m"
+            cpu: "20m"
           limits:
-            memory: "1000Mi"
+            memory: "500Mi"
             cpu: "500m"
+
+      - image: "{image}-open"
+        imagePullPolicy: {pull_policy}
+        name: open
+        env:
+          - name: STORAGE_SERVER
+            value: "{number}"
+          - name: GCLOUD_BUCKET
+            value: "{gcloud_bucket}"
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /secrets/rethinkdb/
+          name: secret-rethinkdb
+          readOnly: true
+        - mountPath: /secrets/gcloud/   # to use gsutil
+          name: secret-gcloud-config
+          readOnly: true
+        resources:
+          requests:
+            memory: "200Mi"
+            cpu: "100m"
+          limits:
+            memory: "500Mi"
+            cpu: "1000m"
+
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
@@ -66,4 +114,7 @@ spec:
       - name: secret-rethinkdb
         secret:
           secretName: rethinkdb-password
+      - name: secret-gcloud-config
+        secret:
+          secretName: gcloud-config
 

@@ -9,20 +9,26 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='storage'
+NAME     = 'storage'
+SERVICES = os.listdir(os.path.join(SCRIPT_PATH, 'images'))
+
+def full_tag(tag, service):
+    return "{tag}-{service}".format(service=service, tag=tag)
 
 def build(tag, rebuild):
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
-    util.run(v, path=join(SCRIPT_PATH, 'image'))
+    for service in SERVICES:
+        v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
+        if rebuild:
+            v.append("--no-cache")
+        v.append('.')
+        util.run(v, path=join(SCRIPT_PATH, 'images', service))
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
     if not args.local:
-        util.gcloud_docker_push(tag)
+        for service in SERVICES:
+            util.gcloud_docker_push(full_tag(tag, service))
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -39,8 +45,24 @@ def get_persistent_disks(context, namespace):
     name = pd_name(context=context, namespace=namespace)
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
+# The bucket name.
+# We distinguish it based on the project and namespace, but NOT on the cluster!
+# The reason is because when upgrading or switching production, we often
+# swap out the entire cluster name (e.g., 'main' to 'main2') without
+# changing the namespace.
+def gcloud_bucket(namespace):
+    bucket = "{proj}-k8s-bup-{namespace}".format(
+        proj      = util.get_default_gcloud_project_name(),
+        namespace = namespace)
+    url = 'gs://{bucket}'.format(bucket=bucket)
+    if url+'/' not in util.run(['gsutil', 'ls'], get_output=True).splitlines():
+        # create the bucket
+        util.run(['gsutil', 'mb', '-l', 'us-central1', url])
+    return bucket
+
 def run_on_kubernetes(args):
-    context = util.get_cluster_prefix()
+    create_gcloud_secret()
+    context   = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
@@ -48,7 +70,11 @@ def run_on_kubernetes(args):
     if 'storage-projects' not in util.get_services():
         util.run(['kubectl', 'create', '-f', 'conf/service.yaml'])
     args.local = False # so tag is for gcloud
+
     tag = util.get_tag(args, NAME, build)
+    if not args.tag:
+        tag = tag[:tag.rfind('-')]   # get rid of the final -[service] part of the tag.
+
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
 
     ensure_ssh()
@@ -56,11 +82,12 @@ def run_on_kubernetes(args):
         deployment_name = "{name}{number}".format(name=NAME, number=number)
         ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image        = tag,
-                               number       = number,
-                               pd_name      = pd_name(context=context, namespace=namespace, number=number),
-                               health_delay = args.health_delay,
-                               pull_policy  = util.pull_policy(args)))
+            tmp.write(t.format(image         = tag,
+                               number        = number,
+                               gcloud_bucket = gcloud_bucket(namespace=namespace),
+                               pd_name       = pd_name(context=context, namespace=namespace, number=number),
+                               health_delay  = args.health_delay,
+                               pull_policy   = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
 
@@ -108,6 +135,18 @@ def ensure_ssh():
         with tempfile.TemporaryDirectory() as tmp:
             util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
             util.create_secret('storage-ssh', tmp)
+
+SECRET_NAME = 'gcloud-config'
+
+def create_gcloud_secret():
+    if SECRET_NAME not in util.get_secrets():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = join(tmp, 'gcloud.tar')
+            util.run("tar cvf %s --exclude gcloud/logs gcloud"%target, path=os.path.join(os.environ['HOME'], '.config'))
+            util.create_secret(SECRET_NAME, tmp)
+
+def delete_kubectl_secret():
+    util.delete_secret(SECRET_NAME)
 
 if __name__ == '__main__':
     import argparse

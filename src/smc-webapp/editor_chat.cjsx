@@ -183,8 +183,8 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
-    #set_edited_input: (edited_input) =>
-    #    @setState(edited_input:edited_input)
+    saved_message: (saved_mesg) =>
+        @setState(saved_mesg:saved_mesg)
 
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
@@ -247,6 +247,7 @@ Message = rclass
         history        : rtypes.array
         history_author : rtypes.array
         account_id     : rtypes.string.isRequired
+        date           : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
         user_map       : rtypes.object
@@ -260,8 +261,8 @@ Message = rclass
         actions        : rtypes.object
         show_heads     : rtypes.bool
         focus_end      : rtypes.func
-        #edited_input   : rtypes.string
-        #edit_func      : rtypes.func
+        saved_mesg     : rtypes.string
+        close_input    : rtypes.func
 
     getInitialState: ->
         edited_message  : @newest_content()
@@ -292,29 +293,17 @@ Message = rclass
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
                @props.editor_name != next.editor_name or
+               @props.saved_mesg != next.saved_mesg or
                @state.edited_message != next_state.edited_message or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
-    #componentWillUpdate: ->
-    #    console.log('component will update is called')
-    #componentDidMount: ->
-        #console.log(@props.edited_input)
-        #@props.action.set_edited_input('')
+    componentDidMount: ->
+        if @refs.editedMessage
+            @setState(edited_message:@props.saved_mesg)
 
-    #componentDidUpdate: ->
-     #   console.log(@props.edited_input)
-    #    @props.actions.set_edited_input('this changed from a test')
-    #    console.log(@props.edited_input)
-        #if @refs.editedMessage?
-            #console.log(@props.edited_input)
-            #@props.action.set_edited_input('testing')
-            #if @state.edited_message == @refs.editedMessage.getValue()
-                #console.log('component did update is called', @state.edited_message)
-                #@setState(edited_message: @refs.editedMessage.getValue())
-                #console.log('component did update after call', @state.edited_message)
-
-    #componentWillUnmount: () ->
-    #    @props.actions.set_editing(@props.message, false)
+    componentDidUpdate: ->
+        if @refs.editedMessage
+            @props.actions.saved_message(@refs.editedMessage.getValue())
 
     newest_content: ->
         @props.message.get('history').peek()?.get('content') ? ''
@@ -381,13 +370,22 @@ Message = rclass
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        <div className="pull-left small" style={color:color}>
-            {text}
-        </div>
+        if not @is_editing() and other_editors.size == 0 and @newest_content() != ''
+            edit = "Last edit "
+            name = " by #{@props.editor_name}"
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {edit}
+                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                {name}
+            </div>
+        else
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {text}
+            </div>
 
     edit_message: ->
-        #@props.actions.set_edited_input(@props.message.get('history').peek()?.get('content') ? '')
         @props.actions.set_editing(@props.message, true)
+        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown : (e) ->
         if e.keyCode==27 # ESC
@@ -573,11 +571,10 @@ ChatLog = rclass
         actions      : rtypes.object
         show_heads   : rtypes.bool
         focus_end    : rtypes.func
-        #edit_func    : rtypes.func
-        #edited_input : rtypes.string
+        saved_mesg   : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
+        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id or @props.saved_mesg != next.saved_mesg
 
     get_user_name: (account_id) ->
         account = @props.user_map?.get(account_id)
@@ -585,6 +582,16 @@ ChatLog = rclass
             account_name = account.get('first_name') + ' ' + account.get('last_name')
         else
             account_name = "Unknown"
+
+    close_edit_inputs: (current_message_date, id, saved_message) ->
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        for date in sorted_dates
+            historyContent = @props.messages.get(date).get('history').peek()?.get('content') ? ''
+            if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
+                if historyContent != saved_message
+                    @props.actions.send_edit(@props.messages.get(date), saved_message)
+                else
+                    @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
@@ -620,6 +627,7 @@ ChatLog = rclass
                      history_author   = {a}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
+                     date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
                      font_size        = {@props.font_size}
@@ -632,6 +640,8 @@ ChatLog = rclass
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
                      focus_end        = {@props.focus_end}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
                     />
 
         return v
@@ -651,7 +661,7 @@ ChatRoom = (name) -> rclass
             saved_position : rtypes.number
             height         : rtypes.number
             offset         : rtypes.number
-            #edited_input   : rtypes.string
+            saved_mesg     : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -915,6 +925,7 @@ ChatRoom = (name) -> rclass
                                 font_size    = {@props.font_size}
                                 file_path    = {if @props.path? then misc.path_split(@props.path).head}
                                 actions      = {@props.actions}
+                                saved_mesg   = {@props.saved_mesg}
                                 show_heads   = true />
                             {@render_preview_message() if @props.input.length > 0 and @state.is_preview_on}
                         </Panel>

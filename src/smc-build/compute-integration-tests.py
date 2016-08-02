@@ -31,12 +31,34 @@ def run(cmd, expected_status = 0):
 # 3. optional command line params (default: --version)
 # 4. optional status code, because sometimes --version gives retcode of 1
 # Hint: to get a list of executables, run $ bash -c 'compgen -c | sort | less'
-, 'aspell',
+BINARIES = [
+    'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
-    'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips',
-    'ruby', 'erb', 'flex', 'm4', 'fish',
-    'htop', 'h5dump', 'inkscape', 'libreoffice',
-    'lilypond', 'lzma', 'make', 'markdown',
+    'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
+    'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
+    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim',
+    ('gst', 'gnu smalltalk'),
+    ('obspy3-plot', 'obspy-plot'),
+    ('clp', 'Coin LP', '-help'),
+    ('cbc', 'CBC MILP Solver', '-help'),
+    ('csdp', 'CSDP', ''),
+    ('spark', 'Examiner', '-version'),
+    'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
+    'sbcl', 't1asm', 'xpra',
+    ('echo ":quit" | scala', 'Scala', ''),
+    ('Rscript', 'r scripting front-end'),
+    ('npm', '.'),
+    ('mc', 'gnu midnight commander'),
+    ('nodejs', 'v'),
+    ('py.test', 'pytest'),
+    ('4ti2-zsolve', '4ti2'),
+    ('tmux', None, '-V'),
+    ('sml', None, '@SMLversion'),
+    ('synctex', None, 'help'),
+    ('scilab-cli', 'scilab', '-version', 1),
+    ('singular', None, '--version /dev/null'),
+    ('echo "quit;" | gap', 'gap', ''),
     ('feynmf', None, None, 255),
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
@@ -44,7 +66,6 @@ def run(cmd, expected_status = 0):
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),
-    ('hg', 'mercurial'),
     ('yacc', 'bison'),
     ('lua', None, '-v'),
     ('lneato', None, '-V', 1),
@@ -74,7 +95,7 @@ def run(cmd, expected_status = 0):
     ('pdflatex', 'pdfTeX 3.14'),
     ('python2', 'python 2.7'),
     ('python3', 'python 3'),
-    ('/ext/anaconda/bin/python', 'python 3'),
+    ('$ANACONDA3/bin/python', 'python 3'),
     ('xelatex', 'xetex'),
     ('axiom', 'AXIOMsys', '-h'),
     ('open-axiom', 'OpenAxiom 1'),
@@ -85,8 +106,9 @@ def run(cmd, expected_status = 0):
     ('clang', 'clang version 3'),
 ]
 
+# python libs that are installed everywhere
 PY_COMMON = [
-    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'plotly',
+    'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
@@ -102,36 +124,38 @@ PY2 = PY_COMMON + [
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
-    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano', 'seaborn',
+    'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
     'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
 ]
 
+# python libs in sagemath
 PY_SAGE = PY_COMMON + [
-    'sage' # there is no sage.__version__ ???
+    'sage', # there is no sage.__version__ ???
     # 'numba', # would be cool to have numba in sagemath
     'mahotas', 'patsy', 'statsmodels', 'cvxpy',
     'clawpack', # no canonical version info
-    'mercurial', 'projlib', 'netcdf4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
+    'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
 ]
 
+# and in anaconda
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'snappy', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
 ]
 
-# these don't have a version info, so just check if they can be imported
-# they still need to be listed in the applicable areas to test above!
-PY_NOVERS = [
-    'wordcloud', 'lxml', 'descartes', 'clawpack', 'sage',
+# Tests for R setups and libraries
+
+# the very basic packages
+R_libs_common = [
+    'IRkernel', 'IRdisplay', 'base', 'boot', 'car', 'curl', 'data.table',
+    'ggplot2', 'httr', 'plyr', 'tools', 'survival', 'zoo', 'yaml',
 ]
 
-# This is the system wirde offical R from the CRAN ubuntu repos and Sage's R
-R_exes = ['/usr/bin/R', 'sage -R']
-
-R_libs = [
+# some extras in sage's R and the systemwide R from CRAN
+R_libs_extra = [
     'rstan', # works, but still uses a lot of memory for compiling
     'ggplot2',
     'stringr',
@@ -161,7 +185,7 @@ R_libs = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # doesn't exist for Sage's older 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -182,6 +206,13 @@ R_libs = [
     'survey',
     'maps'
 ]
+
+# This is the system wirde offical R from the CRAN ubuntu repos, Sage's R and Anaconda
+R_setups = {
+    '/usr/bin/R': R_libs_common + R_libs_extra,
+    'sage -R': R_libs_common + R_libs_extra,
+    '$ANACONDA3/bin/R': R_libs_common
+}
 
 # see smc-ansible/julia.yaml
 JULIA = [
@@ -223,67 +254,86 @@ def test_binaries(bin, bindata):
         token = bin[1] if (len(bin) >= 2 and bin[1] is not None) else bin[0].lower()
         args = bin[2] if (len(bin) >= 3 and bin[2] is not None) else '--version'
         status = bin[3] if len(bin) >= 4 else 0
+    cmd = os.path.expandvars(cmd)
     out = run('{cmd} {args}'.format(**locals()), status)
     assert token.lower() in out.lower()
     # when successful, add info to bindata fixture with full path
+    # cmd might be 'echo foo | cmd bar -', hence this
+    if '|' in cmd:
+        cmd = cmd.rsplit('|', 1)[-1].strip().split()[0]
     bindata.append([shutil.which(cmd), out])
 
 # testing python libs: test iterates over pairings of executable path and list of packages
-PY_EXES = ['python2', 'python3', 'sage -python', '/ext/anaconda/bin/python']
+PY_EXES = ['python2', 'python3', 'sage -python', '$ANACONDA3/bin/python']
 PY_LIBS = [PY2, PY3, PY_SAGE, PY3_ANACONDA]
 PY_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in zip(PY_EXES, PY_LIBS))
 PY_TESTS = list(it.chain.from_iterable(PY_PAIRS))
 
 @pytest.mark.parametrize("exe,lib", PY_TESTS)
 def test_python(exe, lib, libdata):
+    exe = os.path.expandvars(exe)
     CMD = dedent('''\
     {exe} -c "from __future__ import print_function
     from types import ModuleType
     import {lib}
-    print({lib})''')
-    novers = lib in PY_NOVERS
-    if not novers:
-                    CMD += dedent('''
-           """
-    Listing, which julia packages are installed. This needs to be run as root,
-    since it updates the git repo (?) of the metadata in the site/v0.X directory.
-    However, via sudo, the env variable for the global julia directory is not set.
-    """
-    jcmd = 'for (k, v) in Pkg.installed(); println(k, "=>", v); end'
-    jenv = 'sudo JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
-    vers_data = run('''echo '{jcmd}' | {jenv}'''.format(**locals()))
-    vers_info = [line.split('=>') for v in ['__version__', '__VERSION__']:
-        if hasattr({lib}, v):
-            vers = getattr({lib}, v)
-            if type(vers) == ModuleType:
-                    print(vers.version)
-            else:
-                    print(vers)
-            break
-    else:
-        print({lib}.version())
-        ''')
-    CMD += '"'
+    print({lib})"''')
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    vers_info = 'NA' if novers else 
-    libdata.append(('Pythoes()[-1]vers_info))
 
-@pytest.mark.parametrize('exe,lib', it.product(R_exes, set(R_libs)))
-def test_r(exe, lib, libdata):
+@pytest.mark.parametrize("exe", PY_EXES)
+def test_python_versions(exe, libdata):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "from __future__ import print_function
+    import pkg_resources
+    mod_names = set(dist.project_name for dist in __import__('pkg_resources').working_set)
+    for name in sorted(mod_names):
+        try:
+            v = pkg_resources.get_distribution(name).version
+        except:
+            v = "ok"
+        print(name + ':::' + v)
+    "''')
+    vers_data = run(CMD.format(**locals()))
+    vers_data = [line for line in vers_data.splitlines() if ':::' in line]
+    vers_info = [line.split(':::') for line in vers_data]
+    for lib, version in sorted(vers_info):
+        libdata.append(('Python', exe, lib, version))
+
+R_PAIRS = (zip(it.repeat(exe), set(lib)) for exe, lib in R_setups.items())
+R_TESTS = list(it.chain.from_iterable(R_PAIRS))
+
+@pytest.mark.parametrize('exe,lib', R_TESTS)
+def test_r(exe, lib):
+    exe = os.path.expandvars(exe)
     CMD = '''echo 'require("{lib}"); packageVersion("{lib}")' | {exe} --vanilla --silent'''
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
-    version = out.split('\n')[-2]
-    if version.startswith('[1]'):
-        libdata.append(('R', exe, lib, version[5:-1]))
-    else:
-        print("no version info: %s" % version)
+
+@pytest.mark.parametrize('exe', R_setups.keys())
+def test_r_installed(exe, libdata):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    vers <- installed.packages()[,c("Package", "Version")]
+    apply(vers, 1, function(x) { cat(x["Package"], ":::", x["Version"], "\n", sep="") })
+    ''')
+    vers_data = run('''echo '{CMD}' | {exe} --vanilla --silent'''.format(**locals()))
+    # filter input and useless other output
+    vers_data = [line for line in vers_data.splitlines() if ':::' in line][1:]
+    vers_info = [line.split(':::') for line in vers_data]
+    # sometimes, the same lib appears several times
+    names = set()
+    for lib, version in sorted(vers_info):
+        if lib in names:
+            continue
+        else:
+            names.add(lib)
+            libdata.append(('R', exe, lib, version))
 
 # julia package manager functions: http://docs.julialang.org/en/release-0.4/stdlib/pkg/
 @pytest.mark.parametrize("lib", JULIA)
 def test_julia(lib):
-    CMD = '''echo 'using {lib}; Pkg.installed("{lib}")' | julia'''
+    CMD = '''echo 'using {lib}; Pkg.status("{lib}")' | julia'''
     out = run(CMD.format(**locals()))
     assert lib.lower() in out.lower()
 
@@ -293,10 +343,9 @@ def test_julia_installed(libdata):
     since it updates the git repo (?) of the metadata in the site/v0.X directory.
     Therefore, all files in the the global julia directory need to be owned by salvus.
     """
-    jcmd = 'for (k, v) in Pkg.installed(); println(k, "=>", v); end'
-    jenv = 'JULIA_PKGDIR=/usr/local/share/julia/site/ julia'
- cho '{jcmd}' | {jenv}'''.format(**locals()))
-    vers_info = [line.split('=>') for line in vers_data.splitlines()]
+    jcmd = 'for (k, v) in Pkg.installed(); println(k, ":::", v); end'
+    vers_data = run('''echo '{jcmd}' | julia'''.format(**locals()))
+    vers_info = [line.split(':::') for line in vers_data.splitlines()]
     for lib, vers in sorted(vers_info):
         libdata.append(('Julia', 'julia', lib, vers))
 
@@ -379,6 +428,14 @@ def test_openmp(tmpdir):
     v = run("./openmp")
     assert float(v.split()[-1]) < 1.
     print(v)
+
+
+# TODO numexpr
+
+# TODO scipy
+
+# TODO pandas
+
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar

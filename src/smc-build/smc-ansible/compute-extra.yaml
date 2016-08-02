@@ -51,6 +51,7 @@
     - pandas-profiling
     - wordcloud
     - cobra
+    - vpython
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -98,6 +99,7 @@
     - cobra
     #- ncpol2sdpa # should work, but strange 'UnicodeDecodeError: 'ascii' codec can't decode byte ...' on install
     - gensim
+    - vpython
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -384,6 +386,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
+  ignore_errors: yes
   tags: giac
 
   tasks:
@@ -558,6 +561,7 @@
     with_items:
     - octave
     - octave-biosig
+    - octave-bim
     - octave-common
     - octave-communications
     - octave-communications-common

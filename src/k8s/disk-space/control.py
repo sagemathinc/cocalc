@@ -6,37 +6,17 @@ join = os.path.join
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SCRIPT_PATH)
-sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', '..', 'util')))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='storage-daemon'
-
-def create_install_path():
-    """
-    Create install-tmp/, which contains files that will get
-    installed into the k8s host node when the daemon starts.
-    """
-    remove_install_path()
-    os.makedirs("install-tmp")
-    shutil.copyfile("../driver/smc-storage.py", 'install-tmp/smc-storage')
-    shutil.copymode("../driver/smc-storage.py", 'install-tmp/smc-storage')
-    util.run(['git', 'clone', 'https://github.com/sagemathinc/gke-zfs'], path=join(SCRIPT_PATH, 'install-tmp'))
-
-def remove_install_path():
-    if os.path.exists("install-tmp"):
-        shutil.rmtree("install-tmp")
+NAME='disk-space'
 
 def build(tag, rebuild):
-    try:
-        create_install_path()
-
-        v = ['sudo', 'docker', 'build', '-t', tag]
-        if rebuild:  # will cause a git pull to happen
-            v.append("--no-cache")
-        v.append('.')
-        util.run(v, path=SCRIPT_PATH)
-    finally:
-        remove_install_path()
+    v = ['sudo', 'docker', 'build', '-t', tag]
+    if rebuild:  # will cause a git pull to happen
+        v.append("--no-cache")
+    v.append('.')
+    util.run(v, path=SCRIPT_PATH)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
@@ -51,13 +31,11 @@ def run_on_kubernetes(args):
     context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     tag = util.get_tag(args, NAME, build)
-    # ensure there is a rethinkdb secret, even if blank, so that daemon will start with reduced functionality
-    util.ensure_secret_exists('rethinkdb-password', 'rethinkdb')
-    t = open('storage-daemon.yaml').read()
+    t = open('daemon.yaml').read()
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image        = tag,
-                           namespace    = util.get_current_namespace(),
-                           pull_policy  = util.pull_policy(args)))
+        tmp.write(t.format(image       = tag,
+                           namespace   = util.get_current_namespace(),
+                           pull_policy = util.pull_policy(args)))
         tmp.flush()
         util.update_daemonset(tmp.name)
 
@@ -79,7 +57,6 @@ if __name__ == '__main__':
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.set_defaults(func=run_on_kubernetes)
 
-
     sub = subparsers.add_parser('delete', help='delete daemonset')
     sub.set_defaults(func=delete)
 
@@ -89,7 +66,7 @@ if __name__ == '__main__':
     util.add_htop_parser(NAME, subparsers,   custom_selector=selector)
     util.add_logs_parser(NAME, subparsers)
     util.add_images_parser(NAME, subparsers)
-    util.add_edit_parser(NAME, subparsers)
+    util.add_edit_parser(NAME, subparsers, 'daemonsets')
 
 
     args = parser.parse_args()

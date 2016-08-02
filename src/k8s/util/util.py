@@ -191,8 +191,13 @@ def update_deployment(filename_yaml):
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
     import yaml
-    name = yaml.load(open(filename_yaml).read())['metadata']['name']
-    run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    content = open(filename_yaml).read()
+    name = yaml.load(content)['metadata']['name']
+    try:
+        run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    except:
+        print(content)
+        raise
 
 def stop_deployment(name):
     if name in get_deployments():
@@ -235,7 +240,7 @@ def get_tag(args, name, build=None):
     tag = name
     if args.tag:
         tag += ':' + args.tag
-    elif not args.local:
+    elif not hasattr(args, 'local') or not args.local:
         t = gcloud_most_recent_image(name)
         if t is None:
             from argparse import Namespace
@@ -248,7 +253,7 @@ def get_tag(args, name, build=None):
             return tag
         else:
             return t
-    if not args.local:
+    if not hasattr(args, 'local') or not args.local:
         tag = gcloud_docker_repo(tag)
     return tag
 
@@ -473,10 +478,10 @@ def add_htop_parser(name, subparsers, custom_selector=None, default_container=''
     add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
                     default_container=default_container)
 
-def add_edit_parser(name, subparsers, **ignored):
+def add_edit_parser(name, subparsers, cls='deployment', **ignored):
     def f(args):
-        run(['kubectl', 'edit', 'deployment', name])
-    sub = subparsers.add_parser('edit', help='edit the deployment')
+        run(['kubectl', 'edit', cls, name])
+    sub = subparsers.add_parser('edit', help='edit the %s'%cls)
     sub.set_defaults(func=f)
 
 def add_autoscale_parser(name, subparsers, **ignored):

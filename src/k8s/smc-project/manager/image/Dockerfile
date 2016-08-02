@@ -35,6 +35,7 @@ ENV NODE_PATH=/node_modules
 
 # Copy over other scripts
 COPY run.coffee /run.coffee
+COPY upgrade-spec.coffee /upgrade-spec.coffee
 
 # Copy in template
 COPY smc-project.template.yaml /smc-project.template.yaml

@@ -282,6 +282,9 @@ SAGE_PIP_PACKAGES = [
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     'wordcloud', # https://github.com/amueller/word_cloud
     'cobra', # https://cobrapy.readthedocs.io/en/stable/
+    'python-libsbml', # dependency of cobra
+    'markdown',
+    'vpython', # http://vpython.org/ used in physics
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -291,7 +294,8 @@ SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'datasift'
+    'datasift',
+    'vpnotebook', # http://vpython.org/ used in physics
 ]
 
 
@@ -324,7 +328,7 @@ R_PACKAGES = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # not available for 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -833,7 +837,7 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        GDAL_VERSION       = '2.1.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
