@@ -316,7 +316,7 @@ Message = rclass
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        if not @is_editing() and other_editors.size == 0
+        if not @is_editing() and other_editors.size == 0 and @newest_content() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
             <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
