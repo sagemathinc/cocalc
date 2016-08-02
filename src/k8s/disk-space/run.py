@@ -8,6 +8,10 @@ MAX_ALLOWED_PERCENT = 95
 # Enlarge disk by this percent
 ENLARGE_BY_PERCENT  = 10
 
+# Enlarge root partition by this amount if it runs nearly out.  We enlarge by more,
+# since a reboot is required, which is potentially very disruptive.
+ROOT_ENLARGE_BY_PERCENT = 50
+
 # How long to sleep before each check of usage
 SLEEP_M = 5
 
@@ -21,11 +25,10 @@ def run(cmd):
     log(cmd)
     child = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash')
     output = child.stdout.read().decode()
-    output += child.stderr.read().decode()
     log("output", output)
     if child.wait():
         log("error runing ", cmd)
-        raise RuntimeError(output)
+        raise RuntimeError(output + child.stderr.read().decode())
     log("done runing ", cmd)
     return output
 
@@ -66,31 +69,39 @@ def run_on_minion(v, *args, **kwds):
 def df():
     headers = None   # Filesystem     1K-blocks  Used Available Use% Mounted on
     data = []
-    try:
-        for x in run_on_minion("df --type=ext4 /var/lib/kubelet/plugins/kubernetes.io/gce-pd/mounts/*").splitlines():
-            if headers is None:
-                headers = x.split()[:-1]
+    def process(x):
+        if len(x) == 0 or not x.startswith('/'):
+            return
+        info = dict(zip(headers, x.split()))
+        if info['Filesystem'] != '/dev/sda1':  # we always include /dev/sda1
+            last = info['Filesystem'][-1]
+            if last >= '0' and last <= '9':
+                # device name ends in number, so no full disk ext4, so auto-expand not supported
+                return
+        data.append(info)
+
+    for path in ['/', '/var/lib/kubelet/plugins/kubernetes.io/gce-pd/mounts/*']:
+        try:
+            for x in run_on_minion("df --type=ext4 {path}".format(path=path)).splitlines():
+                if headers is None:
+                    headers = x.split()[:-1]
+                else:
+                    process(x)
+        except Exception as err:
+            if 'such file or directory' in str(err):
+                # df errors when there are no filesystems mounted at all -- that's fine.
+                continue
             else:
-                if len(x) == 0 or not x.startswith('/'):
-                    continue
-                info = dict(zip(headers, x.split()))
-                last = info['Filesystem'][-1]
-                if last >= '0' and last <= '9':
-                    # device name ends in number, so no full disk ext4, so auto-expand not supported
-                    continue
-                data.append(info)
-        return data
-    except Exception as err:
-        if 'such file or directory' in str(err):
-            # df errors when there are no filesystems mounted at all -- that's fine.
-            return []
-        raise
+                raise
+    return data
 
 def check_disk_space(data):
     for info in data:
         percent_used = int(info['Use%'].strip('%'))
         if percent_used > MAX_ALLOWED_PERCENT:
             disk   = os.path.split(info['Mounted'])[-1]
+            if not disk: # root filesystem
+                disk = run_on_minion('hostname').strip()
             device = info['Filesystem']
             enlarge_disk(disk, device)
 
@@ -104,7 +115,10 @@ def enlarge_disk(disk, device):
     size_gb = int(v[2])
     zone    = v[1]
     log("current_size", size_gb)
-    new_size_gb = math.ceil(size_gb * (1 + ENLARGE_BY_PERCENT/100.0))
+    if device == '/dev/sda1':
+        new_size_gb =  math.ceil(size_gb * (1 + ROOT_ENLARGE_BY_PERCENT/100.0))
+    else:
+        new_size_gb = math.ceil(size_gb * (1 + ENLARGE_BY_PERCENT/100.0))
     if new_size_gb <= size_gb:  # impossible... but be defensive
         new_size_gb = size_gb + 1
     log("resize persistent disk to", new_size_gb)
@@ -112,9 +126,15 @@ def enlarge_disk(disk, device):
             disk=disk, new_size_gb=new_size_gb, zone=zone))
     # resize is simple since our PD volumes use the full disk as ext4 (no partitions to worry about)
     log("resize filesystem")
-    run_on_minion("resize2fs {device}".format(device=device))
-    # VERY scary thought -- if resize2fs fails, then df will report disk as too full still,
-    # causing resize to happen again, etc., thus quickly WASTING terabytes of space!
+    if device == '/dev/sda1':
+        # k8s mininion node -- here the only solution is to reboot, unfortunately, (maybe)
+        # since the / partition is on /dev/sda1 instead of /dev/sda.  In any case, this is what
+        # we have to do. It's better than running out of disk space.
+        run_on_minion("reboot")
+    else:
+        run_on_minion("resize2fs {device}".format(device=device))
+        # VERY scary thought -- if resize2fs fails, then df will report disk as too full still,
+        # causing resize to happen again, etc., thus quickly WASTING terabytes of space!
 
 if __name__ == "__main__":
     run_on_minion("gcloud --quiet components update")
