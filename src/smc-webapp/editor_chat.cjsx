@@ -446,7 +446,7 @@ Message = rclass
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date)
+        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -489,7 +489,7 @@ ChatLog = rclass
         saved_mesg   : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
+        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id or @props.saved_mesg != next.saved_mesg
 
     get_user_name: (account_id) ->
         account = @props.user_map?.get(account_id)
@@ -498,11 +498,15 @@ ChatLog = rclass
         else
             account_name = "Unknown"
 
-    close_edit_inputs: (current_message_date) ->
+    close_edit_inputs: (current_message_date, id, saved_message) ->
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         for date in sorted_dates
-            if date != current_message_date
-                @props.actions.send_edit(@props.messages.get(date), @props.saved_mesg)
+            historyContent = @props.messages.get(date).get('history').peek()?.get('content') ? ''
+            if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
+                if historyContent != saved_message
+                    @props.actions.send_edit(@props.messages.get(date), saved_message)
+                else
+                    @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
