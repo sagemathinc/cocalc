@@ -502,7 +502,7 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         for date in sorted_dates
             if date != current_message_date
-                @props.actions.set_editing(@props.messages.get(date), false)
+                @props.actions.send_edit(@props.messages.get(date), @props.saved_mesg)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
