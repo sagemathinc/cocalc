@@ -35,13 +35,14 @@ BINARIES = [
     'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
-    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'gst', 'ElmerSolver',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim',
+    ('gst', 'gnu smalltalk'),
     ('obspy3-plot', 'obspy-plot'),
     ('clp', 'Coin LP', '-help'),
     ('cbc', 'CBC MILP Solver', '-help'),
-    ('csdb', 'CSDP', ''),
+    ('csdp', 'CSDP', ''),
     ('spark', 'Examiner', '-version'),
     'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
     'sbcl', 't1asm', 'xpra',
@@ -427,6 +428,14 @@ def test_openmp(tmpdir):
     v = run("./openmp")
     assert float(v.split()[-1]) < 1.
     print(v)
+
+
+# TODO numexpr
+
+# TODO scipy
+
+# TODO pandas
+
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar
