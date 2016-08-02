@@ -63,6 +63,8 @@ spec:
           name: secret-gcloud-config
           readOnly: true
         env:
+          - name: STORAGE_SERVER
+            value: "{number}"
           - name: GCLOUD_BUCKET
             value: "{gcloud_bucket}"
         resources:

@@ -6,7 +6,10 @@ GCLOUD_BUCKET = os.environ['GCLOUD_BUCKET']
 
 # Every project with changes (=a snapshot was made of the zpool)
 # has a new bup backup of itself made every this many hours:
-BUP_SAVE_INTERVAL_H = 6
+BUP_SAVE_INTERVAL_H = 12
+
+# Any preemptible project not edited this long gets archived to Google cloud storage.
+ARCHIVE_TIMEOUT_H = 24*7
 
 # NOTE/TODO: there is some duplication of code between here and storage-daemon/run.py.
 
@@ -15,6 +18,9 @@ def log(*args, **kwds):
     sys.stdout.flush()
 
 DATA = '/data' # mount point of data volume
+
+# Which server this backup service represents
+STORAGE_SERVER = int(os.environ['STORAGE_SERVER'])
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
 
@@ -60,15 +66,21 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=True):
         if path != '.':
             os.chdir(cur)
 
-def event_loop():
-    log('event_loop')
-    last_bup_save_all = 0
+def main_loop():
+    log('main_loop')
+    last_bup_save_all = last_archive_all = 0
     while True:
-        # Every 5 minutes, call bup_save_all to make bup backups of all projects that have
+        # Perioidically call bup_save_all to make bup backups of all projects that have
         # changes that haven't been backed up for at least BUP_SAVE_INTERVAL_H hours.
         if time.time() - last_bup_save_all >= 60*5:
             bup_save_all(BUP_SAVE_INTERVAL_H)
             last_bup_save_all = time.time()
+
+        # Perioidically call bup_archive_all to archive projects that are stored, are
+        # preemptible, and have not been edited in ARCHIVE_TIMEOUT_H hours.
+        if time.time() - last_archive_all >= 60*15:
+            archive_all(ARCHIVE_TIMEOUT_H, only_preemptible=True)
+            last_archive_all = time.time()
 
         log('waiting 30s...')
         time.sleep(30)
@@ -110,7 +122,7 @@ def rethinkdb_connection():
 def path_to_project(project_id):
     return os.path.join(DATA, 'projects', project_id) + '.zfs'
 
-def bup_save_all(age_h):
+def bup_save_all(age_h=BUP_SAVE_INTERVAL_H):
     """
     Make a bup snapshot of every project that has had a snapshot but no backup
     for at least age_h hours.
@@ -215,6 +227,50 @@ def archive(project_id):
         except:
             pass
 
+def archive_all(age_h=ARCHIVE_TIMEOUT_H, only_preemptible=True):
+    """
+    Archive all projects on this host that are pre-emptible and haven't
+    been edited in age_h hours.
+    Make a bup snapshot of every project that has had a snapshot but no backup
+    for at least age_h hours.
+    """
+    def dbg(*m):
+        log("archive_all(%s)"%age_h, *m)
+    dbg()
+    conn = rethinkdb_connection()
+    # Query for projects that are on this storage server, are preemptible, are NOT running,
+    # and have not been edited for a while.
+    query = rethinkdb.db('smc').table('projects').get_all(STORAGE_SERVER, index='storage_server').filter({'run':False})
+    if only_preemptible:
+        query = query.filter({'preemptible':True})
+    if age_h:
+        cutoff = time.time() - age_h*60*60
+        query = query.filter(rethinkdb.row["last_edited"] <= rethinkdb.epoch_time(cutoff))
+    query = query.pluck('project_id')
+    v = list(query.run(conn))
+    dbg("queried database and found %s projects to archive"%v)
+    for x in v:
+        project_id = x['project_id']
+        try:
+            archive(project_id)
+            dbg("archive_all -- successfully archived", project_id)
+        except Exception as err:
+            # TODO: we need this to get seen by a human!
+            dbg("archive_all - ERROR", project_id, err)
+
+def archive_every_project():
+    """
+    Archive every single project on this storage server that isn't actively running.
+    Use this if you want to decommision this storage node completely.
+
+    To use this, you have to bash into the container, start the python3 command
+    prompt and do:
+
+    import run
+    run.archive_every_project()
+    """
+    archive_all(age_h=0, only_preemptible=False)
+
 def setup():
     gcloud = "/root/.config/"
     if not os.path.exists(gcloud):
@@ -223,7 +279,7 @@ def setup():
 
 def main():
     setup()
-    event_loop()
+    main_loop()
 
 if __name__ == "__main__":
     main()

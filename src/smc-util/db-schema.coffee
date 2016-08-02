@@ -593,6 +593,7 @@ schema.projects =
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
         run                       : [] # so can easily tell which projects should be running
+        storage_server            : [] # so can easily get projects on a particular storage server
         seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
         created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
