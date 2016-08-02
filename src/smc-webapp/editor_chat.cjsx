@@ -499,12 +499,9 @@ ChatLog = rclass
             account_name = "Unknown"
 
     close_edit_inputs: (current_message_date) ->
-        console.log("current message date", current_message_date)
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         for date in sorted_dates
-            console.log("date", date)
             if date != current_message_date
-                console.log("called")
                 @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
