@@ -162,6 +162,9 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
+    saved_message: (saved_mesg) =>
+        @setState(saved_mesg:saved_mesg)
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
@@ -220,6 +223,7 @@ Message = rclass
     propTypes:
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
+        date           : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
         user_map       : rtypes.object
@@ -232,6 +236,8 @@ Message = rclass
         is_next_sender : rtypes.bool
         actions        : rtypes.object
         show_heads     : rtypes.bool
+        saved_mesg     : rtypes.string
+        close_input    : rtypes.func
 
     getInitialState: ->
         edited_message  : @newest_content()
@@ -255,11 +261,17 @@ Message = rclass
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
                @props.editor_name != next.editor_name or
+               @props.saved_mesg != next.saved_mesg or
                @state.edited_message != next_state.edited_message or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
-    #componentWillUnmount: () ->
-    #    @props.actions.set_editing(@props.message, false)
+    componentDidMount: ->
+        if @refs.editedMessage
+            @setState(edited_message:@props.saved_mesg)
+
+    componentDidUpdate: ->
+        if @refs.editedMessage
+            @props.actions.saved_message(@refs.editedMessage.getValue())
 
     newest_content: ->
         @props.message.get('history').peek()?.get('content') ? ''
@@ -304,7 +316,7 @@ Message = rclass
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        if not @is_editing() and other_editors.size == 0
+        if not @is_editing() and other_editors.size == 0 and @newest_content() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
             <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
@@ -434,6 +446,7 @@ Message = rclass
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
+        @props.close_input(@props.date)
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -473,6 +486,7 @@ ChatLog = rclass
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
+        saved_mesg   : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -483,6 +497,12 @@ ChatLog = rclass
             account_name = account.get('first_name') + ' ' + account.get('last_name')
         else
             account_name = "Unknown"
+
+    close_edit_inputs: (current_message_date) ->
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        for date in sorted_dates
+            if date != current_message_date
+                @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
@@ -509,6 +529,7 @@ ChatLog = rclass
                      account_id       = {@props.account_id}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
+                     date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
                      font_size        = {@props.font_size}
@@ -520,6 +541,8 @@ ChatLog = rclass
                      sender_name      = {sender_name}
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
                     />
 
         return v
@@ -539,6 +562,7 @@ ChatRoom = (name) -> rclass
             saved_position : rtypes.number
             height         : rtypes.number
             offset         : rtypes.number
+            saved_mesg     : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -708,6 +732,7 @@ ChatRoom = (name) -> rclass
                                 font_size    = {@props.font_size}
                                 file_path    = {if @props.path? then misc.path_split(@props.path).head}
                                 actions      = {@props.actions}
+                                saved_mesg   = {@props.saved_mesg}
                                 show_heads   = true />
                         </Panel>
                     </Col>
