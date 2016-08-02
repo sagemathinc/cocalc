@@ -16,7 +16,7 @@ LOCK_TIME_S = 120
 HOSTNAME = socket.gethostname()
 
 def LOG(*args):
-    open("/tmp/a",'a').write(str(args)+'\n')
+    open("/var/log/smc-storage.log",'a').write(str(args)+'\n')
 
 LOG('argsv', sys.argv)
 
