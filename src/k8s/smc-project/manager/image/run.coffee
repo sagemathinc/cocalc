@@ -83,7 +83,7 @@ init_projects_changefeed = (cb) ->
                     if z[field] != x.new_val[field]
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready or changed.idle_timeout)
+                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
@@ -159,10 +159,12 @@ init_kubectl_watch = (cb) ->
                 process(line)
 
         r.on 'exit', (code) ->
-            throw "kubectl terminated -- #{code}"
+            log("kubectl terminated normally", code)
+            throw "kubectl terminated (code=#{code})"
 
         r.on 'error', (err) ->
-            throw "kubectl subprocess error -- #{err}"
+            log("kubectl subprocess error", err)
+            throw "kubectl subprocess error (err=#{err})"
 
         cb?()
 
@@ -420,11 +422,3 @@ main = () ->
             log("SUCCESSFULLY INITIALIZED; now RUNNING")
 
 main()
-
-# For debugging/dev
-exports.main = main
-exports.connect_to_rethinkdb = connect_to_rethinkdb
-exports.init_kubectl_watch = init_kubectl_watch
-exports.init_projects_changefeed = init_projects_changefeed
-exports.projects = projects
-exports.get_all_storage_servers = get_all_storage_servers
