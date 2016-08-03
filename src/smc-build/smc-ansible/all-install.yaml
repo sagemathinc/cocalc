@@ -514,6 +514,8 @@
     - rcs
     - root-system-bin
     - ruby-dev
+    - rustc
+    - cargo # rust packaging
     - samtools
     - sbcl
     - scala

@@ -186,7 +186,6 @@ SAGE_PIP_PACKAGES = [
     'ncpol2sdpa',
     'hdbscan',
     'openpyxl',
-    'pymc',
     'xlrd',
     'xlwt',
     'pyproj',
@@ -199,6 +198,7 @@ SAGE_PIP_PACKAGES = [
     'munkres',
     'oct2py',
     'psutil',
+    # 'pymc', # pymc v2 doesn't work due to too old numpy api. pymc3 below does work, though.
     'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',

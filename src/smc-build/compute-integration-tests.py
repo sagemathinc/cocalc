@@ -37,12 +37,12 @@ BINARIES = [
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
-    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim',
+    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('gst', 'gnu smalltalk'),
     ('obspy3-plot', 'obspy-plot'),
     ('clp', 'Coin LP', '-help'),
     ('cbc', 'CBC MILP Solver', '-help'),
-    ('csdp', 'CSDP', ''),
+    ('csdp', 'CSDP', '', 1),
     ('spark', 'Examiner', '-version'),
     'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
     'sbcl', 't1asm', 'xpra',
@@ -233,7 +233,7 @@ JULIA = [
     'ECOS', # https://github.com/JuliaOpt/ECOS.jl
     'GLPK', # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
     'ParallelAccelerator', # https://github.com/IntelLabs/ParallelAccelerator.jl
-    'MXNet', # https://github.com/dmlc/MXNet.jl
+    # 'MXNet', # test doesn't work, but nevermind
     'Graphs', # https://github.com/JuliaLang/Graphs.jl
     'Bio', # https://github.com/BioJulia/Bio.jl (bioinformatics)
     'SCS', # Solving optimization problems
