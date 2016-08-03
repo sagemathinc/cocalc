@@ -35,7 +35,7 @@ BINARIES = [
     'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
-    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver', 'M2',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('gst', 'gnu smalltalk'),
