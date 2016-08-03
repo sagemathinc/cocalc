@@ -136,7 +136,8 @@ PY_SAGE = PY_COMMON + [
     'clawpack', # no canonical version info
     'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
-    'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
+    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim',
+    # 'pymc', # doesn't compile, pymc3 works
 ]
 
 # and in anaconda
