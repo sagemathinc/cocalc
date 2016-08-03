@@ -35,7 +35,7 @@ BINARIES = [
     'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
-    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver', 'M2',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('gst', 'gnu smalltalk'),
@@ -136,7 +136,8 @@ PY_SAGE = PY_COMMON + [
     'clawpack', # no canonical version info
     'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
-    'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
+    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim',
+    # 'pymc', # doesn't compile, pymc3 works
 ]
 
 # and in anaconda
