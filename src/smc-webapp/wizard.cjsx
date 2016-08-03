@@ -25,12 +25,14 @@
 # {"code": "...", "lang" : "..."} via a given callback.
 #
 # Usage:
-# w = new Wizard({"cb" : callback, ["lang" : "initial language"]})
-# w.hide()                     -- temporarily hide dialog (also via close/X button)
-# w.show({<like constructor>}) -- show dialog again (same state!) and if
-#                                 language given, a selection of it is triggered
-# w.destroy()                  -- invokes the dialog destruction, should be called when
-#                                 the originating object is destroyed.
+# w = render_wizard(target, project_id, filename, lang = mode, cb = cb)
+#     * target: jquery dom object, where react is put into
+#     * project_id and filename to make state in redux unique
+#     * lang is the mode (sage, r, python, ...)
+#     * cb: the handler that's used for inserting the selected document
+# API (implemented in WizardActions)
+# w.show([lang=lang]) -- show dialog again (same state!) and if
+#                        language given, a selection of it is triggered
 
 _ = require("underscore")
 {defaults, required, optional} = require('smc-util/misc')

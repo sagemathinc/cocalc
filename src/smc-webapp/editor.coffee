@@ -63,8 +63,6 @@ require('./console')
 syncdoc = require('./syncdoc')
 sagews  = require('./sagews')
 
-{Wizard} = require('./wizard')
-
 top_navbar =  $(".salvus-top_navbar")
 
 codemirror_associations =
@@ -2357,10 +2355,6 @@ class CodeMirrorEditor extends FileEditor
             @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
             @wizard.show(lang = @_current_mode)
-        #if not @wizard?
-        #    @wizard = new Wizard(cb : @wizard_insert_handler, lang : @_current_mode)
-        #else
-        #    @wizard.show(lang : @_current_mode)
 
     wizard_insert_handler: (insert) =>
         code = insert.code
