@@ -156,10 +156,30 @@ class WizardActions extends Actions
         @set
             hits: hits
 
-    search_selected: (lvl1, lvl2, lvl3, idx) ->
+    search_selected: (idx) ->
+        [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
         doc = @data_lang().getIn([lvl1, lvl2, lvl3])
         @show_doc(doc)
         @set(search_sel : idx)
+
+    search_cursor : (dir) ->
+        # searching and then cursor-selecting search results
+        # dir: +1 → downward / -1 → upward
+        if not @get('hits')?
+            return
+        l = @get('hits').size
+        if not @get('search_sel')?
+            if dir > 0
+                new_sel = 0
+            else
+                new_sel = l - 1
+        else
+            l = @get('hits').size
+            new_sel = (@get('search_sel') + dir) % l
+            if new_sel < 0
+                new_sel = l - 1
+        @set(search_sel : new_sel)
+        @search_selected(new_sel)
 
     show_doc: (doc) ->
         @set
@@ -175,7 +195,8 @@ class WizardActions extends Actions
             return 1 - i
         return ord(a) - ord(b) or a > b
 
-    cursor : (dir) ->
+
+    select_cursor : (dir) ->
         # dir: only 1 or -1!
         # +1 → downward, higher idx number, first in list
         # -1 → upwards, lower index, last in list
@@ -197,14 +218,16 @@ class WizardActions extends Actions
         else if not cat2?
             catlist2 = @get_catlist2()
             if catlist2?.length > 0
-                idx = if dir > 0 then 0 else catlist2.length - 1
-                @set_selected_category(2, idx)
+                @set_selected_category(2, top_or_bottom(catlist2))
         else # cat0 1 and 2 are defined (i.e. we have a selection)
             l0 = @get('catlist0').size
             l1 = @get('catlist1').size
             l2 = @get('catlist2').size
             cat2_next = cat2 + dir
 
+            # the next two blocks take care of carry in cat 2 and 1
+            # trick: to accomodate for lists of varying length, an index
+            # of -1 is fine -- see @set_selected_category
             if cat2_next < 0
                 cat1_next = cat1 - 1
             else if cat2_next >= l2
@@ -217,11 +240,11 @@ class WizardActions extends Actions
                 cat1_next = 0
                 cat0_next = cat0 + 1
 
-            cat0_next = (cat0_next) % l0
-            if cat0_next < 0
-                cat0_next = l0 - 1
-
             if cat0_next?
+                # wrap cat0 around (no curry)
+                cat0_next = (cat0_next) % l0
+                if cat0_next < 0
+                    cat0_next = l0 - 1
                 @set_selected_category(0, cat0_next)
             if cat1_next?
                 @set_selected_category(1, cat1_next)
@@ -267,12 +290,33 @@ WizardHeader = rclass
         nav_entries : rtypes.array
         search_str  : rtypes.string
         lang        : rtypes.string.isRequired
+
     langSelect: (key) ->
         @props.actions.select_lang(key)
+
     search: (evt) ->
         evt.preventDefault()
         evt.stopPropagation()
         @props.actions.search(evt.target.value)
+
+    handle_search_keyup : (evt) ->
+        if not @props.search_str?.length
+            return true
+        switch evt.keyCode
+            when 27 # ESC
+                @props.actions.search('')
+            when 38
+                @props.actions.search_cursor(-1)
+            when 40
+                @props.actions.search_cursor(+1)
+            else
+                # let them propagate up to the dialog's key handler
+                return true
+        evt.preventDefault() # which
+        evt.stopPropagation() # does
+        evt.nativeEvent.stopImmediatePropagation() # what ?!
+        return false
+
     render_nav : ->
         entries = @props.nav_entries
         entries ?= []
@@ -282,6 +326,7 @@ WizardHeader = rclass
                     <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
             }
         </Nav>
+
     render : ->
         <Row>
             <Col sm={3}><h2><Icon name='magic' /> Wizard</h2></Col>
@@ -294,6 +339,7 @@ WizardHeader = rclass
                        className='smc-wizard-search'
                        placeholder='Search'
                        value={@props.search_str}
+                       onKeyUp={@handle_search_keyup}
                        onChange={@search}  />
             </Col>
         </Row>
@@ -320,11 +366,13 @@ WizardBody = rclass
         @scrollTo0 = _.debounce (() -> $(@refs.list_0).find('.active').scrollintoview()), 50
         @scrollTo1 = _.debounce (() -> $(@refs.list_1).find('.active').scrollintoview()), 50
         @scrollTo2 = _.debounce (() -> $(@refs.list_2).find('.active').scrollintoview()), 50
+        @scrollToS = _.debounce (() -> $(@refs.search_results_list).find('.active').scrollintoview()), 50
 
     componentDidUpdate: (props, state) ->
         @scrollTo0()
         @scrollTo1()
         @scrollTo2()
+        @scrollToS()
 
     category_selection: (level, idx) ->
         @props.actions.set_selected_category(level, idx)
@@ -343,15 +391,15 @@ WizardBody = rclass
             }
         </ul>
 
-    search_result_selection: (lvl1, lvl2, lvl3, idx) ->
-        @props.actions.search_selected(lvl1, lvl2, lvl3, idx)
+    search_result_selection: (idx) ->
+        @props.actions.search_selected(idx)
 
     render_search_results : ->
         ss = @props.search_str
-        <ul className='list-group' ref="search_results">
+        <ul className='list-group' ref='search_results_list'>
             {@props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
-                click = @search_result_selection.bind(@, lvl1, lvl2, lvl3, idx)
+                click = @search_result_selection.bind(@, idx)
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
                 if inDescr != -1
                     i = Math.max(0, inDescr-30)
@@ -445,26 +493,32 @@ RWizard = (name) -> rclass
         @props.actions.insert(@props.cb)
         @close()
 
-    handle_key : (evt) ->
+    handle_dialog_keyup : (evt) ->
         evt.preventDefault() # which
         evt.stopPropagation() # does
         evt.nativeEvent.stopImmediatePropagation() # what ?!
-        key = evt.keyCode
-        if key not in [13, 38, 40, 37, 39]
-            return
-        switch key
+        search_mode = @props.search_str?.length > 0
+        switch evt.keyCode
             when 13 #return
                 if @props.submittable
                     @submit()
+            when 27 # ESC
+                if search_mode
+                    @props.actions.search('')
             when 38 # up
-                @props.actions.cursor(-1)
+                dir = -1
             when 40 # down
-                @props.actions.cursor(1)
+                dir = +1
+        if dir?
+            if search_mode
+                @props.actions.search_cursor(dir)
+            else
+                @props.actions.select_cursor(dir)
         return false
 
     render : ->
         <Modal show={@props.show}
-               onKeyUp={@handle_key}
+               onKeyUp={@handle_dialog_keyup}
                onHide={@close}
                bsSize="large"
                className="smc-wizard">
@@ -506,314 +560,3 @@ exports.render_wizard = (target, project_id, path, lang = 'sage', cb = null) ->
     W = RWizard(name)
     ReactDOM.render(<Redux redux={redux}><W cb={cb} actions={actions}/></Redux>, target)
     return actions
-
-# old wizard code
-wizard_template = $(".smc-wizard")
-class Wizard
-    constructor: (opts) ->
-        @opts = defaults opts,
-            lang  : 'sage'
-            cb    : optional # this callback will be called to return the selected code
-
-        @dialog = wizard_template.clone()
-
-        # the elements
-        @nav      = @dialog.find ".smc-wizard-nav"
-        @search   = @dialog.find ".smc-wizard-search"
-        @lvl1     = @dialog.find ".smc-wizard-lvl1"
-        @lvl2     = @dialog.find ".smc-wizard-lvl2"
-        @docs     = @dialog.find ".smc-wizard-doc"
-        @code     = @dialog.find ".smc-wizard-code"
-        @descr    = @dialog.find ".smc-wizard-descr > div.panel-body"
-
-        # the state
-        @lang     = undefined
-        @cat1     = undefined
-        @cat2     = undefined
-        @title    = undefined
-        @doc      = undefined
-
-        # took me 2 hours to figure out how to properly set an instance method as _.debounce
-        # but it works perfectly now! keep the arrow down key pressed and see the difference.
-        @scrollintoview_lvl1 = _.debounce ((t) -> t.scrollintoview()), 50
-        @scrollintoview_lvl2 = _.debounce ((t) -> t.scrollintoview()), 50
-        @scrollintoview_docs = _.debounce ((t) -> t.scrollintoview()), 50
-
-        @init()
-
-    init: () =>
-        @dialog.modal('show')
-        cb = () =>
-            @init_nav()
-            @init_buttons()
-            @show(@opts)
-
-        if data?
-            cb()
-        else
-            @nav.append($("<li><a href='#'>Loading Data ...</a></li>"))
-            require.ensure [], =>
-                data = require('wizard/wizard.json')
-                cb()
-            #$.ajax # TODO use some of those clever retry-functions
-            #    url: require("!file!../static/wizard/wizard.js")
-            #    dataType: "json"
-            #    error: (jqXHR, textStatus, errorThrown) =>
-            #        console.log "AJAX Error: #{textStatus}"
-            #    success: (payload, textStatus, jqXHR) =>
-            #        # console.log "Successful AJAX call: #{data}"
-            #        data = payload
-            #        cb()
-
-    init_nav: () ->
-        # <li role="presentation"><a href="#sage">Sage</a></li>
-        @nav.empty()
-        nav_entries = [
-            ["sage", "Sage"],
-            ["python", "Python"],
-            ["r", "R"],
-            ["gap", "GAP"],
-            ["cython", "Cython"]]
-        for entry, idx in nav_entries when data[entry[0]]? && _.keys(data[entry[0]]).length > 0
-            nav_pill = $("<li role='presentation'><a href='##{entry[0]}'>#{entry[1]}</a></li>")
-            @nav.append(nav_pill)
-
-    init_buttons: () ->
-        @dialog.find(".btn-close").on "click", =>
-            @hide()
-            return false
-
-        @dialog.find(".btn-submit").on "click", =>
-            @submit()
-            return false
-
-        # open all anchor links starting with "http" in a new window
-        @dialog.on "click", "a[href^=http]", (evt) =>
-            evt.preventDefault()
-            window.open(evt.target.href)
-            return false
-
-        @nav.on "click", "li", (evt) =>
-            pill = $(evt.target)
-            @select_nav(pill)
-            @do_search()
-            return false
-
-        @search.on "keyup", (evt) =>
-            evt.stopPropagation()
-            @do_search()
-
-        @lvl1.on "click", "li", (evt) =>
-            # .closest("li") because of the badge
-            el = $(evt.target).closest("li")
-            @select_lvl1(el)
-            return false
-
-        @lvl2.on "click", "li", (evt) =>
-            el = $(evt.target).closest("li")
-            @select_lvl2(el)
-            return false
-
-        @docs.on "click", "li", (evt) =>
-            el = $(evt.target)
-            @select_doc(el)
-            return false
-
-        @dialog.on "keydown", (evt) =>
-            # 38: up,   40: down  /  74: j-key, 75: k-key
-            # 37: left, 39: right /  72: h-key, 76: l-key
-            # jQuery's prev/next need a check for length to see, if there is an element
-            # necessary, since it is an unevaluated jquery object?
-            key = evt.which
-            active = @docs.find(".active")
-            if not active? || key not in [13, 38, 40, 37, 39]
-                return
-            evt.preventDefault()
-            evt.stopPropagation()
-            if key == 13 # return
-                @submit()
-
-            # this handles the up/down operations. The idea is, to be able to iterate throug all docs
-            # for a given language. That's why there is this nested if. It handles the carry-overs at
-            # the start or end of the list by advancing the next higher level. Most of the code is for corner cases.
-            else if key in [38, 40] # up or down
-                if key in [38] # up
-                    dirop = "prev"
-                    carryop = "last"
-
-                else if key in [40] # down
-                    dirop = "next"
-                    carryop = "first"
-
-                new_doc = active[dirop]()
-                if new_doc.length == 0
-                    # we have to switch one step #{dirop} in the lvl2 category
-                    lvl2_active = @lvl2.find(".active")
-                    new_lvl2 = lvl2_active[dirop]()
-                    if new_lvl2.length == 0
-                        lvl1_active = @lvl1.find(".active")
-                        # now, we also have to step #{dirop} in the highest lvl1 category
-                        new_lvl1 = lvl1_active[dirop]()
-                        if new_lvl1.length == 0
-                            new_lvl1 = @lvl1.children()[carryop]()
-                        @select_lvl1(new_lvl1)
-                        new_lvl2 = @lvl2.children()[carryop]()
-                    @select_lvl2(new_lvl2)
-                    new_doc = @docs.children()[carryop]()
-                @select_doc(new_doc)
-
-            else # left or right
-                if key in [37] # left
-                    new_pill = @nav.find(".active").prev()
-                    if new_pill.length == 0
-                        new_pill = @nav.children().last()
-                else if key in [39] # right
-                    new_pill = @nav.find(".active").next()
-                    if new_pill.length == 0
-                        new_pill = @nav.children().first()
-                @select_nav(new_pill.children(0))
-
-    show: (opts) ->
-        # the opposite of @hide, used to resurrect the dialog in its current state
-        # the @init invokes the initial @dialog.modal("show"), don't get confused!
-        console.log "wizard.show opts=", opts
-        old_lang = @opts.lang
-        @opts = defaults opts,
-            lang  : @opts.lang
-            cb    : @opts.cb
-        console.log "wizard @opts =", @opts
-        @dialog.show()
-        if not @lang? || old_lang != @opts.lang
-            @select_lang(@opts.lang)
-
-    hide: () ->
-        # this is deliberately not destroying the instance
-        @dialog.hide()
-
-    destroy: () ->
-        # this is the destructive operation, which unbinds all the event handling etc.
-        @dialog.modal("hide")
-
-    submit: () ->
-        @hide()
-        if @opts.cb? && @doc?
-            @opts.cb(code: @doc[0], lang: @lang, descr: @doc[1])
-
-    set_active: (list, which) ->
-        list.find("li").removeClass("active")
-        which.addClass("active")
-
-    select_lang: (lang) ->
-        # crude way to go from a lang-string to the <a> element
-        pill = @nav.find("a[href=##{lang}]")
-        if pill?
-            @select_nav(pill)
-
-    select_nav: (pill) ->
-        # pill is the clicked <a> in the @nav
-        @set_active(@nav, pill.parent())
-        lang = pill.attr("href").substring(1)
-        if not lang? || lang.length == 0
-            return
-        @lang = lang
-        @lvl2.empty()
-        @docs.empty()
-        @fill_list(@lvl1, data[@lang])
-
-    select_lvl1: (t) ->
-        # the major category has been clicked
-        @set_active(@lvl1, t)
-        @cat1 = t.attr("data")
-        # console.log("lvl1: #{select1}")
-        @docs.empty()
-        @fill_list(@lvl2, data[@lang][@cat1])
-        @scrollintoview_lvl1(t)
-
-    select_lvl2: (t) ->
-        # the minor category has been clicked
-        @set_active(@lvl2, t)
-        @cat2 = t.attr("data")
-        # console.log("lvl2: #{select2}")
-        @fill_list(@docs, data[@lang][@cat1][@cat2])
-        @scrollintoview_lvl2(t)
-
-    select_doc: (t) ->
-        # the document title on the right has been clicked
-        @set_active(@docs, t)
-        @title = title = t.attr("data")
-        @cat1 = t.attr("lvl1") || @cat1
-        @cat2 = t.attr("lvl2") || @cat2
-        @doc = _.find(data[@lang][@cat1][@cat2], (doc) -> doc[0] == title)[1]
-        @code.text(@doc[0])
-        content = markdown.markdown_to_html(@doc[1]).s
-        if @doc[2] # by-attribution
-            attr = markdown.markdown_to_html("&copy; " + @doc[2]).s
-            content += "<div class='attr'>#{attr}</div>"
-        @descr.html(content)
-        @descr.mathjax()
-        @scrollintoview_docs(t)
-
-    _list_sort: (a, b) ->
-        # ordering operator, such that some entries are in front
-        ord = (el) -> switch el
-            when "Intro"    then -3
-            when "Tutorial" then -2
-            when "Help"     then -1
-            else 0
-        return ord(a) - ord(b) || a > b
-
-    fill_list: (list, entries) ->
-        # the three lists are the levels in the tree of documents. they change dynamically.
-        # there is also a mutually recursive logic, to expand sublevels iff there is just one entry (saves stupid clicks)
-        # fill_list call -> calls select_lvl1/2 -> which in turn calls fill_list again.
-        # <li class="list-group-item active"><span class="badge">3</span>...</li>
-        list.empty()
-        if entries?
-            if list == @docs
-                for entry in entries
-                    key = entry[0]
-                    list.append($("<li class='list-group-item' data='#{key}'>#{key}</li>"))
-
-            else
-                keys = _.keys(entries).sort(@_list_sort)
-                for key in keys
-                    subdocs = entries[key]
-                    nb = _.keys(subdocs).length
-                    list.append($("<li class='list-group-item' data='#{key}'><span class='badge'>#{nb}</span>#{key}</li>"))
-
-                if keys.length == 1
-                    key = keys[0]
-                    entries2 = entries[key]
-                    if list == @lvl1
-                        @select_lvl1(@lvl1.find("[data=#{key}]"))
-                    if list == @lvl2
-                        @select_lvl2(@lvl2.find("[data=#{key}]"))
-
-    do_search: () ->
-        search_str = @search.val()
-        if not search_str? || search_str.length == 0
-            @lvl1.show()
-            @lvl2.show()
-            @docs.empty()
-            return
-
-        @lvl1.hide()
-        @lvl2.hide()
-        @docs.empty()
-
-        str = search_str.toLowerCase()
-        hits = 0
-        for lvl1, data1 of data[@lang]
-            for lvl2, data2 of data1
-                for entry in data2
-                    title = entry[0]
-                    descr = entry[1][1]
-                    if title.toLowerCase().indexOf(str) != -1 || descr.toLowerCase().indexOf(str) != -1
-                        title_hl = title.replace(new RegExp(str, "gi"), "<span class='hl'>#{search_str}</span>")
-                        @docs.append($("<li class='list-group-item' lvl1='#{lvl1}' lvl2='#{lvl2}' data='#{title}'>#{title_hl}</li>"))
-                        hits += 1
-                        if hits > 10
-                            return
-
-
-exports.Wizard = Wizard
