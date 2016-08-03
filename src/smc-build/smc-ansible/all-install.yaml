@@ -163,6 +163,9 @@
     - libreadline-dev
     - libsqlite3-dev
     - libssl-dev
+    - libsbml5
+    - libsbml5-dev
+    - libsbml5-python
     - lsof
     - m4
     - make
@@ -184,7 +187,6 @@
     - wget
     - xfsprogs
     - zlib1g-dev
-    - asymptote
     - pdf2svg
     - phantomjs
 
@@ -213,6 +215,8 @@
     - install
     - update
     with_items:
+    - 4ti2
+    - 4ti2-doc
     - asciidoc
     - attr
     - autoconf
@@ -235,6 +239,17 @@
     - checkinstall
     - clang
     - clojure1.6
+    - coffeescript
+    - coinor-cbc
+    - coinor-clp
+    - coinor-csdp
+    - coinor-libcoinutils-dev
+    - coinor-libcoinmp-dev
+    - coinor-libcbc-dev
+    - coinor-symphony
+    - coinor-libvol0
+    - coinor-libvol-dev
+    - coinor-libosi-dev
     - cmake
     - csh
     - cvs
@@ -250,6 +265,7 @@
     - install
     - update
     with_items:
+    - elmer
     - emacs
     - emacs-goodies-el
     - encfs
@@ -273,6 +289,7 @@
     - glpk-doc
     - gmsh
     - gnugo
+    - gnu-smalltalk
     - golang-go
     - gpicview
     - grace
@@ -289,6 +306,7 @@
     - hdf5-helpers
     - hexcurse
     - hexer
+    - hsbrainfuck
     - htop
     - iceweasel
     - ifrench
@@ -296,6 +314,7 @@
     - ingerman
     - inkscape
     - iotop
+    - ipython
     - ipython3
     - irssi
     - ispanish
@@ -421,10 +440,12 @@
     - mono-tools-devel
     - mosh
     - mysql-client
+    - nano
     - ncbi-blast+
     - ncompress
     - netcdf-bin
     - netcdf-doc
+    - nim
     - noweb
     - ocaml
     - ocaml-batteries-included
@@ -447,6 +468,7 @@
     - proofgeneral-doc
     - protobuf-compiler
     - pv
+    - pyro
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -487,18 +509,23 @@
     - python3-pyro4
     - quota
     - quotatool
+    - qsopt-ex
     - racket
     - rcs
     - root-system-bin
     - ruby-dev
+    - rustc
+    - cargo # rust packaging
     - samtools
     - sbcl
+    - scala
     - scilab
     - scons
     - sloccount
     - smem
     - smlnj
     - software-properties-common
+    - spark
     - sparkleshare
     - spell
     - sshfs
@@ -511,6 +538,7 @@
     - tmpreaper
     - tmux
     - tree
+    - trilinos-dev
     - tuareg-mode
     - unison-all
     - unrar-free
@@ -636,11 +664,13 @@
     - python-pypdf2
     - python-pymc
     - python-pyorbital
+    - python-pyoperators
     - python-pystache
     - python-pytest
     - python-pytest-cov
     - python-pytest-timeout
     - python-pytest-mock
+    - python-pytest-xdist
     - python-regex
     - python-requests-cache
     - python-requests-toolbelt

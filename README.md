@@ -11,7 +11,7 @@
 ## Development/install
 
    * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `cd src`
+   * `cd smc/src`
    * `npm run install-all` -- build
    * `npm test` -- run test suite
    * `install.py all --compute --web` -- build and install some parts system-wide for development use
@@ -19,14 +19,24 @@
 
 ## Contributors
 
-   * William Stein, SageMath Inc and University of Washington -- founder; coding and design
-   * Harald Schilly, Vienna, Austria -- marketing, QA, coding
+### Active contributors
+
+   * William Stein, SageMath Inc and University of Washington -- founder; everything
+   * Harald Schilly, Vienna, Austria -- everything
+   * Tim Clemans -- fontend work
+   * John Jeng -- frontend work
+   * Hal Snyder -- backend Python-related work
+   * Simon Luu -- frontend work (chat)
+   * Todd Zimmerman -- screencasts
+   * Greg Bard -- updating the FAQ; documentation
+
+### Past contributors
+
    * Jon Lee, University of Washington -- frontend work, history viewer
    * Rob Beezer, University of Puget Sound -- design, maintenance
    * Nicholas Ruhland, University of Washington -- frontend work, tab reordering and resizing
    * Keith Clawson -- hardware/infrastructure
    * Andy Huchala, University of Washington -- frontend work, bug finding
-   * Tim Clemans -- fontend work
 
 ## Copyright/License
 

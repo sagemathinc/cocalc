@@ -10,12 +10,16 @@ ENV += -e SMC_PROJECT_ID=${PROJECT_ID}
 
 RUN = docker run -it ${VOL} ${ENV} "${TAG}"
 
-PHONY += build rebuild run clean tag prod
+PHONY += build run root bash
 
 run:
 	@echo "running image with tag ${TAG} and project id ${PROJECT_ID}"
 	$(RUN)
 
-bash:
+root:
 	@echo "running image with tag ${TAG} and project id ${PROJECT_ID}"
 	$(RUN) bash
+
+bash:
+	@echo "running image with tag ${TAG} and project id ${PROJECT_ID}"
+	$(RUN) /run.py bash

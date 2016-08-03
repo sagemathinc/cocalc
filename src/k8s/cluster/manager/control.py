@@ -100,7 +100,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
-    sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('delete', help='kill the deployment')
     sub.set_defaults(func=delete)
 
-    util.add_deployment_parsers(NAME, subparsers)
+    util.add_deployment_parsers(NAME, subparsers, exclude='autoscale')
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

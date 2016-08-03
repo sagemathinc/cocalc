@@ -20,7 +20,39 @@
 ###############################################################################
 
 ###
-Chat
+Chat message JSON format:
+
+sender_id : String which is the original message sender's account id
+event     : Can only be "chat" right now.
+date      : A date string
+history   : Array of "History" objects (described below)
+editing   : Object of <account id's> : <"TODO">
+
+"TODO" Will likely contain their last edit in the future
+
+ --- History object ---
+author_id : String which is this message version's author's account id
+content   : The raw display content of the message
+date      : The date this edit was sent
+
+Example object:
+{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
+"event":"chat",
+"history":[
+        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
+        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
+        ],
+"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
+---
+
+Chat message types after immutable conversion:
+(immutable.Map)
+sender_id : String
+event     : String
+date      : Date Object
+history   : immutable.Stack of immutable.Maps
+editing   : immutable.Map
+
 ###
 
 # standard non-SMC libraries
@@ -130,6 +162,9 @@ class ChatActions extends Actions
     set_input: (input) =>
         @setState(input:input)
 
+    saved_message: (saved_mesg) =>
+        @setState(saved_mesg:saved_mesg)
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
@@ -152,15 +187,23 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
         cb            : (err, syncdb) ->
             if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
-            else if not syncdb.valid_data
-                alert_message(type:'error', message:"json in #{@filename} is broken")
             else
+                store.syncdb = actions.syncdb = syncdb
+
+                if not syncdb.valid_data
+                    # This should never happen, but obviously it can -- just open the file and randomly edit with vim!
+                    # If there were any corrupted chats, append them as a new chat at the bottom, then delete from syncdb.
+                    corrupted = (x.corrupt for x in syncdb.select() when x.corrupt?)
+                    actions.send_chat("Corrupted chat: " + corrupted.join('\n\n'))
+                    syncdb.delete_with_field(field:'corrupt')
+
                 v = {}
-                # console.log("DATA ON LOAD:", syncdb.select())
                 for x in syncdb.select()
+                    if x.corrupt?
+                        continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
-                    else if x.payload # for old chats with payload: content
+                    else if x.payload? # for old chats with payload: content
                         initial = immutable.fromJS
                             content   : x.payload.content
                             author_id : x.sender_id
@@ -169,19 +212,18 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                     if not x.editing
                         x.editing = {}
                     v[x.date - 0] = x
+
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
-                store.syncdb = actions.syncdb = syncdb
+
 
 Message = rclass
     displayName: "Message"
 
     propTypes:
-        # example message object
-        # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","date":"2015-08-26T21:52:51.329Z", "history": <Stack>}
-        # "history" : [{author_id: "...", content:"full content", "date": ...}, ...]
         message        : rtypes.object.isRequired  # immutable.js message object
         account_id     : rtypes.string.isRequired
+        date           : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
         user_map       : rtypes.object
@@ -194,15 +236,19 @@ Message = rclass
         is_next_sender : rtypes.bool
         actions        : rtypes.object
         show_heads     : rtypes.bool
+        saved_mesg     : rtypes.string
+        close_input    : rtypes.func
 
     getInitialState: ->
         edited_message  : @newest_content()
         new_changes     : false
 
     componentWillReceiveProps: (newProps) ->
+        if @state.history_size != @props.message.get('history').size
+            @setState(history_size:@props.message.get('history').size)
         changes = false
         if @state.edited_message == @newest_content()
-            @setState(edited_message : newProps.message.get('history')?.peek().get('content') ? '')
+            @setState(edited_message : newProps.message.get('history')?.peek()?.get('content') ? '')
         else
             changes = true
         @setState(new_changes : changes)
@@ -215,14 +261,20 @@ Message = rclass
                @props.is_prev_sender != next.is_prev_sender or
                @props.is_next_sender != next.is_next_sender or
                @props.editor_name != next.editor_name or
+               @props.saved_mesg != next.saved_mesg or
                @state.edited_message != next_state.edited_message or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
-    #componentWillUnmount: () ->
-    #    @props.actions.set_editing(@props.message, false)
+    componentDidMount: ->
+        if @refs.editedMessage
+            @setState(edited_message:@props.saved_mesg)
+
+    componentDidUpdate: ->
+        if @refs.editedMessage
+            @props.actions.saved_message(@refs.editedMessage.getValue())
 
     newest_content: ->
-        @props.message.get('history').peek().get('content') ? ''
+        @props.message.get('history').peek()?.get('content') ? ''
 
     is_editing: ->
         @props.message.get('editing').has(@props.account_id)
@@ -246,7 +298,7 @@ Message = rclass
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
                 color = "#E55435"
-            else if @state.new_changes
+            else if @state.history_size != @props.message.get('history').size and @state.new_changes
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
@@ -264,9 +316,18 @@ Message = rclass
         text ?= "Last edit by #{@props.editor_name}"
         color ?= "#888"
 
-        <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
-            {text}
-        </div>
+        if not @is_editing() and other_editors.size == 0 and @newest_content() != ''
+            edit = "Last edit "
+            name = " by #{@props.editor_name}"
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {edit}
+                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                {name}
+            </div>
+        else
+            <div className="pull-left small" style={color:color, marginTop:'-8px', marginBottom:'1px'}>
+                {text}
+            </div>
 
     show_user_name: ->
         <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
@@ -385,6 +446,7 @@ Message = rclass
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
+        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -424,16 +486,27 @@ ChatLog = rclass
         font_size    : rtypes.number
         actions      : rtypes.object
         show_heads   : rtypes.bool
+        saved_mesg   : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
+        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id or @props.saved_mesg != next.saved_mesg
 
     get_user_name: (account_id) ->
-        account = @props.user_map.get(account_id)
+        account = @props.user_map?.get(account_id)
         if account?
             account_name = account.get('first_name') + ' ' + account.get('last_name')
         else
             account_name = "Unknown"
+
+    close_edit_inputs: (current_message_date, id, saved_message) ->
+        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+        for date in sorted_dates
+            historyContent = @props.messages.get(date).get('history').peek()?.get('content') ? ''
+            if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
+                if historyContent != saved_message
+                    @props.actions.send_edit(@props.messages.get(date), saved_message)
+                else
+                    @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
@@ -453,13 +526,14 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            sender_name = @get_user_name(@props.messages.get(date).get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date).get('history').peek().get('author_id'))
+            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
+                     date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
                      font_size        = {@props.font_size}
@@ -471,6 +545,8 @@ ChatLog = rclass
                      sender_name      = {sender_name}
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
                     />
 
         return v
@@ -490,6 +566,7 @@ ChatRoom = (name) -> rclass
             saved_position : rtypes.number
             height         : rtypes.number
             offset         : rtypes.number
+            saved_mesg     : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -624,13 +701,13 @@ ChatRoom = (name) -> rclass
         if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={2} mdHidden >
+                    <Col xs={2} mdHidden>
                         <Button className='smc-small-only'
                                 onClick={@show_files}>
                                 <Icon name='toggle-up'/> Files
                         </Button>
                     </Col>
-                    <Col xs={4} md={6} style={padding:'0px'}>
+                    <Col xs={4} md={4} style={padding:'0px'}>
                         <UsersViewingDocument
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
@@ -650,7 +727,7 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll}>
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -659,6 +736,7 @@ ChatRoom = (name) -> rclass
                                 font_size    = {@props.font_size}
                                 file_path    = {if @props.path? then misc.path_split(@props.path).head}
                                 actions      = {@props.actions}
+                                saved_mesg   = {@props.saved_mesg}
                                 show_heads   = true />
                         </Panel>
                     </Col>

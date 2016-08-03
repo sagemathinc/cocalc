@@ -3,9 +3,9 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: project-{project_id}
+  name: smc-project-{project_id}
   labels:
-    run        : project{project_id}
+    run        : smc-project
     project_id : {project_id}
   annotations:
     deployment.kubernetes.io/revision: "1"
@@ -16,14 +16,12 @@ spec:
     matchLabels:
       project_id : {project_id}
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
           project_id : {project_id}
+          run        : smc-project
     spec:
       containers:
       - name: project
@@ -35,13 +33,9 @@ spec:
         env:
           - name: SMC_PROJECT_ID
             value: {project_id}
-        resources:
-          requests:
-            memory: "40Mi"
-            cpu: "5m"
-          limits:
-            memory: "1000Mi"
-            cpu: "1000m"
+        resources: {resources}
+      nodeSelector:
+        preemptible: "{preemptible}"
       volumes:
       - name: project
         flexVolume:

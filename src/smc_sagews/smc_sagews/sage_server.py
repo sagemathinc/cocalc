@@ -1759,7 +1759,7 @@ def serve(port, host, extra_imports=False):
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
+                     'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
                      'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
 

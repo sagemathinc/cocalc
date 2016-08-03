@@ -186,18 +186,19 @@ SAGE_PIP_PACKAGES = [
     'ncpol2sdpa',
     'hdbscan',
     'openpyxl',
-    'pymc',
     'xlrd',
     'xlwt',
     'pyproj',
     'bitarray',
     'h5py',
     'ipdb', # https://github.com/sagemathinc/smc/issues/319
+    'pandas-profiling',
     'netcdf4',
     'lxml',
     'munkres',
     'oct2py',
     'psutil',
+    # 'pymc', # pymc v2 doesn't work due to too old numpy api. pymc3 below does work, though.
     'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
@@ -219,7 +220,6 @@ SAGE_PIP_PACKAGES = [
     'colorpy',
     #'rootpy',    # supports ROOT data analysis framework  -- broken "import ROOT" doesn't work anymore
     'tabulate',
-    'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
     'ez_setup',   # needed by fipy
     #'pysparse',    # needed by fipy; for the ==1.2-dev213 bullshit, see http://stackoverflow.com/questions/25459011/how-to-build-pysparse-on-ubuntu; it's amazing how bad pypi and python packaging are.  Wow.
@@ -280,6 +280,11 @@ SAGE_PIP_PACKAGES = [
     'cvxpy', # convex optimization toolbox by univ stanford
     'pydataset', # datasets from R for pandas
     'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
+    'wordcloud', # https://github.com/amueller/word_cloud
+    'cobra', # https://cobrapy.readthedocs.io/en/stable/
+    'python-libsbml', # dependency of cobra
+    'markdown',
+    'vpython', # http://vpython.org/ used in physics
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -289,7 +294,8 @@ SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'datasift'
+    'datasift',
+    'vpnotebook', # http://vpython.org/ used in physics
 ]
 
 
@@ -322,7 +328,7 @@ R_PACKAGES = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # not available for 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -495,6 +501,7 @@ class BuildSage(object):
         self.install_cairo()
         self.install_psage()
         self.install_pycryptoplus()
+        # self.install_tensorflow() # doesn't work
         # FAILED:
         self.install_neuron()
 
@@ -830,7 +837,7 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        GDAL_VERSION       = '2.1.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
@@ -859,6 +866,18 @@ class BuildSage(object):
         open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
         shutil.rmtree(path)
 
+    def install_tensorflow(self):
+        """
+        Check for updated wheel packages here:
+        https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
+
+        Status: Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+        it also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+        """
+        cmd("pip install --no-deps --upgrade 'protobuf>=3.0.0a3'")
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp27-none-linux_x86_64.whl'
+        cmd("pip install --no-deps --upgrade %s" % TF_BINARY_URL)
+
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
         src = os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'src')
@@ -884,5 +903,6 @@ class BuildSage(object):
 
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+
 
 

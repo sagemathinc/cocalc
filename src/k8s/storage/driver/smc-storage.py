@@ -16,7 +16,7 @@ LOCK_TIME_S = 120
 HOSTNAME = socket.gethostname()
 
 def LOG(*args):
-    open("/tmp/a",'a').write(str(args)+'\n')
+    open("/var/log/smc-storage.log",'a').write(str(args)+'\n')
 
 LOG('argsv', sys.argv)
 
@@ -51,7 +51,7 @@ def cmd(s, timeout=20, verbose=False):
         t = z.read()
         if z.close():
             raise RuntimeError(t)
-        return t
+        return t.strip()
     finally:
         cancel_alarm()
 
@@ -78,7 +78,7 @@ def ensure_server_is_mounted(server, namespace):
     return mnt
 
 def lock_filename(path):
-    return os.path.join(path, 'lock')
+    return os.path.join(path, 'lock')  # used elsewhere, e.g., in storage/images/backup/run.py
 
 def check_for_lock(path):
     lockfile = lock_filename(path)
@@ -97,6 +97,7 @@ def write_lock_file(path):
     open(lock_filename(path),'w').write(HOSTNAME)
 
 def remove_lock_file(path):
+    LOG("remove_lock_file '%s'"%path)
     lockfile = lock_filename(path)
     if os.path.exists(lockfile):
         os.unlink(lockfile)
@@ -285,7 +286,7 @@ def mount(args):
             raise RuntimeError("size must be specified")
         mount_point = ensure_server_is_mounted(server, namespace)
         path = os.path.join(mount_point, path)
-        return mount_zfs(path, mount_dir, size)
+        return mount_zfs(path, mount_dir, size, namespace)
     elif fs == 'ext4':
         cmd("mount %s %s"%(device, mount_dir))
     elif fs == 'btrfs':
@@ -299,7 +300,10 @@ def mount(args):
     else:
         raise ValueError("Unknown filesystem '%s'"%fs)
 
-def mount_zfs(path, mount_dir, size):
+def get_zfs_mountpoint(namespace, pool):
+    return "/mnt/smc-storage/{namespace}/zfs/{pool}".format(namespace = namespace, pool=pool)
+
+def mount_zfs(path, mount_dir, size, namespace):
     pool_file = os.path.join(path, 'pool')
     pool = open(pool_file).read().strip()
     try:
@@ -310,7 +314,17 @@ def mount_zfs(path, mount_dir, size):
 
     adjust_pool_size_if_necessary(path, size)
 
-    cmd("zfs set mountpoint='%s' %s"%(mount_dir, pool))
+    # Ensure that zfs pool is mounted in a known location.
+    zfs_mount = get_zfs_mountpoint(namespace, pool)
+    if cmd("zfs get -H -o value mountpoint %s"%pool) != zfs_mount:  # setting that won't change is still an error since it first unmounts
+        cmd("zfs set mountpoint=%s %s"%(zfs_mount, pool))
+
+    # Bindfs mount the zfs mount to the requested target.  CRITICAL: We do this rather than
+    # just directly setting the zfs mountpoint, despite the performance penalty, since it
+    # makes it massively faster to restart deployments, since we can mount before
+    # unmounting.
+    cmd("mount -o bind %s %s"%(zfs_mount, mount_dir))
+
     # Also bindfs (FUSE!) mount the snapshots, since otherwise new ones won't work in the container!
     snapshots = os.path.join(mount_dir, '.snapshots')
     if not os.path.exists(snapshots):
@@ -328,13 +342,20 @@ def unmount(args):
         snapshots = os.path.join(mount_dir, '.snapshots')
         if os.path.exists(snapshots) and os.path.ismount(snapshots):
             cmd("umount %s"%snapshots)
-        else:
-            # not a ZFS mount
-            cmd("umount %s"%mount_dir)
-            return
-        v = cmd("zfs list -H | grep %s"%mount_dir).split()
-        if len(v) > 0:
-            cmd("zfs set mountpoint=none %s"%v[0])
+        device = cmd("df %s | tail -1"%mount_dir).split()[0]
+        cmd("umount %s"%mount_dir)  # remove the **bind** mount.
+        if device.startswith('pool-'):
+            # try to remove zpool if no more mounts -- for some reason k8s doesn't call detach below...
+            try:
+                s = cmd("zpool list -HvP -o name {device}".format(device=device))
+                img = s.split()[1]
+                path = os.path.split(img)[0]
+                cmd("zpool export %s"%device)
+                # Nothing else using the pool; give up our lock
+                remove_lock_file(path)
+            except Exception as err:
+                LOG("unmount", "can't export pool -- may be mounted by multiple containers: %s"%err)
+                pass
 
 def detach(args):
     LOG('detach', args)
@@ -353,8 +374,14 @@ def detach(args):
     s = cmd("zpool list -HvP -o name {device}".format(device=device))
     img = s.split()[1]
     path = os.path.split(img)[0]
-    cmd("zpool export {device}".format(device=device))
-    remove_lock_file(path)
+    try:
+        # This will fail if the zpool is in use by another container (e.g., during a restart)
+        cmd("zpool export {device}".format(device=device))
+        # Nothing else using the pool; give up our lock
+        remove_lock_file(path)
+    except:
+        # Pool still in use...
+        pass
 
 def zpool_clear_errors(args):
     LOG("zpool_clear_errors")
@@ -628,7 +655,7 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('zpool-clear-errors', help='run zpool status and clear any errors')
     sub.set_defaults(func=zpool_clear_errors)
 
-    sub = subparsers.add_parser('zpool-defragment', help='defragment **mounted** ZFS pool')
+    sub = subparsers.add_parser('zpool-defragment', help='defragment **mounted** ZFS pool (WARNING: slow since all data over network)')
     sub.add_argument('-q', '--quiet', action="store_true")
     sub.add_argument('path', type=str, help='absolute path to images')
     sub.set_defaults(func=zpool_defragment)

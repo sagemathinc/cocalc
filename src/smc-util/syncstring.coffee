@@ -1157,23 +1157,25 @@ class SyncDoc extends EventEmitter
             (cb) =>
                 # Setup watcher (which wouldn't work if there was no file)
                 DEBOUNCE_MS = 500
+                dbg = @_client.dbg("watch('#{path}')")
                 @_client.watch_file
                     path     : path
                     debounce : DEBOUNCE_MS
                     cb       : (err, watcher) =>
                         if err
+                            dbg("error -- #{err}")
                             cb(err)
                         else
+                            dbg("success")
                             @_gaze_file_watcher?.close()  # if it somehow got defined by another call, close it first
                             @_gaze_file_watcher = watcher
                             @_watch_path = path
-                            dbg = @_client.dbg('watch')
                             watcher.on 'changed', =>
                                 if @_save_to_disk_just_happened
-                                    dbg("changed: @_save_to_disk_just_happened")
+                                    dbg("@_save_to_disk_just_happened")
                                     @_save_to_disk_just_happened = false
                                 else
-                                    dbg("changed: _load_from_disk")
+                                    dbg("_load_from_disk")
                                     # We load twice: right now, and right at the end of the
                                     # debounce interval. If there are many writes happening,
                                     # we'll get notified at the beginning of the interval, but
@@ -1200,7 +1202,7 @@ class SyncDoc extends EventEmitter
                     dbg("failed -- #{err}")
                     cb?(err)
                 else
-                    dbg("got it")
+                    dbg("got it -- length=#{data?.length}")
                     @set(data)
                     # we also know that this is the version on disk, so we update the hash
                     @_set_save(state:'done', error:false, hash:misc.hash_string(data))

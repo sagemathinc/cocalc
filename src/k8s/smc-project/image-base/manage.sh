@@ -9,7 +9,8 @@ init () {
 }
 
 salvus () {
-    sudo -H -u salvus bash -c "umask 022; exec $@"
+    x="umask 022; exec -l $@"
+    sudo -H -u salvus bash -c "$x"
 }
 
 case "$1" in
@@ -44,7 +45,7 @@ case "$1" in
         # runs the integration tests to figure out, how well everything works in here
         init
         cd /smc/src/smc-build
-        py.test-3 compute-integration-tests.py
+        salvus py.test-3 --tb=short compute-integration-tests.py
         ;;
 
     *)

@@ -327,6 +327,25 @@ class exports.SynchronizedDB extends EventEmitter
             @emit("change", changes)
         return i
 
+    # delete any entries in the database that have the given field defined at all.
+    delete_with_field: (opts) =>
+        {field} = defaults opts,
+            field : required
+        if not @_data?
+            return 0
+        result = []
+        i = 0
+        changes = []
+        for hash, val of @_data
+            if val.data[field]?
+                i += 1
+                changes.push({remove:val.data})
+                delete @_data[hash]
+        if i > 0
+            @_set_doc_from_data()
+            @emit("change", changes)
+        return i
+
     # delete first thing in db that matches the given criterion
     delete_one: (opts) =>
         opts.one = true
