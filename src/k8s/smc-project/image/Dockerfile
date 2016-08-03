@@ -11,7 +11,8 @@ RUN rm -f /manage.sh && \
     . ./smc-env && \
     ./install.py pyutil && \
     ./install.py project && \
-    rm -rf /smc/
+    rm -rf /smc/ && \
+    mkdir -p /var/run/sshd
 
 # run.py will create the user corresponding to the project, mount their directory (?), then
 # switch to that user and start the local hub.  The environment variable SMC_PROJECT_ID must be set.
@@ -22,4 +23,4 @@ CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
 # Expose local hub port, etc....
 # Shouldn't we use port 5463 as an easter egg? :-)
-EXPOSE 6000 6001
+EXPOSE 22 6000 6001
