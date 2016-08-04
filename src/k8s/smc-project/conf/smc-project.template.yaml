@@ -33,6 +33,8 @@ spec:
         env:
           - name: SMC_PROJECT_ID
             value: {project_id}
+          - name: SMC_SECRET_TOKEN
+            value: {secret_token}
         resources: {resources}
       nodeSelector:
         preemptible: "{preemptible}"

@@ -58,7 +58,7 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout', 'storage_ready']
+FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout', 'storage_ready', 'secret_token']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
     query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
@@ -229,7 +229,7 @@ replace_all = (string, search, replace) ->
 
 # Used for starting projects:
 deployment_template = undefined
-deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible) ->
+deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible, secret_token) ->
     deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
         project_id     : project_id
@@ -238,6 +238,7 @@ deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible
         storage_server : storage_server
         disk_size      : disk_size
         preemptible    : if preemptible  then 'true' else 'false'
+        secret_token   : secret_token
         resources      : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
         pull_policy    : 'IfNotPresent'
     s = deployment_template
@@ -256,7 +257,7 @@ run = (s, cb) ->
         cb?(err, stdout + stderr)
 
 write_deployment_yaml_file = (project_id, cb) ->
-    info = storage_server = disk_size = resources = preemptible = undefined
+    info = storage_server = disk_size = resources = preemptible = secret_token = undefined
     async.series([
         (cb) ->
             temp.open {suffix:'.yaml'}, (err, _info) ->
@@ -280,9 +281,13 @@ write_deployment_yaml_file = (project_id, cb) ->
                     get_preemptible project_id, (err, r) ->
                         preemptible = r
                         cb(err)
+                (cb) ->
+                    get_secret_token project_id, (err, r) ->
+                        secret_token = r
+                        cb(err)
             ], cb)
         (cb) ->
-            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources, preemptible))
+            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources, preemptible, secret_token))
             fs.close(info.fd, cb)
     ], (err) ->
         cb(err, info.path)
@@ -350,7 +355,7 @@ get_storage_server = (project_id, cb) ->
                     cb()
         (cb) ->
             # save assignment to database, so will reuse it next time.
-            query = rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_server:storage_server).run(conn, cb)
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(storage_server:storage_server).run(conn, cb)
     ], (err) ->
         cb?(err, storage_server)
     )
@@ -407,6 +412,20 @@ get_resources = (project_id, cb) ->
 
 get_preemptible = (project_id, cb) ->
     cb(undefined, projects[project_id]?.preemptible ? DEFAULTS.preemptible)
+
+get_secret_token = (project_id, cb) ->
+    s = projects[project_id]?.secret_token
+    if s?
+        cb(undefined, s)
+        return
+    async.series([
+        (cb) ->
+            require('crypto').randomBytes 128, (err, data) ->
+                s = data?.toString('base64'); cb(err)
+        (cb) ->
+            # save assignment to database
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(secret_token: s).run(conn, cb)
+    ], (err) -> cb(err, s))
 
 # Stop a project from running
 kubectl_stop_project = (project_id, cb) ->

@@ -15,14 +15,20 @@ def build(tag, rebuild):
     v = ['sudo', 'docker', 'build', '-t', tag]
     if rebuild:  # will cause a git pull to happen
         v.append("--no-cache")
+    if args.commit:
+        commit = args.commit
+    else:
+        # We always build the latest version of the given branch
+        commit = util.run("git fetch origin && git log -1 --pretty=format:%H {branch}".format(branch=args.branch), get_output=True).strip()
+    v.append("--build-arg")
+    v.append("commit={commit}".format(commit=commit))
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH, 'image-dev'))
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
-    build(tag, args.rebuild)
-    if not args.local:
-        util.gcloud_docker_push(tag)
+    build(tag, args.rebuild_all)
+    util.gcloud_docker_push(tag)
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -64,9 +70,9 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
-    sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
-    sub.add_argument("-l", "--local", action="store_true",
-                     help="only build the image locally; don't push it to gcloud docker repo")
+    sub.add_argument("--rebuild-all", action="store_true", help="rebuild image from scratch")
+    sub.add_argument("-b", "--branch", default='master', help="branch of SMC to build (default: 'master'); will build HEAD of this")
+    sub.add_argument("-c", "--commit", default='', help="optional -- explicit commit to checkout (instead of HEAD of branch)")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='run the given project (WARNING: right now this will NOT work -- instead use the manager...)', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
