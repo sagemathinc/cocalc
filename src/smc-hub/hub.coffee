@@ -3088,14 +3088,15 @@ connect_to_database = (opts) ->
 
 # client for compute servers
 compute_server = undefined
-init_compute_server = (cb) ->
-    winston.debug("init_compute_server: creating compute_server client")
+init_compute_server_client = (cb) ->
+    winston.debug("init_compute_server_client: creating compute_server client")
     require('./compute-client.coffee').compute_server
-        database : database
-        dev      : program.dev
-        single   : program.single
-        base_url : BASE_URL
-        cb       : (err, x) ->
+        database   : database
+        dev        : program.dev
+        single     : program.single
+        kubernetes : program.kubernetes
+        base_url   : BASE_URL
+        cb         : (err, x) ->
             if not err
                 winston.debug("compute server created")
             else
@@ -3376,7 +3377,7 @@ exports.start_server = start_server = (cb) ->
                 cb(); return
             init_support(cb)
         (cb) ->
-            init_compute_server(cb)
+            init_compute_server_client(cb)
         (cb) ->
             if not program.port
                 cb(); return

@@ -99,16 +99,25 @@ In a project (the port depends on project):
 require('smc-hub/compute-client').compute_server(db_hosts:['localhost:53739'], dev:true, cb:(e,s)->console.log(e);global.s=s)
 
 ###
+
+# CLIENT for compute server
+# At most one of dev, single, kubernetes can be set to true below -- and only
+# once in a program due to caching.
 compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
-        database : undefined
-        db_name  : 'smc'
-        db_hosts : ['localhost']
-        base_url : ''
-        dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
-        single   : false          # single -- for single-server use/development; everything runs on a single machine.
-        cb       : required
+        database   : undefined
+        db_name    : 'smc'
+        db_hosts   : ['localhost']
+        base_url   : ''
+        dev        : false        # true -- for single-user *development*; compute server runs in same process as client on localhost
+        single     : false        # true -- for single-server use/development; everything runs on a single machine.
+        kubernetes : false        # true -- for use inside of kubernetes cluster
+        cb         : required
+
+    if opts.kubernetes   # using nothing else in this compute-client.coffee (or the compute-server.coffe) file.
+        require('./projects-on-k8s').projects(database:opts.database, cb:cb)
+        return
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
     else
