@@ -6,7 +6,7 @@ language: sage
 category: Mathematics  / Intro
 ---
 title: Introduction
-descr: >
+descr: |
     SageMath is an advanced Python-based environment for mathematics.
     With that fundament, it is also suited for scientific computing,
     statistics, and data analysis.
@@ -16,7 +16,7 @@ descr: >
 code: ""
 ---
 title: Pitfalls
-descr: >
+descr: |
     There is a blurry line between using SageMath and programming.
     Don't be afraid about this,
     since it only means that this opens up unlimited ways of expanding and enhancing of what you can do!
@@ -34,7 +34,7 @@ code: |
 category: Mathematics / Calculus
 ---
 title: Introduction
-descr:
+descr: |
     Here are some examples of calculus symbolic computations using Sage.
     The goal is to make calculus feel natural and intuitive,
     while still being part of a modern programming language.
@@ -117,7 +117,7 @@ code: |
 category: Mathematics  / Differential Equations
 ---
 title: Introduction
-descr: >
+descr: |
     Symbolically solving ODEs can be done using Sage interface with Maxima.
     For more information, read the help of `desolvers`.
 
@@ -126,7 +126,7 @@ code: |
     desolvers?
 ---
 title: Functions
-descr: >
+descr: |
     To tell Sage that you want to work with a general function,
     use the command `function` to create a named function in a specific variable.
 
@@ -137,12 +137,12 @@ code: |
     type(f)
 ---
 title: ODE Example
-descr: >
+descr: |
     An example, how to solve ODE’s symbolically in Sage using the Maxima interface under the hood.
 
     `ics` are the initial conditions.
     The second example is without them,
-    and therefore free constants named $\texttt{\_K}_i$ appear.
+    and therefore free constants named $\texttt{_K}_i$ appear.
 code: |
     %var x
     y = function('y')(x)

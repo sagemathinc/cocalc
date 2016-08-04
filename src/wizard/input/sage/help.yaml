@@ -6,7 +6,7 @@ language: sage
 category: Tutorial  / Help
 ---
 title: Embedded Help
-descr: >
+descr: |
     Sage has extensive built-in documentation, accessible by typing the name of a function or a constant
     (for example), followed by a question mark:
 
@@ -41,7 +41,7 @@ descr: |
 code: ""
 ---
 title: Tab-Completion
-descr: >
+descr: |
     To learn more about possible operations on an object or existing functions and classes,
     first type in the variable, then a dot, and then press the [`TAB` key](https://www.google.at/search?q=tab+key).
 
