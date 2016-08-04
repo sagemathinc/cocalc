@@ -1,5 +1,5 @@
-# SMC Wizard Documentation File
-# Copyright: SageMathCloud Authors, 2015
+# SMC Wizard Documentation File for Plotting
+# Copyright: Russ Hensel <russ_hensel@comcast.net> and SageMath Inc., 2015
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: sage
@@ -172,13 +172,13 @@ descr:  >
 title: List of points
 code:  |
     print "Plot of a list of points"
-    
+
     # either type of list works
     dictionary_list =  {22: 3365, 27: 3295, 37: 3135, 42: 3020, 47: 2880, 52: 2735, 57: 2550}
     tuple_list      =  [ ( 22, 3365) , ( 27, 3295 ), ( 37, 3135 ), ( 42, 3020 ), ( 47, 2880 ), ( 52, 2735 ), (57, 2550 ) ]
-    
+
     listPlot  = list_plot( dictionary_list )
-    
+
     show( listPlot, xmin=0, xmax =50, ymin=2000, ymax=4000, figsize=[4,4] )
 descr:  >
     Points, contained int Python lists, are all plotted.
@@ -224,16 +224,15 @@ category: plotting / Basic Elements
 title: Points as points (plain and fancy)
 code:  |
     print "Plotting points as points ( plain and fancy )"
-    
+
     plainPoints    = point( [1, 1] ) + point( [2, 1] )
     plot1  = plot( plainPoints )
-    
+
     show( plot1, figsize=4  )
-    
-    
+
     fancyPoints = point((0.5, 0.5), rgbcolor=(1, 0, 0), size=30)
     fancyPoints = fancyPoints + point((0.7, 0.7), rgbcolor=(0, 1, 0), size=50)
-    
+
     show( fancyPoints , figsize=4   )
 descr:  >
     The graphic object point may be plotted using plot()
@@ -302,9 +301,9 @@ descr:  Plot a circle.  Center, radius, color are parameters.
 title: Arrow
 code:  |
     print "Plot an Arrow"
-    
+
     anGraphic = arrow((0,1), (2,3) ) # start cord, end cord as tuples
-    
+
     show( anGraphic,  figsize = 2  )
 descr:  Plot an Arrow, describe by starting and ending coordinates.
 ---

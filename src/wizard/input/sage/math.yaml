@@ -1,0 +1,150 @@
+# SMC Wizard Documentation File
+# Copyright: SageMath Inc., 2016
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+language: sage
+category: Mathematics  / Intro
+---
+title: Introduction
+descr: >
+    SageMath is an advanced Python-based environment for mathematics.
+    With that fundament, it is also suited for scientific computing,
+    statistics, and data analysis.
+
+    This introduction gives a quick overview,
+    while the individual sub-topics to into more detail.
+code: ""
+---
+title: Pitfalls
+descr: >
+    There is a blurry line between using SageMath and programming.
+    Don't be afraid about this,
+    since it only means that this opens up unlimited ways of expanding and enhancing of what you can do!
+
+    One detail to be aware of is, that expressions need to be explicit about their computational signs.
+    I.e. it is not ok to do `4 (x+1)` -- this should be `4 * (x+1)`.
+    Nested brackets are always round brackets like `((1+x) + y) / 2`
+
+    Function calls are always `name(...)` with round brackets, too.
+code: |
+    # fix this expression
+    %var x
+    sqrt [ (4 + x) (2 - x) ]
+---
+category: Mathematics / Calculus
+---
+title: Introduction
+descr:
+    Here are some examples of calculus symbolic computations using Sage.
+    The goal is to make calculus feel natural and intuitive,
+    while still being part of a modern programming language.
+code: |
+    %var x k w
+    f = x^3 * e^(k*x) * sin(w*x)
+    show(f)
+    print("Differentiate f w.r.t. x")
+    show(f.diff(x))
+---
+title: Polynomials
+descr: >
+    The `x` could also be a generator of a `PolynomialRing` over $\mathbb{Q}$
+code: |
+    R.<x> = PolynomialRing(QQ, "x")
+    p = x^2 + 1
+    p
+    p.derivative()
+    p.integral()
+    type(p)
+---
+title: Taylor Series
+descr: >
+    Use `expr.taylor(...)` to obtain a taylor polynomial.
+code: |
+    %var f0 k x
+    g = f0/sinh(k*x)^4
+    g
+    t = g.taylor(x, 0, 3)
+    t
+---
+title: Formal Power Series
+descr: >
+    `expr.series(...)` gives formal power series expansions.
+code: |
+    %var x
+    ex = 1/ (2 - cos(x))
+    ex
+    ex.series(x,7)
+---
+title: Fast Computations in Formal Power Series Ring
+descr: >
+    You can use the formal power series rings for fast computation.
+code: |
+    R.<w> = QQ[[]]
+    ps = w + 17/2*w^2 + 15/4*w^4 + O(w^6)
+    ps
+    (1+ps).log()
+    print(r"Coefficients of $ps^1000$")
+    (ps^1000).coefficients()
+---
+title: Symbolic Integrals
+descr: >
+    SageMath can do symbolic integrals.
+code: |
+    %var x
+    f = x^3
+    f.integral(x)
+    # or as a function
+    integral(x^3,x)
+---
+title: Definite Integrals
+descr: >
+    It can also compute integrals involving limits.
+code: |
+    %var x k w
+    f = k * sin(w*x)
+    f.integrate(x, 0, 1)
+    # or as a function
+    integrate(1/x^2, x, 1, infinity)
+---
+title: Laplace transformations
+descr: >
+    Compute laplace transformations
+code: |
+    %var k s t
+    f = 1/exp(k*t)
+    f.laplace(t,s)
+---
+category: Mathematics  / Differential Equations
+---
+title: Introduction
+descr: >
+    Symbolically solving ODEs can be done using Sage interface with Maxima.
+    For more information, read the help of `desolvers`.
+
+    (Numerically solving ODEs is also possible via GSL or Octave.)
+code: |
+    desolvers?
+---
+title: Functions
+descr: >
+    To tell Sage that you want to work with a general function,
+    use the command `function` to create a named function in a specific variable.
+
+    That might look a bit strange first, but it is necessary to be very explicit about each variable's and expressions meaning!
+code: |
+    %var x
+    f = function("f")(x)
+    type(f)
+---
+title: ODE Example
+descr: >
+    An example, how to solve ODE’s symbolically in Sage using the Maxima interface under the hood.
+
+    `ics` are the initial conditions.
+    The second example is without them,
+    and therefore free constants named $\texttt{\_K}_i$ appear.
+code: |
+    %var x
+    y = function('y')(x)
+    desolve(diff(y,x,2) + 3*x == y, dvar = y, ics = [1,1,1])
+    desolve(diff(y,x,2) + 3*x == y, dvar = y)
