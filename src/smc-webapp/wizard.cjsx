@@ -101,13 +101,14 @@ class WizardActions extends Actions
         @set(nav_entries: nav_entries)
         @select_lang(@get('lang'))
 
-    insert: (cb) ->
+    insert: (cb, descr) ->
         # this is the essential task of the wizard:
         # call the callback with the selected code snippet
-        cb
+        data =
             code  : @get('code')
             lang  : @get('lang')
-            descr : @get('description')
+            descr : if descr then @get('descr') else null
+        cb(data)
 
     load_data: () ->
         if not DATA?
@@ -507,8 +508,12 @@ RWizard = (name) -> rclass
     close : ->
         @props.actions.hide()
 
-    submit : ->
-        @props.actions.insert(@props.cb)
+    insert_code : ->
+        @props.actions.insert(@props.cb, false)
+        @close()
+
+    insert_all : ->
+        @props.actions.insert(@props.cb, true)
         @close()
 
     handle_dialog_keyup : (evt) ->
@@ -564,7 +569,8 @@ RWizard = (name) -> rclass
 
             <Modal.Footer>
                 <Button onClick={@props.actions.hide}>Cancel</Button>
-                <Button onClick={@submit} disabled={not @props.submittable} bsStyle='success'>Insert Code</Button>
+                <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
+                <Button onClick={@insert_all} disabled={not @props.submittable} bsStyle='success'>Insert</Button>
             </Modal.Footer>
         </Modal>
 

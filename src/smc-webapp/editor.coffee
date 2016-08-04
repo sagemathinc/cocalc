@@ -2359,14 +2359,20 @@ class CodeMirrorEditor extends FileEditor
     wizard_insert_handler: (insert) =>
         code = insert.code
         lang = insert.lang
-        # console.log "wizard insert:", lang, code
         cm = @focused_codemirror()
+        line = cm.getCursor().line
+        # console.log "wizard insert:", lang, code, insert.descr
+        if insert.descr?
+            @syncdoc?.insert_new_cell(line)
+            cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
+            @action_key(execute: true, advance:false, split:false)
         line = cm.getCursor().line
         @syncdoc?.insert_new_cell(line)
         cell = code
         if lang != @_current_mode
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
+        @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
