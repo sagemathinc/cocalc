@@ -517,12 +517,15 @@ def add_deployment_parsers(NAME, subparsers, default_container='', exclude=None)
         if not exclude or parser not in exclude:
             globals()['add_{parser}_parser'.format(parser=parser)](NAME, subparsers, default_container=default_container)
 
-def get_desired_replicas(deployment_name, default=1):
+def get_desired_replicas(deployment_name, default=1, default_test=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
     if 'status' in x:
         return x['status']['replicas']
     else:
-        return default
+        if get_current_namespace() == 'test':
+            return default_test
+        else:
+            return default
 
 def logs(deployment_name, grep_args, container):
     SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]

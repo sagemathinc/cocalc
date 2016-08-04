@@ -55,6 +55,7 @@ RUN \
 CMD \
   cd /smc/src && \
   . ./smc-env && \
-  hub --host=$HOSTNAME --db_pool=$SMC_DB_POOL --db_concurrent_warn=$SMC_DB_CONCURRENT_WARN --port 5000 --proxy_port 0 --foreground
+  hub --host=$HOSTNAME --db_pool=$SMC_DB_POOL --port 0 --proxy_port 5001 --foreground
 
-EXPOSE 5000
+# Expose proxy on port 5001.
+EXPOSE 5001

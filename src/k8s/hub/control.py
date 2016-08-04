@@ -26,10 +26,17 @@ def build_docker(args):
     for image in IMAGES:
         tag = get_tag(args, image)
         v = ['sudo', 'docker', 'build', '-t', tag]
-        if args.rebuild:  # will cause a git pull to happen
+        if args.rebuild_all:  # will cause a git pull to happen
             v.append("--no-cache")
+
+        if args.commit:
+            commit = args.commit
+        else:
+            # We always build the latest version of the given branch
+            commit = util.run("git fetch origin && git log -1 --pretty=format:%H {branch}".format(branch=args.branch), get_output=True).strip()
         v.append("--build-arg")
-        v.append("branch={branch}".format(branch=args.branch))
+        v.append("commit={commit}".format(commit=commit))
+
         v.append('.')
         util.run(v, path=join(SCRIPT_PATH, 'images', image), )
         util.gcloud_docker_push(tag)
@@ -49,7 +56,7 @@ def run_on_kubernetes(args):
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
     if args.replicas is None:
-        args.replicas = util.get_desired_replicas(NAME, 2)
+        args.replicas = util.get_desired_replicas(NAME, 3)
 
     opts = {
         'replicas'               : args.replicas,
@@ -128,16 +135,14 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
-    sub.add_argument("-b", "--branch", default='master', help="branch of SMC to build (default: 'master')")
-    sub.add_argument("-r", "--rebuild", action="store_true",
-                     help="re-pull latest hub source code from git and install any dependencies")
-    sub.add_argument("--rebuild-all", action="store_true",
-                     help="re-install the base Ubuntu packages")
+    sub.add_argument("-b", "--branch", default='master', help="branch of SMC to build (default: 'master'); will build HEAD of this")
+    sub.add_argument("-c", "--commit", default='', help="optional -- explicit commit to checkout (instead of HEAD of branch)")
+    sub.add_argument("--rebuild-all", action="store_true", help="rebuild entire image from scratch")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME))
     sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
-    sub.add_argument("-r", "--replicas", default=None, help="number of replicas")
+    sub.add_argument("-r", "--replicas", default=None, help="number of replicas (default: 1 if namespace is test; otherwise 3)")
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument("-g", "--gentle", default=30, type=int,
                      help="how gentle to be in doing the rolling update; in particular, will wait about this many seconds after each pod starts up (default: 30)")
