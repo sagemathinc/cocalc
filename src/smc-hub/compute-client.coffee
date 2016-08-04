@@ -116,7 +116,7 @@ exports.compute_server = compute_server = (opts) ->
         cb         : required
 
     if opts.kubernetes   # using nothing else in this compute-client.coffee (or the compute-server.coffe) file.
-        require('./projects-on-k8s').projects(database:opts.database, cb:cb)
+        require('./projects-on-k8s').projects(database:opts.database, cb:opts.cb)
         return
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
