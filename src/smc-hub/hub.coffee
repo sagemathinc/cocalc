@@ -3346,6 +3346,8 @@ exports.start_server = start_server = (cb) ->
 
     async.series([
         (cb) ->
+            if not program.port
+                cb(); return
             init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
@@ -3358,18 +3360,26 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            if not program.port
+                cb(); return
             if program.dev or program.update
                 winston.debug("updating the database schema...")
                 database.update_schema(cb:cb)
             else
                 cb()
         (cb) ->
+            if not program.port
+                cb(); return
             init_stripe(cb)
         (cb) ->
+            if not program.port
+                cb(); return
             init_support(cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->
+            if not program.port
+                cb(); return
             # proxy server and http server; this working etc. *relies* on compute_server having been created
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
@@ -3384,6 +3394,8 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
         (cb) ->
+            if not program.port
+                cb(); return
             async.parallel([
                 (cb) ->
                     # init authentication via passport (requires database)
@@ -3406,12 +3418,12 @@ exports.start_server = start_server = (cb) ->
             # Synchronous initialize of other functionality, now that the database, etc., are working.
             winston.debug("base_url='#{BASE_URL}'")
 
-            winston.debug("initializing primus websocket server")
-            init_primus_server(http_server)
-
-            winston.debug("initializing the http proxy server")
+            if program.port
+                winston.debug("initializing primus websocket server")
+                init_primus_server(http_server)
 
             if program.proxy_port
+                winston.debug("initializing the http proxy server on port #{program.proxy_port}")
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server
@@ -3419,23 +3431,24 @@ exports.start_server = start_server = (cb) ->
                     port           : program.proxy_port
                     host           : program.host
 
-            # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
-            # too big a problem if we call it too frequently.
-            # Randomized start to balance between all hubs.
-            # It's important that we call this periodically, or stats will only get stored to the
-            # database when somebody happens to visit /stats
-            d = 5000 + 60 * 1000 * Math.random()
-            setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
+            if program.port
+                # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
+                # too big a problem if we call it too frequently.
+                # Randomized start to balance between all hubs.
+                # It's important that we call this periodically, or stats will only get stored to the
+                # database when somebody happens to visit /stats
+                d = 5000 + 60 * 1000 * Math.random()
+                setTimeout((-> database.get_stats(); setInterval(database.get_stats, 120*1000)), d)
 
-            # Register periodically with the hub.
-            hub_register.start
-                database   : database
-                clients    : clients
-                host       : program.host
-                port       : program.port
-                interval_s : REGISTER_INTERVAL_S
+                # Register periodically with the database.
+                hub_register.start
+                    database   : database
+                    clients    : clients
+                    host       : program.host
+                    port       : program.port
+                    interval_s : REGISTER_INTERVAL_S
 
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
     )
 
@@ -3470,7 +3483,7 @@ add_user_to_project = (project_id, email_address, cb) ->
 #############################################
 
 program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('--port <n>', 'port to listen on (default: 5000)', ((n)->parseInt(n)), 5000)
+    .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
     .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
@@ -3534,7 +3547,7 @@ if program._name.slice(0,3) == 'hub'
                  console.log("User added to project.")
             process.exit()
     else
-        console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
+        console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         if program.foreground
             start_server (err) ->
