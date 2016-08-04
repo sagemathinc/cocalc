@@ -53,14 +53,14 @@ class Project extends EventEmitter
                     cb()
             (cb) =>
                 if opts.get?
-                    @_query.pluck(opts.get).run (err, x) =>
+                    @_query.pluck(opts.get).run (err, _x) =>
                         x = _x; cb(err)
                 else
                     cb()
         ], (err) -> opts.cb(err, x))
 
     dbg: (f) =>
-        return (m...) -> winston.debug("Project('#{@project_id}').#{f}:", m...)
+        return (m...) => winston.debug("Project('#{@project_id}').#{f}:", m...)
 
     free: () =>
         # Ensure that next time this project gets requested, a fresh one is created, rather than
@@ -180,7 +180,9 @@ class Project extends EventEmitter
         opts = defaults opts,
             cb     : required
         dbg = @dbg("stop"); dbg('todo')
-        opts.cb?()  # TODO
+        @db
+            set : {run : false}
+            cb  : opts.cb
 
     # no-op, since everything is always saved.
     save: (opts) =>
@@ -193,8 +195,29 @@ class Project extends EventEmitter
     address: (opts) =>
         opts = defaults opts,
             cb : required
-        dbg = @dbg("address"); dbg('todo')
-        opts.cb?("not implemented yet")
+        dbg = @dbg("address"); dbg()
+        host = undefined
+        async.series([
+            (cb) =>
+                @db
+                    get : ['kubernetes']
+                    cb  : (err, x) =>
+                        host = x?.ip
+                        cb()
+            (cb) =>
+                if host?
+                    cb()
+                else
+                    @start(cb:cb)  # TODO: maybe need to wait...
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                if host?
+                    opts.cb(undefined, {host:host, port:5000, secret_token:'foo'})  # TODO
+                else
+                    opts.cb('not ready yet')
+        )
 
     copy_path: (opts) =>
         opts = defaults opts,
