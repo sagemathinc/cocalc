@@ -15,40 +15,41 @@ import util
 
 NAME='hub'
 
-IMAGES = os.listdir('images')
+IMAGES = list(sorted(os.listdir('images')))
 
 SECRETS = os.path.abspath(join(SCRIPT_PATH, '..', '..', 'data', 'secrets'))
 
-def build(tag, rebuild):
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
-    util.run(v, path=join(SCRIPT_PATH,'images/hub'))
+def get_tag(args, image):
+    return util.get_tag(args, NAME+'-'+image)
 
 def build_docker(args):
-    tag = util.get_tag(args, NAME)
-    build(tag, args.rebuild)
-    util.gcloud_docker_push(tag)
+    for image in IMAGES:
+        tag = get_tag(args, image)
+        v = ['sudo', 'docker', 'build', '-t', tag]
+        if args.rebuild:  # will cause a git pull to happen
+            v.append("--no-cache")
+        v.append('.')
+        util.run(v, path=join(SCRIPT_PATH, 'images', image))
+        util.gcloud_docker_push(tag)
 
 def run_on_kubernetes(args):
     if args.test or util.get_current_namespace() == 'test':
-        rethink_cpu_request = hub_cpu_request = '10m'
-        rethink_memory_request = hub_memory_request = '200Mi'
+        rethink_cpu_request    = hub_cpu_request    = proxy_cpu_request = '10m'
+        rethink_memory_request = hub_memory_request = proxy_memory_request = '200Mi'
     else:
-        hub_cpu_request = '500m'
-        hub_memory_request = '1Gi'
-        rethink_cpu_request = '500m'
+        hub_cpu_request        = '500m'
+        hub_memory_request     = '1Gi'
+        proxy_cpu_request      = '200m'
+        proxy_memory_request   = '500Mi'
+        rethink_cpu_request    = '500m'
         rethink_memory_request = '2Gi'
 
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
     util.ensure_secret_exists('zendesk-api-key',  'zendesk')
     if args.replicas is None:
         args.replicas = util.get_desired_replicas(NAME, 2)
-    tag = util.get_tag(args, NAME, build)
 
     opts = {
-        'image_hub'              : tag,
         'replicas'               : args.replicas,
         'pull_policy'            : util.pull_policy(args),
         'min_read_seconds'       : args.gentle,
@@ -56,9 +57,13 @@ def run_on_kubernetes(args):
         'smc_db_concurrent_warn' : args.database_concurrent_warn,
         'hub_cpu_request'        : hub_cpu_request,
         'hub_memory_request'     : hub_memory_request,
+        'proxy_cpu_request'      : proxy_cpu_request,
+        'proxy_memory_request'   : proxy_memory_request,
         'rethink_cpu_request'    : rethink_cpu_request,
         'rethink_memory_request' : rethink_memory_request
     }
+    for image in IMAGES:
+        opts['image_{image}'.format(image=image)] = get_tag(args, image)
 
     from argparse import Namespace
     ns = Namespace(tag=args.rethinkdb_proxy_tag, local=False)
@@ -135,7 +140,7 @@ if __name__ == '__main__':
     sub.add_argument("-f", "--force",  action="store_true", help="force reload image in k8s")
     sub.add_argument("-g", "--gentle", default=30, type=int,
                      help="how gentle to be in doing the rolling update; in particular, will wait about this many seconds after each pod starts up (default: 30)")
-    sub.add_argument("-p", "--database-pool-size",  default=50, type=int, help="size of database connection pool")
+    sub.add_argument("-p", "--database-pool-size",  default=30, type=int, help="size of database connection pool")
     sub.add_argument("--database-concurrent-warn",  default=300, type=int, help="if this many concurrent queries for sustained time, kill container")
     sub.add_argument("--rethinkdb-proxy-tag", default="", help="tag of rethinkdb-proxy image to run")
     sub.add_argument("--test", action="store_true", help="using for testing so make very minimal resource requirements (automatically true if namespace='test')")
@@ -154,7 +159,7 @@ if __name__ == '__main__':
     sub.add_argument('path', type=str, help='path to directory that contains the password in a file named "zendesk"')
     sub.set_defaults(func=lambda args: load_secret('zendesk',args))
 
-    util.add_deployment_parsers(NAME, subparsers, default_container='hub')
+    util.add_deployment_parsers(NAME+'-hub', subparsers, default_container='hub')
 
     sub = subparsers.add_parser('status', help='display status info about concurrent and blocked, based on recent logs')
     sub.add_argument("-t", "--tail", default=100, type=int, help="how far back to go in log")

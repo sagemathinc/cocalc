@@ -30,8 +30,6 @@ spec:
         ports:
         - containerPort: 5000
           protocol: TCP
-        - containerPort: 5001
-          protocol: TCP
         livenessProbe:
           httpGet:
             path: /concurrent-warn
@@ -62,6 +60,28 @@ spec:
             value: "{smc_db_pool}"
           - name: SMC_DB_CONCURRENT_WARN
             value: "{smc_db_concurrent_warn}"
+
+      - image: {image_proxy}
+        imagePullPolicy: {pull_policy}
+        name: proxy
+        ports:
+        - containerPort: 5001
+          protocol: TCP
+        resources:
+          requests:
+            cpu: {proxy_cpu_request}
+            memory: {proxy_memory_request}
+          limits:
+            cpu: 1
+            memory: 1Gi
+        volumeMounts:
+        - name: secret-rethinkdb
+          mountPath: /secrets/rethinkdb/
+          readOnly: true
+        env:
+          - name: SMC_DB_POOL
+            value: "{smc_db_pool}"
+
       - image: {image_rethinkdb_proxy}
         imagePullPolicy: {pull_policy}
         name: rethinkdb-proxy
