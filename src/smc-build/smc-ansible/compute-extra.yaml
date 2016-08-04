@@ -52,6 +52,7 @@
     - wordcloud
     - cobra
     - vpython
+    - tdigest
 
   - tags: [ pip2, update ]
     pip: executable=pip2
@@ -100,6 +101,7 @@
     #- ncpol2sdpa # should work, but strange 'UnicodeDecodeError: 'ascii' codec can't decode byte ...' on install
     - gensim
     - vpython
+    - tdigest
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
