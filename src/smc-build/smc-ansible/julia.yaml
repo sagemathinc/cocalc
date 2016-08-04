@@ -81,6 +81,7 @@
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
     - SCS # Solving optimization problems
     - RDatasets # https://github.com/johnmyleswhite/RDatasets.jl
+    - TaylorSeries
 
   - name: "update julia packages"
     tags: update

@@ -239,6 +239,7 @@ JULIA = [
     'Bio', # https://github.com/BioJulia/Bio.jl (bioinformatics)
     'SCS', # Solving optimization problems
     'RDatasets',
+    'TaylorSeries',
 ]
 
 
