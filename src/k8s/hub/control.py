@@ -28,8 +28,10 @@ def build_docker(args):
         v = ['sudo', 'docker', 'build', '-t', tag]
         if args.rebuild:  # will cause a git pull to happen
             v.append("--no-cache")
+        v.append("--build-arg")
+        v.append("branch={branch}".format(branch=args.branch))
         v.append('.')
-        util.run(v, path=join(SCRIPT_PATH, 'images', image))
+        util.run(v, path=join(SCRIPT_PATH, 'images', image), )
         util.gcloud_docker_push(tag)
 
 def run_on_kubernetes(args):
@@ -126,8 +128,7 @@ if __name__ == '__main__':
 
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
-    sub.add_argument("-c", "--commit", default='',
-                     help="build a particular sha1 commit; the commit is automatically appended to the tag")
+    sub.add_argument("-b", "--branch", default='master', help="branch of SMC to build (default: 'master')")
     sub.add_argument("-r", "--rebuild", action="store_true",
                      help="re-pull latest hub source code from git and install any dependencies")
     sub.add_argument("--rebuild-all", action="store_true",

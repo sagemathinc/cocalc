@@ -33,7 +33,7 @@ RUN \
    ln -s /secrets/sendgrid/sendgrid .
 
 # Pull latest source code for SMC
-RUN cd /smc && git pull
+RUN cd /smc && git pull && git fetch origin && git checkout ${branch:-master}
 
 # Build hub -- this uses npm to update any dependencies, or install anything required.
 RUN \
@@ -45,9 +45,9 @@ RUN \
 # Remove packages needed for the build above, which we don't want to have
 # available when running the hub in production (e.g., having a compiler could
 # result in an exploit...). This doesn't save space, but may improve security.
-RUN \
-  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
-  apt-get autoremove -y
+#RUN \
+#  SUDO_FORCE_REMOVE=yes apt-get remove -y wget git make g++ sudo && \
+#  apt-get autoremove -y
 
 # Launch the hub server listening on all interfaces
 CMD \
