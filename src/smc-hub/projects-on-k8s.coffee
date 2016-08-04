@@ -25,14 +25,41 @@ class Projects
             project_id : required
             cb         : required
         @_project_cache ?= {}  # create cache if not created
-        return @_project_cache[opts.project_id] ?= new Project(@, opts.project_id)  # create or return from cache
+        p = @_project_cache[opts.project_id] ?= new Project(@, opts.project_id)  # create or return from cache
+        opts.cb(undefined, p)
+        return p
 
 {EventEmitter} = require('events')
 class Project extends EventEmitter
     constructor: (@projects, @project_id) ->
         @dbg("constructor")()
+        @_query = @projects.database.table('projects').get(@project_id)
 
-    dbg: (f) ->
+    db: (opts) =>
+        opts = defaults opts,
+            set : undefined  # object -- set these fields for this project in db.
+            get : undefined # array of fields to get about this project from db.
+            cb  : required
+        if not opts.set? and not opts.get?
+            opts.cb()
+            return
+
+        x = undefined
+        async.series([
+            (cb) =>
+                if opts.set?
+                    @_query.update(opts.set).run(cb)
+                else
+                    cb()
+            (cb) =>
+                if opts.get?
+                    @_query.pluck(opts.get).run (err, x) =>
+                        x = _x; cb(err)
+                else
+                    cb()
+        ], (err) -> opts.cb(err, x))
+
+    dbg: (f) =>
         return (m...) -> winston.debug("Project('#{@project_id}').#{f}:", m...)
 
     free: () =>
@@ -73,8 +100,10 @@ class Project extends EventEmitter
         opts = defaults opts,
             set_quotas : undefined   # ignored
             cb         : required
-        dbg = @dbg("start"); dbg('todo')
-        opts.cb()    #TODO
+        dbg = @dbg("start")
+        @db
+            set : {run : true}
+            cb  : opts.cb
 
     # restart project -- must be opened or running
     restart: (opts) =>

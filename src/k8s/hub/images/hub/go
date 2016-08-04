@@ -1,0 +1,1 @@
+cd /smc/src &&  . ./smc-env && hub --host=$HOSTNAME --db_pool=1 --db_concurrent_warn=10 --port 5000 --proxy_port 0 --foreground --kubernetes 2>log &

@@ -44,7 +44,7 @@ def build_docker(args):
 def run_on_kubernetes(args):
     if args.test or util.get_current_namespace() == 'test':
         rethink_cpu_request    = hub_cpu_request    = proxy_cpu_request = '10m'
-        rethink_memory_request = hub_memory_request = proxy_memory_request = '200Mi'
+        rethink_memory_request = hub_memory_request = proxy_memory_request = '400Mi'
     else:
         hub_cpu_request        = '500m'
         hub_memory_request     = '1Gi'

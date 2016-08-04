@@ -32,6 +32,9 @@ RUN \
    ln -s /secrets/zendesk/zendesk . && \
    ln -s /secrets/sendgrid/sendgrid .
 
+# FOR DEV PURPOSES ONLY -- remove later
+RUN apt-get install -y ssh vim
+
 # Which commit to checkout and build.
 ARG commit=HEAD
 # Pull latest source code for SMC
@@ -55,8 +58,13 @@ RUN \
 #CMD \
 #  cd /smc/src && \
 #  . ./smc-env && \
-#  hub --host=$HOSTNAME --db_pool=$SMC_DB_POOL --db_concurrent_warn=$SMC_DB_CONCURRENT_WARN --port 5000 --proxy_port 0 --foreground
+#  hub --host=$HOSTNAME --db_pool=$SMC_DB_POOL --db_concurrent_warn=$SMC_DB_CONCURRENT_WARN --port 5000 --proxy_port 0 --foreground --kubernetes
+#  cd /smc/src &&  . ./smc-env && hub --host=$HOSTNAME --db_pool=1 --db_concurrent_warn=10 --port 5000 --proxy_port 0 --foreground --kubernetes
 
-CMD sleep 1000000000
+# FOR DEV PURPOSES ONLY
+COPY .ssh /root/.ssh
+COPY go /smc/src/go
+COPY run.py /run.py
+CMD ./run.py
 
 EXPOSE 5000
