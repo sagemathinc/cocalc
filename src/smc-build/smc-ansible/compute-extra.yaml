@@ -288,18 +288,15 @@
     - libpari-gmp-tls4
     - libpari-dev
     - pari-gp2c
+  - name: "macaulay2 / apt key"
+    tags: macaulay2
+    apt_key: "keyserver=hkp://keys.gnupg.net id=CD9C0E09B0C780943A1AD85553F8BD99F40DCB31"
+  - name: "macaulay2 / deb sources"
+    tags: macaulay2
+    apt_repository: "mode=644 repo='deb http://www.math.uiuc.edu/Macaulay2/Repositories/Ubuntu {{ ansible_distribution_release }} main'"
   - name: "install macaulay2 / deb binaries"
     tags: macaulay2
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        rm -rf m2
-        mkdir m2
-        cd m2
-        wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb
-        wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb
-        sudo dpkg -i *.deb
-        rm -rf /tmp/m2
+    apt: "name=macaulay2 state=latest install_recommends=yes"
 
   # Polymake
   - name: "polymake apt package dependencies"
