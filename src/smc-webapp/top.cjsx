@@ -5,6 +5,8 @@
 
 {HelpPage} = require('./r_help')
 
+{ProjectsPage} = require('./projects')
+
 {AccountPageRedux} = require('./account_page')
 
 Page = rclass
@@ -13,7 +15,7 @@ Page = rclass
         <div>
             <Tabs animation={false}>
                 <Tab eventKey={'projects'} title={"Projects"}>
-                    <Projects />
+                    <ProjectsPage />
                 </Tab>
                 <Tab eventKey={'activity'} title={"Activity"}>
                     <Activity />
@@ -30,12 +32,6 @@ Page = rclass
                 </Tab>
             </Tabs>
        </div>
-
-Projects = rclass
-    render : ->
-        <div>
-            <h1>Your Projects...</h1>
-        </div>
 
 Activity = rclass
     render : ->

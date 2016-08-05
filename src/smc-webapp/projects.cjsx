@@ -1675,7 +1675,7 @@ ProjectSelector = rclass
         <Footer/>
         </div>
 
-ProjectsPage = rclass
+exports.ProjectsPage = ProjectsPage = rclass
     displayName : 'Projects-ProjectsPage'
 
     render : ->
