@@ -28,8 +28,6 @@ Page = rclass
                 <Tab eventKey={'about'} title={"About"}>
                     <HelpPage />
                 </Tab>
-                <Tab eventKey={'support'} title={"Support"}>
-                </Tab>
                 <Tab eventKey={'network'} title={"Network"}>
                 </Tab>
             </Tabs>
