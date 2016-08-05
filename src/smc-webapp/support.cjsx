@@ -581,12 +581,12 @@ init_redux = (redux) ->
 init_redux(redux)
 
 # hooking this up to the website
-
-$support = $('.navbar a.smc-top_navbar-support')
-$targ = $support.find('.react-target')
-render_project_support($targ[0], redux)
-$support.click () ->
-    exports.show()
+if not window.FULLY_REACT
+    $support = $('.navbar a.smc-top_navbar-support')
+    $targ = $support.find('.react-target')
+    render_project_support($targ[0], redux)
+    $support.click () ->
+        exports.show()
 
 # project wide public API
 
