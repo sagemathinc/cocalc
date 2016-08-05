@@ -217,6 +217,7 @@
     with_items:
     - 4ti2
     - 4ti2-doc
+    - advancecomp
     - asciidoc
     - attr
     - autoconf
@@ -461,6 +462,7 @@
     - pdftk
     - php-dev
     - pkg-config
+    - pngnq
     - poppler-utils
     - postgresql-client
     - povray

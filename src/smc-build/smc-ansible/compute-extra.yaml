@@ -51,6 +51,7 @@
     - pandas-profiling
     - wordcloud
     - cobra
+    - gensim
     - vpython
     - tdigest
 
