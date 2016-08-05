@@ -1,4 +1,4 @@
-{React, ReactDOM, rclass} = require('./smc-react')
+{React, ReactDOM, rclass, redux} = require('./smc-react')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
@@ -9,6 +9,8 @@
 
 {AccountPageRedux} = require('./account_page')
 
+{FileUsePage} = require('./file_use')
+
 Page = rclass
     displayName : "Page"
     render : ->
@@ -18,7 +20,7 @@ Page = rclass
                     <ProjectsPage />
                 </Tab>
                 <Tab eventKey={'activity'} title={"Activity"}>
-                    <Activity />
+                    <FileUsePage />
                 </Tab>
                 <Tab eventKey={'account'} title={"Account"}>
                     <AccountPageRedux />
@@ -33,11 +35,6 @@ Page = rclass
             </Tabs>
        </div>
 
-Activity = rclass
-    render : ->
-        <div>
-            <h1>Activity...</h1>
-        </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container"></div>')
 page = <Page/>
