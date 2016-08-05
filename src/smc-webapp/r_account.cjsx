@@ -32,7 +32,6 @@
 
 md5 = require('md5')
 
-account    = require('./account')
 misc       = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -1391,4 +1390,6 @@ render_top_navbar_button = ->
     <Redux redux={redux}>
         <AccountName />
     </Redux>
-ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+
+if not window.FULLY_REACT
+    ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]

@@ -41,7 +41,8 @@ top_navbar.on "switch_to_page-account", () ->
     else
         window.history.pushState("", "", window.smc_base_url + '/')
 
-account_page.mount()
+if not window.FULLY_REACT
+    account_page.mount()
 
 ################################################
 # Account creation

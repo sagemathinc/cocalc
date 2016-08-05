@@ -5,6 +5,8 @@
 
 {HelpPage} = require('./r_help')
 
+{AccountPageRedux} = require('./account_page')
+
 Page = rclass
     displayName : "Page"
     render : ->
@@ -17,6 +19,7 @@ Page = rclass
                     <Activity />
                 </Tab>
                 <Tab eventKey={'account'} title={"Account"}>
+                    <AccountPageRedux />
                 </Tab>
                 <Tab eventKey={'about'} title={"About"}>
                     <HelpPage />
