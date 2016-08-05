@@ -216,7 +216,6 @@ def divide_into_blocks(code):
         paren_depth = code[i].count('(') - code[i].count(')')
         brack_depth = code[i].count('[') - code[i].count(']')
         curly_depth = code[i].count('{') - code[i].count('}')
-        #while i>=0 and ((len(code[i]) > 0 and (code[i][0] in string.whitespace or code[i][:2] == '%(')) or paren_depth < 0 or brack_depth < 0 or curly_depth < 0):
         while i>=0 and ((len(code[i]) > 0 and (code[i][0] in string.whitespace)) or paren_depth < 0 or brack_depth < 0 or curly_depth < 0):
             i -= 1
             if i >= 0:
