@@ -9,6 +9,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 misc        = require('smc-util/misc')
 {defaults, required} = misc
 
+LOCAL_HUB_PORT = 6000  # TODO...
 
 exports.projects = (database) ->
     return new Projects(database)
@@ -196,16 +197,18 @@ class Project extends EventEmitter
         opts = defaults opts,
             cb : required
         dbg = @dbg("address"); dbg()
-        host = undefined
+        host = secret_token = undefined
         async.series([
             (cb) =>
                 @db
-                    get : ['kubernetes']
+                    get : ['kubernetes', 'secret_token']
                     cb  : (err, x) =>
-                        host = x?.ip
+                        dbg("got ", x)
+                        host = x?.kubernetes?.ip
+                        secret_token = x?.secret_token
                         cb()
             (cb) =>
-                if host?
+                if host
                     cb()
                 else
                     @start(cb:cb)  # TODO: maybe need to wait...
@@ -214,7 +217,9 @@ class Project extends EventEmitter
                 opts.cb(err)
             else
                 if host?
-                    opts.cb(undefined, {host:host, port:5000, secret_token:'foo'})  # TODO
+                    address = {host:host, port:LOCAL_HUB_PORT, secret_token:secret_token}
+                    dbg("address is ", address)
+                    opts.cb(undefined, address)  # TODO
                 else
                     opts.cb('not ready yet')
         )
