@@ -510,6 +510,7 @@ FileListing = rclass
         create_folder       : rtypes.func.isRequired
         create_file         : rtypes.func.isRequired
         selected_file_index : rtypes.number
+        project_id          : rtypes.string
 
     getDefaultProps : ->
         file_search : ''
@@ -626,6 +627,11 @@ FileListing = rclass
             <div className='dz-error-mark'><span><Icon name='times'></span></div>
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
+
+    postUrl : ->
+        dest_dir = misc.encode_path(@props.current_path)
+        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        return postUrl
 
     render : ->
         if @state.dragover
@@ -1940,7 +1946,8 @@ ProjectFiles = (name) -> rclass
                 actions             = {@props.actions}
                 create_file         = {@create_file}
                 create_folder       = {@create_folder}
-                selected_file_index = {@props.selected_file_index} />
+                selected_file_index = {@props.selected_file_index}
+                project_id          = {@props.project_id} />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
