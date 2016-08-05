@@ -22,6 +22,8 @@
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
+ReactDOMServer = require('react-dom/server')   # for dropzone below
+Dropzone = require('react-dropzone-component')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
@@ -512,6 +514,9 @@ FileListing = rclass
     getDefaultProps : ->
         file_search : ''
 
+    getInitialState : ->
+        dragover    : false
+
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
@@ -561,6 +566,14 @@ FileListing = rclass
         @props.actions.set_current_path(path, update_file_listing=true)
         @props.actions.set_url_to_path(path)
 
+    dragover : (e, enter) ->
+        #e.preventDefault()
+        @setState(dragover: enter)
+        if enter
+            console.log "dragarea entered"#, e
+        else
+            console.log "dragarea left"#, e
+
     parent_directory : ->
         styles =
             fontWeight   : 'bold'
@@ -602,13 +615,39 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
+    dropzone_template : ->
+        <div className='dz-preview dz-file-preview'>
+            <div className='dz-details'>
+                <div className='dz-filename'><span data-dz-name></span></div>
+                <img data-dz-thumbnail />
+            </div>
+            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-error-message'><span data-dz-errormessage></span></div>
+        </div>
+
     render : ->
-        <Col sm=12>
-            {@render_terminal_mode()}
-            {@parent_directory()}
-            {@render_rows()}
-            {@render_no_files()}
-        </Col>
+        if @state.dragover
+            <Col sm=12 onDragLeave={(e) => @dragover(e, false)}>
+                <Tip icon='file' title='Drag and drop files'
+                    tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
+                    <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
+                </Tip>
+                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0}>
+                    <Dropzone
+                        config={postUrl: @postUrl }
+                        eventHandlers={{}}
+                        djsConfig={previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
+                </div>
+            </Col>
+        else
+            <Col sm=12 onDragEnter={(e) => @dragover(e, true)}>
+                {@render_terminal_mode()}
+                {@parent_directory()}
+                {@render_rows()}
+                {@render_no_files()}
+            </Col>
 
 EmptyTrash = rclass
     displayName : 'ProjectFiles-EmptyTrash'
