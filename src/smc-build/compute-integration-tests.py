@@ -35,7 +35,7 @@ BINARIES = [
     'git', 'latexmk', 'bash', 'gcc', 'pdftk', 'julia', 'autopep8', 'aspell',
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
-    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
+    'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver', 'advpng',
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('M2', '1.'),
@@ -110,7 +110,7 @@ BINARIES = [
 # python libs that are installed everywhere
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
-    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
+    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt', 'gensim',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
 
@@ -119,7 +119,7 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa', 'tdigest',
+    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim',
 ]
 
 # python 3 libs
