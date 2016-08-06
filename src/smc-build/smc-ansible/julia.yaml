@@ -80,8 +80,11 @@
     - Graphs # https://github.com/JuliaLang/Graphs.jl
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
     - SCS # Solving optimization problems
+    - RCall # https://github.com/JuliaStats/RCall.jl
+    - StatsBase # https://github.com/JuliaStats/StatsBase.jl
     - RDatasets # https://github.com/johnmyleswhite/RDatasets.jl
     - TaylorSeries
+    - Distributions # https://github.com/JuliaStats/Distributions.jl
 
   - name: "update julia packages"
     tags: update
