@@ -4,6 +4,7 @@ import pandas as pd
 pd.set_option('display.max_colwidth', -1) # also for to_html !
 from pprint import pprint
 from collections import defaultdict
+from datetime import datetime
 
 # columns: programming language, executable, library name, version
 LIB_VERSIONS = []
@@ -41,6 +42,9 @@ def pytest_terminal_summary(terminalreporter):
         table td {border: 1px solid #999;}
         </style></head><body>''')
         sce.write('<h1>SMC Compute Environment</h1>\n')
+        sce.write('''
+        <div>Created {}</div>
+        '''.format(datetime.utcnow()))
 
         if 'libs' in locals():
             libs.to_csv(open(OUT_FN + '.libs.csv', 'w'))
