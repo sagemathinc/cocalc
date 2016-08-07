@@ -76,7 +76,7 @@
     - ECOS # https://github.com/JuliaOpt/ECOS.jl
     - GLPK # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
     - ParallelAccelerator # https://github.com/IntelLabs/ParallelAccelerator.jl
-    - MXNet # https://github.com/dmlc/MXNet.jl
+    # - MXNet # https://github.com/dmlc/MXNet.jl # broken again
     - Graphs # https://github.com/JuliaLang/Graphs.jl
     - Bio # https://github.com/BioJulia/Bio.jl (bioinformatics)
     - SCS # Solving optimization problems
