@@ -34,7 +34,10 @@ RUN apt-get update && \
     apt-add-repository ppa:ansible/ansible && \
     apt-get update && \
     apt-get install --yes ansible && \
-    locale-gen en_US.UTF-8 de_DE.UTF-8 fr_FR.UTF-8 ru_RU.UTF-8 es_ES.UTF-8
+    locale-gen en_US.UTF-8 de_DE.UTF-8 fr_FR.UTF-8 ru_RU.UTF-8 es_ES.UTF-8 fr_CH.UTF-8 \
+               fr_CA.UTF-8 de_AT.UTF-8 de_CH.UTF-8 en_GB.UTF-8 hi_IN.UTF-8 fr_BE.UTF-8 es_MX.UTF-8 \
+               pt_PT.UTF-8 pt_BR.UTF-8 ja_JP.UTF-8 it_IT.UTF-8 zh_TW.UTF-8 en_AU.UTF-8 nl_NL.UTF-8 \
+               ko_KR.UTF-8 sv_SE.UTF-8
 
 COPY manage.sh /manage.sh
 
