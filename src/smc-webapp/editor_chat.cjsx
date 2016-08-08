@@ -20,6 +20,15 @@
 ###############################################################################
 
 ###
+AUTHORS:
+
+  - William Stein
+  - Harald Schilly
+  - Simon Luu
+  - John Jeng
+###
+
+###
 Chat message JSON format:
 
 sender_id : String which is the original message sender's account id
@@ -294,15 +303,21 @@ Message = rclass
     show_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small" style={color:'#888', marginLeft:'10px'} onClick={@enable_history}>
-                <Icon name='history'/>
+            <div className="pull-left small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
+                <Tip title='Message History' tip='Show history of editing of this message.'>
+                    <Icon name='history'/>
+                </Tip>
             </div>
 
     hide_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small" style={color:'#888', marginLeft:'10px'} onClick={@disable_history}>
-                <Icon name='history'/>
+            <div className="pull-left small"
+                 style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                 onClick={@disable_history} >
+                <Tip title='Message History' tip='Hide history of editing of this message.'>
+                    <Icon name='history'/> Hide History
+                </Tip>
             </div>
 
     disable_history: ->
@@ -737,7 +752,7 @@ ChatRoom = (name) -> rclass
         background   : '#f5f5f5'
         fontSize     : '14px'
         borderRadius : '10px 10px 10px 10px'
-        borderColor  : '#000'
+        boxShadow    : '#666 3px 3px 3px'
         paddingBottom: '20px'
 
     is_at_bottom: ->
@@ -834,7 +849,7 @@ ChatRoom = (name) -> rclass
                                 <Markdown value={value}/>
                             </div>
                             <div className="pull-right small" style={color:'#888'}>
-                                This is a preview of your message
+                                Preview (press Shift+Enter to send)
                             </div>
                         </ListGroupItem>
                         <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
@@ -846,44 +861,44 @@ ChatRoom = (name) -> rclass
 
     render_preview_button_on: ->
         tip = <span>
-            Toggles message preview on
+            Currently off.  Click to turn on.
         </span>
 
         <Button ref='on' className='smc-big-only' onClick={@button_on_click}>
-            <Tip title='Toggle Preview On' tip={tip}>
-                <Icon name='toggle-on'/> Preview
+            <Tip title='Message Preview' tip={tip} placement='left'>
+                <Icon name='toggle-off'/> Preview
             </Tip>
         </Button>
 
     render_preview_button_off: ->
         tip = <span>
-            Toggles message preview off
+            Currently on.  Click to turn off.
         </span>
 
         <Button ref='off' className='smc-big-only' onClick={@button_off_click}>
-            <Tip title='Toggle Preview Off' tip={tip}>
-                <Icon name='toggle-off'/> Preview
+            <Tip title='Message Preview' tip={tip} placement='left'>
+                <Icon name='toggle-on'/> Preview
             </Tip>
         </Button>
 
     render_timetravel_button: ->
         tip = <span>
-            Redirects to the history of the sage-chat
+            Browse all versions of this chatroom.
         </span>
 
         <Button onClick={@show_timetravel} bsStyle='info'>
-            <Tip title='TimeTravel Button' tip={tip}>
+            <Tip title='TimeTravel Button' tip={tip}  placement='left'>
                 <Icon name='history'/> TimeTravel
             </Tip>
         </Button>
 
     render_bottom_button: ->
         tip = <span>
-            Scrolls the chat to the the bottom
+            Scrolls the chat to the bottom
         </span>
 
         <Button onClick={@scroll_to_bottom}>
-            <Tip title='Scroll to Bottom Button' tip={tip}>
+            <Tip title='Scroll to Bottom Button' tip={tip}  placement='left'>
                 <Icon name='arrow-down'/> Bottom
             </Tip>
         </Button>
@@ -926,8 +941,9 @@ ChatRoom = (name) -> rclass
                         <ButtonGroup>
                             {@render_timetravel_button()}
                             {@render_bottom_button()}
-                            {@render_preview_button_on() if @state.preview_button}
-                            {@render_preview_button_off() if not @state.preview_button}
+                            {#Disabled -- see https://github.com/sagemathinc/smc/issues/794}
+                            {#@render_preview_button_on() if @state.preview_button}
+                            {#@render_preview_button_off() if not @state.preview_button}
                         </ButtonGroup>
                     </Col>
                 </Row>
