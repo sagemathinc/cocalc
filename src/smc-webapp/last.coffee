@@ -118,4 +118,4 @@ $ ->
     $(document).on 'drop', (e) ->
         e.preventDefault()
         {alert_message} = require('./alerts')
-        alert_message(type:'info', message: 'To upload a file, drop it into the "Drop files to upload" area!')
+        alert_message(type:'info', message: 'To upload a file, drop it into the "Drop files to upload" area in the +New tab.')
