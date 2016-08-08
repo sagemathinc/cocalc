@@ -147,11 +147,14 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-        opts.cb = (err) =>
-            @set_project_state_open(opts.project_id, err)
-        open_project(opts)
-        if opts.switch_to
-            @foreground_project(opts.project_id)
+        if window.FULLY_REACT
+            @set_project_state_open(opts.project_id)
+        else
+            opts.cb = (err) =>
+                @set_project_state_open(opts.project_id, err)
+            open_project(opts)
+            if opts.switch_to
+                @foreground_project(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
