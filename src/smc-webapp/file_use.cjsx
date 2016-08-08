@@ -504,6 +504,20 @@ render = (redux) ->
         <FileUseController redux={redux} />
     </Redux>
 
+
+exports.FileUsePage = rclass
+    displayName : 'FileUse'
+
+    render : ->
+        # uses global redux...
+        <Row>
+            <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+                <Redux redux={redux}>
+                    <FileUseController redux={redux} />
+                </Redux>
+            </Col>
+        </Row>
+
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
         redux.createActions('file_use', FileUseActions)

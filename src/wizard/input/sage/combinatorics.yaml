@@ -29,7 +29,7 @@ code: |
     # and many more: http://doc.sagemath.org/html/en/reference/combinat/sage/combinat/permutation.html
 ---
 title: Cartesian Product
-descr: >
+descr: |
     Build a [cartesian product](http://doc.sagemath.org/html/en/reference/combinat/sage/combinat/cartesian_product.html) of sets.
 code: |
     S1 = Permutations(3)
@@ -38,3 +38,13 @@ code: |
     cp
     cp.cardinality()
     cp.list()
+---
+title: Finite State Machine
+descr: |
+    Transitions and a plot of a [Finite State Machine](http://doc.sagemath.org/html/en/reference/combinat/sage/combinat/finite_state_machine.html)
+code: |
+    fsm = Automaton([(0, 0, 0), (0, 1, 1), (0, 0, 2), (1, 2, 2), (2, 0, 0)], initial_states=[0, 1, 2], final_states=[0, 1])
+    for transition in fsm.accessible_components().transitions():
+        print transition
+    fsm.plot()
+---
