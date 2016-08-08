@@ -24,16 +24,12 @@ misc_page = require('./misc_page')
 underscore = require('underscore')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
-
-ReactDOMServer = require('react-dom/server')
-
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
 {project_page} = require('./project')
 {file_associations} = require('./editor')
-Dropzone = require('react-dropzone-component')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -316,67 +312,16 @@ ProjectNew = (name) -> rclass
             </Row>
         </div>
 
-FileUpload = (name) -> rclass
-    displayName : 'ProjectNew-FileUpload'
-
-    reduxProps :
-        "#{name}" :
-            current_path : rtypes.string
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    mixins : [ImmutablePureRenderMixin]
-
-    template : ->
-        <div className='dz-preview dz-file-preview'>
-            <div className='dz-details'>
-                <div className='dz-filename'><span data-dz-name></span></div>
-                <img data-dz-thumbnail />
-            </div>
-            <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
-            <div className='dz-error-message'><span data-dz-errormessage></span></div>
-        </div>
-
-    postUrl : ->
-        dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
-        return postUrl
-
-    render : ->
-        <Row>
-            <Col sm=3>
-                <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
-            </Col>
-            <Col sm=8>
-                <Tip icon='file' title='Drag and drop files'
-                    tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
-                    <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
-                </Tip>
-                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0}>
-                    <Dropzone
-                        config={postUrl: @postUrl }
-                        eventHandlers={{}}
-                        djsConfig={previewTemplate: ReactDOMServer.renderToStaticMarkup(@template())} />
-                </div>
-            </Col>
-        </Row>
-
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
     ProjectNew_connnected = ProjectNew(store.name)
-    FileUpload_connected  = FileUpload(store.name)
     <div>
         <Redux redux={redux}>
             <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
         </Redux>
         <hr />
-        <Redux redux={redux}>
-            <FileUpload_connected project_id={project_id} />
-        </Redux>
+        <div className='center'>Looking for file upload? Goto "Files" and click on "Upload".</div>
     </div>
 
 exports.render_new = (project_id, dom_node, redux) ->

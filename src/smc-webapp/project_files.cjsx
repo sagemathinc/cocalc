@@ -511,12 +511,11 @@ FileListing = rclass
         create_file         : rtypes.func.isRequired
         selected_file_index : rtypes.number
         project_id          : rtypes.string
+        show_upload         : rtypes.bool
 
     getDefaultProps : ->
         file_search : ''
-
-    getInitialState : ->
-        dragover    : false
+        show_upload : false
 
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -567,14 +566,6 @@ FileListing = rclass
         @props.actions.set_current_path(path, update_file_listing=true)
         @props.actions.set_url_to_path(path)
 
-    dragover : (e, enter) ->
-        #e.preventDefault()
-        @setState(dragover: enter)
-        if enter
-            console.log "dragarea entered"#, e
-        else
-            console.log "dragarea left"#, e
-
     parent_directory : ->
         styles =
             fontWeight   : 'bold'
@@ -616,6 +607,17 @@ FileListing = rclass
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
 
+    # upload area config and handling
+
+    show_upload : (e, enter) ->
+        if e?
+            e.preventDefault()
+        @props.actions.show_upload(enter)
+        #if enter
+        #    console.log "dragarea entered"#, e
+        #else
+        #    console.log "dragarea left"#, e
+
     dropzone_template : ->
         <div className='dz-preview dz-file-preview'>
             <div className='dz-details'>
@@ -634,21 +636,28 @@ FileListing = rclass
         return postUrl
 
     render : ->
-        if @state.dragover
-            <Col sm=12 onDragLeave={(e) => @dragover(e, false)}>
+        dropzone_handler =
+            dragleave: (e) => @show_upload(e, false)
+            complete: =>@props.actions.set_directory_files(@props.current_path)
+
+        if @props.show_upload
+            <Col sm=12>
                 <Tip icon='file' title='Drag and drop files'
                     tip='Drag and drop files from your computer into the box below to upload them into your project.  You can upload individual files that are up to 30MB in size.'>
                     <h4 style={color:"#666"}>Drag and drop files (Currently, each file must be under 30MB; for bigger files, use SSH as explained in project settings.)</h4>
                 </Tip>
-                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0}>
+                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0, margin: '10px'}>
                     <Dropzone
                         config={postUrl: @postUrl }
-                        eventHandlers={{}}
+                        eventHandlers={dropzone_handler}
                         djsConfig={previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
                 </div>
+                <ButtonToolbar className='center'>
+                    <Button onClick={=>@show_upload(null, false)} bsStyle='warning'>Close Upload</Button>
+                </ButtonToolbar>
             </Col>
         else
-            <Col sm=12 onDragEnter={(e) => @dragover(e, true)}>
+            <Col sm=12 onDragEnter={(e) => @show_upload(e, true)}>
                 {@render_terminal_mode()}
                 {@parent_directory()}
                 {@render_rows()}
@@ -1729,7 +1738,7 @@ ProjectFilesNew = rclass
 
     render : ->
         # This div prevents the split button from line-breaking when the page is small
-        <div style={width:'111px'}>
+        <div style={width:'111px', display: 'inline-block', marginRight: '20px' }>
             <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1768,6 +1777,7 @@ ProjectFiles = (name) -> rclass
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
+            show_upload         : rtypes.bool
 
     propTypes :
         project_id    : rtypes.string
@@ -1867,13 +1877,15 @@ ProjectFiles = (name) -> rclass
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=2>
+        style = if @props.show_upload then 'warning' else 'default'
+        <Col sm=3>
             <ProjectFilesNew
                 file_search   = {@props.file_search}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 create_file   = {@create_file}
                 create_folder = {@create_folder} />
+            <Button bsStyle={style} onClick={@props.actions.toggle_upload}><Icon name='upload' /> Upload</Button>
         </Col>
 
     render_activity : ->
@@ -1947,7 +1959,8 @@ ProjectFiles = (name) -> rclass
                 create_file         = {@create_file}
                 create_folder       = {@create_folder}
                 selected_file_index = {@props.selected_file_index}
-                project_id          = {@props.project_id} />
+                project_id          = {@props.project_id}
+                show_upload         = {@props.show_upload} />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
@@ -2019,7 +2032,7 @@ ProjectFiles = (name) -> rclass
                         create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 4}>
+                <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 <Col sm=3>

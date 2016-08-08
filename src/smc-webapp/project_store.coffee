@@ -486,7 +486,7 @@ class ProjectActions extends Actions
             cb      : required
         if not opts.dest and not opts.path?
             opts.dest = '.'
-           
+
         salvus_client.exec
             project_id      : @project_id
             command         : 'mv'
@@ -579,6 +579,12 @@ class ProjectActions extends Actions
             action : 'downloaded'
             files  : opts.path
         @_project().download_file(opts)
+
+    show_upload : (show) =>
+        @setState(show_upload : show)
+
+    toggle_upload: =>
+        @setState(show_upload : not @get_store().get('show_upload'))
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -969,6 +975,7 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
+        show_upload        : false
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 
