@@ -10,6 +10,8 @@ child_process = require('child_process')
 rethinkdb     = require('rethinkdb')
 async         = require('async')
 
+{retry_wrapper} = require('./util.coffee')
+
 # a nonnegative integer -- the number of this storage server
 STORAGE_SERVER = parseInt(process.env['STORAGE_SERVER'])
 GCLOUD_BUCKET  = process.env['GCLOUD_BUCKET']
@@ -25,6 +27,7 @@ run = (s, cb) ->
     child_process.exec s, (err, stdout, stderr) ->
         #log("output of '#{s}' -- ", stdout, stderr)
         cb?(err, stdout + stderr)
+
 
 connect_to_rethinkdb = (cb) ->
     try
@@ -64,9 +67,10 @@ init_projects_changefeed = (cb) ->
             return   # explicit return (undefined) -- otherwise last value gets returned, which stops iteration!
         cb?()
 
-init_storage = (project_id) ->
+init_storage = retry_wrapper (project_id, cb) ->
     project = projects[project_id]
     if project.initializing
+        cb?()
         return
     project.initializing = true
     log("init: #{project_id}", project)
@@ -90,6 +94,7 @@ init_storage = (project_id) ->
             log("init: #{project_id} ERROR -- ", err)
         else
             log("init: #{project_id} SUCCESS")
+        cb?(err)
     )
 
 ###

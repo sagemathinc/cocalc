@@ -23,26 +23,28 @@ def build(tag, rebuild):
     v.append('.')
 
     path     = join(SCRIPT_PATH, 'image')
-    kubectl  = join(path, 'kubectl')
+    with util.util_coffee(path):
+        os.system('ls -l %s'%path)
+        kubectl  = join(path, 'kubectl')
 
-    yaml = '{name}.template.yaml'.format(name='smc-project')
-    template = join(path, yaml)
-    print(template)
-    src  = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
-    spec_src = join(SCRIPT_PATH, '..', '..', '..', 'smc-util', 'upgrade-spec.coffee')
-    spec_dest = join(path, 'upgrade-spec.coffee')
-    try:
-        shutil.copyfile(join(SCRIPT_PATH, '..', 'conf', yaml), template)
-        shutil.copyfile(src, kubectl)
-        shutil.copymode(src, kubectl)
-        shutil.copyfile(spec_src, spec_dest)
-        util.run(v, path=path)
-    finally:
-        for k in [kubectl, template, spec_dest]:
-            try:
-                os.unlink(k)
-            except Exception as err:
-                print("WARNING: ", err)
+        yaml = '{name}.template.yaml'.format(name='smc-project')
+        template = join(path, yaml)
+        print(template)
+        src  = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
+        spec_src = join(SCRIPT_PATH, '..', '..', '..', 'smc-util', 'upgrade-spec.coffee')
+        spec_dest = join(path, 'upgrade-spec.coffee')
+        try:
+            shutil.copyfile(join(SCRIPT_PATH, '..', 'conf', yaml), template)
+            shutil.copyfile(src, kubectl)
+            shutil.copymode(src, kubectl)
+            shutil.copyfile(spec_src, spec_dest)
+            util.run(v, path=path)
+        finally:
+            for k in [kubectl, template, spec_dest]:
+                try:
+                    os.unlink(k)
+                except Exception as err:
+                    print("WARNING: ", err)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)

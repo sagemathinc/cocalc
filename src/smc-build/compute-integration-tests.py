@@ -36,13 +36,15 @@ BINARIES = [
     'automake', 'autoconf', 'biber', 'bibtex', 'cmake', 'ccache', 'coffee',
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
+    ('advpng', 'advancecomp'),
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
-    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim',
+    'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
+    ('M2', '1.'),
     ('gst', 'gnu smalltalk'),
     ('obspy3-plot', 'obspy-plot'),
     ('clp', 'Coin LP', '-help'),
     ('cbc', 'CBC MILP Solver', '-help'),
-    ('csdp', 'CSDP', ''),
+    ('csdp', 'CSDP', '', 1),
     ('spark', 'Examiner', '-version'),
     'nano', 'pypy', 'rsync', 'sed', 'scons', 'sass', 'zsh',
     'sbcl', 't1asm', 'xpra',
@@ -109,7 +111,7 @@ BINARIES = [
 # python libs that are installed everywhere
 PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
-    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt',
+    'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt', 'gensim',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
 ]
 
@@ -118,14 +120,14 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa',
+    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim', 'stl',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'tdigest', 'stl',
 ]
 
 # python libs in sagemath
@@ -136,7 +138,8 @@ PY_SAGE = PY_COMMON + [
     'clawpack', # no canonical version info
     'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
-    'jinja2', 'ncpol2sdpa', 'pymc', 'pymc3', 'pysal', 'cobra', 'gensim',
+    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl',
+    # 'pymc', # doesn't compile, pymc3 works
 ]
 
 # and in anaconda
@@ -233,11 +236,12 @@ JULIA = [
     'ECOS', # https://github.com/JuliaOpt/ECOS.jl
     'GLPK', # https://github.com/JuliaOpt/GLPKMathProgInterface.jl
     'ParallelAccelerator', # https://github.com/IntelLabs/ParallelAccelerator.jl
-    'MXNet', # https://github.com/dmlc/MXNet.jl
+    # 'MXNet', # test doesn't work, but nevermind
     'Graphs', # https://github.com/JuliaLang/Graphs.jl
     'Bio', # https://github.com/BioJulia/Bio.jl (bioinformatics)
     'SCS', # Solving optimization problems
     'RDatasets',
+    'TaylorSeries',
 ]
 
 

@@ -5,15 +5,59 @@
 language: sage
 category: Tutorial  / Help
 ---
-title: Getting Help
-descr: >
+title: Embedded Help
+descr: |
     Sage has extensive built-in documentation, accessible by typing the name of a function or a constant
     (for example), followed by a question mark:
 
     ```
     log2?
     ```
-
-    It's also possible to use the `help(...)` function.
 code: log2?
-attr: "[Sage Documentation](http://doc.sagemath.org/)"
+---
+title: Help Function
+descr: >
+    It's also possible to use the `help(...)` function.
+code: help(log2)
+---
+title: SageMath Documentation
+descr: |
+    Here are some links to the SageMath documentation:
+
+    * [Main Index](http://doc.sagemath.org/)
+    * [Sage Tour](http://doc.sagemath.org/html/en/a_tour_of_sage/index.html)
+    * [Tutorial in English](http://doc.sagemath.org/html/en/tutorial/index.html)
+    * [Thematic Tutorials](http://doc.sagemath.org/html/en/thematic_tutorials/index.html)
+    * [Reference Guide](http://doc.sagemath.org/html/en/reference/index.html)
+    * [Constructions](http://doc.sagemath.org/html/en/constructions/index.html)
+code: ""
+---
+title: Community Help
+descr: |
+    Here are places on the internet where you can get help:
+
+    * [SageMath Support Group](https://groups.google.com/group/sage-support)
+    * [Ask SageMath](http://ask.sagemath.org/)
+code: ""
+---
+title: Tab-Completion
+descr: |
+    To learn more about possible operations on an object or existing functions and classes,
+    first type in the variable, then a dot, and then press the [`TAB` key](https://www.google.at/search?q=tab+key).
+
+    The tab key can either autocomplete your current input at the position of the cursor,
+    or give you a list of possible completions.
+
+    In the given example here, position the cursor after the dot and press the `[TAB]` key.
+
+    Autocompletion also wors for partial strings and pre-defined objects.
+    In the second and third example, you can either all implemented Graphs or tab-complete a specific function.
+code: |
+    # press the tab key after placing the cursor right next to the "."
+    %var x
+    ex = 2*x/sin(x)
+    ex.
+    # for implemented graphs
+    graphs.
+    # or place the cursor after "Group" and press tab
+    Group

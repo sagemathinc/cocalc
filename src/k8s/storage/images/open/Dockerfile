@@ -38,4 +38,7 @@ ENV NODE_PATH=/node_modules
 # Copy over main entry script
 COPY run.coffee /run.coffee
 
+# Utility functions used by main script (placed by control.py)
+COPY util.coffee /util.coffee
+
 ENTRYPOINT ["/sbin/dumb-init", "/usr/bin/coffee", "run.coffee"]

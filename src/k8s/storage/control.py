@@ -17,11 +17,13 @@ def full_tag(tag, service):
 
 def build(tag, rebuild):
     for service in SERVICES:
-        v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
-        if rebuild:
-            v.append("--no-cache")
-        v.append('.')
-        util.run(v, path=join(SCRIPT_PATH, 'images', service))
+        path = join(SCRIPT_PATH, 'images', service)
+        with util.util_coffee(path):
+            v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
+            if rebuild:
+                v.append("--no-cache")
+            v.append('.')
+            util.run(v, path=path)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)

@@ -186,7 +186,6 @@ SAGE_PIP_PACKAGES = [
     'ncpol2sdpa',
     'hdbscan',
     'openpyxl',
-    'pymc',
     'xlrd',
     'xlwt',
     'pyproj',
@@ -199,6 +198,7 @@ SAGE_PIP_PACKAGES = [
     'munkres',
     'oct2py',
     'psutil',
+    # 'pymc', # pymc v2 doesn't work due to too old numpy api. pymc3 below does work, though.
     'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
@@ -285,6 +285,8 @@ SAGE_PIP_PACKAGES = [
     'python-libsbml', # dependency of cobra
     'markdown',
     'vpython', # http://vpython.org/ used in physics
+    'tdigest',
+    'numpy-stl',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -296,6 +298,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'beautifulsoup4',
     'datasift',
     'vpnotebook', # http://vpython.org/ used in physics
+    'python_utils',
 ]
 
 

@@ -35,6 +35,9 @@ ENV NODE_PATH=/node_modules
 
 # Copy over other scripts
 COPY run.coffee /run.coffee
+# Utility functions used by main script (placed by control.py)
+COPY util.coffee /util.coffee
+# Common config used by main script (placed by control.py)
 COPY upgrade-spec.coffee /upgrade-spec.coffee
 
 # Copy in template

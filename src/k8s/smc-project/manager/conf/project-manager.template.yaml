@@ -29,12 +29,12 @@ spec:
         image: {image}
         imagePullPolicy: {pull_policy}
         resources:
-          requests:
-            memory: "30Mi"
-            cpu: "5m"
+          requests:  # really do need much more than about 160Mi or it will keep crashing.
+            memory: "160Mi"
+            cpu: "20m"
           limits:
-            memory: "100Mi"
-            cpu: "300m"
+            memory: "300Mi"
+            cpu: "400m"
         env:
           - name: KUBERNETES_NAMESPACE
             value: {namespace}

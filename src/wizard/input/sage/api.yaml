@@ -1,0 +1,17 @@
+# SMC Wizard Documentation File
+# Copyright: SageMath Inc., 2016
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+language: sage
+category: Extras / Queries
+---
+title: Introduction
+descr: |
+    SageMath offers some built-in functions for querying online resources and databases.
+code: ""
+---
+title: Online Encyclopedia of Integer Sequences
+descr: |
+    SageMath allows you to directly query the [OEIS](https://oeis.org/).
+code: |
+    oeis([1,1,2,3,5,8,13])

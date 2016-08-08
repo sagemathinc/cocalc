@@ -63,8 +63,6 @@ require('./console')
 syncdoc = require('./syncdoc')
 sagews  = require('./sagews')
 
-{Wizard} = require('./wizard')
-
 top_navbar =  $(".salvus-top_navbar")
 
 codemirror_associations =
@@ -2350,19 +2348,31 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     wizard_handler: () =>
+        $target = @mode_display.parent().find('.react-target')
+        {render_wizard} = require('./wizard')
+        # @wizard is this WizardActions object
         if not @wizard?
-            @wizard = new Wizard(cb : @wizard_insert_handler, lang : @_current_mode)
+            @wizard = render_wizard($target[0], @project_id, @filename, lang = @_current_mode, cb = @wizard_insert_handler)
         else
-            @wizard.show(lang : @_current_mode)
+            @wizard.show(lang = @_current_mode)
 
     wizard_insert_handler: (insert) =>
         code = insert.code
         lang = insert.lang
-        console.log "wizard insert:", lang, code
         cm = @focused_codemirror()
         line = cm.getCursor().line
+        # console.log "wizard insert:", lang, code, insert.descr
+        if insert.descr?
+            @syncdoc?.insert_new_cell(line)
+            cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
+            @action_key(execute: true, advance:false, split:false)
+        line = cm.getCursor().line
         @syncdoc?.insert_new_cell(line)
-        cm.replaceRange("%#{lang}\n#{code}", {line : line+1, ch:0})
+        cell = code
+        if lang != @_current_mode
+            cell = "%#{lang}\n#{cell}"
+        cm.replaceRange(cell, {line : line+1, ch:0})
+        @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
@@ -3690,7 +3700,6 @@ class FileEditorWrapper extends FileEditor
 # Task list
 ###
 
-
 class TaskList extends FileEditorWrapper
     init_wrapped: () =>
         @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
@@ -4519,6 +4528,37 @@ class ReactCodemirror extends FileEditorWrapper
 ###
 # *TEMPLATE* for a react-based editor
 ###
+class TemplateEditor extends FileEditorWrapper
+    init_wrapped: () =>
+        the_editor = require('./editor_template')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+            left               : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                the_editor.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                the_editor.hide(args...)
+            show    : =>
+                the_editor.show(args...)
+        the_editor.render(args...)
+
+        
 class TemplateEditor extends FileEditorWrapper
     init_wrapped: () =>
         the_editor = require('./editor_template')

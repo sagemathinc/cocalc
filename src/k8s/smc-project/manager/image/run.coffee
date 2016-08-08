@@ -13,6 +13,8 @@ LICENSE: GPLv3
 NOTE: This code doesn't depend on the rest of the SMC library.
 ###
 
+IDLE_TIMEOUT_INTERVAL_M = 1  # check for need to idle timeout projects with this frequently
+
 {DEFAULT_QUOTAS} = require('./upgrade-spec.coffee')
 
 DEFAULTS =
@@ -34,6 +36,9 @@ async         = require('async')
 temp          = require('temp')    # https://www.npmjs.com/package/temp
 
 rethinkdb = require('rethinkdb')
+
+{retry_wrapper} = require('./util.coffee')
+
 conn      = undefined  # connection to rethinkdb
 DATABASE  = 'smc'
 
@@ -77,10 +82,11 @@ init_projects_changefeed = (cb) ->
                 z = projects[project_id] ?= {}
                 changed = {}
                 for field in FIELDS
-                    if z[field] != x.new_val[field]
+                    if JSON.stringify(z[field]) != JSON.stringify(x.new_val[field])   # use due to resources being object
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z['run'] and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
+                if state == 'ready' and z.run and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
+                    log("deployment change for '#{project_id}' ", changed)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
@@ -96,6 +102,7 @@ init_projects_changefeed = (cb) ->
 # Periodically check for idle running projects, and if so switch
 # them from the run=true to run=false.
 idle_timeout_check = () ->
+    log('idle_timeout_check')
     now = new Date()
     for project_id, project of projects
         if project.run and project.idle_timeout and now - project.last_edited >= project.idle_timeout * 1000*60
@@ -106,17 +113,23 @@ idle_timeout_check = () ->
                     log "idle_timeout_check '#{project_id}' -- set run=false"
 
 start_idle_timeout_monitor = (cb) ->
-    setInterval(idle_timeout_check, 60*1000)
+    setInterval(idle_timeout_check, IDLE_TIMEOUT_INTERVAL_M*60*1000)
     cb()
 
+project_id_from_labels = (lbl) ->
+    for x in lbl.split(',')
+        w = x.split('=')
+        if w[0] == 'project_id'
+            return w[1]
+
 # Maintain current status of all project deployments
-init_kubectl_watch = (cb) ->
+init_kubectl_deployment_watch = (cb) ->
     # The Headers include: NAME   DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE  LABELS
     # kubectl get deployments --show-labels --selector=run=smc-project --watch
 
     headers = undefined
     process = (line) ->
-        v = line.match(/\S+/g)   # split on whitespace
+        v = split(line)
         if not v or v.length == 0
             return
         if line.indexOf('smc-project') == -1
@@ -124,12 +137,11 @@ init_kubectl_watch = (cb) ->
             headers = v
         else
             # New info
-            project_id = v[0].slice('smc-project-'.length)
+            project_id = project_id_from_labels(v[v.length-1])
             x = projects[project_id] ?= {}
-            k = {}
+            k = x.kubernetes_deployment_watch ?= {}
             for i in [0...v.length]
                 k[headers[i]] = v[i]
-            x.kubernetes_watch = k
             write_kubernetes_data_to_rethinkdb(project_id)
             reconcile(project_id)
 
@@ -141,9 +153,11 @@ init_kubectl_watch = (cb) ->
         for line in output.split('\n')
             process(line)
 
+        cb?()
+
         # Now watch (NOTE: don't do --no-headers here, in case there wasn't nothing output above)
-        r = child_process.spawn('kubectl', ['get', 'deployments', '--show-labels',
-                                            '--selector=run=smc-project', '--watch'])
+        r = child_process.spawn('kubectl', split('get deployments --show-labels --selector=run=smc-project --watch-only'))
+
         stdout = ''
         r.stdout.on 'data', (data) ->
             stdout += data.toString()
@@ -156,16 +170,16 @@ init_kubectl_watch = (cb) ->
                 process(line)
 
         r.on 'exit', (code) ->
-            throw "kubectl terminated -- #{code}"
+            log("kubectl terminated normally", code)
+            init_kubectl_deployment_watch()
 
         r.on 'error', (err) ->
-            throw "kubectl subprocess error -- #{err}"
-
-        cb?()
+            log("kubectl subprocess error", err)
+            init_kubectl_deployment_watch()
 
 write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
     cur = projects[project_id].kubernetes
-    kubernetes_watch = projects[project_id].kubernetes_watch
+    kubernetes_watch = projects[project_id].kubernetes_deployment_watch
     desired   = parseInt(kubernetes_watch.DESIRED)
     available = parseInt(kubernetes_watch.AVAILABLE)
     if cur?.desired == desired and cur?.available == available
@@ -178,27 +192,31 @@ write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
 
 # get changed to true when we first run reconcile_all
 _reconcile_ready = false
-reconcile = (project_id, cb) ->
+reconcile = retry_wrapper (project_id, cb) ->
     if not _reconcile_ready
-        cb?()
+        cb()
         return
     x = projects[project_id]
-    desired = x.kubernetes_watch?.DESIRED
+    desired = x.kubernetes_deployment_watch?.DESIRED
     dbg = (m...) -> log("reconcile('#{project_id}')", m...)
+    dbg()
     if x.run
         if not x.storage_server?
             # This will assign a storage server, which will eventually cause storage_ready to
             # be true, allowing things to run.
             dbg("assign storage server")
             get_storage_server(project_id, cb)
-            return
-        if x.storage_ready and desired != '1'
+        else if x.storage_ready and desired != '1'
             dbg("starting because x = ", x)
             kubectl_update_project(project_id, cb)
+        else
+            cb()
     else
         if desired == '1'
             dbg("stopping because x = ", x)
             kubectl_stop_project(project_id, cb)
+        else
+            cb()
 
 reconcile_all = (cb) ->
     _reconcile_ready = true
@@ -227,6 +245,9 @@ deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible
         s = replace_all(s, "{#{k}}", "#{v}")
     #log('s = ', s)
     return s
+
+# split on whitespace
+split = (s) -> s.match(/\S+/g)
 
 run = (s, cb) ->
     log("running '#{s}'")
@@ -298,8 +319,6 @@ kubectl_update_project = (project_id, cb) ->
     ], (err) ->
         if err
             log "failed to update '#{project_id}': ", err
-            # Try again in a few seconds  (TODO...)
-            setTimeout((()->reconcile(project_id)), 5000)
         else
             log "updated '#{project_id}'"
         if path?
@@ -399,8 +418,6 @@ kubectl_stop_project = (project_id, cb) ->
     run "kubectl delete deployments smc-project-#{project_id}", (err) ->
         if err
             log "failed to stop '#{project_id}': ", err
-            # Try again in a few seconds  (TODO...)
-            setTimeout((()->reconcile(project_id)), 5000)
         else
             log "stopped '#{project_id}'"
         w = projects[project_id].stopping
@@ -408,10 +425,95 @@ kubectl_stop_project = (project_id, cb) ->
         for cb in w
             cb?(err)
 
+# Watch output of "kubectl pod" for all projects; this gives us the ip addresses, and other pod-specific info
+## TODO: DEAL with multiple pods for same deployment!!!
+init_kubectl_pod_watch = (cb) ->
+    headers = undefined
+    pod_names = {}
+    process = (line) ->
+        v = split(line)
+        if not v or v.length == 0
+            return
+        if line.indexOf('smc-project') == -1   # Headers
+            headers = v
+        else
+            # New info
+
+            # When changing things about a project, the pod output gives info both
+            # about the newly creating pod and the old pod being destroyed, in potentially
+            # random order.  So we only record info about the most recent one when
+            # watching.  This is also why we sort by creationTimestamp (for the initial load).
+            name = v[0]
+            if not pod_names[project_id]?
+                # initialize
+                pod_names[project_id] = [name]
+            else
+                # already seen a pod with this project_id
+                z = pod_names[project_id]
+                if name in z
+                    if z[z.length-1] != name
+                        # already known but not most recent pod -- ignore
+                        return
+                else
+                    # not known -- becomes new one we watch
+                    z.push(name)
+
+            # extract project_id from final labels column (properly and safely)
+            project_id = project_id_from_labels(v[v.length-1])
+
+            # update changed fields of projects[project_id].kubernetes in the database (and the projects object)
+            x = projects[project_id] ?= {}
+            x.kubernetes ?= {}
+            k = {}
+            for i in [0...v.length]
+                k[headers[i]] = if v[i] == '<none>' then '' else v[i]
+            update = undefined
+            for field in ['READY', 'STATUS', 'RESTARTS', 'IP', 'NODE']
+                field0 = field.toLowerCase()
+                if x.kubernetes[field0] != k[field]
+                    update ?= {}
+                    update[field0] = k[field]
+            if update?
+                update_kubernetes_db_info(project_id, update)
+
+    # Initialize
+    args = 'get pods --sort-by=metadata.creationTimestamp -o wide --show-labels --selector=run=smc-project'
+    run "kubectl #{args}", (err, output) ->
+        if err
+            cb?(err)
+            return
+        for line in output.split('\n')
+            process(line)
+
+        cb?()
+
+        # Watch
+        r = child_process.spawn('kubectl', split("#{args} --watch-only"))
+        stdout = ''
+        r.stdout.on 'data', (data) ->
+            stdout += data.toString()
+            while true
+                i = stdout.indexOf('\n')
+                if i == -1
+                    break
+                process(stdout.slice(0,i))
+                stdout = stdout.slice(i+1)
+        r.on 'exit', (code) ->
+            log("kubectl watch pods terminated normally", code)
+            init_kubectl_pod_watch()
+        r.on 'error', (err) ->
+            log("kubectl watch pods subprocess error", err)
+            init_kubectl_pod_watch()
+
+update_kubernetes_db_info = (project_id, update, cb) ->
+    # TODO error handling
+    rethinkdb.db(DATABASE).table('projects').get(project_id).update(kubernetes:update).run(conn, (err) -> cb?(err))
+
 main = () ->
     async.series [connect_to_rethinkdb,
                   init_projects_changefeed,
-                  init_kubectl_watch,
+                  init_kubectl_deployment_watch,
+                  init_kubectl_pod_watch,
                   reconcile_all,
                   start_idle_timeout_monitor], (err) ->
         if err
@@ -421,11 +523,3 @@ main = () ->
             log("SUCCESSFULLY INITIALIZED; now RUNNING")
 
 main()
-
-# For debugging/dev
-exports.main = main
-exports.connect_to_rethinkdb = connect_to_rethinkdb
-exports.init_kubectl_watch = init_kubectl_watch
-exports.init_projects_changefeed = init_projects_changefeed
-exports.projects = projects
-exports.get_all_storage_servers = get_all_storage_servers
