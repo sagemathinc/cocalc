@@ -150,6 +150,28 @@ descr:  >
     a relationship between x, an y that extends over an area of the plane ( 2 D).
     The slope is indicated by the slope of a short line segment.
 ---
+title: ODE Slope Field
+descr: |
+    This example shows, how the solution of the differential equation
+    $$\frac{dy}{dx} + \frac{y}{x} + x = 2$$
+    with the initial conditions $y(2) = 4$
+    looks like.
+code: |
+    x = var('x')
+    y = function('yy')(x)
+    eq = diff(y, x) == - y/x - x + 2
+    h = desolve(eq, y, [2, 4])
+    sol(x) = h.expand()
+    print "solution:", sol
+
+    # substituting the solution for y(x) in the right hand side
+    substituted = eq.rhs().substitute_function(yy, sol)
+
+    P1 = plot_slope_field( substituted, (x, 0, 6), (y, -5, 15), headlength = 4, headaxislength=3 )
+    P2 = plot( sol, (x, 0, 6), ymax=15, ymin=-5 )
+    P = P1 + P2
+    P.show()
+---
 title: Vector Field
 code:  |
     print "Plot vector field"

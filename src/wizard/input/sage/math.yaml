@@ -180,13 +180,21 @@ code: |
     # or as a function
     integrate(1/x^2, x, 1, infinity)
 ---
-title: Laplace transformations
+title: Laplace Transformations
 descr: |
     Compute laplace transformations
 code: |
     %var k s t
     f = 1/exp(k*t)
-    f.laplace(t,s)
+    f.laplace(t, s)
+---
+title: Inverse Laplace Transformations
+descr: |
+    ... and the inverse laplace transformations.
+code: |
+    %var k s t
+    g = 1/(k + s)
+    g.inverse_laplace(s, t)
 ---
 category: Mathematics  / Differential Equations
 ---
@@ -222,3 +230,15 @@ code: |
     y = function('y')(x)
     desolve(diff(y,x,2) + 3*x == y, dvar = y, ics = [1,1,1])
     desolve(diff(y,x,2) + 3*x == y, dvar = y)
+---
+title: Slope Field
+descr: |
+    The following solves the differential equation
+    $$\frac{dy}{dx} + \frac{y}{x} + x = 2$$
+    with the initial conditions $y(2) = 4$.
+code: |
+    x = var('x')
+    y = function('y')(x)
+    myequation = diff(y,x) + y/x + x == 2
+    h = desolve(myequation, y, [2, 4])
+    h.expand()
