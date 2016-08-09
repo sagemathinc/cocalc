@@ -1,25 +1,47 @@
 # SMC Wizard Documentation File
-# Copyright: SageMathCloud Authors, 2015
+# Copyright: SageMath, Inc., 2015
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: sage
 ---
 category: Tutorial / Tour
 ---
-title: Expressions and Assignments
+title: SageMath is Python with Extras
 descr: >
-    The language of Sage is built on top of Python.
-    There are only some minor differences and hence you can apply almost all Python knowledge for working with Sage.
+    The language of SageMath is built on top of [Python](https://docs.python.org/2/tutorial/).
+    There are only some minor differences and hence you can apply all Python knowledge for working with Sage.
+
+    The only real difference is, that a few expressions are *pre-parsed*.
+    For example, `f(x) = 2*x + 1` is valid SageMath for defining a function `f`,
+    but that's not Python!
+code: |
+    f(x) = 2*x + 1
+    print f(3)
+---
+title: Assignments
+descr: >
     Assignments are one of the most basic concepts of programming.
     An object is born -- as a result of a creation or as an evaluation of an expression --
-    and assigned to (variable)name for later use.
-    This assignment happens with the `=` sign on the left -- do not get confused with a mathematical equation!
+    and assigned to (variable-) name for later use.
+
+    This assignment happens with the `=` sign on the left,
+    which is exactly like giving the created object on the right hand side a "name".
+    Do not get confused with a mathematical equation!
 code: |
     a = 5   # giving "5" the name "a"
     a
+---
+title: Expressions
+descr: >
+    Expressions are where computations happen.
+    These could be arithmetic operations, function calls, or other binary operations like comparisons.
+code: |
+    2 + 2   # sum of 2 plus 2
     2 == 2  # testing if 2 equals 2
-    2 == 3
-    2 < 4
+    2 < 4   # is 2 smaller than 4?
+    sqrt(4) # square root of 4
+    a = 5   # assigning 5 to a
+    a + 4   # should give 9
     a == 5  # not an assignment, but a test if a is still 5
 ---
 title: Mathematical Operations
@@ -29,7 +51,7 @@ descr: >
 code: |
     2 ** 3
     2^3
-    10 % 3
+    10 % 3  # modulo
     8 / 7   # this gives a fraction
     9//2    # integer quotient
 ---
@@ -46,7 +68,7 @@ code: |
 title: Types
 descr: >
     A great deal of programming is about organizing data and information.
-    A "type" is a specific pattern, how data is organized with descriptive names.
+    A "type" is a specific pattern, defining how data is structured and it a descriptive name.
     Use Pythons `type(...)` function any time,
     to learn more about what you are currently dealing with.
 code: |
@@ -56,6 +78,9 @@ code: |
     type(a)
     a = "I am a string in quotes"
     type(a)
+    # ... and finally a complicated type
+    e11a = EllipticCurve('11a')
+    type(e11a)
 ---
 title: Classes
 descr: >
@@ -75,24 +100,29 @@ title: Functions
 descr: >
     In Sage, there are (at least) two types of functions.
     A Python-function is defined via the `def` keyword and maps optional arguments to a returned value.
-    For more information, [consult the Sage Tour](http://www.sagemath.org/doc/tutorial/tour_help.html#functions-indentation-and-counting).
+    For more information, [consult the Sage Tour](http://doc.sagemath.org/html/en/a_tour_of_sage/index.html).
 
-    Symbolic-functions are defined via `f(x) = ...` and hence fulfull a special purpose for symbolic computations.
+    Symbolic-functions are defined via `f(x) = ...`.
+    They are special purpose in the context of symbolic computations.
+
+    Hint: always make sure to define `x` prior to constructing such a function or symbolic expression,
+    as a symbolic variable and not accidentally as a number!
 code: |
     def f1(x):
         return 2*x
     f1(11)
 
+    # this defines x to be a symbolic variable
     %var x
-    f2(x) = 2 * x
+    f2(x) = 2 * x + 1
     f2(21)
 ---
 title: Symbolic Expressions
 descr: >
     A great deal of mathematics concerns symbolic expressions.
-    The fundamental building block is a single variable, `x`, `y`, etc..
+    The fundamental building block is a single variable, `x`, `y`, etc.
     It can be defined via `var('x')` or the magic command `%var y`.
-    Then, symbolic expressions are built using them.
+    Then, symbolic expressions are constructed by using them as building blocks.
     It is important to define the variables as being symblic.
     Otherwise, the constructed expression is something completely different!
 code: |
@@ -105,12 +135,12 @@ code: |
 ---
 title: Approximate Symbolic Expressions
 descr: >
-    To approximate a symbolic expression (without a free variable), use `n(...)`
+    To approximate a symbolic expression (without a free variable), use `n(<expr>)` or `expr.n()`.
 code: |
     exp(2)
     n(exp(2))
-    sin(31.41592).n(digits=50)
-    numerical_approx(pi, prec=200)
+    sin(31.41592).n(digits=50)     # number of digits
+    numerical_approx(pi, prec=200) # number of bits
 ---
 title: LaTeX Formulas
 descr: "To see a LaTeX rendering of such a symbolic expression, use Sage's `show(...)` function."
@@ -126,6 +156,7 @@ descr: >
 code: |
     %var x, y
     solve(2*x^2 + 1, x)
+    # second example, two equations:
     ex1 = (x + y)^2 - 1
     ex2 = x - y == 1
     solve([ex1, ex2], [x, y])
@@ -133,7 +164,7 @@ code: |
 title: Numerical Solutions
 descr: >
     Sage's `find_root(...)` solves equations numerically.
-    The optional second and third argument constrain the variable to this interval.
+    The optional second and third argument constrain the variable to an interval.
 code: |
     %var phi
     find_root(cos(phi)==sin(phi), 0, pi/2)
@@ -151,20 +182,7 @@ code: |
 ---
 title: Symbolic Integration
 descr: >
-    If possible, the `integral(...)` function computes a symbolic integral.
+    If the algorithm is able to find it, the `integral(...)` function computes a symbolic integral.
 code: |
     %var x
     integral(x*sin(x^2), x)
----
-title: Tab-Completion
-descr: >
-    To learn more about possible operations on an object,
-    first type in the variable, then a dot, and then press the `[TAB]` key.
-    The tab key can either autocomplete you current input at the position of the cursor,
-    or give you a list of possible completions.
-
-    In the given example here, position the cursor after the dot and press the `[TAB]` key.
-code: |
-    %var x
-    ex = 2*x/sin(x)
-    ex.

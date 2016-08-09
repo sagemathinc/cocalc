@@ -484,7 +484,7 @@ HelpPageGettingStartedSection = rclass
             </Accordion>
         </div>
 
-HelpPage = rclass
+exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render : ->

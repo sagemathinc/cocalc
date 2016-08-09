@@ -285,6 +285,8 @@ SAGE_PIP_PACKAGES = [
     'python-libsbml', # dependency of cobra
     'markdown',
     'vpython', # http://vpython.org/ used in physics
+    'tdigest',
+    'numpy-stl',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -296,6 +298,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'beautifulsoup4',
     'datasift',
     'vpnotebook', # http://vpython.org/ used in physics
+    'python_utils',
 ]
 
 

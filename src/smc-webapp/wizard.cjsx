@@ -78,12 +78,15 @@ class WizardActions extends Actions
             search_sel : null
             submittable: false
             cat1_top   : ["Intro", "Tutorial", "Help"]
+
     hide: =>
         @set(show: false)
+
     init: (lang='sage') ->
         @reset()
         @show(lang=lang)
         @load_data()
+
     init_data: (data) ->
         @set(data: data)
         nav_entries = []
@@ -97,13 +100,16 @@ class WizardActions extends Actions
                 nav_entries.push(entry)
         @set(nav_entries: nav_entries)
         @select_lang(@get('lang'))
-    insert: (cb) ->
+
+    insert: (cb, descr) ->
         # this is the essential task of the wizard:
         # call the callback with the selected code snippet
-        cb
+        data =
             code  : @get('code')
             lang  : @get('lang')
-            descr : @get('description')
+            descr : if descr then @get('descr') else null
+        cb(data)
+
     load_data: () ->
         if not DATA?
             require.ensure [], =>
@@ -112,17 +118,22 @@ class WizardActions extends Actions
                 @init_data(DATA)
         else
             @init_data(DATA)
+
     data_lang: () ->
         @get('data').get(@get('lang'))
+
     get_catlist0: () ->
         @data_lang().keySeq().toArray().sort(@cat_sort)
+
     get_catlist1: () ->
         k0 = @get_catlist0()[@get('cat0')]
         @data_lang().get(k0).keySeq().toArray().sort(@cat_sort)
+
     get_catlist2: () ->
         k0 = @get_catlist0()[@get('cat0')]
         k1 = @get_catlist1()[@get('cat1')]
         @data_lang().getIn([k0, k1]).map((el) -> el.get(0)).toArray()
+
     select_lang: (lang) ->
         @reset()
         @set(lang: lang)
@@ -130,6 +141,7 @@ class WizardActions extends Actions
         @set(catlist0 : catlist0)
         if catlist0.length == 1
             @set_selected_category(0, 0)
+
     search: (search_str) ->
         @reset()
         if not search_str? or search_str.length == 0
@@ -287,6 +299,7 @@ class WizardActions extends Actions
 
 WizardHeader = rclass
     displayName : 'WizardHeader'
+
     propTypes:
         actions     : rtypes.object
         nav_entries : rtypes.array
@@ -306,7 +319,10 @@ WizardHeader = rclass
             return true
         switch evt.keyCode
             when 27 # ESC
-                @props.actions.search('')
+                if @props.search_str?.length > 0
+                    @props.actions.search('')
+                else
+                    return true
             when 38
                 @props.actions.search_cursor(-1)
             when 40
@@ -348,6 +364,7 @@ WizardHeader = rclass
 
 WizardBody = rclass
     displayName : 'WizardBody'
+
     propTypes:
         actions    : rtypes.object
         data       : rtypes.object
@@ -491,31 +508,35 @@ RWizard = (name) -> rclass
     close : ->
         @props.actions.hide()
 
-    submit : ->
-        @props.actions.insert(@props.cb)
+    insert_code : ->
+        @props.actions.insert(@props.cb, false)
+        @close()
+
+    insert_all : ->
+        @props.actions.insert(@props.cb, true)
         @close()
 
     handle_dialog_keyup : (evt) ->
-        evt.preventDefault() # which
-        evt.stopPropagation() # does
-        evt.nativeEvent.stopImmediatePropagation() # what ?!
-        search_mode = @props.search_str?.length > 0
         switch evt.keyCode
             when 13 #return
                 if @props.submittable
                     @submit()
             when 27 # ESC
-                if search_mode
-                    @props.actions.search('')
+                return true # will close the dialog
             when 38 # up
                 dir = -1
             when 40 # down
                 dir = +1
+            else
+                nothing = true
         if dir?
-            if search_mode
+            if @props.search_str?.length > 0 # active search
                 @props.actions.search_cursor(dir)
             else
                 @props.actions.select_cursor(dir)
+        evt.preventDefault() # which
+        evt.stopPropagation() # does
+        evt.nativeEvent.stopImmediatePropagation() # what ?!
         return false
 
     render : ->
@@ -548,7 +569,8 @@ RWizard = (name) -> rclass
 
             <Modal.Footer>
                 <Button onClick={@props.actions.hide}>Cancel</Button>
-                <Button onClick={@submit} disabled={not @props.submittable} bsStyle='success'>Insert Code</Button>
+                <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
+                <Button onClick={@insert_all} disabled={not @props.submittable} bsStyle='success'>Insert</Button>
             </Modal.Footer>
         </Modal>
 
