@@ -686,7 +686,7 @@ ChatRoom = (name) -> rclass
         input          : ''
         preview        : ''
         preview_button : false
-        is_preview_on  : true
+        is_preview_on  : false     # all devs reports at that preview is **annoying**, e.g., "trying to type with eyes closed chat preview is so annoying."  I didn't realize this would be the case.
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
