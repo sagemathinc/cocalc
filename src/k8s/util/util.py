@@ -237,6 +237,7 @@ def ensure_secret_exists(name, basename):
          '--from-literal={basename}='.format(basename=basename)])
 
 def get_tag(args, name, build=None):
+    util.docker_sanity_check()   # sticking this here for now since get_tag is called by all build commands.
     tag = name
     if args.tag:
         tag += ':' + args.tag
@@ -647,3 +648,14 @@ class util_coffee:
             os.unlink(os.path.join(self.path, 'util.coffee'))
         except:
             pass
+
+def docker_sanity_check():
+    try:
+        run("sudo docker info 2>/dev/null |grep overlay2 1>/dev/null", verbose=False)
+    except Exception as err:
+        mesg =  "Configure docker to use overlay2 by editing /lib/systemd/system/docker.service\n"
+        mesg += "Change 'ExecStart=/usr/bin/dockerd -H fd://' to 'ExecStart=/usr/bin/dockerd -H fd:// --storage-driver=overlay2'\n"
+        mesg += "then 'sudo systemctl daemon-reload; sudo service docker restart'.\n"
+        raise RuntimeError(mesg)
+
+
