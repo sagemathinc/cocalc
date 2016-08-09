@@ -1265,7 +1265,7 @@ ProjectsListingDescription = rclass
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
         <Button onClick={@clear_and_focus_input}>
-            CLEAR SEARCH
+            Cancel
         </Button></span>
 
     render_alert_message : ->
@@ -1275,7 +1275,7 @@ ProjectsListingDescription = rclass
         query += hashtags_string
 
         if query isnt '' or @props.deleted or @props.hidden
-            <Alert bsStyle='warning' style={'fontSize':'1.2em'}>
+            <Alert bsStyle='warning' style={'fontSize':'1.3em'}>
                 Only showing<Space/>
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
