@@ -1257,6 +1257,10 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
+    clear_and_focus_input : ->
+        redux.getActions('projects').setState(search: '')
+        @refs.projects_search.getInputDOMNode().focus()
+
     render_span : (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
