@@ -315,5 +315,22 @@ class Project extends EventEmitter
     set_all_quotas: (opts) =>
         opts = defaults opts,
             cb : required
-        dbg = @dbg("set_all_quotas"); dbg('todo')
-        opts.cb?()
+        dbg = @dbg("set_all_quotas")
+        quotas = undefined
+        async.series([
+            (cb) =>
+                dbg("getting total quotas")
+                @projects.database.get_project_quotas
+                    project_id : @project_id
+                    cb         : (err, x) =>
+                        quotas = x; cb(err)
+            (cb) =>
+                dbg("setting specific project settings based on quotas")
+                @db
+                    set :
+                        disk_size : "#{quotas.disk_quota}m"
+                    cb  : cb
+        ], opts.cb)
+
+
+
