@@ -3352,10 +3352,10 @@ exports.start_server = start_server = (cb) ->
     init_smc_version()
 
     async.series([
-        (cb) ->
-            if not program.port
-                cb(); return
-            init_metrics(cb)
+        #(cb) ->
+        #    if not program.port
+        #        cb(); return
+        #    init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -3396,7 +3396,7 @@ exports.start_server = start_server = (cb) ->
                 stripe         : stripe
                 compute_server : compute_server
                 database       : database
-                metricsRecorder: metricsRecorder
+                #metricsRecorder: metricsRecorder
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
