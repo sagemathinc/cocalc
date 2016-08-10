@@ -95,7 +95,7 @@ init_projects_changefeed = (cb) ->
                 if state == 'ready' and z.run and z.restart
                     restart(project_id)
                     return
-            else if x.old_val  # no new value -- removed from changefeed result, so now false.
+            else if x.old_val  # no new value -- removed from changefeed result, so run is now false.
                 project_id = x.old_val.project_id
                 z = projects[project_id] ?= {}
                 z.run = false
