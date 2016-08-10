@@ -587,6 +587,9 @@ schema.projects =
         preemptible :
             type : 'bool'
             desc : 'If true, allow to run on preemptible nodes.'
+        network :
+            type : 'bool'
+            desc : 'If true, allow access to the outside network.'
         idle_timeout :
             type : 'number'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'

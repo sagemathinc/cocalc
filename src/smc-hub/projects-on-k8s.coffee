@@ -328,7 +328,17 @@ class Project extends EventEmitter
                 dbg("setting specific project settings based on quotas")
                 @db
                     set :
-                        disk_size : "#{quotas.disk_quota}m"
+                        disk_size    : "#{quotas.disk_quota}m"   # disk_quota is in megabytes
+                        preemptible  : not quotas.member_host    # pre-emptible is the same as not member_host
+                        idle_timeout : quotas.mintime            # mintime is the idle timeout in minutes
+                        network      : !!quotas.network
+                        resources    :
+                            requests :
+                                memory : "#{quotas.req_memory}Mi"
+                                cpu    : "#{quotas.req_cores*1000}m"
+                            limits :
+                                memory : "#{quotas.memory}Mi"
+                                cpu    : "#{quotas.cores*1000}m"
                     cb  : cb
         ], opts.cb)
 
