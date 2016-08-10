@@ -99,12 +99,13 @@ class Project extends EventEmitter
 
     # open project files on some node.
     # A project is by definition opened on a host if @host is set.
+    # CHANGE: now a synonym for start
     open: (opts) =>
         opts = defaults opts,
             host : undefined   # ignored
             cb   : required
-        dbg = @dbg("open"); dbg('todo')
-        opts.cb()     #TODO
+        dbg = @dbg("open"); dbg()
+        @start(cb:opts.cb)
 
     # start local_hub daemon running (must be opened somewhere)
     start: (opts) =>
