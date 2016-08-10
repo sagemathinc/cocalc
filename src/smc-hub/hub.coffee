@@ -3269,7 +3269,12 @@ stripe_sales_tax = (opts) ->
             return
         opts.cb(undefined, misc_node.sales_tax(zip))
 
+###
 # real-time reporting of hub metrics
+
+DISABLED: This is also the sort of thing that should be provided to Prometheus using their API,
+isn't used anymore, and gets circular imported in rethink.coffee anytime the database is
+created, even for command line programs, etc., which is odd.
 
 MetricsRecorder = require('./metrics-recorder')
 metricsRecorder = null
@@ -3298,6 +3303,7 @@ init_metrics = (cb) ->
 
 exports.record_metric = record_metric = (key, value, type) ->
     metricsRecorder?.record(key, value, type)
+###
 
 # Support Tickets
 
@@ -3338,8 +3344,8 @@ exports.start_server = start_server = (cb) ->
     blocked = require('blocked')
     blocked (ms) ->
         # filter values > 100 ms
-        if ms > 100
-            record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
+        #if ms > 100
+        #    record_metric('blocked', ms, type=MetricsRecorder.TYPE.DISC)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 

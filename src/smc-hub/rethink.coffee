@@ -399,11 +399,15 @@ class RethinkDB
                                 qtavg = Math.round(@_stats.sum/@_stats.n)
                                 winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
 
-                                {record_metric} = require('./hub')
-                                record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
-                                record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
-                                record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
-                                record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
+                                # I'm disabling this because (1) the hub shouldn't be imported by rethink.coffee (it is circular and
+                                # the hub code imports a huge amount of stuff and is a very heavy import), and (2) we aren't even
+                                # using this anymore, instead replacing us staring at metrics with kubernetes + health checks.
+                                # This is also the sort of thing that should be provided to Prometheus using their API.
+                                #{record_metric} = require('./hub')
+                                #record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
+                                #record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
+                                #record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
+                                #record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
 
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
@@ -4176,8 +4180,8 @@ class RethinkDB
 
                             nb_changefeeds = misc.len(@_change_feeds)
                             winston.debug("FEED -- there are now num_feeds=#{nb_changefeeds} changefeeds")
-                            {record_metric} = require('./hub')
-                            record_metric('changefeeds', nb_changefeeds, MetricsRecorder.TYPE.CONT)
+                            #{record_metric} = require('./hub')
+                            #record_metric('changefeeds', nb_changefeeds, MetricsRecorder.TYPE.CONT)
                             changefeed_state = 'initializing'
 
                             if heartbeat
