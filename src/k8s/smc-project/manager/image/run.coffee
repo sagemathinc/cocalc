@@ -190,7 +190,7 @@ write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
         cb?()
         return
     query = rethinkdb.db(DATABASE).table('projects').get(project_id)
-    log 'write_kubernetes_data_to_rethinkdb ', {desired:desired, available:available}
+    log "write_kubernetes_data_to_rethinkdb (#{project_id})", {desired:desired, available:available}
     query = query.update(kubernetes:{desired:desired, available:available})
     query.run(conn, (err)->cb?(err))
 
@@ -488,13 +488,18 @@ init_kubectl_pod_watch = (cb) ->
         if line.indexOf('smc-project') == -1   # Headers
             headers = v
         else
+            log 'kubectl_pod_watch.process ', line
             # New info
+            # extract project_id from final labels column (properly and safely)
+            project_id = project_id_from_labels(v[v.length-1])
 
             # When changing things about a project, the pod output gives info both
             # about the newly creating pod and the old pod being destroyed, in potentially
             # random order.  So we only record info about the most recent one when
             # watching.  This is also why we sort by creationTimestamp (for the initial load).
-            name = v[0]
+
+            name = v[0]   # name of the pod
+
             if not pod_names[project_id]?
                 # initialize
                 pod_names[project_id] = [name]
@@ -503,14 +508,11 @@ init_kubectl_pod_watch = (cb) ->
                 z = pod_names[project_id]
                 if name in z
                     if z[z.length-1] != name
-                        # already known but not most recent pod -- ignore
+                        log("already known but not most recent pod -- ignore")
                         return
                 else
                     # not known -- becomes new one we watch
                     z.push(name)
-
-            # extract project_id from final labels column (properly and safely)
-            project_id = project_id_from_labels(v[v.length-1])
 
             # update changed fields of projects[project_id].kubernetes in the database (and the projects object)
             x = projects[project_id] ?= {}
@@ -557,8 +559,12 @@ init_kubectl_pod_watch = (cb) ->
             init_kubectl_pod_watch()
 
 update_kubernetes_db_info = (project_id, update, cb) ->
-    # TODO error handling
-    rethinkdb.db(DATABASE).table('projects').get(project_id).update(kubernetes:update).run(conn, (err) -> cb?(err))
+    log('update_kubernetes_db_info', project_id, update)
+    rethinkdb.db(DATABASE).table('projects').get(project_id).update(kubernetes:update).run conn, (err) ->
+        if err
+            # TODO -- better error handling
+            throw "Error updating kubernetes_db_info for #{project_id} -- #{JSON.stringify(update)}"
+        cb?(err)   # never called if err defined
 
 main = () ->
     async.series [connect_to_rethinkdb,
