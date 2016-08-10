@@ -142,20 +142,20 @@ class Project extends EventEmitter
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
             cb : undefined  # cb(err, state='opened' or 'running')
-        dbg = @dbg("ensure_opened_or_running"); dbg('todo')
-        opts.cb?(undefined, 'opened')  #TODO
+        dbg = @dbg("ensure_opened_or_running"); dbg()
+        @start(cb:opts.cb) # now the same thing as just starting project
 
     ensure_running: (opts) =>
         opts = defaults opts,
             cb : undefined
-        dbg = @dbg("ensure_running"); dbg('todo')
-        opts.cb?() # TODO
+        dbg = @dbg("ensure_running"); dbg()
+        @start(cb:opts.cb) # now the same thing as just starting project
 
     ensure_closed: (opts) =>
         opts = defaults opts,
             cb     : undefined
-        dbg = @dbg("ensure_closed()"); dbg('todo')
-        opts.cb?() # TODO
+        dbg = @dbg("ensure_closed()"); dbg()
+        @stop(cb:opts.cb) # now the same thing as stop
 
 
     # Determine whether or not a storage request is currently running for this project
