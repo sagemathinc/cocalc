@@ -99,9 +99,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         cb(err)
                     else
                         @_project = project
-                        @_project.on 'host_changed', (new_host) =>
-                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
-                            @free_resources()
                         cb(undefined, project)
 
     dbg: (m) =>
@@ -462,56 +459,37 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
         @dbg("new_socket")
-        f = (cb) =>
-            if not @address?
-                cb("no address")
-                return
-            connect_to_a_local_hub
-                port         : @address.port
-                host         : @address.host
-                secret_token : @address.secret_token
-                cb           : cb
-        socket = undefined
-        async.series([
-            (cb) =>
-                if not @address?
-                    @dbg("get address of a working local hub")
-                    @project (err, project) =>
-                        if err
-                            cb(err)
-                        else
-                            @dbg("get address")
-                            project.address
-                                cb : (err, address) =>
-                                    @address = address; cb(err)
+        socket = project = undefined
+        connect = (cb) =>
+            async.series([
+                (cb) =>
+                    @project (err, _project) =>
+                        project = _project; cb(err)
+                (cb) =>
+                    project.address
+                        cb : (err, address) =>
+                            @address = address; cb(err)
+                (cb) =>
+                    connect_to_a_local_hub
+                        port         : @address.port
+                        host         : @address.host
+                        secret_token : @address.secret_token
+                        cb           : (err, _socket) =>
+                            socket = _socket; cb(err)
+            ], (err) =>
+                if err
+                    @dbg("new_socket -- connect attempt failed -- #{err}")
                 else
-                    cb()
-            (cb) =>
-                @dbg("try to connect to local hub socket using last known address")
-                f (err, _socket) =>
-                    if not err
-                        socket = _socket
-                        cb()
-                    else
-                        @dbg("failed so get address of a working local hub")
-                        @project (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                @dbg("get address")
-                                project.address
-                                    cb : (err, address) =>
-                                        @address = address; cb(err)
-            (cb) =>
-                if not socket?
-                    @dbg("still don't have our connection -- try again")
-                    f (err, _socket) =>
-                       socket = _socket; cb(err)
-                else
-                    cb()
-        ], (err) =>
-            cb(err, socket)
-        )
+                    @dbg("new_socket -- success")
+                cb(err)
+            )
+
+
+        misc.retry_until_success
+            f           : connect
+            start_delay : 1000
+            max_time    : 45000
+            cb          : (err) => cb(err, socket)
 
     remove_multi_response_listener: (id) =>
         delete @call_callbacks[id]
