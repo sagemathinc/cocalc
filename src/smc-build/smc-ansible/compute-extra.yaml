@@ -237,7 +237,7 @@
   #        state=link
 
   - name: "install opencv"
-    tags: ["opencv", "install"]
+    tags: ["opencv"]
     ignore_errors: yes
     shell: |
         cd /tmp/
