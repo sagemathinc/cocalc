@@ -569,6 +569,9 @@ schema.projects =
         run :
             type : 'bool'
             desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
+        restart :
+            type : 'bool'
+            desc : 'If true, project manager will restart, then set to false.'
         storage_server :
             type : 'number'
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
@@ -587,6 +590,9 @@ schema.projects =
         idle_timeout :
             type : 'number'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
+        kubernetes :
+            type : 'map'
+            desc : 'Object describing kubernetes information about deployment; only guaranteed (eventually) valid if run=true.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
