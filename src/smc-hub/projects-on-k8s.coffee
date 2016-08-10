@@ -158,34 +158,6 @@ class Project extends EventEmitter
         dbg = @dbg("ensure_closed()"); dbg()
         @stop(cb:opts.cb) # now the same thing as stop
 
-
-    # Determine whether or not a storage request is currently running for this project
-    is_storage_request_running: () =>
-        # Todo
-        return false
-
-    wait_storage_request_finish: (opts) =>
-        opts = defaults opts,
-            timeout : 60*30
-            cb      : required
-        dbg = @dbg("wait_storage_request_finish"); dbg('todo')
-        opts.cb?() # TODO
-
-    wait_stable_state: (opts) =>
-        opts = defaults opts,
-            timeout : 60*10  # 10 minutes
-            cb      : required
-        dbg = @dbg("wait_stable_state"); dbg('todo')
-        opts.cb?() # TODO
-
-    wait_for_a_state: (opts) =>
-        opts = defaults opts,
-            timeout : 60         # 1 minute
-            states  : required
-            cb      : required
-        dbg = @dbg("wait_for_a_state"); dbg('todo')
-        opts.cb?() # TODO
-
     # does nothing for k8s -- move meaningless
     move: (opts) =>
         opts = defaults opts,
