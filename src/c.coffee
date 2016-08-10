@@ -55,15 +55,20 @@ console.log("compute_server() -- sets global variable s to compute server")
 
 # make the global variable p be the project with given id and the global variable s be the compute server
 global.proj = global.project = (id) ->
-    require('smc-hub/compute-client').compute_server
-        db_hosts: db_hosts
-        cb:(e,s)->
-            global.s=s
-            s.project
-                project_id:id
-                cb:(e,p)->global.p=p
+    async.series([
+        (cb) ->
+            if db?
+                cb()
+            else
+                get_db(cb)
+        (cb) ->
+            global.s = (require './smc-hub/projects-on-k8s').projects(db)
+            global.p = global.s.project(project_id:id)
+            console.log "p = project '#{id}' now defined"
+            cb()
+    ])
 
-console.log("project 'project_id' -- set p = project, s = compute server")
+console.log("project 'project_id' -- set p = project; s = projects")
 
 global.activity = (opts={}) ->
     opts.cb = (err, a) ->

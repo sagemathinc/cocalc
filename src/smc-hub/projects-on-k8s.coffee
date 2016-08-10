@@ -24,10 +24,10 @@ class Projects
     project: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
+            cb         : undefined
         @_project_cache ?= {}  # create cache if not created
         p = @_project_cache[opts.project_id] ?= new Project(@, opts.project_id)  # create or return from cache
-        opts.cb(undefined, p)
+        opts.cb?(undefined, p)
         return p
 
 {EventEmitter} = require('events')
@@ -38,13 +38,17 @@ class Project extends EventEmitter
 
     db: (opts) =>
         opts = defaults opts,
-            set : undefined  # object -- set these fields for this project in db.
-            get : undefined # array of fields to get about this project from db.
-            cb  : required
-        if not opts.set? and not opts.get?
-            opts.cb()
-            return
-
+            set            : undefined  # object -- set these fields for this project in db.
+            get            : undefined # array of fields to get about this project from db.
+            wait           : undefined # if given, call db_wait with these inputs after finishing query
+            wait_available : undefined # if given, call db_wait to wait until kubernetes.available is this number (undefined = 0).
+            cb             : required
+        if opts.wait_available?
+            if opts.wait?
+                opts.cb("do not define both wait and wait_available"); return
+            opts.wait =
+                pluck     : [kubernetes:{available:true}]  # pluck out kubernetes.available from object
+                until     : (obj) -> (obj.kubernetes?.available ? 0) == opts.wait_available
         x = undefined
         async.series([
             (cb) =>
@@ -56,6 +60,12 @@ class Project extends EventEmitter
                 if opts.get?
                     @_query.pluck(opts.get).run (err, _x) =>
                         x = _x; cb(err)
+                else
+                    cb()
+            (cb) =>
+                if opts.wait?
+                    opts.wait.cb = cb
+                    @db_wait(opts.wait)
                 else
                     cb()
         ], (err) -> opts.cb(err, x))
@@ -103,8 +113,9 @@ class Project extends EventEmitter
             cb         : required
         dbg = @dbg("start")
         @db
-            set : {run : true}
-            cb  : opts.cb
+            set            : {run : true}
+            wait_available : 1
+            cb             : opts.cb
 
     # restart project -- must be opened or running
     restart: (opts) =>
@@ -119,8 +130,9 @@ class Project extends EventEmitter
     close: (opts) =>
         opts = defaults opts,
             cb     : required
-        dbg = @dbg("close()"); dbg('todo')
-        opts.cb?()  #TODO
+        dbg = @dbg("close()");
+        dbg('close (=same as stop)')
+        @stop(cb:opts.cb)
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
@@ -168,29 +180,55 @@ class Project extends EventEmitter
         dbg = @dbg("wait_for_a_state"); dbg('todo')
         opts.cb?() # TODO
 
-    # does nothing for k8s -- move meaninginless
+    # does nothing for k8s -- move meaningless
     move: (opts) =>
         opts = defaults opts,
             target : undefined # ignored
             force  : false     # ignored
             cb     : required
-        dbg = @dbg("move(target:'#{opts.target}')"); dbg('todo')
-        opts.cb('not meaning for k8s')
+        dbg = @dbg("move(target:'#{opts.target}')"); dbg()
+        opts.cb('move has no meaning for k8s')
+
+    db_wait: (opts) =>
+        opts = defaults opts,
+            pluck     : required  # array of field names (strings) or objects (passed as inputs to RethinkDB pluck command)
+            until     : required  # function -- waits until evaluates to true
+            timeout_s : 5*60      # fail with error after this many seconds
+            cb        : required
+        dbg = @dbg("db_wait(#{misc.to_json(opts.pluck)})"); dbg()
+        q = @projects.database.table('projects').getAll(@project_id)
+        q.pluck(opts.pluck...).changes(includeInitial:true, includeStates:false).run (err, cursor) =>
+            if err
+                opts.cb(err)
+                return
+            done = (err) =>
+                if opts.cb?
+                    clearTimeout(timeout)
+                    cursor.close()
+                    opts.cb(err)
+                    delete opts.cb
+            timeout = setTimeout((()=>done('timeout')), 1000*opts.timeout_s)
+            cursor.each (err, x) =>
+                if err
+                    done(err)
+                else if opts.until(x.new_val)
+                    done()
 
     stop: (opts) =>
         opts = defaults opts,
             cb     : required
-        dbg = @dbg("stop"); dbg('todo')
+        dbg = @dbg("stop"); dbg()
         @db
-            set : {run : false}
-            cb  : opts.cb
+            set            : {run : false}
+            wait_available : 0
+            cb             : opts.cb
 
     # no-op, since everything is always saved.
     save: (opts) =>
         opts = defaults opts,
             min_interval  : 5  # ignored
             cb            : undefined
-        dbg = @dbg("save"); dbg('todo')
+        dbg = @dbg("save"); dbg("save no-op")
         opts.cb?()
 
     address: (opts) =>
@@ -198,20 +236,34 @@ class Project extends EventEmitter
             cb : required
         dbg = @dbg("address"); dbg()
         host = secret_token = undefined
+        get_host = (cb) =>
+            @db
+                get : ['kubernetes', 'secret_token']
+                cb  : (err, x) =>
+                    if err or not x?
+                        cb(err)
+                        return
+                    if x.kubernetes?.available == 0
+                        cb()
+                        return
+                    host = x.kubernetes?.ip
+                    secret_token = x.secret_token
+                    cb()
+
         async.series([
             (cb) =>
-                @db
-                    get : ['kubernetes', 'secret_token']
-                    cb  : (err, x) =>
-                        dbg("got ", x)
-                        host = x?.kubernetes?.ip
-                        secret_token = x?.secret_token
-                        cb()
+                get_host(cb)
             (cb) =>
                 if host
                     cb()
                 else
-                    @start(cb:cb)  # TODO: maybe need to wait...
+                    @start(cb:cb)
+            (cb) =>
+                if host
+                    cb()
+                else
+                    # try again
+                    get_host(cb)
         ], (err) =>
             if err
                 opts.cb(err)
