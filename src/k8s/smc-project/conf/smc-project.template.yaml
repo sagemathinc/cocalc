@@ -38,6 +38,7 @@ spec:
         resources: {resources}
       nodeSelector:
         preemptible: "{preemptible}"
+      terminationGracePeriodSeconds: 1  # kill fast so can move, avoid multiple services on same files, etc.
       volumes:
       - name: project
         flexVolume:
