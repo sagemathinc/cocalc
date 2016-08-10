@@ -237,7 +237,7 @@ def ensure_secret_exists(name, basename):
          '--from-literal={basename}='.format(basename=basename)])
 
 def get_tag(args, name, build=None):
-    util.docker_sanity_check()   # sticking this here for now since get_tag is called by all build commands.
+    docker_sanity_check()   # sticking this here for now since get_tag is called by all build commands.
     tag = name
     if args.tag:
         tag += ':' + args.tag
