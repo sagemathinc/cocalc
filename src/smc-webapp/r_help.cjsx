@@ -156,8 +156,8 @@ SUPPORT_LINKS =
         link : 'Realtime chat and help'
     frequently_asked_questions :
         icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
-        link : 'Frequently Asked Questions'
+        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        link : 'Wiki portal for help and FAQ'
     # removed since none of us SMC devs use ask.sagemath these days
     #quick_question :
     #    icon : 'question-circle'
