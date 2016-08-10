@@ -248,8 +248,7 @@ class Project extends EventEmitter
             else
                 if host?
                     address = {host:host, port:LOCAL_HUB_PORT, secret_token:secret_token}
-                    dbg("address is ", address)
-                    opts.cb(undefined, address)  # TODO
+                    opts.cb(undefined, address)
                 else
                     opts.cb('not ready yet')
         )
@@ -307,10 +306,6 @@ class Project extends EventEmitter
             member_host : required
             cb          : required
         opts.cb()  # NO-OP
-
-    set_quotas: (opts) =>
-        dbg = @dbg("set_quotas"); dbg('todo')
-        opts.cb?()
 
     set_all_quotas: (opts) =>
         opts = defaults opts,
