@@ -58,7 +58,8 @@ log = (m...) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'storage_server', 'disk_size', 'resources', 'preemptible', 'last_edited', 'idle_timeout', 'storage_ready', 'secret_token']
+FIELDS = ['run', 'restart', 'storage_server', 'disk_size', 'resources',
+          'preemptible', 'last_edited', 'idle_timeout', 'storage_ready', 'secret_token']
 init_projects_changefeed = (cb) ->
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
     query = query.pluck(['project_id', 'kubernetes'].concat(FIELDS))
@@ -90,6 +91,9 @@ init_projects_changefeed = (cb) ->
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
                     kubectl_update_project(project_id)
+                    return
+                if state == 'ready' and z.run and z.restart
+                    restart(project_id)
                     return
             else if x.old_val  # no new value -- removed from changefeed result, so now false.
                 project_id = x.old_val.project_id
@@ -209,6 +213,8 @@ reconcile = retry_wrapper (project_id, cb) ->
         else if x.storage_ready and desired != '1'
             dbg("starting because x = ", x)
             kubectl_update_project(project_id, cb)
+        else if x.restart
+            restart(project_id, cb)
         else
             cb()
     else
@@ -223,6 +229,32 @@ reconcile_all = (cb) ->
     for project_id, _ of projects
         reconcile(project_id)
     cb?()
+
+# Assuming the given project is running, cause it to restart by deleting the pod,
+# then set restart:false in the database.
+restart = (project_id, cb) ->
+    dbg = (m...) -> log("restart('#{project_id}')", m...)
+    dbg()
+    name = undefined
+    async.series([
+        (cb) ->
+            run "kubectl get pods --sort-by=metadata.creationTimestamp --selector=run=smc-project |grep #{project_id}", (err, output) ->
+                if err
+                    cb(err)
+                else
+                    v = output.split('\n')
+                    if v.length > 0
+                        name = split(v[0])[0]
+                    cb()
+        (cb) ->
+            if name?
+                run("kubectl delete pod #{name}", cb)
+            else
+                cb()
+        (cb) ->
+            rethinkdb.db(DATABASE).table('projects').get(project_id).update(restart:false).run(conn, cb)
+    ], (err) -> cb?(err))
+
 
 replace_all = (string, search, replace) ->
     string.split(search).join(replace)
@@ -293,7 +325,7 @@ write_deployment_yaml_file = (project_id, cb) ->
         cb(err, info.path)
     )
 
-# Start a project running
+# Start a project running, or update running deployment
 kubectl_update_project = (project_id, cb) ->
     log 'kubectl_update_project ', project_id
     if projects[project_id].starting?

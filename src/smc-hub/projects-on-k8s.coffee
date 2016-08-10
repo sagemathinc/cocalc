@@ -122,8 +122,13 @@ class Project extends EventEmitter
         opts = defaults opts,
             set_quotas : undefined
             cb         : required
-        dbg = @dbg("restart"); dbg('todo')
-        opts.cb()     #TODO
+        dbg = @dbg("restart"); dbg()
+        @db
+            set  : {restart : true}
+            wait :
+                pluck : ['restart']
+                until : (obj) -> not obj.restart
+            cb   : opts.cb
 
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)

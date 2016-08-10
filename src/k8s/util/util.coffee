@@ -6,7 +6,7 @@ This file gets copied into the image build directory when building the docker im
 
 # If g = retry_wrapper(f, 'foo'), then
 #  g('a', 'b', 'c')
-# will call f('a','b','c', cb) repeatedly (with exponetial backoff)
+# will call f('a','b','c', cb) repeatedly (with exponential backoff)
 # until success, with success meaning that cb is
 # called with false first arg.
 exports.retry_wrapper = (f, name) ->
