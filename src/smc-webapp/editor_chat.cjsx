@@ -518,7 +518,7 @@ Message = rclass
             else
                 text = "Last edit "
             <ListGroupItem key={date} style={background:color, fontSize: font_size, paddingBottom:'20px'}>
-                <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                     <Markdown value={value}/>
                 </div>
                 <div className="pull-left small" style={color:'#888'}>
@@ -871,7 +871,7 @@ ChatRoom = (name) -> rclass
                             <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                                 <Icon name='times'/>
                             </div>
-                            <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                            <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                                 <Markdown value={value}/>
                             </div>
                             <div className="pull-right small lighten">
