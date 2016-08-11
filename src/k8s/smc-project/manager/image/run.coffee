@@ -191,7 +191,17 @@ write_kubernetes_data_to_rethinkdb = (project_id, cb) ->
         return
     query = rethinkdb.db(DATABASE).table('projects').get(project_id)
     log "write_kubernetes_data_to_rethinkdb (#{project_id})", {desired:desired, available:available}
-    query = query.update(kubernetes:{desired:desired, available:available})
+    if available == 0
+        if desired == 0
+            state = 'closed'
+        else
+            state = 'starting'
+    else  # available > 0
+        if desired == 0
+            state = 'stopping'
+        else
+            state = 'running'
+    query = query.update(kubernetes:{desired:desired, available:available}, state:{state:state})
     query.run(conn, (err)->cb?(err))
 
 # get changed to true when we first run reconcile_all
