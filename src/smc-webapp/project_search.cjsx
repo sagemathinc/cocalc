@@ -306,12 +306,12 @@ ProjectSearchHeader = (name) -> rclass
         </h1>
 
 exports.ProjectSearchGenerator = (name) ->
-    console.log("Generating ProjectSearch")
+    console.log("Generating ProjectSearch -- This should happen once per project opening")
     ProjectSearchHeader_connected = ProjectSearchHeader(name)
     ProjectSearch_connected       = ProjectSearch(name)
 
     return ({redux, actions}) ->
-            <div>
+            <div style={padding:'10px'}>
                 <Row>
                     <Col sm=12>
                         <Redux redux={redux}>

@@ -2000,10 +2000,13 @@ ProjectFiles = (name) -> rclass
         </div>
 
 exports.ProjectFilesGenerator = (name) ->
+    console.log("Generating ProjectFiles-- This should happen once per project opening")
     C = ProjectFiles(name)
     return ({redux, actions, project_id}) ->
         <Redux redux={redux}>
-            <C project_id={project_id} redux={redux} actions={actions}/>
+            <div style={padding:'10px'}>
+                <C project_id={project_id} redux={redux} actions={actions}/>
+            </div>
         </Redux>
 
 render = (project_id, redux) ->

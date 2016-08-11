@@ -471,12 +471,14 @@ ProjectLog = (name) -> rclass
         </div>
 
 exports.ProjectLogGenerator = (name) ->
-    console.log("Generating ProjectLog")
+    console.log("Generating ProjectLog -- This should happen once per project opening")
     C = ProjectLog(name)
 
     return ({redux, actions}) ->
         <Redux redux={redux} connectToStores={["#{name}", 'users']}>
-            <C actions={actions} redux={redux} />
+            <div style={padding:'10px'}>
+                <C actions={actions} redux={redux} />
+            </div>
         </Redux>
 
 render = (project_id, redux) ->

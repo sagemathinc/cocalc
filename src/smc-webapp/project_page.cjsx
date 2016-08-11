@@ -31,6 +31,8 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         # Memoize classes
         # I think this pattern works. The classes never have to change (project id's don't change)
         # Alternatives?
+        # Generating the tabs is a little expensive. But at least the time doesn't get super nasty
+        # Could be more lazily loaded
         ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
         @ProjectFiles = ProjectFiles
 
@@ -45,7 +47,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
 
         # compute how user is related to this project once for all, so that
         # it stays constant while opening (e.g., stays admin)
-        # Does a user's group change?
+        # Does a user's group change? Problem if it does.
         group = @group ? redux.getStore('projects').get_my_group(@props.project_id)
         @group = group
         ProjectSettings = @ProjectSettings ? ProjectSettingsGenerator(@props.project_store.name)

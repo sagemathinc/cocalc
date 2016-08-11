@@ -365,11 +365,11 @@ FileUpload = (name) -> rclass
         </Row>
 
 exports.ProjectNewGenerator = (name) ->
-    console.log("Generating ProjectNew")
+    console.log("Generating ProjectNew -- This should happen once per project opening")
     ProjectNew_connnected = ProjectNew(name)
     FileUpload_connected  = FileUpload(name)
     return ({redux, project_id, actions}) ->
-        <div>
+        <div style={padding:'10px'}>
             <Redux redux={redux}>
                 <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
             </Redux>
