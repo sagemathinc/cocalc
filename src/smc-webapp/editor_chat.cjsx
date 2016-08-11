@@ -859,13 +859,13 @@ ChatRoom = (name) -> rclass
                 <Col xs={10} sm={9}>
                     <ListGroup fill>
                         <ListGroupItem style={@preview_style}>
-                            <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer'} onClick={@button_off_click}>
+                            <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                                 <Icon name='times'/>
                             </div>
                             <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
                                 <Markdown value={value}/>
                             </div>
-                            <div className="pull-right small" style={color:'#888'}>
+                            <div className="pull-right small lighten">
                                 Preview (press Shift+Enter to send)
                             </div>
                         </ListGroupItem>
