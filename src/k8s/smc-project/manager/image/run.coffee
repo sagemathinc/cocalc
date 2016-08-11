@@ -106,10 +106,10 @@ init_projects_changefeed = (cb) ->
 # Periodically check for idle running projects, and if so switch
 # them from the run=true to run=false.
 idle_timeout_check = () ->
-    log('idle_timeout_check')
     now = new Date()
+    log('idle_timeout_check', now)
     for project_id, project of projects
-        if project.run and project.idle_timeout and now - project.last_edited >= project.idle_timeout * 1000*60
+        if project.run and project.idle_timeout and now - project.last_edited >= project.idle_timeout * 1000
             rethinkdb.db(DATABASE).table('projects').get(project_id).update(run:false).run conn, (err) ->
                 if err
                     log "idle_timeout_check '#{project_id}' -- ERROR", err

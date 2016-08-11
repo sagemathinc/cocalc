@@ -592,7 +592,7 @@ schema.projects =
             desc : 'If true, allow access to the outside network.'
         idle_timeout :
             type : 'number'
-            desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
+            desc : 'If given and nonzero, project will be killed if it is idle for this many **seconds**, where idle *means* that last_edited has not been updated.'
         kubernetes :
             type : 'map'
             desc : 'Object describing kubernetes information about deployment; only guaranteed (eventually) valid if run=true.'

@@ -325,7 +325,7 @@ class Project extends EventEmitter
                     set :
                         disk_size    : "#{quotas.disk_quota}m"   # disk_quota is in megabytes
                         preemptible  : not quotas.member_host    # pre-emptible is the same as not member_host
-                        idle_timeout : quotas.mintime            # mintime is the idle timeout in minutes
+                        idle_timeout : quotas.mintime            # mintime is the idle timeout in seconds; idle_timeout is in seconds too
                         network      : !!quotas.network
                         resources    :
                             requests :
