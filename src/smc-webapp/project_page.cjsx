@@ -29,21 +29,27 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         # TODO: Clean up.
 
         # Memoize classes
-        # This pattern works. Alternatives?
+        # I think this pattern works. The classes never have to change (project id's don't change)
+        # Alternatives?
         ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
         @ProjectFiles = ProjectFiles
 
         ProjectNew = @ProjectNew ? ProjectNewGenerator(@props.project_store.name)
         @ProjectNew = ProjectNew
 
-        #C = ProjectLogPage(@props.project_store.name)
-        #D = ProjectSearchPage(@props.project_store.name)
+        ProjectLog = @ProjectLog ? ProjectLogGenerator(@props.project_store.name)
+        @ProjectLog = ProjectLog
+
+        ProjectSearch = @ProjectSearch ? ProjectSearchGenerator(@props.project_store.name)
+        @ProjectSearch = ProjectSearch
 
         # compute how user is related to this project once for all, so that
         # it stays constant while opening (e.g., stays admin)
-        #group = redux.getStore('projects').get_my_group(@props.project_id)
-        #E = ProjectSettingsPage(@props.project_store.name)
-
+        # Does a user's group change?
+        group = @group ? redux.getStore('projects').get_my_group(@props.project_id)
+        @group = group
+        ProjectSettings = @ProjectSettings ? ProjectSettingsGenerator(@props.project_store.name)
+        @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
                 <Row>
@@ -62,18 +68,21 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
             <Tab key={'log'} eventKey={'log'} title={"Log"}>
                 <Row>
                     <Col xs=12>
+                        <ProjectLog redux={redux} actions={@props.project_actions} />
                     </Col>
                 </Row>
             </Tab>,
             <Tab key={'find'} eventKey={'find'} title={"Find"}>
                 <Row>
                     <Col xs=12>
+                        <ProjectSearch redux={redux} actions={@props.project_actions} />
                     </Col>
                 </Row>
             </Tab>,
             <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
                 <Row>
                     <Col xs=12>
+                        <ProjectSettings project_id={@props.project_id} redux={redux} group={group} />
                     </Col>
                 </Row>
             </Tab>

@@ -1373,8 +1373,13 @@ ProjectController = (name) -> rclass
                     project_map  = {@props.project_map}
                 />
             </div>
-exports.ProjectNewGenerator = (name) ->
-    "Todo"
+exports.ProjectSettingsGenerator = (name) ->
+    console.log("Generating ProjectSettings")
+    C = ProjectController(name)
+    return ({redux, project_id, group}) ->
+        <Redux redux={redux}>
+            <C project_id={project_id} redux={redux} group={group} />
+        </Redux>
 
 render = (project_id) ->
     project_store = redux.getProjectStore(project_id)

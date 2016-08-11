@@ -365,6 +365,7 @@ FileUpload = (name) -> rclass
         </Row>
 
 exports.ProjectNewGenerator = (name) ->
+    console.log("Generating ProjectNew")
     ProjectNew_connnected = ProjectNew(name)
     FileUpload_connected  = FileUpload(name)
     return ({redux, project_id, actions}) ->

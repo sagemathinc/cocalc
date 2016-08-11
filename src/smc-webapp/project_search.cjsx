@@ -306,23 +306,23 @@ ProjectSearchHeader = (name) -> rclass
         </h1>
 
 exports.ProjectSearchGenerator = (name) ->
+    console.log("Generating ProjectSearch")
     ProjectSearchHeader_connected = ProjectSearchHeader(name)
     ProjectSearch_connected       = ProjectSearch(name)
 
-    rclass
-        render :
+    return ({redux, actions}) ->
             <div>
                 <Row>
                     <Col sm=12>
                         <Redux redux={redux}>
-                            <ProjectSearchHeader_connected actions={@props.actions} />
+                            <ProjectSearchHeader_connected actions={actions} />
                         </Redux>
                     </Col>
                 </Row>
                 <Row>
                     <Col sm=12>
                         <Redux redux={redux}>
-                            <ProjectSearch_connected actions={@props.actions}/>
+                            <ProjectSearch_connected actions={actions}/>
                         </Redux>
                     </Col>
                 </Row>
