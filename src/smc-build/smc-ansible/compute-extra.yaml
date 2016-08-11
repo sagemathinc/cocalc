@@ -6,17 +6,17 @@
   tasks:
 
   - apt: "name={{ item }} state=latest"
-    tags: pip2
+    tags: [pip2, update, install]
     with_items:
     - python-pip
     - python3-pip
 
   - name: "update pip"
-    tags: [ pip2, update ]
+    tags: [ pip2, update, install ]
     pip: "executable=pip2 state=latest name=pip"
 
   - name: "additional pip2 packages"
-    tags: [ pip2, update ]
+    tags: [ pip2, update, install ]
     pip: executable=pip2
          state=latest
          umask=022
@@ -56,14 +56,14 @@
     - tdigest
     - numpy-stl
 
-  - tags: [ pip2, update ]
+  - tags: [ pip2, update, install ]
     pip: executable=pip2
          umask=022
          name='git+https://github.com/jakevdp/JSAnimation.git'
          editable=false
 
   - name: "additional pip3 packages"
-    tags: [ pip3, update ]
+    tags: [ pip3, update, install ]
     pip: executable=pip3
          state=latest
          umask=022
@@ -188,7 +188,7 @@
     - ipywidgets
 
   - name: "Special script to run python2 systemwide from within Sage"
-    tags: python2sage
+    tags: ["python2sage", "install"]
     copy: src=files/python2-ubuntu.sh
           dest=/usr/local/bin/python2-ubuntu
           owner=root group=root mode="u=rx,g=rx,o=rx"
@@ -213,7 +213,7 @@
                 insertafter=EOF
 
   - name: "install primesieve"
-    tags: primesieve
+    tags: ["primesieve", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp/
@@ -237,26 +237,29 @@
   #        state=link
 
   - name: "install opencv"
-    tags: opencv
+    tags: ["opencv"]
     ignore_errors: yes
     shell: |
         cd /tmp/
         rm -rf opencv
         mkdir opencv
         cd opencv
-        git clone https://github.com/Itseez/opencv_contrib.git
+        git clone --depth=1 https://github.com/Itseez/opencv_contrib.git
         rm -rf opencv_contrib/modules/hdf
-        git clone https://github.com/Itseez/opencv.git
+        git clone --depth=1 https://github.com/Itseez/opencv.git
         cd opencv
         mkdir build
         cd build
-        time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules ..
+        time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/ext/opencv -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules ..
         time make -j1
         sudo make install
-        sudo sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/opencv.conf'
-        sudo ldconfig
         cd /tmp
         rm -rf opencv
+  - name: 'opencv ld.so library setup'
+    tags: ["opencv", "install"]
+    shell: |
+        sudo sh -c 'echo /ext/opencv/lib > /etc/ld.so.conf.d/opencv.conf'
+        sudo ldconfig
 
   # Plink (whole genome analysis, not the router!)
   - name: 'install plink'
@@ -268,7 +271,7 @@
 
   # Neovim from Github
   - name: "install neovim"
-    tags: neovim
+    tags: ["neovim", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp
@@ -283,7 +286,7 @@
 
   # Macaulay2
   - name: "install macaulay2 / apt packages"
-    tags: macaulay2
+    tags: ["macaulay2", "install"]
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libntl-dev
@@ -303,7 +306,7 @@
 
   # Polymake
   - name: "polymake apt package dependencies"
-    tags: polymake
+    tags: ["polymake", "install"]
     apt: "name={{ item }} state=latest install_recommends=yes"
     with_items:
     - ant
@@ -341,7 +344,7 @@
   # CRCMOD
   - name: "pip's crcmod -- critical for using google cloud storage #1"
     apt: name=crcmod state=absent
-    tags: crcmod
+    tags: ["crcmod", "install"]
   - name: "pip's crcmod -- critical for using google cloud storage #2"
     tags: crcmod
     pip: executable=pip2
@@ -351,7 +354,7 @@
 
   # X11
   - name: "git trac"
-    tags: gittrac
+    tags: ["gittrac", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp/
@@ -370,7 +373,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: kwant
+  tags: ["kwant", "install"]
 
   tasks:
 
@@ -389,7 +392,7 @@
   become: yes
   gather_facts: no
   ignore_errors: yes
-  tags: giac
+  tags: ["giac", "install"]
 
   tasks:
 
@@ -411,7 +414,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: fenics
+  tags: ["fenics", "install"]
 
   tasks:
 
@@ -426,7 +429,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: mpi
+  tags: ["mpi", "install"]
 
   tasks:
 
@@ -447,7 +450,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: pypy
+  tags: ["pypy", "install"]
 
   tasks:
 
@@ -462,7 +465,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: cantera
+  tags: ["cantera", "install"]
 
   tasks:
 
@@ -481,7 +484,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: heroku
+  tags: ["heroku", "install"]
 
   tasks:
 
@@ -497,7 +500,7 @@
 - hosts: compute
   become: yes
   gather_facts: yes
-  tags: obspy
+  tags: ["obspy", "install"]
 
   tasks:
   - name: "obspy keys"
@@ -515,7 +518,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: atlas
+  tags: ["atlas", "install"]
 
   tasks:
   - name: 'install atlas'
@@ -536,7 +539,7 @@
 - hosts: compute
   become: yes
   gather_facts: yes
-  tags: openaxiom
+  tags: ["openaxiom", "install"]
   ignore_errors: yes
 
   tasks:
@@ -554,7 +557,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: octave
+  tags: ["octave", "install"]
 
   tasks:
   - name: "install ocatave"
