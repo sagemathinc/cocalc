@@ -868,13 +868,13 @@ ChatRoom = (name) -> rclass
                 <Col xs={10} sm={9}>
                     <ListGroup fill>
                         <ListGroupItem style={@preview_style}>
-                            <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer'} onClick={@button_off_click}>
+                            <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                                 <Icon name='times'/>
                             </div>
                             <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
                                 <Markdown value={value}/>
                             </div>
-                            <div className="pull-right small" style={color:'#888'}>
+                            <div className="pull-right small lighten">
                                 Preview (press Shift+Enter to send)
                             </div>
                         </ListGroupItem>
@@ -890,7 +890,10 @@ ChatRoom = (name) -> rclass
             Enable chat preview
         </span>
 
-        <div className="pull-right small" style={marginTop: '-105px', marginRight: '3px', cursor:'pointer'} onClick={@button_on_click}>
+        # The 20px margin is basically a hack because the scrollbar is right on top of the icon otherwise.
+        <div className = "pull-right lighten"
+             style     = {marginTop: '-105px', marginRight: '20px', cursor:'pointer', fontSize:'13pt'}
+             onClick   = {@button_on_click} >
             <Tip title='Message Preview' tip={tip} placement='left'>
                 <Icon name='eye'/>
             </Tip>
