@@ -28,6 +28,9 @@ spec:
         image: {image}
         imagePullPolicy: {pull_policy}
         volumeMounts:
+        - name: no-api-access-please   # see https://github.com/kubernetes/kubernetes/issues/16779
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
         - name: project
           mountPath: /projects/{project_id}
         env:
@@ -40,6 +43,8 @@ spec:
         preemptible: "{preemptible}"
       terminationGracePeriodSeconds: 1  # kill fast so can move, avoid multiple services on same files, etc.
       volumes:
+      - name: no-api-access-please
+        emptyDir: {}
       - name: project
         flexVolume:
           driver : "smc/smc-storage"
