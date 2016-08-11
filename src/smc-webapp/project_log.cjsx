@@ -470,6 +470,15 @@ ProjectLog = (name) -> rclass
             {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
         </div>
 
+exports.ProjectLogGenerator = (name) ->
+    C = ProjectLog(name)
+
+    rclass
+        render:
+            <Redux redux={redux} connectToStores={["{#name}", 'users']}>
+                <C actions={@props.actions} redux={redux} />
+            </Redux>
+
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)

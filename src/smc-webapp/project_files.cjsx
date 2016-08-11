@@ -1999,6 +1999,13 @@ ProjectFiles = (name) -> rclass
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
 
+exports.ProjectFilesGenerator = (name) ->
+    C = ProjectFiles(name)
+    return ({redux, actions, project_id}) ->
+        <Redux redux={redux}>
+            <C project_id={project_id} redux={redux} actions={actions}/>
+        </Redux>
+
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id, redux)
     actions = redux.getProjectActions(project_id)

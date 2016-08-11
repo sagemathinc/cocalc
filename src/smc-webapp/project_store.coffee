@@ -215,9 +215,13 @@ class ProjectActions extends Actions
                 @set_focused_page('project-file-listing')
 
     set_focused_page : (page) =>
-        # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
-        # influence what is displayed
-        @_project().display_tab(page)
+        if window.FULLY_REACT
+            @setState
+                focused_page : page
+        else
+            # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
+            # influence what is displayed
+            @_project().display_tab(page)
 
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
@@ -956,6 +960,8 @@ exports.getStore = getStore = (project_id, redux) ->
     if store?
         return store
 
+    # Initialize everything
+
     # Create actions
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
@@ -969,6 +975,7 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
+        active_project_page_tab : 'files'
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 

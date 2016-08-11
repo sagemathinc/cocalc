@@ -1,22 +1,90 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
-ProjectPage = rclass
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
+    Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
+
+{ProjectFilesGenerator} = require('./project_files')
+{ProjectNewGenerator} = require('./project_new')
+{ProjectLogGenerator} = require('./project_log')
+{ProjectSearchGenerator} = require('./project_search')
+{ProjectSettingsGenerator} = require('./project_settings')
+
+{ProjectStore} = require('./project_store')
+
+ProjectPageGenerator = (name) -> rclass
 
     reduxProps :
         projects :
             project_map : rtypes.immutable
+        "#{name}" :
+            active_project_page_tab : rtypes.string
 
     propTypes :
-        redux      : rtypes.object
-        project_id : rtypes.string.isRequired
+        redux           : rtypes.object
+        project_id      : rtypes.string.isRequired
+        project_store   : rtypes.object
+        project_actions : rtypes.object
+
+    standard_tabs : ->
+        # TODO: Clean up.
+
+        # Memoize classes
+        ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
+        @ProjectFiles = ProjectFiles
+
+        #B = ProjectNewPage(@props.project_store.name)
+        #C = ProjectLogPage(@props.project_store.name)
+        #D = ProjectSearchPage(@props.project_store.name)
+
+        # compute how user is related to this project once for all, so that
+        # it stays constant while opening (e.g., stays admin)
+        #group = redux.getStore('projects').get_my_group(@props.project_id)
+        #E = ProjectSettingsPage(@props.project_store.name)
+
+
+        [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
+                <Row>
+                    <Col xs=12>
+                        <ProjectFiles project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
+                    </Col>
+                </Row>
+            </Tab>,
+            <Tab key={'new'} eventKey={'new'} title={"New"}>
+                <Row>
+                    <Col xs=12>
+                    </Col>
+                </Row>
+            </Tab>,
+            <Tab key={'log'} eventKey={'log'} title={"Log"}>
+                <Row>
+                    <Col xs=12>
+                    </Col>
+                </Row>
+            </Tab>,
+            <Tab key={'find'} eventKey={'find'} title={"Find"}>
+                <Row>
+                    <Col xs=12>
+                    </Col>
+                </Row>
+            </Tab>,
+            <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
+                <Row>
+                    <Col xs=12>
+                    </Col>
+                </Row>
+            </Tab>
+        ]
 
     render : ->
-        # The following is just for testing!
+        tabs = @standard_tabs()
         <div>
-            <h1>{@props.project_map.get(@props.project_id).get('title')}</h1>
-            <h2>{@props.project_map.get(@props.project_id).get('description')}</h2>
+            <Well>
+                Debug Stats: {@props.project_id}
+            </Well>
+            <Tabs activeKey={@props.active_project_page_tab} onSelect={@select_tab} animation={false}>
+                {tabs}
+            </Tabs>
         </div>
-
 
 exports.ProjectPage = rclass
     displayName : 'Projects-ProjectPage'
@@ -25,6 +93,13 @@ exports.ProjectPage = rclass
         project_id : rtypes.string.isRequired
 
     render : ->
+        store = redux.getProjectStore(@props.project_id)
+        ProjectPage = @ProjectPage ? ProjectPageGenerator(store.name)
+        @ProjectPage = ProjectPage
+
         <Redux redux={redux}>
-            <ProjectPage redux={redux} project_id={@props.project_id} />
+            <ProjectPage project_id      = {@props.project_id}
+                         redux           = {redux}
+                         project_store   = {store}
+                         project_actions = {redux.getProjectActions(@props.project_id)} />
         </Redux>

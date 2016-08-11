@@ -147,7 +147,17 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
+        # TODO: Enable switch_to
         if window.FULLY_REACT
+            require('./project_store') # registers the project store with redux...
+            store = redux.getProjectStore(opts.project_id)
+            actions = redux.getProjectActions(opts.project_id)
+            # actions.set_url_to_path(store.get('current_path'))
+            #temporary
+            sort_by_time = store.get('sort_by_time') ? true
+            show_hidden = store.get('show_hidden') ? false
+            actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+            redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
             @set_project_state_open(opts.project_id)
         else
             opts.cb = (err) =>
@@ -161,13 +171,21 @@ class ProjectsActions extends Actions
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        top_navbar.switch_to_page(project_id)  # TODO: temporary
-        @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
-            until : (store) => store.get_title(project_id)
-            cb    : (err, title) =>
-                if not err
-                    require('./browser').set_window_title(title)  # change title bar
-        @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
+        if window.FULLY_REACT
+            redux.getActions('page').set_active_tab(project_id)
+            @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+                until : (store) => store.get_title(project_id)
+                cb    : (err, title) =>
+                    if not err
+                        require('./browser').set_window_title(title)  # change title bar
+        else
+            top_navbar.switch_to_page(project_id)  # TODO: temporary
+            @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+                until : (store) => store.get_title(project_id)
+                cb    : (err, title) =>
+                    if not err
+                        require('./browser').set_window_title(title)  # change title bar
+            @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
@@ -206,7 +224,7 @@ class ProjectsActions extends Actions
                 @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.
-    # See the users field of schema.coffee for documentaiton of the structure of this.
+    # See the users field of schema.coffee for documentation of the structure of this.
 
     ###
     # Collaborators
@@ -592,6 +610,7 @@ class ProjectsTable extends Table
 
 redux.createTable('projects', ProjectsTable)
 
+# Should not be necessary/here for React/Redux
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -610,6 +629,7 @@ exports.open_project = open_project = (opts) ->
             proj.load_target(opts.target, opts.switch_to)
         opts.cb?(undefined, proj)
 
+# Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0
         top_navbar.switch_to_page('projects')

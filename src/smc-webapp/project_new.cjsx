@@ -364,6 +364,9 @@ FileUpload = (name) -> rclass
             </Col>
         </Row>
 
+exports.ProjectNewGenerator = (name) ->
+    "Todo"
+
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)

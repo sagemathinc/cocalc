@@ -1373,6 +1373,8 @@ ProjectController = (name) -> rclass
                     project_map  = {@props.project_map}
                 />
             </div>
+exports.ProjectNewGenerator = (name) ->
+    "Todo"
 
 render = (project_id) ->
     project_store = redux.getProjectStore(project_id)

@@ -305,6 +305,30 @@ ProjectSearchHeader = (name) -> rclass
             <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
         </h1>
 
+exports.ProjectSearchGenerator = (name) ->
+    ProjectSearchHeader_connected = ProjectSearchHeader(name)
+    ProjectSearch_connected       = ProjectSearch(name)
+
+    rclass
+        render :
+            <div>
+                <Row>
+                    <Col sm=12>
+                        <Redux redux={redux}>
+                            <ProjectSearchHeader_connected actions={@props.actions} />
+                        </Redux>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=12>
+                        <Redux redux={redux}>
+                            <ProjectSearch_connected actions={@props.actions}/>
+                        </Redux>
+                    </Col>
+                </Row>
+            </div>
+
+
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
