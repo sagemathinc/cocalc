@@ -11,13 +11,13 @@
 
 {ProjectStore} = require('./project_store')
 
-ProjectPageGenerator = (name) -> rclass
+ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); rclass
 
     reduxProps :
         projects :
             project_map : rtypes.immutable
         "#{name}" :
-            active_project_page_tab : rtypes.string
+            active_tab : rtypes.string
 
     propTypes :
         redux           : rtypes.object
@@ -29,10 +29,13 @@ ProjectPageGenerator = (name) -> rclass
         # TODO: Clean up.
 
         # Memoize classes
+        # This pattern works. Alternatives?
         ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
         @ProjectFiles = ProjectFiles
 
-        #B = ProjectNewPage(@props.project_store.name)
+        ProjectNew = @ProjectNew ? ProjectNewGenerator(@props.project_store.name)
+        @ProjectNew = ProjectNew
+
         #C = ProjectLogPage(@props.project_store.name)
         #D = ProjectSearchPage(@props.project_store.name)
 
@@ -52,6 +55,7 @@ ProjectPageGenerator = (name) -> rclass
             <Tab key={'new'} eventKey={'new'} title={"New"}>
                 <Row>
                     <Col xs=12>
+                        <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
                     </Col>
                 </Row>
             </Tab>,
@@ -75,13 +79,16 @@ ProjectPageGenerator = (name) -> rclass
             </Tab>
         ]
 
+    select_tab : (key) ->
+        @props.project_actions.set_active_tab(key)
+
     render : ->
         tabs = @standard_tabs()
         <div>
             <Well>
                 Debug Stats: {@props.project_id}
             </Well>
-            <Tabs activeKey={@props.active_project_page_tab} onSelect={@select_tab} animation={false}>
+            <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false}>
                 {tabs}
             </Tabs>
         </div>

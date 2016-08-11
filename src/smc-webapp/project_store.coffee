@@ -111,6 +111,9 @@ class ProjectActions extends Actions
         {analytics_pageview} = require('./misc_page')
         analytics_pageview(window.location.pathname)
 
+    set_active_tab : (key) =>
+        @setState(active_tab : key)
+
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
 
@@ -975,7 +978,7 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
-        active_project_page_tab : 'files'
+        active_tab         : 'files'
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 

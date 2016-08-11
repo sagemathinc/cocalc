@@ -365,7 +365,18 @@ FileUpload = (name) -> rclass
         </Row>
 
 exports.ProjectNewGenerator = (name) ->
-    "Todo"
+    ProjectNew_connnected = ProjectNew(name)
+    FileUpload_connected  = FileUpload(name)
+    return ({redux, project_id, actions}) ->
+        <div>
+            <Redux redux={redux}>
+                <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
+            </Redux>
+            <hr />
+            <Redux redux={redux}>
+                <FileUpload_connected project_id={project_id} />
+            </Redux>
+        </div>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
