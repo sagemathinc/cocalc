@@ -397,7 +397,7 @@ class SyncTable extends EventEmitter
                         # some socket is still available
                         @_connect()
                     else
-                        # no sockets avialable; wait to connect
+                        # no sockets available; wait to connect
                         @_client.once('connected', @_connect)
                     return
 
@@ -859,20 +859,24 @@ class SyncTable extends EventEmitter
             # not zero -- so don't close it yet -- still in use by multiple clients.
             return
         # do a last attempt at a save (so we don't lose data), then really close.
-        @_save () =>
-            @removeAllListeners()
-            if @_id?
-                @_client.query_cancel(id:@_id)
-                delete @_id
-            delete @_value_local
-            delete @_value_server
-            for e, f of @_client_listeners
-                @_client.removeListener(e, f)
-            @_client_listeners = {}
-            @_state = 'closed'
-            if @_heartbeat_interval?
-                clearInterval(@_heartbeat_interval)
-                delete @_heartbeat_interval
+        @_save()  # this will synchronously construct the last save and send it
+        # The moment the sync part of @_save is done, we remove listeners and clear
+        # everything up.  It's critical that as soon as @close is called that there
+        # be no possible way any further connect events (etc) can make this SyncTable
+        # do anything!!  That finality assumption is made elsewhere (e.g in smc-project/client.coffee)
+        @removeAllListeners()
+        if @_id?
+            @_client.query_cancel(id:@_id)
+            delete @_id
+        delete @_value_local
+        delete @_value_server
+        for e, f of @_client_listeners
+            @_client.removeListener(e, f)
+        @_client_listeners = {}
+        @_state = 'closed'
+        if @_heartbeat_interval?
+            clearInterval(@_heartbeat_interval)
+            delete @_heartbeat_interval
 
     # wait until some function of this synctable is truthy
     # (this is exactly the same code as in the rethink.coffee SyncTable!)

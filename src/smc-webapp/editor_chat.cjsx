@@ -178,9 +178,6 @@ class ChatActions extends Actions
     set_is_preview: (is_preview) =>
         @setState(is_preview:is_preview)
 
-    set_preview_button: (preview_button) =>
-        @setState(preview_button:preview_button)
-
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
@@ -518,7 +515,7 @@ Message = rclass
             else
                 text = "Last edit "
             <ListGroupItem key={date} style={background:color, fontSize: font_size, paddingBottom:'20px'}>
-                <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                     <Markdown value={value}/>
                 </div>
                 <div className="pull-left small" style={color:'#888'}>
@@ -673,7 +670,6 @@ ChatRoom = (name) -> rclass
             offset         : rtypes.number
             saved_mesg     : rtypes.string
             is_preview     : rtypes.bool
-            preview_button : rtypes.bool
         users :
             user_map : rtypes.immutable
         account :
@@ -716,9 +712,7 @@ ChatRoom = (name) -> rclass
     send_chat: (e) ->
         @scroll_to_bottom()
         # turns off preview
-        @props.actions.set_preview_button(true)
-        @props.actions.set_is_preview(false)
-        ReactDOM.findDOMNode(@refs.input.refs.input).focus()
+        @button_off_click()
         e.preventDefault()
         mesg = @refs.input.getValue()
         # block sending empty messages
@@ -730,12 +724,10 @@ ChatRoom = (name) -> rclass
         @props.actions.set_input('')
 
     button_off_click: ->
-        @props.actions.set_preview_button(true)
         @props.actions.set_is_preview(false)
         ReactDOM.findDOMNode(@refs.input.refs.input).focus()
 
     button_on_click: ->
-        @props.actions.set_preview_button(false)
         @props.actions.set_is_preview(true)
         ReactDOM.findDOMNode(@refs.input.refs.input).focus()
         if @is_at_bottom()
@@ -818,7 +810,6 @@ ChatRoom = (name) -> rclass
             if @is_at_bottom()
                 @debounce_bottom()
         else
-            @props.actions.set_preview_button(true)
             @props.actions.set_is_preview(false)
 
     componentWillReceiveProps: (next) ->
@@ -871,7 +862,7 @@ ChatRoom = (name) -> rclass
                             <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
                                 <Icon name='times'/>
                             </div>
-                            <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                            <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                                 <Markdown value={value}/>
                             </div>
                             <div className="pull-right small lighten">
@@ -884,20 +875,6 @@ ChatRoom = (name) -> rclass
 
                 <Col sm={1}></Col>
             </Row>
-
-    render_preview_button_on: ->
-        tip = <span>
-            Enable chat preview
-        </span>
-
-        # The 20px margin is basically a hack because the scrollbar is right on top of the icon otherwise.
-        <div className = "pull-right lighten"
-             style     = {marginTop: '-105px', marginRight: '20px', cursor:'pointer', fontSize:'13pt'}
-             onClick   = {@button_on_click} >
-            <Tip title='Message Preview' tip={tip} placement='left'>
-                <Icon name='eye'/>
-            </Tip>
-        </div>
 
     render_timetravel_button: ->
         tip = <span>
@@ -959,9 +936,6 @@ ChatRoom = (name) -> rclass
                         <ButtonGroup>
                             {@render_timetravel_button()}
                             {@render_bottom_button()}
-                            {#Disabled -- see https://github.com/sagemathinc/smc/issues/794}
-                            {#@render_preview_button_on() if @state.preview_button}
-                            {#@render_preview_button_off() if not @state.preview_button}
                         </ButtonGroup>
                     </Col>
                 </Row>
@@ -999,10 +973,10 @@ ChatRoom = (name) -> rclass
                             onFocus     = {@focus_endpoint}
                             style       = {@chat_input_style}
                             />
-                        {@render_preview_button_on() if @props.input.length > 0 and @props.preview_button}
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
+                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
                     {@render_bottom_tip()}
                 </Row>
