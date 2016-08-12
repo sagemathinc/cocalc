@@ -44,6 +44,7 @@ def migrate_project(project_id, size):
     path = os.path.join(os.path.abspath('.'), 'tmp', project_id)
     try:
         os.makedirs(path)
+
         # create zpool image file of appropriate size, with compression and dedup
         pool_file = os.path.join(path, 'pool')
         image = os.path.join(path, "00.img")
@@ -53,7 +54,14 @@ def migrate_project(project_id, size):
         run("sudo zpool create %s -f %s"%(pool, image))
         run("sudo zfs set compression=lz4 %s"%pool)
         run("sudo zfs set dedup=on %s"%pool)
+        mnt = "/mnt/%s"%project_id
+        run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
 
+        # rsync files over
+        run("sudo rsync -axvH --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt))
+
+        run("sudo zpool export %s"%pool)
+        run("sudo rmdir %s"%mnt)
 
     finally:
         #shutil.rmtree(path)
