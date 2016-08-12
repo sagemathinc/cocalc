@@ -200,7 +200,7 @@ class exports.Client extends EventEmitter
         return true
 
     is_connected: =>
-        @_connected
+        return @_connected
 
     # We trust the time on our own compute servers (unlike random user's browser).
     server_time: () =>
@@ -224,7 +224,7 @@ class exports.Client extends EventEmitter
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
-            if misc.len(@_hub_client_sockets) == 1
+            if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
                 @emit('connected')
