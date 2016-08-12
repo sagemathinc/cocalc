@@ -315,6 +315,9 @@
     - ingerman
     - inkscape
     - iotop
+    - iputils-ping
+    - iputils-tracepath
+    - iputils-clockdiff
     - ipython
     - ipython3
     - irssi

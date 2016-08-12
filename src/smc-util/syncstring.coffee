@@ -619,6 +619,7 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
+        @removeAllListeners()
         @_closed = true
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
@@ -640,7 +641,6 @@ class SyncDoc extends EventEmitter
         @_update_watch_path()  # no input = closes it
         @_evaluator?.close()
         delete @_evaluator
-        @removeAllListeners()
 
     reconnect: (cb) =>
         @close()

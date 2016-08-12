@@ -37,6 +37,8 @@ BINARIES = [
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
     ('advpng', 'advancecomp'),
+    ('sage', 'SageMath'),
+    ('R-sage', 'R version 3'), # that's a wrapper script for sage -R
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('M2', '1.'),
@@ -436,10 +438,11 @@ def test_openmp(tmpdir):
 
 # TODO numexpr
 
-# TODO scipy
+# TODO numpy/scipy
 
 # TODO pandas
 
+# TODO check that opencv exists, what is there actually?
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar
