@@ -38,6 +38,7 @@ BINARIES = [
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
     ('advpng', 'advancecomp'),
     ('sage', 'SageMath'),
+    ('R-sage', 'R version 3'), # that's a wrapper script for sage -R
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('M2', '1.'),
