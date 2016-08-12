@@ -287,6 +287,7 @@ SAGE_PIP_PACKAGES = [
     'vpython', # http://vpython.org/ used in physics
     'tdigest',
     'numpy-stl',
+    'blaze',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -299,6 +300,28 @@ SAGE_PIP_PACKAGES_DEPS = [
     'datasift',
     'vpnotebook', # http://vpython.org/ used in physics
     'python_utils',
+    'jdcal',
+    'fiona',
+    'enum',
+    'python_utils',
+    'ecos', # cvxpy
+    'scs', # cvxpy
+    'multiprocess', # cvxpy
+    'dill', # cvxpy
+    'CVXcanon', # cvxpy
+    'fastcache', # cvxpy
+    'CommonMark', # pymc3
+    'recommonmark', # pymc3
+    'nbsphinx', # pymc3
+    'numpydoc', # pymc3
+    'enum34', # pymc3
+    'smart_open', # gensim
+    'odo', # blaze
+    'multipledispatch', # blaze
+    'datashape', # blaze
+    'sqlalchemy', # blaze
+    'contextlib2', # blaze
+    'flask-cors', # blaze
 ]
 
 
@@ -491,6 +514,8 @@ class BuildSage(object):
         self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
         self.install_R_bioconductor()
+        self.install_rstan()
+        self.install_pystan()
         self.install_optional_packages()
         self.install_quantlib()
         self.install_basemap()

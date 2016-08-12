@@ -436,10 +436,11 @@ def test_openmp(tmpdir):
 
 # TODO numexpr
 
-# TODO scipy
+# TODO numpy/scipy
 
 # TODO pandas
 
+# TODO check that opencv exists, what is there actually?
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar
