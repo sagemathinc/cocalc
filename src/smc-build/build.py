@@ -322,6 +322,8 @@ SAGE_PIP_PACKAGES_DEPS = [
     'sqlalchemy', # blaze
     'contextlib2', # blaze
     'flask-cors', # blaze
+    'bintrees', # tdigest
+    'pyudorandom', # tdigest
 ]
 
 
