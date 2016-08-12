@@ -665,7 +665,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.set_readonly_ui(@_syncstring.get_read_only())
 
     _sync: (cb) =>
-        @_syncstring.set(@codemirror.getValue())
+        if @codemirror?  # need not be defined, right when user closes the editor instance
+            @_syncstring.set(@codemirror.getValue())
         @_syncstring.save(cb)
 
     sync: (cb) =>

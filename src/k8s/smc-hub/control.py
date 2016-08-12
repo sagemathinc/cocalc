@@ -132,7 +132,7 @@ def status(args):
         x['concurrent'] = concurrent
         bad = util.run("kubectl describe pod {name} |grep Unhealthy |tail -1 ".format(name=x['NAME']), get_output=True, verbose=False).splitlines()
         if len(bad) > 0:
-            x['unhealthy'] = bad[-1].split()[0]
+            x['unhealthy'] = bad[-1].split()[1]
         else:
             x['unhealthy'] = ''
     print("%-30s%-12s%-12s%-12s%-12s%-12s"%('NAME', 'CONCURRENT', 'BLOCKED', 'UNHEALTHY', 'RESTARTS', 'AGE'))

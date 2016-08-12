@@ -175,6 +175,9 @@ class ChatActions extends Actions
     saved_message: (saved_mesg) =>
         @setState(saved_mesg:saved_mesg)
 
+    set_is_preview: (is_preview) =>
+        @setState(is_preview:is_preview)
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
@@ -512,7 +515,7 @@ Message = rclass
             else
                 text = "Last edit "
             <ListGroupItem key={date} style={background:color, fontSize: font_size, paddingBottom:'20px'}>
-                <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                     <Markdown value={value}/>
                 </div>
                 <div className="pull-left small" style={color:'#888'}>
@@ -666,6 +669,7 @@ ChatRoom = (name) -> rclass
             height         : rtypes.number
             offset         : rtypes.number
             saved_mesg     : rtypes.string
+            is_preview     : rtypes.bool
         users :
             user_map : rtypes.immutable
         account :
@@ -685,8 +689,6 @@ ChatRoom = (name) -> rclass
     getInitialState: ->
         input          : ''
         preview        : ''
-        preview_button : false
-        is_preview_on  : true
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -709,6 +711,8 @@ ChatRoom = (name) -> rclass
 
     send_chat: (e) ->
         @scroll_to_bottom()
+        # turns off preview
+        @button_off_click()
         e.preventDefault()
         mesg = @refs.input.getValue()
         # block sending empty messages
@@ -720,16 +724,14 @@ ChatRoom = (name) -> rclass
         @props.actions.set_input('')
 
     button_off_click: ->
-        if @refs.off?
-            @setState(preview_button:true)
-            @setState(is_preview_on:false)
+        @props.actions.set_is_preview(false)
+        ReactDOM.findDOMNode(@refs.input.refs.input).focus()
 
     button_on_click: ->
-        if @refs.on?
-            @setState(preview_button:false)
-            @setState(is_preview_on:true)
-            if @is_at_bottom() and @refs.preview
-                @_use_saved_position = false
+        @props.actions.set_is_preview(true)
+        ReactDOM.findDOMNode(@refs.input.refs.input).focus()
+        if @is_at_bottom()
+            @scroll_to_bottom()
 
     chat_input_style:
         margin       : "0"
@@ -793,12 +795,22 @@ ChatRoom = (name) -> rclass
             node = ReactDOM.findDOMNode(@refs.preview)
             @_preview_height = node.offsetHeight - 12 # sets it to 75px starting then scales with height.
 
+    debounce_bottom: ->
+        #debounces it so that the preview shows up then calls
+        @scroll_to_bottom()
+
     componentWillMount: ->
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
+        @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
 
     componentDidMount: ->
         @scroll_to_position()
+        if @props.is_preview
+            if @is_at_bottom()
+                @debounce_bottom()
+        else
+            @props.actions.set_is_preview(false)
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
@@ -824,10 +836,12 @@ ChatRoom = (name) -> rclass
         </span>
 
         <Tip title='Use Markdown' tip={tip}>
-            Shift+Enter to send your message.
-            Double click chat bubbles to edit them.
-            Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-            Emoticons: {misc.emoticons}.
+            <div style={color: '#767676', fontSize: '12.5px'}>
+                Shift+Enter to send your message.
+                Double click chat bubbles to edit them.
+                Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+                Emoticons: {misc.emoticons}.
+            </div>
         </Tip>
 
     render_preview_message: ->
@@ -845,10 +859,13 @@ ChatRoom = (name) -> rclass
                 <Col xs={10} sm={9}>
                     <ListGroup fill>
                         <ListGroupItem style={@preview_style}>
-                            <div style={paddingBottom: '1px', marginBottom: '5px', wordBreak:'break-all'}>
+                            <div className="pull-right lighten" style={marginRight: '-10px', marginTop: '-10px', cursor:'pointer', fontSize:'13pt'} onClick={@button_off_click}>
+                                <Icon name='times'/>
+                            </div>
+                            <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
                                 <Markdown value={value}/>
                             </div>
-                            <div className="pull-right small" style={color:'#888'}>
+                            <div className="pull-right small lighten">
                                 Preview (press Shift+Enter to send)
                             </div>
                         </ListGroupItem>
@@ -858,28 +875,6 @@ ChatRoom = (name) -> rclass
 
                 <Col sm={1}></Col>
             </Row>
-
-    render_preview_button_on: ->
-        tip = <span>
-            Currently off.  Click to turn on.
-        </span>
-
-        <Button ref='on' className='smc-big-only' onClick={@button_on_click}>
-            <Tip title='Message Preview' tip={tip} placement='left'>
-                <Icon name='toggle-off'/> Preview
-            </Tip>
-        </Button>
-
-    render_preview_button_off: ->
-        tip = <span>
-            Currently on.  Click to turn off.
-        </span>
-
-        <Button ref='off' className='smc-big-only' onClick={@button_off_click}>
-            <Tip title='Message Preview' tip={tip} placement='left'>
-                <Icon name='toggle-on'/> Preview
-            </Tip>
-        </Button>
 
     render_timetravel_button: ->
         tip = <span>
@@ -907,7 +902,7 @@ ChatRoom = (name) -> rclass
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        if @props.input.length > 0 and @state.is_preview_on and @refs.preview
+        if @props.input.length > 0 and @props.is_preview and @refs.preview
             paddingBottom = "#{@_preview_height}px"
         else
             paddingBottom = '0px'
@@ -941,9 +936,6 @@ ChatRoom = (name) -> rclass
                         <ButtonGroup>
                             {@render_timetravel_button()}
                             {@render_bottom_button()}
-                            {#Disabled -- see https://github.com/sagemathinc/smc/issues/794}
-                            {#@render_preview_button_on() if @state.preview_button}
-                            {#@render_preview_button_off() if not @state.preview_button}
                         </ButtonGroup>
                     </Col>
                 </Row>
@@ -962,7 +954,7 @@ ChatRoom = (name) -> rclass
                                 focus_end    = {@focus_endpoint}
                                 set_scroll   = {@set_chat_log_state}
                                 show_heads   = true />
-                            {@render_preview_message() if @props.input.length > 0 and @state.is_preview_on}
+                            {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
                         </Panel>
                     </Col>
                 </Row>
@@ -982,14 +974,11 @@ ChatRoom = (name) -> rclass
                             style       = {@chat_input_style}
                             />
                     </Col>
-                    <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px'}>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>Send</Button>
+                    <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
+                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
-                </Row>
-                <Row>
-                    <Col md={12}>
-                        {@render_bottom_tip()}
-                    </Col>
+                    {@render_bottom_tip()}
                 </Row>
             </Grid>
 

@@ -890,7 +890,7 @@ ProjectControlPanel = rclass
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <Input> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
-                    <a href="https://github.com/sagemathinc/smc/wiki/SSH-Instructions" target="_blank">
+                    <a href="https://github.com/sagemathinc/smc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
             else

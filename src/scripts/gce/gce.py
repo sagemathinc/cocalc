@@ -584,6 +584,9 @@ class GCE(object):
             else:
                 b = machine_type
                 cpus = 1
+            if b == 'custom':
+                print("warning -custom machine types not supported; skipping ", x)
+                continue
             if preempt:
                 pricing_hour  = PRICING[b+'-hour-pre']
                 pricing_month = pricing_hour*24*30.5
