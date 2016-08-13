@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import datetime, os, shutil, subprocess, sys, time
+import datetime, os, rethinkdb, shutil, subprocess, sys, time
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
 
@@ -41,7 +41,27 @@ def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
         if path != '.':
             os.chdir(cur)
 
-def migrate_project(project_id, size):
+
+RETHINKDB_SECRET = '/home/salvus/smc/src/data/secrets/rethinkdb'
+def get_quota(project_id):
+    auth_key = open(RETHINKDB_SECRET).read().strip()
+    conn = rethinkdb.connect(host='db0', timeout=10, auth_key=auth_key)
+    disk_quota = 0
+    for x in rethinkdb.db('smc').table('projects').get(project_id).pluck(['users', 'settings']).run(conn).items():
+        if x[0] == 'users':
+            for y in x[1].items():
+                if 'upgrades' in y[1]:
+                    if 'disk_quota' in y[1]['upgrades']:
+                        disk_quota += y[1]['upgrades']['disk_quota']
+        if x[0] == 'settings':
+            if 'disk_quota' in x[1]:
+                disk_quota += int(x[1]['disk_quota'])
+            else:
+                disk_quota += 3000  # default
+    log('total quota = ', disk_quota)
+    return "%sm"%disk_quota
+
+def migrate_project(project_id):
     src = '/projects/%s'%project_id
     if not os.path.exists(src):
         # TODO: or maybe we make it empty?
@@ -59,7 +79,7 @@ def migrate_project(project_id, size):
     if not os.path.exists(pool_file):
         log("create zpool image file of appropriate size, with compression and dedup")
         image = os.path.join(path, "00.img")
-        run('truncate -s %s %s'%(size, image))
+        run('truncate -s %s %s'%(get_quota(project_id), image))
         open(pool_file,'w').write(pool)
         run("sudo zpool create %s -f %s"%(pool, image))
         run("sudo zfs set compression=lz4 %s"%pool)
@@ -106,6 +126,5 @@ def migrate_project(project_id, size):
 
 if __name__ == "__main__":
     project_id = sys.argv[1]
-    quota = sys.argv[2] if len(sys.argv) >= 3 else '3G'
-    migrate_project(project_id, quota)
+    migrate_project(project_id)
 
