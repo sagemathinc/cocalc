@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 # One off script to migrate a (or all) projects to new format.
-# REQUIRES bsdtar be installed.
+# REQUIREMENTS:
+#   sudo apt-get install bsdtar
+#   sudo pip3 install rethinkdb
 
 import datetime, os, rethinkdb, shutil, subprocess, sys, time
 
