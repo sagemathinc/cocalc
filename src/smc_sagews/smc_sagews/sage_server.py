@@ -929,8 +929,10 @@ class Salvus(object):
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
 
+        import sage.repl.interpreter
+
         for start, stop, block in blocks:
-            if preparse:
+            if preparse and sage.repl.interpreter._do_preparse:
                 block = sage_parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
