@@ -74,7 +74,7 @@ def get_quota(project_id):
     log('total quota = ', disk_quota)
     return "%sm"%disk_quota
 
-def migrate_project(project_id):
+def migrate_project(project_id, quota=None):
     src = '/projects/%s'%project_id
     if not os.path.exists(src):
         # TODO: or maybe we make it empty?
@@ -94,7 +94,9 @@ def migrate_project(project_id):
         if not os.path.exists(pool_file):
             log("create zpool image file of appropriate size, with compression and dedup")
             image = os.path.join(path, "00.img")
-            run('truncate -s %s %s'%(get_quota(project_id), image))
+            if quota is None:
+                quota = get_quota(project_id)
+            run('truncate -s %s %s'%(quota, image))
             open(pool_file,'w').write(pool)
             run("sudo zpool create %s -f %s"%(pool, image))
             run("sudo zfs set compression=lz4 %s"%pool)
@@ -107,7 +109,7 @@ def migrate_project(project_id):
         run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
 
         log("rsync files over")
-        cmd = "sudo rsync -axvH --delete --exclude .snapshots --exclude .snapshot --exclude .zfs --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
+        cmd = "sudo rsync -axvH --delete --exclude .trash --exclude .snapshots --exclude .snapshot --exclude .zfs --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
         if update:
             out = run(cmd, get_output=True)
             log(out)
@@ -169,7 +171,8 @@ def migrate_all_projects():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         project_id = sys.argv[1]
-        migrate_project(project_id)
+        quota = sys.argv[2] if len(sys.argv) >= 3 else None        
+        migrate_project(project_id, quota)
     else:
         # migrates every project for which a local dir hasn't been created yet.
         migrate_all_projects()
