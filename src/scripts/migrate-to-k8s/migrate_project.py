@@ -145,8 +145,8 @@ def migrate_all_projects():
     projects = os.listdir('/projects')
     projects.sort()
     log("got %s projects"%len(projects))
-    log("getting list of finished projects")
-    done = set(os.listdir('projects'))
+    log("getting list of finished project id's")
+    done = set([x[:36] for x in os.listdir('projects')])
     log("got %s DONE projects"%len(done))
 
     def status():
