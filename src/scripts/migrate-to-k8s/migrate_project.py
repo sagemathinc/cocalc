@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# One off script to migrate a (or all) projects to new format.
+# REQUIRES bsdtar be installed.
+
 import datetime, os, rethinkdb, shutil, subprocess, sys, time
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
@@ -78,39 +81,41 @@ def migrate_project(project_id):
 
     pool = 'pool-' + project_id
     pool_file = os.path.join(path, 'pool')
-    if not os.path.exists(pool_file):
-        log("create zpool image file of appropriate size, with compression and dedup")
-        image = os.path.join(path, "00.img")
-        run('truncate -s %s %s'%(get_quota(project_id), image))
-        open(pool_file,'w').write(pool)
-        run("sudo zpool create %s -f %s"%(pool, image))
-        run("sudo zfs set compression=lz4 %s"%pool)
-        run("sudo zfs set dedup=on %s"%pool)
-    else:
-        log("import zpool")
-        run("sudo zpool import -d %s -a"%path)
+    try:
+        if not os.path.exists(pool_file):
+            log("create zpool image file of appropriate size, with compression and dedup")
+            image = os.path.join(path, "00.img")
+            run('truncate -s %s %s'%(get_quota(project_id), image))
+            open(pool_file,'w').write(pool)
+            run("sudo zpool create %s -f %s"%(pool, image))
+            run("sudo zfs set compression=lz4 %s"%pool)
+            run("sudo zfs set dedup=on %s"%pool)
+        else:
+            log("import zpool")
+            run("sudo zpool import -d %s -a"%path)
 
-    log("set mountpoint")
-    mnt = "/mnt/%s"%project_id
-    run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
+        log("set mountpoint")
+        mnt = "/mnt/%s"%project_id
+        run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
 
-    log("rsync files over")
-    cmd = "sudo rsync -axvH --delete --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
-    if update:
-        out = run(cmd, get_output=True)
-        log(out)
-        n = len(out.splitlines())
-        log("number of lines",n)
-        num_changed = n-4
-    else:
-        run(cmd)
+        log("rsync files over")
+        cmd = "sudo rsync -axvH --delete --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
+        if update:
+            out = run(cmd, get_output=True)
+            log(out)
+            n = len(out.splitlines())
+            log("number of lines",n)
+            num_changed = n-4
+        else:
+            run(cmd)
 
-    log("export zpool")
-    run("sudo zpool export %s"%pool)
-    run("sudo rmdir %s"%mnt)
-    if update and num_changed == 0:
-        # no need to update bup
-        return
+    finally:
+        log("export zpool")
+        run("sudo zpool export %s"%pool)
+        run("sudo rmdir %s"%mnt)
+        if update and num_changed == 0:
+            # no need to update bup
+            return
 
     bup_dir = os.path.join(path, 'bup')
     env = {'BUP_DIR': bup_dir}
@@ -122,7 +127,9 @@ def migrate_project(project_id):
         log("update bup archive")
     log("write bup update (this takes a long time)")
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
-    run("tar cSf - '{path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
+    # NOTE: bsdtar is dramatically faster at sparse files than GNU tar; see
+    #       http://unix.stackexchange.com/questions/120091/how-can-i-speed-up-operations-on-sparse-files-with-tar-gzip-rsync
+    run("bsdtar cSf - --exclude {bup_dir} '{path}' | bup split -n '{timestamp}'".format
         (path=path, bup_dir=bup_dir, timestamp=timestamp), env=env)
 
 def migrate_all_projects():
