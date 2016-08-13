@@ -65,6 +65,12 @@ def get_quota(project_id):
                 disk_quota += 3000  # default
     if disk_quota == 0:
         disk_quota = 3000
+
+    disk_quota = int(disk_quota)
+    if disk_quota < 3000:
+        disk_quota = 3000
+    if disk_quota > 100000:
+        disk_quota = 100000
     log('total quota = ', disk_quota)
     return "%sm"%disk_quota
 
