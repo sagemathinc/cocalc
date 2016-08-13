@@ -58,6 +58,8 @@ def get_quota(project_id):
                 disk_quota += int(x[1]['disk_quota'])
             else:
                 disk_quota += 3000  # default
+    if disk_quota == 0:
+        disk_quota = 3000
     log('total quota = ', disk_quota)
     return "%sm"%disk_quota
 
@@ -123,8 +125,35 @@ def migrate_project(project_id):
     run("tar cSf - '{path}' --exclude {bup_dir} | bup split -n '{timestamp}'".format
         (path=path, bup_dir=bup_dir, timestamp=timestamp), env=env)
 
+def migrate_all_projects():
+    log("getting list of all projects here (takes about 20s)...")
+    projects = os.listdir('/projects')
+    projects.sort()
+    log("got %s projects"%len(projects))
+    log("getting list of finished projects")
+    done = set(os.listdir('projects'))
+    log("got %s DONE projects"%len(done))
+
+    def status():
+        log("*"*70)
+        log("%s of %s"%(len(done), len(projects)))
+        log("*"*70)
+
+    log("now migrating all non-migrated projects")
+    for project_id in projects:
+        if project_id not in done:
+            status()
+            try:
+                migrate_project(project_id)
+                done.add(project_id)
+            except KeyboardInterrupt:
+                log("hit control-c -- deleting current in progress")
+                shutil.rmtree('projects/%s.zfs'%project_id)
 
 if __name__ == "__main__":
-    project_id = sys.argv[1]
-    migrate_project(project_id)
-
+    if len(sys.argv) > 1:
+        project_id = sys.argv[1]
+        migrate_project(project_id)
+    else:
+        # migrates every project for which a local dir hasn't been created yet.
+        migrate_all_projects()
