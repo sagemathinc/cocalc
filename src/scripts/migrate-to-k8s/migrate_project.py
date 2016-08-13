@@ -88,6 +88,7 @@ def migrate_project(project_id):
         update = True
 
     pool = 'pool-' + project_id
+    mnt = "/mnt/%s"%project_id
     pool_file = os.path.join(path, 'pool')
     try:
         if not os.path.exists(pool_file):
@@ -103,7 +104,6 @@ def migrate_project(project_id):
             run("sudo zpool import -d %s -a"%path)
 
         log("set mountpoint")
-        mnt = "/mnt/%s"%project_id
         run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
 
         log("rsync files over")
