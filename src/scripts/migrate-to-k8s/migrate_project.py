@@ -101,7 +101,7 @@ def migrate_project(project_id):
         run("sudo zfs set mountpoint=%s %s"%(mnt, pool))
 
         log("rsync files over")
-        cmd = "sudo rsync -axvH --delete --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
+        cmd = "sudo rsync -axvH --delete --exclude .snapshots --exclude .snapshot --exclude .zfs --exclude .ipython-daemon.json --exclude *.sage-history --exclude .forever --exclude .sagemathcloud.log --exclude .snapshots --exclude .sage --exclude ..sagemathcloud.log.sage-backup %s/ %s/"%(src, mnt)
         if update:
             out = run(cmd, get_output=True)
             log(out)
