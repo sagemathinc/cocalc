@@ -148,6 +148,7 @@ def migrate_all_projects():
 
     log("now migrating all non-migrated projects")
     for project_id in projects:
+        if len(project_id) != 36: continue
         if project_id not in done:
             status()
             try:
