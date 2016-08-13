@@ -95,7 +95,13 @@ def migrate_project(project_id, quota=None):
             log("create zpool image file of appropriate size, with compression and dedup")
             image = os.path.join(path, "00.img")
             if quota is None:
-                quota = get_quota(project_id)
+                try:
+                    quota = get_quota(project_id)
+                except Exception as err:
+                    if 'pluck on a non-object non-sequence' in str(err):
+                        quota = '4G'
+                    else:
+                        raise
             run('truncate -s %s %s'%(quota, image))
             open(pool_file,'w').write(pool)
             run("sudo zpool create %s -f %s"%(pool, image))
