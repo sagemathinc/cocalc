@@ -215,9 +215,12 @@ class ProjectActions extends Actions
                 @set_focused_page('project-file-listing')
 
     set_focused_page : (page) =>
-        # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
-        # influence what is displayed
-        @_project().display_tab(page)
+        if window.FULLY_REACT
+            # TODO: should set something in a store, which causes display to switch to tab
+            return
+        else
+            # Non-react version (temporary)
+            @_project().display_tab(page)
 
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
@@ -373,10 +376,18 @@ class ProjectActions extends Actions
         @_project().get_from_web(opts)
 
     create_editor_tab : (opts) =>
-        @_project().editor.create_tab(opts)
+        if window.FULLY_REACT
+            # TODO: create file
+            return
+        else
+            @_project().editor.create_tab(opts)
 
     display_editor_tab : (opts) =>
-        @_project().editor.display_tab(opts)
+        if window.FULLY_REACT
+            # TODO: create file
+            return
+        else
+            @_project().editor.display_tab(opts)
 
     # function used internally by things that call salvus_client.exec
     _finish_exec : (id) =>

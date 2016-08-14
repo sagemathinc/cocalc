@@ -9,6 +9,7 @@ project page react component
 {Tabs, Tab} = require('react-bootstrap')
 
 project_log = require('project_log')
+project_new = require('project_new')
 
 FilePage = rclass
     render : ->
@@ -30,7 +31,7 @@ ProjectPage = rclass
                 <div>Files</div>
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
-                <div>New</div>
+                {project_new.render(@props.project_id, @props.redux)}
             </Tab>,
             <Tab key={'log'} eventKey={'log'} title={"Log"}>
                 {project_log.render(@props.project_id, @props.redux)}
