@@ -186,14 +186,17 @@ class ProjectActions extends Actions
                         else
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            # TEMPORARY -- later this will happen as a side effect of changing the store...
-                            if opts.foreground_project
-                                @foreground_project()
-                            @_project().open_file(path:opts.path, foreground:opts.foreground)
-                            if opts.chat
-                                @_project().show_editor_chat_window(opts.path)
-                            if opts.foreground
-                                @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
+                            if window.FULLY_REACT
+                                # TODO: set something in store
+                            else
+                                # TEMPORARY -- later this will happen as a side effect of changing the store...
+                                if opts.foreground_project
+                                    @foreground_project()
+                                @_project().open_file(path:opts.path, foreground:opts.foreground)
+                                if opts.chat
+                                    @_project().show_editor_chat_window(opts.path)
+                                if opts.foreground
+                                    @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
         return
 
     foreground_project : =>

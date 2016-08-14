@@ -305,7 +305,7 @@ ProjectSearchHeader = (name) -> rclass
             <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
         </h1>
 
-render = (project_id, redux) ->
+exports.render = render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
 

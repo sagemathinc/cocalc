@@ -8,8 +8,9 @@ project page react component
 
 {Tabs, Tab} = require('react-bootstrap')
 
-project_log = require('project_log')
-project_new = require('project_new')
+project_log    = require('project_log')
+project_new    = require('project_new')
+project_search = require('project_search')
 
 FilePage = rclass
     render : ->
@@ -37,7 +38,7 @@ ProjectPage = rclass
                 {project_log.render(@props.project_id, @props.redux)}
             </Tab>,
             <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                <div>Find</div>
+                {project_search.render(@props.project_id, @props.redux)}       
             </Tab>,
             <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
                 <div>Settings</div>
