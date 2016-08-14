@@ -1952,6 +1952,13 @@ render = (redux, project_id, path) ->
         <CourseEditor_connected redux={redux} name={name} project_id={project_id} path={path} />
     </Redux>
 
+require('project_file').register_file_editor
+    ext    : 'course'
+    icon   : 'graduation-cap'
+    render : (redux, project_id, path) ->
+        init_redux(redux, project_id, path)
+        render(redux, project_id, path)
+
 exports.render_course = (project_id, path, dom_node, redux) ->
     init_redux(redux, project_id, path)
     ReactDOM.render(render(redux, project_id, path), dom_node)

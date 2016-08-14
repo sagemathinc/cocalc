@@ -217,6 +217,13 @@ render = (redux, project_id, path) ->
         <Archive_connected path={path} actions={actions} project_id={project_id} />
     </Redux>
 
+require('project_file').register_file_editor
+    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
+    icon   : 'file-archive-o'
+    render : (redux, project_id, path) ->
+        init_redux(redux, project_id, path)
+        render(redux, project_id, path)  # stupid/dangerous order change!
+
 exports.free = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 

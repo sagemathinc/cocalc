@@ -1060,9 +1060,10 @@ render = (redux, project_id, path) ->
 
 require('project_file').register_file_editor
     ext    : 'sage-chat'
-    render : (project_id, path, redux) ->
+    icon   : 'comment'
+    render : (redux, project_id, path) ->
         init_redux(redux, project_id, path)
-        render(redux, project_id, path)  # stupid/dangerous order change!
+        render(redux, project_id, path)
 
 exports.render = (project_id, path, dom_node, redux) ->
     init_redux(redux, project_id, path)

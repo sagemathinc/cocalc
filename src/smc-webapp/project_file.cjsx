@@ -33,18 +33,31 @@ exports.register_file_editor = (opts) ->
     opts = defaults opts,
         ext    : required
         render : required
+        icon   : 'file-o'
     console.log "register_file_editor #{opts.ext}"
-    file_editors[opts.ext] = opts.render
+    if typeof(opts.ext) == 'string'
+        opts.ext = [opts.ext]
+    for ext in opts.ext
+        console.log('registering ', ext)
+        file_editors[ext] =
+            render : opts.render
+            icon   : opts.icon
 
 exports.render = (project_id, path, redux) ->
     ext = filename_extension(path)
     console.log "project_file.render project_id=#{project_id}, path=#{path}, ext=#{ext}"
-    render = file_editors[ext]
+    render = file_editors[ext]?.render
     if render?
-        return render(project_id, path, redux)
+        return render(redux, project_id, path)
     else
         return <div>No editor for {path} or fallback editor yet</div>
 
 
 # Require each module, which loads a file editor.  These call register_file_editor.
+
 require('./editor_chat')
+require('./editor_archive')
+require('./course/main')
+require('./editor_codemirror')
+
+
