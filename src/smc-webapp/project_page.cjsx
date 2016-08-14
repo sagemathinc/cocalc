@@ -13,16 +13,19 @@ project_new      = require('project_new')
 project_log      = require('project_log')
 project_search   = require('project_search')
 project_settings = require('project_settings')
+project_file     = require('project_file')
 
 FilePage = rclass
     render : ->
         <div>File Page</div>
 
-ProjectPage = rclass
+ProjectPage = (name) -> rclass
 
     reduxProps :
         projects :
             project_map : rtypes.immutable
+        "#{name}" :
+            open_files  : rtypes.immutable
 
     propTypes :
         redux      : rtypes.object
@@ -48,14 +51,14 @@ ProjectPage = rclass
         ]
 
     file_tabs: (v) ->
-        # TODO
-        #@props.project_state.map (val, project_id) =>
-        #    v.push(@project_tab(project_id))
-        return v
+        if not @props.open_files?
+            return
+        @props.open_files.map (path) =>
+            v.push(@file_tab(path))
 
     file_tab: (path) ->
         <Tab key={path} eventKey={path} title={path}>
-            <FilePage path={path} />
+            {project_file.render(@props.project_id, path, @props.redux)}
         </Tab>
 
     render : ->
@@ -74,6 +77,8 @@ exports.ProjectPage = rclass
         project_id : rtypes.string.isRequired
 
     render : ->
+        store = redux.getProjectStore(@props.project_id)
+        C = ProjectPage(store.name)
         <Redux redux={redux}>
-            <ProjectPage redux={redux} project_id={@props.project_id} />
+            <C redux={redux} project_id={@props.project_id} />
         </Redux>

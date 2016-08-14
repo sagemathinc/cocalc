@@ -187,7 +187,13 @@ class ProjectActions extends Actions
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
                             if window.FULLY_REACT
-                                # TODO: set something in store
+                                store = @get_store()
+                                if not store?  # if store not initialized we can't set activity
+                                    return
+                                open_files = store.get_open_files()
+                                if open_files.contains(opts.path)
+                                    return
+                                @setState(open_files: open_files.push(opts.path))
                             else
                                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                                 if opts.foreground_project
@@ -840,6 +846,9 @@ class ProjectStore extends Store
 
     get_current_path: =>
         return @get('current_path')
+
+    get_open_files: =>
+        return @get('open_files') ? immutable.List([])
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
