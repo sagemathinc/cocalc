@@ -470,7 +470,7 @@ ProjectLog = (name) -> rclass
             {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
         </div>
 
-render = (project_id, redux) ->
+exports.render = render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
     C = ProjectLog(store.name)
