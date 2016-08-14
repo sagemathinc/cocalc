@@ -161,7 +161,8 @@ class ProjectsActions extends Actions
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        top_navbar.switch_to_page(project_id)  # TODO: temporary
+        if not window.FULLY_REACT
+            top_navbar.switch_to_page(project_id)  # TODO: temporary
         @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>

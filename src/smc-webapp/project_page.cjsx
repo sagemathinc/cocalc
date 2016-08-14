@@ -78,6 +78,8 @@ exports.ProjectPage = rclass
 
     render : ->
         store = redux.getProjectStore(@props.project_id)
+        if ((store.get_directory_listings()?.size) ? 0) == 0  # TODO: probably bad -- will go away when move to backend and push/sync; causes activity to get displayed before component is mounted which is a warning.
+            redux.getProjectActions(@props.project_id).set_directory_files()
         C = ProjectPage(store.name)
         <Redux redux={redux}>
             <C redux={redux} project_id={@props.project_id} />
