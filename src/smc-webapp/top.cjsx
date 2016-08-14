@@ -3,6 +3,8 @@
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
+{Loading} = require('./r_misc')
+
 {HelpPage} = require('./r_help')
 
 {ProjectsPage} = require('./projects')
@@ -42,18 +44,20 @@ Page = rclass
         ]
 
     project_tabs: (v) ->
+        if not @props.project_state?
+            return
         @props.project_state.map (val, project_id) =>
             v.push(@project_tab(project_id))
-        return v
 
     project_tab: (project_id) ->
-        title = @props.project_map.get(project_id).get('title')
+        title = @props.project_map?.get(project_id)?.get('title')
+        if not title?
+            return <Loading key={project_id} />
         <Tab key={project_id} eventKey={project_id} title={title}>
             <ProjectPage project_id={project_id} />
         </Tab>
 
     render : ->
-        window.props = @props   # TODO: FOR DEBUGGING ONLY
         tabs = @standard_tabs()
         @project_tabs(tabs)
         <div>

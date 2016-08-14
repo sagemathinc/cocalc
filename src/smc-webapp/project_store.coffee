@@ -227,7 +227,6 @@ class ProjectActions extends Actions
 
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
-        p = @_project()
         @setState
             current_path           : path
             page_number            : 0

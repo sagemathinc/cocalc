@@ -8,8 +8,9 @@ project page react component
 
 {Tabs, Tab} = require('react-bootstrap')
 
-project_log      = require('project_log')
+project_files    = require('project_files')
 project_new      = require('project_new')
+project_log      = require('project_log')
 project_search   = require('project_search')
 project_settings = require('project_settings')
 
@@ -29,8 +30,8 @@ ProjectPage = rclass
 
 
     standard_tabs: ->
-        [   <Tab key={'files'} eventKey={'projects'} title={"Files"}>
-                <div>Files</div>
+        [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
+                {project_files.render(@props.project_id, @props.redux)}
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
                 {project_new.render(@props.project_id, @props.redux)}
