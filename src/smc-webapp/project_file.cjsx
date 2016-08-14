@@ -47,6 +47,8 @@ exports.render = (project_id, path, redux) ->
     ext = filename_extension(path)
     console.log "project_file.render project_id=#{project_id}, path=#{path}, ext=#{ext}"
     render = file_editors[ext]?.render
+    if not render?
+        render = file_editors['']?.render  # possible fallback
     if render?
         return render(redux, project_id, path)
     else
@@ -58,6 +60,11 @@ exports.render = (project_id, path, redux) ->
 require('./editor_chat')
 require('./editor_archive')
 require('./course/main')
-require('./editor_codemirror')
+#require('./editor_codemirror')
 
+# TODO: This is needed only for the old non-react editors; will go away.
+html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
+$('body').append(html)
+
+require('./editor').register_nonreact_editors()
 
