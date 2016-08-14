@@ -1374,7 +1374,7 @@ ProjectController = (name) -> rclass
                 />
             </div>
 
-render = (project_id) ->
+exports.render = render = (project_id) ->
     project_store = redux.getProjectStore(project_id)
     # compute how user is related to this project once for all, so that
     # it stays constant while opening (e.g., stays admin)
