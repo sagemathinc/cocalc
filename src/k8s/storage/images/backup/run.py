@@ -103,7 +103,9 @@ def bup_save(path):
     run(['bup', 'init'], env=env)
     tm = time.time()
     timestamp = datetime.datetime.fromtimestamp(tm).strftime(TIMESTAMP_FORMAT)
-    run("tar cSf - '{full_path}' --exclude {bup_dir} --exclude {lock} | bup split -n '{timestamp}'".format
+    # NOTE: bsdtar is dramatically faster at sparse files than GNU tar; see
+    #       http://unix.stackexchange.com/questions/120091/how-can-i-speed-up-operations-on-sparse-files-with-tar-gzip-rsync
+    run("bsdtar cSf - --exclude {bup_dir} --exclude {lock} '{full_path}' | bup split -n '{timestamp}'".format
         (full_path=full_path, bup_dir=bup_dir, timestamp=timestamp, lock=lock), env=env)
     return timestamp
 

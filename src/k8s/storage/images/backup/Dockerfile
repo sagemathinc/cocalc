@@ -4,7 +4,8 @@ USER root
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-RUN apt-get update && apt-get install -y bup python3
+# NOTE: bsdtar is needed for sparse files!
+RUN apt-get update && apt-get install -y bup python3 bsdtar
 
 # Install RethinkDB python3 client
 RUN \
