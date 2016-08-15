@@ -3612,6 +3612,33 @@ def help(*args, **kwds):
 - **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
         salvus.md(s)
 
+# search_src
+import os
+def search_src(str):
+    r"""
+    Get file names resulting from git grep of smc repo
+
+    INPUT:
+
+    - ``str`` -- string expression to search for; will be quoted
+
+    OUTPUT:
+
+    Interact selector of matching filenames. Choosing one causes its
+    contents to be shown in salvus.code() output.
+    """
+    cmd = "cd /projects/sage/sage/src/sage;git grep -il '" + str + "'"
+    srch = os.popen(cmd).read().splitlines()
+    header = "files matched"
+    nftext = header + ": %s"%len(srch)
+
+    @interact
+    def _(fname = selector([nftext]+srch,"view source file:")):
+        if not fname.startswith(header):
+            print("looking up %s"%fname)
+            with open('/projects/sage/sage/src/sage/' + fname, 'r') as infile:
+                code = infile.read()
+            salvus.code(code, mode = "python", filename = fname)
 
 # Import the jupyter kernel client.
 from sage_jupyter import jupyter
