@@ -2,6 +2,8 @@
 PURPOSE: open projects
 AUTHOR: William Stein, 2016 (c) SageMath, Inc.
 LICENSE: GPLv3
+
+WARNING: we assume that the .zfs directory doesn't contain any directories that should get put in the bup repo!  Only files.
 ###
 
 fs            = require('fs')
@@ -104,7 +106,8 @@ google cloud storage to '/data/projects/[project_id].zfs'.
 restore_from_gcloud = (project_id, cb) ->
     dbg = (m) -> log("restore_from_gcloud('#{project_id}')", m)
     source = "gs://#{GCLOUD_BUCKET}/projects/#{project_id}.zfs"
-    target = "/data/projects/#{project_id}.zfs/bup"
+    path   = "/data/projects/#{project_id}.zfs"
+    target = "#{path}/bup"
     dbg("restore from '#{source}'")
     async.series([
         (cb) ->
@@ -122,7 +125,10 @@ restore_from_gcloud = (project_id, cb) ->
             fs.writeFile("#{target}/HEAD", 'ref: refs/heads/master', cb)
         (cb) ->
             dbg("extract bup repo")
-            run("cd / && bup -d #{target} join `bup -d #{target} ls | tail -1` | tar xv", cb)
+            # The transform option strips **all** leading components from the paths -- we do this
+            # because when migrating from old format, our tarballs included a big path under /home/salvus.
+            # The reuslt of running this extraction is to create a few **files** in path.
+            run("cd #{path} && bup -d #{target} join `bup -d #{target} ls | tail -1` | tar xv --transform 's?.*/??g'; rmdir #{project_id}.zfs", cb)
     ], cb)
 
 
