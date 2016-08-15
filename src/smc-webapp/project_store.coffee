@@ -380,55 +380,12 @@ class ProjectActions extends Actions
         @setState(file_action : action)
 
     ensure_directory_exists : (opts)=>
-        if window.FULLY_REACT
-            opts = defaults opts,
-                path  : required
-                cb    : undefined  # cb(true or false)
-                alert : true
-            salvus_client.exec
-                project_id : @project_id
-                command    : "mkdir"
-                timeout    : 15
-                args       : ['-p', opts.path]
-                cb         : (err, result) =>
-                    if opts.alert
-                        if err
-                            alert_message(type:"error", message:err)
-                        else if result.event == 'error'
-                            alert_message(type:"error", message:result.error)
-                    opts.cb?(err or result.event == 'error')
-        else
-            #Temporary: call from project page
-            @_project().ensure_directory_exists(opts)
+        #Temporary: call from project page
+        @_project().ensure_directory_exists(opts)
 
     get_from_web : (opts)=>
-        if window.FULLY_REACT
-            opts = defaults opts,
-                url     : required
-                dest    : undefined
-                timeout : 45
-                alert   : true
-                cb      : undefined     # cb(true or false, depending on error)
-
-            {command, args} = transform_get_url(opts.url)
-
-            salvus_client.exec
-                project_id : @project_id
-                command    : command
-                timeout    : opts.timeout
-                path       : opts.dest
-                args       : args
-                cb         : (err, result) =>
-                    if opts.alert
-                        if err
-                            alert_message(type:"error", message:err)
-                        else if result.event == 'error'
-                            alert_message(type:"error", message:result.error)
-                    opts.cb?(err or result.event == 'error')
-
-        else
-            #Temporary: call from project page
-            @_project().get_from_web(opts)
+        #Temporary: call from project page
+        @_project().get_from_web(opts)
 
     create_editor_tab : (opts) =>
         if window.FULLY_REACT
@@ -1085,22 +1042,3 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
-
-transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
-    if misc.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
-        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
-
-    if misc.startswith(url, 'git@github.com:')
-        command = 'git'  # kind of useless due to host keys...
-        args = ['clone', url]
-    else if url.slice(url.length-4) == ".git"
-        command = 'git'
-        args = ['clone', url]
-    else
-        # fall back
-        for a,b of URL_TRANSFORMS
-            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
-        command = 'wget'
-        args = [url]
-
-    return {command:command, args:args}

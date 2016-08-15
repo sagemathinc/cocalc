@@ -11,6 +11,7 @@ project page react component
 {ProjectLogGenerator}      = require('project_log')
 {ProjectSearchGenerator}   = require('project_search')
 {ProjectSettingsGenerator} = require('project_settings')
+project_file = require('project_file')
 
 {ProjectStore} = require('./project_store')
 
@@ -115,6 +116,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
 
     render : ->
         tabs = @standard_tabs()
+        @file_tabs(tabs)
         <div>
             <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false}>
                 {tabs}

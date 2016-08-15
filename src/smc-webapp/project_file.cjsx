@@ -62,9 +62,5 @@ require('./editor_archive')
 require('./course/main')
 #require('./editor_codemirror')
 
-# TODO: This is needed only for the old non-react editors; will go away.
-html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
-$('body').append(html)
-
 require('./editor').register_nonreact_editors()
 
