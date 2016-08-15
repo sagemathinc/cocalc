@@ -170,7 +170,7 @@ def is_plugin_loaded():
 
 def install_zfs():
     try:
-        run_on_minion('zpool status')
+        run_on_minion('/sbin/modprobe zfs && zpool status')
         log("OK: zfs is installed")
     except:
         log("zfs not installed, so installing it")
