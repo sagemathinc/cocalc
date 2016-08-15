@@ -1007,6 +1007,7 @@ exports.ExplainPlan = ExplainPlan = rclass
         <div style={marginBottom:"10px"}>
             <h3>Course packages</h3>
             <div>
+                <h4>Educator/institution pays</h4>
                 We offer course packages for teaching classes in <SiteName/>.
                 Such plans start right after purchase and last for the full indicated period <b>without auto-renewal</b>.
                 Through the interface of <SiteName/>, you start teaching by creating a course.
@@ -1015,6 +1016,10 @@ exports.ExplainPlan = ExplainPlan = rclass
                 students work on assignments inside their project (where you can see their progress
                 in realtime and answer their questions),
                 and you later collect and grade their assignments, then return them.
+                <h4>Student pays</h4>
+                When creating a course you can require that all students in the course pay a one-time $9 fee to move their
+                projects to members only hosts and enable full internet access, for four months. This is optional, 
+                but will ensure that your students have a better experience and receive priority support.
             </div>
         </div>
 
@@ -1781,6 +1786,7 @@ exports.render_static_pricing_page = () ->
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>
         <hr/>
+        Or you can have students pay $9/month
         <ExplainResources type='shared' is_static={true}/>
         <hr/>
         <FAQ/>
