@@ -3615,3 +3615,10 @@ def help(*args, **kwds):
 
 # Import the jupyter kernel client.
 from sage_jupyter import jupyter
+
+# search_doc
+def search_doc(str):
+    txt = 'Use this link to search: ' + \
+    '<a href="https://www.google.com/search?q=site%3Adoc.sagemath.org+' + \
+    str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
+    salvus.html(txt)
