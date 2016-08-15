@@ -1535,7 +1535,9 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
-            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
+            if not window.FULLY_REACT
+                # TODO: can't do this here when fully react
+                profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
 
         @element.data('editor', @)
 
@@ -1659,8 +1661,6 @@ class CodeMirrorEditor extends FileEditor
             if opts.theme? and opts.theme != "standard"
                 options.theme = opts.theme
 
-            window.node = node
-            window.options = options
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
 
@@ -1711,6 +1711,9 @@ class CodeMirrorEditor extends FileEditor
         @wizard = null
 
     init_file_actions: () =>
+        if window.FULLY_REACT
+            # TODO: will have to do in a different way
+            return
         if not @element? or not @editor?
             return
         actions = redux.getProjectActions(@editor.project_id)
@@ -4558,33 +4561,30 @@ class TemplateEditor extends FileEditorWrapper
                 the_editor.show(args...)
         the_editor.render(args...)
 
-        
-class TemplateEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        the_editor = require('./editor_template')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                the_editor.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                the_editor.hide(args...)
-            show    : =>
-                the_editor.show(args...)
-        the_editor.render(args...)
+
+exports.register_nonreact_editors = () ->
+
+    # Make non-react editors available in react rewrite
+    reg = require('./editor_react_wrapper').register_nonreact_editor
+
+    reg
+        ext : ''  # fallback for any type not otherwise explicitly specified
+        f   : (editor, path, opts) -> codemirror_session_editor(editor, path, opts)
+
+    reg0 = (cls, extensions) ->
+        icon = file_icon_class(extensions[0])
+        reg
+            ext  : extensions
+            icon : icon
+            f    : (editor, path, opts) -> new cls(editor, path, undefined, opts)
+
+    reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
+    reg0 LatexEditor,      ['tex']
+    reg0 Terminal,         ['term', 'sage-term']
+    reg0 Image,            ['png', 'jpg', 'gif', 'svg']
+
+    {HistoryEditor} = require('./editor_history')
+    reg0 HistoryEditor,    ['sage-history']
+    reg0 PDF_PreviewEmbed, ['pdf']
+    reg0 TaskList,         ['tasks']
+    reg0 JupyterNotebook,  ['ipynb']

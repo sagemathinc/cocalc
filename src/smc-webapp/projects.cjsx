@@ -173,6 +173,7 @@ class ProjectsActions extends Actions
     foreground_project : (project_id) =>
         if window.FULLY_REACT
             redux.getActions('page').set_active_tab(project_id)
+
             @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
                 until : (store) => store.get_title(project_id)
                 cb    : (err, title) =>
@@ -180,6 +181,7 @@ class ProjectsActions extends Actions
                         require('./browser').set_window_title(title)  # change title bar
         else
             top_navbar.switch_to_page(project_id)  # TODO: temporary
+
             @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
                 until : (store) => store.get_title(project_id)
                 cb    : (err, title) =>

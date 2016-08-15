@@ -679,12 +679,12 @@ ChatRoom = (name) -> rclass
             file_use : rtypes.immutable
 
     propTypes :
-        redux       : rtypes.object
-        actions     : rtypes.object
+        redux       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
-        path        : rtypes.string
+        path        : rtypes.string.isRequired
 
     getInitialState: ->
         input          : ''
@@ -1049,11 +1049,21 @@ ChatRoom = (name) -> rclass
 
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    if not redux? or not actions?
+        return <Loading />
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Redux>
+
+require('project_file').register_file_editor
+    ext    : 'sage-chat'
+    icon   : 'comment'
+    render : (redux, project_id, path) ->
+        init_redux(redux, project_id, path)
+        render(redux, project_id, path)
 
 exports.render = (project_id, path, dom_node, redux) ->
     init_redux(redux, project_id, path)

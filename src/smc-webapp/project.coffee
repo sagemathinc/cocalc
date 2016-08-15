@@ -173,6 +173,8 @@ class ProjectPage
 
 
     init_new_tab_in_navbar: () =>
+        if window.FULLY_REACT
+            return
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
             id    : @project_id

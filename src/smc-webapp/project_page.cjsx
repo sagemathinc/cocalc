@@ -1,15 +1,24 @@
+###
+project page react component
+
+
+###
+
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
-
-{ProjectFilesGenerator} = require('./project_files')
-{ProjectNewGenerator} = require('./project_new')
-{ProjectLogGenerator} = require('./project_log')
-{ProjectSearchGenerator} = require('./project_search')
-{ProjectSettingsGenerator} = require('./project_settings')
+{ProjectFilesGenerator}    = require('project_files')
+{ProjectNewGenerator}      = require('project_new')
+{ProjectLogGenerator}      = require('project_log')
+{ProjectSearchGenerator}   = require('project_search')
+{ProjectSettingsGenerator} = require('project_settings')
 
 {ProjectStore} = require('./project_store')
+
+{Tabs, Tab} = require('react-bootstrap')
+
+FilePage = rclass
+    render : ->
+        <div>File Page</div>
 
 ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); rclass
 
@@ -18,6 +27,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
             project_map : rtypes.immutable
         "#{name}" :
             active_tab : rtypes.string
+            open_files  : rtypes.immutable
 
     propTypes :
         redux           : rtypes.object
@@ -54,51 +64,58 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <Row>
-                    <Col xs=12>
-                        <ProjectFiles project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
-                    </Col>
-                </Row>
+                <ProjectFiles project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
-                <Row>
-                    <Col xs=12>
-                        <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
-                    </Col>
-                </Row>
+                <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'log'} eventKey={'log'} title={"Log"}>
-                <Row>
-                    <Col xs=12>
-                        <ProjectLog redux={redux} actions={@props.project_actions} />
-                    </Col>
-                </Row>
+                <ProjectLog redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                <Row>
-                    <Col xs=12>
-                        <ProjectSearch redux={redux} actions={@props.project_actions} />
-                    </Col>
-                </Row>
+                <ProjectSearch redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
-                <Row>
-                    <Col xs=12>
-                        <ProjectSettings project_id={@props.project_id} redux={redux} group={group} />
-                    </Col>
-                </Row>
+                <ProjectSettings project_id={@props.project_id} redux={redux} group={group} />
             </Tab>
         ]
 
     select_tab : (key) ->
         @props.project_actions.set_active_tab(key)
 
+
+    w_standard_tabs: ->
+        [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
+                {project_files.render(@props.project_id, @props.redux)}
+            </Tab>,
+            <Tab key={'new'} eventKey={'new'} title={"New"}>
+                {project_new.render(@props.project_id, @props.redux)}
+            </Tab>,
+            <Tab key={'log'} eventKey={'log'} title={"Log"}>
+                {project_log.render(@props.project_id, @props.redux)}
+            </Tab>,
+            <Tab key={'find'} eventKey={'find'} title={"Find"}>
+                {project_search.render(@props.project_id, @props.redux)}
+            </Tab>,
+            <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
+                {project_settings.render(@props.project_id, @props.redux)}
+            </Tab>
+        ]
+
+    file_tabs: (v) ->
+        if not @props.open_files?
+            return
+        @props.open_files.map (path) =>
+            v.push(@file_tab(path))
+
+    file_tab: (path) ->
+        <Tab key={path} eventKey={path} title={path}>
+            {project_file.render(@props.project_id, path, @props.redux)}
+        </Tab>
+
     render : ->
         tabs = @standard_tabs()
         <div>
-            <Well>
-                Debug Stats: {@props.project_id}
-            </Well>
             <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false}>
                 {tabs}
             </Tabs>

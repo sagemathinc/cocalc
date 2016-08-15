@@ -177,8 +177,14 @@ render = (redux, project_id, filename) ->
         <CodemirrorEditor_connected actions={actions} />
     </Redux>
 
+require('project_file').register_file_editor
+    ext    : ['txt', '']
+    icon   : 'file-code-o'
+    render : (redux, project_id, path) ->
+        init_redux(redux, project_id, path)
+        render(redux, project_id, path)
+
 exports.render = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: render")
     init_redux(redux, project_id, filename)
     React.render(render(redux, project_id, filename), dom_node)
 

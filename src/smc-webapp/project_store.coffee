@@ -189,14 +189,23 @@ class ProjectActions extends Actions
                         else
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            # TEMPORARY -- later this will happen as a side effect of changing the store...
-                            if opts.foreground_project
-                                @foreground_project()
-                            @_project().open_file(path:opts.path, foreground:opts.foreground)
-                            if opts.chat
-                                @_project().show_editor_chat_window(opts.path)
-                            if opts.foreground
-                                @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
+                            if window.FULLY_REACT
+                                store = @get_store()
+                                if not store?  # if store not initialized we can't set activity
+                                    return
+                                open_files = store.get_open_files()
+                                if open_files.contains(opts.path)
+                                    return
+                                @setState(open_files: open_files.push(opts.path))
+                            else
+                                # TEMPORARY -- later this will happen as a side effect of changing the store...
+                                if opts.foreground_project
+                                    @foreground_project()
+                                @_project().open_file(path:opts.path, foreground:opts.foreground)
+                                if opts.chat
+                                    @_project().show_editor_chat_window(opts.path)
+                                if opts.foreground
+                                    @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
         return
 
     foreground_project : =>
@@ -228,7 +237,6 @@ class ProjectActions extends Actions
 
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
-        p = @_project()
         @setState
             current_path           : path
             page_number            : 0
@@ -423,14 +431,16 @@ class ProjectActions extends Actions
             @_project().get_from_web(opts)
 
     create_editor_tab : (opts) =>
-        if window.FULLY_REACY
-
+        if window.FULLY_REACT
+            # TODO: create file
+            return
         else
             @_project().editor.create_tab(opts)
 
     display_editor_tab : (opts) =>
         if window.FULLY_REACT
-
+            # TODO: create file
+            return
         else
             @_project().editor.display_tab(opts)
 
@@ -883,6 +893,9 @@ class ProjectStore extends Store
 
     get_current_path: =>
         return @get('current_path')
+
+    get_open_files: =>
+        return @get('open_files') ? immutable.List([])
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()

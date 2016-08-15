@@ -328,8 +328,7 @@ exports.ProjectSearchGenerator = (name) ->
                 </Row>
             </div>
 
-
-render = (project_id, redux) ->
+exports.render = render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
     actions = redux.getProjectActions(project_id)
 
