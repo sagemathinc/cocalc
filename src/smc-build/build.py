@@ -288,6 +288,7 @@ SAGE_PIP_PACKAGES = [
     'tdigest',
     'numpy-stl',
     'blaze',
+    'npTDMS',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

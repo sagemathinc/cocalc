@@ -55,6 +55,7 @@
     - vpython
     - tdigest
     - numpy-stl
+    - npTDMS
 
   - tags: [ pip2, update, install ]
     pip: executable=pip2
@@ -105,6 +106,7 @@
     - vpython
     - tdigest
     - numpy-stl
+    - npTDMS
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
