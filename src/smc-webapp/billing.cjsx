@@ -1016,8 +1016,8 @@ exports.ExplainPlan = ExplainPlan = rclass
                 students work on assignments inside their project (where you can see their progress
                 in realtime and answer their questions),
                 and you later collect and grade their assignments, then return them.
-                <h4>Student pays</h4>
-                When creating a course you can require that all students in the course pay a one-time $9 fee to move their
+                <h4>Alteratively students pay</h4>
+                When creating a course one can require that all students in the course pay a one-time $9 fee to move their
                 projects to members only hosts and enable full internet access, for four months. This is optional, 
                 but will ensure that your students have a better experience and receive priority support.
             </div>
