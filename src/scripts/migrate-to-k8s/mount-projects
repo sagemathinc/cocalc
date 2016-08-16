@@ -1,0 +1,15 @@
+set -e
+set -v
+mkdir -p /mnt/projects/0
+mkdir -p /mnt/projects/1
+mkdir -p /mnt/projects/2
+mkdir -p /mnt/projects/3
+mkdir -p /mnt/projects/4
+mkdir -p /mnt/projects/5
+
+mount -t ext4 /dev/sdb /mnt/projects/0
+mount -t ext4 /dev/sdc /mnt/projects/1
+mount -t ext4 /dev/sdd /mnt/projects/2
+mount -t ext4 /dev/sde /mnt/projects/3
+mount -t ext4 /dev/sdf /mnt/projects/4
+mount -t ext4 /dev/sdg /mnt/projects/5
