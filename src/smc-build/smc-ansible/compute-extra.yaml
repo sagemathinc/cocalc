@@ -57,7 +57,15 @@
     - numpy-stl
     - npTDMS
 
-  - tags: [ pip2, update, install ]
+  - name: "install git trac from github"
+    tags: [ pip2, update, install ]
+    pip: executable=pip2
+         umask=022
+         name="git+https://github.com/sagemath/git-trac-command.git"
+         editable=false
+
+  - name: "install JSAnimation from github"
+    tags: [ pip2, update, install ]
     pip: executable=pip2
          umask=022
          name='git+https://github.com/jakevdp/JSAnimation.git'
