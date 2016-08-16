@@ -73,11 +73,12 @@ def strip_string_literals(code, state=None):
             # it's a comment
             newline = code.find('\n', hash_q)
             if newline == -1: newline = len(code)
-            counter += 1
-            label = "L%s" % counter
-            literals[label] = code[hash_q:newline]   # changed from sage
+            # skip string substitution for comments from # to eol
+            # counter += 1
+            # label = "L%s" % counter
+            # literals[label] = code[hash_q:newline]   # changed from sage
             new_code.append(code[start:hash_q].replace('%','%%'))
-            new_code.append("%%(%s)s" % label)
+            # new_code.append("%%(%s)s" % label)
             start = q = newline
         elif q == -1:
             if in_quote:
@@ -223,6 +224,7 @@ def divide_into_blocks(code):
                 brack_depth += code[i].count('[') - code[i].count(']')
                 curly_depth += code[i].count('{') - code[i].count('}')
         # remove comments
+        # comments now removed in strip_string_literals() but leaving this in place
         for k, v in literals.iteritems():
             if v.startswith('#'):
                 literals[k] = ''
