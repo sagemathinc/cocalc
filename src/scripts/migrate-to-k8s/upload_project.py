@@ -3,12 +3,13 @@
 # One-off script to copy a project to google cloud storage.
 # This duplicates code, e.g., -- it's *ONE OFF CODE*!
 
-#GCLOUD_BUCKET = 'sage-math-inc-k8s-bup-prod'
-GCLOUD_BUCKET = 'sage-math-inc-k8s-bup-test'
+PROD = True
 
-RETHINKDB_SECRET = '/home/salvus/secrets/rethinkdb/rethinkdb'
-
-DB_HOST = 'localhost'
+if PROD:
+    RETHINKDB_SECRET = '/home/salvus/secrets/rethinkdb/rethinkdb'
+    GCLOUD_BUCKET = 'sage-math-inc-k8s-bup-prod'; auth_key = open(RETHINKDB_SECRET).read().strip(); DB_HOST='db0'
+else:
+    GCLOUD_BUCKET = 'sage-math-inc-k8s-bup-test'; auth_key = None; DB_HOST = 'localhost'
 
 import datetime, os, rethinkdb, shutil, subprocess, sys, time
 
@@ -81,16 +82,20 @@ def upload_project(project_id):
          '{bup}/objects/'.format(bup=bup),
          '{target}/objects/'.format(target=target)])
     log('gsutil upload refs/logs')
-    for path in ['refs', 'logs']:
+    for bup_path in ['refs', 'logs']:
         run(['gsutil', '-m', 'rsync', '-c', '-r',
-             '{bup}/{path}/'.format(bup=bup, path=path),
-             '{target}/{path}/'.format(target=target, path=path)])
+             '{bup}/{path}/'.format(bup=bup, path=bup_path),
+             '{target}/{path}/'.format(target=target, path=bup_path)])
 
-    #auth_key = open(RETHINKDB_SECRET).read().strip()
-    conn = rethinkdb.connect(host=DB_HOST, timeout=10)#, auth_key=auth_key)
+    disk_usage = {
+        'bup': int(run("du -smc {bup}".format(bup=bup), get_output=True).split()[-2]),
+        'img': int(run("du -smc {path}/*.img".format(path=path), get_output=True).split()[-2])
+    }
+
+    conn = rethinkdb.connect(host=DB_HOST, timeout=10, auth_key=auth_key)
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
     rethinkdb.db('smc').table('projects').get(project_id).update(
-        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp)}).run(conn)
+        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp), 'disk_usage':disk_usage}).run(conn)
 
 
 if __name__ == "__main__":

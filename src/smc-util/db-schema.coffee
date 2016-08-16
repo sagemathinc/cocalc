@@ -581,6 +581,9 @@ schema.projects =
         disk_size :
             type : 'number'
             desc : 'Size in megabytes of the project disk.'
+        disk_usage :
+            type : '{bup:number, img:number}'
+            desc : 'Size in megabytes used by the bup repo and by the img files'
         resources :
             type : 'map'
             desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
