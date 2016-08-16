@@ -46,7 +46,7 @@ DATA = null
 
 # react wizard
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
-{Col, Row, Panel, Button, Input, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Col, Row, Panel, Button, FormGroup, FormControl, Input, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Loading, Icon, Markdown} = require('./r_misc')
 
 redux_name = (project_id, path) ->
@@ -352,13 +352,15 @@ WizardHeader = rclass
                 {@render_nav()}
             </Col>
             <Col sm={3}>
-                <Input ref='search'
+                <FormGroup>
+                    <FormControl ref='search'
                        type='text'
                        className='smc-wizard-search'
                        placeholder='Search'
                        value={@props.search_str}
                        onKeyUp={@handle_search_keyup}
                        onChange={@search}  />
+                </FormGroup>
             </Col>
         </Row>
 

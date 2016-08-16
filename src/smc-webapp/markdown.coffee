@@ -50,9 +50,11 @@ opts =
     h2_setext : false
     br_only   : true
 
+reMarked = require('remarked')
 if reMarked?
     # html_to_markdown is used only in browser frontend where reMarked is available.
-    reMarker = new reMarked(opts)
+    #reMarker = new reMarked(opts)
+    reMarked.setOptions(opts)
     exports.html_to_markdown = (s) ->
         return reMarker.render(s)
 

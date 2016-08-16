@@ -26,10 +26,10 @@
 #
 ###########################################################
 
+$ = window.$
 {top_navbar} = require('./top_navbar')
 top_navbar.hide_page_button("projects")
 {salvus_client} = require('./salvus_client')
-$ = require("jquery")
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
@@ -96,7 +96,7 @@ window.MathJax =
             automatic: true
     showProcessingMessages: false
 
-$ = require("jquery")
+$ = window.$
 $ ->
     $("#smc-startup-banner")?.remove()
     $('#smc-startup-banner-status')?.remove()

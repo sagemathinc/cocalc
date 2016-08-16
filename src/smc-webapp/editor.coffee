@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+$ = window.$
+
 # Editor for files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -963,7 +965,7 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
+                    editor.element.find("a[href=\"#split-view\"]").hide()  # disable split view for public worksheets
                     if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (sagews.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
@@ -1862,14 +1864,14 @@ class CodeMirrorEditor extends FileEditor
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
-            e = @element.find("a[href=##{name}]")
+            e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
 
         # TODO: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=#print]").unbind().hide()
+            @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -2079,12 +2081,12 @@ class CodeMirrorEditor extends FileEditor
         dialog.modal('show')
 
     init_close_button: () =>
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
     init_save_button: () =>
-        @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
+        @save_button = @element.find("a[href=\"#save\"]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
     init_uncommitted_element: () =>
@@ -2166,7 +2168,7 @@ class CodeMirrorEditor extends FileEditor
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
-        btn = @element.find("a[href=#split-view]")
+        btn = @element.find("a[href=\"#split-view\"]")
         btn.find("i").hide()
         if not @_split_view
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
@@ -2453,7 +2455,7 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=#todo]").click () =>
+        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -3404,11 +3406,11 @@ class PDF_PreviewEmbed extends FileEditor
 
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
 
-        @element.find("a[href=#refresh]").click () =>
+        @element.find("a[href=\"#refresh\"]").click () =>
             @update()
             return false
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3421,7 +3423,7 @@ class PDF_PreviewEmbed extends FileEditor
             return
         width = @element.width()
 
-        button = @element.find("a[href=#refresh]")
+        button = @element.find("a[href=\"#refresh\"]")
         button.icon_spin(true)
 
         @_last_width = width
@@ -3572,14 +3574,14 @@ class Image extends FileEditor
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
-        refresh = @element.find("a[href=#refresh]")
+        refresh = @element.find("a[href=\"#refresh\"]")
         refresh.click () =>
             refresh.icon_spin(true)
             @update (err) =>
                 refresh.icon_spin(false)
             return false
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3590,13 +3592,13 @@ class Image extends FileEditor
             @update()
 
     update: (cb) =>
-        @element.find("a[href=#refresh]").icon_spin(start:true)
+        @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
-                @element.find("a[href=#refresh]").icon_spin(false)
+                @element.find("a[href=\"#refresh\"]").icon_spin(false)
                 @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
@@ -3638,7 +3640,7 @@ class StaticHTML extends FileEditor
         @iframe.maxheight()
 
     init_buttons: () =>
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
@@ -3885,6 +3887,7 @@ class HTML_MD_Editor extends FileEditor
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         @ext = filename_extension_notilde(@filename)   #'html' or 'md'
+        # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
@@ -3999,8 +4002,8 @@ class HTML_MD_Editor extends FileEditor
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
-        @element.find("a[href=#save]").click(@click_save_button)
-        @print_button = @element.find("a[href=#print]").show().click(@print)
+        @element.find("a[href=\"#save\"]").click(@click_save_button)
+        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -4020,14 +4023,14 @@ class HTML_MD_Editor extends FileEditor
                 @sync()
 
     init_preview_buttons: () =>
-        disable = @element.find("a[href=#disable-preview]").click () =>
+        disable = @element.find("a[href=\"#disable-preview\"]").click () =>
             disable.hide()
             enable.show()
             @disable_preview = true
             @local_storage("disable_preview", true)
             @preview_content.html('')
 
-        enable = @element.find("a[href=#enable-preview]").click () =>
+        enable = @element.find("a[href=\"#enable-preview\"]").click () =>
             disable.show()
             enable.hide()
             @disable_preview = false
@@ -4053,7 +4056,7 @@ class HTML_MD_Editor extends FileEditor
         if true #  @ext != 'html'
             # hide some buttons, since these are not markdown friendly operations:
             for t in ['clean'] # I don't like this!
-                @edit_buttons.find("a[href=##{t}]").hide()
+                @edit_buttons.find("a[href=\"##{t}\"]").hide()
 
         # initialize the color controls
         button_bar = @edit_buttons
@@ -4474,6 +4477,8 @@ class HTML_MD_Editor extends FileEditor
 
         @_dragbar.css('left',editor_width+left)
 
+        # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
+
         @source_editor.show
             width : editor_width
             top   : top + @edit_buttons.height()
@@ -4483,14 +4488,17 @@ class HTML_MD_Editor extends FileEditor
         @preview.maxheight(offset:button_bar_height)
 
         @_dragbar.height(@source_editor.element.height())
-        @_dragbar.css('top',top-9)  # -9 = ugly hack
+        @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
+        @_dragbar.css('top', "#{@edit_buttons.height() + button_bar_height + 9}px") # +9 is not good
 
         # position the preview
+        @preview.offset
+            top: @source_editor.element.offset() + button_bar_height
+
         @preview.css
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
-            top   : top
-
+            top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
 
     focus: () =>
         @source_editor?.focus()

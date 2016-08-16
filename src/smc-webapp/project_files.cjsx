@@ -20,8 +20,8 @@
 ###############################################################################
 
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
@@ -955,7 +955,7 @@ ProjectFilesActionBox = rclass
         </pre>
 
     compress_click : ->
-        destination = @refs.result_archive.getValue()
+        destination = ReactDOM.findDOMNode(@refs.result_archive).value
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(@props.current_path, destination)
@@ -973,15 +973,17 @@ ProjectFilesActionBox = rclass
 
                 <Col sm=5 style={color:'#666'}>
                     <h4>Result archive</h4>
-                    <Input
-                        autoFocus    = {true}
-                        ref          = 'result_archive'
-                        key          = 'result_archive'
-                        type         = 'text'
-                        defaultValue = {account.default_filename('zip')}
-                        placeholder  = 'Result archive...'
-                        onKeyDown    = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus    = {true}
+                            ref          = 'result_archive'
+                            key          = 'result_archive'
+                            type         = 'text'
+                            defaultValue = {account.default_filename('zip')}
+                            placeholder  = 'Result archive...'
+                            onKeyDown    = {@action_key}
+                        />
+                    </FormGroup>
                 </Col>
             </Row>
             <Row>
@@ -1043,7 +1045,7 @@ ProjectFilesActionBox = rclass
 
     rename_click : ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
-        destination = @refs.new_name.getValue()
+        destination = ReactDOM.findDOMNode(@refs.new_name).value
         @props.actions.move_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(rename_dir, destination)
@@ -1082,16 +1084,18 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=5 style={color:'#666'}>
                     <h4>New name</h4>
-                    <Input
-                        autoFocus    = {true}
-                        ref          = 'new_name'
-                        key          = 'new_name'
-                        type         = 'text'
-                        defaultValue = {misc.path_split(single_item).tail}
-                        placeholder  = 'New file name...'
-                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())}
-                        onKeyDown    = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus    = {true}
+                            ref          = 'new_name'
+                            key          = 'new_name'
+                            type         = 'text'
+                            defaultValue = {misc.path_split(single_item).tail}
+                            placeholder  = 'New file name...'
+                            onChange     = {=>@setState(new_name : ReactDOM.findDOMNode(@refs.new_name).value)}
+                            onKeyDown    = {@action_key}
+                        />
+                    </FormGroup>
                     {@render_rename_warning()}
                 </Col>
             </Row>
@@ -1194,14 +1198,16 @@ ProjectFilesActionBox = rclass
     render_copy_different_project_options : ->
         if @props.project_id isnt @state.copy_destination_project_id
             <div>
-                <Input
-                    ref   = 'delete_extra_files_checkbox'
-                    type  = 'checkbox'
-                    label = 'Delete extra files in target directory' />
-                <Input
-                    ref   = 'overwrite_newer_checkbox'
-                    type  = 'checkbox'
-                    label = 'Overwrite newer versions of files' />
+                <Checkbox
+                    ref = 'delete_extra_files_checkbox'
+                    onChange = {(e)=>@setState('delete_extra_files': e.target.checked)}>
+                    Delete extra files in target directory
+                </Checkbox>
+                <Checkbox
+                    ref = 'overwrite_newer_checkbox'
+                    onChange = {(e)=>@setState('overwrite_newer': e.target.checked)}>
+                    Overwrite newer versions of files
+                </Checkbox>
             </div>
 
     different_project_button : ->
@@ -1216,8 +1222,8 @@ ProjectFilesActionBox = rclass
     copy_click : ->
         destination_directory  = @state.copy_destination_directory
         destination_project_id = @state.copy_destination_project_id
-        overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
-        delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
+        overwrite_newer        = @state.overwrite_newer
+        delete_extra_files     = @state.delete_extra_files
         paths = @props.checked_files.toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
@@ -1309,7 +1315,7 @@ ProjectFilesActionBox = rclass
             @copy_click()
 
     share_click : ->
-        description = @refs.share_description.getValue()
+        description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), description)
         @props.actions.set_file_action()
 
@@ -1354,16 +1360,18 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
-                    <Input
-                        autoFocus     = {true}
-                        ref          = 'share_description'
-                        key          = 'share_description'
-                        type         = 'text'
-                        defaultValue = {single_file_data.public?.description ? ''}
-                        disabled     = {parent_is_public}
-                        placeholder  = 'Description...'
-                        onKeyUp      = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus     = {true}
+                            ref          = 'share_description'
+                            key          = 'share_description'
+                            type         = 'text'
+                            defaultValue = {single_file_data.public?.description ? ''}
+                            disabled     = {parent_is_public}
+                            placeholder  = 'Description...'
+                            onKeyUp      = {@action_key}
+                        />
+                    </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
@@ -1625,7 +1633,8 @@ ProjectFilesSearch = rclass
     render : ->
         <span>
             <SearchInput
-                autoFocus autoSelect
+                autoFocus
+                autoSelect
                 placeholder   = 'Filename'
                 value         = {@props.file_search}
                 on_change     = {@on_change}
@@ -2028,4 +2037,3 @@ exports.mount = (project_id, dom_node, redux) ->
 exports.unmount = (dom_node) ->
     #console.log("unmount")
     ReactDOM.unmountComponentAtNode(dom_node)
-

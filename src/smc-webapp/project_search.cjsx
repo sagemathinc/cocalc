@@ -23,7 +23,7 @@ underscore = require('underscore')
 
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
 
-{Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
+{Col, Row, Button, FormControl, FormGroup, Well, InputGroup, Alert, Checkbox} = require('react-bootstrap')
 {Icon, Loading, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
@@ -49,7 +49,7 @@ ProjectSearchInput = rclass
             search_results     : undefined
             search_error       : undefined
 
-        @refs.project_search_input.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_search_input).focus()
 
     clear_button : ->
         <Button onClick={@clear_and_focus_input}>
@@ -57,7 +57,7 @@ ProjectSearchInput = rclass
         </Button>
 
     handle_change : ->
-        user_input = @refs.project_search_input.getValue()
+        user_input = ReactDOM.findDOMNode(@refs.project_search_input).value
         @props.actions.setState(user_input : user_input)
 
     submit : (event) ->
@@ -66,14 +66,20 @@ ProjectSearchInput = rclass
 
     render : ->
         <form onSubmit={@submit}>
-            <Input
-                ref         = 'project_search_input'
-                autoFocus
-                type        = 'text'
-                placeholder = 'Enter search (supports regular expressions!)'
-                value       = {@props.user_input}
-                buttonAfter = {@clear_button()}
-                onChange    = {@handle_change} />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        ref         = 'project_search_input'
+                        autoFocus
+                        type        = 'text'
+                        placeholder = 'Enter search (supports regular expressions!)'
+                        value       = {@props.user_input}
+                        onChange    = {@handle_change} />
+                    <InputGroup.Button>
+                        {@clear_button()}
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 ProjectSearchOutput = rclass
@@ -241,21 +247,21 @@ ProjectSearch = (name) -> rclass
                 </Col>
 
                 <Col sm=4 style={fontSize:'16px'}>
-                    <Input
-                        type     = 'checkbox'
-                        label    = 'Include subdirectories'
+                    <Checkbox
                         checked  = {@props.subdirectories}
-                        onChange = {@props.actions.toggle_search_checkbox_subdirectories} />
-                    <Input
-                        type     = 'checkbox'
-                        label    = 'Case sensitive search'
+                        onChange = {@props.actions.toggle_search_checkbox_subdirectories}>
+                        Include subdirectories
+                    </Checkbox>
+                    <Checkbox
                         checked  = {@props.case_sensitive}
-                        onChange = {@props.actions.toggle_search_checkbox_case_sensitive} />
-                    <Input
-                        type     = 'checkbox'
-                        label    = 'Include hidden files'
+                        onChange = {@props.actions.toggle_search_checkbox_case_sensitive}>
+                        Case sensitive search
+                    </Checkbox>
+                    <Checkbox
                         checked  = {@props.hidden_files}
-                        onChange = {@props.actions.toggle_search_checkbox_hidden_files} />
+                        onChange = {@props.actions.toggle_search_checkbox_hidden_files}>
+                        Include hidden files
+                    </Checkbox>
                 </Col>
             </Row>
             <Row>

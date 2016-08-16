@@ -1,3 +1,4 @@
+
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -78,8 +79,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                require('./history').load_target(window.smc_target)
-                window.smc_target = ''
+                    require('./history').load_target(window.smc_target)
+                    window.smc_target = ''
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -94,7 +95,7 @@ if localStorage[remember_me]
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
-      redux.getActions('account').setState(remember_me: false)
+        redux.getActions('account').setState(remember_me: false)
     ), 45000
 salvus_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)

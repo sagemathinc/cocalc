@@ -2,7 +2,7 @@
 The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, Input, Well, ClearFix} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -86,10 +86,10 @@ SignUp = rclass
 
     make_account : (e) ->
         e.preventDefault()
-        name     = @refs.name.getValue()
-        email    = @refs.email.getValue()
-        password = @refs.password.getValue()
-        token    = @refs.token?.getValue()
+        name     = ReactDOM.findDOMNode(@refs.name).value
+        email    = ReactDOM.findDOMNode(@refs.email).value
+        password = ReactDOM.findDOMNode(@refs.password).value
+        token    = ReactDOM.findDOMNode(@refs.token)?.value
         @props.actions.create_account(name, email, password, token)
 
     display_error : (field)->
@@ -104,7 +104,9 @@ SignUp = rclass
 
     display_token_input : ->
         if @props.token
-            <Input ref='token' type='text' placeholder='Enter the secret token' />
+            <FormGroup>
+                <FormControl ref='token' type='text' placeholder='Enter the secret token' />
+            </FormGroup>
 
     render : ->
         <Well style={marginTop:'10px'}>
@@ -113,12 +115,18 @@ SignUp = rclass
             {@display_passports()}
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                {@display_error("first_name")}
-                <Input ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
-                {@display_error("email_address")}
-                <Input ref='email' type='email' placeholder='Email address' />
-                {@display_error("password")}
-                <Input ref='password' type='password' placeholder='Choose a password' />
+                <FormGroup>
+                    {@display_error("first_name")}
+                    <FormControl ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
+                </FormGroup>
+                <FormGroup>
+                    {@display_error("email_address")}
+                    <FormControl ref='email' type='email' placeholder='Email address' />
+                </FormGroup>
+                <FormGroup>
+                    {@display_error("password")}
+                    <FormControl ref='password' type='password' placeholder='Choose a password' />
+                </FormGroup>
                 <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
                     disabled={@props.signing_up}
@@ -146,7 +154,7 @@ SignIn = rclass
 
     sign_in : (e) ->
         e.preventDefault()
-        @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
+        @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password : ->
         @props.actions.setState(show_forgot_password : true)
@@ -164,10 +172,14 @@ SignIn = rclass
             <Col xs=12>
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
-                        <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        </FormGroup>
                     </Row>
                     <Row>
-                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        </FormGroup>
                     </Row>
                     <Row>
                         <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
@@ -175,7 +187,7 @@ SignIn = rclass
                     <Row>
                         <Button type="submit"
                                 disabled={@props.signing_in}
-                                xsStyle="default" style={height:34}
+                                bsStyle="default" style={height:34}
                                 className='pull-right'>Sign&nbsp;In</Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
@@ -188,15 +200,19 @@ SignIn = rclass
                 <Grid fluid=true style={padding:0}>
                 <Row>
                     <Col xs=5>
-                        <Input ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                        </FormGroup>
                     </Col>
                     <Col xs=4>
-                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        </FormGroup>
                     </Col>
                     <Col xs=3>
                         <Button type="submit"
                                 disabled={@props.signing_in}
-                                xsStyle="default"
+                                bsStyle="default"
                                 style={height:34}
                                 className='pull-right'>Sign&nbsp;In</Button>
                     </Col>
@@ -226,7 +242,7 @@ ForgotPassword = rclass
 
     forgot_password : (e) ->
         e.preventDefault()
-        @props.actions.forgot_password(@refs.email.getValue())
+        @props.actions.forgot_password(ReactDOM.findDOMNode(@refs.email).value)
 
     display_error : ->
         if @props.forgot_password_error?
@@ -251,7 +267,9 @@ ForgotPassword = rclass
                 <form onSubmit={@forgot_password}>
                     {@display_error()}
                     {@display_success()}
-                    <Input ref='email' type='email' placeholder='Email address' />
+                    <FormGroup>
+                        <FormControl ref='email' type='email' placeholder='Email address' />
+                    </FormGroup>
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
@@ -274,7 +292,7 @@ ResetPassword = rclass
 
     reset_password : (e) ->
         e.preventDefault()
-        @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
+        @props.actions.reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
 
     hide_reset_password : (e) ->
         e.preventDefault()
@@ -293,7 +311,9 @@ ResetPassword = rclass
                     Enter your new password
                 </div>
                 <form onSubmit={@reset_password}>
-                    <Input ref='password' type='password' placeholder='New Password' />
+                    <FormGroup>
+                        <FormControl ref='password' type='password' placeholder='New Password' />
+                    </FormGroup>
                     {@display_error()}
                     <hr />
                     Not working? Email us at <HelpEmailLink />

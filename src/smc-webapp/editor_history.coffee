@@ -2,6 +2,8 @@
 Viewer for history of changes to a document
 ###
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -99,9 +101,9 @@ class exports.HistoryEditor extends FileEditor
 
     init_slider: =>
         @slider         = @element.find(".salvus-editor-history-slider")
-        @forward_button = @element.find("a[href=#forward]")
-        @back_button    = @element.find("a[href=#back]")
-        @load_all       = @element.find("a[href=#all]")
+        @forward_button = @element.find("a[href=\"#forward\"]")
+        @back_button    = @element.find("a[href=\"#back\"]")
+        @load_all       = @element.find("a[href=\"#all\"]")
 
         ##element.children().not(".btn-history").hide()
         @element.find(".salvus-editor-save-group").hide()
@@ -132,9 +134,9 @@ class exports.HistoryEditor extends FileEditor
                 path       : @_open_file_path
                 foreground : true
 
-        @element.find("a[href=#file]").click(open_file)
+        @element.find("a[href=\"#file\"]").click(open_file)
 
-        @element.find("a[href=#revert]").click () =>
+        @element.find("a[href=\"#revert\"]").click () =>
             if not @revision_num?
                 return
             time  = @syncstring?.all_versions()?[@revision_num]

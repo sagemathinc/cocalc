@@ -29,6 +29,8 @@ I didn't know about React.js at the time).
 # things should be allowed to work.
 JUPYTER_LOAD_TIMEOUT_S = 60*10
 
+$                    = window.$
+
 {EventEmitter}       = require('events')
 
 async                = require('async')
@@ -840,8 +842,9 @@ class JupyterNotebook extends EventEmitter
                 # Use jquery until the server url loads properly (not an error), then load the iframe.
                 # We do this -- which seems inefficient -- because trying to detect errors inside
                 # the iframe properly is difficult.
+                # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
-                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).success(=>cb())
+                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
                     max_time : 60*1000  # try for at most 1 minute
                     cb       : cb
             (cb) =>
@@ -863,30 +866,30 @@ class JupyterNotebook extends EventEmitter
 
     init_buttons: () =>
         # info button
-        @element.find("a[href=#info]").click(@info)
+        @element.find("a[href=\"#info\"]").click(@info)
 
         # time travel/history
-        @element.find("a[href=#history]").click(@show_history_viewer)
+        @element.find("a[href=\"#history\"]").click(@show_history_viewer)
 
         # save button
         if @read_only
-            @element.find("a[href=#save]").addClass('disabled')
+            @element.find("a[href=\"#save\"]").addClass('disabled')
         else
-            @save_button = @element.find("a[href=#save]").click(@save)
+            @save_button = @element.find("a[href=\"#save\"]").click(@save)
 
         # publish button
-        @publish_button = @element.find("a[href=#publish]").click(@publish_ui)
+        @publish_button = @element.find("a[href=\"#publish\"]").click(@publish_ui)
 
-        @refresh_button = @element.find("a[href=#refresh]").click(@refresh)
+        @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
 
-        @font_size_decr = @element.find("a[href=#font-size-decrease]").click () =>
+        @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
             @font_size_change(-1)
 
-        @font_size_incr = @element.find("a[href=#font-size-increase]").click () =>
+        @font_size_incr = @element.find("a[href=\"#font-size-increase\"]").click () =>
             @font_size_change(1)
 
     init_dom_events: () =>
@@ -1273,7 +1276,7 @@ class JupyterNBViewer
         @iframe.maxheight(offset:18)
 
     init_buttons: () =>
-        @element.find('a[href=#copy]').click () =>
+        @element.find('a[href=\"#copy\"]').click () =>
             @editor.project_page.display_tab('project-file-listing')
             actions = redux.getProjectActions(@editor.project_id)
             actions.set_all_files_unchecked()
@@ -1281,7 +1284,7 @@ class JupyterNBViewer
             actions.set_file_action('copy')
             return false
 
-        @element.find('a[href=#download]').click () =>
+        @element.find('a[href=\"#download\"]').click () =>
             @editor.project_page.display_tab('project-file-listing')
             actions = redux.getProjectActions(@editor.project_id)
             actions.set_all_files_unchecked()

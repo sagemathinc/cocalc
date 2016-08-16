@@ -28,6 +28,8 @@ Task List
 SAVE_SPINNER_DELAY_MS = 5000  # TODO -- make this consistent across editors
 
 # tasks makes use of future timestamps (for due date)
+jQuery = $ = window.$
+require('timeago')
 jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
@@ -85,7 +87,7 @@ class TaskList
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
-        @save_button = @element.find("a[href=#save]")
+        @save_button = @element.find("a[href=\"#save\"]")
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @readonly = true # at least until loaded
         @init_history_button()
@@ -110,7 +112,7 @@ class TaskList
 
     init_history_button: =>
         if not @opts.viewer
-            @element.find("a[href=#history]").show().click () =>
+            @element.find("a[href=\"#history\"]").show().click () =>
                 @editor?.editor.project_page.open_file
                     path       : misc.history_path(@filename)
                     foreground : true
@@ -1038,7 +1040,7 @@ class TaskList
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
 
 
-        elt.find("a[href=#close]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
+        elt.find("a[href=\"#close\"]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             stop_editing()
             event.preventDefault()
         elt.find(".CodeMirror-hscrollbar").remove()
@@ -1281,7 +1283,7 @@ class TaskList
         @current_task = @get_task_by_id(task_id)
 
     init_create_task: () =>
-        @element.find("a[href=#create-task]").click (event) =>
+        @element.find("a[href=\"#create-task\"]").click (event) =>
             @create_task()
             event.preventDefault()
 
@@ -1290,18 +1292,18 @@ class TaskList
             event.preventDefault()
 
     init_delete_task: () =>
-        @element.find("a[href=#delete-task]").click (event) =>
+        @element.find("a[href=\"#delete-task\"]").click (event) =>
             @delete_current_task()
             event.preventDefault()
 
     init_move_task_to_top: () =>
-        b = @element.find("a[href=#move-task-to-top]").click (event) =>
+        b = @element.find("a[href=\"#move-task-to-top\"]").click (event) =>
             if not b.hasClass('disabled')
                 @move_current_task_to_top()
             event.preventDefault()
 
     init_move_task_to_bottom: () =>
-        b = @element.find("a[href=#move-task-to-bottom]").click (event) =>
+        b = @element.find("a[href=\"#move-task-to-bottom\"]").click (event) =>
             if not b.hasClass('disabled')
                 @move_current_task_to_bottom()
             event.preventDefault()

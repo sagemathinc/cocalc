@@ -102,7 +102,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         tabs = @standard_tabs()
         @file_tabs(tabs)
         <div>
-            <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false}>
+            <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false} id="project-tabs">
                 {tabs}
             </Tabs>
         </div>

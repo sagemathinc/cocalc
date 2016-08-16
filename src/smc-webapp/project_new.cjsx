@@ -27,7 +27,7 @@ underscore = require('underscore')
 
 ReactDOMServer = require('react-dom/server')
 
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
@@ -224,7 +224,7 @@ ProjectNew = (name) -> rclass
         return require('./account').default_filename()
 
     focus_input : ->
-        @refs.project_new_filename.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
     create_file : (ext) ->
         @props.actions.create_file
@@ -282,13 +282,15 @@ ProjectNew = (name) -> rclass
                 <Col sm=9>
                     <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
                     <form onSubmit={@submit}>
-                        <Input
-                            autoFocus
-                            ref         = 'project_new_filename'
-                            value       = @state.filename
-                            type        = 'text'
-                            placeholder = 'Name your file, folder, or paste in a link...'
-                            onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
+                        <FormGroup>
+                            <FormControl
+                                autoFocus
+                                ref         = 'project_new_filename'
+                                value       = @state.filename
+                                type        = 'text'
+                                placeholder = 'Name your file, folder, or paste in a link...'
+                                onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                        </FormGroup>
                     </form>
                     {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>

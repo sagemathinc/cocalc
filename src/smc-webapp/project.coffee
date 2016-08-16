@@ -26,6 +26,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 underscore      = require('underscore')
 async           = require('async')
@@ -110,6 +111,7 @@ class ProjectPage
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
+        redux.get
         redux.getActions('projects').set_project_state_close(@project_id)
         project_store.deleteStoreActionsTable(@project_id, redux)
         delete @projects_store
@@ -308,7 +310,7 @@ class ProjectPage
                 continue
 
             # activate any a[href=...] links elsewhere on the page
-            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+            @container.find("a[href=\"##{target}\"]").data('item',t).data('target',target).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
                     return false
@@ -388,7 +390,7 @@ class ProjectPage
                 continue
 
             # activate any a[href=...] links elsewhere on the page
-            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+            @container.find("a[href=\"##{target}\"]").data('item',t).data('target',target).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
                     return false

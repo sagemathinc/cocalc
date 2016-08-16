@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 # standard non-SMC libraries
 immutable  = require('immutable')

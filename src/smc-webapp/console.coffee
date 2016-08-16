@@ -26,14 +26,15 @@
 #
 ###########################################
 
-{EventEmitter} = require('events')
-{alert_message} = require('./alerts')
-misc = require('smc-util/misc')
+$                = window.$
+{EventEmitter}   = require('events')
+{alert_message}  = require('./alerts')
+misc             = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
-{redux} = require('./smc-react')
-{alert_message} = require('./alerts')
+{redux}          = require('./smc-react')
+{alert_message}  = require('./alerts')
 
-misc_page = require('./misc_page')
+misc_page        = require('./misc_page')
 
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
@@ -309,13 +310,13 @@ class Console extends EventEmitter
             @session.on 'reconnecting', () =>
                 #console.log('terminal: reconnecting')
                 @element.find(".salvus-console-terminal").css('opacity':'.5')
-                @element.find("a[href=#refresh]").addClass('btn-success').find(".fa").addClass('fa-spin')
+                @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
             @session.on 'reconnect', () =>
                 @_got_remote_data = new Date()
                 #console.log("terminal: reconnect")
                 @element.find(".salvus-console-terminal").css('opacity':'1')
-                @element.find("a[href=#refresh]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+                @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
                 @_ignore_mesg = true
                 @value = ""
                 @reset()
@@ -398,7 +399,7 @@ class Console extends EventEmitter
             @_render_buffer = ''
         f = () =>
             if @_rendering_is_paused
-                @element.find("a[href=#pause]").addClass('btn-success').find('i').addClass('fa-play').removeClass('fa-pause')
+                @element.find("a[href=\"#pause\"]").addClass('btn-success').find('i').addClass('fa-play').removeClass('fa-pause')
         if immediate
             f()
         else
@@ -414,7 +415,7 @@ class Console extends EventEmitter
         # Do the actual rendering the next time around, so that the copy operation completes with the
         # current selection instead of the post-render empty version.
         setTimeout(f, 0)
-        @element.find("a[href=#pause]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
+        @element.find("a[href=\"#pause\"]").removeClass('btn-success').find('i').addClass('fa-pause').removeClass('fa-play')
 
     #######################################################################
     # Private Methods
@@ -422,7 +423,7 @@ class Console extends EventEmitter
 
     _init_rendering_pause: () =>
 
-        btn = @element.find("a[href=#pause]").click (e) =>
+        btn = @element.find("a[href=\"#pause\"]").click (e) =>
             if @_rendering_is_paused
                 @unpause_rendering()
             else
@@ -502,7 +503,7 @@ class Console extends EventEmitter
         @resize()
 
     _init_font_make_default: () =>
-        @element.find("a[href=#font-make-default]").click () =>
+        @element.find("a[href=\"#font-make-default\"]").click () =>
             redux.getTable('account').set(terminal:{font_size:@opts.font.size})
             return false
 
@@ -631,8 +632,8 @@ class Console extends EventEmitter
         @textarea.focus()
 
     _init_fullscreen: () =>
-        fullscreen = @element.find("a[href=#fullscreen]")
-        exit_fullscreen = @element.find("a[href=#exit_fullscreen]")
+        fullscreen = @element.find("a[href=\"#fullscreen\"]")
+        exit_fullscreen = @element.find("a[href=\"#exit_fullscreen\"]")
         fullscreen.on 'click', () =>
             @fullscreen()
             exit_fullscreen.show()
@@ -649,23 +650,23 @@ class Console extends EventEmitter
 
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
-        @element.find("a[href=#increase-font]").click () =>
+        @element.find("a[href=\"#increase-font\"]").click () =>
             @_increase_font_size()
             return false
 
-        @element.find("a[href=#decrease-font]").click () =>
+        @element.find("a[href=\"#decrease-font\"]").click () =>
             @_decrease_font_size()
             return false
 
-        @element.find("a[href=#close]").click () =>
+        @element.find("a[href=\"#close\"]").click () =>
             @opts.close?()
             return false
 
-        @element.find("a[href=#refresh]").click () =>
+        @element.find("a[href=\"#refresh\"]").click () =>
             @session?.reconnect()
             return false
 
-        @element.find("a[href=#paste]").click () =>
+        @element.find("a[href=\"#paste\"]").click () =>
             id = uuid()
             s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
@@ -673,7 +674,7 @@ class Console extends EventEmitter
             elt.val(@value).scrollTop(elt[0].scrollHeight)
             return false
 
-        @element.find("a[href=#initfile]").click () =>
+        @element.find("a[href=\"#initfile\"]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
             content = initfile_content(@opts.filename)
             {salvus_client} = require('./salvus_client')

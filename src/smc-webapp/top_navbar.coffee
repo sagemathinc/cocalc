@@ -23,6 +23,9 @@
 #  top_navbar -- the top level navbar
 #########################################################################
 
+$ = window.$
+
+# smc's salvus client
 {salvus_client} = require('./salvus_client')
 
 $(document).on 'keydown', (ev) =>
@@ -398,7 +401,7 @@ $(".salvus-connection-status").click () ->
     show_connection_information()
     return false
 
-$("a[href=#salvus-connection-reconnect]").click () ->
+$("a[href=\\#salvus-connection-reconnect]").click () ->
     salvus_client._fix_connection(true)
     return false
 
@@ -451,7 +454,7 @@ salvus_client.on "connecting", () ->
         $(".salvus-fullscreen-activate").hide()
         $(".salvus-connection-status-ping-time").html('')
         last_ping_time = ''
-        $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
+        $("a[href=\\#salvus-connection-reconnect]").find("i").addClass('fa-spin')
         network_connect_timer = null
 
     # insert delay mainly on connected → connecting state transitions
@@ -496,7 +499,7 @@ salvus_client.on "connected", () ->
     $(".salvus-connection-status-connected").show()
     if not salvus_client.in_fullscreen_mode()
         $(".salvus-fullscreen-activate").show()
-    $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
+    $("a[href=\\#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
 
 ping_time_smooth = null
 salvus_client.on "ping", (ping_time) ->

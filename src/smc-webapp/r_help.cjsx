@@ -23,6 +23,7 @@
 # Help Page
 ###
 
+$ = window.$
 
 {React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
 

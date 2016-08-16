@@ -94,7 +94,7 @@ Page = rclass
         tabs = @standard_tabs().concat(@project_tabs())
 
         <div>
-            <Tabs activeKey={@props.active_top_tab} onSelect={@select_tab} animation={false}>
+            <Tabs activeKey={@props.active_top_tab} onSelect={@select_tab} animation={false} id="page-tabs">
                 {tabs}
             </Tabs>
        </div>

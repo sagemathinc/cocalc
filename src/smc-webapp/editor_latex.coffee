@@ -3,6 +3,8 @@
 # Editor for LaTeX documents
 #############################################
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {defaults, required} = misc
@@ -60,7 +62,7 @@ class exports.LatexEditor extends editor.FileEditor
         @preview_embed = new editor.PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @preview_embed.element.find(".salvus-editor-pdf-title").hide()
-        @preview_embed.element.find("a[href=#refresh]").hide()
+        @preview_embed.element.find("a[href=\"#refresh\"]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
@@ -232,85 +234,85 @@ class exports.LatexEditor extends editor.FileEditor
     _init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
 
-        @element.find("a[href=#forward-search]").click () =>
+        @element.find("a[href=\"#forward-search\"]").click () =>
             @show_page('png-preview')
             @forward_search(active:true)
             return false
 
-        @element.find("a[href=#inverse-search]").click () =>
+        @element.find("a[href=\"#inverse-search\"]").click () =>
             @show_page('png-preview')
             @inverse_search(active:true)
             return false
 
-        @element.find("a[href=#png-preview]").click () =>
+        @element.find("a[href=\"#png-preview\"]").click () =>
             @show_page('png-preview')
             @preview.focus()
             @save()
             return false
 
-        @element.find("a[href=#zoom-preview-out]").click () =>
+        @element.find("a[href=\"#zoom-preview-out\"]").click () =>
             @preview.zoom(delta:-5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-in]").click () =>
+        @element.find("a[href=\"#zoom-preview-in\"]").click () =>
             @preview.zoom(delta:5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-fullpage]").click () =>
+        @element.find("a[href=\"#zoom-preview-fullpage\"]").click () =>
             @preview.zoom(width:100)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-width]").click () =>
+        @element.find("a[href=\"#zoom-preview-width\"]").click () =>
             @preview.zoom(width:160)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
 
-        @element.find("a[href=#pdf-preview]").click () =>
+        @element.find("a[href=\"#pdf-preview\"]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             @preview_embed.update()
             return false
 
-        @element.find("a[href=#log]").click () =>
+        @element.find("a[href=\"#log\"]").click () =>
             @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
 
-        @element.find("a[href=#errors]").click () =>
+        @element.find("a[href=\"#errors\"]").click () =>
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find("a[href=#errors]").find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find("a[href=#errors]").find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find("a[href=\"#errors\"]").find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find("a[href=\"#errors\"]").find(".salvus-latex-warnings-counter")
 
-        @element.find("a[href=#pdf-download]").click () =>
+        @element.find("a[href=\"#pdf-download\"]").click () =>
             @download_pdf()
             return false
 
-        @element.find("a[href=#preview-resolution]").click () =>
+        @element.find("a[href=\"#preview-resolution\"]").click () =>
             @set_resolution()
             return false
 
-        @element.find("a[href=#latex-command-undo]").click () =>
+        @element.find("a[href=\"#latex-command-undo\"]").click () =>
             c = @preview.pdflatex.default_tex_command()
             @log_input.val(c)
             @set_conf_doc(latex_command: c)
             return false
 
-        trash_aux_button = @element.find("a[href=#latex-trash-aux]")
+        trash_aux_button = @element.find("a[href=\"#latex-trash-aux\"]")
         trash_aux_button.click () =>
             trash_aux_button.icon_spin(true)
             @preview.pdflatex.trash_aux_files () =>
                 trash_aux_button.icon_spin(false)
             return false
 
-        run_sage = @element.find("a[href=#latex-sage]")
+        run_sage = @element.find("a[href=\"#latex-sage\"]")
         run_sage.click () =>
             @log.find("textarea").text("Running Sage...")
             run_sage.icon_spin(true)
@@ -319,7 +321,7 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-        run_latex = @element.find("a[href=#latex-latex]")
+        run_latex = @element.find("a[href=\"#latex-latex\"]")
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
             run_latex.icon_spin(true)
@@ -328,7 +330,7 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-        run_bibtex = @element.find("a[href=#latex-bibtex]")
+        run_bibtex = @element.find("a[href=\"#latex-bibtex\"]")
         run_bibtex.click () =>
             @log.find("textarea").text("Running Bibtex...")
             run_bibtex.icon_spin(true)
@@ -454,7 +456,7 @@ class exports.LatexEditor extends editor.FileEditor
             if not page?
                 continue
             e = @element.find(".salvus-editor-latex-#{n}")
-            button = @element.find("a[href=#" + n + "]")
+            button = @element.find("a[href=\"#" + n + "\"]")
             if n == name
                 e.show()
                 if n not in ['log', 'errors']
@@ -476,7 +478,7 @@ class exports.LatexEditor extends editor.FileEditor
         opts = defaults opts,
             command : undefined
             cb      : undefined
-        button = @element.find("a[href=#log]")
+        button = @element.find("a[href=\"#log\"]")
         button.icon_spin(true)
         log_output = @log.find("textarea")
         log_output.text("")
@@ -512,10 +514,10 @@ class exports.LatexEditor extends editor.FileEditor
 
         if p.errors.length
             @number_of_errors.text(p.errors.length)
-            @element.find("a[href=#errors]").addClass("btn-danger")
+            @element.find("a[href=\"#errors\"]").addClass("btn-danger")
         else
             @number_of_errors.text('')
-            @element.find("a[href=#errors]").removeClass("btn-danger")
+            @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
         if k
