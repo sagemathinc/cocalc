@@ -1058,12 +1058,11 @@ render = (redux, project_id, path) ->
     </Redux>
 
 initialize_state = (path, redux, project_id) ->
-    console.log("Initializing editor archive")
     init_redux(redux, project_id, path)
     return redux_name(project_id, path)
 
 ChatEditorGenerator = (path, redux, project_id) ->
-    console.log("Generating Chat Editor -- This should happen once per file opening")
+    # console.log("Generating Chat Editor -- This should happen once per file opening")
     name = redux_name(project_id, path)
     C = ChatRoom(name)
     C_ChatRoom = ({redux, path, actions, project_id}) ->

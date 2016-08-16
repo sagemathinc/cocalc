@@ -111,7 +111,7 @@ CodemirrorEditor = (name) -> rclass
             delete @cm
 
     init_codemirror: (options, style, value) ->
-        console.log("init_codemirror", options)
+        # console.log("init_codemirror", options)
         @_cm_destroy()
 
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
@@ -123,14 +123,14 @@ CodemirrorEditor = (name) -> rclass
         if style?
             $(@cm.getWrapperElement()).css(style)
         if @props.scroll_info?
-            console.log("setting scroll_info to ", @props.scroll_info)
+            # console.log("setting scroll_info to ", @props.scroll_info)
             @cm.scrollTo(@props.scroll_info.left, @props.scroll_info.top)
 
         @cm.on('change', @_cm_change)
         @cm.on('scroll', @_cm_scroll)
 
     _cm_change: ->
-        console.log("_cm_change")
+        # console.log("_cm_change")
         @_cm_set_value = @cm.getValue()
         @props.actions.set_value(@_cm_set_value)
 
@@ -138,8 +138,8 @@ CodemirrorEditor = (name) -> rclass
         @_cm_scroll_info = @cm.getScrollInfo()
 
     componentDidMount: ->
-        console.log("componentDidMount")
-        window.c = @
+        #console.log("componentDidMount")
+        #window.c = @
         @init_codemirror(@props.options, @props.style, @props.value)
 
     componentWillReceiveProps: (newProps) ->
@@ -149,7 +149,7 @@ CodemirrorEditor = (name) -> rclass
             @cm?.setValueNoJump(newProps.value)
 
     componentWillUnmount: ->
-        console.log("componentWillUnmount")
+        # console.log("componentWillUnmount")
         if @cm?
             if @_cm_scroll_info?
                 @props.actions?.set_scroll_info(@_cm_scroll_info)
@@ -169,6 +169,29 @@ CodemirrorEditor = (name) -> rclass
             <textarea />
         </div>
 
+initialize_state = (path, redux, project_id) ->
+    init_redux(redux, project_id, path)
+    return redux_name(project_id, path)
+
+CodemirrorGenerator = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    C = CodemirrorEditor(name)
+    C_CodemirrorEditor = ({redux, actions}) ->
+        <Redux redux={redux} >
+            <C actions={actions} />
+        </Redux>
+
+    C_CodemirrorEditor.redux_name = name
+
+    return C_CodemirrorEditor
+
+
+require('project_file').register_file_editor
+    ext         : ['txt', '']
+    icon        : 'file-code-o'
+    init      : initialize_state
+    generator : CodemirrorGenerator
+
 render = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     actions = redux.getActions(name)
@@ -176,13 +199,6 @@ render = (redux, project_id, filename) ->
     <Redux redux={redux} >
         <CodemirrorEditor_connected actions={actions} />
     </Redux>
-
-require('project_file').register_file_editor
-    ext    : ['txt', '']
-    icon   : 'file-code-o'
-    render : (redux, project_id, path) ->
-        init_redux(redux, project_id, path)
-        render(redux, project_id, path)
 
 exports.render = (project_id, filename, dom_node, redux) ->
     init_redux(redux, project_id, filename)
