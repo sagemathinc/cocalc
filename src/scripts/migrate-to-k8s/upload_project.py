@@ -27,6 +27,7 @@ def make_progress():
 
 def log(*args):
     print("(%s/%s) %s:"%(progress, goal, datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)), *args)
+    sys.stdout.flush()
 
 def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
     t = time.time()
@@ -66,7 +67,7 @@ def path_to_project(project_id):
         path = '/mnt/projects/%s/%s.zfs'%(i, project_id)
         if os.path.exists(path):
             return path
-    raise RuntimeError("no data for project_id")
+    return ''
 
 def timestamp_to_rethinkdb(timestamp):
     i = timestamp.rfind('-')
@@ -77,6 +78,9 @@ def upload_project(project_id):
     Upload the bup backup of this project to the gcloud bucket.
     """
     path = path_to_project(project_id)
+    if not path:
+        log("no data -- done")
+        return
 
     run("sudo chmod a+r -R %s"%path)
 
@@ -84,6 +88,7 @@ def upload_project(project_id):
     bup = os.path.join(path, 'bup')
     if not os.path.exists(bup):
         raise RuntimeError("no bup directory to upload -- done")
+        return
     target = os.path.join('gs://{bucket}/projects/{project_id}.zfs/bup'.format(
             bucket=GCLOUD_BUCKET, project_id=project_id))
 
