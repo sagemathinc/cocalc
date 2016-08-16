@@ -207,7 +207,10 @@ class ProjectActions extends Actions
                                 editor = project_file.generate(opts.path, @redux, @project_id)
 
                                 # Add it to open files
-                                @setState(open_files: open_files.set(opts.path, editor))
+                                if opts.foreground
+                                    @setState(open_files: open_files.set(opts.path, editor), active_tab: opts.path)
+                                else
+                                    @setState(open_files: open_files.set(opts.path, editor))
                             else
                                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                                 if opts.foreground_project
