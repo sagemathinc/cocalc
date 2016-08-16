@@ -123,14 +123,14 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim', 'stl',
+    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim', 'stl', 'nipype',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'tdigest', 'stl',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
 ]
 
 # python libs in sagemath
@@ -141,7 +141,7 @@ PY_SAGE = PY_COMMON + [
     'clawpack', # no canonical version info
     'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
-    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl',
+    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
 ]
 
@@ -149,7 +149,7 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
 ]
 
 # Tests for R setups and libraries
