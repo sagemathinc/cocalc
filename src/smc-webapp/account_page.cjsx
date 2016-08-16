@@ -112,7 +112,7 @@ AccountPage = rclass
         logged_in = @props.redux.getStore('account').is_logged_in()
         <Grid fluid className='constrained'>
             {@render_landing_page() if not logged_in}
-            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"}>
+            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
                 <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
                     {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                 </Tab>

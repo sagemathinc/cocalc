@@ -41,7 +41,7 @@
     "octicons": "^3.5.0",
     "pnotify": "^3.0.0",
     "react": "^15.1.0",
-    "react-bootstrap": "^0.29.4",
+    "react-bootstrap": "^0.30.2",
     "react-chosen": "^0.3.8",
     "react-dom": "^15.1.0",
     "react-dropzone-component": "felixrieseberg/React-Dropzone-Component",

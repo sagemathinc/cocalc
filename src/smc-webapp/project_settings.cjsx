@@ -30,7 +30,7 @@ misc                 = require('smc-util/misc')
 {html_to_text}       = require('./misc_page')
 {alert_message}      = require('./alerts')
 
-{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
+{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, InputGroup} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
@@ -202,13 +202,12 @@ UpgradeAdjustor = rclass
                 </Col>
                 <Col sm=6>
                     <form>
-                        <Input
+                        <Checkbox
                             ref      = {"upgrade_#{name}"}
-                            type     = 'checkbox'
                             checked  = {val > 0}
-                            label    = {label}
-                            onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
-                            />
+                            onChange = {(e)=>@setState("upgrade_#{name}" : if e.target.checked then 1 else 0)}>
+                            {label}
+                        </Checkbox>
                     </form>
                 </Col>
             </Row>
@@ -246,14 +245,20 @@ UpgradeAdjustor = rclass
                     ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
-                    <Input
-                        ref        = {"upgrade_#{name}"}
-                        type       = 'text'
-                        value      = {val}
-                        bsStyle    = {bs_style}
-                        onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
-                    />
+                    <FormGroup>
+                        <InputGroup>
+                            <FormControl
+                                ref        = {"upgrade_#{name}"}
+                                type       = 'text'
+                                value      = {val}
+                                bsStyle    = {bs_style}
+                                onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
+                            />
+                            <InputGroup.Addon>
+                                <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
+                            </InputGroup.Addon>
+                        </InputGroup>
+                    </FormGroup>
                     {label}
                 </Col>
             </Row>
@@ -532,12 +537,13 @@ QuotaConsole = rclass
 
     render_input : (label) ->
         if label is 'network' or label is 'member_host'
-            <Input
-                type     = 'checkbox'
+            <Checkbox
                 ref      = {label}
                 checked  = {@state[label]}
                 style    = {marginLeft:0}
-                onChange = {=>@setState("#{label}" : if @refs[label].getChecked() then 1 else 0)} />
+                onChange = {(e)=>@setState("#{label}" : if e.target.checked then 1 else 0)}>
+                {label}
+            </Checkbox>
         else
             # not using react component so the input stays inline
             <input
@@ -671,7 +677,7 @@ SharePanel = rclass
 
     save : ->
         actions = @props.redux.getProjectActions(@props.project.get('project_id'))
-        actions.set_public_path('', @refs.share_project.getValue())
+        actions.set_public_path('', ReactDOM.findDOMNode(@refs.share_project).value)
         @setState(state : 'view')
 
     render_share_cancel_buttons : ->
@@ -692,12 +698,14 @@ SharePanel = rclass
     render_share : (shared) ->
         if @state.state == 'edit' or shared
             <form onSubmit={(e)=>e.preventDefault(); @save()}>
-                <Input
-                    ref         = 'share_project'
-                    type        = 'text'
-                    value       = {@state.desc}
-                    onChange    = {=>@setState(desc : @refs.share_project.getValue())}
-                    placeholder = 'Give a description...' />
+                <FormGroup>
+                    <FormControl
+                        ref         = 'share_project'
+                        type        = 'text'
+                        value       = {@state.desc}
+                        onChange    = {=>@setState(desc : ReactDOM.findDOMNode(@refs.share_project).value)}
+                        placeholder = 'Give a description...' />
+                </FormGroup>
                 {@render_share_cancel_buttons() if @state.state == 'edit'}
                 {@render_update_desc_button() if shared}
             </form>
@@ -888,7 +896,7 @@ ProjectControlPanel = rclass
             if @state.show_ssh
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {# WARNING: previous use of <Input> here completely breaks copy on Firefox.}
+                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
                     <a href="https://github.com/sagemathinc/smc/wiki/SSH-Instructions" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
@@ -1016,10 +1024,10 @@ CollaboratorsSearch = rclass
 
     add_selected : ->
         # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        selected_names = @refs.select.getSelectedOptions()
+        selected_names = ReactDOM.findDOMNode(@refs.select).value
         if selected_names.length == 0
             @reset()
-            all_names = @refs.select.getInputDOMNode().getElementsByTagName('option')
+            all_names = ReactDOM.findDOMNode(@refs.select).getElementsByTagName('option')
             if all_names?.length == 1
                 @invite_collaborator(all_names[0].getAttribute('value'))
         else
@@ -1028,7 +1036,8 @@ CollaboratorsSearch = rclass
                 @invite_collaborator(account_id)
 
     select_list_clicked : ->
-        @setState(selected_entries: @refs.select.getSelectedOptions())
+        selected_names = ReactDOM.findDOMNode(@refs.select).value
+        @setState(selected_entries: selected_names)
 
     write_email_invite : ->
         name = @props.redux.getStore('account').get_fullname()
@@ -1054,13 +1063,15 @@ CollaboratorsSearch = rclass
             <hr />
             <Well>
                 Enter one or more email addresses separated by commas:
-                <Input
-                    autoFocus
-                    type     = 'text'
-                    value    = {@state.email_to}
-                    ref      = 'email_to'
-                    onChange = {=>@setState(email_to:@refs.email_to.getValue())}
-                    />
+                <FormGroup>
+                    <FormControl
+                        autoFocus
+                        type     = 'text'
+                        value    = {@state.email_to}
+                        ref      = 'email_to'
+                        onChange = {=>@setState(email_to:ReactDOM.findDOMNode(@refs.email_to).value)}
+                        />
+                </FormGroup>
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
                     <MarkdownInput
                         default_value = {@state.email_body}
@@ -1095,9 +1106,11 @@ CollaboratorsSearch = rclass
             </Button>
         else
             <div style={marginBottom:'10px'}>
-                <Input type='select' multiple ref='select' onClick={@select_list_clicked}>
-                    {@render_options(select)}
-                </Input>
+                <FormGroup>
+                    <FormControl componentClass='select' multiple ref='select' onClick={@select_list_clicked}>
+                        {@render_options(select)}
+                    </FormControl>
+                </FormGroup>
                 {@render_select_list_button(select)}
             </div>
 

@@ -10,8 +10,19 @@ require("script!primus/primus-engine.min.js")
 
 # require("script!jquery/jquery.min.js")
 $ = jQuery = window.$ = window.jQuery = require('jquery')
-require('jquery-ui')
-#require("script!jquery/jquery-ui/js/jquery-ui.min.js")
+#require('jquery-ui')
+# explicit jQuery UI widgets that we use -- no need to load the entire library
+require("node_modules/jquery-ui/ui/widgets/draggable")
+require("node_modules/jquery-ui/ui/widgets/sortable")
+require("node_modules/jquery-ui/ui/widgets/slider")
+require("node_modules/jquery-ui/ui/widgets/resizable")
+
+# $.tooltip() setup
+require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.
+require("jquery-focus-exit/jquery.focusexit.js")  # jquery-focus-exit is a peer dependency.
+require("jquery-mouse-exit/jquery.mouseexit.js")  # jquery-mouse-exit is a peer dependency.
+require("jquery-stick/jquery.stick.js")  # jquery-stick is a peer dependency.
+require("imports?jQuery=jquery!jquery-tooltip/jquery.tooltip.js")
 
 # Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
 # require("script!jquery/plugins/jquery.ui.touch-punch.min.js")
@@ -56,8 +67,8 @@ require('bootstrap-switch')
 require('bootstrap-colorpicker')
 
 # Pnotify: Notification framework from http://pinesframework.org/pnotify
-# require("script!pnotify/jquery.pnotify.min.js")
-PNotify = require("pnotify/src/pnotify.js");
+require("script!pnotify/jquery.pnotify.min.js")
+#PNotify = require("pnotify/src/pnotify.js");
 require("pnotify/src/pnotify.mobile.js");
 require("pnotify/src/pnotify.buttons.js");
 require("pnotify/src/pnotify.desktop.js");

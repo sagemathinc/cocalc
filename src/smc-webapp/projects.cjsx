@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 
 markdown = require('./markdown')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
@@ -772,13 +772,13 @@ NewProjectCreator = rclass
                 </Col>
                 <Col sm=6>
                     <form>
-                        <Input
+                        <Checkbox
                             ref      = {"upgrade_#{name}"}
-                            type     = 'checkbox'
                             checked  = {val > 0}
-                            label    = {label}
-                            onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
-                        />
+                            onChange = {=>@setState("upgrade_#{name}" : if ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).checked then 1 else 0)}
+                        >
+                            {label}
+                        </Checkbox>
                     </form>
                 </Col>
             </Row>
@@ -816,14 +816,20 @@ NewProjectCreator = rclass
                     ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
-                    <Input
-                        ref        = {"upgrade_#{name}"}
-                        type       = 'text'
-                        value      = {val}
-                        bsStyle    = {bs_style}
-                        onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
-                    />
+                    <FormGroup>
+                        <InputGroup>
+                            <FormControl
+                                ref        = {"upgrade_#{name}"}
+                                type       = 'text'
+                                value      = {val}
+                                bsStyle    = {bs_style}
+                                onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
+                            />
+                            <InputGroup.Addon>
+                                {@render_addon(misc, name, display_unit, limit)}
+                            </InputGroup.Addon>
+                        </InputGroup>
+                    </FormGroup>
                     {label}
                 </Col>
             </Row>
@@ -1034,27 +1040,31 @@ NewProjectCreator = rclass
             <Row>
                 <Col sm=5>
                     <h4>Title</h4>
-                    <Input
-                        ref         = 'new_project_title'
-                        type        = 'text'
-                        placeholder = 'Title'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.title_text}
-                        onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
-                        onKeyDown   = {@handle_keypress}
-                        autoFocus   />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_title'
+                            type        = 'text'
+                            placeholder = 'Title'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.title_text}
+                            onChange    = {=>@setState(title_text:ReactDOM.findDOMNode(@refs.new_project_title).value)}
+                            onKeyDown   = {@handle_keypress}
+                            autoFocus   />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=7>
                     <h4>Description</h4>
-                    <Input
-                        ref         = 'new_project_description'
-                        type        = 'text'
-                        placeholder = 'Project description'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.description_text}
-                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())}
-                        onKeyDown   = {@handle_keypress} />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_description'
+                            type        = 'text'
+                            placeholder = 'Project description'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.description_text}
+                            onChange    = {=>@setState(description_text:ReactDOM.findDOMNode(@refs.new_project_description).value)}
+                            onKeyDown   = {@handle_keypress} />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=2>
@@ -1181,7 +1191,7 @@ ProjectsSearch = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.projects_search).focus()
 
     delete_search_button : ->
         s = if @props.search?.length > 0 then 'warning' else "default"
@@ -1195,14 +1205,20 @@ ProjectsSearch = rclass
 
     render : ->
         <form onSubmit={@open_first_project}>
-            <Input
-                ref         = 'projects_search'
-                autoFocus
-                type        = 'search'
-                value       =  @props.search
-                placeholder = 'Search for projects...'
-                onChange    = {=>redux.getActions('projects').setState(search: @refs.projects_search.getValue())}
-                buttonAfter = {@delete_search_button()} />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        ref         = 'projects_search'
+                        autoFocus
+                        type        = 'search'
+                        value       =  @props.search
+                        placeholder = 'Search for projects...'
+                        onChange    = {=>redux.getActions('projects').setState(search: ReactDOM.findDOMNode(this.refs.projects_search).value)} />
+                    <InputGroup.Button>
+                        {@delete_search_button()}
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 HashtagGroup = rclass
@@ -1736,4 +1752,3 @@ top_navbar.on 'switch_to_page-projects', () ->
 
 top_navbar.on 'switch_from_page-projects', () ->
     setTimeout(unmount,50)
-

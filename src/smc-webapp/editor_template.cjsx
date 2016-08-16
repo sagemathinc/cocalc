@@ -18,7 +18,7 @@ TODO:
 immutable = require('immutable')
 
 # React bootstrap widgets.
-{Button, Input, Panel, Row, Col} = require('react-bootstrap')
+{Button, FormControl, FormGroup, Panel, Row, Col} = require('react-bootstrap')
 
 # Hooking into SMC's react support.
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
@@ -120,18 +120,20 @@ Template = (name) -> rclass
 
     # Something to allow the user to add an entry to the syncdb.
     add_entry: ->
-        v = misc.split(@refs.input.getValue())
+        v = misc.split(ReactDOM.findDOMNode(@refs.input).value)
         @props.actions.set(v[0], v[1])
 
     render_add_entry: ->
         <div key='add'>
-            <Input key="input"
-                autoFocus
-                type        = 'text'
-                ref         = 'input'
-                placeholder = 'id value'
-                style       = {width:'30em'}
-            />
+            <FormGroup>
+                <FormControl key="input"
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'input'
+                    placeholder = 'id value'
+                    style       = {width:'30em'}
+                />
+            </FormGroup>
             <Button onClick={@add_entry}>Add Entry</Button>
         </div>
 

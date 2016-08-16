@@ -108,6 +108,7 @@ class ProjectPage
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
+        redux.get
         redux.getActions('projects').set_project_state_close(@project_id)
         project_store.deleteStoreActionsTable(@project_id, redux)
         delete @projects_store

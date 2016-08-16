@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
@@ -49,7 +49,7 @@ LogSearch = rclass
         selected         : rtypes.object
 
     clear_and_focus_input : ->
-        @refs.project_log_search.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_log_search).focus()
         @props.actions.setState(search:'', page:0)
 
     render_clear_button : ->
@@ -77,21 +77,27 @@ LogSearch = rclass
 
     on_change : (e) ->
         e.preventDefault()
-        x = @refs.project_log_search.getValue()
+        x = ReactDOM.findDOMNode(@refs.project_log_search).value
         @props.actions.setState(search : x, page : 0)
 
     render : ->
         <form onSubmit={@do_open_selected}>
-            <Input
-                autoFocus
-                type        = 'search'
-                value       = @props.search
-                ref         = 'project_log_search'
-                placeholder = 'Search log...'
-                onChange    = {@on_change}
-                buttonAfter = {@render_clear_button()}
-                onKeyDown   = {@keydown}
-                />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        autoFocus
+                        type        = 'search'
+                        value       = @props.search
+                        ref         = 'project_log_search'
+                        placeholder = 'Search log...'
+                        onChange    = {@on_change}
+                        onKeyDown   = {@keydown}
+                        />
+                        <InputGroup.Button>
+                            {@render_clear_button()}
+                        </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 selected_item =
@@ -485,4 +491,3 @@ exports.render_log = (project_id, dom_node, redux) ->
 exports.unmount = (dom_node) ->
     #console.log("unmount project_log")
     ReactDOM.unmountComponentAtNode(dom_node)
-

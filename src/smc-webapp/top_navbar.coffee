@@ -24,14 +24,6 @@
 #########################################################################
 
 $ = window.$
-require('jquery-ui')
-
-# $.tooltip() setup
-require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.
-require("jquery-focus-exit/jquery.focusexit.js")  # jquery-focus-exit is a peer dependency.
-require("jquery-mouse-exit/jquery.mouseexit.js")  # jquery-mouse-exit is a peer dependency.
-require("jquery-stick/jquery.stick.js")  # jquery-stick is a peer dependency.
-require("imports?jQuery=jquery!jquery-tooltip/jquery.tooltip.js")
 
 # smc's salvus client
 {salvus_client} = require('./salvus_client')

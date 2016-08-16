@@ -40,7 +40,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonToolbar} = require('react-bootstrap')
+{Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonToolbar} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -321,7 +321,7 @@ ChatRoom = (name) -> rclass
         else if e.keyCode==13 and not e.shiftKey # 13: enter key
             @scroll_to_bottom()
             e.preventDefault()
-            mesg = @refs.input.getValue()
+            mesg = ReactDOM.findDOMNode(@refs.input).value
             # block sending empty messages
             if mesg.length? and mesg.trim().length >= 1
                 @props.redux.getActions(@props.name).send_chat(mesg)
@@ -336,16 +336,18 @@ ChatRoom = (name) -> rclass
         </span>
 
         return <div>
-            <Input
-                autoFocus
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'input'
-                onKeyDown = {@keydown}
-                value     = {@props.input}
-                onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
-                onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
-                />
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    rows      = 4
+                    componentClass = 'textarea'
+                    ref       = 'input'
+                    onKeyDown = {@keydown}
+                    value     = {@props.input}
+                    onClick   = {=>@props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')}
+                    onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(ReactDOM.findDOMNode(@refs.input).value)}
+                    />
+            </FormGroup>
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
@@ -488,5 +490,3 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
-
-

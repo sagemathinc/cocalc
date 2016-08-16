@@ -26,7 +26,7 @@ _             = require('underscore')
 
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
-{Button, ButtonToolbar, Input, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
+{Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
@@ -168,35 +168,43 @@ AddPaymentMethod = rclass
 
     set_input_info : (field, ref, value) ->
         x = misc.copy(@state.new_payment_info)
-        x[field] = value ? @refs[ref].getValue()
+        x[field] = value ? ReactDOM.findDOMNode(@refs[ref]).value
         @setState(new_payment_info: x)
 
     render_input_card_number : ->
         icon = brand_to_icon($.payment.cardType(@state.new_payment_info.number))
         value = if @valid('number') then $.payment.formatCardNumber(@state.new_payment_info.number) else @state.new_payment_info.number
-        <Input
-            autoFocus
-            ref         = 'input_card_number'
-            style       = @style('number')
-            type        = 'text'
-            size        = '20'
-            placeholder = '1234 5678 9012 3456'
-            value       = {value}
-            onChange    = {=>@set_input_info('number','input_card_number')}
-            addonAfter  = {<Icon name={icon} />}
-            disabled    = {@state.submitting}
-        />
+        <FormGroup>
+            <InputGroup>
+                <FormControl
+                    autoFocus
+                    ref         = 'input_card_number'
+                    style       = @style('number')
+                    type        = 'text'
+                    size        = '20'
+                    placeholder = '1234 5678 9012 3456'
+                    value       = {value}
+                    onChange    = {=>@set_input_info('number','input_card_number')}
+                    disabled    = {@state.submitting}
+                />
+                <InputGroup.Addon>
+                    <Icon name={icon} />
+                </InputGroup.Addon>
+            </InputGroup>
+        </FormGroup>
 
     render_input_cvc_input : ->
-        <Input
-            ref         = 'input_cvc'
-            style       = {misc.merge({width:'5em'}, @style('cvc'))}
-            type        = 'text'
-            size        = 4
-            placeholder = '···'
-            onChange    = {=>@set_input_info('cvc', 'input_cvc')}
-            disabled    = {@state.submitting}
-        />
+        <FormGroup>
+            <FormControl
+                ref         = 'input_cvc'
+                style       = {misc.merge({width:'5em'}, @style('cvc'))}
+                type        = 'text'
+                size        = 4
+                placeholder = '···'
+                onChange    = {=>@set_input_info('cvc', 'input_cvc')}
+                disabled    = {@state.submitting}
+            />
+        </FormGroup>
 
     render_input_cvc_help : ->
         if @state.cvc_help
@@ -263,37 +271,43 @@ AddPaymentMethod = rclass
 
     render_input_expiration : ->
         <div style={marginBottom:'15px'}>
-            <input
-                readOnly    = {@state.submitting}
-                className   = 'form-control'
-                style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
-                placeholder = 'MM'
-                type        = 'text'
-                size        = '2'
-                onChange    = {(e)=>@set_input_info('exp_month', undefined, e.target.value)}
-            />
+            <FormGroup>
+                <FormControl
+                    readOnly    = {@state.submitting}
+                    className   = 'form-control'
+                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
+                    placeholder = 'MM'
+                    type        = 'text'
+                    size        = '2'
+                    onChange    = {(e)=>@set_input_info('exp_month', undefined, e.target.value)}
+                />
+            </FormGroup>
             <span> / </span>
-            <input
-                readOnly    = {@state.submitting}
-                className   = 'form-control'
-                style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
-                placeholder = 'YY'
-                type        = 'text'
-                size        = '2'
-                onChange    = {(e)=>@set_input_info('exp_year', undefined, e.target.value)}
-            />
+            <FormGroup>
+                <FormControl
+                    readOnly    = {@state.submitting}
+                    className   = 'form-control'
+                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
+                    placeholder = 'YY'
+                    type        = 'text'
+                    size        = '2'
+                    onChange    = {(e)=>@set_input_info('exp_year', undefined, e.target.value)}
+                />
+            </FormGroup>
         </div>
 
     render_input_name : ->
-        <Input
-            ref         = 'input_name'
-            type        = 'text'
-            placeholder = 'Name on Card'
-            onChange    = {=>@set_input_info('name', 'input_name')}
-            style       = {@style('name')}
-            value       = {@state.new_payment_info.name}
-            disabled    = {@state.submitting}
-        />
+        <FormGroup>
+            <FormControl
+                ref         = 'input_name'
+                type        = 'text'
+                placeholder = 'Name on Card'
+                onChange    = {=>@set_input_info('name', 'input_name')}
+                style       = {@style('name')}
+                value       = {@state.new_payment_info.name}
+                disabled    = {@state.submitting}
+            />
+        </FormGroup>
 
     render_input_country : ->
         <SelectorInput
@@ -303,16 +317,18 @@ AddPaymentMethod = rclass
         />
 
     render_input_zip : ->
-        <Input
-            ref         = 'input_address_zip'
-            style       = {@style('address_zip')}
-            placeholder = 'Zip Code'
-            type        = 'text'
-            size        = '5'
-            pattern     = '\d{5,5}(-\d{4,4})?'
-            onChange    = {=>@set_input_info('address_zip', 'input_address_zip')}
-            disabled    = {@state.submitting}
-        />
+        <FormGroup>
+            <FormControl
+                ref         = 'input_address_zip'
+                style       = {@style('address_zip')}
+                placeholder = 'Zip Code'
+                type        = 'text'
+                size        = '5'
+                pattern     = '\d{5,5}(-\d{4,4})?'
+                onChange    = {=>@set_input_info('address_zip', 'input_address_zip')}
+                disabled    = {@state.submitting}
+            />
+        </FormGroup>
 
     render_tax_notice : ->
         <Row>
@@ -788,7 +804,7 @@ AddSubscription = rclass
     render_create_subscription_confirm : ->
         if not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
             subscription = " and you will be signed up for a recurring subscription"
-        <Alert bsStyle='primary' >
+        <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
             <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
             {@render_renewal_info()}
@@ -1278,9 +1294,8 @@ Subscriptions = rclass
         </Button>
 
     render_add_subscription : ->
-        # TODO: the #smc-billing-tab is to scroll back near the top of the page; will probably go away.
         <AddSubscription
-            on_close      = {=>@setState(state : 'view'); set_selected_plan(''); $("#smc-billing-tab").scrollintoview()}
+            on_close      = {=>@setState(state : 'view'); set_selected_plan('')}
             selected_plan = {@props.selected_plan}
             actions       = {@props.redux.getActions('billing')} />
 
@@ -1800,6 +1815,3 @@ exports.BillingPageLink = (opts) ->
 plan_interval = (plan) ->
     n = plan.interval_count
     return "#{plan.interval_count} #{misc.plural(n, plan.interval)}"
-
-
-

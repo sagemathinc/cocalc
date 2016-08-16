@@ -21,7 +21,7 @@
 $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, Input, Well, Alert, Modal, Table} = require('react-bootstrap')
+{Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
@@ -431,12 +431,12 @@ SupportForm = rclass
         actions   : rtypes.object.isRequired
 
     email_change  : ->
-        @props.actions.set_email(@refs.email.getValue())
+        @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
 
     data_change : ->
         @props.actions.set
-            body     : @refs.body.getValue()
-            subject  : @refs.subject.getValue()
+            body     : ReactDOM.findDOMNode(@refs.body).value
+            subject  : ReactDOM.findDOMNode(@refs.subject).value
 
     render : ->
         if not @props.show
@@ -453,34 +453,39 @@ SupportForm = rclass
             </Alert>
 
         <form>
-            <Input
-                label       = 'Your email address'
-                ref         = 'email'
-                type        = 'text'
-                tabIndex    = 1
-                placeholder = 'your_email@address.com'
-                validationState = {if ee?.length > 0 then 'error'}
-                value       = {@props.email}
-                onChange    = {@email_change} />
+            <FormGroup validationState={if ee?.length > 0 then 'error'}>
+                <FormControl
+                    label       = 'Your email address'
+                    ref         = 'email'
+                    type        = 'text'
+                    tabIndex    = 1
+                    placeholder = 'your_email@address.com'
+                    value       = {@props.email}
+                    onChange    = {@email_change} />
+            </FormGroup>
             {email_info}
             <Space />
-            <Input
-                ref         = 'subject'
-                autoFocus
-                type        = 'text'
-                tabIndex    = 2
-                label       = 'Message'
-                placeholder = "Subject ..."
-                value       = {@props.subject}
-                onChange    = {@data_change} />
-            <Input
-                ref         = 'body'
-                type        = 'textarea'
-                tabIndex    = 3
-                placeholder = 'Describe the problem ...'
-                rows        = 6
-                value       = {@props.body}
-                onChange    = {@data_change} />
+            <FormGroup>
+                <FormControl
+                    ref         = 'subject'
+                    autoFocus
+                    type        = 'text'
+                    tabIndex    = 2
+                    label       = 'Message'
+                    placeholder = "Subject ..."
+                    value       = {@props.subject}
+                    onChange    = {@data_change} />
+            </FormGroup>
+            <FormGroup>
+                <FormControl
+                    componentClass = "textarea"
+                    ref         = 'body'
+                    tabIndex    = 3
+                    placeholder = 'Describe the problem ...'
+                    rows        = 6
+                    value       = {@props.body}
+                    onChange    = {@data_change} />
+            </FormGroup>
         </form>
 
 
