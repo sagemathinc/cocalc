@@ -97,6 +97,16 @@ def upload_project(project_id):
     rethinkdb.db('smc').table('projects').get(project_id).update(
         {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp), 'disk_usage':disk_usage}).run(conn)
 
+def upload_all_projects(limit=2):
+    conn = rethinkdb.connect(host=DB_HOST, timeout=10, auth_key=auth_key)
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
+    i=0
+    log("doing query")
+    for x in rethinkdb.db('smc').table('projects').filter({'last_backup_to_gcloud':??}).pluck(['project_id']).limit(limit).run(conn)
+        upload_project(x['project_id'])
+        i += 1
+        log("STATUS: %s/%s"%(i,limit))
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
