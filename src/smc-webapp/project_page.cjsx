@@ -93,7 +93,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
     file_tab: (editor, path) ->
         # TODO: Stuff passed to every editor should be standarized
         # Alternatively, this needs be generalized
-        Name = editor
+        Name = editor # I'm not going to bother figuring out why this is necessary
         <Tab key={path} eventKey={path} title={path}>
             <Name path={path} project_id={@props.project_id} redux={redux} actions={redux.getActions(editor.redux_name)} />
         </Tab>

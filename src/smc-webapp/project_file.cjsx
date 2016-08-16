@@ -71,7 +71,7 @@ exports.generate = (path, redux, project_id) ->
 
 require('./editor_chat')
 # require('./editor_archive')
-# require('./course/main')
+require('./course/main')
 #require('./editor_codemirror')
 
 # require('./editor').register_nonreact_editors()

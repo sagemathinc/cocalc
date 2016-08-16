@@ -681,7 +681,6 @@ ChatRoom = (name) -> rclass
     propTypes :
         redux       : rtypes.object.isRequired
         actions     : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string.isRequired
@@ -1068,14 +1067,12 @@ ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     C = ChatRoom(name)
     C_ChatRoom = ({redux, path, actions, project_id}) ->
-        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
         <Redux redux={redux}>
             <C redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id}/>
         </Redux>
 
     C_ChatRoom.redux_name = name
-
-    console.log(name)
 
     C_ChatRoom.propTypes =
         redux      : rtypes.object
