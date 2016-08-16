@@ -3615,3 +3615,17 @@ def help(*args, **kwds):
 
 # Import the jupyter kernel client.
 from sage_jupyter import jupyter
+
+# license() workaround for IPython pager
+# could also set os.environ['TERM'] to 'dumb' to workaround the pager
+def license():
+    r"""
+    Display Sage license file COPYING.txt
+ 
+    You can also view this information in an SMC terminal session:
+ 
+        | $ sage
+        | sage: license()
+ 
+    """
+    print(sage.misc.copying.license)
