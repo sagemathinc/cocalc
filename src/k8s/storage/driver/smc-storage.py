@@ -187,15 +187,28 @@ def adjust_pool_size_if_necessary(path, requested_size, verbose=False):
     cur_size_bytes = sum(os.stat(image).st_size for image in images)
     # NOTE: pool is *assumed* to be imported, so setting the quota should work.
     pool = open(os.path.join(path, 'pool')).read().strip()
-    try:
-        cmd("zfs set quota={req_size_bytes} {pool}".format(req_size_bytes=req_size_bytes, pool=pool), verbose=verbose)
-    except Exception as err:
-        if 'size is less than' in str(err):
-            # set quota to the current used space -- (yes, this would let a user
-            # cheat a little... but we can have a strategy to warn them).
-            req_size_bytes = size_to_bytes(cmd("zpool list -H -o alloc {pool}", verbose=verbose)) + size_to_bytes('1M')
+    enlarged = 0
+    while True:
+        # keep trying to set quota until it works -- it can fail if the quota is less than
+        # the actual used space, but that would lock out user, so we auto-enlarge.
+        try:
             cmd("zfs set quota={req_size_bytes} {pool}".format(req_size_bytes=req_size_bytes, pool=pool), verbose=verbose)
-            return
+            break
+        except Exception as err:
+            if 'size is less than' in str(err):
+                # set quota to the current used space -- (yes, this would let a user
+                # cheat a little... but we can have a strategy to warn them).
+                if enlarged:
+                    if enlarged > 30:
+                        raise   # something just isn't working -- give up!
+                    req_size_bytes = int(req_size_bytes * 1.1)
+                else:
+                    # I wish this worked and gave an amount that worked.. but it simply doesn't.
+                    req_size_bytes = size_to_bytes(cmd("zpool list -H -o alloc {pool}".format(pool=pool), verbose=verbose)) + size_to_bytes('50M')
+                enlarged += 1
+                continue
+            else:
+                raise
 
     if req_size_bytes > cur_size_bytes:
         if verbose:
