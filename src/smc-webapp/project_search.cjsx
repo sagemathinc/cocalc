@@ -306,7 +306,7 @@ ProjectSearchHeader = (name) -> rclass
         </h1>
 
 exports.ProjectSearchGenerator = (name) ->
-    console.log("Generating ProjectSearch -- This should happen once per project opening")
+    # console.log("Generating ProjectSearch -- This should happen once per project opening")
     ProjectSearchHeader_connected = ProjectSearchHeader(name)
     ProjectSearch_connected       = ProjectSearch(name)
 

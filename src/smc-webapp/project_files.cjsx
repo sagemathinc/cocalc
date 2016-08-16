@@ -2000,7 +2000,7 @@ ProjectFiles = (name) -> rclass
         </div>
 
 exports.ProjectFilesGenerator = (name) ->
-    console.log("Generating ProjectFiles-- This should happen once per project opening")
+    # console.log("Generating ProjectFiles-- This should happen once per project opening")
     C = ProjectFiles(name)
     return ({redux, actions, project_id}) ->
         <Redux redux={redux}>

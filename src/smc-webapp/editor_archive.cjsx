@@ -2,6 +2,7 @@
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
+{filename_extension} = require('smc-util/misc')
 async = require('async')
 misc = require('smc-util/misc')
 
@@ -72,27 +73,8 @@ class ArchiveActions extends Actions
         async.waterfall([
             # Get the file type data. Error if no file found.
             (waterfall_cb) =>
-                salvus_client.exec
-                    project_id : project_id
-                    command    : "file"
-                    args       : ["-z", "-b", path]
-                    err_on_exit: true
-                    cb         : (err, info) =>
-                        if err
-                            if err.indexOf('No such file or directory') != -1
-                                err = "No such file or directory"
-                        waterfall_cb(err, info)
-            # Get the file type. Error if file type not supported.
-            (info, waterfall_cb) =>
-                if not info?.stdout?
-                    waterfall_cb("Unsupported archive type.\n\nYou might try using a terminal.")
-                type = @parse_file_type(info.stdout)
-                if not type?
-                    waterfall_cb("Unsupported archive type -- #{info.stdout} \n\nYou might try using a terminal.", info)
-                waterfall_cb(undefined, info, type)
-            # Get archive contents. Error if unable to read archive.
-            (info, type, waterfall_cb) =>
-                {command, args} = COMMANDS[type].list
+                ext = filename_extension(path)
+                {command, args} = COMMANDS[ext].list
 
                 salvus_client.exec
                     project_id : project_id
@@ -100,15 +82,14 @@ class ArchiveActions extends Actions
                     args       : args.concat([path])
                     err_on_exit: false
                     cb         : (client_err, client_output) =>
-                        waterfall_cb(client_err, info, type, client_output)
+                        waterfall_cb(client_err, ext, client_output)
 
-        ], (err, info, type, contents) =>
+        ], (err, ext, contents) =>
             if not err
                 @setState
                     error    : err
-                    info     : info.stdout
                     contents : contents.stdout
-                    type     : type
+                    type     : ext
         )
 
     extract_archive_files : (project_id, path, type, contents) ->
@@ -214,8 +195,9 @@ initialize_state = (path, redux, project_id) ->
     init_redux(redux, project_id, path)
     return redux_name(project_id, path)
 
-ArchiveEditorGenerator = (name) ->
+ArchiveEditorGenerator = (path, redux, project_id) ->
     console.log("Generating Archive Editor-- This should happen once per file opening")
+    name = redux_name(project_id, path)
     C = Archive(name)
     C_Archive = ({redux, path, actions, project_id}) ->
         <Redux redux={redux}>

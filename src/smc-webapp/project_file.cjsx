@@ -29,6 +29,12 @@ React component for a single file editor.
 
 file_editors = {}
 
+###
+ext       : string or array of strings to associate the editor with
+generator : function (path, redux, project_id) -> rclass|function
+init      : function (path, redux, project_id) -> string
+
+###
 exports.register_file_editor = (opts) ->
     opts = defaults opts,
         ext       : required
@@ -39,7 +45,6 @@ exports.register_file_editor = (opts) ->
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]
     for ext in opts.ext
-        console.log('registering ', ext)
         file_editors[ext] =
             icon      : opts.icon
             generator : opts.generator
@@ -70,7 +75,7 @@ exports.generate = (path, redux, project_id) ->
 # Require each module, which loads a file editor.  These call register_file_editor.
 
 require('./editor_chat')
-# require('./editor_archive')
+require('./editor_archive')
 require('./course/main')
 #require('./editor_codemirror')
 

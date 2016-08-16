@@ -471,7 +471,7 @@ ProjectLog = (name) -> rclass
         </div>
 
 exports.ProjectLogGenerator = (name) ->
-    console.log("Generating ProjectLog -- This should happen once per project opening")
+    # console.log("Generating ProjectLog -- This should happen once per project opening")
     C = ProjectLog(name)
 
     return ({redux, actions}) ->

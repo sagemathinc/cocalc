@@ -1374,7 +1374,7 @@ ProjectController = (name) -> rclass
                 />
             </div>
 exports.ProjectSettingsGenerator = (name) ->
-    console.log("Generating ProjectSettings -- This should happen once per project opening")
+    # console.log("Generating ProjectSettings -- This should happen once per project opening")
     C = ProjectController(name)
     return ({redux, project_id, group}) ->
         <Redux redux={redux}>
