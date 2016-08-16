@@ -15,8 +15,18 @@ import datetime, os, rethinkdb, shutil, subprocess, sys, time
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"      # e.g., 2016-06-27-141131
 
+goal = 0
+def set_goal(g):
+    global goal
+    goal = g
+
+progress = 0
+def make_progress():
+    global progress
+    progress += 1
+
 def log(*args):
-    print(*args)
+    print("(%s/%s) %s:"%(progress, goal, datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)), *args)
 
 def run(v, shell=False, path='.', get_output=False, env=None, verbose=1):
     t = time.time()
@@ -91,27 +101,52 @@ def upload_project(project_id):
         'bup': int(run("du -smc {bup}".format(bup=bup), get_output=True).split()[-2]),
         'img': int(run("du -smc {path}/*.img".format(path=path), get_output=True).split()[-2])
     }
+    log("disk_usage='%s'"%disk_usage)
 
     conn = rethinkdb.connect(host=DB_HOST, timeout=10, auth_key=auth_key)
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
     rethinkdb.db('smc').table('projects').get(project_id).update(
         {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp), 'disk_usage':disk_usage}).run(conn)
 
-def upload_all_projects(limit=2):
+def upload_all_projects(limit, shard):
+    global progress
     conn = rethinkdb.connect(host=DB_HOST, timeout=10, auth_key=auth_key)
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
-    i=0
     log("doing query")
-    for x in rethinkdb.db('smc').table('projects').filter({'last_backup_to_gcloud':??}).pluck(['project_id']).limit(limit).run(conn)
-        upload_project(x['project_id'])
-        i += 1
-        log("STATUS: %s/%s"%(i,limit))
+    query = rethinkdb.db('smc').table('projects').filter(~rethinkdb.row.has_fields('last_backup_to_gcloud')).pluck(['project_id']).limit(limit)
+    v = []
+    for x in query.run(conn):
+        project_id = x['project_id']
+        if not project_id.endswith(shard):
+            continue
+        v.append(project_id)
+    set_goal(len(v))
+    for project_id in v:
+        log(project_id)
+        try:
+            upload_project(project_id)
+        except Exception as err:
+            log("error considering %s "%project_id, err)
+
+        make_progress()
+        log('done')
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and len(sys.argv[1]) == 36:
         project_id = sys.argv[1]
         upload_project(project_id)
     else:
         # upload all projects not already uploaded
-        upload_all_projects()
+        if len(sys.argv) == 1:
+            conn = rethinkdb.connect(host=DB_HOST, timeout=10, auth_key=auth_key)
+            done = rethinkdb.db('smc').table('projects').filter(rethinkdb.row.has_fields('last_backup_to_gcloud')).count().run(conn)
+            print("done so far: ", done)
+        else:
+            if len(sys.argv) == 3:
+                shard = sys.argv[2]
+            else:
+                shard = ''
+            upload_all_projects(int(sys.argv[1]), shard)
+
+
