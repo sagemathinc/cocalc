@@ -37,6 +37,8 @@ misc      = require('smc-util/misc')
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
 
+project_file = require('project_file')
+
 masked_file_exts =
     'py'   : ['pyc']
     'java' : ['class']
@@ -194,9 +196,18 @@ class ProjectActions extends Actions
                                 if not store?  # if store not initialized we can't set activity
                                     return
                                 open_files = store.get_open_files()
-                                if open_files.contains(opts.path)
+
+                                if open_files.has(opts.path) # Already opened
                                     return
-                                @setState(open_files: open_files.push(opts.path))
+
+                                # Intialize the file's store and actions
+                                project_file.initialize(opts.path, @redux, @project_id)
+
+                                # Make the editor
+                                editor = project_file.generate(opts.path, @redux, @project_id)
+
+                                # Add it to open files
+                                @setState(open_files: open_files.set(opts.path, editor))
                             else
                                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                                 if opts.foreground_project
@@ -852,7 +863,10 @@ class ProjectStore extends Store
         return @get('current_path')
 
     get_open_files: =>
-        return @get('open_files') ? immutable.List([])
+        if window.FULLY_REACT
+            return @get('open_files') ? immutable.Map({})
+        else
+            return @get('open_files') ? immutable.List([])
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()

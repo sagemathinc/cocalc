@@ -31,8 +31,9 @@ file_editors = {}
 
 exports.register_file_editor = (opts) ->
     opts = defaults opts,
-        ext    : required
-        render : required
+        ext       : required
+        generator : required # function
+        init      : required # function
         icon   : 'file-o'
     console.log "register_file_editor #{opts.ext}"
     if typeof(opts.ext) == 'string'
@@ -40,27 +41,38 @@ exports.register_file_editor = (opts) ->
     for ext in opts.ext
         console.log('registering ', ext)
         file_editors[ext] =
-            render : opts.render
-            icon   : opts.icon
+            icon      : opts.icon
+            generator : opts.generator
+            init      : opts.init
 
-exports.render = (project_id, path, redux) ->
+# Performs things that need to happen before render
+# Calls file_editors[ext].init()
+# Examples of things that go here:
+# - Initializing store state
+# - Initializing Actions
+exports.initialize = (path, redux, project_id) ->
     ext = filename_extension(path)
-    console.log "project_file.render project_id=#{project_id}, path=#{path}, ext=#{ext}"
-    render = file_editors[ext]?.render
-    if not render?
-        render = file_editors['']?.render  # possible fallback
-    if render?
-        return render(redux, project_id, path)
-    else
-        return <div>No editor for {path} or fallback editor yet</div>
+    console.log("Initializing store and actions for path:", path)
+    file_editors[ext]?.init(path, redux, project_id)
 
+# Returns an editor instance for the path
+exports.generate = (path, redux, project_id) ->
+    ext = filename_extension(path)
+    generator = file_editors[ext]?.generator
+    if not generator?
+        console.log("generator not found. Using fallback")
+        generator = file_editors['']?.generator
+    if generator?
+        return generator(path, redux, project_id) # return the generated class
+    else
+        return () -> <div>No editor for {path} or fallback editor yet</div>
 
 # Require each module, which loads a file editor.  These call register_file_editor.
 
 require('./editor_chat')
-require('./editor_archive')
-require('./course/main')
+# require('./editor_archive')
+# require('./course/main')
 #require('./editor_codemirror')
 
-require('./editor').register_nonreact_editors()
+# require('./editor').register_nonreact_editors()
 

@@ -84,34 +84,18 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
     select_tab : (key) ->
         @props.project_actions.set_active_tab(key)
 
-
-    w_standard_tabs: ->
-        [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                {project_files.render(@props.project_id, @props.redux)}
-            </Tab>,
-            <Tab key={'new'} eventKey={'new'} title={"New"}>
-                {project_new.render(@props.project_id, @props.redux)}
-            </Tab>,
-            <Tab key={'log'} eventKey={'log'} title={"Log"}>
-                {project_log.render(@props.project_id, @props.redux)}
-            </Tab>,
-            <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                {project_search.render(@props.project_id, @props.redux)}
-            </Tab>,
-            <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
-                {project_settings.render(@props.project_id, @props.redux)}
-            </Tab>
-        ]
-
     file_tabs: (v) ->
         if not @props.open_files?
             return
-        @props.open_files.map (path) =>
-            v.push(@file_tab(path))
+        @props.open_files.map (editor, path) =>
+            v.push(@file_tab(editor, path))
 
-    file_tab: (path) ->
+    file_tab: (editor, path) ->
+        # TODO: Stuff passed to every editor should be standarized
+        # Alternatively, this needs be generalized
+        Name = editor
         <Tab key={path} eventKey={path} title={path}>
-            {project_file.render(@props.project_id, path, @props.redux)}
+            <Name path={path} project_id={@props.project_id} redux={redux} actions={redux.getActions(editor.redux_name)} />
         </Tab>
 
     render : ->

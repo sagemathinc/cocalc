@@ -49,7 +49,7 @@ COMMANDS =
             command : 'xz'
             args    : ['-vfd']
 
-redux_name = (project_id, path) ->
+exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ArchiveActions extends Actions
@@ -85,10 +85,10 @@ class ArchiveActions extends Actions
             # Get the file type. Error if file type not supported.
             (info, waterfall_cb) =>
                 if not info?.stdout?
-                    cb("Unsupported archive type.\n\nYou might try using a terminal.")
+                    waterfall_cb("Unsupported archive type.\n\nYou might try using a terminal.")
                 type = @parse_file_type(info.stdout)
                 if not type?
-                    cb("Unsupported archive type -- #{info.stdout} \n\nYou might try using a terminal.", info)
+                    waterfall_cb("Unsupported archive type -- #{info.stdout} \n\nYou might try using a terminal.", info)
                 waterfall_cb(undefined, info, type)
             # Get archive contents. Error if unable to read archive.
             (info, type, waterfall_cb) =>
@@ -160,7 +160,7 @@ class ArchiveActions extends Actions
             @setState(error: err, extract_output: output.stdout)
         )
 
-exports.init_redux = init_redux = (redux, project_id, filename) ->
+init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
@@ -209,6 +209,35 @@ Archive = (name) -> rclass
             <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
+initialize_state = (path, redux, project_id) ->
+    console.log("Initializing editor archive")
+    init_redux(redux, project_id, path)
+    return redux_name(project_id, path)
+
+ArchiveEditorGenerator = (name) ->
+    console.log("Generating Archive Editor-- This should happen once per file opening")
+    C = Archive(name)
+    C_Archive = ({redux, path, actions, project_id}) ->
+        <Redux redux={redux}>
+            <C path={path} actions={actions} project_id={project_id} />
+        </Redux>
+
+    C_Archive.redux_name = name
+
+    C_Archive.propTypes =
+        redux      : rtypes.object
+        path       : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
+
+    return C_Archive
+
+require('project_file').register_file_editor
+    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
+    icon   : 'file-archive-o'
+    generator : ArchiveEditorGenerator
+    init      : initialize_state
+
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
@@ -216,13 +245,6 @@ render = (redux, project_id, path) ->
     <Redux redux={redux}>
         <Archive_connected path={path} actions={actions} project_id={project_id} />
     </Redux>
-
-require('project_file').register_file_editor
-    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
-    icon   : 'file-archive-o'
-    render : (redux, project_id, path) ->
-        init_redux(redux, project_id, path)
-        render(redux, project_id, path)  # stupid/dangerous order change!
 
 exports.free = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)

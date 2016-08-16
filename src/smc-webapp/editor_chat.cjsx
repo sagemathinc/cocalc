@@ -1058,12 +1058,38 @@ render = (redux, project_id, path) ->
         <C redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Redux>
 
+initialize_state = (path, redux, project_id) ->
+    console.log("Initializing editor archive")
+    init_redux(redux, project_id, path)
+    return redux_name(project_id, path)
+
+ChatEditorGenerator = (path, redux, project_id) ->
+    console.log("Generating Chat Editor -- This should happen once per file opening")
+    name = redux_name(project_id, path)
+    C = ChatRoom(name)
+    C_ChatRoom = ({redux, path, actions, project_id}) ->
+        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+        <Redux redux={redux}>
+            <C redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id}/>
+        </Redux>
+
+    C_ChatRoom.redux_name = name
+
+    console.log(name)
+
+    C_ChatRoom.propTypes =
+        redux      : rtypes.object
+        path       : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
+
+    return C_ChatRoom
+
 require('project_file').register_file_editor
-    ext    : 'sage-chat'
-    icon   : 'comment'
-    render : (redux, project_id, path) ->
-        init_redux(redux, project_id, path)
-        render(redux, project_id, path)
+    ext       : 'sage-chat'
+    icon      : 'comment'
+    init      : initialize_state
+    generator : ChatEditorGenerator
 
 exports.render = (project_id, path, dom_node, redux) ->
     init_redux(redux, project_id, path)
