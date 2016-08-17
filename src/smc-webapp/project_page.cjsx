@@ -55,7 +55,7 @@ ProjectPageTemp = rclass ({name}) ->
         @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles name={"#{name}"} project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
+                <ProjectFiles name={"#{name}"} project_id={@props.project_id} redux={redux} actions={@actions("#{name}")} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
                 <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />

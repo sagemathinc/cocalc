@@ -274,6 +274,11 @@ react_component = (x) ->
                 definition = x(@props)
                 key = misc.keys(definition.reduxProps).sort().join('')
 
+                if definition.actions?
+                    throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+
+                definition.actions = redux.getActions
+
                 @cache[key] ?= rclass(definition)
 
                 return React.createElement(@cache[key], @props, @props.children)
@@ -291,15 +296,17 @@ react_component = (x) ->
                     else
                         propTypes[prop] = rtypes.object
             x.propTypes = propTypes
+
+        if x.actions? and x.actions != redux.getActions
+            throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+
+        definition.actions = redux.getActions
+
         C = React.createClass(x)
         if x.reduxProps?
             # Make the ones comming from redux get automatically injected, as long
             # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
             C = connect_component(x.reduxProps)(C)
-        if C.actions?
-            throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
-
-        C.actions = redux.getActions
     return C
 
 COUNT = false
