@@ -64,6 +64,7 @@ Avatar = rclass
         fontFamily   : 'sans-serif'
 
     _innerStyle_image: ->
+        display      : 'block'
         position     : 'relative'
         width        : '100%'
         height       : '100%'
@@ -178,7 +179,7 @@ UsersViewingDocument = rclass
         if all_users.length > num_users_to_display
             rest =
                 <span style={fontSize:"small", cursor:"pointer", marginBottom:"4px", marginRight:"10px"}>
-                    {"+ #{all_users.length-4}"}
+                    {"+ #{all_users.length-num_users_to_display}"}
                 </span>
             users_to_display.push <OverlayTrigger
                     rootClose = true

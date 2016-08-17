@@ -1007,7 +1007,6 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
-
     render_delete_warning : ->
         if @props.current_path is '.trash'
             <Col sm=5>

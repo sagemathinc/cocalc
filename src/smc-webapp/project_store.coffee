@@ -250,7 +250,9 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
+        truncated_path = misc.trunc_middle(path,30)
+        display_path = if truncated_path.length is 0 then 'home' else truncated_path
+        @set_activity(id:id, status:"getting file listing for #{display_path}...")
         group   = undefined
         listing = undefined
         async.series([
@@ -382,7 +384,8 @@ class ProjectActions extends Actions
     _finish_exec : (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
-            @set_directory_files()
+            store = @get_store()
+            @set_directory_files(store.get('current_path'), store.get('sort_by_time'), store.get('show_hidden'))
             if err
                 @set_activity(id:id, error:err)
             else if output?.event == 'error' or output?.error
@@ -511,7 +514,8 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:id, error:err)
             else
-                @set_directory_files()
+                store = @get_store()
+                @set_directory_files(store.get('current_path'), store.get('sort_by_time'), store.get('show_hidden'))
             @log
                 event  : 'file_action'
                 action : 'moved'
@@ -543,7 +547,9 @@ class ProjectActions extends Actions
                     action : 'deleted'
                     files  : opts.src[0...3],
                     count  :  if opts.src.length > 3 then opts.src.length
-            @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
+            store = @get_store()
+            @set_directory_files(store.get('current_path'), store.get('sort_by_time'), store.get('show_hidden'))
+            # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
         )
 
     delete_files : (opts) =>
@@ -694,7 +700,8 @@ class ProjectActions extends Actions
             timeout : FROM_WEB_TIMEOUT_S
             alert   : true
             cb      : (err) =>
-                @set_directory_files()
+                store = @get_store()
+                @set_directory_files(store.get('current_path'), store.get('sort_by_time'), store.get('show_hidden'))
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
