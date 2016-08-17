@@ -102,8 +102,15 @@ def cluster_env(args, prefix=None):
         #'KUBE_GCE_NODE_IMAGE'            : 'ubuntu-1404-trusty-v20160627',  # ubuntu didn't work -- NO DNS!
     }
 
-    if args.no_scopes:
+
+    if args.no_scopes: # just add one for accessing the private docker repo (safe and needed to do anything!)
         env['NODE_SCOPES']  = ','
+
+    labels = args.labels.split(',') if args.labels else []
+    labels.append('no_scopes='+str(args.no_scopes).lower())
+    labels.append('preemptible='+str(args.preemptible).lower())
+
+    env['NODE_LABELS'] = ','.join(labels)
 
     if hasattr(args, 'master_size'):
         env['MASTER_SIZE'] = args.master_size
@@ -304,6 +311,7 @@ if __name__ == '__main__':
     sub.add_argument("--preemptible",      action="store_true",     help="use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating only estimate monthly cost of cluster")
     sub.add_argument("--no-scopes",        action="store_true",     help="make it so the VM's in the main instance group have **NO GCLOUD PERMISSIONS AT ALL** -- probably a bad idea; instead use this with create-instance-group")
+    sub.add_argument("--labels",           default="", help="labels to apply to all nodes in the group; foo=bar,x=y,stuff=done")
     sub.set_defaults(func=create_cluster)
 
     sub = subparsers.add_parser('select-cluster', help='select a given cluster')
@@ -328,6 +336,7 @@ if __name__ == '__main__':
     sub.add_argument("--preemptible",      action="store_true",     help="use preemptible nodes")
     sub.add_argument("--cost",             action="store_true",     help="instead of creating instance group, only estimate monthly cost of the instance group")
     sub.add_argument("--no-scopes",        action="store_true",     help="make it so the VM's in this instance group have **NO GCLOUD PERMISSIONS AT ALL**; permissions will only get added explicitly by the cluster manager service.  CRITICAL to use this for any cluster that will run user projects!!!")
+    sub.add_argument("--labels",           default="", help="labels to apply to all nodes in the group; foo=bar,x=y,stuff=done")
     sub.add_argument("name", help="instance group will be named k8s-[cluster]-[name]")
     sub.set_defaults(func=create_instance_group)
 
