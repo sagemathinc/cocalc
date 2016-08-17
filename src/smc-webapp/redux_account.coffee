@@ -33,7 +33,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -68,7 +68,7 @@ class AccountActions extends Actions
                     when "signed_in"
                         {analytics_event} = require('./misc_page')
                         analytics_event('account', 'create_account') # user created an account
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")

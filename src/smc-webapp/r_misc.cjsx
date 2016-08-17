@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
@@ -109,6 +109,7 @@ exports.Icon = Icon = rclass
         inverse    : rtypes.bool
         className  : rtypes.string
         style      : rtypes.object
+        onClick    : rtypes.func
 
     getDefaultProps : ->
         name : 'square-o'
@@ -136,7 +137,7 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames}>{@props.children}</i>
+        return <i style={style} className={classNames} onClick={(e)=>@props.onClick?(e)}>{@props.children}</i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -530,6 +531,7 @@ exports.SearchInput = rclass
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
+        buttonAfter     : rtypes.object
 
     getInitialState : ->
         value     : @props.default_value
@@ -1091,7 +1093,7 @@ exports.LoginLink = rclass
         <Alert bsStyle='info' style={margin:'15px'}>
             <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please<Space/>
             <a style={cursor: 'pointer'}
-                onClick={=>require('./top_navbar').top_navbar.switch_to_page('account')}>
+                onClick={=>redux.getActions('page').set_active_tab('account')}>
                 login or create an account...
             </a>
         </Alert>

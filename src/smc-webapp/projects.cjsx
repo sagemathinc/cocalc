@@ -49,21 +49,17 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    # Local state events
-    set_project_state : (project_id, name, value) =>
-        x = store.getIn(['project_state', project_id]) ? immutable.Map()
-        @setState(project_state: store.get('project_state').set(project_id, x.set(name, immutable.fromJS(value))))
+    set_project_open : (project_id, err) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index == -1
+            @setState(open_projects : x.push(project_id))
 
-    delete_project_state : (project_id, name) =>
-        x = store.getIn(['project_state', project_id])
-        if x?
-            @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
-
-    set_project_state_open : (project_id, err) =>
-        @set_project_state(project_id, 'open', {time:salvus_client.server_time(), err:err})
-
-    set_project_state_close : (project_id) =>
-        @delete_project_state(project_id, 'open')
+    set_project_closed : (project_id) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index != -1
+            @setState(open_projects : x.delete(index))
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
@@ -159,10 +155,10 @@ class ProjectsActions extends Actions
             show_hidden = store.get('show_hidden') ? false
             actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
             redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
-            @set_project_state_open(opts.project_id)
+            @set_project_open(opts.project_id)
         else
             opts.cb = (err) =>
-                @set_project_state_open(opts.project_id, err)
+                @set_project_open(opts.project_id, err)
             open_project(opts)
             if opts.switch_to
                 @foreground_project(opts.project_id)
@@ -172,23 +168,13 @@ class ProjectsActions extends Actions
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        if window.FULLY_REACT
-            redux.getActions('page').set_active_tab(project_id)
+        redux.getActions('page').set_active_tab(project_id)
 
-            @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
-                until : (store) => store.get_title(project_id)
-                cb    : (err, title) =>
-                    if not err
-                        require('./browser').set_window_title(title)  # change title bar
-        else
-            top_navbar.switch_to_page(project_id)  # TODO: temporary
-
-            @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
-                until : (store) => store.get_title(project_id)
-                cb    : (err, title) =>
-                    if not err
-                        require('./browser').set_window_title(title)  # change title bar
-            @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
+        @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+            until : (store) => store.get_title(project_id)
+            cb    : (err, title) =>
+                if not err
+                    require('./browser').set_window_title(title)  # change title bar
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
@@ -445,12 +431,6 @@ class ProjectsStore extends Store
         list = list.concat others
         return list
 
-    get_project_state : (project_id, name) =>
-        return @getIn(['project_state', project_id, name])
-
-    get_project_open_state : (project_id) =>
-        return @get_project_state(project_id, 'open')
-
     # Return the group that the current user has on this project, which can be one of:
     #    'owner', 'collaborator', 'public', 'admin' or undefined, where
     # undefined -- means the information needed to determine group hasn't been loaded yet
@@ -484,14 +464,11 @@ class ProjectsStore extends Store
         return me.get('group')
 
     is_project_open : (project_id) =>
-        x = @get_project_state(project_id, 'open')
-        if not x?
-            return false
-        return not x.get('err')
+        @get('open_projects').includes(project_id)
 
     wait_until_project_is_open : (project_id, timeout, cb) =>  # timeout in seconds
         @wait
-            until   : => @get_project_open_state(project_id)
+            until   : => @is_project_open(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
@@ -597,7 +574,7 @@ class ProjectsStore extends Store
 
 init_store =
     project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
-    project_state : immutable.Map()  # information about state of projects in the browser
+    open_projects : immutable.List()  # ordered list of open projects
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
@@ -627,7 +604,7 @@ exports.open_project = open_project = (opts) ->
         proj = project_page(opts.project_id)
         top_navbar.resize_open_project_tabs()
         if opts.switch_to
-            top_navbar.switch_to_page(opts.project_id)
+            redux.getActions('page').set_active_tab(opts.project_id)
         if opts.target?
             proj.load_target(opts.target, opts.switch_to)
         opts.cb?(undefined, proj)
@@ -635,7 +612,7 @@ exports.open_project = open_project = (opts) ->
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0
-        top_navbar.switch_to_page('projects')
+        redux.getActions('page').set_active_tab('projects')
         return
     segments = target.split('/')
     if misc.is_valid_uuid_string(segments[0])
@@ -1769,22 +1746,3 @@ exports.ProjectTitleAuto = rclass
         <Redux redux={redux}>
             <ProjectTitle project_id={@props.project_id} />
         </Redux>
-
-is_mounted = false
-mount = ->
-    if not is_mounted
-        #console.log('mount projects')
-        ReactDOM.render(<ProjectsPage />, document.getElementById('projects'))
-        is_mounted = true
-
-unmount = ->
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById('projects'))
-        is_mounted = false
-
-top_navbar.on 'switch_to_page-projects', () ->
-    window.history.pushState('', '', window.smc_base_url + '/projects')
-    mount()
-
-top_navbar.on 'switch_from_page-projects', () ->
-    setTimeout(unmount,50)

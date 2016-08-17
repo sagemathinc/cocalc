@@ -1920,7 +1920,7 @@ CourseEditor = (name) -> rclass
             {@render_files_button()}
             {@render_title()}
             {@render_save_timetravel()}
-            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
+            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}

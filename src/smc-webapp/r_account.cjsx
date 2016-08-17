@@ -1359,8 +1359,6 @@ ugly_error = (err) ->
         err = misc.to_json(err)
     require('./alerts').alert_message(type:"error", message:"Settings error -- #{err}")
 
-
-
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load
 zxcvbn = undefined
@@ -1378,35 +1376,3 @@ password_score = (password) ->
             # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             #    zxcvbn = window.zxcvbn
     return
-
-
-###
-Top Navbar button label at the top
-###
-
-AccountName = rclass
-    displayName : 'AccountName'
-
-    reduxProps :
-        account :
-            first_name : rtypes.string
-            last_name  : rtypes.string
-
-    shouldComponentUpdate: (next) ->
-        return @props.first_name != next.first_name or @props.last_name != next.last_name
-
-    render : ->
-        name = ''
-        if @props.first_name? and @props.last_name?
-            name = misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)
-        if not name.trim()
-            name = "Account"
-        <span><Icon name='cog' style={fontSize:'20px'}/> {name}</span>
-
-render_top_navbar_button = ->
-    <Redux redux={redux}>
-        <AccountName />
-    </Redux>
-
-if not window.FULLY_REACT
-    ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]

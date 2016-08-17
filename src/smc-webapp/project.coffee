@@ -75,12 +75,11 @@ class ProjectPage
         @store          = redux.getProjectStore(@project_id)
         @projects_store = redux.getStore('projects')
 
-        redux.getActions('projects').set_project_state_open(@project_id)
+        redux.getActions('projects').set_project_open(@project_id)
 
         @create_editor()
         @init_tabs()
         @init_sortable_editor_tabs()
-        @init_new_tab_in_navbar()
         @free_project_warning()
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
@@ -112,7 +111,7 @@ class ProjectPage
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
         redux.get
-        redux.getActions('projects').set_project_state_close(@project_id)
+        redux.getActions('projects').set_project_closed(@project_id)
         project_store.deleteStoreActionsTable(@project_id, redux)
         delete @projects_store
         delete @actions
@@ -172,46 +171,6 @@ class ProjectPage
                         box.show()
                     else
                         box.hide()
-
-
-    init_new_tab_in_navbar: () =>
-        if window.FULLY_REACT
-            return
-        # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
-        @container.top_navbar
-            id    : @project_id
-            label : @project_id
-            icon  : 'fa-edit'
-
-            onclose : () =>
-                # do on next render loop since react flips if we do this too soon.
-                setTimeout(@destroy, 1)
-
-            onblur: () =>
-                @editor?.remove_handlers()
-                redux.getActions('projects').setState(foreground_project:undefined) # TODO: temporary
-
-            onshow: () =>
-                if @project?
-                    @actions.push_state()
-                @editor?.activate_handlers()
-                @editor?.refresh()
-                #TODO: this will go away
-                require('./browser').set_window_title(redux.getStore('projects').get_title(@project_id))  # change title bar
-                redux.getActions('projects').setState(foreground_project: @project_id)
-
-            onfullscreen: (entering) =>
-                if @project?
-                    if entering
-                        @hide_tabs()
-                    else
-                        @show_tabs()
-                    $(window).resize()
-
-        # Replace actual tab content by a React component that gets dynamically updated
-        # when the project title is changed, and can display other information from the store.
-        require('./project_settings').init_top_navbar(@project_id)
-
 
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.

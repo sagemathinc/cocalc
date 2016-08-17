@@ -64,7 +64,6 @@ The URI schema is as follows:
 
 ###
 
-{top_navbar} = require('./top_navbar')
 {redux} = require('./smc-react')
 exports.set_url = (url) ->
     window.history.pushState("", "", window.smc_base_url + url)
@@ -78,15 +77,15 @@ exports.load_target = load_target = (target) ->
     segments = target.split('/')
     switch segments[0]
         when 'help'
-            top_navbar.switch_to_page("salvus-help")
+            redux.getActions('page').set_active_tab('about')
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
                     require('./projects').load_target(segments.slice(1).join('/'), true)
                 else
-                    top_navbar.switch_to_page("projects")
+                    redux.getActions('page').set_active_tab('projects')
         when 'settings'
-            top_navbar.switch_to_page("account")
+            redux.getActions('page').set_active_tab('account')
             if segments[1] == 'billing'
                 redux.getActions('billing').update_customer()
                 redux.getActions('account').setState(active_page : 'billing')

@@ -25,7 +25,6 @@ underscore = _ = require('underscore')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
@@ -130,7 +129,7 @@ class SupportActions extends Actions
         @set(valid: v)
 
     project_id : ->
-        pid = top_navbar.current_page_id
+        pid = @redux.getStore('page').get('active_top_tab')
         if misc.is_valid_uuid_string(pid)
             return pid
         else
@@ -565,13 +564,14 @@ Support = rclass
                     valid           = {@props.valid} />
         </Modal>
 
-render = (redux) ->
-    store   = redux.getStore('support')
-    actions = redux.getActions('support')
+exports.SupportRedux = rclass
+    render : ->
+        store   = redux.getStore('support')
+        actions = redux.getActions('support')
 
-    <Redux redux={redux}>
-        <Support actions = {actions} />
-    </Redux>
+        <Redux redux={redux}>
+            <Support actions = {actions} />
+        </Redux>
 
 render_project_support = (dom_node, redux) ->
     ReactDOM.render(render(redux), dom_node)
@@ -584,14 +584,6 @@ init_redux = (redux) ->
         redux.createActions('support', SupportActions)
         redux.createStore('support', SupportStore, {})
 init_redux(redux)
-
-# hooking this up to the website
-if not window.FULLY_REACT
-    $support = $('.navbar a.smc-top_navbar-support')
-    $targ = $support.find('.react-target')
-    render_project_support($targ[0], redux)
-    $support.click () ->
-        exports.show()
 
 # project wide public API
 

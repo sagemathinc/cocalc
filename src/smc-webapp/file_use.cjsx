@@ -505,6 +505,11 @@ render = (redux) ->
         <FileUseController redux={redux} />
     </Redux>
 
+FileUseRedux = rclass
+    render : ->
+        <Redux redux={redux}>
+            <FileUseController redux={redux} />
+        </Redux>
 
 exports.FileUsePage = rclass
     displayName : 'FileUse'
@@ -526,9 +531,6 @@ init_redux = (redux) ->
         redux.createTable('file_use', FileUseTable)
         store.on 'change', ->
             update_global_notify_count(store.get_notify_count())
-
-render_file_use = (redux, dom_node) ->
-    ReactDOM.render(render(redux), dom_node)
 
 unmount = (dom_node) ->
     #console.log("unmount file_use")

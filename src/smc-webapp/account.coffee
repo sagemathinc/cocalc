@@ -25,25 +25,12 @@
 # Account Settings
 ############################################################
 
-{top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
 
 misc     = require("misc")
 {redux}   = require('./smc-react')
-
-################################################
-# id of account client browser thinks it is signed in as
-################################################
-top_navbar.on "switch_to_page-account", () ->
-    if redux.getStore('account').is_logged_in()
-        window.history.pushState("", "", window.smc_base_url + '/settings/account')
-    else
-        window.history.pushState("", "", window.smc_base_url + '/')
-
-if not window.FULLY_REACT
-    account_page.mount()
 
 ################################################
 # Account creation
@@ -65,7 +52,7 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
 
-    top_navbar.show_page_button("projects")
+    redux.getActions('page').set_active_tab("projects")
     load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false

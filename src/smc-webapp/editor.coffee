@@ -65,8 +65,6 @@ require('./console')
 syncdoc = require('./syncdoc')
 sagews  = require('./sagews')
 
-top_navbar =  $(".salvus-top_navbar")
-
 codemirror_associations =
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
@@ -1244,21 +1242,6 @@ class exports.Editor
                 tab.hide_editor()
 
         @project_page.init_sortable_file_list()
-
-    add_tab_to_navbar: (filename) =>
-        navbar = require('./top_navbar').top_navbar
-        tab = @tabs[filename]
-        if not tab?
-            return
-        id = @project_id + filename
-        if not navbar.pages[id]?
-            navbar.add_page
-                id     : id
-                label  : misc.path_split(filename).tail
-                onshow : () =>
-                    navbar.switch_to_page(@project_id)
-                    @display_tab(path:filename)
-                    navbar.make_button_active(id)
 
     onshow: () =>  # should be called when the editor is shown.
         #if @active_tab?
