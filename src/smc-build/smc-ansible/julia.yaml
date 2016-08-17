@@ -46,6 +46,9 @@
   - name: "fix libzmq version #3 -- prevent apt from installing it again"
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
+  - name: "set julia pkgdir in /etc/environment"
+    lineinfile: 'dest=/etc/environment regexp=^JULIA_PKGDIR= line=JULIA_PKGDIR="{{ pkgdir }}"'
+
   - name: "init package dir"
     tags: install
     shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }};echo 'Pkg.init()' | julia"
@@ -86,13 +89,21 @@
     - TaylorSeries
     - Distributions # https://github.com/JuliaStats/Distributions.jl
 
-  - name: "update julia packages"
-    tags: update
-    shell: "umask 022; echo 'Pkg.update()' | julia"
-
-  - name: "call build for all packages -- http://docs.julialang.org/en/release-0.4/stdlib/pkg/#Base.Pkg.build"
+  - name: "call update and then import/build all packages -- avoids local rebuilds for users, see https://github.com/sagemathinc/smc/issues/629#issuecomment-240463842"
     tags: [install, update]
-    shell: "umask 022; echo 'Pkg.build()' | julia"
+    shell: |
+        umask 022
+        echo "function recompile()
+            for pkg in Pkg.available()
+                try
+                    pkgsym = Symbol(pkg)
+                    eval(:(using $pkgsym))
+                catch
+                end
+            end
+        end
+        Pkg.update()
+        recompile()" | julia
 
   - name: "fix ownership of site dir to be salvus"
     tags: [install, update]
