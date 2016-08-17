@@ -1712,7 +1712,7 @@ error_style =
     top         : '-43px'
     boxShadow   : '5px 5px 5px grey'
 
-ProjectFiles = (name) -> rclass
+exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
@@ -1732,6 +1732,7 @@ ProjectFiles = (name) -> rclass
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
+            get_directory_listings : rtypes.func # TESTING
 
     propTypes :
         project_id    : rtypes.string
@@ -1939,6 +1940,7 @@ ProjectFiles = (name) -> rclass
         return @props.other_settings?.get('page_size') ? 50
 
     render : ->
+        console.log(@props.get_directory_listings() == @props.redux.getStore("#{name}").get_directory_listings()) # TESTING
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
 

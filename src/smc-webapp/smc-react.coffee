@@ -174,6 +174,16 @@ class AppRedux
         S = @_stores[name]
         if not S?
             S = @_stores[name] = new store_class(name, @)
+            #if S.get_current_path?
+            #    console.log("Store with name -- #{name}:", S)
+            #    console.log(S.get_current_path())
+            C = immutable.Map(S)
+            # console.log(typeof S)
+            C = C.delete('redux') # No circular pointing
+            # console.log("Updated to:", C.toJS())
+            #if C.toJS().get_current_path?
+            #    console.log(C.get('get_current_path')())
+            @_set_state({"#{name}":C})
             if init?
                 @_set_state({"#{name}":init})
         return S
@@ -232,6 +242,15 @@ redux = new AppRedux()
 rtypes = React.PropTypes
 rtypes.immutable = "IMMUTABLE"
 
+###
+rclass
+    reduxProps:
+
+
+    propTypes:
+        connected_to : rtypes.array
+
+###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
         props = {}
@@ -247,22 +266,47 @@ connect_component = (spec) =>
         return props
     return connect(map_state_to_props)
 
+###
+
+###
+cache = {}
 react_component = (x) ->
-    if x.reduxProps?
-        # Inject the propTypes based on the ones injected by reduxProps.
-        propTypes = x.propTypes ? {}
-        for store_name, info of x.reduxProps
-            for prop, type of info
-                if type != rtypes.immutable
-                    propTypes[prop] = type
-                else
-                    propTypes[prop] = rtypes.object
-        x.propTypes = propTypes
-    C = React.createClass(x)
-    if x.reduxProps?
-        # Make the ones comming from redux get automatically injected, as long
-        # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
-        C = connect_component(x.reduxProps)(C)
+    if typeof x == 'function'
+        # Enhance the return value of x with an HOC
+        result = (props) ->
+            console.log("Trying to make an element")
+            # OPTIMIZATION: check for cached the keys in props
+            # currently assumes making a new object is fast enough
+
+            definition = x(props)
+            key = misc.keys(definition.reduxTypes).sort().join('') # TODO: cache on sorted keys
+
+            cache[key] ?= rclass definition
+
+            return React.createElement(cache[key], props, props.children)
+
+        return result
+
+    else
+        if x.reduxProps?
+            # Inject the propTypes based on the ones injected by reduxProps.
+            propTypes = x.propTypes ? {}
+            for store_name, info of x.reduxProps
+                for prop, type of info
+                    if type != rtypes.immutable
+                        propTypes[prop] = type
+                    else
+                        propTypes[prop] = rtypes.object
+            x.propTypes = propTypes
+        C = React.createClass(x)
+        if x.reduxProps?
+            # Make the ones comming from redux get automatically injected, as long
+            # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
+            C = connect_component(x.reduxProps)(C)
+        #if C.actions?
+        #    throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+
+        C.actions = redux.getActions
     return C
 
 COUNT = false

@@ -6,7 +6,7 @@ project page react component
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
-{ProjectFilesGenerator}    = require('project_files')
+{ProjectFiles}    = require('project_files')
 {ProjectNewGenerator}      = require('project_new')
 {ProjectLogGenerator}      = require('project_log')
 {ProjectSearchGenerator}   = require('project_search')
@@ -44,8 +44,8 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         # Alternatives?
         # Generating the tabs is a little expensive. But at least the time doesn't get super nasty
         # Could be more lazily loaded
-        ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
-        @ProjectFiles = ProjectFiles
+        #ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
+        #@ProjectFiles = ProjectFiles
 
         ProjectNew = @ProjectNew ? ProjectNewGenerator(@props.project_store.name)
         @ProjectNew = ProjectNew
@@ -65,7 +65,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
+                <ProjectFiles name={@props.project_store.name} project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
                 <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
