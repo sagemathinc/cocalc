@@ -90,7 +90,7 @@ Avatar = rclass
 
     render_line: ->
         if @props.line
-            <span> Line: {@props.line}</span>
+            <span> (Line {@props.line})</span>
 
     tooltip: ->
         <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
