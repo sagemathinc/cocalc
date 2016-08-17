@@ -182,15 +182,21 @@ def bup_upload_to_gcloud(project_id, timestamp):
     # Upload refs/logs; using -c below is critical, since filenames don't change
     # but content does (and timestamps aren't used by gsutil!).
     log('gsutil upload refs/logs')
-    for path in ['refs', 'logs']:
+    for bup_path in ['refs', 'logs']:
         run(['gsutil', '-m', 'rsync', '-c', '-r',
-             '{bup}/{path}/'.format(bup=bup, path=path),
-             '{target}/{path}/'.format(target=target, path=path)])
+             '{bup}/{bup_path}/'.format(bup=bup, bup_path=bup_path),
+             '{target}/{bup_path}/'.format(target=target, bup_path=bup_path)])
     # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
+
+    disk_usage = {
+        'bup': int(run("du -smc {bup}".format(bup=bup), get_output=True).split()[-2]),
+        'img': int(run("du -smc {path}/*.img".format(path=path), get_output=True).split()[-2])
+    }
+
 
     log("record in database that we successfully backed project up to gcloud")
     rethinkdb.db('smc').table('projects').get(project_id).update(
-        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp)}).run(rethinkdb_connection())
+        {'last_backup_to_gcloud':timestamp_to_rethinkdb(timestamp), 'disk_usage':disk_usage}).run(rethinkdb_connection())
 
 def archive(project_id):
     """
