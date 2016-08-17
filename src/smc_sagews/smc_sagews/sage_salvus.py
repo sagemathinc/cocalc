@@ -3617,20 +3617,46 @@ from sage_jupyter import jupyter
 
 # search_src
 import os
-def search_src(str):
+import glob
+
+# from http://stackoverflow.com/questions/9877462/is-there-a-python-equivalent-to-the-which-commane
+# in python 3.3+ there is shutil.which()
+def which(pgm):
+    path=os.getenv('PATH')
+    for p in path.split(os.path.pathsep):
+        p=os.path.join(p,pgm)
+        if os.path.exists(p) and os.access(p,os.X_OK):
+            return p
+
+from sage_server import MAX_CODE_SIZE
+def search_src(str, max_chars = MAX_CODE_SIZE):
     r"""
     Get file names resulting from git grep of smc repo
 
     INPUT:
 
-    - ``str`` -- string expression to search for; will be quoted
+    - ``str`` -- string, expression to search for; will be quoted
+    - ``max_chars`` -- integer, max characters to display from selected file
 
     OUTPUT:
 
     Interact selector of matching filenames. Choosing one causes its
     contents to be shown in salvus.code() output.
     """
-    cmd = "cd /projects/sage/sage/src/sage;git grep -il '" + str + "'"
+    sage_cmd = which("sage")
+    if os.path.islink(sage_cmd):
+        sage_cmd = os.readlink(sage_cmd)
+
+    # /projects/sage/sage-6.10/src/bin
+    sdir = os.path.dirname(sage_cmd)
+
+    # /projects/sage/sage-6.10
+    sdir = os.path.dirname(os.path.dirname(sdir))
+
+    # /projects/sage/sage-6.10/sage-6.10/src
+    sdir = glob.glob(sdir + "/sage-*/src/sage")[0]
+
+    cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
     srch = os.popen(cmd).read().splitlines()
     header = "files matched"
     nftext = header + ": %s"%len(srch)
@@ -3638,13 +3664,23 @@ def search_src(str):
     @interact
     def _(fname = selector([nftext]+srch,"view source file:")):
         if not fname.startswith(header):
-            print("looking up %s"%fname)
             with open('/projects/sage/sage/src/sage/' + fname, 'r') as infile:
-                code = infile.read()
+                code = infile.read(max_chars)
             salvus.code(code, mode = "python", filename = fname)
 
 # search_doc
 def search_doc(str):
+    r"""
+    Create link to Google search of sage docs.
+
+    INPUT:
+
+    - ``str`` -- string, expression to search for; will be quoted
+
+    OUTPUT:
+
+    HTML hyperlink to google search
+    """
     txt = 'Use this link to search: ' + \
     '<a href="https://www.google.com/search?q=site%3Adoc.sagemath.org+' + \
     str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
