@@ -1731,7 +1731,7 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
-            get_directory_listings : rtypes.func # TESTING
+            #get_directory_listings : rtypes.func # TESTING
 
     propTypes :
         project_id    : rtypes.string
@@ -1939,7 +1939,7 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
         return @props.other_settings?.get('page_size') ? 50
 
     render : ->
-        console.log(@props.get_directory_listings() == @props.redux.getStore("#{name}").get_directory_listings()) # TESTING
+        #console.log(@props.get_directory_listings() == @props.redux.getStore("#{name}").get_directory_listings()) # TESTING
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
 

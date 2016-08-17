@@ -21,7 +21,7 @@ FilePage = rclass
     render : ->
         <div>File Page</div>
 
-ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); rclass
+ProjectPageTemp = rclass ({name}) ->
 
     reduxProps :
         projects :
@@ -33,18 +33,17 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
     propTypes :
         redux           : rtypes.object
         project_id      : rtypes.string.isRequired
-        project_store   : rtypes.object
         project_actions : rtypes.object
 
     standard_tabs : ->
         # TODO: Use new auto-memoized rclass(func) pattern.
-        ProjectNew = @ProjectNew ? ProjectNewGenerator(@props.project_store.name)
+        ProjectNew = @ProjectNew ? ProjectNewGenerator("#{name}")
         @ProjectNew = ProjectNew
 
-        ProjectLog = @ProjectLog ? ProjectLogGenerator(@props.project_store.name)
+        ProjectLog = @ProjectLog ? ProjectLogGenerator("#{name}")
         @ProjectLog = ProjectLog
 
-        ProjectSearch = @ProjectSearch ? ProjectSearchGenerator(@props.project_store.name)
+        ProjectSearch = @ProjectSearch ? ProjectSearchGenerator("#{name}")
         @ProjectSearch = ProjectSearch
 
         # compute how user is related to this project once for all, so that
@@ -52,11 +51,11 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         # Does a user's group change? Problem if it does.
         group = @group ? redux.getStore('projects').get_my_group(@props.project_id)
         @group = group
-        ProjectSettings = @ProjectSettings ? ProjectSettingsGenerator(@props.project_store.name)
+        ProjectSettings = @ProjectSettings ? ProjectSettingsGenerator("#{name}")
         @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles name={@props.project_store.name} project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
+                <ProjectFiles name={"#{name}"} project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
                 <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
@@ -105,13 +104,11 @@ exports.ProjectPage = rclass
         project_id : rtypes.string.isRequired
 
     render : ->
-        store = redux.getProjectStore(@props.project_id)
-        ProjectPage = @ProjectPage ? ProjectPageGenerator(store.name)
-        @ProjectPage = ProjectPage
+        project_name = redux.getProjectStore(@props.project_id).name
 
         <Redux redux={redux}>
-            <ProjectPage project_id      = {@props.project_id}
-                         redux           = {redux}
-                         project_store   = {store}
-                         project_actions = {redux.getProjectActions(@props.project_id)} />
+            <ProjectPageTemp name            = {project_name}
+                             project_id      = {@props.project_id}
+                             redux           = {redux}
+                             project_actions = {redux.getProjectActions(@props.project_id)} />
         </Redux>

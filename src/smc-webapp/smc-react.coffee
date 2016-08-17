@@ -174,16 +174,10 @@ class AppRedux
         S = @_stores[name]
         if not S?
             S = @_stores[name] = new store_class(name, @)
-            #if S.get_current_path?
-            #    console.log("Store with name -- #{name}:", S)
-            #    console.log(S.get_current_path())
-            C = immutable.Map(S)
-            # console.log(typeof S)
-            C = C.delete('redux') # No circular pointing
-            # console.log("Updated to:", C.toJS())
-            #if C.toJS().get_current_path?
-            #    console.log(C.get('get_current_path')())
-            @_set_state({"#{name}":C})
+            # Put into store. WRONG WAY
+            # C = immutable.Map(S)
+            # C = C.delete('redux') # No circular pointing
+            # @_set_state({"#{name}":C})
             if init?
                 @_set_state({"#{name}":init})
         return S
@@ -269,23 +263,22 @@ connect_component = (spec) =>
 ###
 
 ###
-cache = {}
 react_component = (x) ->
     if typeof x == 'function'
         # Enhance the return value of x with an HOC
-        result = (props) ->
-            console.log("Trying to make an element")
-            # OPTIMIZATION: check for cached the keys in props
-            # currently assumes making a new object is fast enough
+        cached = React.createClass
+            render : () ->
+                @cache ?= {}
+                # OPTIMIZATION: check for cached the keys in props
+                # currently assumes making a new object is fast enough
+                definition = x(@props)
+                key = misc.keys(definition.reduxProps).sort().join('')
 
-            definition = x(props)
-            key = misc.keys(definition.reduxTypes).sort().join('') # TODO: cache on sorted keys
+                @cache[key] ?= rclass(definition)
 
-            cache[key] ?= rclass definition
+                return React.createElement(@cache[key], @props, @props.children)
 
-            return React.createElement(cache[key], props, props.children)
-
-        return result
+        return cached
 
     else
         if x.reduxProps?
