@@ -1963,7 +1963,7 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
-        <div style={minHeight:"80vh"}>
+        <div style={minHeight:"80vh", padding:'10px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
             {@render_error()}
@@ -2009,16 +2009,6 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
-
-exports.ProjectFilesGenerator = (name) ->
-    # console.log("Generating ProjectFiles-- This should happen once per project opening")
-    C = ProjectFiles(name)
-    return ({redux, actions, project_id}) ->
-        <Redux redux={redux}>
-            <div style={padding:'10px'}>
-                <C project_id={project_id} redux={redux} actions={actions}/>
-            </div>
-        </Redux>
 
 exports.render = render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id, redux)

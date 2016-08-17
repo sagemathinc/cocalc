@@ -303,8 +303,8 @@ react_component = (x) ->
             # Make the ones comming from redux get automatically injected, as long
             # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
             C = connect_component(x.reduxProps)(C)
-        #if C.actions?
-        #    throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+        if C.actions?
+            throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
 
         C.actions = redux.getActions
     return C

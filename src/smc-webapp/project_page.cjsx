@@ -6,7 +6,7 @@ project page react component
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
-{ProjectFiles}    = require('project_files')
+{ProjectFiles}   = require('project_files')
 {ProjectNewGenerator}      = require('project_new')
 {ProjectLogGenerator}      = require('project_log')
 {ProjectSearchGenerator}   = require('project_search')
@@ -37,16 +37,7 @@ ProjectPageGenerator = (name) -> console.log("Generating Project page class!"); 
         project_actions : rtypes.object
 
     standard_tabs : ->
-        # TODO: Clean up.
-
-        # Memoize classes
-        # I think this pattern works. The classes never have to change (project id's don't change)
-        # Alternatives?
-        # Generating the tabs is a little expensive. But at least the time doesn't get super nasty
-        # Could be more lazily loaded
-        #ProjectFiles = @ProjectFiles ? ProjectFilesGenerator(@props.project_store.name)
-        #@ProjectFiles = ProjectFiles
-
+        # TODO: Use new auto-memoized rclass(func) pattern.
         ProjectNew = @ProjectNew ? ProjectNewGenerator(@props.project_store.name)
         @ProjectNew = ProjectNew
 
