@@ -332,13 +332,13 @@ def graphics3d_to_jsonable(p):
         else:
             has_local_colors = True
             face_geometry = [{"material_name": p.texture.id,
-                            "faces": [([int(v) + 1 for v in f[0], f[1])] for f in p.index_faces_with_colors()]}]
+                            "faces": [([int(v) + 1 for v in f[0]], f[1]) for f in p.index_faces_with_colors()]}]
             material = parse_mtl(p)
         vertex_geometry = [json_float(t) for v in p.vertices() for t in v]
-        myobj = {"face_geometry"   : face_geometry,
-                 "type"            : 'index_face_set',
-                 "vertex_geometry" : vertex_geometry,
-                 "material"        : material,
+        myobj = {"face_geometry"    : face_geometry,
+                 "type"             : 'index_face_set',
+                 "vertex_geometry"  : vertex_geometry,
+                 "material"         : material,
                  "has_local_colors" : has_local_colors}
         for e in ['wireframe', 'mesh']:
             if p._extra_kwds is not None:
