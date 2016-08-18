@@ -47,6 +47,7 @@
     shell: "echo 'Package: libzmq1\nPin: origin \"\"\nPin-Priority: -1' > /etc/apt/preferences"
 
   - name: "set julia pkgdir in /etc/environment"
+    tags: [install, update]
     lineinfile: 'dest=/etc/environment regexp=^JULIA_PKGDIR= line=JULIA_PKGDIR="{{ pkgdir }}"'
 
   - name: "init package dir"
@@ -105,14 +106,6 @@
         Pkg.update()
         recompile()" | julia
 
-  - name: "fix ownership of site dir to be salvus"
-    tags: [install, update]
-    shell: "chown -R salvus. {{ pkgdir }}/"
-
-  - name: "fix permissions of site dir"
-    tags: [install, update]
-    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
-
 # Nemo
 - hosts: compute
   become: yes
@@ -131,3 +124,17 @@
         cd $LD_LIBRARY_PATH
         ln -s libarb.so.0.0.0 libarb.so
         echo 'using Nemo' | julia
+
+# cleanup
+- hosts: compute
+  become: yes
+  gather_facts: no
+  tags: [install, update, nemo]
+  tasks:
+  - name: "fix ownership of site dir to be salvus"
+    tags: [install, update]
+    shell: "chown -R salvus. {{ pkgdir }}/"
+
+  - name: "fix permissions of site dir -- julia doesn't care about umask 022"
+    tags: [install, update]
+    shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
