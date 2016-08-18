@@ -464,9 +464,9 @@ class SalvusThreeJS
                 geometry.faces.push(new THREE.Face3(a-1, b-1, c-1))
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
-           push_face3_with_color = (a, b, c, d) =>
+           push_face3_with_color = (a, b, c, col) =>
                 face = new THREE.Face3(a-1, b-1, c-1)
-                face.color.setHex(d)
+                face.color.setHex(col)
                 geometry.faces.push(face)
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
@@ -552,14 +552,13 @@ class SalvusThreeJS
                         shininess   : "1"
                         wireframe   : false
                         transparent : m.opacity < 1
-                    material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
+                        vertexColors: THREE.FaceColors
                 else
                     material =  new THREE.MeshPhongMaterial
                         shininess   : "1"
                         wireframe   : false
                         transparent : m.opacity < 1
-                        vertexColors: THREE.FaceColors
-
+                    material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
                 material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
                 material.opacity = m.opacity
 
