@@ -470,6 +470,11 @@ class SalvusThreeJS
                 geometry.faces.push(face)
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
+            if has_local_colors
+                push_face3_switch = push_face3_with_color
+            else
+                push_face3_switch = push_face3
+
             # *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
             push_face4 = (a, b, c, d) =>
                 push_face3(a,b,c)
@@ -492,10 +497,7 @@ class SalvusThreeJS
             for v in faces
                 switch v.length
                     when 3
-                        if has_local_colors
-                            push_face3(v...)
-                        else:
-                            push_face3_with_color(v...)
+                        push_face3_switch(v...)
                     when 4
                         push_face4(v...)
                     when 5
