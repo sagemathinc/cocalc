@@ -428,6 +428,11 @@ class SalvusThreeJS
     add_obj: (myobj)=>
         @show_canvas()
 
+        if myobj.type == "index_face_set"
+            has_local_colors = myobj.has_local_colors
+        else
+            hase_local_colors = false
+
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
             #console.log("object=", misc.to_json(myobj))
@@ -450,7 +455,6 @@ class SalvusThreeJS
                 for k in [0...face5.length] by 6   # yep, 6 :-()
                     faces.push(face5.slice(k,k+6))
 
-
             geometry = new THREE.Geometry()
 
             for k in [0...vertices.length] by 3
@@ -458,6 +462,12 @@ class SalvusThreeJS
 
             push_face3 = (a, b, c) =>
                 geometry.faces.push(new THREE.Face3(a-1, b-1, c-1))
+                #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
+
+           push_face3_with_color = (a, b, c, d) =>
+                face = new THREE.Face3(a-1, b-1, c-1)
+                face.color.setHex(d)
+                geometry.faces.push(face)
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
             # *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
@@ -482,7 +492,10 @@ class SalvusThreeJS
             for v in faces
                 switch v.length
                     when 3
-                        push_face3(v...)
+                        if has_local_colors
+                            push_face3(v...)
+                        else:
+                            push_face3_with_color(v...)
                     when 4
                         push_face4(v...)
                     when 5
@@ -534,12 +547,19 @@ class SalvusThreeJS
 
                 m = myobj.material[mk]
 
-                material =  new THREE.MeshPhongMaterial
-                    shininess   : "1"
-                    wireframe   : false
-                    transparent : m.opacity < 1
+                if has_local_colors
+                    material =  new THREE.MeshPhongMaterial
+                        shininess   : "1"
+                        wireframe   : false
+                        transparent : m.opacity < 1
+                    material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
+                else
+                    material =  new THREE.MeshPhongMaterial
+                        shininess   : "1"
+                        wireframe   : false
+                        transparent : m.opacity < 1
+                        vertexColors: THREE.FaceColors
 
-                material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
                 material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
                 material.opacity = m.opacity
 
