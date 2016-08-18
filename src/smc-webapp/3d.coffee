@@ -466,7 +466,7 @@ class SalvusThreeJS
 
            push_face3_with_color = (a, b, c, col) =>
                 face = new THREE.Face3(a-1, b-1, c-1)
-                face.color.setHex(col)
+                face.color.setStyle(col)
                 geometry.faces.push(face)
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
