@@ -8,3 +8,11 @@
   tasks:
   - name: "delete root's pip cache"
     file: path='/root/.cache/pip' state=absent
+
+  - name: Autoremove unused packages
+    command: apt-get -y autoremove
+    register: autoremove_output
+    changed_when: "'The following packages will be REMOVED' in autoremove_output.stdout"
+
+  - name: "delete apt cache"
+    shell: "rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /core"
