@@ -314,13 +314,6 @@ def graphics3d_to_jsonable(p):
     # Conversion functions
     #####################################
 
-    def simple_mtl(color):
-        """
-        a default texture for a given color
-        """
-        return {"name":"color{}".format(color),
-                "color": color}
-
     def convert_index_face_set_test(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
