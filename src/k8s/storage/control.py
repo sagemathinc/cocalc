@@ -28,9 +28,8 @@ def build(tag, rebuild):
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
-    if not args.local:
-        for service in SERVICES:
-            util.gcloud_docker_push(full_tag(tag, service))
+    for service in SERVICES:
+        util.gcloud_docker_push(full_tag(tag, service))
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -158,8 +157,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
-    sub.add_argument("-l", "--local", action="store_true",
-                     help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='create/update {name} deployment on the currently selected kubernetes cluster'.format(name=NAME), formatter_class=argparse.ArgumentDefaultsHelpFormatter)

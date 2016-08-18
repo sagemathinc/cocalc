@@ -12,6 +12,8 @@ RUN rm -f /manage.sh && \
     ./install.py pyutil && \
     ./install.py project && \
     rm -rf /smc/ && \
+    apt-get autoremove -y  && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /core && \
     mkdir -p /var/run/sshd
 
 # run.py will create the user corresponding to the project, mount their directory (?), then

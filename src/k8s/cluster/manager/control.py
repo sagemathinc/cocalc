@@ -8,32 +8,40 @@ SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SCRIPT_PATH)
 path_to_util = join(SCRIPT_PATH, '..', '..', 'util')
 sys.path.insert(0, path_to_util)
-sys.path.insert(0, join(SCRIPT_PATH, 'image'))
-import shared, util
+sys.path.insert(0, join(SCRIPT_PATH, 'images/start'))
+import util
 
 NAME='cluster-manager'
 
-def build(tag, rebuild):
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
+images = os.path.join(SCRIPT_PATH, 'images')
 
-    path = join(SCRIPT_PATH, 'image')
-    kubectl = join(path, 'kubectl')
-    src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
-    try:
-        shutil.copyfile(src, kubectl)
-        shutil.copymode(src, kubectl)
-        util.run(v, path=path)
-    finally:
-        os.unlink(kubectl)
+SERVICES = [x for x in os.listdir(images) if os.path.isdir(os.path.join(images,x))]
+
+def full_tag(tag, service):
+    return "{tag}-{service}".format(service=service, tag=tag)
+
+def build(tag, rebuild):
+    for service in SERVICES:
+        path = join(SCRIPT_PATH, 'images', service)
+        v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
+        if rebuild:  # will cause a git pull to happen
+            v.append("--no-cache")
+        v.append('.')
+
+        kubectl = join(path, 'kubectl')
+        src = join(os.environ['HOME'], 'kubernetes', 'platforms', 'linux', 'amd64', 'kubectl')
+        try:
+            shutil.copyfile(src, kubectl)
+            shutil.copymode(src, kubectl)
+            util.run(v, path=path)
+        finally:
+            os.unlink(kubectl)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
-    if not args.local:
-        util.gcloud_docker_push(tag)
+    for service in SERVICES:
+        util.gcloud_docker_push(full_tag(tag, service))
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -51,9 +59,11 @@ def node_selector():
 
 def run_on_kubernetes(args):
     create_kubectl_secret()
-    label_preemptible_nodes()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
+    if not args.tag:
+        tag = tag[:tag.rfind('-')]   # get rid of the final -[service] part of the tag.
+
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
 
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
@@ -88,12 +98,6 @@ def create_kubectl_secret():
 def delete_kubectl_secret():
     util.delete_secret(SECRET_NAME)
 
-
-def label_preemptible_nodes():
-    def cmd(s):
-        return util.run(s, verbose=False, get_output=True)
-    shared.label_preemptible_nodes(cmd)
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Control deployment of {name}'.format(name=NAME))
@@ -102,8 +106,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
-    sub.add_argument("-l", "--local", action="store_true",
-                     help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='run the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)

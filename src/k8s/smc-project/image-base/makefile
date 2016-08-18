@@ -11,7 +11,6 @@ squash:
 	@echo "remove all intermediate layers after several edit steps"
 	$(eval ID = $(shell docker create ${NAME}:latest))
 	@echo container ID = ${ID}
-	# no idea, if --change ENTRYPOINT is really necessary
 	docker export ${ID} | docker import --change 'ENTRYPOINT ["./manage.sh"]' - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."
 
