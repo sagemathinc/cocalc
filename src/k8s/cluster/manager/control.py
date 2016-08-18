@@ -56,9 +56,9 @@ def node_selector():
         print("no non-preemptible nodes")
         return ''
 
-
 def run_on_kubernetes(args):
     create_kubectl_secret()
+    create_gcloud_service_account_secret()
     args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     if not args.tag:
@@ -76,7 +76,6 @@ def run_on_kubernetes(args):
 
 def delete(args):
     util.stop_deployment(NAME)
-    delete_kubectl_secret()
 
 SECRET_NAME = 'cluster-manager-kubectl-secret'
 def create_kubectl_secret():
@@ -95,8 +94,22 @@ def create_kubectl_secret():
             open(join(tmp, 'config'), 'w').write(yaml.dump(config))
             util.create_secret(SECRET_NAME, tmp)
 
-def delete_kubectl_secret():
-    util.delete_secret(SECRET_NAME)
+def create_gcloud_service_account_secret():
+    name = 'gcloud-service-account'
+    if name not in util.get_secrets():
+        path = os.path.join(os.environ['HOME'], 'secrets', 'gcloud')
+        if os.path.exists(path + '/service.json'):
+            util.create_secret(name, path)
+        else:
+            raise RuntimeError("Make sure that the %s/service.json exists and is a service account json file.  Make the service at  the IAM and Admin page -- https://console.cloud.google.com/iam-admin/serviceaccounts/project"%path)
+
+def create_dockercfg_secret():
+    name = 'dockercfg'
+    if name not in util.get_secrets():
+        dockercfg = os.path.join(os.environ['HOME'], '.dockercfg')
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copyfile(dockercfg, join(tmp, '.dockercfg'))
+            util.create_secret(name, tmp)
 
 if __name__ == '__main__':
     import argparse

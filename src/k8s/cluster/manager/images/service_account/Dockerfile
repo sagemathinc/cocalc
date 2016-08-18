@@ -7,7 +7,7 @@ MAINTAINER William Stein <wstein@sagemath.com>
 # Install Node.js
 RUN \
   apt-get update && \
-  apt-get install -y wget
+  apt-get install -y wget ssh-client
 
 # Install dumb-init, which is CRITICAL since otherwise we'll get millions of zombie python subprocesses from gcloud.
 RUN \
@@ -23,7 +23,7 @@ RUN \
 COPY package.json /package.json
 RUN npm install
 RUN ln -s /node_modules/.bin/coffee /usr/bin/coffee
-ENV NODE_PATH=/node_modules  
+ENV NODE_PATH=/node_modules
 
 # Install Google Cloud SDK
 RUN \

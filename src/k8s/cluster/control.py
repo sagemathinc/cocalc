@@ -107,7 +107,12 @@ def cluster_env(args, prefix=None):
         env['NODE_SCOPES']  = ','
 
     labels = args.labels.split(',') if args.labels else []
-    labels.append('no_scopes='+str(args.no_scopes).lower())
+    if args.no_scopes:
+        # cluster manager will install service account and /.dockercfg, then change this to scopes=safe
+        labels.append('scopes=none')
+    else:
+        # NOT safe to run user code here.
+        labels.append("scopes=default")
     labels.append('preemptible='+str(args.preemptible).lower())
 
     env['NODE_LABELS'] = ','.join(labels)

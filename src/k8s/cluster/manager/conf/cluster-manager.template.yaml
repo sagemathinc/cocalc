@@ -58,9 +58,16 @@ spec:
         volumeMounts:
           - name: cluster-manager-kubectl-secret
             mountPath: /root/.kube/
+          - name: gcloud-service-account
+            mountPath: /secrets/gcloud-service-account/
+            readOnly: true
 
       volumes:
         - name: cluster-manager-kubectl-secret
           secret:
             secretName: cluster-manager-kubectl-secret
+        - name: gcloud-service-account
+          secret:
+            secretName: gcloud-service-account
+            
       {node_selector}
