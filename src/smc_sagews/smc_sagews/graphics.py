@@ -314,6 +314,13 @@ def graphics3d_to_jsonable(p):
     # Conversion functions
     #####################################
 
+    def simple_mtl(color):
+        """
+        a default texture for a given color
+        """
+        return {"name":"color{}".format(color),
+                "color": color}
+
     def convert_index_face_set_test(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
@@ -322,9 +329,15 @@ def graphics3d_to_jsonable(p):
                             "faces": [[int(v) + 1 for v in f] for f in p.index_faces()]}]
             material = parse_mtl(p)
         else:
-            face_geometry = [{"material_name": p.texture.id,
-                            "faces": [[int(v) + 1 for v in f] for f in p.index_faces_with_colors()]}]
-            material = parse_mtl(p)
+            colored_faces = p.index_faces_with_colors()
+            color_set = set(u[1] for u in colored_faces)
+            faces_by_color = {color: [] for color in color_set}
+            for f, c in colored_faces:
+                faces_by_color[c].append([int(v) + 1 for v in f])
+            face_geometry = [{"material_name": "color{}".format(color[1:]),
+                            "faces": faces_by_color[color]}
+                            for color in color_set]
+            material = [simple_mtl(color) for color in color_set]
         vertex_geometry = [json_float(t) for v in p.vertices() for t in v]
         myobj = {"face_geometry"   : face_geometry,
                  "type"            : 'index_face_set',
