@@ -317,10 +317,15 @@ def graphics3d_to_jsonable(p):
     def convert_index_face_set_test(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
-        p.triangulate()
-        face_geometry = [{"material_name": p.texture.id, "faces": [[int(v) for v in f] for f in p.index_faces()]}]
+        if not p.has_local_colors():
+            face_geometry = [{"material_name": p.texture.id,
+                            "faces": [[int(v) + 1 for v in f] for f in p.index_faces()]}]
+            material = parse_mtl(p)
+        else:
+            face_geometry = [{"material_name": p.texture.id,
+                            "faces": [[int(v) + 1 for v in f] for f in p.index_faces_with_colors()]}]
+            material = parse_mtl(p)
         vertex_geometry = [json_float(t) for v in p.vertices() for t in v]
-        material = parse_mtl(p)
         myobj = {"face_geometry"   : face_geometry,
                  "type"            : 'index_face_set',
                  "vertex_geometry" : vertex_geometry,
