@@ -300,7 +300,7 @@ react_component = (x) ->
         if x.actions? and x.actions != redux.getActions
             throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
 
-        definition.actions = redux.getActions
+        x.actions = redux.getActions
 
         C = React.createClass(x)
         if x.reduxProps?
