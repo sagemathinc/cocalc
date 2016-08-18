@@ -51,7 +51,7 @@ def node_selector():
     # 1 below due to master always being non-preemptible
     if len(util.run('kubectl get nodes -l preemptible=false --no-headers', get_output=True, verbose=False).strip().split('\n')) > 1:
         print("good - there are non pre-emptible nodes!")
-        return 'nodeSelector: {preemptible: "false"}'
+        return 'nodeSelector: {preemptible: "false", scopes: "default"}'
     else:
         print("no non-preemptible nodes")
         return ''
