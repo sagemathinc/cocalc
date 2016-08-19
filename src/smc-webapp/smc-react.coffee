@@ -165,7 +165,10 @@ class AppRedux
         return @_actions[name] ?= new actions_class(name, @)
 
     getActions: (name) =>
-        return @_actions[name]
+        if typeof(name) == 'string'
+            return @_actions[name]
+        else
+            return project_store?.getActions(name.project_id, @)
 
     createStore: (name, store_class=Store, init=undefined) =>
         if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})

@@ -279,8 +279,6 @@ LogMessages = rclass
         user_map   : rtypes.object
         cursor     : rtypes.string    # id of the cursor
         actions    : rtypes.object.isRequired
-    users :
-        get_name : rtypes.func
 
     render_entries : ->
         for x, i in @props.log
@@ -301,18 +299,6 @@ LogMessages = rclass
 
 PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
 
-search_string = (x) ->  # TODO: this code is ugly, but can be easily changed here only.
-    v = [@props.get_name(x.account_id)]
-    event = x.event
-    if event?
-        for k,val of event
-            if k != 'event' and k!='filename'
-                v.push(k)
-            if k == 'type'
-                continue
-            v.push(val)
-    return v.join(' ').toLowerCase()
-
 matches = (s, words) ->
     for word in words
         if s.indexOf(word) == -1
@@ -329,6 +315,7 @@ exports.ProjectLog = rclass ({name}) ->
             page        : rtypes.number
         users :
             user_map    : rtypes.immutable
+            get_name    : rtypes.func
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -361,8 +348,20 @@ exports.ProjectLog = rclass ({name}) ->
     next_page : ->
         @props.actions.setState(page: @props.page+1)
 
+    search_string : (x) ->  # TODO: this code is ugly, but can be easily changed here only.
+        v = [@props.get_name(x.account_id)]
+        event = x.event
+        if event?
+            for k,val of event
+                if k != 'event' and k!='filename'
+                    v.push(k)
+                if k == 'type'
+                    continue
+                v.push(val)
+        return v.join(' ').toLowerCase()
+
     process_log_entry : (x) ->
-        x.search = search_string(x)
+        x.search = @search_string(x)
         return x
 
     update_log : (next_project_log, next_user_map) ->

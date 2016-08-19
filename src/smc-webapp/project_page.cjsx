@@ -6,90 +6,127 @@ project page react component
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
-{ProjectFiles}   = require('project_files')
-{ProjectNew}      = require('project_new')
-{ProjectLog}      = require('project_log')
-{ProjectSearch}   = require('project_search')
-{ProjectSettings} = require('project_settings')
-project_file = require('project_file')
-
+{ProjectFiles}    = require('./project_files')
+{ProjectNew}      = require('./project_new')
+{ProjectLog}      = require('./project_log')
+{ProjectSearch}   = require('./project_search')
+{ProjectSettings} = require('./project_settings')
+project_file = require('./project_file')
+{file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
+{NavItem, Nav} = require('react-bootstrap')
+{Icon, Tip} = require('./r_misc')
+misc = require('misc')
 
-{Tabs, Tab} = require('react-bootstrap')
+ProjectTab = rclass
+    displayName : 'ProjectTab'
 
-FilePage = rclass
+    propTypes :
+        name : rtypes.string
+        label : rtypes.string
+        icon : rtypes.string
+        project_id : rtypes.string
+        tooltip : rtypes.string
+        active_project_tab : rtypes.string
+
     render : ->
-        <div>File Page</div>
+        <NavItem
+            key={@props.name} active={@props.name == @props.active_project_tab}
+            onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}>
+            <Tip title={@props.tooltip} placement='bottom' size='small'>
+                <Icon name={@props.icon} /> {@props.label}
+            </Tip>
+        </NavItem>
 
 ProjectPageTemp = rclass ({name}) ->
+    displayName : 'ProjectPageTemp'
 
     reduxProps :
         projects :
             project_map : rtypes.immutable
+            get_my_group : rtypes.func
         "#{name}" :
-            active_tab : rtypes.string
+            active_project_tab : rtypes.string
             open_files  : rtypes.immutable
+            open_files_order : rtypes.immutable
 
     propTypes :
         redux           : rtypes.object
-        project_id      : rtypes.string.isRequired
+        project_id      : rtypes.string
         project_actions : rtypes.object
 
-    standard_tabs : ->
-        # compute how user is related to this project once for all, so that
-        # it stays constant while opening (e.g., stays admin)
-        # Does a user's group change? Problem if it does.
-        group = @group ? redux.getStore('projects').get_my_group(@props.project_id)
-        @group = group
-
-        [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
-            </Tab>,
-            <Tab key={'new'} eventKey={'new'} title={"New"}>
-                <ProjectNew name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
-            </Tab>,
-            <Tab key={'log'} eventKey={'log'} title={"Log"}>
-                <ProjectLog actions={@props.project_actions} name={@props.name}/>
-            </Tab>,
-            <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                <ProjectSearch redux={redux} actions={@props.project_actions} name={@props.name} />
-            </Tab>,
-            <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
-                <ProjectSettings project_id={@props.project_id} name={@props.name} redux={redux} group={group} />
-            </Tab>
-        ]
-
-    select_tab : (key) ->
-        @props.project_actions.set_active_tab(key)
-
-    file_tabs: (v) ->
-        if not @props.open_files?
+    file_tabs: ->
+        if not @props.open_files_order?
             return
-        @props.open_files.map (editor, path) =>
-            v.push(@file_tab(editor, path))
+        tabs = []
+        @props.open_files_order.map (path) =>
+            tabs.push(@file_tab(path))
+        return tabs
 
-    file_tab: (editor, path) ->
-        # TODO: Stuff passed to every editor should be standarized
-        # Alternatively, this needs be generalized
-        Name = editor # I'm not going to bother figuring out why this is necessary
-        <Tab key={path} eventKey={path} title={path}>
-            <Name path={path} project_id={@props.project_id} redux={redux} actions={redux.getActions(editor.redux_name)} />
-        </Tab>
+    file_tab: (path) ->
+        console.log("bar", path)
+        ext = misc.filename_extension(path)
+        icon = file_associations[ext]?.icon ? 'code-o'
+        display_name = misc.path_split(path).tail
+        <ProjectTab key={path} name={path} label={display_name} icon={icon} tooltip={path} project_id={@props.project_id} active_project_tab={@props.active_project_tab} />
+
+    render_page : ->
+        active = @props.active_project_tab
+        switch active
+            when 'files'
+                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
+            when 'new'
+                return <ProjectNew name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
+            when 'log'
+                return <ProjectLog actions={@props.project_actions} name={@props.name}/>
+            when 'search'
+                return <ProjectSearch actions={@props.project_actions} name={@props.name} />
+            when 'settings'
+                group = @props.get_my_group(@props.project_id)
+                return <ProjectSettings project_id={@props.project_id} name={@props.name} group={group} />
+            else
+                if @props.open_files.has(active)
+                    Name = @props.open_files.get(active)
+                    return <Name path={active} project_id={@props.project_id} redux={redux} actions={redux.getActions(Name.redux_name)} />
+                return <div>You shouldn't be here! {@props.active_project_tab}</div>
 
     render : ->
-        tabs = @standard_tabs()
-        @file_tabs(tabs)
+        window.pprops = @props
+        project_pages =
+            files :
+                label : 'Files'
+                icon : 'folder-open-o'
+                tooltip : 'Browse files'
+            new :
+                label : 'New'
+                icon : 'plus-circle'
+                tooltip : 'Create new file, folder, worksheet or terminal'
+            log:
+                label : 'Log'
+                icon : 'history'
+                tooltip : 'Log of project activity'
+            search :
+                label : 'Search'
+                icon : 'search'
+                tooltip : 'Search files in the project'
+            settings :
+                label : 'Settings'
+                icon : 'wrench'
+                tooltip : 'Project settings and controls'
+
         <div>
-            <Tabs activeKey={@props.active_tab} onSelect={@select_tab} animation={false} id="project-tabs">
-                {tabs}
-            </Tabs>
+            <Nav bsStyle="pills" id="project-tabs">
+                {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
+                {@file_tabs()}
+            </Nav>
+            {@render_page()}
         </div>
 
 exports.ProjectPage = rclass
     displayName : 'Projects-ProjectPage'
 
     propTypes :
-        project_id : rtypes.string.isRequired
+        project_id : rtypes.string
 
     render : ->
         project_name = redux.getProjectStore(@props.project_id).name

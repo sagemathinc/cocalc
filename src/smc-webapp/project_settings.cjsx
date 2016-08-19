@@ -33,7 +33,7 @@ misc                 = require('smc-util/misc')
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, InputGroup} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
@@ -653,14 +653,18 @@ UsagePanel = rclass
             </span>
         </ProjectSettingsPanel>
 
-SharePanel = rclass
+SharePanel = rclass ({name}) ->
     displayName : 'ProjectSettings-SharePanel'
 
     propTypes :
         project      : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
-        redux        : rtypes.object.isRequired
         desc         : rtypes.string.isRequired
+        name         : rtypes.string
+
+    reduxProps :
+        "#{name}" :
+            get_public_path_id : rtypes.func
 
     getInitialState : ->
         state : 'view'    # view --> edit --> view
@@ -676,7 +680,7 @@ SharePanel = rclass
         @setState(state : 'view')
 
     save : ->
-        actions = @props.redux.getProjectActions(@props.project.get('project_id'))
+        actions = @actions(name)
         actions.set_public_path('', ReactDOM.findDOMNode(@refs.share_project).value)
         @setState(state : 'view')
 
@@ -711,7 +715,7 @@ SharePanel = rclass
             </form>
 
     toggle_share : (shared) ->
-        actions = @props.redux.getProjectActions(@props.project.get('project_id'))
+        actions = @actions(name)
         if shared
             actions.disable_public_path('')
         else
@@ -729,8 +733,7 @@ SharePanel = rclass
         if not @props.public_paths?
             return <Loading />
         project_id = @props.project.get('project_id')
-        project_store = @props.redux.getProjectStore(project_id)
-        id = project_store.get_public_path_id('')
+        id = @props.get_public_path_id('')
         shared = @props.public_paths.get(id)? and not @props.public_paths.getIn([id, 'disabled'])
         if shared
             share_message = "This project is publicly shared, so anyone can see it."
@@ -757,13 +760,12 @@ HideDeletePanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        redux   : rtypes.object.isRequired
 
     toggle_delete_project : ->
-        @props.redux.getActions('projects').toggle_delete_project(@props.project.get('project_id'))
+        @actions('projects').toggle_delete_project(@props.project.get('project_id'))
 
     toggle_hide_project : ->
-        @props.redux.getActions('projects').toggle_hide_project(@props.project.get('project_id'))
+        @actions('projects').toggle_hide_project(@props.project.get('project_id'))
 
     delete_message : ->
         if @props.project.get('deleted')
@@ -824,7 +826,6 @@ SageWorksheetPanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        redux   : rtypes.object.isRequired
 
     restart_worksheet : ->
         @setState(loading : true)
@@ -872,7 +873,6 @@ ProjectControlPanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        redux   : rtypes.object.isRequired
 
     open_authorized_keys : (e) ->
         e.preventDefault()
@@ -916,13 +916,13 @@ ProjectControlPanel = rclass
         </span>
 
     restart_project : ->
-        @props.redux.getActions('projects').restart_project(@props.project.get('project_id'))
+        @actions('projects').restart_project(@props.project.get('project_id'))
 
     save_project : ->
-        @props.redux.getActions('projects').save_project(@props.project.get('project_id'))
+        @actions('projects').save_project(@props.project.get('project_id'))
 
     stop_project : ->
-        @props.redux.getActions('projects').stop_project(@props.project.get('project_id'))
+        @actions('projects').stop_project(@props.project.get('project_id'))
 
     render_confirm_restart : ->
         if @state.restart
@@ -984,7 +984,10 @@ CollaboratorsSearch = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        redux   : rtypes.object.isRequired
+
+    reduxProps :
+        account :
+            get_fullname : rtypes.func
 
     getInitialState : ->
         search           : ''          # search that user has typed in so far
@@ -1020,7 +1023,7 @@ CollaboratorsSearch = rclass
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator : (account_id) ->
-        @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected : ->
         # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
@@ -1040,7 +1043,7 @@ CollaboratorsSearch = rclass
         @setState(selected_entries: selected_names)
 
     write_email_invite : ->
-        name = @props.redux.getStore('account').get_fullname()
+        name = @props.get_fullname()
         project_id = @props.project.get('project_id')
         title = @props.project.get('title')
         host = window.location.hostname
@@ -1050,7 +1053,7 @@ CollaboratorsSearch = rclass
 
     send_email_invite : ->
         subject = "SageMathCloud Invitation to #{@props.project.get('title')}"
-        @props.redux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
+        @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
                                                                          subject)
@@ -1149,21 +1152,26 @@ exports.CollaboratorsList = CollaboratorsList = rclass
     displayName : 'ProjectSettings-CollaboratorsList'
 
     propTypes :
-        redux    : rtypes.object.isRequired
         project  : rtypes.object.isRequired
         user_map : rtypes.object
+
+    reduxProps :
+        account :
+            get_account_id : rtypes.func
+        projects :
+            sort_by_activity : rtypes.func
 
     getInitialState : ->
         removing : undefined  # id's of account that we are currently confirming to remove
 
     remove_collaborator : (account_id) ->
-        if account_id == @props.redux.getStore('account').get_account_id()
-            @props.redux.getActions('projects').close_project(@props.project.get('project_id'))
-        @props.redux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
+        if account_id == @props.get_account_id()
+            @actions('projects').close_project(@props.project.get('project_id'))
+        @actions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
         @setState(removing:undefined)
 
     render_user_remove_confirm : (account_id) ->
-        if account_id == @props.redux.getStore('account').get_account_id()
+        if account_id == @props.get_account_id()
             <Well style={background:'white'}>
                 Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
                 to this project and cannot add yourself back.
@@ -1210,7 +1218,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         u = @props.project.get('users')
         if u
             users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
-            for user in @props.redux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
+            for user in @props.sort_by_activity(users, @props.project.get('project_id'))
                 @render_user(user)
 
     render : ->
@@ -1224,7 +1232,6 @@ CollaboratorsPanel = rclass
     propTypes :
         project  : rtypes.object.isRequired
         user_map : rtypes.object
-        redux    : rtypes.object.isRequired
 
     render : ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
@@ -1235,23 +1242,36 @@ CollaboratorsPanel = rclass
                 </span>
             </div>
             <hr />
-            <CollaboratorsSearch key='search' project={@props.project} redux={@props.redux} />
+            <CollaboratorsSearch key='search' project={@props.project} />
             {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
+            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
         </ProjectSettingsPanel>
 
-ProjectSettingsBody = rclass
+ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
         project_id   : rtypes.string.isRequired
         project      : rtypes.object.isRequired
         user_map     : rtypes.object.isRequired
-        redux        : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
         customer     : rtypes.object
         email_address : rtypes.string
         project_map : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
+        name : rtypes.string
+
+    reduxProps :
+        "#{name}" :
+            get_public_path_id : rtypes.func
+        account :
+            get_total_upgrades : rtypes.func
+            groups : rtypes.array
+        projects :
+            get_course_info : rtypes.func
+            get_total_upgrades_you_have_applied : rtypes.func
+            get_upgrades_you_applied_to_project : rtypes.func
+            get_total_project_quotas : rtypes.func
+            get_upgrades_to_project : rtypes.func
 
     shouldComponentUpdate : (nextProps) ->
         return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
@@ -1260,18 +1280,16 @@ ProjectSettingsBody = rclass
 
     render : ->
         # get the description of the share, in case the project is being shared
-        store = @props.redux.getProjectStore(@props.project.get('project_id'))
-        share_desc = @props.public_paths.get(store.get_public_path_id(''))?.get('description') ? ''
+        share_desc = @props.public_paths.get(@props.get_public_path_id(''))?.get('description') ? ''
         id = @props.project_id
 
-        upgrades_you_can_use                 = @props.redux.getStore('account').get_total_upgrades()
-        all_projects                         = @props.redux.getStore('projects')
+        upgrades_you_can_use                 = @props.get_total_upgrades()
 
-        course_info                          = all_projects.get_course_info(@props.project_id)
-        upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
-        upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
-        total_project_quotas                 = all_projects.get_total_project_quotas(id)  # only available for non-admin for now.
-        all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
+        course_info                          = @props.get_course_info(@props.project_id)
+        upgrades_you_applied_to_all_projects = @props.get_total_upgrades_you_have_applied()
+        upgrades_you_applied_to_this_project = @props.get_upgrades_you_applied_to_project(id)
+        total_project_quotas                 = @props.get_total_project_quotas(id)  # only available for non-admin for now.
+        all_upgrades_to_this_project         = @props.get_upgrades_to_project(id)
 
         <div>
             {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
@@ -1284,28 +1302,28 @@ ProjectSettingsBody = rclass
                         project_id    = {id}
                         project_title = {@props.project.get('title') ? ''}
                         description   = {@props.project.get('description') ? ''}
-                        actions       = {@props.redux.getActions('projects')} />
+                        actions       = {@actions('projects')} />
                     <UsagePanel
                         project_id                           = {id}
                         project                              = {@props.project}
-                        actions                              = {@props.redux.getActions('projects')}
+                        actions                              = {@actions('projects')}
                         user_map                             = {@props.user_map}
-                        account_groups                       = {@props.redux.getStore('account').get('groups')?.toJS()}
+                        account_groups                       = {@props.groups}
                         upgrades_you_can_use                 = {upgrades_you_can_use}
                         upgrades_you_applied_to_all_projects = {upgrades_you_applied_to_all_projects}
                         upgrades_you_applied_to_this_project = {upgrades_you_applied_to_this_project}
                         total_project_quotas                 = {total_project_quotas}
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} redux={@props.redux} />
+                    <HideDeletePanel       key='hidedelete'    project={@props.project} />
                 </Col>
                 <Col sm=6>
-                    <CollaboratorsPanel  project={@props.project} redux={@props.redux} user_map={@props.user_map} />
-                    <ProjectControlPanel   key='control'       project={@props.project} redux={@props.redux} />
-                    <SageWorksheetPanel    key='worksheet'     project={@props.project} redux={@props.redux} />
+                    <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
+                    <ProjectControlPanel   key='control'       project={@props.project} />
+                    <SageWorksheetPanel    key='worksheet'     project={@props.project} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }
-                        {#redux={@props.redux} public_paths={@props.public_paths} desc={share_desc} /> }
+                        {#public_paths={@props.public_paths} desc={share_desc} name={@props.name} /> }
                 </Col>
             </Row>
         </div>
@@ -1329,7 +1347,6 @@ exports.ProjectSettings = rclass ({name}) ->
 
     propTypes :
         project_id : rtypes.string.isRequired
-        redux      : rtypes.object
         group      : rtypes.string
 
     getInitialState : ->
@@ -1359,7 +1376,7 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render : ->
-        if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
+        if not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -1379,10 +1396,10 @@ exports.ProjectSettings = rclass ({name}) ->
                     project_id   = {@props.project_id}
                     project      = {project}
                     user_map     = {@props.user_map}
-                    redux        = {@props.redux}
                     public_paths = {@props.public_paths}
                     customer     = {@props.customer}
                     email_address = {@props.email_address}
                     project_map  = {@props.project_map}
+                    name         = {name}
                 />
             </div>

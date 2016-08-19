@@ -114,7 +114,7 @@ class ProjectActions extends Actions
         analytics_pageview(window.location.pathname)
 
     set_active_tab : (key) =>
-        @setState(active_tab : key)
+        @setState(active_project_tab : key)
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
@@ -200,6 +200,7 @@ class ProjectActions extends Actions
                                 if open_files.has(opts.path) # Already opened
                                     return
 
+                                open_files_order = store.get_open_files_order()
                                 # Intialize the file's store and actions
                                 project_file.initialize(opts.path, @redux, @project_id)
 
@@ -208,9 +209,9 @@ class ProjectActions extends Actions
 
                                 # Add it to open files
                                 if opts.foreground
-                                    @setState(open_files: open_files.set(opts.path, editor), active_tab: opts.path)
+                                    @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path), active_project_tab: opts.path)
                                 else
-                                    @setState(open_files: open_files.set(opts.path, editor))
+                                    @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
                             else
                                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                                 if opts.foreground_project
@@ -871,6 +872,9 @@ class ProjectStore extends Store
         else
             return @get('open_files') ? immutable.List([])
 
+    get_open_files_order: =>
+            return @get('open_files_order') ? immutable.List([])
+
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
@@ -1014,7 +1018,7 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
-        active_tab         : 'files'
+        active_project_tab         : 'files'
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 
