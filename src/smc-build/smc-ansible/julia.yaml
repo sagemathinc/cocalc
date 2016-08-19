@@ -106,14 +106,9 @@
         Pkg.update()
         recompile()" | julia
 
-# Nemo
-- hosts: compute
-  become: yes
-  gather_facts: no
-  tags: [install, nemo]
-
-  tasks:
+  # Nemo
   - name: "install nemo into julia (after julia has been installed)"
+    tags: [install, nemo]
     shell: |
         umask 022
         export JULIA_PKGDIR=/usr/local/share/julia/site/
@@ -125,16 +120,11 @@
         ln -s libarb.so.0.0.0 libarb.so
         echo 'using Nemo' | julia
 
-# cleanup
-- hosts: compute
-  become: yes
-  gather_facts: no
-  tags: [install, update, nemo]
-  tasks:
+  # cleanup
   - name: "fix ownership of site dir to be salvus"
-    tags: [install, update]
-    shell: "chown -R salvus. {{ pkgdir }}/"
+    tags: [install, update, nemo]
+    file: "path={{ pkgdir }}/ recurse=true owner=salvus group=salvus"
 
   - name: "fix permissions of site dir -- julia doesn't care about umask 022"
-    tags: [install, update]
+    tags: [install, update, nemo]
     shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
