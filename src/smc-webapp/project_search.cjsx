@@ -178,8 +178,8 @@ ProjectSearchOutputHeader = rclass
             {@get_info() if @props.info_visible}
         </div>
 
-ProjectSearch = (name) -> rclass
-    displayName : 'ProjectSearch'
+ProjectSearchBody = rclass ({name}) ->
+    displayName : 'ProjectSearchBody'
 
     reduxProps :
         "#{name}" :
@@ -294,7 +294,7 @@ ProjectSearchResultLine = rclass
             <span style={color:'#666'}> {@props.description}</span>
         </div>
 
-ProjectSearchHeader = (name) -> rclass
+ProjectSearchHeader = rclass ({name}) ->
     displayName : 'ProjectSearch-ProjectSearchHeader'
 
     mixins: [ImmutablePureRenderMixin]
@@ -311,55 +311,19 @@ ProjectSearchHeader = (name) -> rclass
             <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
         </h1>
 
-exports.ProjectSearchGenerator = (name) ->
-    # console.log("Generating ProjectSearch -- This should happen once per project opening")
-    ProjectSearchHeader_connected = ProjectSearchHeader(name)
-    ProjectSearch_connected       = ProjectSearch(name)
+exports.ProjectSearch = rclass ({name}) ->
+    displayName : 'ProjectSearch'
 
-    return ({redux, actions}) ->
-            <div style={padding:'10px'}>
-                <Row>
-                    <Col sm=12>
-                        <Redux redux={redux}>
-                            <ProjectSearchHeader_connected actions={actions} />
-                        </Redux>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12>
-                        <Redux redux={redux}>
-                            <ProjectSearch_connected actions={actions}/>
-                        </Redux>
-                    </Col>
-                </Row>
-            </div>
-
-exports.render = render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-
-    ProjectSearchHeader_connected = ProjectSearchHeader(store.name)
-    ProjectSearch_connected       = ProjectSearch(store.name)
-    <div>
-        <Row>
-            <Col sm=12>
-                <Redux redux={redux}>
-                    <ProjectSearchHeader_connected actions={actions} />
-                </Redux>
-            </Col>
-        </Row>
-        <Row>
-            <Col sm=12>
-                <Redux redux={redux}>
-                    <ProjectSearch_connected actions={actions}/>
-                </Redux>
-            </Col>
-        </Row>
-    </div>
-
-exports.render_project_search = (project_id, dom_node, redux) ->
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_search")
-    ReactDOM.unmountComponentAtNode(dom_node)
+    render : ->
+        <div style={padding:'10px'}>
+            <Row>
+                <Col sm=12>
+                    <ProjectSearchHeader actions={actions} name={name} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ProjectSearchBody actions={actions} name={name} />
+                </Col>
+            </Row>
+        </div>

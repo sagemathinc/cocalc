@@ -1240,8 +1240,8 @@ CollaboratorsPanel = rclass
             <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
         </ProjectSettingsPanel>
 
-ProjectSettings = rclass
-    displayName : 'ProjectSettings-ProjectSettings'
+ProjectSettingsBody = rclass
+    displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
         project_id   : rtypes.string.isRequired
@@ -1310,8 +1310,8 @@ ProjectSettings = rclass
             </Row>
         </div>
 
-ProjectController = (name) -> rclass
-    displayName : 'ProjectSettings-ProjectController'
+exports.ProjectSettings = rclass ({name}) ->
+    displayName : 'ProjectSettings-ProjectSettings'
 
     reduxProps :
         projects :
@@ -1375,7 +1375,7 @@ ProjectController = (name) -> rclass
         else
             <div>
                 {@render_admin_message() if @state.admin_project?}
-                <ProjectSettings
+                <ProjectSettingsBody
                     project_id   = {@props.project_id}
                     project      = {project}
                     user_map     = {@props.user_map}
@@ -1386,32 +1386,3 @@ ProjectController = (name) -> rclass
                     project_map  = {@props.project_map}
                 />
             </div>
-exports.ProjectSettingsGenerator = (name) ->
-    # console.log("Generating ProjectSettings -- This should happen once per project opening")
-    C = ProjectController(name)
-    return ({redux, project_id, group}) ->
-        <Redux redux={redux}>
-            <div style={padding:'10px'}>
-                <C project_id={project_id} redux={redux} group={group} />
-            </div>
-        </Redux>
-
-exports.render = render = (project_id) ->
-    project_store = redux.getProjectStore(project_id)
-    # compute how user is related to this project once for all, so that
-    # it stays constant while opening (e.g., stays admin)
-    group = redux.getStore('projects').get_my_group(project_id)
-    C = ProjectController(project_store.name)
-    <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} group={group} />
-    </Redux>
-
-exports.create_page = (project_id, dom_node) ->
-    #console.log("mount project_settings")
-    ReactDOM.render(render(project_id), dom_node)
-
-exports.unmount = (dom_node) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-
-# TODO: garbage collect/remove when project closed completely

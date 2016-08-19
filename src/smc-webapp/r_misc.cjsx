@@ -112,7 +112,8 @@ exports.Icon = Icon = rclass
         onClick    : rtypes.func
 
     getDefaultProps : ->
-        name : 'square-o'
+        name    : 'square-o'
+        onClick : ->
 
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
@@ -137,7 +138,7 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onClick={(e)=>@props.onClick?(e)}>{@props.children}</i>
+        return <i style={style} className={classNames} onClick={@props.onClick}>{@props.children}</i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass

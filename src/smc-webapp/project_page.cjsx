@@ -7,10 +7,10 @@ project page react component
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
 {ProjectFiles}   = require('project_files')
-{ProjectNewGenerator}      = require('project_new')
-{ProjectLogGenerator}      = require('project_log')
-{ProjectSearchGenerator}   = require('project_search')
-{ProjectSettingsGenerator} = require('project_settings')
+{ProjectNew, FileUpload}      = require('project_new')
+{ProjectLog}      = require('project_log')
+{ProjectSearch}   = require('project_search')
+{ProjectSettings} = require('project_settings')
 project_file = require('project_file')
 
 {ProjectStore} = require('./project_store')
@@ -36,41 +36,26 @@ ProjectPageTemp = rclass ({name}) ->
         project_actions : rtypes.object
 
     standard_tabs : ->
-        # TODO: Use new auto-memoized rclass(func) pattern.
-        ProjectNew = @ProjectNew ? ProjectNewGenerator("#{name}")
-        @ProjectNew = ProjectNew
-
-        ProjectLog = @ProjectLog ? ProjectLogGenerator("#{name}")
-        @ProjectLog = ProjectLog
-
-        ProjectSearch = @ProjectSearch ? ProjectSearchGenerator("#{name}")
-        @ProjectSearch = ProjectSearch
-
         # compute how user is related to this project once for all, so that
         # it stays constant while opening (e.g., stays admin)
         # Does a user's group change? Problem if it does.
         group = @group ? redux.getStore('projects').get_my_group(@props.project_id)
         @group = group
-        ProjectSettings = @ProjectSettings ? ProjectSettingsGenerator("#{name}")
-        @ProjectSettings = ProjectSettings
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles name={"#{name}"} project_id={@props.project_id} redux={redux} actions={@actions("#{name}")} />
-            </Tab>,
-            <Tab key={'files2'} eventKey={'files2'} title={"Files2"}>
-                <ProjectFiles name={"#{name}"} project_id={@props.project_id} redux={redux} actions={@actions("#{name}")} />
+                <ProjectFiles name={@props.project_store.name} project_id={@props.project_id} actions={@props.project_actions} redux={redux} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
-                <ProjectNew project_id={@props.project_id} redux={redux} actions={@props.project_actions} />
+                <ProjectNew name={@props.project_store.name} project_id={@props.project_id} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'log'} eventKey={'log'} title={"Log"}>
-                <ProjectLog redux={redux} actions={@props.project_actions} />
+                <ProjectLog redux={redux} actions={@props.project_actions} name={@props.project_store.name}/>
             </Tab>,
             <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                <ProjectSearch redux={redux} actions={@props.project_actions} />
+                <ProjectSearch redux={redux} actions={@props.project_actions} name={@props.project_store.name} />
             </Tab>,
             <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
-                <ProjectSettings project_id={@props.project_id} redux={redux} group={group} />
+                <ProjectSettings project_id={@props.project_id} name={@props.project_store.name} redux={redux} group={group} />
             </Tab>
         ]
 

@@ -199,19 +199,19 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             {@props.children}
         </div>
 
-ProjectNew = (name) -> rclass
-    displayName : 'ProjectNew'
+ProjectNewForm = rclass ({name}) ->
+    displayName : 'ProjectNewForm'
 
     reduxProps :
         "#{name}" :
             current_path     : rtypes.string
             default_filename : rtypes.string
+            get_total_project_quotas : rtypes.func
         projects :
             project_map      : rtypes.immutable
 
     propTypes :
         actions        : rtypes.object.isRequired
-        projects_store : rtypes.object.isRequired
 
     getInitialState : ->
         return filename : @props.default_filename ? @default_filename()
@@ -259,7 +259,7 @@ ProjectNew = (name) -> rclass
     blocked: ->
         if not @props.project_map?
             return ''
-        if @props.projects_store.get_total_project_quotas(@props.project_id)?.network
+        if @props.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
             return ' (internet access blocked -- see project settings)'
@@ -318,7 +318,7 @@ ProjectNew = (name) -> rclass
             </Row>
         </div>
 
-FileUpload = (name) -> rclass
+FileUpload = rclass ({name}) ->
     displayName : 'ProjectNew-FileUpload'
 
     reduxProps :
@@ -366,40 +366,15 @@ FileUpload = (name) -> rclass
             </Col>
         </Row>
 
-exports.ProjectNewGenerator = (name) ->
-    # console.log("Generating ProjectNew -- This should happen once per project opening")
-    ProjectNew_connnected = ProjectNew(name)
-    FileUpload_connected  = FileUpload(name)
-    return ({redux, project_id, actions}) ->
+exports.ProjectNew = rclass ({name}) ->
+    propTypes :
+        project_id : rtypes.string
+        name : rtypes.string
+        actions : rtypes.object
+
+    render : ->
         <div style={padding:'10px'}>
-            <Redux redux={redux}>
-                <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
-            </Redux>
+            <ProjectNew project_id={@props.project_id} name={@props.name} actions={@props.actions} />
             <hr />
-            <Redux redux={redux}>
-                <FileUpload_connected project_id={project_id} />
-            </Redux>
+            <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>
-
-exports.render = render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-    ProjectNew_connnected = ProjectNew(store.name)
-    FileUpload_connected  = FileUpload(store.name)
-    <div>
-        <Redux redux={redux}>
-            <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
-        </Redux>
-        <hr />
-        <Redux redux={redux}>
-            <FileUpload_connected project_id={project_id} />
-        </Redux>
-    </div>
-
-exports.render_new = (project_id, dom_node, redux) ->
-    #console.log("mount project_new")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_new")
-    ReactDOM.unmountComponentAtNode(dom_node)

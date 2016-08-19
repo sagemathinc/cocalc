@@ -612,6 +612,7 @@ exports.open_project = open_project = (opts) ->
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0
+        console.log('AAAA', 4)
         redux.getActions('page').set_active_tab('projects')
         return
     segments = target.split('/')

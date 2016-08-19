@@ -33,6 +33,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
+                        console.log('AAAA', 2)
                         redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
@@ -68,6 +69,7 @@ class AccountActions extends Actions
                     when "signed_in"
                         {analytics_event} = require('./misc_page')
                         analytics_event('account', 'create_account') # user created an account
+                        console.log('AAAA', 3)
                         redux.getActions('page').set_active_tab('projects')
                     else
                         # should never ever happen

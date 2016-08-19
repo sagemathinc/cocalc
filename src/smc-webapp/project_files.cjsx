@@ -918,8 +918,13 @@ ProjectFilesActionBox = rclass
         project_id    : rtypes.string.isRequired
         public_view   : rtypes.bool
         file_map      : rtypes.object.isRequired
-        redux         : rtypes.object
         actions       : rtypes.object.isRequired
+
+    reduxProps :
+        projects :
+            get_project_select_list : rtypes.func
+        account :
+            get_user_type : rtypes.func
 
     getInitialState : ->
         copy_destination_directory  : ''
@@ -1151,7 +1156,6 @@ ProjectFilesActionBox = rclass
                         key           = 'move_destination'
                         default_value = ''
                         placeholder   = 'Home directory'
-                        redux         = {@props.redux}
                         project_id    = {@props.project_id}
                         on_key_up     = {@action_key}
                     />
@@ -1177,7 +1181,7 @@ ProjectFilesActionBox = rclass
 
     render_different_project_dialog : ->
         if @state.show_different_project
-            data = @props.redux.getStore('projects').get_project_select_list(@props.project_id)
+            data = @props.get_project_select_list(@props.project_id)
             if not data?
                 return <Loading />
             <Col sm=4 style={color:'#666',marginBottom:'15px'}>
@@ -1254,7 +1258,7 @@ ProjectFilesActionBox = rclass
 
     render_copy : ->
         size = @props.checked_files.size
-        signed_in = @props.redux.getStore('account').get_user_type() == 'signed_in'
+        signed_in = @props.get_user_type() == 'signed_in'
         if @props.public_view and not signed_in
             <div>
                 <LoginLink />
@@ -1289,7 +1293,6 @@ ProjectFilesActionBox = rclass
                             key           = 'copy_destination_directory'
                             placeholder   = 'Home directory'
                             default_value = ''
-                            redux         = {@props.redux}
                             project_id    = {@state.copy_destination_project_id}
                             on_key_up     = {@action_key}
                         />
@@ -1711,12 +1714,14 @@ error_style =
     top         : '-43px'
     boxShadow   : '5px 5px 5px grey'
 
-exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
+exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
         projects :
             project_map   : rtypes.immutable
+            date_when_course_payment_required : rtypes.func
+            get_my_group : rtypes.func
         account :
             other_settings : rtypes.immutable
         "#{name}" :
@@ -1731,11 +1736,11 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
-            #get_directory_listings : rtypes.func # TESTING
+            get_directory_listings : rtypes.func
+            get_displayed_listing : rtypes.func
 
     propTypes :
         project_id    : rtypes.string
-        redux         : rtypes.object
         actions       : rtypes.object.isRequired
 
     getDefaultProps : ->
@@ -1808,7 +1813,6 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
                 project_id    = {@props.project_id}
                 public_view   = {public_view}
                 file_map      = {file_map}
-                redux         = {@props.redux}
                 actions       = {@props.actions} />
         </Col>
 
@@ -1917,7 +1921,7 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
             </div>
 
     start_project: ->
-        @props.redux.getActions('projects').start_project(@props.project_id)
+        @actions('projects').start_project(@props.project_id)
 
     render_start_project_button: (project_state) ->
         <Button
@@ -1939,24 +1943,22 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
         return @props.other_settings?.get('page_size') ? 50
 
     render : ->
-        #console.log(@props.get_directory_listings() == @props.redux.getStore("#{name}").get_directory_listings()) # TESTING
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
+        window.fprops = @props
 
-        projects_store = @props.redux.getStore('projects')  # component depends on this so OK
-
-        pay = projects_store.date_when_course_payment_required(@props.project_id)
+        pay = @props.date_when_course_payment_required(@props.project_id)
         if pay? and pay <= salvus_client.server_time()
             return @render_course_payment_required()
 
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
-        public_view = projects_store.get_my_group(@props.project_id) == 'public'
+        public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing(TERM_MODE_CHAR)
+        {listing, error, file_map} = @props.get_displayed_listing(TERM_MODE_CHAR)
 
         file_listing_page_size= @file_listing_page_size()
         if listing?
@@ -2008,23 +2010,3 @@ exports.ProjectFiles = ProjectFiles = rclass ({name}) ->
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
-
-exports.render = render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id, redux)
-    actions = redux.getProjectActions(project_id)
-    C = ProjectFiles(store.name)
-    <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} actions={actions}/>
-    </Redux>
-
-exports.render_new = (project_id, dom_node, redux) ->
-    #console.log("mount")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.mount = (project_id, dom_node, redux) ->
-    #console.log("mount")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount")
-    ReactDOM.unmountComponentAtNode(dom_node)

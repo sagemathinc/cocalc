@@ -317,7 +317,7 @@ matches = (s, words) ->
             return false
     return true
 
-ProjectLog = (name) -> rclass
+exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
     reduxProps :
@@ -475,30 +475,3 @@ ProjectLog = (name) -> rclass
             <h1><Icon name='history' /> Project activity log</h1>
             {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
         </div>
-
-exports.ProjectLogGenerator = (name) ->
-    # console.log("Generating ProjectLog -- This should happen once per project opening")
-    C = ProjectLog(name)
-
-    return ({redux, actions}) ->
-        <Redux redux={redux} connectToStores={["#{name}", 'users']}>
-            <div style={padding:'10px'}>
-                <C actions={actions} redux={redux} />
-            </div>
-        </Redux>
-
-exports.render = render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-    C = ProjectLog(store.name)
-    <Redux redux={redux} connectToStores={[store.name, 'users']}>
-        <C actions={actions} redux={redux} />
-    </Redux>
-
-exports.render_log = (project_id, dom_node, redux) ->
-    #console.log("mount project_log")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_log")
-    ReactDOM.unmountComponentAtNode(dom_node)

@@ -42,7 +42,7 @@ class PageStore extends Store
         'place holder'
 
 init_store =
-    active_top_tab : 'projects' # One of: projects, account, about, [project id]
+    active_top_tab : 'account' # One of: projects, account, about, [project id]
 
 redux.createStore('page', PageStore, init_store)
 
@@ -375,6 +375,7 @@ Page = rclass
         account :
             first_name : rtypes.string
             last_name : rtypes.string
+            is_logged_in : rtypes.func
         support :
             show : rtypes.bool
 
@@ -385,16 +386,17 @@ Page = rclass
     close_project : (e, project_id) ->
         e.stopPropagation()
         e.preventDefault()
-        index = @props.open_projects.indexOf(project_id)
-        size = @props.open_projects.size
-        next_active_tab = 'projects'
-        if index == -1 or size <= 1
+        if project_id == @props.active_top_tab
+            index = @props.open_projects.indexOf(project_id)
+            size = @props.open_projects.size
             next_active_tab = 'projects'
-        else if index == size - 1
-            next_active_tab = @props.open_projects.get(index - 1)
-        else
-            next_active_tab = @props.open_projects.get(index + 1)
-        redux.getActions('page').set_active_tab(next_active_tab)
+            if index == -1 or size <= 1
+                next_active_tab = 'projects'
+            else if index == size - 1
+                next_active_tab = @props.open_projects.get(index - 1)
+            else
+                next_active_tab = @props.open_projects.get(index + 1)
+            redux.getActions('page').set_active_tab(next_active_tab)
         redux.getActions('projects').set_project_closed(project_id)
 
     project_tabs : ->
@@ -461,12 +463,12 @@ Page = rclass
                     <NavTab name='account' label={@account_name()} icon='cog' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
                     <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
                     <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)}/>
-                    <NotificationBell count={@props.notification_count} />
+                    {<NotificationBell count={@props.notification_count} /> if @props.is_logged_in()}
                     <ConnectionIndicator actions={@props.page_actions} />
                 </Nav>
-                <Nav>
+                {<Nav>
                     <NavTab name='projects' label="Projects" icon={<SMCLogo />} actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
-                </Nav>
+                </Nav> if @props.is_logged_in()}
                 <Nav>
                     {@project_tabs()}
                 </Nav>

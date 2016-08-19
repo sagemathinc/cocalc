@@ -51,8 +51,6 @@ signed_in = (mesg) ->
     analytics_event('account', 'signed_in')    # user signed in
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
-
-    redux.getActions('page').set_active_tab("projects")
     load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false
