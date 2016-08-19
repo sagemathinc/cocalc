@@ -2,7 +2,7 @@
 # manages the build of the smc-project images
 import sys
 import os
-from os.path import join
+from os.path import join, expanduser
 import argparse
 import inspect
 
@@ -75,7 +75,9 @@ def run_base(action = None):
     elif action == 'test':
         tag = latest_tag()
         print("running test on {}".format(tag))
-
+        # after running test
+        # docker cp [container_id]:/home/salvus/smc-compute-env.html expanduser('~')
+    
 def run_clean():
     '''
     tells docker to clean up itself (dangling images, dead containers, ...)
