@@ -174,10 +174,10 @@ class AppRedux
         S = @_stores[name]
         if not S?
             S = @_stores[name] = new store_class(name, @)
-            # Put into store. WRONG WAY
-            # C = immutable.Map(S)
-            # C = C.delete('redux') # No circular pointing
-            # @_set_state({"#{name}":C})
+            # Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
+            C = immutable.Map(S)
+            C = C.delete('redux') # No circular pointing
+            @_set_state({"#{name}":C})
             if init?
                 @_set_state({"#{name}":init})
         return S
@@ -267,6 +267,8 @@ react_component = (x) ->
     if typeof x == 'function'
         # Enhance the return value of x with an HOC
         cached = React.createClass
+
+            # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
                 # OPTIMIZATION: check for cached the keys in props
@@ -279,7 +281,8 @@ react_component = (x) ->
 
                 definition.actions = redux.getActions
 
-                @cache[key] ?= rclass(definition)
+                @cache[key] ?= rclass(definition) # wait.. is this even the slow part?
+                console.log("This is the cache:", @cache)
 
                 return React.createElement(@cache[key], @props, @props.children)
 
