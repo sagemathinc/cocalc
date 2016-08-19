@@ -25,43 +25,20 @@ def build(tag, rebuild):
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH, 'image-dev'))
 
+def build2(tag, rebuild):
+    v = ['sudo', 'docker', 'build', '-t', tag]
+    if rebuild:
+        v.append("--no-cache")
+    v.append('.')
+    util.run(v, path=join(SCRIPT_PATH, 'images/control'))
+
 def build_docker(args):
     tag = util.get_tag(args, NAME)
-    build(tag, args.rebuild_all)
-    util.gcloud_docker_push(tag)
-
-def images_on_gcloud(args):
-    for x in util.gcloud_images(NAME):
-        print("%-20s%-60s"%(x['TAG'], x['REPOSITORY']))
-
-def validate_project_ids(args):
-    if uuid.UUID(args.project_id).version != 4:
-        raise ValueError("invalid project_id='%s'"%args.project_id)
-
-def run_on_kubernetes(args):
-    validate_project_ids(args)
-    args.local = False # so tag is for gcloud
-    tag = util.get_tag(args, NAME, build)
-    t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
-
-    resources = {'requests':{'memory':"40Mi", 'cpu':'5m'}, 'limits':{'memory': "1000Mi", 'cpu': "1000m"}}
-    resources = '{' + yaml.dump(resources).replace('\n',',')[:-1] + '}'
-
-    with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-        tmp.write(t.format(image          = tag,
-                           project_id     = args.project_id,
-                           namespace      = util.get_current_namespace(),
-                           storage_server = args.storage_server,
-                           disk_size      = args.disk_size,
-                           resources      = resources,
-                           preemptible    = 'true' if args.preemptible else 'false',
-                           pull_policy    = util.pull_policy(args)))
-        tmp.flush()
-        util.update_deployment(tmp.name)
-
-def delete(args):
-    validate_project_ids(args)
-    util.stop_deployment(NAME + "-" + args.project_id)
+    build(tag+'-main', args.rebuild_all)
+    util.gcloud_docker_push(tag+'-main')
+    tag2 = tag + '-control'
+    build2(tag2, args.rebuild_all)
+    util.gcloud_docker_push(tag2)
 
 if __name__ == '__main__':
     import argparse
@@ -74,20 +51,6 @@ if __name__ == '__main__':
     sub.add_argument("-b", "--branch", default='master', help="branch of SMC to build (default: 'master'); will build HEAD of this")
     sub.add_argument("-c", "--commit", default='', help="optional -- explicit commit to checkout (instead of HEAD of branch)")
     sub.set_defaults(func=build_docker)
-
-    sub = subparsers.add_parser('run', help='run the given project (WARNING: right now this will NOT work -- instead use the manager...)', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    sub.add_argument("-s", "--storage-server", type=int, help="(required) storage server number: 0, 1, 2, 3", required=True)
-    sub.add_argument("-d", "--disk-size",  type=str, help="disk size", required=True)
-    sub.add_argument("-p", "--preemptible",  type=str, help="preemptible", required=True)
-    sub.add_argument("-t", "--tag", default="", help="tag of the image to run")
-    sub.add_argument("-f", "--force",  action="store_true", help="force re-download image in k8s")
-    sub.add_argument('project_id', type=str, help='which project to run')
-    sub.set_defaults(func=run_on_kubernetes)
-
-    sub = subparsers.add_parser('delete', help='kill the running project')
-    sub.add_argument('project_id', type=str, help='which node or nodes to stop running')
-    sub.set_defaults(func=delete)
-
 
     def selector(args):
         return {'run':'smc-project'}

@@ -36,6 +36,8 @@ DEFAULTS =
 
     disk        : "#{DEFAULT_QUOTAS.disk_quota}m"
 
+    network     : !!DEFAULT_QUOTAS.network
+
     preemptible : not DEFAULT_QUOTAS.member_host
 
 child_process = require('child_process')
@@ -70,8 +72,8 @@ connect_to_rethinkdb = (cb) ->
 
 # Create a changefeed of all potentially requested-to-be-running projects, which
 # dynamically updates the projects object.
-FIELDS = ['run', 'restart', 'storage_server', 'disk_size', 'resources',
-          'preemptible', 'last_edited', 'idle_timeout', 'storage_ready', 'secret_token']
+FIELDS = ['run', 'restart', 'storage_server', 'disk_size', 'resources', 'network',
+          'preemptible', 'last_edited', 'idle_timeout', 'storage_ready', 'secret_token', 'image']
 init_projects_changefeed = (cb) ->
     log("init_projects_changefeed")
     query = rethinkdb.db(DATABASE).table('projects').getAll(true, index:'run')
@@ -99,7 +101,7 @@ init_projects_changefeed = (cb) ->
                     if JSON.stringify(z[field]) != JSON.stringify(x.new_val[field])   # use due to resources being object
                         z[field] = x.new_val[field]
                         changed[field] = true
-                if state == 'ready' and z.run and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready)
+                if state == 'ready' and z.run and not changed.run and (changed.resources or changed.preemptible or changed.disk_size or changed.storage_ready or changed.network)
                     log("deployment change for '#{project_id}' ", changed)
                     # Currently running with no change to run state.
                     # Something changed which can be done via editing the deployment using kubectl
@@ -320,18 +322,19 @@ replace_all = (string, search, replace) ->
 
 # Used for starting projects:
 deployment_template = undefined
-deployment_yaml = (project_id, storage_server, disk_size, resources, preemptible, secret_token) ->
+deployment_yaml = (project_id, storage_server, disk_size, network, resources, preemptible, secret_token, image, pull_policy) ->
     deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
         project_id     : project_id
-        image          : process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
+        image          : image ? process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
         namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
         storage_server : storage_server
         disk_size      : disk_size
+        network        : if network then 'true' else 'false'
         preemptible    : if preemptible  then 'true' else 'false'
         secret_token   : secret_token
         resources      : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
-        pull_policy    : 'IfNotPresent'
+        pull_policy    : pull_policy ? 'IfNotPresent'
     s = deployment_template
     for k, v of params
         s = replace_all(s, "{#{k}}", "#{v}")
@@ -348,7 +351,7 @@ run = (s, cb) ->
         cb?(err, stdout + stderr)
 
 write_deployment_yaml_file = (project_id, cb) ->
-    info = storage_server = disk_size = resources = preemptible = secret_token = undefined
+    info = storage_server = disk_size = network = resources = preemptible = secret_token = image = pull_policy = undefined
     async.series([
         (cb) ->
             temp.open {suffix:'.yaml'}, (err, _info) ->
@@ -365,6 +368,10 @@ write_deployment_yaml_file = (project_id, cb) ->
                         disk_size = r
                         cb(err)
                 (cb) ->
+                    get_network project_id, (err, r) ->
+                        network = r
+                        cb(err)
+                (cb) ->
                     get_resources project_id, (err, r) ->
                         resources = r
                         cb(err)
@@ -376,9 +383,15 @@ write_deployment_yaml_file = (project_id, cb) ->
                     get_secret_token project_id, (err, r) ->
                         secret_token = r
                         cb(err)
+                (cb) ->
+                    get_image project_id, (err, r) ->
+                        image       = r?.image
+                        pull_policy = r?.pull_policy
+                        cb(err)
             ], cb)
         (cb) ->
-            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, resources, preemptible, secret_token))
+            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, network,
+                                              resources, preemptible, secret_token, image, pull_policy))
             fs.close(info.fd, cb)
     ], (err) ->
         cb(err, info.path)
@@ -489,6 +502,9 @@ get_all_storage_servers = (cb) ->
 get_disk_size = (project_id, cb) ->
     cb(undefined, projects[project_id]?.disk_size ? DEFAULTS.disk)
 
+get_network = (project_id, cb) ->
+    cb(undefined, projects[project_id]?.network ? DEFAULTS.network)
+
 get_resources = (project_id, cb) ->
     # TODO -- note that 200Mi really is pretty much the minimum needed to run the local hub at all!
     resources = projects[project_id]?.resources ? DEFAULTS.resources
@@ -517,6 +533,9 @@ get_secret_token = (project_id, cb) ->
             # save assignment to database
             rethinkdb.db(DATABASE).table('projects').get(project_id).update(secret_token: s).run(conn, cb)
     ], (err) -> cb(err, s))
+
+get_image = (project_id, cb) ->
+    cb(undefined, projects[project_id]?.image)
 
 # Stop a project from running
 kubectl_stop_project = (project_id, cb) ->

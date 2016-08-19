@@ -61,7 +61,7 @@ spec:
           - name: gcloud-service-account
             mountPath: /secrets/gcloud-service-account/
             readOnly: true
-
+            
       volumes:
         - name: cluster-manager-kubectl-secret
           secret:
@@ -69,5 +69,5 @@ spec:
         - name: gcloud-service-account
           secret:
             secretName: gcloud-service-account
-            
+
       {node_selector}

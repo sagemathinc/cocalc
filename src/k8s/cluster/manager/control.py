@@ -54,7 +54,7 @@ def node_selector():
         return 'nodeSelector: {preemptible: "false", scopes: "default"}'
     else:
         print("no non-preemptible nodes")
-        return ''
+        return 'nodeSelector: {scopes: "default"}'
 
 def run_on_kubernetes(args):
     create_kubectl_secret()

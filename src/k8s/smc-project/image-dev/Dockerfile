@@ -7,10 +7,10 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-# Install Node.js
+# Install Node.js, etc
 RUN \
   apt-get update && \
-  apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo  && \
+  apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo inetutils-ping telnet && \
   curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs
 

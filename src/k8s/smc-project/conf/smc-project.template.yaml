@@ -24,8 +24,9 @@ spec:
           run        : smc-project
     spec:
       containers:
+
       - name: project
-        image: {image}
+        image: {image}-main
         imagePullPolicy: {pull_policy}
         volumeMounts:
         - name: no-api-access-please   # see https://github.com/kubernetes/kubernetes/issues/16779
@@ -35,12 +36,27 @@ spec:
           mountPath: /projects/{project_id}
         env:
           - name: SMC_PROJECT_ID
-            value: {project_id}
+            value: "{project_id}"
           - name: SMC_SECRET_TOKEN
-            value: {secret_token}
+            value: "{secret_token}"
         resources: {resources}
+
+      - name: control
+        image: {image}-control
+        imagePullPolicy: {pull_policy}
+        env:
+          - name: SMC_PROJECT_ID
+            value: "{project_id}"
+          - name: SMC_NETWORK    # string: true or false
+            value: "{network}"
+        resources: {resources}
+        securityContext:       # so we can use iptables
+            privileged: true
+
       nodeSelector:
         preemptible: "{preemptible}"
+        scopes     : "safe"
+
       terminationGracePeriodSeconds: 1  # kill fast so can move, avoid multiple services on same files, etc.
       volumes:
       - name: no-api-access-please

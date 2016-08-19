@@ -60,10 +60,10 @@ def node_selector():
     # 1 below due to master always being non-preemptible
     if len(util.run('kubectl get nodes -l preemptible=false --no-headers', get_output=True, verbose=False).strip().split('\n')) > 1:
         print("good - there are non pre-emptible nodes!")
-        return 'nodeSelector: {preemptible: "false"}'
+        return 'nodeSelector: {preemptible: "false", scopes: "default"}'
     else:
         print("no non-preemptible nodes")
-        return ''
+        return 'nodeSelector: {scopes: "default"}'
 
 def run_on_kubernetes(args):
     create_kubectl_secret()
@@ -75,6 +75,7 @@ def run_on_kubernetes(args):
         default_image = util.gcloud_docker_repo('smc-project:' + args.project_tag)
     else:
         default_image = util.gcloud_most_recent_image('smc-project')
+    default_image = default_image[:default_image.rfind('-')]  # remove final -[which image]
 
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
