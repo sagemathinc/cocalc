@@ -318,12 +318,12 @@ exports.ProjectSearch = rclass ({name}) ->
         <div style={padding:'10px'}>
             <Row>
                 <Col sm=12>
-                    <ProjectSearchHeader actions={actions} name={name} />
+                    <ProjectSearchHeader actions={@actions(name)} name={name} />
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
-                    <ProjectSearchBody actions={actions} name={name} />
+                    <ProjectSearchBody actions={@actions(name)} name={name} />
                 </Col>
             </Row>
         </div>

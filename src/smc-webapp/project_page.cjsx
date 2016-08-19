@@ -7,7 +7,7 @@ project page react component
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 
 {ProjectFiles}   = require('project_files')
-{ProjectNew, FileUpload}      = require('project_new')
+{ProjectNew}      = require('project_new')
 {ProjectLog}      = require('project_log')
 {ProjectSearch}   = require('project_search')
 {ProjectSettings} = require('project_settings')
@@ -43,19 +43,19 @@ ProjectPageTemp = rclass ({name}) ->
         @group = group
 
         [   <Tab key={'files'} eventKey={'files'} title={"Files"}>
-                <ProjectFiles name={@props.project_store.name} project_id={@props.project_id} actions={@props.project_actions} redux={redux} />
+                <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'new'} eventKey={'new'} title={"New"}>
-                <ProjectNew name={@props.project_store.name} project_id={@props.project_id} actions={@props.project_actions} />
+                <ProjectNew name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
             </Tab>,
             <Tab key={'log'} eventKey={'log'} title={"Log"}>
-                <ProjectLog redux={redux} actions={@props.project_actions} name={@props.project_store.name}/>
+                <ProjectLog actions={@props.project_actions} name={@props.name}/>
             </Tab>,
             <Tab key={'find'} eventKey={'find'} title={"Find"}>
-                <ProjectSearch redux={redux} actions={@props.project_actions} name={@props.project_store.name} />
+                <ProjectSearch redux={redux} actions={@props.project_actions} name={@props.name} />
             </Tab>,
             <Tab key={'settings'} eventKey={'settings'} title={"Settings"}>
-                <ProjectSettings project_id={@props.project_id} name={@props.project_store.name} redux={redux} group={group} />
+                <ProjectSettings project_id={@props.project_id} name={@props.name} redux={redux} group={group} />
             </Tab>
         ]
 

@@ -206,9 +206,9 @@ ProjectNewForm = rclass ({name}) ->
         "#{name}" :
             current_path     : rtypes.string
             default_filename : rtypes.string
-            get_total_project_quotas : rtypes.func
         projects :
             project_map      : rtypes.immutable
+            get_total_project_quotas : rtypes.func
 
     propTypes :
         actions        : rtypes.object.isRequired
@@ -374,7 +374,7 @@ exports.ProjectNew = rclass ({name}) ->
 
     render : ->
         <div style={padding:'10px'}>
-            <ProjectNew project_id={@props.project_id} name={@props.name} actions={@props.actions} />
+            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@props.actions} />
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>
