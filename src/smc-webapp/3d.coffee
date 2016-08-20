@@ -431,7 +431,7 @@ class SalvusThreeJS
         if myobj.type == "index_face_set"
             has_local_colors = myobj.has_local_colors
         else
-            hase_local_colors = false
+            has_local_colors = false
 
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
