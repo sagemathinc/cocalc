@@ -285,7 +285,6 @@ react_component = (x) ->
                 definition.actions = redux.getActions
 
                 @cache[key] ?= rclass(definition) # wait.. is this even the slow part?
-                console.log("This is the cache:", @cache)
 
                 return React.createElement(@cache[key], @props, @props.children)
 
