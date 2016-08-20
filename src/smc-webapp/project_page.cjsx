@@ -87,6 +87,7 @@ ProjectPageTemp = rclass ({name}) ->
             else
                 if @props.open_files.has(active)
                     Name = @props.open_files.get(active)
+                    console.log("Name:",Name)
                     return <Name path={active} project_id={@props.project_id} redux={redux} actions={redux.getActions(Name.redux_name)} />
                 return <div>You shouldn't be here! {@props.active_project_tab}</div>
 

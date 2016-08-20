@@ -59,7 +59,11 @@ exports.register_nonreact_editor = (opts) ->
                 e = opts.f(editor, path, extra_opts)
                 editors[key] = e
 
-            return () -> <WrappedEditor editor={e} />
+            wrapper_generator = () -> <WrappedEditor editor={e} />
+
+            wrapper_generator.redux_name = key
+
+            return wrapper_generator
 
 
 
