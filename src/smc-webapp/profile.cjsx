@@ -146,7 +146,7 @@ UsersViewingDocument = rclass
         return [latest_key, newest/1000]
 
     render_avatars: ->
-        
+
         if not (@props.file_use? and @props.user_map?)
             return
 
@@ -157,11 +157,15 @@ UsersViewingDocument = rclass
 
         output = []
         all_users = []
-        
+
         for user_id, events of log
             if @props.account_id is user_id
                 continue
-            line = @props.get_users_cursors(user_id)?[0]['y'] + 1
+            z = @props.get_users_cursors(user_id)?[0]?['y']
+            if z?
+                line = z  + 1
+            else
+                line = 1
             account = @props.user_map.get(user_id)?.toJS() ? {}
             [event, seconds] = @_find_most_recent(events)
             time_since = Date.now()/1000 - seconds

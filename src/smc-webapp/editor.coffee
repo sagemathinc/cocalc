@@ -1713,13 +1713,12 @@ class CodeMirrorEditor extends FileEditor
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
         pos = {line:line-1, ch:0}
-        cm.setCursor(pos)
         info = cm.getScrollInfo()
         cm.scrollIntoView(pos, info.clientHeight/2)
-        
+
     get_users_cursors: (account_id) =>
         return @syncdoc?.get_users_cursors(account_id)
-        
+
     init_file_actions: () =>
         if not @element? or not @editor?
             return
@@ -1974,7 +1973,7 @@ class CodeMirrorEditor extends FileEditor
         @show()
         @focus()
         cm.focus()
-        
+
     goto_line: (cm) =>
         focus = () =>
             @focus()
@@ -4568,7 +4567,7 @@ class TemplateEditor extends FileEditorWrapper
                 the_editor.show(args...)
         the_editor.render(args...)
 
-        
+
 class TemplateEditor extends FileEditorWrapper
     init_wrapped: () =>
         the_editor = require('./editor_template')
