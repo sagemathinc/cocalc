@@ -376,8 +376,7 @@ Page = rclass
             connection_status : rtypes.string
             new_version : rtypes.object
         account :
-            first_name : rtypes.string
-            last_name : rtypes.string
+            get_fullname : rtypes.func
             is_logged_in : rtypes.func
         support :
             show : rtypes.bool
@@ -434,8 +433,8 @@ Page = rclass
 
     account_name : ->
         name = ''
-        if @props.first_name? and @props.last_name?
-            name = misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)
+        if @props.get_fullname?
+            name = misc.trunc_middle(@props.get_fullname(), 32)
         if not name.trim()
             name = "Account"
         return name

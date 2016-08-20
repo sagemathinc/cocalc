@@ -419,10 +419,6 @@ class ProjectPage
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
 
-    # Return the string representation of the current path, as a
-    # relative path from the root of the project.
-    current_pathname: () => @store.get('current_path')
-
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
         if path != @store.get('current_path')
@@ -486,38 +482,6 @@ class ProjectPage
                         opts.cb?(err or result.event == 'error')
         ], (err) -> opts.cb?(err))
 
-    get_from_web: (opts) =>
-        opts = defaults opts,
-            url     : required
-            dest    : undefined
-            timeout : 45
-            alert   : true
-            cb      : undefined     # cb(true or false, depending on error)
-
-        {command, args} = transform_get_url(opts.url)
-
-        salvus_client.exec
-            project_id : @project_id
-            command    : command
-            timeout    : opts.timeout
-            path       : opts.dest
-            args       : args
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
-
-    open_file_in_another_browser_tab: (path) =>
-        salvus_client.read_file_from_project
-            project_id : @project_id
-            path       : path
-            cb         : (err, result) =>
-                window.open(misc.encode_path(result.url))
-
     open_file: (opts) =>
         opts = defaults opts,
             path       : required
@@ -543,9 +507,6 @@ class ProjectPage
                 @editor.display_tab
                     path       : opened_path
                     foreground : opts.foreground
-
-    show_add_collaborators_box: () =>
-        @display_tab('project-settings')
 
     download_file: (opts) =>
         opts = defaults opts,
@@ -577,32 +538,3 @@ project_page = exports.project_page = (project_id) ->
     p = project_pages[project_id] = new ProjectPage(project_id)
     top_navbar.init_sortable_project_list()
     return p
-
-
-# Apply various transformations to url's before downloading a file using the "+ New" from web thing:
-# This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
-# content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-
-URL_TRANSFORMS =
-    'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
-    'http://nbviewer.ipython.org/urls/':'https://'
-
-
-transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
-    if misc.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
-        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
-
-    if misc.startswith(url, 'git@github.com:')
-        command = 'git'  # kind of useless due to host keys...
-        args = ['clone', url]
-    else if url.slice(url.length-4) == ".git"
-        command = 'git'
-        args = ['clone', url]
-    else
-        # fall back
-        for a,b of URL_TRANSFORMS
-            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
-        command = 'wget'
-        args = [url]
-
-    return {command:command, args:args}

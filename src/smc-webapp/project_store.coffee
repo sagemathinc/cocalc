@@ -398,9 +398,29 @@ class ProjectActions extends Actions
         #Temporary: call from project page
         @_project().ensure_directory_exists(opts)
 
-    get_from_web : (opts)=>
-        #Temporary: call from project page
-        @_project().get_from_web(opts)
+    get_from_web : (opts) =>
+        opts = defaults opts,
+            url     : required
+            dest    : undefined
+            timeout : 45
+            alert   : true
+            cb      : undefined     # cb(true or false, depending on error)
+
+        {command, args} = misc.transform_get_url(opts.url)
+
+        require('./salvus_client').salvus_client.exec
+            project_id : @project_id
+            command    : command
+            timeout    : opts.timeout
+            path       : opts.dest
+            args       : args
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        require('./alerts').alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        require('./alerts').alert_message(type:"error", message:result.error)
+                opts.cb?(err or result.event == 'error')
 
     create_editor_tab : (opts) =>
         if window.FULLY_REACT
