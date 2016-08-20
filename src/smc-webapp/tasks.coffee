@@ -882,7 +882,7 @@ class TaskList
                 # clicking when something in the task is selected -- e.g., don't scroll into view
                 scroll_into_view = false
             if scroll_into_view
-                task.element.scrollintoview()
+                task.element.scrollIntoView()
 
     get_task_visible_index: (task) =>
         if not task?
