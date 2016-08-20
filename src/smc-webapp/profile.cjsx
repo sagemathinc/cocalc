@@ -161,7 +161,7 @@ UsersViewingDocument = rclass
         for user_id, events of log
             if @props.account_id is user_id
                 continue
-            z = @props.get_users_cursors(user_id)?[0]?['y']
+            z = @props.get_users_cursors?(user_id)?[0]?['y']
             if z?
                 line = z  + 1
             else
