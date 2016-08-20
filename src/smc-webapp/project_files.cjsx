@@ -1409,6 +1409,7 @@ ProjectFilesActionBox = rclass
     download_click : ->
         @props.actions.download_file
             path : @props.checked_files.first()
+            log : true
         @props.actions.set_file_action()
 
     render_download_link : (single_item) ->

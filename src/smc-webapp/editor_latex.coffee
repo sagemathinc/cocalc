@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
-
+{redux} = require('./smc-react')
 editor = require('./editor')
 
 templates = $("#salvus-editor-templates")
@@ -641,7 +641,7 @@ class exports.LatexEditor extends editor.FileEditor
 
 
     download_pdf: () =>
-        @editor.project_page.download_file
+        redux.getProjectActions(@editor.project_page.project_id).download_file
             path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>

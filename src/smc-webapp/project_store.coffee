@@ -394,9 +394,23 @@ class ProjectActions extends Actions
             @redux.getActions('projects').fetch_directory_tree(@project_id)
         @setState(file_action : action)
 
-    ensure_directory_exists : (opts)=>
-        #Temporary: call from project page
-        @_project().ensure_directory_exists(opts)
+    ensure_directory_exists: (opts) =>
+        opts = defaults opts,
+            path  : required
+            cb    : undefined  # cb(true or false)
+            alert : true
+        salvus_client.exec
+            project_id : @project_id
+            command    : "mkdir"
+            timeout    : 15
+            args       : ['-p', opts.path]
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        require('./alerts').alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        require('./alerts').alert_message(type:"error", message:result.error)
+                opts.cb?(err or result.event == 'error')
 
     get_from_web : (opts) =>
         opts = defaults opts,
@@ -632,11 +646,27 @@ class ProjectActions extends Actions
 
 
     download_file : (opts) =>
-        @log
-            event  : 'file_action'
-            action : 'downloaded'
-            files  : opts.path
-        @_project().download_file(opts)
+        {download_file} = require('./misc_page')
+        opts = defaults opts,
+            path    : required
+            log     : false
+            auto    : true
+            timeout : 45
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+        if opts.log
+            @log
+                event  : 'file_action'
+                action : 'downloaded'
+                files  : opts.path
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto
+            download_file(url)
+        else
+            window.open(url)
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have

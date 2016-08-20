@@ -879,7 +879,7 @@ ProjectControlPanel = rclass
         project = project_page(@props.project.get('project_id'))
         async.series([
             (cb) =>
-                project.ensure_directory_exists
+                @actions(project_id: @props.project.get('project_id')).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>

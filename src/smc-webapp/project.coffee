@@ -40,14 +40,10 @@ project_store   = require('./project_store')
 {top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
-misc_page       = require('./misc_page')
-
 {redux}         = require('./smc-react')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('./editor')
-
-{download_file} = misc_page
 
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
@@ -435,53 +431,6 @@ class ProjectPage
     default_filename: (ext) =>
         return require('./account').default_filename(ext)
 
-    ensure_directory_exists: (opts) =>
-        opts = defaults opts,
-            path  : required
-            cb    : undefined  # cb(true or false)
-            alert : true
-        salvus_client.exec
-            project_id : @project_id
-            command    : "mkdir"
-            timeout    : 15
-            args       : ['-p', opts.path]
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
-    ensure_file_exists: (opts) =>
-        opts = defaults opts,
-            path  : required
-            cb    : undefined  # cb(true or false)
-            alert : true
-
-        async.series([
-            (cb) =>
-                dir = misc.path_split(opts.path).head
-                if dir == ''
-                    cb()
-                else
-                    @ensure_directory_exists(path:dir, alert:opts.alert, cb:cb)
-            (cb) =>
-                #console.log("ensure_file_exists -- touching '#{opts.path}'")
-                salvus_client.exec
-                    project_id : @project_id
-                    command    : "touch"
-                    timeout    : 15
-                    args       : [opts.path]
-                    cb         : (err, result) =>
-                        if opts.alert
-                            if err
-                                alert_message(type:"error", message:err)
-                            else if result.event == 'error'
-                                alert_message(type:"error", message:result.error)
-                        opts.cb?(err or result.event == 'error')
-        ], (err) -> opts.cb?(err))
-
     open_file: (opts) =>
         opts = defaults opts,
             path       : required
@@ -507,23 +456,6 @@ class ProjectPage
                 @editor.display_tab
                     path       : opened_path
                     foreground : opts.foreground
-
-    download_file: (opts) =>
-        opts = defaults opts,
-            path    : required
-            auto    : true
-            timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
-
-        if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
-
-        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
-        if opts.auto
-            download_file(url)
-        else
-            window.open(url)
 
 project_pages = {}
 

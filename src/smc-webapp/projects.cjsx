@@ -144,24 +144,16 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-        # TODO: Enable switch_to
-        if window.FULLY_REACT
-            require('./project_store') # registers the project store with redux...
-            store = redux.getProjectStore(opts.project_id)
-            actions = redux.getProjectActions(opts.project_id)
-            # actions.set_url_to_path(store.get('current_path'))
-            #temporary
-            sort_by_time = store.get('sort_by_time') ? true
-            show_hidden = store.get('show_hidden') ? false
-            actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
-            redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
-            @set_project_open(opts.project_id)
-        else
-            opts.cb = (err) =>
-                @set_project_open(opts.project_id, err)
-            open_project(opts)
-            if opts.switch_to
-                @foreground_project(opts.project_id)
+        require('./project_store') # registers the project store with redux...
+        store = redux.getProjectStore(opts.project_id)
+        actions = redux.getProjectActions(opts.project_id)
+        # actions.set_url_to_path(store.get('current_path'))
+        #temporary
+        sort_by_time = store.get('sort_by_time') ? true
+        show_hidden = store.get('show_hidden') ? false
+        actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+        redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
+        @set_project_open(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
@@ -612,7 +604,6 @@ exports.open_project = open_project = (opts) ->
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0
-        console.log('AAAA', 4)
         redux.getActions('page').set_active_tab('projects')
         return
     segments = target.split('/')

@@ -83,7 +83,6 @@ exports.load_target = load_target = (target) ->
                 if segments.length > 1
                     require('./projects').load_target(segments.slice(1).join('/'), true)
                 else
-                    console.log('AAAA', 1)
                     redux.getActions('page').set_active_tab('projects')
         when 'settings'
             redux.getActions('page').set_active_tab('account')
