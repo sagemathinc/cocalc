@@ -1535,7 +1535,7 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
-            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
+            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
 
         @element.data('editor', @)
 
@@ -1709,6 +1709,15 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @wizard = null
+
+    programmatical_goto_line: (line) =>
+        cm = @codemirror_with_last_focus
+        pos = {line:line-1, ch:0}
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
+
+    get_users_cursors: (account_id) =>
+        return @syncdoc?.get_users_cursors(account_id)
 
     init_file_actions: () =>
         if not @element? or not @editor?
@@ -4558,7 +4567,7 @@ class TemplateEditor extends FileEditorWrapper
                 the_editor.show(args...)
         the_editor.render(args...)
 
-        
+
 class TemplateEditor extends FileEditorWrapper
     init_wrapped: () =>
         the_editor = require('./editor_template')
