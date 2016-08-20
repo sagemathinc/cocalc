@@ -6,7 +6,9 @@
   become: yes
   gather_facts: no
   tasks:
-  - apt: update_cache=yes cache_valid_time=3600
+  - name: "let's start with apt update and aptitude upgrade ..."
+    apt: update_cache=yes upgrade=safe
+    tags: update
 
 - include: all-install.yaml
 - include: umask_compute.yaml
@@ -18,12 +20,4 @@
 - include: r.yaml # R depends on compute-extra
 - include: julia.yaml
 - include: latex.yaml
-
-- hosts: all
-  become: yes
-  gather_facts: no
-  tags: update
-  tasks:
-  - apt: update_cache=yes cache_valid_time=3600 upgrade=safe
-
 - include: cleanup.yaml

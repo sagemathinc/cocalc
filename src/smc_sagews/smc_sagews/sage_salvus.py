@@ -616,12 +616,13 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
-def sage_eval(x, locals=None):
-    x = str(x).strip()
-    if x.isspace():
-        return None
+def sage_eval(x, locals=None, **kwds):
+    if isinstance(x, str):
+        x = str(x).strip()
+        if x.isspace():
+            return None
     from sage.all import sage_eval
-    return sage_eval(x, locals=locals)
+    return sage_eval(x, locals=locals, **kwds)
 
 class ParseValue:
     def __init__(self, type):

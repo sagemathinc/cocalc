@@ -37,7 +37,7 @@ spec:
             path: /concurrent-warn
             port: 5000
             scheme: HTTP
-          initialDelaySeconds: 70  # can have a lot of concurrents right when starting
+          initialDelaySeconds: 30  # can have a lot of concurrents right when starting
           timeoutSeconds: 5        # should very quickly return
           failureThreshold: 5      # quick bursts of high concurrents are normal, so we don't kill until many fails
         resources:
