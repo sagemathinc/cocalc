@@ -55,8 +55,18 @@
     - vpython
     - tdigest
     - numpy-stl
+    - npTDMS
+    - nipype
 
-  - tags: [ pip2, update, install ]
+  - name: "install git trac from github"
+    tags: [ pip2, update, install ]
+    pip: executable=pip2
+         umask=022
+         name="git+https://github.com/sagemath/git-trac-command.git"
+         editable=false
+
+  - name: "install JSAnimation from github"
+    tags: [ pip2, update, install ]
     pip: executable=pip2
          umask=022
          name='git+https://github.com/jakevdp/JSAnimation.git'
@@ -105,6 +115,8 @@
     - vpython
     - tdigest
     - numpy-stl
+    - npTDMS
+    - nipype
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -235,31 +247,6 @@
   #  file: src=/projects/sage/gap3/bin/gap.sh
   #        dest=/usr/local/bin/gap3
   #        state=link
-
-  - name: "install opencv"
-    tags: ["opencv"]
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        rm -rf opencv
-        mkdir opencv
-        cd opencv
-        git clone --depth=1 https://github.com/Itseez/opencv_contrib.git
-        rm -rf opencv_contrib/modules/hdf
-        git clone --depth=1 https://github.com/Itseez/opencv.git
-        cd opencv
-        mkdir build
-        cd build
-        time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/ext/opencv -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules ..
-        time make -j1
-        sudo make install
-        cd /tmp
-        rm -rf opencv
-  - name: 'opencv ld.so library setup'
-    tags: ["opencv", "install"]
-    shell: |
-        sudo sh -c 'echo /ext/opencv/lib > /etc/ld.so.conf.d/opencv.conf'
-        sudo ldconfig
 
   # Plink (whole genome analysis, not the router!)
   - name: 'install plink'

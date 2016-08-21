@@ -39,6 +39,8 @@ Avatar = rclass
         account : React.PropTypes.object
         style   : React.PropTypes.object
         square  : React.PropTypes.bool
+        line    : React.PropTypes.number
+        goto_line : React.PropTypes.func
 
     getDefaultProps: ->
         style   : {}
@@ -87,8 +89,12 @@ Avatar = rclass
             marginBottom    : "4px"
         return merge(style, @props.style)
 
+    render_line: ->
+        if @props.line
+            <span> (Line {@props.line})</span>
+
     tooltip: ->
-        <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}</Tooltip>
+        <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
 
     render_image: ->
         if @has_image()
@@ -102,7 +108,7 @@ Avatar = rclass
         #extra div for necessary for overlay not to destroy background color
         <OverlayTrigger placement='top' overlay={@tooltip()}>
             <div style={display:'inline-block'}>
-                <div style={@_outerStyle()}>
+                <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
                     {@render_image()}
                 </div>
             </div>
@@ -121,6 +127,9 @@ UsersViewingDocument = rclass
 
     propTypes:
         file_use_id : rtypes.string
+        editor_instance : rtypes.object
+        get_users_cursors : rtypes.func
+        goto_line : rtypes.func
 
     mixins: [SetIntervalMixin]
 
@@ -138,6 +147,7 @@ UsersViewingDocument = rclass
         return [latest_key, newest/1000]
 
     render_avatars: ->
+
         if not (@props.file_use? and @props.user_map?)
             return
 
@@ -150,10 +160,13 @@ UsersViewingDocument = rclass
         all_users = []
 
         for user_id, events of log
-
             if @props.account_id is user_id
                 continue
-
+            z = @props.get_users_cursors?(user_id)?[0]?['y']
+            if z?
+                line = z  + 1
+            else
+                line = 1
             account = @props.user_map.get(user_id)?.toJS() ? {}
             [event, seconds] = @_find_most_recent(events)
             time_since =  salvus_client.server_time()/1000 - seconds
@@ -162,7 +175,7 @@ UsersViewingDocument = rclass
             style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
             # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
             if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                all_users.push <Avatar key={user_id} account={account} style={style} __time_since={time_since} />
+                all_users.push <Avatar key={user_id} account={account} line={line} style={style} __time_since={time_since} goto_line={@props.goto_line} />
 
         if all_users.length <= num_users_to_display
             num_users_to_display = all_users.length
@@ -205,11 +218,11 @@ UsersViewingDocument = rclass
 exports.Avatar = Avatar
 exports.UsersViewingDocument = UsersViewingDocument
 
-exports.render_new = render = (project_id, filename, dom_node, redux) ->
+exports.render_new = render = (project_id, filename, dom_node, redux, get_users_cursors, goto_line) ->
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, filename)
     ReactDOM.render (
         <Redux redux={redux}>
-            <UsersViewingDocument file_use_id={file_use_id} />
+            <UsersViewingDocument file_use_id={file_use_id} get_users_cursors={get_users_cursors} goto_line={goto_line} />
         </Redux>
     ), dom_node
 

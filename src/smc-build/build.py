@@ -288,6 +288,8 @@ SAGE_PIP_PACKAGES = [
     'tdigest',
     'numpy-stl',
     'blaze',
+    'npTDMS',
+    'nipype',  # https://github.com/nipy/nipype/
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -324,6 +326,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'flask-cors', # blaze
     'bintrees', # tdigest
     'pyudorandom', # tdigest
+    'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
 ]
 
 

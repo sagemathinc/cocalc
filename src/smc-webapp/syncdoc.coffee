@@ -736,6 +736,14 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @_syncstring.on 'cursor_activity', (account_id) =>
             @_render_other_cursor(account_id)
 
+    get_users_cursors: (account_id) =>
+        x = @_syncstring.get_cursors()?.get(account_id)
+        #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
+        # important: must use server time to compare, not local time.
+        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+            locs = x.get('locs')?.toJS()
+            return locs
+            
     _render_other_cursor: (account_id) =>
         if account_id == salvus_client.account_id
             # nothing to do -- we don't draw our own cursor via this

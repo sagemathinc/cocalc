@@ -312,13 +312,17 @@ Start daemon on boot:
 
     @reboot /home/salvus/smc/src/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
 
-If on a single-node deploy,
+If on a single-node deploy (optional -- you could also just type a password below):
 
     ssh-keygen -b 2048; cd ~/.ssh; cat id_rsa.pub  >> authorized_keys
 
-Then replace XXX by the hostname below (not localhost!):
+Then:
 
-    coffee> require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'XXX', cb:(e)->console.log("done",e)))
+    $ cd ~/smc/src/
+    # export SMC_DB_HOSTS='localhost'
+    $ coffee
+    coffee> require 'c'; compute_server()
+    coffee> s.add_server(host:os.hostname(), cb:done())
 
 
 For backups on a multi-node setup, put smc_compute.py in /root and add this to *root* crontab via `crontab -e`:
