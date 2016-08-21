@@ -578,6 +578,7 @@ class SalvusThreeJS
                     material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
                 material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
                 material.opacity = m.opacity
+                material.side = THREE.DoubleSide
 
             mesh = new THREE.Mesh(geometry, material)
             mesh.position.set(0,0,0)
