@@ -429,13 +429,11 @@ class SalvusThreeJS
         @show_canvas()
 
         if myobj.type == 'index_face_set'
-            if not myobj.has_local_colors?
-                has_local_colors = false
-            elif myobj.has_local_colors == 0
+            if myobj.has_local_colors == 0
                 has_local_colors = false
             else
                 has_local_colors = true
-                # then we will assume that every face is a triangle
+                # then we will assume that every face is a triangle or a square
         else
             has_local_colors = false
 
@@ -482,6 +480,10 @@ class SalvusThreeJS
                 push_face3(a,b,c)
                 push_face3(a,c,d)
 
+            push_face4_with_color = (a, b, c, d, col) =>
+                push_face3_with_color(a,b,c,col)
+                push_face3_with_color(a,c,d,col)
+
             # *polygonal* faces defined by 5 vertices
             push_face5 = (a, b, c, d, e) =>
                 push_face3(a, b, c)
@@ -498,7 +500,14 @@ class SalvusThreeJS
             # include all faces
             if has_local_colors
                 for v in faces
-                    push_face3_with_color(v...)
+                    switch v.length
+                        when 4
+                            push_face3_with_color(v...)
+                        when 5
+                            push_face4_with_color(v...)
+                        else
+                            console.log("WARNING: rendering colored face with #{v.length} vertices not implemented")
+                            push_face4_with_color(v...)
             else
                 for v in faces
                     switch v.length
