@@ -372,6 +372,7 @@ class ProjectPage
             counter       : @container.find(".project-editor-file-count")
             initial_files : initial_files
         @container.find(".project-editor").append(@editor.element)
+        console.log("This is the @editor.element in project.coffee:", @editor.element)
 
     display_tab: (name) =>
         if @_last_display_tab_name == name

@@ -64,8 +64,8 @@ FreeProjectWarning = rclass
 
     render : ->
         quotas = @props.get_total_project_quotas(@props.project_id)
-        host = not quotas.member_host
-        internet = not quotas.network
+        host = not quotas?.member_host
+        internet = not quotas?.network
         if not host and not internet
             return null
         styles =
@@ -116,7 +116,6 @@ ProjectPageTemp = rclass ({name}) ->
         return tabs
 
     file_tab: (path) ->
-        console.log("bar", path)
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.path_split(path).tail

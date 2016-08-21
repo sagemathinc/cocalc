@@ -532,6 +532,7 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
 
 templates = $("#salvus-editor-templates")
 
+# Container for file editors. Controls the editor tabs in a project
 class exports.Editor
     constructor: (opts) ->
         opts = defaults opts,
@@ -1290,7 +1291,7 @@ class exports.Editor
 
 
 ###############################################
-# Abstract base class for editors
+# Abstract base class for editors (not exports.Editor)
 ###############################################
 # Derived classes must:
 #    (1) implement the _get and _set methods
@@ -1419,8 +1420,10 @@ class FileEditor extends EventEmitter
             else
                 opts = {}
         @_last_show_opts = opts
-        if not @is_active?()
-            return
+
+        # OPTIMIZATION: fix this performance update for active shows
+        #if not @is_active?()
+        #    return
 
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
         # the last call before doing the show.
@@ -2238,7 +2241,6 @@ class CodeMirrorEditor extends FileEditor
 
 
     _show: (opts={}) =>
-
         # show the element that contains this editor
         @element.show()
 
