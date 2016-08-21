@@ -66,28 +66,28 @@ editing   : immutable.Map
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE} = require('../feature')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar, UsersViewingDocument} = require('./profile')
+{Avatar, UsersViewingDocument} = require('../profile')
 misc = require('smc-util/misc')
-misc_page = require('./misc_page')
+misc_page = require('../misc_page')
 {defaults, required} = misc
-{Markdown, TimeAgo, Tip} = require('./r_misc')
-{salvus_client} = require('./salvus_client')
-{synchronized_db} = require('./syncdb')
+{Markdown, TimeAgo, Tip} = require('../r_misc')
+{salvus_client} = require('../salvus_client')
+{synchronized_db} = require('../syncdb')
 
-{alert_message} = require('./alerts')
+{alert_message} = require('../alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
-{Icon, Loading, TimeAgo} = require('./r_misc')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('../smc-react')
+{Icon, Loading, TimeAgo} = require('../r_misc')
 {Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
-{User} = require('./users')
+{User} = require('../users')
 
-redux_name = (project_id, path) ->
+exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
@@ -215,9 +215,15 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                         continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
-                    else if x.payload? # for old chats with payload: content
+                    else if x.payload? # for old chats with payload: content (2014-2016)
                         initial = immutable.fromJS
                             content   : x.payload.content
+                            author_id : x.sender_id
+                            date      : x.date
+                        x.history = immutable.Stack([initial])
+                    else if x.mesg? # for old chats with mesg: content (up to 2014)
+                        initial = immutable.fromJS
+                            content   : x.mesg.content
                             author_id : x.sender_id
                             date      : x.date
                         x.history = immutable.Stack([initial])
@@ -227,7 +233,6 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
 
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
-
 
 Message = rclass
     displayName: "Message"
@@ -254,6 +259,7 @@ Message = rclass
         focus_end      : rtypes.func
         saved_mesg     : rtypes.string
         close_input    : rtypes.func
+        is_side_chat   : rtypes.bool
 
     getInitialState: ->
         edited_message  : @newest_content()
@@ -306,22 +312,44 @@ Message = rclass
     show_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
-                <Tip title='Message History' tip='Show history of editing of this message.'>
-                    <Icon name='history'/>
-                </Tip>
-            </div>
+            if @props.is_side_chat
+                <div className="pull-right small" style={color:'#888', marginRight:'10px', cursor:'pointer'} onClick={@enable_history_side_chat}>
+                    <Tip title='Message History' tip='Show history of editing of this message.'>
+                        <Icon name='history'/>
+                    </Tip>
+                </div>
+            else
+                <div className="pull-left small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
+                    <Tip title='Message History' tip='Show history of editing of this message.'>
+                        <Icon name='history'/>
+                    </Tip>
+                </div>
 
     hide_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small"
-                 style={color:'#888', marginLeft:'10px', cursor:'pointer'}
-                 onClick={@disable_history} >
-                <Tip title='Message History' tip='Hide history of editing of this message.'>
-                    <Icon name='history'/> Hide History
-                </Tip>
-            </div>
+            if @props.is_side_chat
+                <div className="pull-right small"
+                     style={color:'#888', marginRight:'10px', cursor:'pointer'}
+                     onClick={@disable_history_side_chat} >
+                    <Tip title='Message History' tip='Hide history of editing of this message.'>
+                        <Icon name='history'/> Hide History
+                    </Tip>
+                </div>
+            else
+                <div className="pull-left small"
+                     style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                     onClick={@disable_history} >
+                    <Tip title='Message History' tip='Hide history of editing of this message.'>
+                        <Icon name='history'/> Hide History
+                    </Tip>
+                </div>
+
+    disable_history_side_chat: ->
+        @setState(show_history:false)
+
+    enable_history_side_chat: ->
+        @setState(show_history:true)
 
     disable_history: ->
         @setState(show_history:false)
@@ -372,15 +400,27 @@ Message = rclass
         if not @is_editing() and other_editors.size == 0 and @newest_content().trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <div className="pull-left small" style={color:color}>
-                {edit}
-                <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
-                {name}
-            </div>
+            if @props.is_side_chat
+                <div className="small" style={color:color}>
+                    {edit}
+                    <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                    {name}
+                </div>
+            else
+                <div className="pull-left small" style={color:color}>
+                    {edit}
+                    <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
+                    {name}
+                </div>
         else
-            <div className="pull-left small" style={color:color}>
-                {text}
-            </div>
+            if @props.is_side_chat
+                <div className="small" style={color:color}>
+                    {text}
+                </div>
+            else
+                <div className="pull-left small" style={color:color}>
+                    {text}
+                </div>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
@@ -462,25 +502,51 @@ Message = rclass
         else if not @props.is_next_sender
             borderRadius = '5px 5px 10px 10px'
 
-        <Col key={1} xs={10} sm={9}>
-            {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
-            <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", marginTop: marginTop, borderRadius: borderRadius}>
-                <ListGroup fill>
-                    <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
-                        {@render_markdown(value) if not @is_editing()}
-                        {@render_input() if @is_editing()}
-                        {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                        {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
-                        {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
-                        {@get_timeago()}
-                    </ListGroupItem>
-                    <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
-                </ListGroup>
-            </Panel>
-            {@render_history_title(color, font_size) if @state.show_history}
-            {@render_history(color, font_size) if @state.show_history}
-            {@render_history_footer(color, font_size) if @state.show_history}
-        </Col>
+        if @props.is_side_chat
+            mesg_style =
+                paddingRight: "3px"
+                paddingLeft: "3px"
+                width: "100%"
+
+            <Col key={1} xs={11} style={mesg_style}>
+                {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
+                <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", borderRadius: borderRadius}>
+                    <ListGroup fill>
+                        <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
+                            {@render_markdown(value) if not @is_editing()}
+                            {@render_input() if @is_editing()}
+                            {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                            {@get_timeago()}
+                            {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
+                            {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
+                        </ListGroupItem>
+                        <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
+                    </ListGroup>
+                </Panel>
+                {@render_history_title(color, font_size) if @state.show_history}
+                {@render_history(color, font_size) if @state.show_history}
+                {@render_history_footer(color, font_size) if @state.show_history}
+            </Col>
+        else
+            <Col key={1} xs={10} sm={9}>
+                {@show_user_name() if not @props.is_prev_sender and not @sender_is_viewer()}
+                <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", marginTop: marginTop, borderRadius: borderRadius}>
+                    <ListGroup fill>
+                        <ListGroupItem onDoubleClick={@edit_message} style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
+                            {@render_markdown(value) if not @is_editing()}
+                            {@render_input() if @is_editing()}
+                            {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                            {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
+                            {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
+                            {@get_timeago()}
+                        </ListGroupItem>
+                        <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
+                    </ListGroup>
+                </Panel>
+                {@render_history_title(color, font_size) if @state.show_history}
+                {@render_history(color, font_size) if @state.show_history}
+                {@render_history_footer(color, font_size) if @state.show_history}
+            </Col>
 
     blank_column:  ->
         <Col key={2} xs={2} sm={2}></Col>
@@ -549,13 +615,22 @@ Message = rclass
                 {cols}
             </Row>
         else
-            cols = [@content_column(), @blank_column()]
-            # mirror right-left for sender's view
-            if @sender_is_viewer()
-                cols = cols.reverse()
-            <Row>
-                {cols}
-            </Row>
+            if @props.is_side_chat
+                cols = [@content_column()]
+                # mirror right-left for sender's view
+                if @sender_is_viewer()
+                    cols = cols.reverse()
+                <Row>
+                    {cols}
+                </Row>
+            else
+                cols = [@content_column(), @blank_column()]
+                # mirror right-left for sender's view
+                if @sender_is_viewer()
+                    cols = cols.reverse()
+                <Row>
+                    {cols}
+                </Row>
 
 ChatLog = rclass
     displayName: "ChatLog"
@@ -572,6 +647,7 @@ ChatLog = rclass
         focus_end    : rtypes.func
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
+        is_side_chat : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or
@@ -649,6 +725,7 @@ ChatLog = rclass
                      saved_mesg       = {@props.saved_mesg}
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
+                     is_side_chat     = {@props.is_side_chat}
                     />
 
         return v
@@ -658,7 +735,7 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = (name) -> rclass
+exports.ChatRoom = ChatRoom = (name) -> rclass
     displayName: "ChatRoom"
 
     reduxProps :
@@ -685,6 +762,7 @@ ChatRoom = (name) -> rclass
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
+        is_side_chat: rtypes.bool
 
     getInitialState: ->
         input          : ''
@@ -725,6 +803,7 @@ ChatRoom = (name) -> rclass
 
     button_off_click: ->
         @props.actions.set_is_preview(false)
+        console.log(ReactDOM.findDOMNode(@refs.input))
         ReactDOM.findDOMNode(@refs.input.refs.input).focus()
 
     button_on_click: ->
@@ -737,13 +816,6 @@ ChatRoom = (name) -> rclass
         margin       : "0"
         padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
-
-    mobile_chat_log_style:
-        overflowY    : "auto"
-        overflowX    : "hidden"
-        height       : "60vh"
-        margin       : "0"
-        padding      : "0"
 
     mobile_chat_input_style:
         margin       : "0"
@@ -916,7 +988,59 @@ ChatRoom = (name) -> rclass
             paddingRight : "10px"
             paddingBottom: paddingBottom
 
-        if not IS_MOBILE
+
+        mobile_chat_log_style =
+            overflowY    : "auto"
+            overflowX    : "hidden"
+            width        : "380%"
+            maxHeight    : "60vh"
+            height       : "100%"
+            margin       : "0px 0px 0px 13px"
+            padding      : "0"
+
+        if not IS_MOBILE and @props.is_side_chat
+            <div>
+                <Row>
+                    <Col md={3} style={padding:'0px 2px 0px 2px'}>
+                        <Panel style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                            <ChatLog
+                                messages     = {@props.messages}
+                                account_id   = {@props.account_id}
+                                user_map     = {@props.user_map}
+                                project_id   = {@props.project_id}
+                                font_size    = {@props.font_size}
+                                file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                                actions      = {@props.actions}
+                                focus_end    = {@focus_endpoint}
+                                is_side_chat = {@props.is_side_chat}
+                                show_heads   = {false} />
+                        </Panel>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "13px", width:"60%"}>
+                        <Input
+                            autoFocus   = {true}
+                            rows        = 2
+                            type        = 'textarea'
+                            ref         = 'input'
+                            onKeyDown   = {@keydown}
+                            value       = {@props.input}
+                            placeholder = {'Type a message...'}
+                            onClick     = {@mark_as_read}
+                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                            onFocus     = {@focus_endpoint}
+                            style       = {@mobile_chat_input_style}
+                            />
+                    </Col>
+                    <Col xs={1} style={height:'57px', padding:'0px 2px 0px 2px', width:"31%"}>
+                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
+                            <Icon name='chevron-circle-right'/>
+                        </Button>
+                    </Col>
+                </Row>
+            </div>
+        else if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
                     <Col xs={2} mdHidden>
@@ -953,6 +1077,7 @@ ChatRoom = (name) -> rclass
                                 saved_mesg   = {@props.saved_mesg}
                                 focus_end    = {@focus_endpoint}
                                 set_scroll   = {@set_chat_log_state}
+                                is_side_chat = {@props.is_side_chat}
                                 show_heads   = true />
                             {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
                         </Panel>
@@ -981,7 +1106,6 @@ ChatRoom = (name) -> rclass
                     {@render_bottom_tip()}
                 </Row>
             </Grid>
-
         else
         ##########################################
         # MOBILE HACK
@@ -1008,7 +1132,7 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={@mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Panel style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -1047,17 +1171,17 @@ ChatRoom = (name) -> rclass
 
 # boilerplate fitting this into SMC below
 
-render = (redux, project_id, path) ->
+render = (redux, project_id, path, side_chat) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} is_side_chat={side_chat} />
     </Redux>
 
-exports.render = (project_id, path, dom_node, redux) ->
+exports.render = (project_id, path, dom_node, redux, side_chat) ->
     init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+    ReactDOM.render(render(redux, project_id, path, side_chat), dom_node)
 
 exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)

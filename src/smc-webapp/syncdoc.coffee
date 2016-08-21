@@ -44,6 +44,10 @@ account = require('./account')
 
 {EventEmitter} = require('events')
 
+main_chat = require('./chat/main')
+
+{IS_MOBILE} = require('./feature')
+
 class AbstractSynchronizedDoc extends EventEmitter
     file_path: () =>
         if not @_file_path?
@@ -90,9 +94,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                         payload    : {content : content}
                 return false
 
-        @chat_session.on('sync', (=>@render_chat_log()))
+        #@chat_session.on('sync', (=>@render_chat_log()))
 
-        @render_chat_log()  # first time
+        #@render_chat_log()  # first time
         @init_chat_toggle()
         @init_video_toggle()
         @new_chat_indicator(false)
@@ -137,14 +141,17 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.local_storage("chat_is_hidden", false)
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
+        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
         @new_chat_indicator(false)
         @editor.show()  # updates editor width
         @editor.emit 'show-chat'
-        @render_chat_log()
+        # @render_chat_log()
+
+        main_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, true, true)
+        #side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, true)
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -152,7 +159,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.local_storage("chat_is_hidden", true)
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
+        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
         @editor.emit 'hide-chat'
@@ -200,18 +207,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             return
 
         # The chat message area
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
+        # chat_output = @element.find(".salvus-editor-codemirror-chat-output")
 
         messages = messages.split('\n')
 
         @_max_chat_length ?= 100
 
         if messages.length > @_max_chat_length
-            chat_output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
-            chat_output.find("a:first").click (e) =>
+            # chat_output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
+            # chat_output.find("a:first").click (e) =>
                 @_max_chat_length += 100
                 @render_chat_log()
-                chat_output.scrollTop(0)
+                # chat_output.scrollTop(0)
             messages = messages.slice(messages.length - @_max_chat_length)
 
         # Preprocess all inputs to add a 'sender_name' field to all messages
@@ -239,7 +246,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     console.warn("Error getting user names -- ", err)
                 else
                     # Clear the chat output
-                    chat_output.empty()
+                    # chat_output.empty()
 
                     # Use handler to render each message
                     last_mesg = undefined
@@ -266,7 +273,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                         last_mesg = mesg
 
-                    chat_output.scrollTop(chat_output[0].scrollHeight)
+                    # chat_output.scrollTop(chat_output[0].scrollHeight)
 
                     if @editor._video_is_on? and @editor._video_is_on
                         @start_video(video_chat_room_id)
@@ -305,8 +312,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             .html(markdown.markdown_to_html(mesg.mesg.content).s)
             .mathjax()
 
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
+        # chat_output = @element.find(".salvus-editor-codemirror-chat-output")
+        # chat_output.append(entry)
 
     handle_chat_text_message: (mesg, last_mesg) =>
         entry = templates.find(".salvus-chat-entry").clone()
@@ -338,8 +345,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             .html(markdown.markdown_to_html(mesg.payload.content).s)
             .mathjax()
 
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
+        # chat_output = @element.find(".salvus-editor-codemirror-chat-output")
+        # chat_output.append(entry)
 
     handle_chat_start_video: (mesg) =>
         #console.log("Start video message detected: " + mesg.payload.room_id)
@@ -372,8 +379,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         header.find(".salvus-chat-header-activity")
           .html(" started a video chat")
 
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
+        # chat_output = @element.find(".salvus-editor-codemirror-chat-output")
+        # chat_output.append(entry)
 
         @editor._video_is_on = true
         @editor.local_storage("video_is_on", true)
@@ -411,8 +418,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         header.find(".salvus-chat-header-activity")
           .html(" ended a video chat")
 
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
+        # chat_output = @element.find(".salvus-editor-codemirror-chat-output")
+        # chat_output.append(entry)
 
         @editor._video_is_on = false
         @editor.local_storage("video_is_on", false)
@@ -446,7 +453,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         video_button = @element.find(".salvus-editor-chat-title-video")
         video_button.click () =>
             if not @editor._video_is_on
-                @start_video_chat()
+                #@start_video_chat()
+                console.log(@editor.video_elt[0])
+                #video_chat.render(@editor.chat_elt[0], true)
             else
                 @stop_video_chat()
 

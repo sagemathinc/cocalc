@@ -37,7 +37,6 @@ message = require('smc-util/message')
 {redux} = require('./smc-react')
 
 profile = require('./profile')
-
 _ = require('underscore')
 
 {salvus_client} = require('./salvus_client')
@@ -1551,6 +1550,8 @@ class CodeMirrorEditor extends FileEditor
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
 
+        @chat_filename = "." + @filename + ".sage-chat"
+
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
@@ -2261,7 +2262,7 @@ class CodeMirrorEditor extends FileEditor
             top           = opts.top
 
         height            = $(window).height()
-        elem_height       = height - top - 5
+        elem_height       = height - top
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
@@ -2285,7 +2286,8 @@ class CodeMirrorEditor extends FileEditor
         # position the editor element on the screen
         @element.css(top:top, left:0)
         # and position the chat column
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height + 2)
+        #@element.find(".salvus-editor-codemirror-chat-column").css(left:"1013px")
 
         # set overall height of the element
         @element.height(elem_height)
@@ -2293,30 +2295,32 @@ class CodeMirrorEditor extends FileEditor
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
 
+        @chat_elt = @element.find(".salvus-editor-codemirror-chat")
+
         if chat
-            chat_elt = @element.find(".salvus-editor-codemirror-chat")
-            chat_elt.height(cm_height)
+            @video_elt = @element.find(".salvus-editor-codemirror-chat-video")
+            @chat_elt.height(cm_height)
 
-            chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
-            chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
-            chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
+#             chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
+#             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
+#             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
 
-            chat_input_top = $(window).height() - chat_input.height() - 15
+#             chat_input_top = $(window).height() - chat_input.height() - 15
 
-            if chat_video
-                video_height = chat_video_loc.height()
-            else
-                video_height = 0
+#             if chat_video
+#                 video_height = chat_video_loc.height()
+#             else
+#                 video_height = 0
 
-            video_top = chat_video_loc.offset().top
+#             video_top = chat_video_loc.offset().top
 
-            chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
-            chat_output_top = video_top + video_height
+#             chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
+#             chat_output_top = video_top + video_height
 
-            chat_input.offset({top:chat_input_top})
+#             chat_input.offset({top:chat_input_top})
 
-            chat_output.height(chat_output_height)
-            chat_output.offset({top:chat_output_top})
+#             chat_output.height(chat_output_height)
+#             chat_output.offset({top:chat_output_top})
 
     focus: () =>
         if not @codemirror?
@@ -3752,7 +3756,7 @@ class Course extends FileEditorWrapper
 ###
 class Chat extends FileEditorWrapper
     init_wrapped: () =>
-        editor_chat = require('./editor_chat')
+        editor_chat = require('./chat/editor_chat')
         @element = $("<div>")
         if not IS_MOBILE
             @element.css
@@ -4558,7 +4562,7 @@ class TemplateEditor extends FileEditorWrapper
                 the_editor.show(args...)
         the_editor.render(args...)
 
-        
+
 class TemplateEditor extends FileEditorWrapper
     init_wrapped: () =>
         the_editor = require('./editor_template')
