@@ -506,8 +506,8 @@ class SalvusThreeJS
                         when 5
                             push_face4_with_color(v...)
                         else
-                            console.log("WARNING: rendering colored face with #{v.length} vertices not implemented")
-                            push_face4_with_color(v...)
+                            console.log("WARNING: rendering colored face with #{v.length - 1} vertices not implemented")
+                            push_face4_with_color(v[0], v[1], v[2], v[3], v[-1])   # might as well render most of the face...
             else
                 for v in faces
                     switch v.length
