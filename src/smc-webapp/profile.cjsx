@@ -29,6 +29,7 @@
 {merge} = require('smc-util/misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
+{salvus_client} = require('./salvus_client')
 
 Avatar = rclass
     displayName: "Avatar"
@@ -155,7 +156,7 @@ UsersViewingDocument = rclass
 
             account = @props.user_map.get(user_id)?.toJS() ? {}
             [event, seconds] = @_find_most_recent(events)
-            time_since = Date.now()/1000 - seconds
+            time_since =  salvus_client.server_time()/1000 - seconds
             # TODO do something with the type like show a small typing picture
             # or whatever corresponds to the action like "open" or "edit"
             style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
