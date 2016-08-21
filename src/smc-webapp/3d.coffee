@@ -428,11 +428,18 @@ class SalvusThreeJS
     add_obj: (myobj)=>
         @show_canvas()
 
-        if myobj.type == "index_face_set"
-            has_local_colors = myobj.has_local_colors
+        if myobj.type == 'index_face_set'
+            if not myobj.has_local_colors?
+                has_local_colors = false
+            elif myobj.has_local_colors == 0
+                has_local_colors = false
+            else
+                has_local_colors = true
+                # then we will assume that every face is a triangle
         else
             has_local_colors = false
 
+            
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
             #console.log("object=", misc.to_json(myobj))
@@ -464,29 +471,24 @@ class SalvusThreeJS
                 geometry.faces.push(new THREE.Face3(a-1, b-1, c-1))
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
-           push_face3_with_color = (a, b, c, col) =>
+            push_face3_with_color = (a, b, c, col) =>
                 face = new THREE.Face3(a-1, b-1, c-1)
                 face.color.setStyle(col)
                 geometry.faces.push(face)
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
-            if has_local_colors
-                push_face3_switch = push_face3_with_color
-            else
-                push_face3_switch = push_face3
-
-            # *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
+            # *polygonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
             push_face4 = (a, b, c, d) =>
                 push_face3(a,b,c)
                 push_face3(a,c,d)
 
-            # *polyogonal* faces defined by 5 vertices
+            # *polygonal* faces defined by 5 vertices
             push_face5 = (a, b, c, d, e) =>
                 push_face3(a, b, c)
                 push_face3(a, c, d)
                 push_face3(a, d, e)
 
-            # *polyogonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
+            # *polygonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
             push_face6 = (a, b, c, d, e, f) =>
                 push_face3(a, b, c)
                 push_face3(a, c, d)
@@ -494,19 +496,23 @@ class SalvusThreeJS
                 push_face3(a, e, f)
 
             # include all faces
-            for v in faces
-                switch v.length
-                    when 3
-                        push_face3_switch(v...)
-                    when 4
-                        push_face4(v...)
-                    when 5
-                        push_face5(v...)
-                    when 6
-                        push_face6(v...)
-                    else
-                        console.log("WARNING: rendering face with #{v.length} vertices not implemented")
-                        push_face6(v...)   # might as well render most of the face...
+            if has_local_colors
+                for v in faces
+                    push_face3_with_color(v...)
+            else
+                for v in faces
+                    switch v.length
+                        when 3
+                            push_face3(v...)
+                        when 4
+                            push_face4(v...)
+                        when 5
+                            push_face5(v...)
+                        when 6
+                            push_face6(v...)
+                        else
+                            console.log("WARNING: rendering face with #{v.length} vertices not implemented")
+                            push_face6(v...)   # might as well render most of the face...
 
             geometry.mergeVertices()
             #geometry.computeCentroids()
