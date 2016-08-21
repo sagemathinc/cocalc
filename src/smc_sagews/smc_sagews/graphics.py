@@ -169,9 +169,8 @@ def jsonable(x):
         return json_float(x)
     return x
 
+
 def graphics3d_to_jsonable(p):
-    print("new code!")
-    
     obj_list = []
 
     def parse_obj(obj):
