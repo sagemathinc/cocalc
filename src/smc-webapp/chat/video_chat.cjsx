@@ -66,8 +66,9 @@ require.ensure [], =>
 
         # handles the receipt of a new broadcast.
         handlePeerBroadcast: ->
+            @leaveSMCRoom()
+            @joinSMCRoom()
             console.log("Received a new inbound broadcast.")
-            @getAllStreams()
 
         # Notify when users begin broadcast.
         _handleMessage: (msg) ->
@@ -84,22 +85,24 @@ require.ensure [], =>
 
         # gets all remote media streams
         getPeerStreams: () ->
-            # [x.stream for x in @webrtc.peers]
-            window.peerstreams = @webrtc.peers
-            streams = (x for x in @webrtc.peers)
-            console.log("webrtc peer streams: ", streams)
+            peer_streams = []
+            for x in @webrtc.peers
+                if x.stream and x.stream not in peer_streams
+                    peer_streams.push(x.stream)
+            #streams = (x.stream for x in @webrtc.peers)
+            console.log("webrtc peer streams: ", peer_streams)
 
-            return streams
+            return peer_streams
 
         getLocalStream: ->
             @webrtc.localStreams[0]
 
         getAllStreams: ->
-            streams = []
-            streams = @getPeerStreams()
+            streams = {}
             local_stream = @getLocalStream()
             if local_stream?
                 streams.push(local_stream)
+            streams.push(@getPeerStreams())
             return streams
 
     window.SMCWebRTC = SMCWebRTC
@@ -171,7 +174,6 @@ exports.VideoChatRoom = VideoChatRoom = rclass
     #grabs local stream
     start_broadcast: ->
         webrtc.startBroadcast(@on_received_stream)
-        webrtc.joinSMCRoom()
         @forceUpdate()
 
     add_local_stream: ->
