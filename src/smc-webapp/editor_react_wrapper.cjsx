@@ -51,18 +51,15 @@ exports.register_nonreact_editor = (opts) ->
             if editors[key]?
                 e = editors[key]
             else
-                editor = redux.getProjectStore(project_id).get('editor')
-
                 # Overwrite Editor functions called from the various fileEditors
-                # HARDCODED MAGIC NUMBER
-                editor.editor_top_position = () -> 87 # TODO: change when fullscreen exists again
-                extra_opts = copy(editor.file_options(path)?.opts ? {})
-                e = opts.f(editor, path, extra_opts)
+                extra_opts = copy(require('./editor').file_options(path)?.opts ? {})
+                e = opts.f(project_id, path, extra_opts)
                 editors[key] = e
 
             wrapper_generator = () -> <WrappedEditor editor={e} />
 
             wrapper_generator.redux_name = key
+            wrapper_generator.get_editor = -> e
 
             return wrapper_generator
 

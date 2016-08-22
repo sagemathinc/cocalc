@@ -720,16 +720,15 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
-        @editor = @parent.editor
+        @project_id = @parent.project_id
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
-        @project_id = @editor.project_id
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
+        @server_url = "#{window.smc_base_url}/#{@project_id}/port/jupyter/notebooks/"
 
         # special case/hack for developing SMC-in-SMC
         if window.smc_base_url.indexOf('/port/') != -1
@@ -737,7 +736,7 @@ class JupyterNotebook extends EventEmitter
             # (things just get too complicated)...
             console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
             i = window.smc_base_url.lastIndexOf('/')
-            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@editor.project_id}/"
+            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
 
         s = misc.path_split(@filename)
         @path = s.head
@@ -883,7 +882,7 @@ class JupyterNotebook extends EventEmitter
         @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
 
         @element.find("a[href=\"#close\"]").click () =>
-            redux.getProjectActions(@editor.project_id).set_active_tab('files')
+            redux.getProjectActions(@project_id).set_active_tab('files')
             return false
 
         @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
@@ -1037,7 +1036,7 @@ class JupyterNotebook extends EventEmitter
             @_last_show_geometry = geometry
         {top, left, width, height} = defaults geometry,
             left   : undefined  # not implemented
-            top    : @editor.editor_top_position()
+            top    : redux.getProjectStore(@project_id).editor_top_position()
             width  : $(window).width()
             height : undefined  # not implemented
         @element.css(top:top)
@@ -1066,7 +1065,7 @@ class JupyterNotebook extends EventEmitter
     show_history_viewer: () =>
         path = misc.history_path(@filename)
         #@dbg("show_history_viewer")(path)
-        redux.getProjectActions(@editor.project_id).open_file
+        redux.getProjectActions(@project_id).open_file
             path       : path
             foreground : true
 
@@ -1102,7 +1101,7 @@ class JupyterNotebook extends EventEmitter
             cb     : undefined
         salvus_client.exec
             path        : @path
-            project_id  : @editor.project_id
+            project_id  : @project_id
             command     : 'sage'
             args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
@@ -1150,10 +1149,10 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
                 cb()
             ], (err) =>
             status?("done", 100)
@@ -1249,10 +1248,10 @@ exports.jupyter_nbviewer = (editor, filename, content, opts) ->
     return element
 
 class JupyterNBViewer
-    constructor: (@editor, @filename, @content, opts) ->
+    constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = "#{window.smc_base_url}/#{@editor.project_id}/raw/#{@filename}"
+        @ipynb_html_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@filename}"
         @init_buttons()
 
     show: () =>
@@ -1270,14 +1269,14 @@ class JupyterNBViewer
                 @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
-        @element.css(top:@editor.editor_top_position())
+        @element.css(top: redux.getProjectStore(@project_id).editor_top_position())
         @element.maxheight(offset:18)
         @element.find(".smc-jupyter-nbviewer-content").maxheight(offset:18)
         @iframe.maxheight(offset:18)
 
     init_buttons: () =>
         @element.find('a[href=\"#copy\"]').click () =>
-            actions = redux.getProjectActions(@editor.project_id)
+            actions = redux.getProjectActions(@project_id)
             actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
@@ -1285,7 +1284,7 @@ class JupyterNBViewer
             return false
 
         @element.find('a[href=\"#download\"]').click () =>
-            actions = redux.getProjectActions(@editor.project_id)
+            actions = redux.getProjectActions(@project_id)
             actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)

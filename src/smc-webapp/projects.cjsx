@@ -140,6 +140,7 @@ class ProjectsActions extends Actions
     # Open the given project
     #TODOJ: should not be in projects...
     open_project : (opts) =>
+        console.log("what", opts)
         opts = defaults opts,
             project_id : required
             target     : undefined
@@ -152,7 +153,6 @@ class ProjectsActions extends Actions
         sort_by_time = store.get('sort_by_time') ? true
         show_hidden = store.get('show_hidden') ? false
         actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
-        actions.register_editor_class()
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?

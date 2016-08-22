@@ -1281,14 +1281,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(false, resp.state)
 
     #################################################
-    # Some UI state
-    #################################################
-    in_fullscreen_mode: (state) =>
-        if state?
-            @_fullscreen_mode = state
-        return $(window).width() <= 767 or @_fullscreen_mode
-
-    #################################################
     # Print file to pdf
     # The printed version of the file will be created in the same directory
     # as path, but with extension replaced by ".pdf".

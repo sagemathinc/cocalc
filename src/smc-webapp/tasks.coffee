@@ -81,8 +81,7 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@editor, @filename, @element, @opts) ->
-        @project_id = @editor?.editor.project_id
+    constructor : (@project_id, @filename, @element, @opts) ->
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
@@ -156,7 +155,7 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync happening...
-                    @db.on('sync', => @editor?.activity_indicator())
+                    #@db.on('sync', => @editor?.activity_indicator()) TODOJ
 
                     # Handle any changes, merging in with current state.
                     @db.on('change', @handle_changes)

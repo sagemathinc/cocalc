@@ -28,10 +28,9 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
-
+{alert_message} = require('./alerts')
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
-{Editor} = require('./editor')
 
 {Actions, Store, Table, register_project_store}  = require('./smc-react')
 
@@ -103,12 +102,6 @@ class ProjectActions extends Actions
             current_path += '/'
         @push_state('files/' + current_path)
 
-    register_editor_class : () =>
-        if not @get_store().get('editor')?
-            editor = new Editor
-                project_id : @project_id
-            @setState(editor : editor)
-
     push_state: (url) =>
         {set_url} = require('./history')
         if not url?
@@ -122,7 +115,6 @@ class ProjectActions extends Actions
 
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
-        console.log(key, 12345)
         switch key
             when 'files'
                 @set_url_to_path(@get_store().get('current_path') ? '')
@@ -214,34 +206,102 @@ class ProjectActions extends Actions
                     cb      : (err, group) =>
                         if err
                             @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
+
+                        ext = misc.filename_extension_notilde(opts.path).toLowerCase()
+
+                        if ext == "sws" or ext.slice(0,4) == "sws~"   # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+                            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
+                            @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
+                                if not err
+                                    @open_file
+                                        path : sagews_filename
+                                        forgeound : opts.foreground
+                                        foreground_project : opts.foreground_project
+                                        chat : opts.chat
+                                else
+                                    require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
+                            return
+
+                        if ext == "docx"   # Microsoft Word Document
+                            alert_message(type:"info", message:"Opening converted plain text file instead of '#{opts.path}...")
+                            @convert_docx_file opts.path, (err, new_filename) =>
+                                if not err
+                                    @open_file
+                                        path : new_filename
+                                        forgeound : opts.foreground
+                                        foreground_project : opts.foreground_project
+                                        chat : opts.chat
+                                else
+                                    require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
+                            return
+
                         # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                         @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                        if window.FULLY_REACT
-                            store = @get_store()
-                            if not store?  # if store not initialized we can't set activity
-                                return
-                            open_files = store.get_open_files()
+                        store = @get_store()
+                        if not store?  # if store not initialized we can't set activity
+                            return
+                        open_files = store.get_open_files()
 
-                            if open_files.has(opts.path) # Already opened
-                                return
+                        if open_files.has(opts.path) # Already opened
+                            return
 
-                            open_files_order = store.get_open_files_order()
-                            # Intialize the file's store and actions
-                            project_file.initialize(opts.path, @redux, @project_id)
+                        open_files_order = store.get_open_files_order()
+                        # Intialize the file's store and actions
+                        project_file.initialize(opts.path, @redux, @project_id)
 
-                            # Make the editor
-                            editor = project_file.generate(opts.path, @redux, @project_id)
-
-                            # Add it to open files
-                            if opts.foreground
-                                @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
-                                @set_active_tab(opts.path)
-                            else
-                                @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
-                            if opts.chat
-                                @get_store().get('editor')?.show_chat_window(opts.path)
+                        # Make the editor
+                        editor = project_file.generate(opts.path, @redux, @project_id)
+                        # Add it to open files
+                        @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
+                        if opts.foreground
+                            @set_active_tab(opts.path)
+                        if opts.chat
+                            editor.get_editor()?.show_chat_window?()
         return
 
+    convert_sagenb_worksheet: (filename, cb) =>
+        async.series([
+            (cb) =>
+                ext = misc.filename_extension(filename)
+                if ext == "sws"
+                    cb()
+                else
+                    i = filename.length - ext.length
+                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
+                    salvus_client.exec
+                        project_id : @project_id
+                        command    : "cp"
+                        args       : [filename, new_filename]
+                        cb         : (err, output) =>
+                            if err
+                                cb(err)
+                            else
+                                filename = new_filename
+                                cb()
+            (cb) =>
+                salvus_client.exec
+                    project_id : @project_id
+                    command    : "smc-sws2sagews"
+                    args       : [filename]
+                    cb         : (err, output) =>
+                        cb(err)
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
+        )
+
+    convert_docx_file: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "smc-docx2txt"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-4) + 'txt')
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
@@ -417,9 +477,9 @@ class ProjectActions extends Actions
             cb         : (err, result) =>
                 if opts.alert
                     if err
-                        require('./alerts').alert_message(type:"error", message:err)
+                        alert_message(type:"error", message:err)
                     else if result.event == 'error'
-                        require('./alerts').alert_message(type:"error", message:result.error)
+                        alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
     get_from_web : (opts) =>
@@ -441,9 +501,9 @@ class ProjectActions extends Actions
             cb         : (err, result) =>
                 if opts.alert
                     if err
-                        require('./alerts').alert_message(type:"error", message:err)
+                        alert_message(type:"error", message:err)
                     else if result.event == 'error'
-                        require('./alerts').alert_message(type:"error", message:result.error)
+                        alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
     # function used internally by things that call salvus_client.exec
@@ -899,7 +959,6 @@ class ProjectActions extends Actions
     #  settings
     #  search
     load_target: (target, foreground=true) =>
-        console.log('loading target', target)
         segments = target.split('/')
         switch segments[0]
             when 'files'
@@ -928,11 +987,9 @@ class ProjectActions extends Actions
                 @set_active_tab('search')
 
     show_extra_free_warning : =>
-        console.log('show', 123)
         @setState(free_warning_extra_shown : true)
 
     close_free_warning : =>
-        console.log('closed', 123)
         @setState(free_warning_closed : true)
 
 
@@ -1080,6 +1137,10 @@ class ProjectStore extends Store
                     x.public = map[p]
                     x.is_public = not x.public.disabled
                     pub[x.name] = map[p]
+
+    # Used for resizing editor windows.
+    editor_top_position: () =>
+        87 #TODOJ this is awful
 
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)

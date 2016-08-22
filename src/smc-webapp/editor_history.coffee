@@ -19,7 +19,7 @@ templates = $("#salvus-editor-templates")
 underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -46,7 +46,7 @@ class exports.HistoryEditor extends FileEditor
 
     init_syncstring: =>
         @syncstring = salvus_client.sync_string
-            project_id : @editor.project_id
+            project_id : @project_id
             path       : @_path
         @syncstring.once 'connected', =>
             @render_slider()
@@ -73,7 +73,7 @@ class exports.HistoryEditor extends FileEditor
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
             else
-                @view_doc = codemirror_session_editor(@editor, @filename, opts)
+                @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
         if @ext in ['course', 'sage-chat']
             @element.find(".salvus-editor-history-no-viewer").show()
@@ -130,7 +130,7 @@ class exports.HistoryEditor extends FileEditor
             return false
 
         open_file = () =>
-            smc.redux.getProjectActions(@editor.project_id).open_file
+            smc.redux.getProjectActions(@project_id).open_file
                 path       : @_open_file_path
                 foreground : true
 
@@ -238,7 +238,7 @@ class exports.HistoryEditor extends FileEditor
     show: () =>
         if not @is_active() or not @element? or not @view_doc?
             return
-        top = @editor.editor_top_position()
+        top = redux.getProjectStore(@project_id).editor_top_position()
         @element.css('top', top)
         if top == 0
             @element.css('position':'fixed', 'width':'100%')

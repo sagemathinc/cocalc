@@ -367,15 +367,12 @@ class Console extends EventEmitter
 
             setTimeout(@set_scrollbar_to_term, 10)
 
-            @activity_indicator()
+            #@activity_indicator() TODOJ
         catch e
             # TODO -- these are all basically bugs, I think...
             # That said, try/catching them is better than having
             # the whole terminal just be broken.
             console.log("terminal error -- ",e)
-
-    activity_indicator: () =>
-        @opts.editor?.activity_indicator()
 
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.

@@ -19,7 +19,7 @@ MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -31,7 +31,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_pages = {}
 
         # initialize the latex_editor
-        @latex_editor = editor.codemirror_session_editor(@editor, @filename, opts)
+        @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
@@ -53,13 +53,13 @@ class exports.LatexEditor extends editor.FileEditor
         n = @filename.length
 
         # The pdf preview.
-        @preview = new editor.PDF_Preview(@editor, @filename, undefined, {resolution:200})
+        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        @preview_embed = new editor.PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @preview_embed.element.find(".salvus-editor-pdf-title").hide()
         @preview_embed.element.find("a[href=\"#refresh\"]").hide()
@@ -393,7 +393,7 @@ class exports.LatexEditor extends editor.FileEditor
             @_split_pos = .5
         @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))
 
-        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.css(top:redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()
@@ -592,11 +592,8 @@ class exports.LatexEditor extends editor.FileEditor
             else
                 if @_path # make relative to home directory of project
                     file = @_path + '/' + file
-                @editor.open file, (err, fname) =>
-                    if not err
-                        redux.getProjectActions(@editor.project_id).set_active_tab(fname)
-                        # TODO: need to set position, right?
-                        # also, as in _inverse_search -- maybe this should be opened *inside* the latex editor...
+                @redux.getProjectActions(@project_id).open_file
+                    path : file
             cb?()
 
     _show_error_in_preview: (mesg) =>
@@ -641,7 +638,7 @@ class exports.LatexEditor extends editor.FileEditor
 
 
     download_pdf: () =>
-        redux.getProjectActions(@editor.project_id).download_file
+        redux.getProjectActions(@project_id).download_file
             path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>
@@ -655,10 +652,8 @@ class exports.LatexEditor extends editor.FileEditor
             else
                 if res.input != @filename
                     if active
-                        @editor.open res.input, (err, fname) =>
-                            if not err
-                                redux.getProjectActions(@editor.project_id).set_active_tab(fname)
-                                # TODO: need to set position, right?
+                        redux.getProjectActions(@project_id).open_file
+                            path : res.input
                 else
                     @latex_editor.set_cursor_center_focus({line:res.line, ch:0})
             cb?()
@@ -712,5 +707,3 @@ class exports.LatexEditor extends editor.FileEditor
                         y              : y
                         highlight_line : true
                 opts.cb?(err)
-
-
