@@ -616,12 +616,13 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
-def sage_eval(x, locals=None):
-    x = str(x).strip()
-    if x.isspace():
-        return None
+def sage_eval(x, locals=None, **kwds):
+    if isinstance(x, str):
+        x = str(x).strip()
+        if x.isspace():
+            return None
     from sage.all import sage_eval
-    return sage_eval(x, locals=locals)
+    return sage_eval(x, locals=locals, **kwds)
 
 class ParseValue:
     def __init__(self, type):
@@ -3612,6 +3613,90 @@ def help(*args, **kwds):
 - **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
         salvus.md(s)
 
-
 # Import the jupyter kernel client.
 from sage_jupyter import jupyter
+
+# license() workaround for IPython pager
+# could also set os.environ['TERM'] to 'dumb' to workaround the pager
+def license():
+    r"""
+    Display Sage license file COPYING.txt
+
+    You can also view this information in an SMC terminal session:
+
+        | $ sage
+        | sage: license()
+
+    """
+    print(sage.misc.copying.license)
+
+# search_src
+import os
+import glob
+
+# from http://stackoverflow.com/questions/9877462/is-there-a-python-equivalent-to-the-which-commane
+# in python 3.3+ there is shutil.which()
+def which(pgm):
+    path=os.getenv('PATH')
+    for p in path.split(os.path.pathsep):
+        p=os.path.join(p,pgm)
+        if os.path.exists(p) and os.access(p,os.X_OK):
+            return p
+
+from sage_server import MAX_CODE_SIZE
+def search_src(str, max_chars = MAX_CODE_SIZE):
+    r"""
+    Get file names resulting from git grep of smc repo
+
+    INPUT:
+
+    - ``str`` -- string, expression to search for; will be quoted
+    - ``max_chars`` -- integer, max characters to display from selected file
+
+    OUTPUT:
+
+    Interact selector of matching filenames. Choosing one causes its
+    contents to be shown in salvus.code() output.
+    """
+    sage_cmd = which("sage")
+    if os.path.islink(sage_cmd):
+        sage_cmd = os.readlink(sage_cmd)
+
+    # /projects/sage/sage-6.10/src/bin
+    sdir = os.path.dirname(sage_cmd)
+
+    # /projects/sage/sage-6.10
+    sdir = os.path.dirname(os.path.dirname(sdir))
+
+    # /projects/sage/sage-6.10/sage-6.10/src
+    sdir = glob.glob(sdir + "/sage-*/src/sage")[0]
+
+    cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
+    srch = os.popen(cmd).read().splitlines()
+    header = "files matched"
+    nftext = header + ": %s"%len(srch)
+
+    @interact
+    def _(fname = selector([nftext]+srch,"view source file:")):
+        if not fname.startswith(header):
+            with open('/projects/sage/sage/src/sage/' + fname, 'r') as infile:
+                code = infile.read(max_chars)
+            salvus.code(code, mode = "python", filename = fname)
+
+# search_doc
+def search_doc(str):
+    r"""
+    Create link to Google search of sage docs.
+
+    INPUT:
+
+    - ``str`` -- string, expression to search for; will be quoted
+
+    OUTPUT:
+
+    HTML hyperlink to google search
+    """
+    txt = 'Use this link to search: ' + \
+    '<a href="https://www.google.com/search?q=site%3Adoc.sagemath.org+' + \
+    str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
+    salvus.html(txt)

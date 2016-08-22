@@ -28,6 +28,8 @@
 # If there were a better error, this could be a parameter that depends on
 # whether the user (or project) is paying or not.
 MAX_CHANGEFEEDS_PER_CLIENT = 5*100 # about 3-5 feeds per file right now
+# increase until better garbage collection of changefeeds!
+MAX_CHANGEFEEDS_PER_CLIENT = 12*100
 
 fs         = require('fs')
 async      = require('async')

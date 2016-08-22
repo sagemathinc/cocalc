@@ -929,8 +929,18 @@ class Salvus(object):
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
 
+        try:
+            import sage.repl.interpreter as sage_repl_interpreter
+        except:
+            log("Error - unable to import sage.repl.interpreter")
+
         for start, stop, block in blocks:
-            if preparse:
+            # if import sage.repl.interpreter fails, sag_repl_interpreter is unreferenced
+            try:
+                do_pp = getattr(sage_repl_interpreter, '_do_preparse', True)
+            except:
+                do_pp = True
+            if preparse and do_pp:
                 block = sage_parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
@@ -1760,7 +1770,8 @@ def serve(port, host, extra_imports=False):
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
+                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval',
+                     'search_doc','search_src', 'license']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself

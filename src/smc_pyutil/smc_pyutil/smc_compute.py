@@ -295,7 +295,14 @@ class Project(object):
         cfs_quota = int(100000*cores)
 
         group = "memory,cpu:%s"%self.username
-        self.cmd(["cgcreate", "-g", group])
+        try:
+            self.cmd(["cgcreate", "-g", group])
+        except:
+            if os.system("cgcreate") != 0:
+                # cgroups not installed
+                return
+            else:
+                raise
         if memory:
             memory = quota_to_int(memory)
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
@@ -406,6 +413,9 @@ class Project(object):
                 os.environ['SMC'] = self.smc_path
                 os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                 os.environ['MAIL'] = '/var/mail/%s'%self.username
+                if self._single:
+                    # In single-machine mode, everything is on localhost.
+                    os.environ['SMC_HOST'] = 'localhost'
                 del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
                 os.chdir(self.project_path)
                 self.cmd("smc-start")
