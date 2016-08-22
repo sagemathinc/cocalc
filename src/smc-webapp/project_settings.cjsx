@@ -24,7 +24,6 @@ underscore = require('underscore')
 async      = require('async')
 
 {salvus_client}      = require('./salvus_client')
-{project_page}       = require('./project')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text}       = require('./misc_page')
@@ -876,14 +875,13 @@ ProjectControlPanel = rclass
 
     open_authorized_keys : (e) ->
         e.preventDefault()
-        project = project_page(@props.project.get('project_id'))
         async.series([
             (cb) =>
                 @actions(project_id: @props.project.get('project_id')).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>
-                project.open_file
+                @actions(project_id: @props.project.get('project_id')).open_file
                     path       : '.ssh/authorized_keys'
                     foreground : true
                 cb()

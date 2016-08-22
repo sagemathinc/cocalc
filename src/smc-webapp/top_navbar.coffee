@@ -163,12 +163,6 @@ class TopNavbar  extends EventEmitter
                 d.onblur?()
             n.button.show().addClass("active")
             @current_page_id = id
-            @emit("switch_to_page-#{id}", id)
-            # recompute free project warning at the top when switching around
-            # TODO: remove this workaround when this is is reactified
-            if id.length == 36
-                {project_page}  = require('./project')
-                project_page(id).free_project_warning()
 
         # We still call show even if already on this page.
         n.page?.show()
@@ -257,25 +251,6 @@ class TopNavbar  extends EventEmitter
     have_unsaved_changes: (id) ->
         return false
 
-    # Makes the project list sortable by the user
-    init_sortable_project_list: () =>
-        if @_project_list_is_sortable
-            return
-        @navbar.find(".nav.smc-projects").sortable
-            axis                 : 'x'
-            delay                : 50
-            containment          : 'parent'
-            tolerance            : 'pointer'
-            placeholder          : 'nav-projects-placeholder'
-            forcePlaceholderSize : true
-        @_project_list_is_sortable = true
-
-    destroy_sortable_project_list: () =>
-        if not @_project_list_is_sortable
-            return
-        @navbar.find(".nav.smc-projects").sortable("destroy")
-        @_project_list_is_sortable = false
-
     resize_open_project_tabs: () =>
         # Make a list of the open project tabs
         x = @projects.find("li")
@@ -284,10 +259,10 @@ class TopNavbar  extends EventEmitter
 
         if feature.is_responsive_mode()
             # responsive mode
-            @destroy_sortable_project_list()
+            #TODOJ kill sortable
             width = "100%"
         else
-            @init_sortable_project_list()
+            #TODOJ init sortable
             n = x.length
             width = Math.min(200, (@projects.width() - 25)/n) # subtract to prevent rounding problems
             if width < 0
@@ -308,55 +283,6 @@ $.fn.extend
 
 ###############################################################
 # Add the standard pages
-
-$("#salvus-help").top_navbar
-    id      : "salvus-help"
-    label   : "About"
-    icon    : 'fa-question-circle'
-    pull_right : true
-    close   : false
-    onshow: () ->
-        require.ensure [], =>
-            browser.set_window_title("Help")
-            require('./r_help')
-
-###
-$("#about").top_navbar
-    id      : "about"
-    label   : "SageMathCloud&trade;"
-    #label : ''
-    icon : 'fa-cloud'
-    #pull_right : true
-    close   : false
-###
-
-###
-$(".salvus-explore").top_navbar
-    id      : "explorer"
-    label   : "Explore"
-    icon : 'fa-globe'
-    close   : false
-###
-
-$("#projects").top_navbar
-    id      : "projects"
-    #'class' : 'navbar-big'
-    label   : "Projects"
-    #icon : 'fa-tasks'
-    #icon_img: '/static/favicon-195.png'
-    logo_smc: true
-    close   : false
-    onshow: () -> browser.set_window_title("Projects")
-
-$("#account").top_navbar
-    id     : "account"
-    label  : "Account"
-    pull_right : true
-    close   : false
-    icon : 'fa-signin'
-    onshow: () ->
-        browser.set_window_title("Account")
-        top_navbar.emit('switch_to_page-account')  # temporary hack -- waiting for react router!
 
 $(window).resize () ->
     $("body").css

@@ -31,41 +31,52 @@ ProjectTab = rclass
 
     render : ->
         <NavItem
-            key={@props.name} active={@props.name == @props.active_project_tab}
+            key={@props.name}
+            active={@props.name == @props.active_project_tab}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}>
             <Tip title={@props.tooltip} placement='bottom' size='small'>
-                <Icon name={@props.icon} /> {@props.label}
+                <Icon style={fontSize: 20} name={@props.icon} /> {@props.label}
             </Tip>
         </NavItem>
 
-FreeProjectWarning = rclass
+FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
 
     reduxProps :
         projects :
             get_total_project_quotas : rtypes.func
+        "#{name}" :
+            free_warning_extra_shown : rtypes.bool
+            free_warning_closed : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
+        if not @props.free_warning_extra_shown
+            return null
         <div>
             {<span>This project runs on a heavily loaded randomly rebooted free server. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
-                <li>Learn about <a href='#{PolicyPricingPageUrl}' target='_blank'>Pricing and Subscriptions</a></li>
+                <li>Learn about <a href="#{PolicyPricingPageUrl}" target='_blank'>Pricing and Subscriptions</a></li>
                 <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" target='_blank'>Frequently Asked Questions</a></li>
-                <li>Visit <a>Billing</a> to <em>subscribe</em> to a plan</li>
-                <li>Upgrade <em>this</em> project in <a>Project Settings</a></li>
+                <li>Visit <a onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
+                <li>Upgrade <em>this</em> project in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
             </ul>
         </div>
 
     render : ->
+        window.wprops = @props
+        if @props.free_warning_closed
+            return null
         quotas = @props.get_total_project_quotas(@props.project_id)
-        host = not quotas?.member_host
-        internet = not quotas?.network
+        if not quotas?
+            return null
+        host = not quotas.member_host
+        internet = not quotas.network
         if not host and not internet
             return null
         styles =
@@ -85,8 +96,8 @@ FreeProjectWarning = rclass
             position : 'relative'
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={@actions(project_id: @props.project_id).show_more_warning}> learn more...</a>
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_warning}>×</a>
+            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
+            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
         </Alert>
 
@@ -97,6 +108,8 @@ ProjectPageTemp = rclass ({name}) ->
         projects :
             project_map : rtypes.immutable
             get_my_group : rtypes.func
+        page :
+            fullscreen : rtypes.bool
         "#{name}" :
             active_project_tab : rtypes.string
             open_files  : rtypes.immutable
@@ -136,14 +149,13 @@ ProjectPageTemp = rclass ({name}) ->
                 group = @props.get_my_group(@props.project_id)
                 return <ProjectSettings project_id={@props.project_id} name={@props.name} group={group} />
             else
-                if @props.open_files.has(active)
+                if @props.open_files?.has(active)
                     Name = @props.open_files.get(active)
                     console.log("Name:",Name)
                     return <Name path={active} project_id={@props.project_id} redux={redux} actions={redux.getActions(Name.redux_name)} />
                 return <div>You should not be here! {@props.active_project_tab}</div>
 
     render : ->
-        window.pprops = @props
         project_pages =
             files :
                 label : 'Files'
@@ -167,11 +179,11 @@ ProjectPageTemp = rclass ({name}) ->
                 tooltip : 'Project settings and controls'
 
         <div>
-            <FreeProjectWarning project_id={@props.project_id} />
-            <Nav bsStyle="pills" id="project-tabs">
+            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            {<Nav bsStyle="pills" id="project-tabs">
                 {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
                 {@file_tabs()}
-            </Nav>
+            </Nav> if not @props.fullscreen}
             {@render_page()}
         </div>
 

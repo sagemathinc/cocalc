@@ -536,29 +536,21 @@ templates = $("#salvus-editor-templates")
 class exports.Editor
     constructor: (opts) ->
         opts = defaults opts,
-            project_page  : required
-            initial_files : undefined # if given, attempt to open these files on creation
-            counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
-        @counter = opts.counter
-        @project_page  = opts.project_page
-        @project_path = opts.project_page.project.location?.path
-        if not @project_path
-            @project_path = '.'  # if location isn't defined yet -- and this is the only thing used anyways.
-        @project_id = opts.project_page.project.project_id
+            project_id    : required
+        @project_id = opts.project_id
         @element = templates.find(".salvus-editor").clone().show()
 
         # read-only public access to project only
-        @public_access = opts.project_page.public_access
+        redux.getStore('projects').wait
+            until   : (s) => console.log(s, 123);s.get_my_group(@project_id)
+            timeout : 60
+            cb      : (err, group) =>
+                if not err
+                    @public_access = (group == 'public')
 
         @nav_tabs = @element.find(".nav-pills")
 
         @tabs = {}   # filename:{useful stuff}
-
-        @init_openfile_search()
-
-        if opts.initial_files?
-            for filename in opts.initial_files
-                @open(filename)
 
     activate_handlers: () =>
         #console.log "activate_handlers - #{@project_id}"
@@ -584,31 +576,8 @@ class exports.Editor
         #console.log("keyup handler for -- #{@project_id}", ev)
         if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
             #console.log("editor keyup")
-            @project_page.display_tab("project-file-listing")
+            @redux.getProjectActions(@project_id).set_active_tab('files')
             return false
-        else if window.tab_switching and ev.ctrlKey  # note: window.tab_switching is for testing or if anybody complains (unlikely)
-            # this functionality (1) seems broken, and (2) is \ on a german keyboard
-            #console.log("mod ", ev.keyCode)
-            if ev.keyCode == 219    # [{
-                @switch_tab(-1)
-            else if ev.keyCode == 221   # }]
-                @switch_tab(1)
-            return false
-
-    switch_tab: (delta) =>
-        #console.log("switch_tab", delta)
-        pgs = @project_page.container.find(".file-pages")
-        idx = pgs.find(".active").index()
-        if idx == -1 # nothing active
-            return
-        e = pgs.children()
-        n = (idx + delta) % e.length
-        if n < 0
-            n += e.length
-        path = $(e[n]).data('name')
-        if path
-            @display_tab
-                path : path
 
     activity_indicator: (filename) =>
         e = @tabs[filename]?.open_file_pill
@@ -624,8 +593,6 @@ class exports.Editor
             e.find("i:last").removeClass("salvus-editor-filename-pill-icon-active")
         @_activity_indicator_timers[filename] = setTimeout(f, 1000)
 
-        @project_page.activity_indicator()
-
     hide_editor_content: () =>
         @_editor_content_visible = false
         @element.find(".salvus-editor-content").hide()
@@ -633,11 +600,6 @@ class exports.Editor
     show_editor_content: () =>
         @_editor_content_visible = true
         @element.find(".salvus-editor-content").show()
-        # temporary / ugly
-        for tab in @project_page.tabs
-            tab.label.removeClass('active')
-
-        @project_page.container.css('position', 'fixed')
 
     # Used for resizing editor windows.
     editor_top_position: () =>
@@ -652,72 +614,9 @@ class exports.Editor
 
     _window_resize_while_editing: () =>
         #console.log("_window_resize_while_editing -- #{@project_id}")
-        @resize_open_file_tabs()
         if not @active_tab? or not @_editor_content_visible
             return
         @active_tab.editor().show()
-
-    init_openfile_search: () =>
-        search_box = @element.find(".salvus-editor-search-openfiles-input")
-        include = 'active' #salvus-editor-openfile-included-in-search'
-        exclude = 'salvus-editor-openfile-excluded-from-search'
-        search_box.focus () =>
-            search_box.select()
-
-        update = (event) =>
-            @active_tab?.editor().hide()
-
-            if event?
-                if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                    #console.log("keyup: openfile_search")
-                    @project_page.display_tab("project-new-file")
-                    return false
-
-                if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                    @display_tab(path:@active_tab.filename)
-                    return
-
-            v = $.trim(search_box.val()).toLowerCase()
-            if v == ""
-                for filename, tab of @tabs
-                    tab.link.removeClass(include)
-                    tab.link.removeClass(exclude)
-                match = (s) -> true
-            else
-                terms = v.split(' ')
-                match = (s) ->
-                    s = s.toLowerCase()
-                    for t in terms
-                        if s.indexOf(t) == -1
-                            return false
-                    return true
-
-            first = true
-
-            for link in @nav_tabs.children()
-                tab = $(link).data('tab')
-                filename = tab.filename
-                if match(filename)
-                    if first and event?.keyCode == 13 # enter -- select first match (if any)
-                        @display_tab(path:filename)
-                        first = false
-                    if v != ""
-                        tab.link.addClass(include); tab.link.removeClass(exclude)
-                else
-                    if v != ""
-                        tab.link.addClass(exclude); tab.link.removeClass(include)
-
-        @element.find(".salvus-editor-search-openfiles-input-clear").click () =>
-            search_box.val('')
-            update()
-            search_box.select()
-            return false
-
-        search_box.keyup(update)
-
-    update_counter: () =>
-        if @counter?
-            @counter.text(len(@tabs))
 
     open: (filename, cb) =>   # cb(err, actual_opened_filename)
         if not filename?
@@ -879,7 +778,7 @@ class exports.Editor
                 path       : link_filename.text()
                 foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
             if foreground
-                @project_page.set_current_path(containing_path)
+                redux.getProjectActions(@project_id).set_current_path(containing_path)
             return false
 
         create_editor_opts =
@@ -917,8 +816,6 @@ class exports.Editor
 
         link.data('tab', @tabs[filename])
         @nav_tabs.append(link)
-
-        @update_counter()
         return @tabs[filename]
 
     create_editor: (opts) =>
@@ -937,7 +834,7 @@ class exports.Editor
                 typ = 'file'
         else
             typ = editor_name
-        @project_page.actions.log({event:'open', filename:filename, type:typ})
+        redux.getProjectActions(@project_id).log({event:'open', filename:filename, type:typ})
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
@@ -1012,151 +909,11 @@ class exports.Editor
         editor.init_autosave()
         return editor
 
-    create_opened_file_tab: (filename) =>
-        link_bar = @project_page.container.find(".file-pages")
-
-        link = templates.find(".salvus-editor-filename-pill").clone()
-        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 0})
-
-        link.data('name', filename)
-
-        link_filename = link.find(".salvus-editor-tab-filename")
-        display_name = path_split(filename).tail
-        link_filename.text(display_name)
-
-        # Add an icon to the file tab based on the extension. Default icon is fa-file-o
-        ext = filename_extension_notilde(filename)
-        file_icon = file_icon_class(ext)
-        link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
-
-        open_file = (name) =>
-            @project_page.set_current_path(misc.path_split(name).head)
-            @project_page.display_tab("project-editor")
-            @display_tab(path:name)
-
-        close_tab = () =>
-            if ignore_clicks
-                return false
-
-            if @active_tab? and @active_tab.filename == filename
-                @active_tab = undefined
-
-            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
-                next = link.next()
-                # skip past div's inserted by tooltips
-                while next.is("div")
-                    next = next.next()
-                name = next.data('name')  # need li selector because tooltip inserts itself after in DOM
-                if name?
-                    open_file(name)
-
-            link.tooltip('destroy')
-            link.hide()
-            link.remove()
-
-            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
-                # open last file if there is one
-                next_link = link_bar.find("li").last()
-                name = next_link.data('name')
-                if name?
-                    @resize_open_file_tabs()
-                    open_file(name)
-                else
-                    # just show the file listing
-                    @project_page.display_tab('project-file-listing')
-
-            tab = @tabs[filename]
-            if tab?
-                if tab.open_file_pill?
-                    delete tab.open_file_pill
-                tab.close_editor()
-                delete @tabs[filename]
-
-            @_currently_closing_files = true
-            if @open_file_tabs().length < 1
-                @resize_open_file_tabs()
-
-            return false
-
-        link.find(".salvus-editor-close-button-x").click(close_tab)
-
-        ignore_clicks = false
-        link.find("a").click (e) =>
-            if ignore_clicks
-                return false
-            open_file(filename)
-            return false
-
-        link.find("a").mousedown (e) =>
-            if ignore_clicks
-                return false
-            if e.which==2 or e.ctrlKey
-                # middle (or control-) click on open tab: close the editor
-                close_tab()
-                return false
-
-
-        #link.draggable
-        #    zIndex      : 1000
-        #    containment : "parent"
-        #    stop        : () =>
-        #        ignore_clicks = true
-        #        setTimeout( (() -> ignore_clicks=false), 100)
-
-        @tabs[filename].open_file_pill = link
-        @tabs[filename].close_tab = close_tab
-
-        link_bar.mouseleave () =>
-            if @_currently_closing_files
-                @_currently_closing_files = false
-                @resize_open_file_tabs()
-
-        link_bar.append(link)
-        @resize_open_file_tabs()
-
-    open_file_tabs: () =>
-        x = []
-        for a in @project_page.container.find(".file-pages").children()
-            t = $(a)
-            if t.hasClass("salvus-editor-filename-pill")
-                x.push(t)
-        return x
-
     hide: () =>
         for filename, tab of @tabs
             if tab?
                 if tab.editor_open()
                     tab.editor().hide?()
-
-    resize_open_file_tabs: () =>
-        # First hide/show labels on the project navigation buttons (Files, New, Log..)
-        if @open_file_tabs().length > require('./editor').SHOW_BUTTON_LABELS
-            @project_page.container.find(".project-pages-button-label").hide()
-        else
-            @project_page.container.find(".project-pages-button-label").show()
-
-        # Make a list of the tabs after the search tab.
-        x = @open_file_tabs()
-        if x.length == 0
-            return
-
-        if feature.is_responsive_mode()
-            # responsive mode
-            @project_page.destroy_sortable_file_list()
-            width = "50%"
-        else
-            @project_page.init_sortable_file_list()
-            n = x.length
-            width = Math.min(250, parseInt((x[0].parent().width() - 40) / n + 2)) # floor to prevent rounding problems
-            if width < 0
-                width = 0
-
-        for a in x
-            a.width(width)
-
-    make_open_file_pill_active: (link) =>
-        @project_page.container.find(".file-pages").children().removeClass('active')
-        link.addClass('active')
 
     # Close tab with given filename
     close: (filename) =>
@@ -1218,7 +975,7 @@ class exports.Editor
 
         if opts.foreground
             @_active_tab_filename = filename
-            @push_state('files/' + opts.path)
+            redux.getProjectActions(@project_id).push_state('files/' + opts.path)
             @show_editor_content()
             # record that file placed in the foreground by this client
             window?.smc.redux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
@@ -1226,14 +983,10 @@ class exports.Editor
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
-                if not tab.open_file_pill?
-                    @create_opened_file_tab(filename)
-
                 if opts.foreground
                     # make sure that there is a tab and show it if necessary, and also
                     # set it to the active tab (if necessary).
                     @active_tab = tab
-                    @make_open_file_pill_active(tab.open_file_pill)
                     ed = tab.editor()
                     ed.show()
                     ed.focus()
@@ -1242,21 +995,9 @@ class exports.Editor
                 # ensure all other tabs are hidden.
                 tab.hide_editor()
 
-        @project_page.init_sortable_file_list()
-
     onshow: () =>  # should be called when the editor is shown.
-        #if @active_tab?
-        #    @display_tab(@active_tab.filename)
         if not IS_MOBILE
             @element.find(".salvus-editor-search-openfiles-input").focus()
-
-    push_state: (url) =>
-        if not url?
-            url = @_last_history_state
-        if not url?
-            url = 'recent'
-        @_last_history_state = url
-        @project_page.actions.push_state(url)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -1536,7 +1277,6 @@ class CodeMirrorEditor extends FileEditor
 
         @init_file_actions()
 
-        @init_close_button()
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -2066,11 +1806,6 @@ class CodeMirrorEditor extends FileEditor
             dialog.find(".salvus-file-options-sagews").show()
         dialog.modal('show')
 
-    init_close_button: () =>
-        @element.find("a[href=\"#close\"]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
-            return false
-
     init_save_button: () =>
         @save_button = @element.find("a[href=\"#save\"]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
@@ -2099,7 +1834,7 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     click_history_button: () =>
-        @editor.project_page.open_file
+        redux.getProjectActions(@editor.project_id).open_file
             path       : misc.history_path(@filename)
             foreground : true
 
@@ -3395,10 +3130,6 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
-        @element.find("a[href=\"#close\"]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
-            return false
-
     focus: () =>
 
     update: (cb) =>
@@ -3475,7 +3206,6 @@ class Terminal extends FileEditor
             title     : "Terminal"
             filename  : @filename
             resizable : false
-            close     : () => @editor.project_page.display_tab("project-file-listing")
             editor    : @
         @console = elt.data("console")
         @element = @console.element
@@ -3567,7 +3297,6 @@ class Image extends FileEditor
             return false
 
         @element.find("a[href=\"#close\"]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
             return false
 
         if url?
@@ -3626,7 +3355,6 @@ class StaticHTML extends FileEditor
 
     init_buttons: () =>
         @element.find("a[href=\"#close\"]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
             return false
 
 class FileEditorWrapper extends FileEditor

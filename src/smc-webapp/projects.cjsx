@@ -139,6 +139,7 @@ class ProjectsActions extends Actions
         salvus_client.create_project(opts)
 
     # Open the given project
+    #TODOJ: should not be in projects...
     open_project : (opts) =>
         opts = defaults opts,
             project_id : required
@@ -152,8 +153,11 @@ class ProjectsActions extends Actions
         sort_by_time = store.get('sort_by_time') ? true
         show_hidden = store.get('show_hidden') ? false
         actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+        actions.register_editor_class()
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
+        if opts.target?
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
@@ -589,20 +593,16 @@ exports.open_project = open_project = (opts) ->
         item       : undefined
         target     : undefined
         switch_to  : true
-        cb         : undefined   # cb(err, project)
 
     require.ensure [], ->
-        {project_page}  = require('./project')
-        proj = project_page(opts.project_id)
-        top_navbar.resize_open_project_tabs()
         if opts.switch_to
             redux.getActions('page').set_active_tab(opts.project_id)
         if opts.target?
-            proj.load_target(opts.target, opts.switch_to)
-        opts.cb?(undefined, proj)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
 
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
+    console.log('gload', target)
     if not target or target.length == 0
         redux.getActions('page').set_active_tab('projects')
         return

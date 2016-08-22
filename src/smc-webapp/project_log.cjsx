@@ -69,7 +69,7 @@ LogSearch = rclass
                 if target?
                     @props.actions.open_file(path:target, foreground:true)
             when 'set'
-                @props.actions.set_focused_page('project-settings')
+                @props.actions.set_active_tab('settings')
 
     keydown : (e) ->
         if e.keyCode == 27
@@ -178,7 +178,7 @@ LogEntry = rclass
 
     click_set : (e) ->
         e.preventDefault()
-        @props.actions.set_focused_page('project-settings')
+        @props.actions.set_active_tab('settings')
 
     render_set : (obj) ->
         i = 0

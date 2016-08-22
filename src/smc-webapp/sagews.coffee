@@ -2441,7 +2441,6 @@ class Cell
 
 class Worksheet
     constructor : (@worksheet) ->
-        @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>

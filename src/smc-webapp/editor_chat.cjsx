@@ -822,7 +822,7 @@ ChatRoom = (name) -> rclass
             @scroll_to_bottom()
 
     show_files : ->
-        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_active_tab('files')
 
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file

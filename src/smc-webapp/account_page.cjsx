@@ -11,6 +11,8 @@ require('./redux_account')
 {UpgradesPage} = require('./r_upgrades')
 {SupportPage}  = require('./support')
 {Icon} = require('./r_misc')
+{set_url} = require('./history')
+
 browser = require('./browser')
 
 AccountPage = rclass
@@ -60,8 +62,8 @@ AccountPage = rclass
                 @props.redux.getActions('billing')?.update_customer()
             when 'support'
                 @props.redux.getActions('support')?.load_support_tickets()
-        @props.redux.getActions('account').setState(active_page: key)
-        window.history.pushState('', '', window.smc_base_url + "/settings/#{key}")
+        @props.redux.getActions('account').set_active_tab(key)
+        @props.redux.getActions('account').push_state("/#{key}")
 
     render_upgrades : ->
         <UpgradesPage

@@ -31,7 +31,6 @@ ReactDOMServer = require('react-dom/server')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
-{project_page} = require('./project')
 {file_associations} = require('./editor')
 Dropzone = require('react-dropzone-component')
 
@@ -73,7 +72,7 @@ PathLink = exports.PathLink = rclass
         cursor : 'pointer'
 
     handle_click : ->
-        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_active_tab('files')
 
     render : ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>

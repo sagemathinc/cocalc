@@ -31,6 +31,7 @@ misc      = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
+{Editor} = require('./editor')
 
 {Actions, Store, Table, register_project_store}  = require('./smc-react')
 
@@ -82,7 +83,6 @@ exports.redux_name = key = (project_id, name) ->
 
 class ProjectActions extends Actions
     _project : =>
-        return require('./project').project_page(@project_id)
 
     _ensure_project_is_open : (cb) =>
         s = @redux.getStore('projects')
@@ -103,18 +103,44 @@ class ProjectActions extends Actions
             current_path += '/'
         @push_state('files/' + current_path)
 
+    register_editor_class : () =>
+        if not @get_store().get('editor')?
+            editor = new Editor
+                project_id : @project_id
+            @setState(editor : editor)
+
     push_state: (url) =>
+        {set_url} = require('./history')
         if not url?
             url = @_last_history_state
         if not url?
             url = ''
         @_last_history_state = url
-        window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
+        set_url('/projects/' + @project_id + '/' + misc.encode_path(url))
         {analytics_pageview} = require('./misc_page')
         analytics_pageview(window.location.pathname)
 
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
+        console.log(key, 12345)
+        switch key
+            when 'files'
+                @set_url_to_path(@get_store().get('current_path') ? '')
+                store = @get_store()
+                sort_by_time = store.get('sort_by_time') ? true
+                show_hidden = store.get('show_hidden') ? false
+                @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+            when 'new'
+                @push_state('new/' + @get_store().get('current_path'))
+                @set_next_default_filename(require('./account').default_filename())
+            when 'log'
+                @push_state('log')
+            when 'search'
+                @push_state('search/' + @get_store().get('current_path'))
+            when 'settings'
+                @push_state('settings')
+            else #editor...
+                @push_state('files/' + key)
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
@@ -188,39 +214,32 @@ class ProjectActions extends Actions
                     cb      : (err, group) =>
                         if err
                             @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
-                        else
-                            # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
-                            @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            if window.FULLY_REACT
-                                store = @get_store()
-                                if not store?  # if store not initialized we can't set activity
-                                    return
-                                open_files = store.get_open_files()
+                        # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
+                        @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
+                        if window.FULLY_REACT
+                            store = @get_store()
+                            if not store?  # if store not initialized we can't set activity
+                                return
+                            open_files = store.get_open_files()
 
-                                if open_files.has(opts.path) # Already opened
-                                    return
+                            if open_files.has(opts.path) # Already opened
+                                return
 
-                                open_files_order = store.get_open_files_order()
-                                # Intialize the file's store and actions
-                                project_file.initialize(opts.path, @redux, @project_id)
+                            open_files_order = store.get_open_files_order()
+                            # Intialize the file's store and actions
+                            project_file.initialize(opts.path, @redux, @project_id)
 
-                                # Make the editor
-                                editor = project_file.generate(opts.path, @redux, @project_id)
+                            # Make the editor
+                            editor = project_file.generate(opts.path, @redux, @project_id)
 
-                                # Add it to open files
-                                if opts.foreground
-                                    @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path), active_project_tab: opts.path)
-                                else
-                                    @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
+                            # Add it to open files
+                            if opts.foreground
+                                @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
+                                @set_active_tab(opts.path)
                             else
-                                # TEMPORARY -- later this will happen as a side effect of changing the store...
-                                if opts.foreground_project
-                                    @foreground_project()
-                                @_project().open_file(path:opts.path, foreground:opts.foreground)
-                                if opts.chat
-                                    @_project().show_editor_chat_window(opts.path)
-                                if opts.foreground
-                                    @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
+                                @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
+                            if opts.chat
+                                @get_store().get('editor')?.show_chat_window(opts.path)
         return
 
     foreground_project : =>
@@ -239,16 +258,7 @@ class ProjectActions extends Actions
             else
                 @foreground_project()
                 @set_current_path(path, update_file_listing=true)
-                @set_focused_page('project-file-listing')
-
-    set_focused_page : (page) =>
-        if window.FULLY_REACT
-            @setState
-                focused_page : page
-        else
-            # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
-            # influence what is displayed
-            @_project().display_tab(page)
+                @set_active_tab('files')
 
     set_current_path : (path, update_file_listing=false) =>
         # Set the current path for this project. path is either a string or array of segments.
@@ -435,20 +445,6 @@ class ProjectActions extends Actions
                     else if result.event == 'error'
                         require('./alerts').alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
-
-    create_editor_tab : (opts) =>
-        if window.FULLY_REACT
-            # TODO: create file
-            return
-        else
-            @_project().editor.create_tab(opts)
-
-    display_editor_tab : (opts) =>
-        if window.FULLY_REACT
-            # TODO: create file
-            return
-        else
-            @_project().editor.display_tab(opts)
 
     # function used internally by things that call salvus_client.exec
     _finish_exec : (id) =>
@@ -709,7 +705,7 @@ class ProjectActions extends Actions
                 if not err and switch_over
                     #TODO reporting of errors...
                     @set_current_path(p, update_file_listing=true)
-                    @set_focused_page('project-file-listing')
+                    @set_active_tab('files')
 
     create_file : (opts) =>
         opts = defaults opts,
@@ -763,16 +759,14 @@ class ProjectActions extends Actions
                 if err
                     opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else if opts.switch_over
-                    @set_focused_page('project-editor')
-                    tab = @create_editor_tab(filename:p, content:'')
-                    @display_editor_tab(path: p)
+                    @set_active_tab(p)
 
     new_file_from_web : (url, current_path, cb) =>
         d = current_path
         if d == ''
             d = 'root directory of project'
         id = misc.uuid()
-        @set_focused_page('project-file-listing')
+        @set_active_tab('files')
         @set_activity
             id:id
             status:"Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
@@ -898,6 +892,50 @@ class ProjectActions extends Actions
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
+    #  files/....
+    #  recent
+    #  new
+    #  log
+    #  settings
+    #  search
+    load_target: (target, foreground=true) =>
+        console.log('loading target', target)
+        segments = target.split('/')
+        switch segments[0]
+            when 'files'
+                if target[target.length-1] == '/'
+                    # open a directory
+                    @set_current_path(segments.slice(1, segments.length-1).join('/'))
+                    @set_active_tab('files')
+                else
+                    # open a file -- foreground option is relevant here.
+                    if foreground
+                        @set_current_path(segments.slice(1, segments.length-1).join('/'))
+                        @set_active_tab(segments.slice(1).join('/'))
+                    @open_file
+                        path       : segments.slice(1).join('/')
+                        foreground : foreground
+                        foreground_project : foreground
+            when 'new'  # ignore foreground for these and below, since would be nonsense
+                @set_current_path('segments.slice(1).join('/')')
+                @set_active_tab('new')
+            when 'log'
+                @set_active_tab('log')
+            when 'settings'
+                @set_active_tab('settings')
+            when 'search'
+                @set_current_path(segments.slice(1).join('/'))
+                @set_active_tab('search')
+
+    show_extra_free_warning : =>
+        console.log('show', 123)
+        @setState(free_warning_extra_shown : true)
+
+    close_free_warning : =>
+        console.log('closed', 123)
+        @setState(free_warning_closed : true)
+
+
 class ProjectStore extends Store
     _init : (project_id) =>
         @project_id = project_id
@@ -917,10 +955,7 @@ class ProjectStore extends Store
         return @get('current_path')
 
     get_open_files: =>
-        if window.FULLY_REACT
-            return @get('open_files') ? immutable.Map({})
-        else
-            return @get('open_files') ? immutable.List([])
+        return @get('open_files') ? immutable.Map({})
 
     get_open_files_order: =>
             return @get('open_files_order') ? immutable.List([])

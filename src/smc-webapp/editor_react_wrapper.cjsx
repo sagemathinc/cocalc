@@ -51,7 +51,7 @@ exports.register_nonreact_editor = (opts) ->
             if editors[key]?
                 e = editors[key]
             else
-                editor = require('./project').project_page(project_id).editor
+                editor = redux.getProjectStore(project_id).get('editor')
 
                 # Overwrite Editor functions called from the various fileEditors
                 # HARDCODED MAGIC NUMBER

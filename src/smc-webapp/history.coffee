@@ -27,10 +27,22 @@ Code related to the history and URL in the browser bar.
 The URI schema is as follows:
 
     Overall help:
-       https://cloud.sagemath.com/projects/help
+       https://cloud.sagemath.com/help
 
     Overall settings:
-       https://cloud.sagemath.com/projects/settings
+       https://cloud.sagemath.com/settings
+
+    Account settings (default):
+       https://cloud.sagemath.com/settings/account
+
+    Billing:
+       https://cloud.sagemath.com/settings/billing
+
+    Upgrades:
+       https://cloud.sagemath.com/settings/upgrades
+
+    Support:
+       https://cloud.sagemath.com/settings/support
 
     Projects page:
        https://cloud.sagemath.com/projects/
@@ -67,6 +79,8 @@ The URI schema is as follows:
 {redux} = require('./smc-react')
 exports.set_url = (url) ->
     window.history.pushState("", "", window.smc_base_url + url)
+    {analytics_pageview} = require('./misc_page')
+    analytics_pageview(window.location.pathname)
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
@@ -81,16 +95,22 @@ exports.load_target = load_target = (target) ->
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
+                    console.log('vload', segments.slice(1).join('/'))
                     require('./projects').load_target(segments.slice(1).join('/'), true)
                 else
                     redux.getActions('page').set_active_tab('projects')
         when 'settings'
             redux.getActions('page').set_active_tab('account')
+            if segments[1] == 'account'
+                redux.getActions('account').set_active_tab('account')
             if segments[1] == 'billing'
                 redux.getActions('billing').update_customer()
-                redux.getActions('account').setState(active_page : 'billing')
+                redux.getActions('account').set_active_tab('billing')
             if segments[1] == 'upgrades'
-                redux.getActions('account').setState(active_page : 'upgrades')
+                redux.getActions('account').set_active_tab('upgrades')
+            if segments[1] == 'support'
+                redux.getActions('account').set_active_tab('support')
+
 
 
 window.onpopstate = (event) ->

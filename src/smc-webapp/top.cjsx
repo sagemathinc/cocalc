@@ -11,6 +11,8 @@
 misc = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
+{set_url} = require('./history')
+{set_window_title} = require('./browser')
 
 # Makes some things work. Like the save button
 require('./jquery_plugins')
@@ -22,6 +24,22 @@ require('./jquery_plugins')
 class PageActions extends Actions
     set_active_tab : (key) ->
         @setState(active_top_tab : key)
+        switch key
+            when 'projects'
+                set_url('/projects')
+                set_window_title('Projects')
+            when 'account'
+                redux.getActions('account').push_state()
+                set_window_title('Account')
+            when 'about'
+                set_url('/help')
+                set_window_title('Help')
+            when undefined
+                return
+            else
+                redux.getProjectActions(key)?.push_state()
+                project_map = redux.getStore('projects').get('project_map')
+                set_window_title(project_map?.getIn([key, 'title']))
 
     show_connection : (shown) ->
         @setState(show_connection : shown)
@@ -36,6 +54,9 @@ class PageActions extends Actions
 
     set_new_version : (version) ->
         @setState(new_version : version)
+
+    set_fullscreen : (val) ->
+        @setState(fullscreen : val)
 
 redux.createActions('page', PageActions)
 
@@ -119,6 +140,29 @@ salvus_client.on 'new_version', (ver) ->
 ###
 # JSX
 ###
+
+FullscreenButton = rclass
+    displayName : 'FullscreenButton'
+
+    reduxProps :
+        page :
+            fullscreen : rtypes.bool
+
+    on_fullscreen : ->
+        @actions('page').set_fullscreen(not @props.fullscreen)
+
+    render : ->
+        icon = if @props.fullscreen then 'expand' else 'compress'
+        styles =
+            position : 'fixed'
+            zIndex : 100000
+            right : 0
+            top : 0
+            fontSize : '12pt'
+            padding : 4
+            color : '#999'
+            fontWeight : 700
+        <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
 NavTab = rclass
     displayName : "NavTab"
@@ -375,6 +419,7 @@ Page = rclass
             avgping : rtypes.number
             connection_status : rtypes.string
             new_version : rtypes.object
+            fullscreen : rtypes.bool
         account :
             get_fullname : rtypes.func
             is_logged_in : rtypes.func
@@ -455,12 +500,11 @@ Page = rclass
                 return <ProjectPage project_id={@props.active_top_tab} />
 
     render : ->
-        window.props = @props   # TODO: FOR DEBUGGING ONLY
         <div>
             {<SupportRedux /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
-            <Navbar style={marginBottom: 0}>
+            {<Navbar style={marginBottom: 0}>
                 <Nav pullRight>
                     <NavTab name='account' label={@account_name()} icon='cog' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
                     <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
@@ -474,7 +518,8 @@ Page = rclass
                 <Nav>
                     {@project_tabs()}
                 </Nav>
-            </Navbar>
+            </Navbar> if not @props.fullscreen}
+            {<FullscreenButton />}
             {@render_page()}
         </div>
 

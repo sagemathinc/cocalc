@@ -594,7 +594,7 @@ class exports.LatexEditor extends editor.FileEditor
                     file = @_path + '/' + file
                 @editor.open file, (err, fname) =>
                     if not err
-                        @editor.display_tab(path:fname)
+                        redux.getProjectActions(@editor.project_id).set_active_tab(fname)
                         # TODO: need to set position, right?
                         # also, as in _inverse_search -- maybe this should be opened *inside* the latex editor...
             cb?()
@@ -641,7 +641,7 @@ class exports.LatexEditor extends editor.FileEditor
 
 
     download_pdf: () =>
-        redux.getProjectActions(@editor.project_page.project_id).download_file
+        redux.getProjectActions(@editor.project_id).download_file
             path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>
@@ -657,7 +657,7 @@ class exports.LatexEditor extends editor.FileEditor
                     if active
                         @editor.open res.input, (err, fname) =>
                             if not err
-                                @editor.display_tab(path:fname)
+                                redux.getProjectActions(@editor.project_id).set_active_tab(fname)
                                 # TODO: need to set position, right?
                 else
                     @latex_editor.set_cursor_center_focus({line:res.line, ch:0})

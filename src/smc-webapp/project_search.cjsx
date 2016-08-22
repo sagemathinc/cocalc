@@ -162,7 +162,7 @@ ProjectSearchOutputHeader = rclass
     render : ->
         <div style={wordWrap:'break-word'}>
             <span style={color:'#666'}>
-                <a onClick={=>@props.actions.set_focused_page('project-file-listing')}
+                <a onClick={=>@props.actions.set_active_tab('files')}
                    style={cursor:'pointer'} >Navigate to a different folder</a> to search in it.
             </span>
 

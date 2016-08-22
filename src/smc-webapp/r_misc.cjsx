@@ -855,7 +855,7 @@ exports.FileLink = rclass
         e.preventDefault()
         if misc.endswith(@props.path, '/')
             @props.actions.set_current_path(@props.path)
-            @props.actions.set_focused_page('project-file-listing')
+            @props.actions.set_active_tab('files')
         else
             @props.actions.open_file
                 path       : @props.path
@@ -1138,7 +1138,7 @@ EditorFileInfoDropdown = rclass
 
     handle_click : (name) ->
         @props.actions.set_current_path(misc.path_split(@props.filename).head)
-        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_active_tab('files')
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)
         @props.actions.set_file_action(name)

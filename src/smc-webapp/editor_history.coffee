@@ -130,7 +130,7 @@ class exports.HistoryEditor extends FileEditor
             return false
 
         open_file = () =>
-            @editor.project_page.open_file
+            smc.redux.getProjectActions(@editor.project_id).open_file
                 path       : @_open_file_path
                 foreground : true
 

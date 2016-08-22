@@ -113,7 +113,7 @@ class TaskList
     init_history_button: =>
         if not @opts.viewer
             @element.find("a[href=\"#history\"]").show().click () =>
-                @editor?.editor.project_page.open_file
+                redux.getProjectActions(@project_id).open_file
                     path       : misc.history_path(@filename)
                     foreground : true
 

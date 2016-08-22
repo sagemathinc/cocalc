@@ -883,7 +883,7 @@ class JupyterNotebook extends EventEmitter
         @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
 
         @element.find("a[href=\"#close\"]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
+            redux.getProjectActions(@editor.project_id).set_active_tab('files')
             return false
 
         @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
@@ -1066,7 +1066,7 @@ class JupyterNotebook extends EventEmitter
     show_history_viewer: () =>
         path = misc.history_path(@filename)
         #@dbg("show_history_viewer")(path)
-        @editor.project_page.open_file
+        redux.getProjectActions(@editor.project_id).open_file
             path       : path
             foreground : true
 
@@ -1277,16 +1277,16 @@ class JupyterNBViewer
 
     init_buttons: () =>
         @element.find('a[href=\"#copy\"]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
             actions = redux.getProjectActions(@editor.project_id)
+            actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('copy')
             return false
 
         @element.find('a[href=\"#download\"]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
             actions = redux.getProjectActions(@editor.project_id)
+            actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('download')

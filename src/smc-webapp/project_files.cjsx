@@ -379,7 +379,7 @@ NoFiles = rclass
     # Go to the new file tab if there is no file search
     handle_click : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page('project-new-file')
+            @props.actions.set_active_tab('new')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -730,7 +730,7 @@ ProjectFilesButtons = rclass
         if @props.public_view
             return
         <div>
-            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_focused_page('project-settings')} style={marginLeft:'7px'}>
+            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_active_tab('settings')} style={marginLeft:'7px'}>
                 <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Add Collaborators</span>
             </a>
         </div>
@@ -1688,7 +1688,7 @@ ProjectFilesNew = rclass
     # Go to new file tab if no file is specified
     on_create_button_clicked : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page('project-new-file')
+            @props.actions.set_active_tab('new')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
