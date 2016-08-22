@@ -19,11 +19,11 @@
 #
 ###############################################################################
 
+$          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
-{top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 
 markdown = require('./markdown')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
@@ -48,21 +48,17 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    # Local state events
-    set_project_state : (project_id, name, value) =>
-        x = store.getIn(['project_state', project_id]) ? immutable.Map()
-        @setState(project_state: store.get('project_state').set(project_id, x.set(name, immutable.fromJS(value))))
+    set_project_open : (project_id, err) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index == -1
+            @setState(open_projects : x.push(project_id))
 
-    delete_project_state : (project_id, name) =>
-        x = store.getIn(['project_state', project_id])
-        if x?
-            @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
-
-    set_project_state_open : (project_id, err) =>
-        @set_project_state(project_id, 'open', {time:salvus_client.server_time(), err:err})
-
-    set_project_state_close : (project_id) =>
-        @delete_project_state(project_id, 'open')
+    set_project_closed : (project_id) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index != -1
+            @setState(open_projects : x.delete(index))
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
@@ -142,32 +138,35 @@ class ProjectsActions extends Actions
         salvus_client.create_project(opts)
 
     # Open the given project
+    #TODOJ: should not be in projects...
     open_project : (opts) =>
+        console.log("what", opts)
         opts = defaults opts,
             project_id : required
             target     : undefined
             switch_to  : undefined
-        if window.FULLY_REACT
-            @set_project_state_open(opts.project_id)
-        else
-            opts.cb = (err) =>
-                @set_project_state_open(opts.project_id, err)
-            open_project(opts)
-            if opts.switch_to
-                @foreground_project(opts.project_id)
-
-    close_project : (project_id) ->
-        top_navbar.remove_page(project_id)
+        require('./project_store') # registers the project store with redux...
+        store = redux.getProjectStore(opts.project_id)
+        actions = redux.getProjectActions(opts.project_id)
+        # actions.set_url_to_path(store.get('current_path'))
+        #temporary
+        sort_by_time = store.get('sort_by_time') ? true
+        show_hidden = store.get('show_hidden') ? false
+        actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+        redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
+        @set_project_open(opts.project_id)
+        if opts.target?
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        top_navbar.switch_to_page(project_id)  # TODO: temporary
+        redux.getActions('page').set_active_tab(project_id)
+
         @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
                     require('./browser').set_window_title(title)  # change title bar
-        @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
@@ -206,7 +205,7 @@ class ProjectsActions extends Actions
                 @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.
-    # See the users field of schema.coffee for documentaiton of the structure of this.
+    # See the users field of schema.coffee for documentation of the structure of this.
 
     ###
     # Collaborators
@@ -424,12 +423,6 @@ class ProjectsStore extends Store
         list = list.concat others
         return list
 
-    get_project_state : (project_id, name) =>
-        return @getIn(['project_state', project_id, name])
-
-    get_project_open_state : (project_id) =>
-        return @get_project_state(project_id, 'open')
-
     # Return the group that the current user has on this project, which can be one of:
     #    'owner', 'collaborator', 'public', 'admin' or undefined, where
     # undefined -- means the information needed to determine group hasn't been loaded yet
@@ -463,14 +456,11 @@ class ProjectsStore extends Store
         return me.get('group')
 
     is_project_open : (project_id) =>
-        x = @get_project_state(project_id, 'open')
-        if not x?
-            return false
-        return not x.get('err')
+        @get('open_projects').includes(project_id)
 
     wait_until_project_is_open : (project_id, timeout, cb) =>  # timeout in seconds
         @wait
-            until   : => @get_project_open_state(project_id)
+            until   : => @is_project_open(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
@@ -576,7 +566,7 @@ class ProjectsStore extends Store
 
 init_store =
     project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
-    project_state : immutable.Map()  # information about state of projects in the browser
+    open_projects : immutable.List()  # ordered list of open projects
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
@@ -592,27 +582,25 @@ class ProjectsTable extends Table
 
 redux.createTable('projects', ProjectsTable)
 
+# Should not be necessary/here for React/Redux
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
         project_id : required
         item       : undefined
         target     : undefined
         switch_to  : true
-        cb         : undefined   # cb(err, project)
 
     require.ensure [], ->
-        {project_page}  = require('./project')
-        proj = project_page(opts.project_id)
-        top_navbar.resize_open_project_tabs()
         if opts.switch_to
-            top_navbar.switch_to_page(opts.project_id)
+            redux.getActions('page').set_active_tab(opts.project_id)
         if opts.target?
-            proj.load_target(opts.target, opts.switch_to)
-        opts.cb?(undefined, proj)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
 
+# Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
+    console.log('gload', target)
     if not target or target.length == 0
-        top_navbar.switch_to_page('projects')
+        redux.getActions('page').set_active_tab('projects')
         return
     segments = target.split('/')
     if misc.is_valid_uuid_string(segments[0])
@@ -774,13 +762,13 @@ NewProjectCreator = rclass
                 </Col>
                 <Col sm=6>
                     <form>
-                        <Input
+                        <Checkbox
                             ref      = {"upgrade_#{name}"}
-                            type     = 'checkbox'
                             checked  = {val > 0}
-                            label    = {label}
-                            onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
-                        />
+                            onChange = {=>@setState("upgrade_#{name}" : if ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).checked then 1 else 0)}
+                        >
+                            {label}
+                        </Checkbox>
                     </form>
                 </Col>
             </Row>
@@ -818,14 +806,20 @@ NewProjectCreator = rclass
                     ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
-                    <Input
-                        ref        = {"upgrade_#{name}"}
-                        type       = 'text'
-                        value      = {val}
-                        bsStyle    = {bs_style}
-                        onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
-                    />
+                    <FormGroup>
+                        <InputGroup>
+                            <FormControl
+                                ref        = {"upgrade_#{name}"}
+                                type       = 'text'
+                                value      = {val}
+                                bsStyle    = {bs_style}
+                                onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
+                            />
+                            <InputGroup.Addon>
+                                {@render_addon(misc, name, display_unit, limit)}
+                            </InputGroup.Addon>
+                        </InputGroup>
+                    </FormGroup>
                     {label}
                 </Col>
             </Row>
@@ -1036,27 +1030,31 @@ NewProjectCreator = rclass
             <Row>
                 <Col sm=5>
                     <h4>Title</h4>
-                    <Input
-                        ref         = 'new_project_title'
-                        type        = 'text'
-                        placeholder = 'Title'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.title_text}
-                        onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
-                        onKeyDown   = {@handle_keypress}
-                        autoFocus   />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_title'
+                            type        = 'text'
+                            placeholder = 'Title'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.title_text}
+                            onChange    = {=>@setState(title_text:ReactDOM.findDOMNode(@refs.new_project_title).value)}
+                            onKeyDown   = {@handle_keypress}
+                            autoFocus   />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=7>
                     <h4>Description</h4>
-                    <Input
-                        ref         = 'new_project_description'
-                        type        = 'text'
-                        placeholder = 'Project description'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.description_text}
-                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())}
-                        onKeyDown   = {@handle_keypress} />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_description'
+                            type        = 'text'
+                            placeholder = 'Project description'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.description_text}
+                            onChange    = {=>@setState(description_text:ReactDOM.findDOMNode(@refs.new_project_description).value)}
+                            onKeyDown   = {@handle_keypress} />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=2>
@@ -1183,7 +1181,7 @@ ProjectsSearch = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.projects_search).focus()
 
     delete_search_button : ->
         s = if @props.search?.length > 0 then 'warning' else "default"
@@ -1197,14 +1195,20 @@ ProjectsSearch = rclass
 
     render : ->
         <form onSubmit={@open_first_project}>
-            <Input
-                ref         = 'projects_search'
-                autoFocus
-                type        = 'search'
-                value       =  @props.search
-                placeholder = 'Search for projects...'
-                onChange    = {=>redux.getActions('projects').setState(search: @refs.projects_search.getValue())}
-                buttonAfter = {@delete_search_button()} />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        ref         = 'projects_search'
+                        autoFocus
+                        type        = 'search'
+                        value       =  @props.search
+                        placeholder = 'Search for projects...'
+                        onChange    = {=>redux.getActions('projects').setState(search: ReactDOM.findDOMNode(this.refs.projects_search).value)} />
+                    <InputGroup.Button>
+                        {@delete_search_button()}
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 HashtagGroup = rclass
@@ -1730,23 +1734,3 @@ exports.ProjectTitleAuto = rclass
         <Redux redux={redux}>
             <ProjectTitle project_id={@props.project_id} />
         </Redux>
-
-is_mounted = false
-mount = ->
-    if not is_mounted
-        #console.log('mount projects')
-        ReactDOM.render(<ProjectsPage />, document.getElementById('projects'))
-        is_mounted = true
-
-unmount = ->
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById('projects'))
-        is_mounted = false
-
-top_navbar.on 'switch_to_page-projects', () ->
-    window.history.pushState('', '', window.smc_base_url + '/projects')
-    mount()
-
-top_navbar.on 'switch_from_page-projects', () ->
-    setTimeout(unmount,50)
-

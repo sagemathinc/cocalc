@@ -5,7 +5,7 @@
 #    Copyright (C) 2014, 2015, 2016 William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
+#    it under the terms of the GNU Gener@al Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
 #
@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-
+$        = window.$
 misc     = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -677,8 +677,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
     disable_undo: () =>
         @codemirror.setOption('undoDepth',1)
         @codemirror1.setOption('undoDepth',1)
-        @editor.element.find("a[href=#undo]").remove()
-        @editor.element.find("a[href=#redo]").remove()
+        @editor.element.find("a[href=\"#undo\"]").remove()
+        @editor.element.find("a[href=\"#redo\"]").remove()
         @codemirror.on 'beforeChange', (instance, changeObj) =>
             if changeObj.origin == 'undo' or changeObj.origin == 'redo'
                 changeObj.cancel()

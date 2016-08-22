@@ -19,9 +19,9 @@
 #
 ###############################################################################
 
-
+$                   = window.$
 {defaults, to_json} = require("misc")
-{salvus_client} = require('./salvus_client')
+{salvus_client}     = require('./salvus_client')
 
 types = ['error', 'default', 'success', 'info']
 default_timeout =

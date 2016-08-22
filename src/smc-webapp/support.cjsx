@@ -18,14 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
+$          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, Input, Well, Alert, Modal, Table} = require('react-bootstrap')
+{Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
-{top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 feature         = require('./feature')
 {markdown_to_html} = require('./markdown')
@@ -130,7 +129,7 @@ class SupportActions extends Actions
         @set(valid: v)
 
     project_id : ->
-        pid = top_navbar.current_page_id
+        pid = @redux.getStore('page').get('active_top_tab')
         if misc.is_valid_uuid_string(pid)
             return pid
         else
@@ -431,12 +430,12 @@ SupportForm = rclass
         actions   : rtypes.object.isRequired
 
     email_change  : ->
-        @props.actions.set_email(@refs.email.getValue())
+        @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
 
     data_change : ->
         @props.actions.set
-            body     : @refs.body.getValue()
-            subject  : @refs.subject.getValue()
+            body     : ReactDOM.findDOMNode(@refs.body).value
+            subject  : ReactDOM.findDOMNode(@refs.subject).value
 
     render : ->
         if not @props.show
@@ -453,34 +452,39 @@ SupportForm = rclass
             </Alert>
 
         <form>
-            <Input
-                label       = 'Your email address'
-                ref         = 'email'
-                type        = 'text'
-                tabIndex    = 1
-                placeholder = 'your_email@address.com'
-                validationState = {if ee?.length > 0 then 'error'}
-                value       = {@props.email}
-                onChange    = {@email_change} />
+            <FormGroup validationState={if ee?.length > 0 then 'error'}>
+                <FormControl
+                    label       = 'Your email address'
+                    ref         = 'email'
+                    type        = 'text'
+                    tabIndex    = 1
+                    placeholder = 'your_email@address.com'
+                    value       = {@props.email}
+                    onChange    = {@email_change} />
+            </FormGroup>
             {email_info}
             <Space />
-            <Input
-                ref         = 'subject'
-                autoFocus
-                type        = 'text'
-                tabIndex    = 2
-                label       = 'Message'
-                placeholder = "Subject ..."
-                value       = {@props.subject}
-                onChange    = {@data_change} />
-            <Input
-                ref         = 'body'
-                type        = 'textarea'
-                tabIndex    = 3
-                placeholder = 'Describe the problem ...'
-                rows        = 6
-                value       = {@props.body}
-                onChange    = {@data_change} />
+            <FormGroup>
+                <FormControl
+                    ref         = 'subject'
+                    autoFocus
+                    type        = 'text'
+                    tabIndex    = 2
+                    label       = 'Message'
+                    placeholder = "Subject ..."
+                    value       = {@props.subject}
+                    onChange    = {@data_change} />
+            </FormGroup>
+            <FormGroup>
+                <FormControl
+                    componentClass = "textarea"
+                    ref         = 'body'
+                    tabIndex    = 3
+                    placeholder = 'Describe the problem ...'
+                    rows        = 6
+                    value       = {@props.body}
+                    onChange    = {@data_change} />
+            </FormGroup>
         </form>
 
 
@@ -560,13 +564,14 @@ Support = rclass
                     valid           = {@props.valid} />
         </Modal>
 
-render = (redux) ->
-    store   = redux.getStore('support')
-    actions = redux.getActions('support')
+exports.SupportRedux = rclass
+    render : ->
+        store   = redux.getStore('support')
+        actions = redux.getActions('support')
 
-    <Redux redux={redux}>
-        <Support actions = {actions} />
-    </Redux>
+        <Redux redux={redux}>
+            <Support actions = {actions} />
+        </Redux>
 
 render_project_support = (dom_node, redux) ->
     ReactDOM.render(render(redux), dom_node)
@@ -579,14 +584,6 @@ init_redux = (redux) ->
         redux.createActions('support', SupportActions)
         redux.createStore('support', SupportStore, {})
 init_redux(redux)
-
-# hooking this up to the website
-if not window.FULLY_REACT
-    $support = $('.navbar a.smc-top_navbar-support')
-    $targ = $support.find('.react-target')
-    render_project_support($targ[0], redux)
-    $support.click () ->
-        exports.show()
 
 # project wide public API
 

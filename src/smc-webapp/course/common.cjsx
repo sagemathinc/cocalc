@@ -4,9 +4,9 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries
-{React, rclass, rtypes, Actions}  = require('../smc-react')
+{React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
 
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
 
@@ -208,17 +208,23 @@ exports.StudentAssignmentInfo = rclass
     render_grade_score : ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
-                <Input
-                    autoFocus
-                    value       = {@state.grade}
-                    ref         = 'grade_input'
-                    type        = 'text'
-                    placeholder = 'Grade (any text)...'
-                    onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
-                    onBlur      = {@save_grade}
-                    onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
-                    buttonAfter = {<Button bsStyle='success'>Save</Button>}
-                />
+                <FormGroup>
+                    <InputGroup>
+                        <FormControl
+                            autoFocus
+                            value       = {@state.grade}
+                            ref         = 'grade_input'
+                            type        = 'text'
+                            placeholder = 'Grade (any text)...'
+                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onBlur      = {@save_grade}
+                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                        />
+                        <InputGroup.Button>
+                            <Button bsStyle='success'>Save</Button>
+                        </InputGroup.Button>
+                    </InputGroup>
+                </FormGroup>
             </form>
         else
             if @props.grade
@@ -426,17 +432,17 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             <option key={item} value={item} label={item}>{item}</option>
 
     render_add_selector : ->
-        <div>
-            <Input type='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : @refs.selector.getValue())}>
+        <FormGroup>
+            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : ReactDOM.findDOMNode(@refs.selector).value)}>
                 {@render_results_list()}
-            </Input>
+            </FormControl>
             <ButtonToolbar>
                 {@render_add_selector_button()}
                 <Button onClick={@clear_and_focus_search_input}>
                     Cancel
                 </Button>
             </ButtonToolbar>
-        </div>
+        </FormGroup>
 
     render_add_selector_button : ->
         num_items_selected = @state.selected_items?.length ? 0

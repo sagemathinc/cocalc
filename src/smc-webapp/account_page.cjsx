@@ -11,6 +11,8 @@ require('./redux_account')
 {UpgradesPage} = require('./r_upgrades')
 {SupportPage}  = require('./support')
 {Icon} = require('./r_misc')
+{set_url} = require('./history')
+
 browser = require('./browser')
 
 AccountPage = rclass
@@ -60,8 +62,8 @@ AccountPage = rclass
                 @props.redux.getActions('billing')?.update_customer()
             when 'support'
                 @props.redux.getActions('support')?.load_support_tickets()
-        @props.redux.getActions('account').setState(active_page: key)
-        window.history.pushState('', '', window.smc_base_url + "/settings/#{key}")
+        @props.redux.getActions('account').set_active_tab(key)
+        @props.redux.getActions('account').push_state("/#{key}")
 
     render_upgrades : ->
         <UpgradesPage
@@ -115,7 +117,7 @@ AccountPage = rclass
         logged_in = @props.redux.getStore('account').is_logged_in()
         <Grid fluid className='constrained'>
             {@render_landing_page() if not logged_in}
-            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"}>
+            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
                 <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
                     {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                 </Tab>
@@ -137,27 +139,3 @@ exports.AccountPageRedux = AccountPageRedux = rclass
         <Redux redux={redux}>
             <AccountPage actions={actions} redux={redux}/>
         </Redux>
-
-if not window.FULLY_REACT
-    is_mounted = false
-    exports.mount = mount = ->
-        #console.log("mount account settings")
-        if not is_mounted
-            ReactDOM.render <AccountPageRedux />, document.getElementById('account')
-            is_mounted = true
-        if not redux.getStore('account').is_logged_in()
-            browser.set_window_title("") # empty string gives just the <SiteName/>
-
-    exports.unmount = unmount = ->
-        #console.log("unmount account settings")
-        if is_mounted
-            ReactDOM.unmountComponentAtNode(document.getElementById("account"))
-            is_mounted = false
-
-    {top_navbar} = require('./top_navbar')
-
-    top_navbar.on "switch_to_page-account", () ->
-        mount()
-
-    top_navbar.on "switch_from_page-account", () ->
-        unmount()

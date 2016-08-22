@@ -4,7 +4,7 @@ Git "editor" -- basically an application that let's you interact with git.
 ###
 
 {React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
-{Button, Input, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
+{Button, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 misc = require('smc-util/misc')
@@ -432,13 +432,15 @@ Git = (name) -> rclass
 
 
     render_user_name_input : ->
-        <Input
-            ref         = 'git_user_name'
-            type        = 'text'
-            placeholder = {@props.git_user_name ? ''}
-            onChange    = {=>@props.actions.setState(git_user_name:@refs.git_user_name.getValue())}
-            onKeyDown   = {@handle_user_name_keypress}
-        />
+        <FormGroup>
+            <FormControl
+                ref         = 'git_user_name'
+                type        = 'text'
+                placeholder = {@props.git_user_name ? ''}
+                onChange    = {=>@props.actions.setState(git_user_name:ReactDOM.findDOMNode(@refs.git_user_name).value)}
+                onKeyDown   = {@handle_user_name_keypress}
+            />
+        </FormGroup>
 
     render_user_name_panel : ->
         head =
@@ -467,13 +469,15 @@ Git = (name) -> rclass
             @props.actions.run_git_commit()
 
     render_user_email_input : ->
-        <Input
-            ref         = 'git_user_email'
-            type        = 'text'
-            placeholder = {@props.git_user_email ? ''}
-            onChange    = {=>@props.actions.setState(git_user_email:@refs.git_user_email.getValue())}
-            onKeyDown   = {@handle_user_email_keypress}
-        />
+        <FormGroup>
+            <FormControl
+                ref         = 'git_user_email'
+                type        = 'text'
+                placeholder = {@props.git_user_email ? ''}
+                onChange    = {=>@props.actions.setState(git_user_email:ReactDOM.findDOMNode(@refs.git_user_email).value)}
+                onKeyDown   = {@handle_user_email_keypress}
+            />
+        </FormGroup>
 
     render_user_email_panel : ->
         head =
@@ -491,7 +495,7 @@ Git = (name) -> rclass
 
 
     render_commit_panel : ->
-        window.refs = @refs
+        window.refs = @refs # TODO: is this needed?
         head =
             <div>
                 <span>
@@ -504,15 +508,17 @@ Git = (name) -> rclass
                     checked_files       = {@props.checked_files}
                     actions             = {@props.actions} /> if @props.git_changed_tracked_files}
                 </div>
-                Write your commit message
-                <Input
-                    ref         = 'commit_message'
-                    type        = 'text'
-                    value       = {@props.commit_message ? ''}
-                    placeholder = {@props.commit_message ? 'Commit message'}
-                    onChange    = {=>@props.actions.setState(commit_message:@refs.commit_message.getValue())}
-                    onKeyDown   = {@handle_commit_message_keypress}
-                />
+                <FormGroup>
+                    Write your commit message
+                    <FormControl
+                        ref         = 'commit_message'
+                        type        = 'text'
+                        value       = {@props.commit_message ? ''}
+                        placeholder = {@props.commit_message ? 'Commit message'}
+                        onChange    = {=>@props.actions.setState(commit_message:ReactDOM.findDOMNode(@refs.commit_message).value)}
+                        onKeyDown   = {@handle_commit_message_keypress}
+                    />
+                </FormGroup>
                 <Button
                     onClick  = {=>@props.actions.run_git_commit()} >
                     Commit the selected changed tracked files
@@ -583,13 +589,15 @@ Git = (name) -> rclass
                         Username
                     </Col>
                     <Col sm={10}>
-                        <Input
-                            ref         = 'github_username'
-                            type        = 'text'
-                            value       = {@props.github_username ? ''}
-                            onChange    = {=>@props.actions.setState(github_username:@refs.github_username.getValue())}
-                            onKeyDown   = {@handle_github_login_keypress}
-                        />
+                        <FormGroup>
+                            <FormControl
+                                ref         = 'github_username'
+                                type        = 'text'
+                                value       = {@props.github_username ? ''}
+                                onChange    = {=>@props.actions.setState(github_username:ReactDOM.findDOMNode(@refs.github_username).value)}
+                                onKeyDown   = {@handle_github_login_keypress}
+                            />
+                        </FormGroup>
                     </Col>
                 </Row>
                 <Row>
@@ -597,13 +605,15 @@ Git = (name) -> rclass
                         Personal access token
                     </Col>
                     <Col sm={10}>
-                        <Input
-                            ref         = 'github_access_token'
-                            type        = 'password'
-                            value       = {@props.github_access_token ? ''}
-                            onChange    = {=>@props.actions.setState(github_access_token:@refs.github_access_token.getValue())}
-                            onKeyDown   = {@handle_github_login_keypress}
-                        />
+                        <FormGroup>
+                            <FormControl
+                                ref         = 'github_access_token'
+                                type        = 'password'
+                                value       = {@props.github_access_token ? ''}
+                                onChange    = {=>@props.actions.setState(github_access_token:ReactDOM.findDOMNode(@refs.github_access_token).value)}
+                                onKeyDown   = {@handle_github_login_keypress}
+                            />
+                        </FormGroup>
                     </Col>
                 </Row>
                 <Row>
@@ -762,30 +772,29 @@ Git = (name) -> rclass
                         <Modal.Header>
                             <Modal.Title>Create a banch</Modal.Title>
                         </Modal.Header>
-
-                      <Modal.Body>
-                        <Input
-                            ref         = 'new_branch_name'
-                            type        = 'text'
-                            value       = {@props.new_branch_name ? ''}
-                            placeholder = {'Branch name'}
-                            onChange    = {=>@props.actions.setState(new_branch_name:@refs.new_branch_name.getValue())}
-                            onKeyDown   = {=>@handle_keypress('new_branch_name', 'create_branch_and_reset_to_upstream_master')}
-                        />
-                      </Modal.Body>
-
-                      <Modal.Footer>
-                        <Button onClick={=>@props.actions.setState(show_create_branch_modal:false)}>Close</Button>
-                        <Button bsStyle="primary" onClick={=>@props.actions.create_branch_and_reset_to_upstream_master();@props.actions.setState(show_create_branch_modal:false)}>Create the branch</Button>
-                      </Modal.Footer>
-
+                        <Modal.Body>
+                            <FormGroup>
+                                <FormControl
+                                    ref         = 'new_branch_name'
+                                    type        = 'text'
+                                    value       = {@props.new_branch_name ? ''}
+                                    placeholder = {'Branch name'}
+                                    onChange    = {=>@props.actions.setState(new_branch_name:ReactDOM.findDOMNode(@refs.new_branch_name).value)}
+                                    onKeyDown   = {=>@handle_keypress('new_branch_name', 'create_branch_and_reset_to_upstream_master')}
+                                />
+                            </FormGroup>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button onClick={=>@props.actions.setState(show_create_branch_modal:false)}>Close</Button>
+                            <Button bsStyle="primary" onClick={=>@props.actions.create_branch_and_reset_to_upstream_master();@props.actions.setState(show_create_branch_modal:false)}>Create the branch</Button>
+                        </Modal.Footer>
                     </Modal>
                 </div>
             </div>
             <div>
                 {@render_current_issue()}
             </div>
-            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)}>
+            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.actions.set_tab(key)} id="git-tabs">
                 {@render_tabs()}
             </Tabs>
 

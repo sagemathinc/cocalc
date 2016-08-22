@@ -83,7 +83,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -290,7 +290,7 @@ Message = rclass
 
     componentDidUpdate: ->
         if @refs.editedMessage
-            @props.actions.saved_message(@refs.editedMessage.getValue())
+            @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
     newest_content: ->
         @props.message.get('history').peek()?.get('content') ? ''
@@ -393,7 +393,7 @@ Message = rclass
                 edited_message : @newest_content()
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # 13: enter key
-            mesg = @refs.editedMessage.getValue()
+            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
             if mesg != @newest_content()
                 @props.actions.send_edit(@props.message, mesg)
             else
@@ -528,15 +528,17 @@ Message = rclass
     # TODO: Make this a codemirror input
     render_input: ->
         <div>
-            <Input
-                autoFocus = {true}
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'editedMessage'
-                onKeyDown = {@on_keydown}
-                value     = {@state.edited_message}
-                onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
-                onFocus   = {@props.focus_end} />
+            <FormGroup>
+                <FormControl
+                    autoFocus = {true}
+                    rows      = 4
+                    componentClass = 'textarea'
+                    ref       = 'editedMessage'
+                    onKeyDown = {@on_keydown}
+                    value     = {@state.edited_message}
+                    onChange  = {=>@setState(edited_message: ReactDOM.findDOMNode(@refs.editedMessage).value)}
+                    onFocus   = {@props.focus_end} />
+            </FormGroup>
         </div>
 
     render: ->
@@ -679,12 +681,11 @@ ChatRoom = (name) -> rclass
             file_use : rtypes.immutable
 
     propTypes :
-        redux       : rtypes.object
-        actions     : rtypes.object
-        name        : rtypes.string.isRequired
+        redux       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
-        path        : rtypes.string
+        path        : rtypes.string.isRequired
 
     getInitialState: ->
         input          : ''
@@ -700,7 +701,7 @@ ChatRoom = (name) -> rclass
             @clear_input()
         else if e.keyCode==13 and e.shiftKey # 13: enter key
             @send_chat(e)
-        else if e.keyCode==38 and @refs.input.getValue() == ''
+        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
 
@@ -714,7 +715,7 @@ ChatRoom = (name) -> rclass
         # turns off preview
         @button_off_click()
         e.preventDefault()
-        mesg = @refs.input.getValue()
+        mesg = ReactDOM.findDOMNode(@refs.input).value
         # block sending empty messages
         if mesg.length? and mesg.trim().length >= 1
             @props.actions.send_chat(mesg)
@@ -821,7 +822,7 @@ ChatRoom = (name) -> rclass
             @scroll_to_bottom()
 
     show_files : ->
-        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_active_tab('files')
 
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file
@@ -960,19 +961,21 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
-                        <Input
-                            autoFocus   = {true}
-                            rows        = 4
-                            type        = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                            onFocus     = {@focus_endpoint}
-                            style       = {@chat_input_style}
-                            />
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {true}
+                                rows        = 4
+                                componentClass = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onClick     = {@mark_as_read}
+                                onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input).value)}
+                                onFocus     = {@focus_endpoint}
+                                style       = {@chat_input_style}
+                                />
+                        </FormGroup>
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
                         <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
@@ -1024,18 +1027,20 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
-                        <Input
-                            autoFocus   = {false}
-                            rows        = 2
-                            type        = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                            style       = {@mobile_chat_input_style}
-                            />
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {false}
+                                rows        = 2
+                                componentClass = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onClick     = {@mark_as_read}
+                                onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input.value))}
+                                style       = {@mobile_chat_input_style}
+                                />
+                        </FormGroup>
                     </Col>
                     <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
                         <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
@@ -1049,11 +1054,44 @@ ChatRoom = (name) -> rclass
 
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    if not redux? or not actions?
+        return <Loading />
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Redux>
+
+initialize_state = (path, redux, project_id) ->
+    init_redux(redux, project_id, path)
+    return redux_name(project_id, path)
+
+ChatEditorGenerator = (path, redux, project_id) ->
+    # console.log("Generating Chat Editor -- This should happen once per file opening")
+    name = redux_name(project_id, path)
+    C = ChatRoom(name)
+    C_ChatRoom = ({redux, path, actions, project_id}) ->
+        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
+        <Redux redux={redux}>
+            <C redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id}/>
+        </Redux>
+
+    C_ChatRoom.redux_name = name
+
+    C_ChatRoom.propTypes =
+        redux      : rtypes.object
+        path       : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
+
+    return C_ChatRoom
+
+require('project_file').register_file_editor
+    ext       : 'sage-chat'
+    icon      : 'comment'
+    init      : initialize_state
+    generator : ChatEditorGenerator
 
 exports.render = (project_id, path, dom_node, redux) ->
     init_redux(redux, project_id, path)
@@ -1077,5 +1115,3 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
-
-

@@ -3,12 +3,14 @@
 # Editor for LaTeX documents
 #############################################
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
-
+{redux} = require('./smc-react')
 editor = require('./editor')
 
 templates = $("#salvus-editor-templates")
@@ -17,7 +19,7 @@ MAX_LATEX_ERRORS   = 10
 MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -29,7 +31,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_pages = {}
 
         # initialize the latex_editor
-        @latex_editor = editor.codemirror_session_editor(@editor, @filename, opts)
+        @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
@@ -51,16 +53,16 @@ class exports.LatexEditor extends editor.FileEditor
         n = @filename.length
 
         # The pdf preview.
-        @preview = new editor.PDF_Preview(@editor, @filename, undefined, {resolution:200})
+        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        @preview_embed = new editor.PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @preview_embed.element.find(".salvus-editor-pdf-title").hide()
-        @preview_embed.element.find("a[href=#refresh]").hide()
+        @preview_embed.element.find("a[href=\"#refresh\"]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
@@ -232,85 +234,85 @@ class exports.LatexEditor extends editor.FileEditor
     _init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
 
-        @element.find("a[href=#forward-search]").click () =>
+        @element.find("a[href=\"#forward-search\"]").click () =>
             @show_page('png-preview')
             @forward_search(active:true)
             return false
 
-        @element.find("a[href=#inverse-search]").click () =>
+        @element.find("a[href=\"#inverse-search\"]").click () =>
             @show_page('png-preview')
             @inverse_search(active:true)
             return false
 
-        @element.find("a[href=#png-preview]").click () =>
+        @element.find("a[href=\"#png-preview\"]").click () =>
             @show_page('png-preview')
             @preview.focus()
             @save()
             return false
 
-        @element.find("a[href=#zoom-preview-out]").click () =>
+        @element.find("a[href=\"#zoom-preview-out\"]").click () =>
             @preview.zoom(delta:-5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-in]").click () =>
+        @element.find("a[href=\"#zoom-preview-in\"]").click () =>
             @preview.zoom(delta:5)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-fullpage]").click () =>
+        @element.find("a[href=\"#zoom-preview-fullpage\"]").click () =>
             @preview.zoom(width:100)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
-        @element.find("a[href=#zoom-preview-width]").click () =>
+        @element.find("a[href=\"#zoom-preview-width\"]").click () =>
             @preview.zoom(width:160)
             @set_conf(zoom_width:@preview.zoom_width)
             return false
 
 
-        @element.find("a[href=#pdf-preview]").click () =>
+        @element.find("a[href=\"#pdf-preview\"]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             @preview_embed.update()
             return false
 
-        @element.find("a[href=#log]").click () =>
+        @element.find("a[href=\"#log\"]").click () =>
             @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
 
-        @element.find("a[href=#errors]").click () =>
+        @element.find("a[href=\"#errors\"]").click () =>
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find("a[href=#errors]").find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find("a[href=#errors]").find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find("a[href=\"#errors\"]").find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find("a[href=\"#errors\"]").find(".salvus-latex-warnings-counter")
 
-        @element.find("a[href=#pdf-download]").click () =>
+        @element.find("a[href=\"#pdf-download\"]").click () =>
             @download_pdf()
             return false
 
-        @element.find("a[href=#preview-resolution]").click () =>
+        @element.find("a[href=\"#preview-resolution\"]").click () =>
             @set_resolution()
             return false
 
-        @element.find("a[href=#latex-command-undo]").click () =>
+        @element.find("a[href=\"#latex-command-undo\"]").click () =>
             c = @preview.pdflatex.default_tex_command()
             @log_input.val(c)
             @set_conf_doc(latex_command: c)
             return false
 
-        trash_aux_button = @element.find("a[href=#latex-trash-aux]")
+        trash_aux_button = @element.find("a[href=\"#latex-trash-aux\"]")
         trash_aux_button.click () =>
             trash_aux_button.icon_spin(true)
             @preview.pdflatex.trash_aux_files () =>
                 trash_aux_button.icon_spin(false)
             return false
 
-        run_sage = @element.find("a[href=#latex-sage]")
+        run_sage = @element.find("a[href=\"#latex-sage\"]")
         run_sage.click () =>
             @log.find("textarea").text("Running Sage...")
             run_sage.icon_spin(true)
@@ -319,7 +321,7 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-        run_latex = @element.find("a[href=#latex-latex]")
+        run_latex = @element.find("a[href=\"#latex-latex\"]")
         run_latex.click () =>
             @log.find("textarea").text("Running Latex...")
             run_latex.icon_spin(true)
@@ -328,7 +330,7 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-        run_bibtex = @element.find("a[href=#latex-bibtex]")
+        run_bibtex = @element.find("a[href=\"#latex-bibtex\"]")
         run_bibtex.click () =>
             @log.find("textarea").text("Running Bibtex...")
             run_bibtex.icon_spin(true)
@@ -391,7 +393,7 @@ class exports.LatexEditor extends editor.FileEditor
             @_split_pos = .5
         @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))
 
-        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.css(top:redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()
@@ -454,7 +456,7 @@ class exports.LatexEditor extends editor.FileEditor
             if not page?
                 continue
             e = @element.find(".salvus-editor-latex-#{n}")
-            button = @element.find("a[href=#" + n + "]")
+            button = @element.find("a[href=\"#" + n + "\"]")
             if n == name
                 e.show()
                 if n not in ['log', 'errors']
@@ -476,7 +478,7 @@ class exports.LatexEditor extends editor.FileEditor
         opts = defaults opts,
             command : undefined
             cb      : undefined
-        button = @element.find("a[href=#log]")
+        button = @element.find("a[href=\"#log\"]")
         button.icon_spin(true)
         log_output = @log.find("textarea")
         log_output.text("")
@@ -512,10 +514,10 @@ class exports.LatexEditor extends editor.FileEditor
 
         if p.errors.length
             @number_of_errors.text(p.errors.length)
-            @element.find("a[href=#errors]").addClass("btn-danger")
+            @element.find("a[href=\"#errors\"]").addClass("btn-danger")
         else
             @number_of_errors.text('')
-            @element.find("a[href=#errors]").removeClass("btn-danger")
+            @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
         if k
@@ -590,11 +592,8 @@ class exports.LatexEditor extends editor.FileEditor
             else
                 if @_path # make relative to home directory of project
                     file = @_path + '/' + file
-                @editor.open file, (err, fname) =>
-                    if not err
-                        @editor.display_tab(path:fname)
-                        # TODO: need to set position, right?
-                        # also, as in _inverse_search -- maybe this should be opened *inside* the latex editor...
+                @redux.getProjectActions(@project_id).open_file
+                    path : file
             cb?()
 
     _show_error_in_preview: (mesg) =>
@@ -639,7 +638,7 @@ class exports.LatexEditor extends editor.FileEditor
 
 
     download_pdf: () =>
-        @editor.project_page.download_file
+        redux.getProjectActions(@project_id).download_file
             path : @filename.slice(0,@filename.length-3) + "pdf"
 
     _inverse_search: (opts) =>
@@ -653,10 +652,8 @@ class exports.LatexEditor extends editor.FileEditor
             else
                 if res.input != @filename
                     if active
-                        @editor.open res.input, (err, fname) =>
-                            if not err
-                                @editor.display_tab(path:fname)
-                                # TODO: need to set position, right?
+                        redux.getProjectActions(@project_id).open_file
+                            path : res.input
                 else
                     @latex_editor.set_cursor_center_focus({line:res.line, ch:0})
             cb?()
@@ -710,5 +707,3 @@ class exports.LatexEditor extends editor.FileEditor
                         y              : y
                         highlight_line : true
                 opts.cb?(err)
-
-

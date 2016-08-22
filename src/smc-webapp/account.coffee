@@ -1,3 +1,4 @@
+
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -24,25 +25,12 @@
 # Account Settings
 ############################################################
 
-{top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
 
 misc     = require("misc")
 {redux}   = require('./smc-react')
-
-################################################
-# id of account client browser thinks it is signed in as
-################################################
-top_navbar.on "switch_to_page-account", () ->
-    if redux.getStore('account').is_logged_in()
-        window.history.pushState("", "", window.smc_base_url + '/settings/account')
-    else
-        window.history.pushState("", "", window.smc_base_url + '/')
-
-if not window.FULLY_REACT
-    account_page.mount()
 
 ################################################
 # Account creation
@@ -63,8 +51,6 @@ signed_in = (mesg) ->
     analytics_event('account', 'signed_in')    # user signed in
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
-
-    top_navbar.show_page_button("projects")
     load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false
@@ -78,8 +64,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                require('./history').load_target(window.smc_target)
-                window.smc_target = ''
+                    require('./history').load_target(window.smc_target)
+                    window.smc_target = ''
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -94,7 +80,7 @@ if localStorage[remember_me]
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
-      redux.getActions('account').setState(remember_me: false)
+        redux.getActions('account').setState(remember_me: false)
     ), 45000
 salvus_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)

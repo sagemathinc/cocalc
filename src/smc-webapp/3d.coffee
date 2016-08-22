@@ -11,9 +11,10 @@
 #
 ###############################################################################
 
+$     = window.$
 async = require('async')
 
-misc = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 component_to_hex = (c) ->
@@ -30,10 +31,15 @@ _loading_threejs_callbacks = []
 VERSION = '73'
 
 window.THREE = require("three")
-for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
-    require("script!threejs/r#{VERSION}/#{m}")
+#for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
+    # require("script!threejs/r#{VERSION}/#{m}")
 
-require("script!threejs/r#{VERSION}/Detector")
+require("script!./node_modules/three/examples/js/controls/OrbitControls")
+require("script!./node_modules/three/examples/js/renderers/CanvasRenderer")
+require("script!./node_modules/three/examples/js/renderers/Projector")
+
+#require("script!threejs/r#{VERSION}/Detector")
+require("script!./node_modules/three/examples/js/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}

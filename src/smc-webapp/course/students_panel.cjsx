@@ -4,8 +4,8 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries and components
-{React, rclass, rtypes}  = require('../smc-react')
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
 
 # SMC components
 {User} = require('../users')
@@ -98,7 +98,7 @@ exports.StudentsPanel = rclass
         </Button>
 
     add_selector_clicked : ->
-        @setState(selected_entries: @refs.add_select.getSelectedOptions())
+        @setState(selected_entries: ReactDOM.findDOMNode(@refs.add_select).value)
 
     add_selected_students : ->
         emails = {}
@@ -108,7 +108,7 @@ exports.StudentsPanel = rclass
         students = []
 
         # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        selected_names = @refs.add_select.getSelectedOptions()
+        selected_names = ReactDOM.findDOMNode(@refs.add_select).value
         selections = []
         if selected_names.length == 0
             all_names = @refs.add_select.getInputDOMNode().getElementsByTagName('option')
@@ -143,10 +143,10 @@ exports.StudentsPanel = rclass
         if not @state.add_select?
             return
         options = @get_add_selector_options()
-        <div>
-            <Input type='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>{options}</Input>
+        <FormGroup>
+            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>{options}</FormControl>
             {@render_add_selector_button(options)}
-        </div>
+        </FormGroup>
 
     render_add_selector_button : (options) ->
         nb_selected = @state.selected_entries?.length ? 0
@@ -179,15 +179,21 @@ exports.StudentsPanel = rclass
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
-                        <Input
-                            ref         = 'student_add_input'
-                            type        = 'text'
-                            placeholder = "Add student by name or email address..."
-                            value       = {@state.add_search}
-                            buttonAfter = {@student_add_button()}
-                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.student_add_input.getValue())}
-                            onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
-                        />
+                        <FormGroup>
+                            <InputGroup>
+                                <FormControl
+                                    ref         = 'student_add_input'
+                                    type        = 'text'
+                                    placeholder = "Add student by name or email address..."
+                                    value       = {@state.add_search}
+                                    onChange    = {=>@setState(add_select:undefined, add_search:ReactDOM.findDOMNode(@refs.student_add_input).value)}
+                                    onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
+                                />
+                                <InputGroup.Button>
+                                    {@student_add_button()}
+                                </InputGroup.Button>
+                            </InputGroup>
+                        </FormGroup>
                     </form>
                     {@render_add_selector()}
                 </Col>

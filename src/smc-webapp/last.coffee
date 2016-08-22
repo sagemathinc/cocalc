@@ -26,11 +26,9 @@
 #
 ###########################################################
 
-{top_navbar} = require('./top_navbar')
-top_navbar.hide_page_button("projects")
+$ = window.$
 {salvus_client} = require('./salvus_client')
-$ = require("jquery")
-
+{redux} = require('./smc-react')
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
 $(document).on "click", (e) ->
@@ -42,7 +40,8 @@ remember_me = salvus_client.remember_me_key()
 if window.smc_target and not localStorage[remember_me] and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
-    top_navbar.switch_to_page('account')
+    #redux.getActions('page').set_active_tab('account') #TODOJ
+    0
 
 client = window.smc.client
 if client._connected
@@ -96,7 +95,7 @@ window.MathJax =
             automatic: true
     showProcessingMessages: false
 
-$ = require("jquery")
+$ = window.$
 $ ->
     $("#smc-startup-banner")?.remove()
     $('#smc-startup-banner-status')?.remove()

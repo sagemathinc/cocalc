@@ -60,7 +60,7 @@ Avatar = rclass
         height       : '100%'
         color        : '#fff'
         borderRadius : if not @props.square then '50%' else 'none'
-        fontSize     : "#{@props.size / 2 + 4}"
+        fontSize     : @props.size / 2 + 4
         fontFamily   : 'sans-serif'
 
     _innerStyle_image: ->

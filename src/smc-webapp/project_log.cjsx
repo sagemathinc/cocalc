@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
@@ -49,7 +49,7 @@ LogSearch = rclass
         selected         : rtypes.object
 
     clear_and_focus_input : ->
-        @refs.project_log_search.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_log_search).focus()
         @props.actions.setState(search:'', page:0)
 
     render_clear_button : ->
@@ -69,7 +69,7 @@ LogSearch = rclass
                 if target?
                     @props.actions.open_file(path:target, foreground:true)
             when 'set'
-                @props.actions.set_focused_page('project-settings')
+                @props.actions.set_active_tab('settings')
 
     keydown : (e) ->
         if e.keyCode == 27
@@ -77,21 +77,27 @@ LogSearch = rclass
 
     on_change : (e) ->
         e.preventDefault()
-        x = @refs.project_log_search.getValue()
+        x = ReactDOM.findDOMNode(@refs.project_log_search).value
         @props.actions.setState(search : x, page : 0)
 
     render : ->
         <form onSubmit={@do_open_selected}>
-            <Input
-                autoFocus
-                type        = 'search'
-                value       = @props.search
-                ref         = 'project_log_search'
-                placeholder = 'Search log...'
-                onChange    = {@on_change}
-                buttonAfter = {@render_clear_button()}
-                onKeyDown   = {@keydown}
-                />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        autoFocus
+                        type        = 'search'
+                        value       = @props.search
+                        ref         = 'project_log_search'
+                        placeholder = 'Search log...'
+                        onChange    = {@on_change}
+                        onKeyDown   = {@keydown}
+                        />
+                        <InputGroup.Button>
+                            {@render_clear_button()}
+                        </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 selected_item =
@@ -172,7 +178,7 @@ LogEntry = rclass
 
     click_set : (e) ->
         e.preventDefault()
-        @props.actions.set_focused_page('project-settings')
+        @props.actions.set_active_tab('settings')
 
     render_set : (obj) ->
         i = 0
@@ -293,25 +299,13 @@ LogMessages = rclass
 
 PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
 
-search_string = (x, users) ->  # TODO: this code is ugly, but can be easily changed here only.
-    v = [users.get_name(x.account_id)]
-    event = x.event
-    if event?
-        for k,val of event
-            if k != 'event' and k!='filename'
-                v.push(k)
-            if k == 'type'
-                continue
-            v.push(val)
-    return v.join(' ').toLowerCase()
-
 matches = (s, words) ->
     for word in words
         if s.indexOf(word) == -1
             return false
     return true
 
-ProjectLog = (name) -> rclass
+exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
     reduxProps :
@@ -321,10 +315,10 @@ ProjectLog = (name) -> rclass
             page        : rtypes.number
         users :
             user_map    : rtypes.immutable
+            get_name    : rtypes.func
 
     propTypes :
         actions : rtypes.object.isRequired
-        redux   : rtypes.object
 
     getDefaultProps : ->
         search : ''   # search that user has requested
@@ -354,8 +348,20 @@ ProjectLog = (name) -> rclass
     next_page : ->
         @props.actions.setState(page: @props.page+1)
 
-    process_log_entry : (x, users) ->
-        x.search = search_string(x, users)
+    search_string : (x) ->  # TODO: this code is ugly, but can be easily changed here only.
+        v = [@props.get_name(x.account_id)]
+        event = x.event
+        if event?
+            for k,val of event
+                if k != 'event' and k!='filename'
+                    v.push(k)
+                if k == 'type'
+                    continue
+                v.push(val)
+        return v.join(' ').toLowerCase()
+
+    process_log_entry : (x) ->
+        x.search = @search_string(x)
         return x
 
     update_log : (next_project_log, next_user_map) ->
@@ -363,13 +369,12 @@ ProjectLog = (name) -> rclass
             return
 
         if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            users = @props.redux.getStore('users')
             # Update any names that changed in the existing log
             next_user_map.map (val, account_id) =>
                 if not immutable.is(val, @_last_user_map?.get(account_id))
                     for x in @_log
                         if x.account_id == account_id
-                            @process_log_entry(x, users)
+                            @process_log_entry(x)
 
         if not immutable.is(next_project_log, @_last_project_log)
             # The project log changed, so record the new entries
@@ -388,8 +393,7 @@ ProjectLog = (name) -> rclass
                         v.push(x)
                 new_log = v
             # process new log entries (search/name info)
-            users = @props.redux.getStore('users')
-            new_log = (@process_log_entry(x, users) for x in new_log)
+            new_log = (@process_log_entry(x) for x in new_log)
 
             # combine logs
             if @_log?
@@ -427,8 +431,6 @@ ProjectLog = (name) -> rclass
         </ButtonGroup>
 
     render_log_panel : ->
-        if not @props.redux
-            return <Loading/>
         # get visible log
         log = @visible_log()
         # do some pager stuff
@@ -467,22 +469,5 @@ ProjectLog = (name) -> rclass
     render : ->
         <div>
             <h1><Icon name='history' /> Project activity log</h1>
-            {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
+            {if @props.project_log then @render_log_panel() else <Loading/>}
         </div>
-
-render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-    C = ProjectLog(store.name)
-    <Redux redux={redux} connectToStores={[store.name, 'users']}>
-        <C actions={actions} redux={redux} />
-    </Redux>
-
-exports.render_log = (project_id, dom_node, redux) ->
-    #console.log("mount project_log")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_log")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
