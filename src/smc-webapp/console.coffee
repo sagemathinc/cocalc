@@ -139,8 +139,6 @@ class Console extends EventEmitter
 
         if @opts.project_id
             @project_id = @opts.project_id
-        else
-            @project_id = @opts.editor?.editor.project_id
 
         @_project_actions = smc.redux.getProjectActions(@project_id)
 
@@ -695,7 +693,7 @@ class Console extends EventEmitter
             content = initfile_content(@opts.filename)
             {salvus_client} = require('./salvus_client')
             salvus_client.exec
-                project_id  : @opts.editor?.editor.project_id
+                project_id  : @project_id
                 command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
                 bash        : true
                 err_on_exit : false
@@ -717,7 +715,7 @@ class Console extends EventEmitter
         content = initfile_content(@opts.filename)
         {salvus_client} = require('./salvus_client')
         salvus_client.exec
-            project_id  : @opts.editor?.editor.project_id
+            project_id  : @project_id
             command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
             bash        : true
             err_on_exit : false
