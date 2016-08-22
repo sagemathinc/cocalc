@@ -295,7 +295,14 @@ class Project(object):
         cfs_quota = int(100000*cores)
 
         group = "memory,cpu:%s"%self.username
-        self.cmd(["cgcreate", "-g", group])
+        try:
+            self.cmd(["cgcreate", "-g", group])
+        except:
+            if os.system("cgcreate") != 0:
+                # cgroups not installed
+                return
+            else:
+                raise
         if memory:
             memory = quota_to_int(memory)
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
