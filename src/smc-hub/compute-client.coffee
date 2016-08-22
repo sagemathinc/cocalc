@@ -205,6 +205,10 @@ class ComputeServerClient
             cb           : required
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
+        if @_single
+            dbg("single machine server -- just copy files directly")
+            @_add_server_single(opts)
+            return
 
         if not opts.host
             i = opts.host.indexOf('-')
@@ -250,6 +254,41 @@ class ComputeServerClient
                     member_host  : opts.member_host
                     cb           : cb
         ], opts.cb)
+
+    _add_server_single: (opts) =>
+        opts = defaults opts,
+            timeout : 30
+            cb      : required
+        dbg = @dbg("_add_server_single")
+        dbg("adding the compute server to the database by grabbing conf files, etc.")
+        port = secret = undefined
+        {program} = require('smc-hub/compute-server')
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        fs.readFile program.port_file, (err, x) =>
+                            if x?
+                                port = parseInt(x.toString())
+                            cb(err)
+                    (cb) =>
+                        fs.readFile program.secret_file, (err, x) =>
+                            if x?
+                                secret = x.toString().trim()
+                            cb(err)
+                ], cb)
+            (cb) =>
+                dbg("update database")
+                @database.save_compute_server
+                    host         : 'localhost'
+                    dc           : ''
+                    port         : port
+                    secret       : secret
+                    experimental : false
+                    member_host  : false
+                    cb           : cb
+        ], opts.cb)
+
 
     # Choose a host from the available compute_servers according to some
     # notion of load balancing (not really worked out yet)
