@@ -78,7 +78,11 @@ def command():
     else:
         mathjax_url = "/static/mathjax/MathJax.js" # fallback
 
-    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
+    if os.system('which sage') == 0:
+        ipython = "sage -ipython"
+    else:
+        ipython = "ipython"
+    cmd = "%s notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
