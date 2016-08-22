@@ -8,11 +8,11 @@ where the delimiter is exactly "---".
 The are composed of:
 
 1. Header, consisting of the language specification and the category.
-   They are fixed for the whole file.
+   They are fixed for the entire file.
    The category definition has two levels and is either a list of strings
    or a single string with a "/" as delimiter.
    Together with the overall language, categories must be unique.
-   During a yaml file, the category can change
+   Inside a yaml file, the category can change
    (only once, though, due to the overall uniqueness constraint)
 2. The actual entries consists of `title`, `descr`, and `code`.
    Where `code` is best written with "|" for verbatim text and `descr` using ">" for multi-line flow-text.
@@ -24,8 +24,8 @@ The are composed of:
 
        title: Getting Help
        descr: >
-            Sage has extensive built-in documentation, 
-            accessible by typing the name of a function or 
+            Sage has extensive built-in documentation,
+            accessible by typing the name of a function or
             a constant (for example), followed by a question mark:
 
             ```

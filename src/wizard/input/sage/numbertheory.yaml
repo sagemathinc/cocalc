@@ -1,0 +1,16 @@
+# SMC Wizard Documentation File
+# Copyright: SageMath Inc., 2016
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+language: sage
+category: Mathematics  / Number Theory
+---
+title: Introduction
+descr: |
+    This goes through some of the basic functionalities regarding number theory.
+    Check out these resources for more in-depth information:
+
+    * [Tutorial/Number Theory](http://doc.sagemath.org/html/en/thematic_tutorials/index.html#number-theory)
+    * [Reference/Number Theory](http://doc.sagemath.org/html/en/reference/index.html#number-theory-algebraic-geometry)
+code: ""
+---

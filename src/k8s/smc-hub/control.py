@@ -55,10 +55,10 @@ def run_on_kubernetes(args):
         rethink_cpu_request = hub_cpu_request = '10m'
         rethink_memory_request = hub_memory_request = '200Mi'
     else:
-        hub_cpu_request = '300m'
+        hub_cpu_request = '500m'
         hub_memory_request = '1Gi'
-        rethink_cpu_request = '300m'
-        rethink_memory_request = '1Gi'
+        rethink_cpu_request = '500m'
+        rethink_memory_request = '2Gi'
 
 
     util.ensure_secret_exists('sendgrid-api-key', 'sendgrid')
@@ -132,7 +132,7 @@ def status(args):
         x['concurrent'] = concurrent
         bad = util.run("kubectl describe pod {name} |grep Unhealthy |tail -1 ".format(name=x['NAME']), get_output=True, verbose=False).splitlines()
         if len(bad) > 0:
-            x['unhealthy'] = bad[-1].split()[0]
+            x['unhealthy'] = bad[-1].split()[1]
         else:
             x['unhealthy'] = ''
     print("%-30s%-12s%-12s%-12s%-12s%-12s"%('NAME', 'CONCURRENT', 'BLOCKED', 'UNHEALTHY', 'RESTARTS', 'AGE'))
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
-    sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-c", "--commit", default='',
                      help="build a particular sha1 commit; the commit is automatically appended to the tag")
     sub.add_argument("-r", "--rebuild", action="store_true",

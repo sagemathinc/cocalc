@@ -44,7 +44,13 @@ cd ../smc-hub/ && ./control.py load-sendgrid ~/secrets/sendgrid/ && ./control.py
 # start static nginx server
 cd ../smc-webapp-static/ && ./control.py run -r 3  && ./control.py autoscale --min=3 --max=3
 
-# datadog
-cd ../datadog/ && ./control.py run
+# start project manager
+cd ../smc-project/manager
+./control.py run
+cd ..
 
+# TODOs
+# start disk-space watcher, which automatically increases disk space.
+
+# start cluster manager, which ensures pre-emptible nodes restart quickly.
 

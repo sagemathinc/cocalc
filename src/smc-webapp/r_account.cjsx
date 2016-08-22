@@ -32,7 +32,6 @@
 
 md5 = require('md5')
 
-account    = require('./account')
 misc       = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -475,9 +474,10 @@ AccountSettings = rclass
                 <Col xs=12>
                     <DeleteAccount
                         style={marginTop:'1ex'}
-                        initial_click={()=>@setState(show_delete_confirmation:true)}
-                        confirm_click={=>@props.redux.getActions('account').delete_account()}
-                        cancel_click={()=>@setState(show_delete_confirmation:false)}
+                        initial_click = {()=>@setState(show_delete_confirmation:true)}
+                        confirm_click = {=>@props.redux.getActions('account').delete_account()}
+                        cancel_click  = {()=>@setState(show_delete_confirmation:false)}
+                        user_name     = {@props.first_name + ' ' + @props.last_name}
                         show_confirmation={@state.show_delete_confirmation}
                         />
                 </Col>
@@ -492,6 +492,7 @@ DeleteAccount = rclass
         initial_click     : rtypes.func.isRequired
         confirm_click     : rtypes.func.isRequired
         cancel_click      : rtypes.func.isRequired
+        user_name         : rtypes.string.isRequired
         show_confirmation : rtypes.bool
         style             : rtypes.object
 
@@ -510,6 +511,7 @@ DeleteAccount = rclass
             {<DeleteAccountConfirmation
                 confirm_click={@props.confirm_click}
                 cancel_click={@props.cancel_click}
+                required_text={@props.user_name}
              /> if @props.show_confirmation}
         </div>
 
@@ -520,19 +522,18 @@ DeleteAccountConfirmation = rclass
     propTypes:
         confirm_click : rtypes.func.isRequired
         cancel_click  : rtypes.func.isRequired
+        required_text : rtypes.string.isRequired
 
     # Loses state on rerender from cancel. But this is what we want.
     getInitialState: ->
         confirmation_text : ''
-
-    required_text : 'delete this account'
 
     render : ->
         <Well style={marginTop: '26px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To proceed, type <span style={fontWeight:'bold'}>delete this account</span> below.
+            To proceed, enter your first and last name below.
             <Input
                 autoFocus
                 value       = {@state.confirmation_text}
@@ -543,7 +544,7 @@ DeleteAccountConfirmation = rclass
             />
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
-                    disabled={@state.confirmation_text != @required_text}
+                    disabled={@state.confirmation_text != @props.required_text}
                     bsStyle='danger'
                     onClick={@props.confirm_click}
                 >
@@ -1389,4 +1390,6 @@ render_top_navbar_button = ->
     <Redux redux={redux}>
         <AccountName />
     </Redux>
-ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+
+if not window.FULLY_REACT
+    ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]

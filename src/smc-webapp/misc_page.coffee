@@ -109,15 +109,18 @@ $.fn.process_smc_links = (opts={}) ->
             y = $(x)
             href = y.attr('href')
             if href?
-                if href.indexOf(document.location.origin) == 0
-                    # target starts with cloud URL or is absolute, so we open the
-                    # link directly inside this browser tab
+                if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
+                    # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
+                    # link directly inside this browser tab.
+                    # TODO: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
+                    # to have /projects/ in it -- deal with them someday...
                     y.click (e) ->
-                        n = (document.location.origin + '/projects/').length
-                        target = $(@).attr('href').slice(n)
+                        url = $(@).attr('href')
+                        i = url.indexOf('/projects/')
+                        target = url.slice(i + '/projects/'.length)
                         require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
-                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
+                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
                     # internal link
                     y.click (e) ->
                         target = $(@).attr('href')
@@ -757,13 +760,21 @@ exports.define_codemirror_extensions = () ->
             that.replaceRange(str, from, to)
 
         if completions.length == 1
-            insert(target + completions[0])
+            # do not include target in appended completion if it has a '*'
+            if target.indexOf('*') == -1
+                insert(target + completions[0])
+            else
+                insert(completions[0])
             return
 
         sel = $("<select>").css('width','auto')
         complete = $("<div>").addClass("salvus-completions").append(sel)
         for c in completions
-            sel.append($("<option>").text(target + c))
+            # do not include target in appended completion if it has a '*'
+            if target.indexOf('*') == -1
+                sel.append($("<option>").text(target + c))
+            else
+                sel.append($("<option>").text(c))
         sel.find(":first").attr("selected", true)
         sel.attr("size", Math.min(completions_size, completions.length))
         pos = @cursorCoords(from)

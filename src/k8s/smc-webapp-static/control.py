@@ -40,6 +40,11 @@ def build(tag, rebuild, commit=None):
     ga = '' # default must be an empty file, otherwise docker complains
     if os.path.exists(ga_fn):
         ga = open(ga_fn).read().strip()
+    else:
+        print('*' * 80)
+        print('There is no Google Analytics token setup.')
+        print('Write it to a file in %s -- otherwise no tracking enabled.' % ga_fn)
+        print('*' * 80)
     open(os.path.join(SCRIPT_PATH, 'image', 'google_analytics'), 'w').write(ga)
 
     if commit:
@@ -96,7 +101,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
-    sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="update to latest version of SMC from master")
     sub.add_argument("-c", "--commit", default='',
                      help="build a particular sha1 commit;  the commit is automatically appended to the tag")
@@ -117,4 +122,5 @@ if __name__ == '__main__':
     util.add_deployment_parsers(NAME, subparsers)
 
     args = parser.parse_args()
-    args.func(args)
+    if hasattr(args, 'func'):
+        args.func(args)

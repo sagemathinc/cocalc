@@ -1,5 +1,8 @@
 misc = require('smc-util/misc')
 
+# Import redux_account, so the account store is initialized.
+require('./redux_account')
+
 {React, ReactDOM, rclass, rtypes, redux, Redux} = require('./smc-react')
 {Tab, Tabs, Grid} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
@@ -128,32 +131,33 @@ AccountPage = rclass
             </Tabs> if logged_in}
         </Grid>
 
-AccountPageRedux = rclass
+exports.AccountPageRedux = AccountPageRedux = rclass
     render : ->
         actions = redux.getActions('account')
         <Redux redux={redux}>
             <AccountPage actions={actions} redux={redux}/>
         </Redux>
 
-is_mounted = false
-exports.mount = mount = ->
-    #console.log("mount account settings")
-    if not is_mounted
-        ReactDOM.render <AccountPageRedux />, document.getElementById('account')
-        is_mounted = true
-    if not redux.getStore('account').is_logged_in()
-        browser.set_window_title("") # empty string gives just the <SiteName/>
+if not window.FULLY_REACT
+    is_mounted = false
+    exports.mount = mount = ->
+        #console.log("mount account settings")
+        if not is_mounted
+            ReactDOM.render <AccountPageRedux />, document.getElementById('account')
+            is_mounted = true
+        if not redux.getStore('account').is_logged_in()
+            browser.set_window_title("") # empty string gives just the <SiteName/>
 
-exports.unmount = unmount = ->
-    #console.log("unmount account settings")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById("account"))
-        is_mounted = false
+    exports.unmount = unmount = ->
+        #console.log("unmount account settings")
+        if is_mounted
+            ReactDOM.unmountComponentAtNode(document.getElementById("account"))
+            is_mounted = false
 
-{top_navbar} = require('./top_navbar')
+    {top_navbar} = require('./top_navbar')
 
-top_navbar.on "switch_to_page-account", () ->
-    mount()
+    top_navbar.on "switch_to_page-account", () ->
+        mount()
 
-top_navbar.on "switch_from_page-account", () ->
-    unmount()
+    top_navbar.on "switch_from_page-account", () ->
+        unmount()

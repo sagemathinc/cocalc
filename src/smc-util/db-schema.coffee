@@ -566,11 +566,34 @@ schema.projects =
         course :
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+        run :
+            type : 'bool'
+            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
+        storage_server :
+            type : 'number'
+            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+        storage_ready :
+            type : 'bool'
+            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+        disk_size :
+            type : 'number'
+            desc : 'Size in megabytes of the project disk.'
+        resources :
+            type : 'map'
+            desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
+        preemptible :
+            type : 'bool'
+            desc : 'If true, allow to run on preemptible nodes.'
+        idle_timeout :
+            type : 'number'
+            desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
+        run                       : [] # so can easily tell which projects should be running
+        storage_server            : [] # so can easily get projects on a particular storage server
         seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
         created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]

@@ -289,7 +289,14 @@ class Console extends EventEmitter
         # but can also be the result of a device attributes request, etc.
         @terminal.on 'data',  (data) =>
             @session.write_data(data)
-            setTimeout(@reconnect_if_no_recent_data, 3000)
+
+            # In case nothing comes back soon, we reconnect -- maybe the session is dead?
+            # We wait 10x the ping time, so if connection is slow, this won't
+            # constantly reconnect, but it is very fast in case the connection is fast.
+            latency = smc.client.latency()
+            if latency?
+                delay = Math.min(4000, latency*10)
+                setTimeout(@reconnect_if_no_recent_data, delay)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
@@ -300,7 +307,7 @@ class Console extends EventEmitter
 
             # The remote server sends data back to us to display:
             @session.on 'data',  (data) =>
-                #console.log("terminal got #{data.length} characters")
+                #console.log("terminal got #{data.length} characters -- '#{data}'")
                 @_got_remote_data = new Date()
                 if @_rendering_is_paused
                     @_render_buffer += data

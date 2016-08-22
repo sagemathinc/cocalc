@@ -2,7 +2,7 @@
 Python3 utility functions, mainly used in the control.py scripts
 """
 
-import argparse, base64, json, os, subprocess, tempfile, time
+import argparse, base64, json, os, shutil, subprocess, tempfile, time
 
 join = os.path.join
 
@@ -191,8 +191,13 @@ def update_deployment(filename_yaml):
     - filename_yaml -- the name of a yaml file that describes a deployment
     """
     import yaml
-    name = yaml.load(open(filename_yaml).read())['metadata']['name']
-    run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    content = open(filename_yaml).read()
+    name = yaml.load(content)['metadata']['name']
+    try:
+        run(['kubectl', 'replace' if name in get_deployments() else 'create', '-f', filename_yaml])
+    except:
+        print(content)
+        raise
 
 def stop_deployment(name):
     if name in get_deployments():
@@ -235,7 +240,7 @@ def get_tag(args, name, build=None):
     tag = name
     if args.tag:
         tag += ':' + args.tag
-    elif not args.local:
+    elif not hasattr(args, 'local') or not args.local:
         t = gcloud_most_recent_image(name)
         if t is None:
             from argparse import Namespace
@@ -248,7 +253,7 @@ def get_tag(args, name, build=None):
             return tag
         else:
             return t
-    if not args.local:
+    if not hasattr(args, 'local') or not args.local:
         tag = gcloud_docker_repo(tag)
     return tag
 
@@ -282,7 +287,6 @@ def get_pod_ip(**selector):
             s = json.loads(run(['kubectl', 'get', 'pods', x['NAME'], '-o', 'json'], get_output=True))
             return s['status']['podIP']
     return None
-
 
 def ensure_persistent_disk_exists(name, size=10, disk_type='standard', zone=None):
     """
@@ -474,13 +478,13 @@ def add_htop_parser(name, subparsers, custom_selector=None, default_container=''
     add_exec_parser(name, subparsers, 'htop', c, custom_selector=custom_selector,
                     default_container=default_container)
 
-def add_edit_parser(name, subparsers):
+def add_edit_parser(name, subparsers, cls='deployment', **ignored):
     def f(args):
-        run(['kubectl', 'edit', 'deployment', name])
-    sub = subparsers.add_parser('edit', help='edit the deployment')
+        run(['kubectl', 'edit', cls, name])
+    sub = subparsers.add_parser('edit', help='edit the %s'%cls)
     sub.set_defaults(func=f)
 
-def add_autoscale_parser(name, subparsers):
+def add_autoscale_parser(name, subparsers, **ignored):
     sub = subparsers.add_parser('autoscale', help='autoscale the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sub.add_argument("--min",  default=None, help="MINPODS")
     sub.add_argument("--max", help="MAXPODS (required and must be at least 1)", required=True)
@@ -502,18 +506,16 @@ def images_on_gcloud(NAME, args):
     for x in v:
         print("%-40s%-40s%-20s"%(x['TAG'], x['REPOSITORY'], x['CREATED'].isoformat()))
 
-def add_images_parser(NAME, subparsers):
+def add_images_parser(NAME, subparsers, **ignored):
     sub = subparsers.add_parser('images', help='list {name} tags in gcloud docker repo, from newest to oldest'.format(name=NAME))
     sub.set_defaults(func=lambda args: images_on_gcloud(NAME, args))
 
-def add_deployment_parsers(NAME, subparsers, default_container=''):
-    add_edit_parser(NAME, subparsers)
-    add_autoscale_parser(NAME, subparsers)
-    add_images_parser(NAME, subparsers)
-    add_logs_parser(NAME, subparsers, default_container=default_container)
-    add_bash_parser(NAME, subparsers, default_container=default_container)
-    add_top_parser(NAME, subparsers, default_container=default_container)
-    add_htop_parser(NAME, subparsers, default_container=default_container)
+def add_deployment_parsers(NAME, subparsers, default_container='', exclude=None):
+    if isinstance(exclude, str):
+        exclude = set(exclude.split())
+    for parser in 'edit autoscale images logs bash top htop'.split():
+        if not exclude or parser not in exclude:
+            globals()['add_{parser}_parser'.format(parser=parser)](NAME, subparsers, default_container=default_container)
 
 def get_desired_replicas(deployment_name, default=1):
     x = json.loads(run(['kubectl', 'get', 'deployment', deployment_name, '-o', 'json'], get_output=True))
@@ -632,4 +634,13 @@ def get_logs(*names, **kwds):
         v.append(str(b))
     return run(v + list(names), get_output=True, verbose=False)
 
-
+class util_coffee:
+    def __init__(self, path):
+        self.path = path
+    def __enter__(self):
+        shutil.copyfile(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'util.coffee'), os.path.join(self.path, 'util.coffee'))
+    def __exit__(self, type, value, traceback):
+        try:
+            os.unlink(os.path.join(self.path, 'util.coffee'))
+        except:
+            pass

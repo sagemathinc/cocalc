@@ -5,21 +5,19 @@ VERSION ?= latest
 TAG      = ${NAME}:${VERSION}
 VOL      = --volume=/ext:/ext
 RUN      = docker run -it "${VOL}" "${TAG}"
+CREATE   = docker create -it "${VOL}" "${TAG}"
+COMMIT   = docker commit ${ID} ${TAG}
 
 # extra arguments for docker build
 EXTRA_ARGS ?=
 
-PHONY = clean build rebuild tag prod beta
+PHONY = clean build tag prod beta snapshot
 
-default: rebuild
-
-rebuild:
-	@echo "re-building with tag ${TAG}"
-	EXTRA_ARGS="--no-cache=true" $(MAKE) build
+default: build
 
 build:
-	@echo "building with tag ${TAG}"
-	docker build ${EXTRA_ARGS} --rm "--tag=${TAG}" .
+	@echo "re-building with tag ${TAG}"
+	docker build ${EXTRA_ARGS} --no-cache=true --rm "--tag=${TAG}" .
 
 tag:
 	@echo "tagging latest ${NAME} image with ${VERSION}"
@@ -40,3 +38,7 @@ clean:
 	# it fails, because there is no "--no-run-if-empty" and hence docker complains
 	-while `docker images -q --filter "dangling=true" | xargs docker rmi`; do :; done
 
+snapshot:
+	$(eval DATE = $(shell date -u +"%Y-%m-%d-%H%M%S"))
+	gcloud compute disks snapshot extern-compute --snapshot-names extern-compute-${DATE}
+	@echo snapshot created: extern-compute-${DATE}

@@ -56,6 +56,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
+DEBUG=false
+
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
         @dbg('constructor')()
@@ -170,7 +172,10 @@ class exports.Client extends EventEmitter
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
-        return (m) -> winston.debug("Client.#{f}: #{m}")
+        if DEBUG
+            return (m) -> winston.debug("Client.#{f}: #{m}")
+        else
+            return (m) ->
 
     # todo: more could be closed...
     close: () =>
@@ -195,7 +200,7 @@ class exports.Client extends EventEmitter
         return true
 
     is_connected: =>
-        @_connected
+        return @_connected
 
     # We trust the time on our own compute servers (unlike random user's browser).
     server_time: () =>
@@ -219,7 +224,7 @@ class exports.Client extends EventEmitter
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
-            if misc.len(@_hub_client_sockets) == 1
+            if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
                 @emit('connected')
@@ -389,20 +394,38 @@ class exports.Client extends EventEmitter
         return new syncstring.SyncString(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
+    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
     write_file: (opts) =>
         opts = defaults opts,
             path : required
             data : required
             cb   : required
         path = join(process.env.HOME, opts.path)
+        @_file_io_lock ?= {}
+        dbg = @dbg("write_file(path='#{opts.path}')")
+        dbg()
+        if @_file_io_lock[path]?
+            dbg("LOCK")
+            opts.cb("file is currently being read or written")
+            return
+        @_file_io_lock[path] = true
+        dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>
                 misc_node.ensure_containing_directory_exists(path, cb)
             (cb) =>
                 fs.writeFile(path, opts.data, cb)
-        ], opts.cb)
+        ], (err) =>
+            delete @_file_io_lock[path]
+            if err
+                dbg("error -- #{err}")
+            else
+                dbg("success")
+            opts.cb(err)
+        )
 
     # Read file as a string from disk.
+    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
     path_read: (opts) =>
         opts = defaults opts,
             path       : required
@@ -412,6 +435,13 @@ class exports.Client extends EventEmitter
         path    = join(process.env.HOME, opts.path)
         dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
         dbg()
+        @_file_io_lock ?= {}
+        if @_file_io_lock[path]?
+            dbg("LOCK")
+            opts.cb("file is currently being read or written")
+            return
+        @_file_io_lock[path] = true
+        dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>
                 if opts.maxsize_MB?
@@ -442,7 +472,8 @@ class exports.Client extends EventEmitter
                         content = data.toString()
                         cb()
         ], (err) =>
-           opts.cb(err, content)
+            delete @_file_io_lock[path]
+            opts.cb(err, content)
         )
 
     path_access: (opts) =>

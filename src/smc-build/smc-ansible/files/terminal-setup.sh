@@ -45,6 +45,20 @@ if [[ $- =~ i  && `whoami` != "root"  && `whoami` != "salvus" ]]; then
    echo ""
 fi
 
+# colored man pages
+# credits: http://boredzo.org/blog/archives/2016-08-15/colorized-man-pages-understood-and-customized
+man() {
+    env \
+        LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+        LESS_TERMCAP_md=$(printf "\e[1;31m") \
+        LESS_TERMCAP_me=$(printf "\e[0m") \
+        LESS_TERMCAP_se=$(printf "\e[0m") \
+        LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+        LESS_TERMCAP_ue=$(printf "\e[0m") \
+        LESS_TERMCAP_us=$(printf "\e[1;32m") \
+            man "$@"
+}
+
 export SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS
 
 path-prepend "/ext/bin"
@@ -61,5 +75,8 @@ export LANGUAGE=en_US:en
 export LESS_TERMCAP_so=$'\E[;7m'
 export LESS_TERMCAP_se=$'\E[;27m'
 
-# run an additional setup script when it exists in /ext/init.sh
-test -x /ext/init.sh && /ext/init.sh
+# Julia packages are globally installed right here
+export JULIA_PKGDIR=/usr/local/share/julia/site/
+
+# source an additional setup script when it exists in /ext/init.sh
+test -x /ext/init.sh && . /ext/init.sh

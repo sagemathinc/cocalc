@@ -11,7 +11,7 @@
     apt_key: keyserver=keyserver.ubuntu.com id=E084DAB9
 
   - name: 'Official R repository url'
-    apt_repository: repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
+    apt_repository: mode=644 repo="deb {{ repo }}bin/linux/ubuntu {{ ansible_distribution_release }}/"
 
   - name: 'R installation (some base packages)'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -423,6 +423,14 @@
     - r-bioc-summarizedexperiment
     - r-bioc-variantannotation
     - r-bioc-xvector
+
+  - name: "R bioconductor packages from CRAN"
+    tags: [cran, install, update]
+    shell: >
+        echo 'library(BiocInstaller); biocLite(c("geneplotter", "puma", "affyPLM", "ddCt",
+        "affydata", "hgu133plus2.db", "oligo", "gcrma", "GEOquery",
+        "hgu95av2cdf", "hgu133plus2cdf", "hgu95av2.db",
+        "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus"))' | R --no-save
 
   - name: "R packages from CRAN"
     tags: [cran, install, update]

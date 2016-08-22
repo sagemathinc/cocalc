@@ -25,10 +25,12 @@ Editor for files in a project
 <div id="salvus-editor-templates" class="hide">
 
     <!-- Template for the entire editor, both tabs and the actual content -->
-    <div class="salvus-editor" style="margin-left:3em;">
-        <div class="row" style="margin-top:1ex;">
-            <!-- The editor content gets displayed here -->
-            <div class="salvus-editor-content">
+    <div class="salvus-editor">
+        <div class="row">
+            <div class="col-xs-12">
+                <!-- The editor content gets displayed here -->
+                <div class="salvus-editor-content">
+                </div>
             </div>
         </div>
     </div>
@@ -195,6 +197,7 @@ Editor for files in a project
 
                 <div class="salvus-editor-codemirror-textedit-buttons hide">
                     <code class="salvus-editor-codeedit-buttonbar-mode pull-right"></code>
+                    <span class="react-target"></span>
                 </div>
                 <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
                     <span class="btn-group">
@@ -476,7 +479,7 @@ Editor for files in a project
     </div>
 
 
-    <div class="salvus-editor-history" style="border: 1px solid grey; padding-top: 6px; padding-right: 5px;">
+    <div class="salvus-editor-history" style="border: 1px solid grey; padding-top: 6px; padding-right: 5px; position:fixed; left:0; width:100%;">
         <span class="salvus-editor-history-controls">
             <span style="color:#666; font-size:14pt; font-weight: bold; margin-left:1em">
                 <i class="fa fa-history"></i>
@@ -1018,7 +1021,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <div class="salvus-editor-textedit-buttonbar" style="margin: 2px">
+    <div class="salvus-editor-textedit-buttonbar">
         <span class="btn-group">
             <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Bold"><i class="fa fa-bold"></i></a>
             <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Italic"><i class="fa fa-italic"></i></a>
@@ -1103,74 +1106,6 @@ Editor for files in a project
     </div>
     <div class="salvus-editor-fallback-edit-buttonbar hide" style="margin: 2px">
         <a class="btn btn-default" href="#todo">&hellip;</a>
-    </div>
-
-    <!-- smc wizard, see wizard.coffee -->
-    <div class="modal smc-wizard" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div class="row">
-                        <div class="col-sm-3"><h2><i class="fa fa-magic"></i> Wizard</h2>
-                        </div>
-                        <div class="col-sm-6">
-                            <ul class="nav nav-pills smc-wizard-nav">
-                            </ul>
-                        </div>
-                        <div class="col-sm-2">
-                            <div>
-                                <input class="form-control smc-wizard-search" type="text" placeholder="Search" />
-                            </div>
-                        </div>
-                        <div class="col-sm-1">
-                            <button type="button" class="close btn-close" aria-hidden="true" data-dismiss="modal">
-                                <span>×</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <div>
-                                <ul class="list-group smc-wizard-lvl1">
-                                    <!-- <li class="list-group-item active"><span class="badge">3</span>Porta ac consectetur ac</li> -->
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div>
-                                <ul class="list-group smc-wizard-lvl2">
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div>
-                                <ul class="list-group smc-wizard-doc">
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <pre class="code smc-wizard-code"></pre>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="panel panel-default smc-wizard-descr">
-                                <!--<div class="panel-heading">Title 123</div>-->
-                                <div class="panel-body">
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-close btn-default">Cancel</button>
-                    <button class="btn btn-primary btn-submit">Insert Code</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class='sagews-output-raw_input'>

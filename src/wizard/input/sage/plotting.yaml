@@ -1,16 +1,16 @@
 # SMC Wizard Documentation File
-# Copyright: SageMathCloud Authors, 2015
+# Copyright: SageMath Inc., 2015--2016
 # License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 language: sage
 category: plotting/Intro
 ---
-title: Intro
+title: Introduction
 descr: This is a very simple example how to plot a function.
 code:  plot(x * sin(x), (x, -10, 10))
 ---
 title: Simple 2D Plot
-code:  plot(sin, (x, -10, 10))
+code:  plot(2*x^2 - 3*x + 1, (x, -10, 10))
 descr: Plot of $\sin$-function.
 ---
 title: Cool 2D Plot

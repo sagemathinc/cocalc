@@ -172,20 +172,34 @@ SAGE_PIP_PACKAGES = [
     'numexpr',
     'tables',
     'scikit_learn',
+    'gensim',
     'theano',
+    'dask',
+    'distributed',
+    'toolz',
+    'cytoolz',
+    'geopandas',
+    'descartes',
     'scikit-image',
     'Shapely',
     'SimPy',
+    'ncpol2sdpa',
+    'hdbscan',
+    'openpyxl',
     'xlrd',
     'xlwt',
     'pyproj',
     'bitarray',
     'h5py',
+    'ipdb', # https://github.com/sagemathinc/smc/issues/319
+    'pandas-profiling',
     'netcdf4',
     'lxml',
     'munkres',
     'oct2py',
     'psutil',
+    # 'pymc', # pymc v2 doesn't work due to too old numpy api. pymc3 below does work, though.
+    'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
     'mahotas',
@@ -206,7 +220,6 @@ SAGE_PIP_PACKAGES = [
     'colorpy',
     #'rootpy',    # supports ROOT data analysis framework  -- broken "import ROOT" doesn't work anymore
     'tabulate',
-    'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
     'ez_setup',   # needed by fipy
     #'pysparse',    # needed by fipy; for the ==1.2-dev213 bullshit, see http://stackoverflow.com/questions/25459011/how-to-build-pysparse-on-ubuntu; it's amazing how bad pypi and python packaging are.  Wow.
@@ -262,9 +275,21 @@ SAGE_PIP_PACKAGES = [
     'control',
     'yattag',
     'pyyaml',
-    'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
-    'bash_kernel' # the jupyter bash kernel
+    'bash_kernel', # the jupyter bash kernel
+    'cvxpy', # convex optimization toolbox by univ stanford
+    'pydataset', # datasets from R for pandas
+    'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
+    'wordcloud', # https://github.com/amueller/word_cloud
+    'cobra', # https://cobrapy.readthedocs.io/en/stable/
+    'python-libsbml', # dependency of cobra
+    'markdown',
+    'vpython', # http://vpython.org/ used in physics
+    'tdigest',
+    'numpy-stl',
+    'blaze',
+    'npTDMS',
+    'nipype',  # https://github.com/nipy/nipype/
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -274,7 +299,34 @@ SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'datasift'
+    'datasift',
+    'vpnotebook', # http://vpython.org/ used in physics
+    'python_utils',
+    'jdcal',
+    'fiona',
+    'enum',
+    'python_utils',
+    'ecos', # cvxpy
+    'scs', # cvxpy
+    'multiprocess', # cvxpy
+    'dill', # cvxpy
+    'CVXcanon', # cvxpy
+    'fastcache', # cvxpy
+    'CommonMark', # pymc3
+    'recommonmark', # pymc3
+    'nbsphinx', # pymc3
+    'numpydoc', # pymc3
+    'enum34', # pymc3
+    'smart_open', # gensim
+    'odo', # blaze
+    'multipledispatch', # blaze
+    'datashape', # blaze
+    'sqlalchemy', # blaze
+    'contextlib2', # blaze
+    'flask-cors', # blaze
+    'bintrees', # tdigest
+    'pyudorandom', # tdigest
+    'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
 ]
 
 
@@ -307,7 +359,7 @@ R_PACKAGES = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # not available for 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -467,6 +519,8 @@ class BuildSage(object):
         self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
         self.install_R_bioconductor()
+        self.install_rstan()
+        self.install_pystan()
         self.install_optional_packages()
         self.install_quantlib()
         self.install_basemap()
@@ -480,6 +534,7 @@ class BuildSage(object):
         self.install_cairo()
         self.install_psage()
         self.install_pycryptoplus()
+        # self.install_tensorflow() # doesn't work
         # FAILED:
         self.install_neuron()
 
@@ -518,7 +573,7 @@ class BuildSage(object):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
 
     def install_psage(self):
-        self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
+        self.cmd("cd /tmp/&& rm -rf psage && git clone https://github.com/williamstein/psage.git && cd psage&& sage setup.py install && rm -rf /tmp/psage")
 
     def install_pycryptoplus(self):
         self.cmd("cd /tmp/ && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf /tmp/python-cryptoplus")
@@ -797,7 +852,7 @@ class BuildSage(object):
                 return
         except Exception, msg:
             pass
-        cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
+        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap.git", "/tmp")
         cmd("python setup.py install", "/tmp/basemap")
         shutil.rmtree("/tmp/basemap")
 
@@ -815,7 +870,7 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        GDAL_VERSION       = '2.1.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
@@ -844,6 +899,18 @@ class BuildSage(object):
         open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
         shutil.rmtree(path)
 
+    def install_tensorflow(self):
+        """
+        Check for updated wheel packages here:
+        https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
+
+        Status: Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+        it also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+        """
+        cmd("pip install --no-deps --upgrade 'protobuf>=3.0.0a3'")
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp27-none-linux_x86_64.whl'
+        cmd("pip install --no-deps --upgrade %s" % TF_BINARY_URL)
+
     def clean_up(self):
         # clean up packages downloaded and extracted using the download command
         src = os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'src')
@@ -869,5 +936,6 @@ class BuildSage(object):
 
     def fix_permissions(self):
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+
 
 

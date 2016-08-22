@@ -147,11 +147,14 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-        opts.cb = (err) =>
-            @set_project_state_open(opts.project_id, err)
-        open_project(opts)
-        if opts.switch_to
-            @foreground_project(opts.project_id)
+        if window.FULLY_REACT
+            @set_project_state_open(opts.project_id)
+        else
+            opts.cb = (err) =>
+                @set_project_state_open(opts.project_id, err)
+            open_project(opts)
+            if opts.switch_to
+                @foreground_project(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
@@ -990,8 +993,8 @@ NewProjectCreator = rclass
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>
-                To prevent abuse the free version doesn{"'"}t have internet access. 
-                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or 
+                To prevent abuse the free version doesn{"'"}t have internet access.
+                Installing software from the internet, using Github/Bitbucket/Gitlab/etc, and/or
                 any other internet resources
                 is not possible with the free version.
                 Starting at just $7/month you can give your project(s)
@@ -1009,7 +1012,7 @@ NewProjectCreator = rclass
 
     render_no_title_alert : ->
         if @state.title_text == '' and @state.state != 'saving'
-            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert> 
+            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
 
     render_create_with_upgrades_button : (create_btn_disabled) ->
         <ButtonToolbar>
@@ -1254,6 +1257,17 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
+    clear_and_focus_input : ->
+        redux.getActions('projects').setState(search: '')
+        @refs.projects_search.getInputDOMNode().focus()
+
+    render_span : (query) ->
+        <span>whose title, description or users contain <strong>{query}</strong>
+        <Space/><Space/>
+        <Button onClick={@clear_and_focus_input}>
+            Cancel
+        </Button></span>
+
     render_alert_message : ->
         query = @props.search.toLowerCase()
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
@@ -1261,11 +1275,11 @@ ProjectsListingDescription = rclass
         query += hashtags_string
 
         if query isnt '' or @props.deleted or @props.hidden
-            <Alert bsStyle='warning'>
+            <Alert bsStyle='warning' style={'fontSize':'1.3em'}>
                 Only showing<Space/>
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
-                {if query isnt '' then <span>whose title, description or users contain <strong>{query}</strong></span>}
+                {if query isnt '' then @render_span(query)}
             </Alert>
 
     render : ->
@@ -1675,7 +1689,7 @@ ProjectSelector = rclass
         <Footer/>
         </div>
 
-ProjectsPage = rclass
+exports.ProjectsPage = ProjectsPage = rclass
     displayName : 'Projects-ProjectsPage'
 
     render : ->

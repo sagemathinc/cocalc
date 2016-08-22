@@ -1,41 +1,53 @@
 NAME ?= smc-project-base
 
+# for build: tells docker to also update the linux base image
+EXTRA_ARGS=--pull
+
 include ../makefile
 
-PHONY += run edit commit clean squash test
+PHONY += run root commit clean squash test
 
 squash:
 	@echo "remove all intermediate layers after several edit steps"
 	$(eval ID = $(shell docker create ${NAME}:latest))
 	@echo container ID = ${ID}
-	docker export ${ID} | docker import - ${NAME}:latest
+	# no idea, if --change ENTRYPOINT is really necessary
+	docker export ${ID} | docker import --change 'ENTRYPOINT ["./manage.sh"]' - ${NAME}:latest
 	@echo "squashing completed. consider running 'make clean' to free some space ..."
 
 install:
 	@echo "runs all ansible install tasks -- do this once after rebuilding the image"
-	$(RUN) install
-	$(MAKE) commit
+	$(eval ID = $(shell $(CREATE) install))
+	docker start -ai ${ID}
+	@echo "to commit, run ${COMMIT}"
 
 update:
 	@echo "runs all ansible tasks marked as 'update'"
-	$(RUN) update
-	$(MAKE) commit
+	$(eval ID = $(shell $(CREATE) update))
+	docker start -ai ${ID}
+	@echo "to commit, run ${COMMIT}"
 	@echo "consider to run 'make squash' after several such update steps!"
 
 test:
 	@echo "runs all integration tests"
-	$(RUN) test
+	$(eval ID = $(shell $(CREATE) test))
+	docker start -ai ${ID}
+	-docker cp ${ID}:/smc-compute-env.libs.csv .
+	-docker cp ${ID}:/smc-compute-env.bins.csv .
+	-docker cp ${ID}:/smc-compute-env.html .
 
-edit run:
+run:
 	@echo "starting bash in image with tag ${TAG} -- exit/ctrl-d to get out of it"
-	$(RUN) bash
-	@echo "!!! >>>> Run 'make commit' to update the image with your new edits -- otherwise they're discarded <<<< !!!"
+	$(eval ID = $(shell $(CREATE) run))
+	docker start -ai ${ID}
+	@echo "to commit, run ${COMMIT}"
 	@echo "also consider to run 'make squash' after several edit steps!"
 
-commit:
-	@echo "commit latest changes (after "edit"ing) of the container to the image"
-	$(eval ID = $(shell docker ps --all --latest --quiet --no-trunc --filter ancestor=${TAG}))
-	docker commit ${ID} ${TAG}
-	@echo "image ${TAG} has been updated and committed with the ID ${ID}"
-	@echo "maybe run 'make clean' to get rid of untagged/unreferenced leftovers"
+root:
+	@echo "starting root bash shell in image with tag ${TAG} -- exit/ctrl-d to get out of it"
+	$(eval ID = $(shell $(CREATE) root))
+	docker start -ai ${ID}
+	@echo "to commit, run ${COMMIT}"
+	@echo "also consider to run 'make squash' after several edit steps!"
+
 

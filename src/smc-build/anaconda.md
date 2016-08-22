@@ -36,6 +36,31 @@ where root just stands for the base environment of anaconda (not the root user)
 1. `umask 002`
 1. Update the conda package manager itself: `conda update conda`
 1. Now update everything: `conda update --all`
+## Anaconda Channels
+
+**.condarc**
+
+at 2016-07-12 for setting up the env in the external volume for the smc-project containers, it was:
+
+    > cat .condarc
+    channels:
+      - amueller
+      - vpython
+      - ioos
+      - omnia
+      - Unidata
+      - jjhelmus
+      - juanlu001
+      - obspy
+      - bokeh
+      - r
+      - mro
+      - bioconda
+      - pypi
+      - plotly
+      - conda-forge
+      - defaults
+    show_channel_urls: True
 
 ## installing additional packages
 
@@ -45,28 +70,25 @@ where root just stands for the base environment of anaconda (not the root user)
 1. activate the environment (see above)
 1. `umask 002`
 
-    conda install -y basemap bcolz
+       conda install -y basemap bcolz blist boost bsdiff4 btrees bz2file  cherrypy chest cloudpickle coverage cssselect csvkit cubes cvxopt cymem dask distributed xarray datrie db dill django docopt toolz cytoolz datashader python-symengine pymc gdal
 
-    conda install -y blist boost bsdiff4 btrees bz2file  cherrypy chest cloudpickle
+       conda install -y ecdsa ephem execnet  feedparser flake8 flask-wtf flask-login future gensim geos gunicorn heapdict html5lib  lancet libnetcdf line_profiler llvm locket lockfile logilab-common mako markdown2 mdp mock markdown descartes pysal wordcloud vpython
 
-    conda install -y coverage cssselect csvkit cubes cvxopt cymem dask datrie db dill django docopt
+       conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra
 
-    conda install -y ecdsa ephem execnet  feedparser flake8 flask-wtf flask-login future gensim geos gunicorn heapdict html
-    5lib  lancet libnetcdf line_profiler llvm locket lockfile logilab-common mako markdown2 mdp mock
-
-    conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc
-
-    conda install -y  paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath
-
-    conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader
+       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials
 
 not possible to install (conflict with python 3.5):
 
     pyamg, opencv, mercurial, ... ?
 
+## CLEANUP!
+
+    conda clean --all --yes
+
 ## **(!!!)** uninstall boto
 
-(clashes with system wide boto in /usr/share)
+(clashes with system wide boto in /usr/share) -- this was pre-containerization, so that's maybe not useful any more
 
     conda uninstall -y boto
 
@@ -103,18 +125,18 @@ This is a list of additional packages, which aren't already part of anaconda 3, 
 ```
 pip3 = [
     'scikits.bootstrap',
-    'mpld3',
     'mahotas',
 ]
 ```
 
-## Anaconda Channels
+
+
+### older install notes:
 
 To learn about them, do `anaconda search -t conda PACKAGENAMEPATTERN` and then `anaconda show …` as told in the output string.
 
     conda install -y --channel https://conda.anaconda.org/andreas-h shapely
-    conda install -y --channel https://conda.anaconda.org/JimInCO pyproj
     conda install -y --channel https://conda.anaconda.org/omnia munkres
     conda install -y --channel https://conda.anaconda.org/IOOS oct2py
-    conda install -y --channel https://conda.anaconda.org/jiangxiluning plotly
+
 

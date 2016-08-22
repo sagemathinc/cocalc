@@ -6,19 +6,17 @@
   tasks:
 
   - apt: "name={{ item }} state=latest"
-    tags: pip2
+    tags: [pip2, update, install]
     with_items:
     - python-pip
     - python3-pip
-    #- llvm-3.7
-    #- llvm-3.7-dev # for numba
 
   - name: "update pip"
-    tags: [ pip2, update ]
+    tags: [ pip2, update, install ]
     pip: "executable=pip2 state=latest name=pip"
 
   - name: "additional pip2 packages"
-    tags: [ pip2, update ]
+    tags: [ pip2, update, install ]
     pip: executable=pip2
          state=latest
          umask=022
@@ -38,15 +36,44 @@
     - bayespy==0.3.6
     - pandasql
     - blaze
+    - cvxpy
+    - bqplot
+    - pydataset
+    - theano
+    - dask
+    - distributed
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
+    - ncpol2sdpa
+    - hdbscan
+    - pandas-profiling
+    - wordcloud
+    - cobra
+    - gensim
+    - vpython
+    - tdigest
+    - numpy-stl
+    - npTDMS
+    - nipype
 
-  - tags: [ pip2, update ]
+  - name: "install git trac from github"
+    tags: [ pip2, update, install ]
+    pip: executable=pip2
+         umask=022
+         name="git+https://github.com/sagemath/git-trac-command.git"
+         editable=false
+
+  - name: "install JSAnimation from github"
+    tags: [ pip2, update, install ]
     pip: executable=pip2
          umask=022
          name='git+https://github.com/jakevdp/JSAnimation.git'
          editable=false
 
   - name: "additional pip3 packages"
-    tags: [ pip3, update ]
+    tags: [ pip3, update, install ]
     pip: executable=pip3
          state=latest
          umask=022
@@ -60,7 +87,6 @@
     - zope.interface
     - scikit-learn
     - datasift
-    # - numba # TODO figure this out later, some error with llvm
     - holoviews
     - statsmodels
     - mygene
@@ -69,6 +95,41 @@
     - bayespy
     - pandasql
     - blaze
+    - cvxpy
+    - bqplot
+    - pydataset
+    - theano
+    - dask
+    - distributed
+    - xlwt
+    - xarray
+    - toolz
+    - cytoolz
+    - pysal
+    - hdbscan
+    - pandas-profiling
+    - wordcloud
+    - cobra
+    #- ncpol2sdpa # should work, but strange 'UnicodeDecodeError: 'ascii' codec can't decode byte ...' on install
+    - gensim
+    - vpython
+    - tdigest
+    - numpy-stl
+    - npTDMS
+    - nipype
+
+  - name: "numba in py2 and py3"
+    # might change to llvm 3.8 later, etc.
+    tags: [ pip2, pip3, install, update ]
+    shell: |
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip2 install llvmlite numba
+        LLVM_CONFIG=/usr/lib/llvm-3.7/bin/llvm-config pip3 install llvmlite numba
+
+  - name: "pymc3 in py2 and py3"
+    tags: [ pip2, pip3, install, update ]
+    shell: |
+        pip2 install git+https://github.com/pymc-devs/pymc3
+        pip3 install git+https://github.com/pymc-devs/pymc3
 
   - name: "no sysinfo in MOTD"
     lineinfile: dest=/etc/update-motd.d/50-landscape-sysinfo
@@ -110,9 +171,6 @@
                 line="#SHOWWARNING=true"
     tags: tmpreaper
 
-  - name: "IPython with notebook and octave+bash kernel / remove ipython"
-    apt: name=ipython state=absent
-    tags: [ ipython, install, update ]
   - name: "IPython with notebook and octave+bash kernel / install from pip"
     tags: [ ipython, install, update ]
     pip: executable=pip2
@@ -142,7 +200,7 @@
     - ipywidgets
 
   - name: "Special script to run python2 systemwide from within Sage"
-    tags: python2sage
+    tags: ["python2sage", "install"]
     copy: src=files/python2-ubuntu.sh
           dest=/usr/local/bin/python2-ubuntu
           owner=root group=root mode="u=rx,g=rx,o=rx"
@@ -167,7 +225,7 @@
                 insertafter=EOF
 
   - name: "install primesieve"
-    tags: primesieve
+    tags: ["primesieve", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp/
@@ -190,28 +248,6 @@
   #        dest=/usr/local/bin/gap3
   #        state=link
 
-  - name: "install opencv"
-    tags: opencv
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        rm -rf opencv
-        mkdir opencv
-        cd opencv
-        git clone https://github.com/Itseez/opencv_contrib.git
-        rm -rf opencv_contrib/modules/hdf
-        git clone https://github.com/Itseez/opencv.git
-        cd opencv
-        mkdir build
-        cd build
-        time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules ..
-        time make -j1
-        sudo make install
-        sudo sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/opencv.conf'
-        sudo ldconfig
-        cd /tmp
-        rm -rf opencv
-
   # Plink (whole genome analysis, not the router!)
   - name: 'install plink'
     apt: name=plink install_recommends=yes
@@ -222,7 +258,7 @@
 
   # Neovim from Github
   - name: "install neovim"
-    tags: neovim
+    tags: ["neovim", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp
@@ -237,7 +273,7 @@
 
   # Macaulay2
   - name: "install macaulay2 / apt packages"
-    tags: macaulay2
+    tags: ["macaulay2", "install"]
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
     - libntl-dev
@@ -245,22 +281,19 @@
     - libpari-gmp-tls4
     - libpari-dev
     - pari-gp2c
+  - name: "macaulay2 / apt key"
+    tags: macaulay2
+    apt_key: "keyserver=hkp://keys.gnupg.net id=CD9C0E09B0C780943A1AD85553F8BD99F40DCB31"
+  - name: "macaulay2 / deb sources"
+    tags: macaulay2
+    apt_repository: "mode=644 repo='deb http://www.math.uiuc.edu/Macaulay2/Repositories/Ubuntu {{ ansible_distribution_release }} main'"
   - name: "install macaulay2 / deb binaries"
     tags: macaulay2
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        rm -rf m2
-        mkdir m2
-        cd m2
-        wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb
-        wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb
-        sudo dpkg -i *.deb
-        rm -rf /tmp/m2
+    apt: "name=macaulay2 state=latest install_recommends=yes"
 
   # Polymake
   - name: "polymake apt package dependencies"
-    tags: polymake
+    tags: ["polymake", "install"]
     apt: "name={{ item }} state=latest install_recommends=yes"
     with_items:
     - ant
@@ -298,7 +331,7 @@
   # CRCMOD
   - name: "pip's crcmod -- critical for using google cloud storage #1"
     apt: name=crcmod state=absent
-    tags: crcmod
+    tags: ["crcmod", "install"]
   - name: "pip's crcmod -- critical for using google cloud storage #2"
     tags: crcmod
     pip: executable=pip2
@@ -308,7 +341,7 @@
 
   # X11
   - name: "git trac"
-    tags: gittrac
+    tags: ["gittrac", "install"]
     ignore_errors: yes
     shell: |
         cd /tmp/
@@ -327,12 +360,12 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: kwant
+  tags: ["kwant", "install"]
 
   tasks:
 
   - name: 'KWANT apt repository'
-    apt_repository: repo='ppa:kwant-project/ppa'
+    apt_repository: mode=644 repo='ppa:kwant-project/ppa'
 
   - name: 'install KWANT'
     tags: update
@@ -345,7 +378,8 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: giac
+  ignore_errors: yes
+  tags: ["giac", "install"]
 
   tasks:
 
@@ -353,7 +387,7 @@
     apt_key: url='http://www-fourier.ujf-grenoble.fr/~parisse/xcas_public_key.gpg'
 
   - name: 'GIAC repository'
-    apt_repository: repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
+    apt_repository: mode=644 repo='deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main'
 
   - name: 'install GIAC'
     apt: "name={{ item }} allow_unauthenticated=yes install_recommends=yes state=latest"
@@ -367,12 +401,12 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: fenics
+  tags: ["fenics", "install"]
 
   tasks:
 
   - name: 'FEniCS repository'
-    apt_repository: repo='ppa:fenics-packages/fenics'
+    apt_repository: mode=644 repo='ppa:fenics-packages/fenics'
 
   - name: 'install FEniCS'
     tags: update
@@ -382,7 +416,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: mpi
+  tags: ["mpi", "install"]
 
   tasks:
 
@@ -403,12 +437,12 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: pypy
+  tags: ["pypy", "install"]
 
   tasks:
 
   - name: 'pypy repository'
-    apt_repository: repo='ppa:pypy/ppa'
+    apt_repository: mode=644 repo='ppa:pypy/ppa'
 
   - name: 'install pypy'
     tags: update
@@ -418,12 +452,12 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: cantera
+  tags: ["cantera", "install"]
 
   tasks:
 
   - name: 'Cantera repository'
-    apt_repository: repo='ppa:speth/cantera'
+    apt_repository: mode=644 repo='ppa:speth/cantera'
 
   - name: 'install Cantera'
     tags: update
@@ -437,14 +471,14 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: heroku
+  tags: ["heroku", "install"]
 
   tasks:
 
   - name: 'heroku apt keys'
     apt_key: url='https://toolbelt.heroku.com/apt/release.key'
   - name: 'heroku apt-repository'
-    apt_repository: repo='deb http://toolbelt.heroku.com/ubuntu ./'
+    apt_repository: mode=644 repo='deb http://toolbelt.heroku.com/ubuntu ./'
   - name: "heroku install"
     tags: update
     apt: name=heroku-toolbelt install_recommends=yes state=latest
@@ -453,13 +487,13 @@
 - hosts: compute
   become: yes
   gather_facts: yes
-  tags: obspy
+  tags: ["obspy", "install"]
 
   tasks:
   - name: "obspy keys"
     apt_key: url='https://raw.github.com/obspy/obspy/master/misc/debian/public.key'
   - name: "obspy apt repository"
-    apt_repository: repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
+    apt_repository: mode=644 repo='deb http://deb.obspy.org {{ ansible_distribution_release }} main'
   - name: 'install obspy packages'
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -471,7 +505,7 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: atlas
+  tags: ["atlas", "install"]
 
   tasks:
   - name: 'install atlas'
@@ -492,14 +526,14 @@
 - hosts: compute
   become: yes
   gather_facts: yes
-  tags: openaxiom
+  tags: ["openaxiom", "install"]
   ignore_errors: yes
 
   tasks:
   - name: "pippijn ppa repository apt key -- https://launchpad.net/~pippijn/+archive/ubuntu/ppa"
     apt_key: keyserver=keyserver.ubuntu.com id=D2D8EDD2BA10D39D925BB7ED11CA9C2FE368B17C
   - name: "pippijn ppa for open axiom apt repository (for precise, since xenial does not exist)"
-    apt_repository: repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
+    apt_repository: mode=644 repo='deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main'
   - name: "install open axiom"
     tags: update
     apt: name="open-axiom*"
@@ -510,14 +544,16 @@
 - hosts: compute
   become: yes
   gather_facts: no
-  tags: octave
+  tags: ["octave", "install"]
 
   tasks:
   - name: "install ocatave"
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:
+    - octave
     - octave-biosig
+    - octave-bim
     - octave-common
     - octave-communications
     - octave-communications-common
@@ -571,5 +607,6 @@
     - octave-vlfeat
     - octave-vrml
     - octave-zenity
+    - libsbml5-octave
   - name: "fix some font for octave"
     file: src=/usr/share/fonts/truetype/liberation dest=/usr/share/fonts/truetype/ttf-liberation state=link

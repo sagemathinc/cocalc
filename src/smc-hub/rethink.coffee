@@ -19,6 +19,18 @@
 #
 ###############################################################################
 
+# The following limit massively reduces the chances of a feedback-loop/race
+# condition bug causing the servers to get killed.   Clients may currently
+# just silently not open new docs if they hit the limit, which is bad.  However,
+# it's very unlikely somebody has 100 files open at once on purpose -- the browser
+# would likely die.  This is meant to prevent situations where a *bug* causes
+# thousands of changefeeds to get opened in a second.
+# If there were a better error, this could be a parameter that depends on
+# whether the user (or project) is paying or not.
+MAX_CHANGEFEEDS_PER_CLIENT = 5*100 # about 3-5 feeds per file right now
+# increase until better garbage collection of changefeeds!
+MAX_CHANGEFEEDS_PER_CLIENT = 12*100
+
 fs         = require('fs')
 async      = require('async')
 underscore = require('underscore')
@@ -3105,6 +3117,13 @@ class RethinkDB
         else
             opts.cb?()
 
+        # Also decrement count of changefeeds for given client
+        client_name = @_user_get_changefeed_id_to_user?[opts.id]
+        if client_name?
+            @_user_get_changefeed_counts[client_name] -= 1
+            delete @_user_get_changefeed_id_to_user[opts.id]
+
+
     user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
@@ -3217,6 +3236,24 @@ class RethinkDB
                 if changes and not multi
                     opts.cb("changefeeds only implemented for multi-document queries")
                     return
+                if changes
+                    # Count the number of changefeeds by a given client so we can cap it.
+                    # This code is here rather than in @user_get_query (or elsewhere) to ensure
+                    # that the counter stays consistent.
+                    client_name = "#{opts.account_id}-#{opts.project_id}"
+                    cnt = @_user_get_changefeed_counts ?= {}
+                    ids = @_user_get_changefeed_id_to_user ?= {}
+                    if not cnt[client_name]?
+                        cnt[client_name] = 1
+                    else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
+                        opts.cb("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+                        return
+                    else
+                        # increment before successfully making it to prevent huge bursts causing trouble!
+                        cnt[client_name] += 1
+                    dbg("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+                    ids[changes.id] = client_name
+
                 @user_get_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -3225,7 +3262,10 @@ class RethinkDB
                     options    : options
                     multi      : multi
                     changes    : changes
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+                    cb         : (err, x) =>
+                        if err and changes
+                            cnt[client_name] -= 1  # didn't actually make the changefeed, so don't count it.
+                        opts.cb(err, {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
