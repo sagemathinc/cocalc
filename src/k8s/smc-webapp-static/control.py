@@ -84,8 +84,16 @@ def run_on_kubernetes(args):
         args.replicas = util.get_desired_replicas(NAME, 2)
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+    if util.get_current_namespace() == 'test':
+        cpu_request    = '5m'
+        memory_request = '50Mi'
+    else:
+        cpu_request    = "250m"
+        memory_request = "64Mi"
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas,
+                           cpu_request=cpu_request,
+                           memory_request=memory_request,
                                pull_policy=util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)

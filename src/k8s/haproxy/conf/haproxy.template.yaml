@@ -39,11 +39,11 @@ spec:
         terminationMessagePath: /dev/termination-log
         resources:
           requests:
-            memory: "400Mi"
-            cpu: "200m"
+            memory : "{memory_request}"
+            cpu    : "{cpu_request}"
           limits:
-            memory: "1000Mi"
-            cpu: "1000m"
+            memory : "1000Mi"
+            cpu    : "1000m"
         ports:
         # All http services
         - containerPort: 80
@@ -67,3 +67,5 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
+      nodeSelector:
+        preemptible: "false"

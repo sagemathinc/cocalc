@@ -41,11 +41,13 @@ spec:
         terminationMessagePath: /dev/termination-log
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "250m"
+            memory: "{memory_request}"
+            cpu   : "{cpu_request}"
           limits:
             memory: "128Mi"
-            cpu: "500m"
+            cpu   : "500m"
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
+      nodeSelector:
+        preemptible: "false"

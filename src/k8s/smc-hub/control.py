@@ -52,8 +52,8 @@ def build_docker(args):
 
 def run_on_kubernetes(args):
     if args.test:
-        rethink_cpu_request = hub_cpu_request = '10m'
-        rethink_memory_request = hub_memory_request = '200Mi'
+        rethink_cpu_request = hub_cpu_request = '0m'
+        rethink_memory_request = hub_memory_request = '100Mi'
     else:
         hub_cpu_request = '500m'
         hub_memory_request = '1Gi'

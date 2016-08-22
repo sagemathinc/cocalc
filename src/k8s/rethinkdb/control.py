@@ -54,7 +54,7 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
-    if args.test:
+    if args.test or util.get_current_namespace() == 'test':
         cpu_request = '10m'
         memory_request = '200Mi'
     else:

@@ -72,6 +72,13 @@ def run_on_kubernetes(args):
         util.run(['kubectl', 'create', '-f', 'conf/service.yaml'])
     args.local = False # so tag is for gcloud
 
+    if util.get_current_namespace() == 'test':
+        cpu_request = '0m'
+        memory_request = '80Mi'
+    else:
+        cpu_request = '100m'
+        memory_request = '200Mi'
+
     tag = util.get_tag(args, NAME, build)
     if not args.tag:
         tag = tag[:tag.rfind('-')]   # get rid of the final -[service] part of the tag.
@@ -88,6 +95,8 @@ def run_on_kubernetes(args):
                                gcloud_bucket = gcloud_bucket(namespace=namespace),
                                pd_name       = pd_name(context=context, namespace=namespace, number=number),
                                health_delay  = args.health_delay,
+                               cpu_request   = cpu_request,
+                               memory_request= memory_request,
                                pull_policy   = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)

@@ -103,3 +103,5 @@ spec:
         - name: secret-zendesk
           secret:
             secretName: zendesk-api-key
+      nodeSelector:
+        preemptible: "false"

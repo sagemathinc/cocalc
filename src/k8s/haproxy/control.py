@@ -44,10 +44,20 @@ def run_on_kubernetes(args):
     print("tag='{tag}', replicas='{replicas}'".format(tag=tag, replicas=args.replicas))
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
     namespace = util.get_current_namespace()
+
+    if util.get_current_namespace() == 'test':
+        cpu_request = '5m'
+        memory_request = '200Mi'
+    else:
+        cpu_request   = '200m'
+        memory_request = '400Mi'
+
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image       = tag,
                            replicas    = args.replicas,
                            pull_policy = util.pull_policy(args),
+                           cpu_request   = cpu_request,
+                           memory_request= memory_request,
                            namespace   = namespace))
         tmp.flush()
         util.update_deployment(tmp.name)

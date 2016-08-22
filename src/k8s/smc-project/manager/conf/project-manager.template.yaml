@@ -31,7 +31,7 @@ spec:
         resources:
           requests:  # really do need much more than about 160Mi or it will keep crashing.
             memory: "160Mi"
-            cpu: "20m"
+            cpu   : "20m"
           limits:
             memory: "300Mi"
             cpu: "400m"

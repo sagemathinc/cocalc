@@ -44,8 +44,8 @@ spec:
           name: storage-ssh
         resources:
           requests:
-            memory: "70Mi"
-            cpu: "200m"
+            memory: "{memory_request}"
+            cpu:    "{cpu_request}"
           limits:
             memory: "300Mi"
             cpu: "1000m"
@@ -94,11 +94,11 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: "200Mi"
-            cpu: "100m"
+            memory: "{memory_request}"
+            cpu   : "{cpu_request}"
           limits:
             memory: "500Mi"
-            cpu: "1000m"
+            cpu   : "1000m"
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always
@@ -117,4 +117,5 @@ spec:
       - name: secret-gcloud-config
         secret:
           secretName: gcloud-config
-
+      nodeSelector:
+        preemptible: "false"
