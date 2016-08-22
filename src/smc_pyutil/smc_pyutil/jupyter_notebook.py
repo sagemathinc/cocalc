@@ -82,7 +82,7 @@ def command():
         ipython = "sage -ipython"
     else:
         ipython = "ipython"
-    cmd = "%s notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
+    cmd = ipython+ " notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
