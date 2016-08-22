@@ -24,7 +24,6 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
-{top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
@@ -158,9 +157,6 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
-
-    close_project : (project_id) ->
-        top_navbar.remove_page(project_id)
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>

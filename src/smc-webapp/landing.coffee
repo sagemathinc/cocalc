@@ -23,9 +23,6 @@ require('./system_notifications')
 # Initialize some jquery plugins needed below (TODO: will obviously go away with react rewrite)
 require('./jquery_plugins')
 
-# Initialize the top navigation bar.
-require('./top_navbar')
-
 # Account redux store
 require('./redux_account')
 
