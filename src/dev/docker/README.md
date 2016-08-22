@@ -4,18 +4,30 @@ This is a self-contained single-image multi-user SageMathCloud server.
 
 I make ABSOLUTELY NO GUARANTEES that this is secure in any way, shape, or form yet!  Do not trust it if you run it for some sort of production use.
 
-# Use
+## Instructions
 
-    docker run -P williamstein/sagemathcloud
+To store your local SMC data in the directory ~/smc, and run SageMathCloud (via docker), make sure you have about 7GB disk space free, then type:
 
-Then type `docker ps` to see what port were exposed, and connect to either the encrypted or non-encrypted ports.
+     docker run -v ~/smc:/projects -P williamstein/sagemathcloud
 
-ISSUES:
+Type `docker ps` to see what port were exposed, and connect to either the encrypted or non-encrypted ports.
+
+    docker ps
+
+which might output
+
+    CONTAINER ID        IMAGE                        COMMAND                 CREATED             STATUS              PORTS                                           NAMES
+    9eff7133bbd6        williamstein/sagemathcloud   "/bin/sh -c ./run.py"   3 minutes ago       Up 3 minutes        0.0.0.0:32779->80/tcp, 0.0.0.0:32778->443/tcp   evil_almeida
+
+If the port is 32779 (as it is above), then visit http://localhost:32779/
+
+
+## Issues
 
   - gp doesn't work at all, due to the Ubuntu ppa being broken
 
 
-# Build
+## Build
 
 Build the image
 
