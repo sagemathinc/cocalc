@@ -23,9 +23,11 @@ exports.init_secret_token = (cb) ->
     the_secret_token = undefined
     async.series([
         (cb) ->
-            winston.debug("check for environment variable")
+            winston.debug("check for SMC_SECRET_TOKEN environment variable")
             if process.env['SMC_SECRET_TOKEN']?
+                winston.debug("found SMC_SECRET_TOKEN environment variable")
                 the_secret_token = process.env['SMC_SECRET_TOKEN']
+                delete process.env['SMC_SECRET_TOKEN']
                 fs.writeFile(common.secret_token_filename, the_secret_token, cb)
             else
                 cb()
