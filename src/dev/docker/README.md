@@ -6,7 +6,7 @@ I make ABSOLUTELY NO GUARANTEES that this is secure in any way, shape, or form y
 
 # Use
 
-    docker run williamstein/sagemathcloud
+    docker run -P williamstein/sagemathcloud
 
 Then type `docker ps` to see what port were exposed, and connect to either the encrypted or non-encrypted ports.
 
@@ -30,4 +30,3 @@ How I pushed this
     docker tag smc:latest williamstein/sagemathcloud
     docker login --username=williamstein
     docker push  williamstein/sagemathcloud
-    
