@@ -413,6 +413,9 @@ class Project(object):
                 os.environ['SMC'] = self.smc_path
                 os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                 os.environ['MAIL'] = '/var/mail/%s'%self.username
+                if self._single:
+                    # In single-machine mode, everything is on localhost.
+                    os.environ['SMC_HOST'] = 'localhost'
                 del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
                 os.chdir(self.project_path)
                 self.cmd("smc-start")
