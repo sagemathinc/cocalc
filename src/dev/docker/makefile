@@ -6,3 +6,4 @@ build-full:
 
 run:
 	docker run -P smc
+

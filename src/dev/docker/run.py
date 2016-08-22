@@ -79,7 +79,7 @@ def start_compute():
     run("""sleep 5; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee""", path='/smc/src')
 
 def tail_logs():
-    run("tail -f /var/log/compute.log /var/log/compute.err /smc/src/logs/*")
+    run("tail -f /var/log/compute.log /var/log/compute.err /smc/logs/*")
 
 def init_sage():
     # if /sage/ is mounted as a sage install, then link to /usr/bin and install smc_sagews into it.
@@ -88,7 +88,7 @@ def init_sage():
     if os.system("which sage") == 0:
         # Sage is installed one way or another
         # Install packages into our copy of Sage
-        run(". smc-env; ./install.py all --compute", path='/smc/src')
+        run(". smc-env; sage -pip install --upgrade smc_sagews/", path='/smc/src')
         # Install sage scripts
         run("""echo "install_scripts('/usr/local/bin/')" | sage""")
 
