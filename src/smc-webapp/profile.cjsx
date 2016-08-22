@@ -29,6 +29,7 @@
 {merge} = require('smc-util/misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
+{salvus_client} = require('./salvus_client')
 
 Avatar = rclass
     displayName: "Avatar"
@@ -161,14 +162,14 @@ UsersViewingDocument = rclass
         for user_id, events of log
             if @props.account_id is user_id
                 continue
-            z = @props.get_users_cursors(user_id)?[0]?['y']
+            z = @props.get_users_cursors?(user_id)?[0]?['y']
             if z?
                 line = z  + 1
             else
                 line = 1
             account = @props.user_map.get(user_id)?.toJS() ? {}
             [event, seconds] = @_find_most_recent(events)
-            time_since = Date.now()/1000 - seconds
+            time_since =  salvus_client.server_time()/1000 - seconds
             # TODO do something with the type like show a small typing picture
             # or whatever corresponds to the action like "open" or "edit"
             style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
