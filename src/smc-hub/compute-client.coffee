@@ -1238,10 +1238,7 @@ class ProjectClient extends EventEmitter
         dbg = @dbg("open")
         dbg()
         if @_dev or @_single
-            if @_dev
-                host = 'localhost'
-            else
-                host = os.hostname()
+            host = 'localhost'
             async.series([
                 (cb) =>
                     if not @host
