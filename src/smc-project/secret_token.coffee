@@ -38,7 +38,7 @@ exports.init_secret_token = (cb) ->
             if process.env['SMC_AUTHORIZED_KEY']?
                 winston.debug("found SMC_AUTHORIZED_KEY environment variable")
                 ssh_path = "#{process.env.HOME}/.ssh"
-                auth_filename = "#{path}/authorized_keys"
+                auth_filename = "#{ssh_path}/authorized_keys"
                 async.series([
                     (cb) ->
                         fs.stat ssh_path, (err) =>
