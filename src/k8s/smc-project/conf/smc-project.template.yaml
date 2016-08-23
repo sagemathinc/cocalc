@@ -39,6 +39,12 @@ spec:
             value: "{project_id}"
           - name: SMC_SECRET_TOKEN
             value: "{secret_token}"
+          - name: SMC_AUTHORIZED_KEY
+            value: "{smc_authorized_key}"
+          - name: SMC_MEMBER
+            value: "{smc_member}"
+          - name: SMC_NETWORK
+            value: "{network}"
         resources: {resources}
 
       - name: control

@@ -49,8 +49,7 @@ def build(tag, rebuild):
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
-    if not args.local:
-        util.gcloud_docker_push(tag)
+    util.gcloud_docker_push(tag)
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -67,7 +66,6 @@ def node_selector():
 
 def run_on_kubernetes(args):
     create_kubectl_secret()
-    args.local = False # so tag is for gcloud
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
 
@@ -127,8 +125,6 @@ if __name__ == '__main__':
     sub = subparsers.add_parser('build', help='build docker image')
     sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
-    sub.add_argument("-l", "--local", action="store_true",
-                     help="only build the image locally; don't push it to gcloud docker repo")
     sub.set_defaults(func=build_docker)
 
     sub = subparsers.add_parser('run', help='run the deployment', formatter_class=argparse.ArgumentDefaultsHelpFormatter)

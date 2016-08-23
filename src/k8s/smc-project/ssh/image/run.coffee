@@ -36,6 +36,7 @@ connect_to_rethinkdb = (cb) ->
 
 # Create a changefeed of all potentially requested-to-be-ssh'd to projects, which
 # dynamically updates the projects object.
+# TODO: change to union with accounts table.
 projects = {}
 init_projects_changefeed = (cb) ->
     log("init_projects_changefeed")

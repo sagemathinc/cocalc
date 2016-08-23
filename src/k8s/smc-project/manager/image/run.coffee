@@ -4,6 +4,13 @@ This is a service that watches:
  - projects in RethinkDB to see which are requested to be run,
  - the running projects in kubernetes to see which are actually running.
 
+It then ensures the projects that should be running are.  It also:
+
+ - If necessary, generates public/private keypairs and puts them in the
+   database, so that ssh to the project is possible (see the
+   project-ssh) deployment
+
+
 When there is a discrepancy it resolves it.
 
 (c) 2016, William Stein, SageMathInc.
@@ -325,16 +332,18 @@ deployment_template = undefined
 deployment_yaml = (project_id, storage_server, disk_size, network, resources, preemptible, secret_token, image, pull_policy) ->
     deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
-        project_id     : project_id
-        image          : image ? process.env['DEFAULT_IMAGE']          # explicitly set in the deployment yaml file
-        namespace      : process.env['KUBERNETES_NAMESPACE']   # explicitly set in the deployment yaml file
-        storage_server : storage_server
-        disk_size      : disk_size
-        network        : if network then 'true' else 'false'
-        preemptible    : if preemptible  then 'true' else 'false'
-        secret_token   : secret_token
-        resources      : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
-        pull_policy    : pull_policy ? 'IfNotPresent'
+        project_id         : project_id
+        image              : image ? process.env['DEFAULT_IMAGE']      # explicitly set in the deployment yaml file
+        namespace          : process.env['KUBERNETES_NAMESPACE']       # explicitly set in the deployment yaml file
+        storage_server     : storage_server
+        disk_size          : disk_size
+        network            : if network then 'true' else 'false'
+        preemptible        : if preemptible  then 'true' else 'false'
+        secret_token       : secret_token
+        smc_authorized_key : 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHkalv5chITJKSJz5tX4t0jfqBxScXSDJERp3d/fkQEm'
+        smc_member         : if preemptible  then 'false' else 'true'
+        resources          : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
+        pull_policy        : pull_policy ? 'IfNotPresent'
     s = deployment_template
     for k, v of params
         s = replace_all(s, "{#{k}}", "#{v}")

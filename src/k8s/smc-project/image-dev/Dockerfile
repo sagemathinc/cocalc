@@ -10,7 +10,7 @@ MAINTAINER William Stein <wstein@sagemath.com>
 # Install Node.js, etc
 RUN \
   apt-get update && \
-  apt-get install -y curl git vim python python-pip python-psutil dpkg-dev sudo inetutils-ping telnet && \
+  apt-get install -y ssh curl git vim python python-pip python-psutil dpkg-dev sudo inetutils-ping telnet && \
   curl -sL https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs
 

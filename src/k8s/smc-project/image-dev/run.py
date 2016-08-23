@@ -57,6 +57,7 @@ else:
     print(cmd)
     pid = Popen(cmd.split()).pid
     print('spawned local_hub with PID %s'%pid)
+    call("service ssh start", shell=True)
     call('tail -F .smc/local_hub/local_hub.log', shell=True)
 
 
