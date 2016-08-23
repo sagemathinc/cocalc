@@ -329,7 +329,7 @@ replace_all = (string, search, replace) ->
 
 # Used for starting projects:
 deployment_template = undefined
-deployment_yaml = (project_id, storage_server, disk_size, network, resources, preemptible, secret_token, image, pull_policy) ->
+deployment_yaml = (project_id, public_key, storage_server, disk_size, network, resources, preemptible, secret_token, image, pull_policy) ->
     deployment_template ?= fs.readFileSync('smc-project.template.yaml').toString()
     params =
         project_id         : project_id
@@ -340,7 +340,7 @@ deployment_yaml = (project_id, storage_server, disk_size, network, resources, pr
         network            : if network then 'true' else 'false'
         preemptible        : if preemptible  then 'true' else 'false'
         secret_token       : secret_token
-        smc_authorized_key : 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHkalv5chITJKSJz5tX4t0jfqBxScXSDJERp3d/fkQEm'
+        smc_authorized_key : public_key
         smc_member         : if preemptible  then 'false' else 'true'
         resources          : JSON.stringify(resources).replace(/"/g, '').replace(/:/g,': ')  # inline-map yaml
         pull_policy        : pull_policy ? 'IfNotPresent'
@@ -360,7 +360,7 @@ run = (s, cb) ->
         cb?(err, stdout + stderr)
 
 write_deployment_yaml_file = (project_id, cb) ->
-    info = storage_server = disk_size = network = resources = preemptible = secret_token = image = pull_policy = undefined
+    info = storage_server = disk_size = network = resources = preemptible = secret_token = image = pull_policy = public_key = undefined
     async.series([
         (cb) ->
             temp.open {suffix:'.yaml'}, (err, _info) ->
@@ -368,6 +368,10 @@ write_deployment_yaml_file = (project_id, cb) ->
                 cb(err)
         (cb) ->
             async.parallel([
+                (cb) ->
+                    get_public_ssh_key project_id, (err, r) ->
+                        public_key = r
+                        cb(err)
                 (cb) ->
                     get_storage_server project_id, (err, r) ->
                         storage_server = r
@@ -399,7 +403,7 @@ write_deployment_yaml_file = (project_id, cb) ->
                         cb(err)
             ], cb)
         (cb) ->
-            fs.write(info.fd, deployment_yaml(project_id, storage_server, disk_size, network,
+            fs.write(info.fd, deployment_yaml(project_id, public_key, storage_server, disk_size, network,
                                               resources, preemptible, secret_token, image, pull_policy))
             fs.close(info.fd, cb)
     ], (err) ->
@@ -449,6 +453,64 @@ kubectl_update_project = (project_id, cb) ->
         for cb in w
             cb?(err)
     )
+
+create_ssh_keypair = (cb) ->
+    folder  = undefined
+    keypair = {time:new Date()}
+    async.series([
+        (cb) ->
+            # creates a tmp dir, make sure it's name ends with a slash
+            fs.mkdtemp '/tmp/', (err, _folder) ->
+                folder = _folder; cb(err)
+        (cb) ->
+            # generates two files: "./key" and "./key.pub"
+            run("cd #{folder} && ssh-keygen -t ed25519 -N '' -f ./key < /bin/true", cb)
+        (cb) ->
+            # read keypairs
+            async.parallel([
+                (cb) ->
+                    fs.readFile "#{folder}/key.pub", (err, data) ->
+                        if err
+                            cb(err)
+                        else
+                            # remove user@host, which is random and useless.
+                            v = split(data.toString())
+                            keypair.public = v[0] + ' ' + v[1]
+                            cb()
+                (cb) ->
+                    fs.readFile "#{folder}/key", (err, data) ->
+                        keypair.private = data?.toString()
+                        cb(err)
+            ], cb)
+        (cb) ->
+            # delete files
+            async.parallel([
+                (cb) ->
+                    fs.unlink("#{folder}/key.pub",cb)
+                (cb) ->
+                    fs.unlink("#{folder}/key",cb)
+            ], cb)
+        (cb) ->
+            # delete tmp dir
+            fs.rmdir(folder, cb)
+    ], (err) ->
+        cb(err, keypair)
+    )
+
+get_public_ssh_key = (project_id, cb) ->
+    query = rethinkdb.db(DATABASE).table('projects').get(project_id)
+    query.pluck('ssh').run conn, (err, x) ->
+        if err
+            cb(err); return
+        if x.ssh?.public?
+            cb(undefined, x.ssh?.public)
+            return
+        create_ssh_keypair (err, keypair) ->
+            if err
+                cb(err)
+            else
+                query.update(ssh:keypair).run conn, (err) ->
+                    cb(err, keypair.public)
 
 get_storage_server = (project_id, cb) ->
     storage_server = projects[project_id]?.storage_server

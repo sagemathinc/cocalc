@@ -7,10 +7,10 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 MAINTAINER William Stein <wstein@sagemath.com>
 
-# Install Python3
+# Install Python3 and openssh-client so we can use ssh-keygen
 RUN \
   apt-get update && \
-  apt-get install -y wget
+  apt-get install -y wget openssh-client
 
 # Install dumb-init, which is CRITICAL since otherwise we'll get millions of zombie python subprocesses from gcloud.
 RUN \
