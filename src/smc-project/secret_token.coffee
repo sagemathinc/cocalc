@@ -32,6 +32,29 @@ exports.init_secret_token = (cb) ->
             else
                 cb()
         (cb) ->
+            # we (over)write the .ssh/authorized_keys file with the public key. that's fine,
+            # because we do not want to support ssh-ing from one project to another.
+            winston.debug("check for SMC_AUTHORIZED_KEY environment variable")
+            if process.env['SMC_AUTHORIZED_KEY']?
+                winston.debug("found SMC_AUTHORIZED_KEY environment variable")
+                ssh_path = "#{process.env.HOME}/.ssh"
+                auth_filename = "#{path}/authorized_keys"
+                async.series([
+                    (cb) ->
+                        fs.stat ssh_path, (err) =>
+                            if err
+                                fs.mkdir(ssh_path, cb)
+                                # make the directory
+                            else
+                                cb()
+                    (cb) ->
+                        fs.writeFile(auth_filename, process.env['SMC_AUTHORIZED_KEY'], cb)
+                    (cb) ->
+                        fs.chmod(auth_filename, 0o600, cb)
+                ], cb)
+            else
+                cb()
+        (cb) ->
             if the_secret_token?
                 cb()
                 return
