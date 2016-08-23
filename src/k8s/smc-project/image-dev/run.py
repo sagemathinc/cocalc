@@ -2,6 +2,8 @@
 import os, sys, shutil
 from subprocess import call, Popen
 
+call("service ssh start", shell=True)
+
 project_id = os.environ['SMC_PROJECT_ID']
 
 if not os.path.exists('/projects'):
@@ -57,7 +59,6 @@ else:
     print(cmd)
     pid = Popen(cmd.split()).pid
     print('spawned local_hub with PID %s'%pid)
-    call("service ssh start", shell=True)
     call('tail -F .smc/local_hub/local_hub.log', shell=True)
 
 

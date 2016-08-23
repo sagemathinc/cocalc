@@ -25,5 +25,8 @@ ENV NODE_PATH=/node_modules
 # Copy over other scripts
 COPY run.coffee /run.coffee
 
+# Allow incoming ssh connections
+EXPOSE 22
+
 ENTRYPOINT ["/usr/bin/coffee", "run.coffee"]
 

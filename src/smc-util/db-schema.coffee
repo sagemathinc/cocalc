@@ -155,11 +155,15 @@ schema.accounts =
         groups :
             type : 'array'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
+        ssh :
+            type : 'map'
+            desc : 'maps the string of the public key to an array of associated project_ids OR the string "all" (indicates, that this key allows access to all user projects)'
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
         created       : [] # to compute stats efficiently
         email_address : []
+        ssh           : [(x) -> x.hasFields('ssh')]   # accounts with ssh keys
     user_query :
         get :
             all :
