@@ -132,7 +132,7 @@ class ProjectActions extends Actions
             when 'settings'
                 @push_state('settings')
             else #editor...
-                @push_state('files/' + key)
+                @push_state('files/' + misc.tab_to_path(key))
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
@@ -254,7 +254,7 @@ class ProjectActions extends Actions
                         # Add it to open files
                         @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
                         if opts.foreground
-                            @set_active_tab(opts.path)
+                            @set_active_tab(misc.path_to_tab(opts.path))
                         if opts.chat
                             editor.get_editor()?.show_chat_window?()
         return
@@ -776,7 +776,6 @@ class ProjectActions extends Actions
             on_error     : undefined
             on_empty     : undefined
             switch_over  : true       # Whether or not to switch to the new file
-
         name = opts.name
         if (name == ".." or name == ".") and not opts.ext?
             opts.on_error?("Cannot create a file named . or ..")
@@ -819,7 +818,8 @@ class ProjectActions extends Actions
                 if err
                     opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else if opts.switch_over
-                    @set_active_tab(p)
+                    @open_file
+                        path : p
 
     new_file_from_web : (url, current_path, cb) =>
         d = current_path
@@ -970,7 +970,7 @@ class ProjectActions extends Actions
                     # open a file -- foreground option is relevant here.
                     if foreground
                         @set_current_path(segments.slice(1, segments.length-1).join('/'))
-                        @set_active_tab(segments.slice(1).join('/'))
+                        @set_active_tab(misc.path_to_tab(segments.slice(1).join('/')))
                     @open_file
                         path       : segments.slice(1).join('/')
                         foreground : foreground

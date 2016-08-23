@@ -28,14 +28,24 @@ ProjectTab = rclass
         project_id : rtypes.string
         tooltip : rtypes.string
         active_project_tab : rtypes.string
+        file_tab : rtypes.bool
 
     render : ->
+        styles = {}
+        if @props.file_tab
+            styles.width = 250
+        else
+            styles.flex = 'none'
+        filename_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
         <NavItem
+            style={styles}
             key={@props.name}
             active={@props.name == @props.active_project_tab}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}>
             <Tip title={@props.tooltip} placement='bottom' size='small'>
-                <Icon style={fontSize: 20} name={@props.icon} /> {@props.label}
+                <Icon style={fontSize: if @props.file_tab then '10pt' else 20} name={@props.icon} /> <span style={filename_styles}>{@props.label}</span>
             </Tip>
         </NavItem>
 
@@ -116,9 +126,7 @@ ProjectPageTemp = rclass ({name}) ->
             open_files_order : rtypes.immutable
 
     propTypes :
-        redux           : rtypes.object
         project_id      : rtypes.string
-        project_actions : rtypes.object
 
     file_tabs: ->
         if not @props.open_files_order?
@@ -131,28 +139,36 @@ ProjectPageTemp = rclass ({name}) ->
     file_tab: (path) ->
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
-        display_name = misc.path_split(path).tail
-        <ProjectTab key={path} name={path} label={display_name} icon={icon} tooltip={path} project_id={@props.project_id} active_project_tab={@props.active_project_tab} />
+        display_name = misc.trunc(misc.path_split(path).tail, 64)
+        <ProjectTab
+            key={path}
+            name={misc.path_to_tab(path)}
+            label={display_name}
+            icon={icon}
+            tooltip={path}
+            project_id={@props.project_id}
+            file_tab={true}
+            active_project_tab={@props.active_project_tab} />
 
     render_page : ->
         active = @props.active_project_tab
         switch active
             when 'files'
-                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
+                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} />
             when 'new'
-                return <ProjectNew name={@props.name} project_id={@props.project_id} actions={@props.project_actions} />
+                return <ProjectNew name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} />
             when 'log'
-                return <ProjectLog actions={@props.project_actions} name={@props.name}/>
+                return <ProjectLog actions={@actions(project_id : @props.project_id)} name={@props.name}/>
             when 'search'
-                return <ProjectSearch actions={@props.project_actions} name={@props.name} />
+                return <ProjectSearch actions={@actions(project_id : @props.project_id)} name={@props.name} />
             when 'settings'
                 group = @props.get_my_group(@props.project_id)
                 return <ProjectSettings project_id={@props.project_id} name={@props.name} group={group} />
             else
+                active = misc.tab_to_path(active)
                 if @props.open_files?.has(active)
                     Name = @props.open_files.get(active)
-                    console.log("Name:",Name)
-                    return <Name path={active} project_id={@props.project_id} redux={redux} actions={redux.getActions(Name.redux_name)} />
+                    return <Name path={active} project_id={@props.project_id} redux={redux} actions={@actions(Name.redux_name)} />
                 return <div>You should not be here! {@props.active_project_tab}</div>
 
     render : ->
@@ -177,10 +193,9 @@ ProjectPageTemp = rclass ({name}) ->
                 label : 'Settings'
                 icon : 'wrench'
                 tooltip : 'Project settings and controls'
-
         <div>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<Nav bsStyle="pills" id="project-tabs">
+            {<Nav bsStyle="pills" id="project-tabs" style={display: 'flex'}>
                 {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
                 {@file_tabs()}
             </Nav> if not @props.fullscreen}
@@ -198,7 +213,5 @@ exports.ProjectPage = rclass
 
         <Redux redux={redux}>
             <ProjectPageTemp name            = {project_name}
-                             project_id      = {@props.project_id}
-                             redux           = {redux}
-                             project_actions = {redux.getProjectActions(@props.project_id)} />
+                             project_id      = {@props.project_id} />
         </Redux>

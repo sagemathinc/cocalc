@@ -58,6 +58,9 @@ class PageActions extends Actions
     set_fullscreen : (val) ->
         @setState(fullscreen : val)
 
+    show_cookie_warning : ->
+        @setState(cookie_warning : true)
+
 redux.createActions('page', PageActions)
 
 # Todo: Save entire state to database for #450, saved workspaces
@@ -140,6 +143,27 @@ salvus_client.on 'new_version', (ver) ->
 ###
 # JSX
 ###
+
+CookieWarning = rclass
+    displayName : 'CookieWarning'
+
+    render : ->
+        styles =
+            position : 'fixed'
+            left : 12
+            backgroundColor : 'red'
+            color : '#fff'
+            top : 20
+            opacity : .6
+            borderRadius : 4
+            padding : 5
+            marginTop : '1em'
+            zIndex : 1
+            boxShadow : '8px 8px 4px #888'
+            width : '70%'
+        <div style={styles}>
+            <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
+        </div>
 
 FullscreenButton = rclass
     displayName : 'FullscreenButton'
@@ -420,6 +444,7 @@ Page = rclass
             connection_status : rtypes.string
             new_version : rtypes.object
             fullscreen : rtypes.bool
+            cookie_warning : rtypes.bool
         account :
             get_fullname : rtypes.func
             is_logged_in : rtypes.func
@@ -504,6 +529,7 @@ Page = rclass
             {<SupportRedux /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
+            {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0}>
                 <Nav pullRight>
                     <NavTab name='account' label={@account_name()} icon='cog' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />

@@ -1686,3 +1686,12 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
         args = [url]
 
     return {command:command, args:args}
+
+# convert a file path to the "name" of the underlying editor tab.
+# needed because otherwise filenames like 'log' would cause problems
+exports.path_to_tab = (name) ->
+    "editor-#{name}"
+
+# assumes a valid editor tab name...
+exports.tab_to_path = (name) ->
+    name.substring(7)

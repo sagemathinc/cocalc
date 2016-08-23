@@ -131,7 +131,7 @@ class Console extends EventEmitter
 
         @_init_default_settings()
 
-        @_project_actions = smc.redux.getProjectActions(@opts.editor?.editor.project_id)
+        @_project_actions = smc.redux.getProjectActions(@opts.editor?.project_id)
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
@@ -676,7 +676,7 @@ class Console extends EventEmitter
             content = initfile_content(@opts.filename)
             {salvus_client} = require('./salvus_client')
             salvus_client.exec
-                project_id  : @opts.editor?.editor.project_id
+                project_id  : @opts.editor?.project_id
                 command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
                 bash        : true
                 err_on_exit : false

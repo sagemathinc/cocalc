@@ -140,7 +140,6 @@ class ProjectsActions extends Actions
     # Open the given project
     #TODOJ: should not be in projects...
     open_project : (opts) =>
-        console.log("what", opts)
         opts = defaults opts,
             project_id : required
             target     : undefined
@@ -598,7 +597,6 @@ exports.open_project = open_project = (opts) ->
 
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
-    console.log('gload', target)
     if not target or target.length == 0
         redux.getActions('page').set_active_tab('projects')
         return

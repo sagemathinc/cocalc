@@ -85,7 +85,6 @@ exports.set_url = (url) ->
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
     $('body').scrollTop(0) #temporary hack
-    # console.log("load_target('#{target}')")
     if not target
         return
     segments = target.split('/')
@@ -95,7 +94,6 @@ exports.load_target = load_target = (target) ->
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
-                    console.log('vload', segments.slice(1).join('/'))
                     require('./projects').load_target(segments.slice(1).join('/'), true)
                 else
                     redux.getActions('page').set_active_tab('projects')
