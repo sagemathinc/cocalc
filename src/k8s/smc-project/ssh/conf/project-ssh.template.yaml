@@ -1,0 +1,48 @@
+# This is really a template for generating the yaml that describes the deployments
+# for each of the storage nodes.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: project-ssh
+  labels:
+    run : project-ssh
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  selfLink: /apis/extensions/v1beta1/namespaces/deployments/project-ssh
+spec:
+  replicas: {replicas}
+  selector:
+    matchLabels:
+      run : project-ssh
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+          run : project-ssh
+    spec:
+      containers:
+      - name: project-ssh
+        image: {image}
+        imagePullPolicy: {pull_policy}
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu   : "10m"
+          limits:
+            memory: "200Mi"
+            cpu: "500m"
+        volumeMounts:
+          - name: secret-rethinkdb
+            mountPath: /secrets/rethinkdb/
+            readOnly: true
+      volumes:
+        - name: secret-rethinkdb
+          secret:
+            secretName: rethinkdb-password
+      nodeSelector:
+        preemptible: "false"
+        scopes: default
