@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/bin/crontab "$@"
+/usr/bin/crontab -l > $HOME/.crontab_smc
