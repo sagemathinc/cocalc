@@ -51,6 +51,9 @@ spec:
         # https
         - containerPort: 443
           protocol: TCP
+        # ssh
+        - containerPort: 22
+          protocol: TCP
         # haproxy stats
         - containerPort: 1936
           protocol: TCP
@@ -68,4 +71,5 @@ spec:
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       nodeSelector:
-        preemptible: "false"
+        preemptible : "false"
+        scopes      : "default"

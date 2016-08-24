@@ -39,6 +39,9 @@ spec:
           - name: secret-rethinkdb
             mountPath: /secrets/rethinkdb/
             readOnly: true
+        ports:
+        - containerPort: 22
+          protocol: TCP
       volumes:
         - name: secret-rethinkdb
           secret:

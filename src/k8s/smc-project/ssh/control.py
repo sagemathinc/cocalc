@@ -40,6 +40,8 @@ def run_on_kubernetes(args):
                            pull_policy    = util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)
+    if NAME not in util.get_services():
+        util.run(['kubectl', 'expose', 'deployment', NAME])
 
 def delete(args):
     util.stop_deployment(NAME)

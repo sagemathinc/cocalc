@@ -19,7 +19,7 @@ NAME='haproxy'
 def build(tag, rebuild):
     # Next build smc-hub, which depends on smc-hub-base.
     v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
+    if rebuild:
         v.append("--no-cache")
     v.append('.')
     util.run(v, path=join(SCRIPT_PATH, 'image'))
