@@ -39,7 +39,6 @@
     - cvxpy
     - bqplot
     - pydataset
-    - theano
     - dask
     - distributed
     - xarray
@@ -147,30 +146,6 @@
         python setup.py install
     tags: inotify
 
-  - name: "Install https://github.com/williamstein/bup-1 systemwide"
-    shell: |
-        cd /tmp
-        rm -rf python-inotify bup-1
-        git clone https://github.com/williamstein/bup-1
-        cd bup-1
-        make install
-        cd ..
-        rm -rf bup-1
-    tags: bup1
-
-  - name: "/etc/ssh/sshd_config: MaxStartups 128"
-    lineinfile: dest=/etc/ssh/sshd_config
-                insertafter="^#MaxStartups.*"
-                line="MaxStartups 128"
-    tags: ssh
-
-  - name: "remove tmpreaper warning"
-    lineinfile: dest=/etc/tmpreaper.conf
-                backrefs=yes
-                regexp="^SHOWWARNING=.*"
-                line="#SHOWWARNING=true"
-    tags: tmpreaper
-
   - name: "IPython with notebook and octave+bash kernel / install from pip"
     tags: [ ipython, install, update ]
     pip: executable=pip2
@@ -199,6 +174,7 @@
     - ipython
     - ipywidgets
 
+    # only used for jupyter kernels
   - name: "Special script to run python2 systemwide from within Sage"
     tags: ["python2sage", "install"]
     copy: src=files/python2-ubuntu.sh
@@ -217,12 +193,6 @@
         ./configure --prefix=/usr
         sudo make install
         sudo rm -rf /tmp/pbc-0.5.14 /tmp/pbc-0.5.14.tar.gz
-
-  - name: "cgroups configuration -- TODO maybe not needed in docker?"
-    tags: cgroups
-    lineinfile: dest=/etc/pam.d/common-session
-                line="session optional pam_cgroup.so"
-                insertafter=EOF
 
   - name: "install primesieve"
     tags: ["primesieve", "install"]
@@ -315,16 +285,6 @@
     - w3c-markup-validator
     - w3c-xsd-xslt
     - xsltproc
-  #- name: "polymake installation"
-  #  tags: polymake
-  #  ignore_errors: yes
-  #  shell: |
-  #      cd /tmp/
-  #      wget http://polymake.org/lib/exe/fetch.php/download/polymake-3.0r1.tar.bz2
-  #      tar xf polymake-3.0r1.tar.bz2
-  #      cd polymake-3.0/
-  #      ./configure
-  #      make
   - name: "polymake installation, from debian"
     apt: name=polymake state=latest install_recommends=yes
 
@@ -340,16 +300,6 @@
          name=crcmod
 
   # X11
-  - name: "git trac"
-    tags: ["gittrac", "install"]
-    ignore_errors: yes
-    shell: |
-        cd /tmp/
-        git clone https://github.com/sagemath/git-trac-command.git
-        cd git-trac-command
-        sudo setup.py install
-        rm -rf /tmp/git-trac-command
-
   - name: "x11 setup"
     tags: x11
     lineinfile: dest=/etc/ssh/sshd_config
@@ -550,7 +500,7 @@
   - name: "install ocatave"
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
-    with_items:
+    with_items:   # this is a **hand-picked** selection of octave packages so octave actually starts and our users are happy; doing "apt-get install octave*" results in broken octave.
     - octave
     - octave-biosig
     - octave-bim
