@@ -30,6 +30,11 @@ os.umask(0077) # octal, in py3 that will be 0o077
 os.environ['HOME'] = project_path
 os.environ['SMC']  = os.path.join(project_path, '.smc')
 
+###
+# NOW running as the non-root user!
+###
+
+
 data = os.path.join(os.environ['SMC'], 'local_hub')
 shutil.rmtree(data, ignore_errors=True)
 os.makedirs(data)
@@ -39,6 +44,11 @@ os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = username
 os.environ['MAIL'] = '/var/mail/%s'%username
 
 os.chdir(project_path)
+
+# Install custom crontab, if the user has one.
+crontab_smc = os.path.join(os.environ['HOME'], '.crontab_smc')
+if os.path.exists(crontab_smc):
+    call(['crontab', crontab_smc])
 
 if len(sys.argv) >= 2:
     # this is usually ["bash"]

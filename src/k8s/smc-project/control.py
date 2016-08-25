@@ -33,9 +33,12 @@ def build2(tag, rebuild):
     util.run(v, path=join(SCRIPT_PATH, 'images/control'))
 
 def build_docker(args):
+    # user project
     tag = util.get_tag(args, NAME)
     build(tag+'-main', args.rebuild_all)
     util.gcloud_docker_push(tag+'-main')
+
+    # control container (network iptables, etc.)
     tag2 = tag + '-control'
     build2(tag2, args.rebuild_all)
     util.gcloud_docker_push(tag2)

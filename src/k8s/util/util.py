@@ -83,8 +83,8 @@ def set_context(name):
         raise RuntimeError("unknown context '%s'"%name)
 
 
-def gcloud_docker_repo(tag):
-    return "gcr.io/{project}/{tag}".format(project=get_default_gcloud_project_name(), tag=tag)
+def gcloud_docker_repo(name):
+    return "gcr.io/{project}/{name}".format(project=get_default_gcloud_project_name(), name=name)
 
 def gcloud_docker_push(name):
     run(['gcloud', 'docker', 'push', name])

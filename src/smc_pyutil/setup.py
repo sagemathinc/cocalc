@@ -23,7 +23,8 @@ from setuptools import setup
 from distutils.core import Distribution
 d = Distribution()
 d.parse_command_line()
-if 'user' not in d.command_options.get("install", {}).keys():
+python_nosite = '/usr/local/bin/python-nosite'
+if 'user' not in d.command_options.get("install", {}).keys() and os.path.exists(python_nosite):
     # CRITICAL!
     # -s tells python to not load the user's "site" packages in ~/.local
     # otherwise, setuptool's startup scripts do not work, if there is a conflicting
@@ -31,7 +32,7 @@ if 'user' not in d.command_options.get("install", {}).keys():
     # setting sys.executable changes the she-bang #!... at the top of these scripts
     # credits to http://stackoverflow.com/a/17329493
     import sys
-    sys.executable = '/usr/bin/python -s'
+    sys.executable = python_nosite
 
 setup(
     name             = 'smc_pyutil',
