@@ -56,7 +56,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
-DEBUG=false
+DEBUG = false
+#DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
@@ -161,12 +162,20 @@ class exports.Client extends EventEmitter
             if val.get("last_active") > cutoff
                 keys[string_id] = true
                 if not @_open_syncstrings[string_id]?
-                    dbg("opening syncstring '#{path}' with id '#{string_id}'")
-                    @_open_syncstrings[string_id] = @sync_string(path:path)
+                    @path_exists
+                        path : path
+                        cb   : (err, exists) =>
+                            if err or not exists
+                                return
+                            dbg("open syncstring '#{path}' with id '#{string_id}'")
+                            ss = @_open_syncstrings[string_id] = @sync_string(path:path)
+                            ss.on 'close', () =>
+                                dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
+                                delete @_open_syncstrings[string_id]
         for string_id, val of @_open_syncstrings
             path = val._path
             if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
-                dbg("closing syncstring '#{path}' with id '#{string_id}'")
+                dbg("close syncstring '#{path}' with id '#{string_id}'")
                 val.close()
                 delete @_open_syncstrings[string_id]
 
@@ -391,6 +400,7 @@ class exports.Client extends EventEmitter
             default : ''
         opts.client = @
         opts.project_id = @project_id
+        @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
@@ -479,7 +489,7 @@ class exports.Client extends EventEmitter
     path_access: (opts) =>
         opts = defaults opts,
             path : required    # string
-            mode : required    # string -- subsequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+            mode : required    # string -- sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
             cb   : required    # cb(err); err = if any access fails; err=undefined if all access is OK
         access = 0
         for s in opts.mode
@@ -519,6 +529,9 @@ class exports.Client extends EventEmitter
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
 
+    # Watch for changes to the given file.
+    # We can only watch if the file exists when this function is called, though subsequent
+    # delete and recreate does work, so we create the file if it doesn't exist.
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
     #    - 'error' (err)             - When error occurs
@@ -529,9 +542,29 @@ class exports.Client extends EventEmitter
             debounce : 750
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
-        dbg = @dbg("watch_file")
+        dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
-        g = new Gaze(path, {debounceDelay:opts.debounce})
-        g.on('error', opts.cb)
-        g.on('ready', () => opts.cb(undefined, g))
-
+        gaze_obj = undefined
+        async.series([
+            (cb) =>
+                @path_exists
+                    path : path
+                    cb   : (err, exists) =>
+                        if not exists
+                            fs.writeFile(path, '', cb)
+                        else
+                            cb()
+            (cb) =>
+                gaze_obj = new Gaze(path, {debounceDelay:opts.debounce})
+                gaze_obj.on 'error', (err) =>
+                    dbg("error #{err}")
+                    cb(err)
+                gaze_obj.on 'ready', () =>
+                    dbg("ready")
+                    cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, gaze_obj)
+        )

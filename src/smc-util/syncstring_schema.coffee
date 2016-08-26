@@ -8,7 +8,6 @@ misc = require('./misc')
 
 schema = require('./schema').SCHEMA
 
-# TODO -- currently no security/auth
 schema.syncstrings =
     primary_key : 'string_id'
     fields :
@@ -27,6 +26,9 @@ schema.syncstrings =
         path :
             type : 'string'
             desc : 'optional path of file being edited'
+        deleted :
+            type : 'boolean'
+            desc : 'if true, the file was deleted; client **must** create file on disk before editing again.'
         init :
             type : 'object'
             desc : '{time:timestamp, error:?} - info about what happened when backend tried to initialize this string'
@@ -61,6 +63,7 @@ schema.syncstrings =
                 snapshot_interval : 150      # unclear how good of a choice 150 is...
                 project_id        : null
                 path              : null
+                deleted           : null
                 save              : null
                 last_active       : null
                 init              : null
@@ -79,6 +82,7 @@ schema.syncstrings =
                 snapshot_interval : true
                 project_id        : true
                 path              : true
+                deleted           : true
                 save              : true
                 last_active       : true
                 init              : true
@@ -93,9 +97,8 @@ schema.syncstrings =
                 db._user_set_query_syncstring_change_after(old_val, new_val, account_id, cb)
 
 
-schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
+schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)
 
-# TODO -- currently no security/auth
 schema.recent_syncstrings_in_project =
     primary_key : schema.syncstrings.primary_key
     virtual     : 'syncstrings'

@@ -619,7 +619,8 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
-        @removeAllListeners()
+        @emit('close')
+        @removeAllListeners()  # must be after @emit('close') above.
         @_closed = true
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
@@ -638,7 +639,8 @@ class SyncDoc extends EventEmitter
         delete @_patch_list
         @_cursors?.close()
         delete @_cursors
-        @_update_watch_path()  # no input = closes it
+        if @_client.is_project()
+            @_update_watch_path()  # no input = closes it
         @_evaluator?.close()
         delete @_evaluator
 
@@ -656,6 +658,7 @@ class SyncDoc extends EventEmitter
                 string_id         : @_string_id
                 project_id        : @_project_id
                 path              : @_path
+                deleted           : null
                 users             : null
                 last_snapshot     : null
                 snapshot_interval : null
@@ -708,7 +711,6 @@ class SyncDoc extends EventEmitter
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
         exists = undefined
-        @_update_if_file_is_read_only()
         async.series([
             (cb) =>
                 dbg("check if path exists")
@@ -723,6 +725,7 @@ class SyncDoc extends EventEmitter
             (cb) =>
                 if not exists
                     dbg("file does NOT exist")
+                    @_set_read_only(false)
                     cb()
                     return
                 if tm?
@@ -745,6 +748,11 @@ class SyncDoc extends EventEmitter
                         @_load_from_disk(cb)
                     else
                         cb()
+            (cb) =>
+                if exists
+                    @_update_if_file_is_read_only(cb)
+                else
+                    cb()
         ], (err) =>
             @_set_initialized(err, cb)
         )
@@ -959,7 +967,7 @@ class SyncDoc extends EventEmitter
             if not err
                 # CRITICAL: Only save the snapshot time in the database after the set in the patches table was confirmed as a
                 # success -- otherwise if the user refreshes their browser (or visits later) they lose all their early work!
-                @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time})
+                @_syncstring_table.set(string_id:@_string_id, project_id:@_project_id, path:@_path, last_snapshot:time)
                 @_last_snapshot = time
             else
                 console.warn("failed to save snapshot -- #{err}")
@@ -1133,80 +1141,106 @@ class SyncDoc extends EventEmitter
                 # If client is a project and path isn't being properly watched, make it so.
                 if x.project_id? and @_watch_path != x.path
                     @_update_watch_path(x.path)
+            else
+                if x.deleted
+                    console.log("file is closed!")
+
         @emit('metadata-change')
 
-    _update_watch_path: (path) =>
+    _update_watch_path: (path, cb) =>
+        dbg = @_client.dbg("watch('#{path}')")
         if @_gaze_file_watcher?
+            dbg("close")
             @_gaze_file_watcher.close()
             delete @_gaze_file_watcher
+            delete @_watch_path
         if not path?
+            dbg("not opening another watcher")
+            cb?()
             return
-        async.series([
-            (cb) =>
-                # write current version of file to path if it doesn't exist
-                @_client.path_exists
-                    path : path
-                    cb   : (err, exists) =>
-                        if exists and not err
-                            cb()
+        if @_watch_path?
+            dbg("watch_path already defined")
+            cb?()
+            return
+        dbg("opening watcher")
+        @_watch_path = path
+        @_client.watch_file
+            path     : path
+            debounce : 1
+            cb       : (err, watcher) =>
+                if err
+                    dbg("error -- #{err}")
+                    delete @_watch_path
+                    delete @_gaze_file_watcher
+                    cb?(err)
+                else
+                    dbg("success")
+                    @_gaze_file_watcher = watcher
+                    watcher.on 'all', (event) =>
+                        dbg("event #{event}")
+                        if event == 'deleted'
+                            dbg("delete: setting deleted=true and closing")
+                            @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
+                            @_syncstring_table.save () =>  # make sure deleted:true is saved.
+                                @_load_from_disk () =>  # blank file and saves that back to db
+                                    @close()
+                            return
+                        if @_save_to_disk_just_happened
+                            dbg("@_save_to_disk_just_happened")
+                            @_save_to_disk_just_happened = false
                         else
-                            @_client.write_file
-                                path : path
-                                data : @version()
-                                cb   : cb
-            (cb) =>
-                # Setup watcher (which wouldn't work if there was no file)
-                DEBOUNCE_MS = 500
-                dbg = @_client.dbg("watch('#{path}')")
-                @_client.watch_file
-                    path     : path
-                    debounce : DEBOUNCE_MS
-                    cb       : (err, watcher) =>
-                        if err
-                            dbg("error -- #{err}")
-                            cb(err)
-                        else
-                            dbg("success")
-                            @_gaze_file_watcher?.close()  # if it somehow got defined by another call, close it first
-                            @_gaze_file_watcher = watcher
-                            @_watch_path = path
-                            watcher.on 'changed', =>
-                                if @_save_to_disk_just_happened
-                                    dbg("@_save_to_disk_just_happened")
-                                    @_save_to_disk_just_happened = false
-                                else
-                                    dbg("_load_from_disk")
-                                    # We load twice: right now, and right at the end of the
-                                    # debounce interval. If there are many writes happening,
-                                    # we'll get notified at the beginning of the interval, but
-                                    # NOT at the end, and lose all the changes from the beginning
-                                    # until the end.  If there are no changes from the beginning
-                                    # to the end, there's no loss.  *NOT* doing this will
-                                    # result in serious problems.  NOTE: changes made by
-                                    # a user during DEBOUNCE_MS interval will be lost; however,
-                                    # that is acceptable given that the file *just* changed on disk.
-                                    @_load_from_disk()
-                                    setTimeout(@_load_from_disk, DEBOUNCE_MS)
-        ])
+                            dbg("_load_from_disk")
+                            @_load_from_disk()
+                    cb?()
 
     _load_from_disk: (cb) =>
         path = @get_path()
         dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
         dbg()
-        @_update_if_file_is_read_only()
-        @_client.path_read
-            path       : path
-            maxsize_MB : MAX_FILE_SIZE_MB
-            cb         : (err, data) =>
-                if err
-                    dbg("failed -- #{err}")
-                    cb?(err)
+        if @_load_from_disk_lock
+            cb?('lock')
+            return
+        @_load_from_disk_lock = true
+        exists = undefined
+        async.series([
+            (cb) =>
+                @_client.path_exists
+                    path : path
+                    cb   : (err, x) =>
+                        exists = x
+                        if not exists
+                            dbg("file no longer exists")
+                            @set('')
+                        cb(err)
+            (cb) =>
+                if exists
+                    @_update_if_file_is_read_only(cb)
                 else
-                    dbg("got it -- length=#{data?.length}")
-                    @set(data)
-                    # we also know that this is the version on disk, so we update the hash
-                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-                    @_save(cb)
+                    cb()
+            (cb) =>
+                if not exists
+                    cb()
+                    return
+                @_client.path_read
+                    path       : path
+                    maxsize_MB : MAX_FILE_SIZE_MB
+                    cb         : (err, data) =>
+                        if err
+                            dbg("failed -- #{err}")
+                            cb(err)
+                        else
+                            dbg("got it -- length=#{data?.length}")
+                            @set(data)
+                            # we also know that this is the version on disk, so we update the hash
+                            @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+                            cb()
+            (cb) =>
+                # save back to database
+                @_save(cb)
+        ], (err) =>
+            @_load_from_disk_lock = false
+            cb?(err)
+        )
 
     _set_save: (x) =>
         if @_closed # nothing to do
