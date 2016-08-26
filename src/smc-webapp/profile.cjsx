@@ -180,7 +180,7 @@ UsersViewing = rclass
                 
                 if p.project_id == @props.project_id
                     for user in p.users
-                        console.log('user', JSON.stringify(p), user)
+                        console.log('user', JSON.stringify(p), JSON.stringify(@props.user_map.get(user.account_id)?.toJS()), user)
                         [event, most_recent] = @_find_most_recent(user)
                         if user.account_id in users
                             if most_recent > users[user.account_id]['most_recent']
