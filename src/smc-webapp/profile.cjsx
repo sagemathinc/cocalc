@@ -35,6 +35,7 @@ Avatar = rclass
     displayName: "Avatar"
 
     propTypes:
+        viewing_what : React.PropTypes.string
         size    : React.PropTypes.number
         account : React.PropTypes.object
         style   : React.PropTypes.object
@@ -94,7 +95,10 @@ Avatar = rclass
             <span> (Line {@props.line})</span>
 
     tooltip: ->
-        <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
+        if @props.viewing_what == 'project'
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at {@props.path}</Tooltip>
+        else
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
 
     render_image: ->
         if @has_image()
@@ -106,15 +110,24 @@ Avatar = rclass
 
     render: ->
         #extra div for necessary for overlay not to destroy background color
-        <OverlayTrigger placement='top' overlay={@tooltip()}>
-            <div style={display:'inline-block'}>
-                <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
-                    {@render_image()}
+        if @props.viewing_what == 'project'
+            <OverlayTrigger placement='top' overlay={@tooltip()}>
+                <div style={display:'inline-block'}>
+                    <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
+                        {@render_image()}
+                    </div>
                 </div>
-            </div>
-        </OverlayTrigger>
+            </OverlayTrigger>
+        else
+            <OverlayTrigger placement='top' overlay={@tooltip()}>
+                <div style={display:'inline-block'}>
+                    <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
+                        {@render_image()}
+                    </div>
+                </div>
+            </OverlayTrigger>
 
-UsersViewingDocument = rclass
+UsersViewing = rclass
     displayName: "smc-users-viewing-document"
 
     reduxProps:
@@ -126,6 +139,9 @@ UsersViewingDocument = rclass
             user_map : rtypes.immutable   # we use to display the username and letter
 
     propTypes:
+        redux         : rtypes.object
+        viewing_what : rtypes.string
+        project_id : rtypes.string
         file_use_id : rtypes.string
         editor_instance : rtypes.object
         get_users_cursors : rtypes.func
@@ -158,24 +174,62 @@ UsersViewingDocument = rclass
 
         output = []
         all_users = []
+        if @props.viewing_what == 'project'
+            users = {}
+            for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
+                
+                if p.project_id == @props.project_id
+                    for user in p.users
+                        console.log(JSON.stringify(p.path), JSON.stringify(user))
+                        for k in ['open', 'edit', 'chat'] 
+                            console.log(k, user[k])
+                            if user[k]
+                                tm = (user[k] ? 0) - 0
+                                if tm > newest
+                                    latest_key = k
+                                    newest     = tm
+                        last_seen = newest/1000
+                        if user.account_id in users
+                            
+                            if last_seen > users[user.account_id]['last_seen']
+                                users[user.account_id] = {'last_seen': last_seen, 'path': p.path}
+                        else
+                            users[user.account_id] = {'last_seen': last_seen, 'path': p.path}
+            console.log('users', JSON.stringify(users))
+            for user_id, info of users
+                if user_id == @props.account_id
+                    continue
+                account = @props.user_map.get(user_id)?.toJS() ? {}
+                
+                seconds = info.last_seen
+                time_since =  salvus_client.server_time()/1000 - seconds
+                
+                # TODO do something with the type like show a small typing picture
+                # or whatever corresponds to the action like "open" or "edit"
+                style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
+                console.log(salvus_client.server_time()/1000, seconds, time_since, Math.max(1 - time_since/seconds_for_user_to_disappear, 0))
+                # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
+                if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
+                    all_users.push <Avatar viewing_what='project' key={user_id} account={account} path={info.path} />
 
-        for user_id, events of log
-            if @props.account_id is user_id
-                continue
-            z = @props.get_users_cursors?(user_id)?[0]?['y']
-            if z?
-                line = z  + 1
-            else
-                line = 1
-            account = @props.user_map.get(user_id)?.toJS() ? {}
-            [event, seconds] = @_find_most_recent(events)
-            time_since =  salvus_client.server_time()/1000 - seconds
-            # TODO do something with the type like show a small typing picture
-            # or whatever corresponds to the action like "open" or "edit"
-            style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
-            # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
-            if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                all_users.push <Avatar key={user_id} account={account} line={line} style={style} __time_since={time_since} goto_line={@props.goto_line} />
+        else
+            for user_id, events of log
+                if @props.account_id is user_id
+                    continue
+                z = @props.get_users_cursors?(user_id)?[0]?['y']
+                if z?
+                    line = z  + 1
+                else
+                    line = 1
+                account = @props.user_map.get(user_id)?.toJS() ? {}
+                [event, seconds] = @_find_most_recent(events)
+                time_since =  salvus_client.server_time()/1000 - seconds
+                # TODO do something with the type like show a small typing picture
+                # or whatever corresponds to the action like "open" or "edit"
+                style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
+                # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
+                if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
+                    all_users.push <Avatar key={user_id} account={account} line={line} style={style} __time_since={time_since} goto_line={@props.goto_line} />
 
         if all_users.length <= num_users_to_display
             num_users_to_display = all_users.length
@@ -216,13 +270,13 @@ UsersViewingDocument = rclass
         </div>
 
 exports.Avatar = Avatar
-exports.UsersViewingDocument = UsersViewingDocument
+exports.UsersViewing = UsersViewing
 
-exports.render_new = render = (project_id, filename, dom_node, redux, get_users_cursors, goto_line) ->
+exports.render_new_viewing_doc = render = (project_id, filename, dom_node, redux, get_users_cursors, goto_line) ->
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, filename)
     ReactDOM.render (
         <Redux redux={redux}>
-            <UsersViewingDocument file_use_id={file_use_id} get_users_cursors={get_users_cursors} goto_line={goto_line} />
+            <UsersViewing viewing_what='doc' file_use_id={file_use_id} get_users_cursors={get_users_cursors} goto_line={goto_line} />
         </Redux>
     ), dom_node
 
