@@ -702,6 +702,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 cb()
 
     save: (cb) =>
+        # This first call immediately sets saved button to disabled to make it feel like instant save.
+        @editor.has_unsaved_changes(false)
+        # We then simply ensure the save state is valid 5s later (in case save fails, say).
+        setTimeout(@_update_unsaved_uncommitted_changes, 5000)
+        
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
             omit_lines = {}
@@ -743,7 +748,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             return locs
-            
+
     _render_other_cursor: (account_id) =>
         if account_id == salvus_client.account_id
             # nothing to do -- we don't draw our own cursor via this
