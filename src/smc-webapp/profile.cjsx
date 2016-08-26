@@ -176,12 +176,16 @@ UsersViewing = rclass
         all_users = []
         if @props.viewing_what == 'project'
             users = {}
+            debug_list = []
             for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
                 
                 if p.project_id == @props.project_id
                     for user in p.users
-                        console.log('user', JSON.stringify(p), JSON.stringify(@props.user_map.get(user.account_id)?.toJS()), user)
+                        
                         [event, most_recent] = @_find_most_recent(user)
+                        if @props.user_map.get(user.account_id)?.toJS()['first_name'] == 'dman'
+                            console.log('user', p.path, user, most_recent)
+                            debug_list.push(p.path, most_recent)
                         if user.account_id in users
                             if most_recent > users[user.account_id]['most_recent']
                                 users[user.account_id] = user
@@ -191,7 +195,8 @@ UsersViewing = rclass
                             users[user.account_id] = user
                             users[user.account_id]['most_recent'] = most_recent
                             users[user.account_id]['path'] = p.path
-            console.log('ALL THE USERS', JSON.stringify(users))
+            #console.log('ALL THE USERS', JSON.stringify(users))
+            console.log(JSON.stringify(debug_list))
             for user_id, info of users
                 if user_id == @props.account_id
                     continue
@@ -201,7 +206,7 @@ UsersViewing = rclass
                     if event.account_id == user_id
                         events.push(event)
                 seconds = info.most_recent
-                console.log(JSON.stringify(@props.user_map.get(user_id)?.toJS()), salvus_client.server_time()/1000, info.path, seconds,salvus_client.server_time()/1000 - seconds)
+                #console.log(JSON.stringify(@props.user_map.get(user_id)?.toJS()), salvus_client.server_time()/1000, info.path, seconds,salvus_client.server_time()/1000 - seconds)
                 time_since =  salvus_client.server_time()/1000 - seconds
                 
                 # TODO do something with the type like show a small typing picture
