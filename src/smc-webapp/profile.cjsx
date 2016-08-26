@@ -180,34 +180,34 @@ UsersViewing = rclass
                 
                 if p.project_id == @props.project_id
                     for user in p.users
-                        console.log(JSON.stringify(p.path), JSON.stringify(user))
-                        for k in ['open', 'edit', 'chat'] 
-                            console.log(k, user[k])
-                            if user[k]
-                                tm = (user[k] ? 0) - 0
-                                if tm > newest
-                                    latest_key = k
-                                    newest     = tm
-                        last_seen = newest/1000
+                        console.log('user', JSON.stringify(p), user)
+                        [event, most_recent] = @_find_most_recent(user)
                         if user.account_id in users
-                            
-                            if last_seen > users[user.account_id]['last_seen']
-                                users[user.account_id] = {'last_seen': last_seen, 'path': p.path}
+                            if most_recent > users[user.account_id]['most_recent']
+                                users[user.account_id] = user
+                                users[user.account_id]['most_recent'] = most_recent
+                                users[user.account_id]['path'] = p.path
                         else
-                            users[user.account_id] = {'last_seen': last_seen, 'path': p.path}
-            console.log('users', JSON.stringify(users))
+                            users[user.account_id] = user
+                            users[user.account_id]['most_recent'] = most_recent
+                            users[user.account_id]['path'] = p.path
+            console.log('ALL THE USERS', JSON.stringify(users))
             for user_id, info of users
                 if user_id == @props.account_id
                     continue
                 account = @props.user_map.get(user_id)?.toJS() ? {}
-                
-                seconds = info.last_seen
+                events = []
+                for event of events
+                    if event.account_id == user_id
+                        events.push(event)
+                seconds = info.most_recent
+                console.log(JSON.stringify(@props.user_map.get(user_id)?.toJS()), salvus_client.server_time()/1000, info.path, seconds,salvus_client.server_time()/1000 - seconds)
                 time_since =  salvus_client.server_time()/1000 - seconds
                 
                 # TODO do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
-                console.log(salvus_client.server_time()/1000, seconds, time_since, Math.max(1 - time_since/seconds_for_user_to_disappear, 0))
+                
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
                 if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
                     all_users.push <Avatar viewing_what='project' key={user_id} account={account} path={info.path} />
