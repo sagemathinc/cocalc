@@ -2,7 +2,7 @@
 
 This is a self-contained single-image multi-user SageMathCloud server.
 
-As is, this is ABSOLUTELY NOT SECURE in any way, shape, or form yet!  Do not trust it if you run it for some sort of production use.  For example, there is no RethinkDB password set yet, so any user could do anything.
+**STATUS:** As is, this is ABSOLUTELY NOT SECURE in any way, shape, or form yet!  Do not trust it if you run it for some sort of production use.  For example, there is no RethinkDB password set yet, so any user could do anything.  However, making this much more secure will soon be possible.   Also, no quotas are implemented except idle timeout.
 
 ## Instructions
 
@@ -21,6 +21,16 @@ which might output
 
 If the port is 32779 (as it is above), then visit http://localhost:32779/
 
+### Make all users admins
+
+    $ docker exec -it 9eff7133bbd6 bash
+    root@9eff7133bbd6:/# cd /smc/src
+    root@9eff7133bbd6:/smc/src# . smc-env
+    root@9eff7133bbd6:/smc/src# coffee
+    coffee> require 'c'; db()
+    coffee> db.table('accounts').update(groups:['admin']).run(done())
+
+Refresh your browser, and then you should see an "Admin edit..." button in any project's settings.
 
 ## Issues
 
