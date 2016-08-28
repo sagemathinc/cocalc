@@ -36,12 +36,15 @@ Avatar = rclass
 
     propTypes:
         viewing_what : React.PropTypes.string
-        size    : React.PropTypes.number
-        account : React.PropTypes.object
-        style   : React.PropTypes.object
-        square  : React.PropTypes.bool
-        line    : React.PropTypes.number
-        goto_line : React.PropTypes.func
+        size         : React.PropTypes.number
+        account      : React.PropTypes.object
+        style        : React.PropTypes.object
+        square       : React.PropTypes.bool
+        line         : React.PropTypes.number
+        goto_line    : React.PropTypes.func
+        path         : React.PropTypes.string
+        project_id   : React.PropTypes.string
+        redux        : React.PropTypes.object
 
     getDefaultProps: ->
         style   : {}
@@ -108,12 +111,16 @@ Avatar = rclass
                 {@_alt()}
             </span>
 
+    open_path: (path) ->
+        @props.redux.getProjectActions(@props.project_id).open_file
+            path : path
+
     render: ->
         #extra div for necessary for overlay not to destroy background color
         if @props.viewing_what == 'project'
             <OverlayTrigger placement='top' overlay={@tooltip()}>
                 <div style={display:'inline-block'}>
-                    <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
+                    <div style={@_outerStyle()} onClick={=>@open_path(@props.path)}>
                         {@render_image()}
                     </div>
                 </div>
@@ -177,45 +184,40 @@ UsersViewing = rclass
         if @props.viewing_what == 'project'
             users = {}
             debug_list = []
+            sortByKey = (array, key) ->
+                array.sort (a,b) ->
+                    if a[key] < b[key]
+                        -1
+                    else if a[key] > b[key]
+                        1
+                    else
+                        0
             for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
-                
+
                 if p.project_id == @props.project_id
                     for user in p.users
-                        
                         [event, most_recent] = @_find_most_recent(user)
-                        if @props.user_map.get(user.account_id)?.toJS()['first_name'] == 'dman'
-                            console.log('user', p.path, user, most_recent)
-                            debug_list.push(p.path, most_recent)
-                        if user.account_id in users
-                            if most_recent > users[user.account_id]['most_recent']
-                                users[user.account_id] = user
-                                users[user.account_id]['most_recent'] = most_recent
-                                users[user.account_id]['path'] = p.path
+                        if users[user.account_id]
+                            users[user.account_id].push({"path": p.path, "most_recent": most_recent})
                         else
-                            users[user.account_id] = user
-                            users[user.account_id]['most_recent'] = most_recent
-                            users[user.account_id]['path'] = p.path
-            #console.log('ALL THE USERS', JSON.stringify(users))
-            console.log(JSON.stringify(debug_list))
-            for user_id, info of users
+                            users[user.account_id] = [{"path": p.path, "most_recent": most_recent}]
+            for user_id, paths_edited of users
                 if user_id == @props.account_id
                     continue
                 account = @props.user_map.get(user_id)?.toJS() ? {}
-                events = []
-                for event of events
-                    if event.account_id == user_id
-                        events.push(event)
-                seconds = info.most_recent
-                #console.log(JSON.stringify(@props.user_map.get(user_id)?.toJS()), salvus_client.server_time()/1000, info.path, seconds,salvus_client.server_time()/1000 - seconds)
+                most_recent_path = paths_edited
+                sortByKey(most_recent_path, 'most_recent')
+                most_recent_path = paths_edited.reverse()[0]
+                seconds = most_recent_path['most_recent']
                 time_since =  salvus_client.server_time()/1000 - seconds
-                
+
                 # TODO do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
-                
+
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
                 if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                    all_users.push <Avatar viewing_what='project' key={user_id} account={account} path={info.path} />
+                    all_users.push <Avatar viewing_what='project' key={user_id} account={account} style={style} path={most_recent_path['path']} project_id={@props.project_id} redux={@props.redux} />
 
         else
             for user_id, events of log
