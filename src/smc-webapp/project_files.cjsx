@@ -35,6 +35,7 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
+{AccountPageRedux} = require('./account_page')
 
 {salvus_client} = require('./salvus_client')
 
@@ -1861,11 +1862,21 @@ ProjectFiles = (name) -> rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
+    render_not_public_error : ->
+        if @props.redux.getStore('account').is_logged_in()
+            <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+        else
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />
+                <AccountPageRedux />
+            </div>
+
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
+            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             switch error
                 when 'no_dir'
                     if @props.current_path == '.trash'
@@ -1882,7 +1893,7 @@ ProjectFiles = (name) -> rclass
                 else
                     e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
-                {e}
+                {if error == '"not_public"' then @render_not_public_error() else e}
                 <br />
                 <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
                     <Icon name='refresh'/> Try again to get directory listing
