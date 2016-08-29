@@ -1075,6 +1075,14 @@ class exports.Editor
             if @open_file_tabs().length < 1
                 @resize_open_file_tabs()
 
+            if (!(window.localStorage.getItem("opened_files")))
+                window.localStorage.setItem("opened_files", "[]")
+            opened_files = JSON.parse(window.localStorage.getItem("opened_files"))
+            for value, index in opened_files
+                if value['project_id'] == @project_id and value['path'] == filename
+                    opened_files.splice(index, 1)
+            window.localStorage.setItem("opened_files", JSON.stringify(opened_files))
+
             return false
 
         link.find(".salvus-editor-close-button-x").click(close_tab)
