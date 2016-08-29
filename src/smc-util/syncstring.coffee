@@ -493,6 +493,9 @@ class SyncDoc extends EventEmitter
                 if @_client.is_project()
                     # CRITICAL: do not start autosaving this until syncstring is initialized!
                     @init_project_autosave()
+                else
+                    # Ensure file is undeleted when explicitly open.
+                    @_undelete()
 
         if opts.file_use_interval and @_client.is_user()
             is_chat = misc.filename_extension(@_path) == 'sage-chat'
@@ -688,6 +691,10 @@ class SyncDoc extends EventEmitter
                     else
                         cb()
             ], (err) =>
+                if @_closed
+                    # disconnected while connecting...
+                    cb()
+                    return
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
                     cb    : (err, init) => @emit('init', err ? init.toJS().error)
@@ -898,11 +905,22 @@ class SyncDoc extends EventEmitter
         @emit('user_change')
         return value
 
+    _undelete: () =>
+        if @_closed
+            return
+        @dbg("_undelete")()
+        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', false))
+
     _save_patch: (time, patch, cb) =>
+        if @_closed
+            return
         obj =  # version for database
             id    : [@_string_id, time]
             patch : JSON.stringify(patch)
             user  : @_user_id
+        if @_deleted
+            # file was deleted but now change is being made, so undelete it.
+            @_undelete()
         if @_save_patch_prev?
             # timestamp of last saved patch during this session
             obj.prev = @_save_patch_prev
@@ -1114,6 +1132,7 @@ class SyncDoc extends EventEmitter
                 path          : @_path
                 last_snapshot : @_last_snapshot
                 users         : @_users
+                deleted       : false
             @_syncstring_table.set(obj)
         else
             @_last_snapshot     = x.last_snapshot
@@ -1121,29 +1140,39 @@ class SyncDoc extends EventEmitter
             @_users             = x.users
             @_project_id        = x.project_id
             @_path              = x.path
+            if @_deleted? and x.deleted and not @_deleted # change
+                @emit("deleted")
+            @_deleted           = x.deleted
 
             # Ensure that this client is in the list of clients
-            @_user_id = @_users.indexOf(client_id)
+            @_user_id = @_users?.indexOf(client_id)
             if @_user_id == -1
                 @_user_id = @_users.length
                 @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, users:@_users})
 
             if @_client.is_project()
-                # If client is project and save is requested, start saving...
-                if x.save?.state == 'requested'
-                    if not @_patch_list?
-                        # requested to save, but we haven't even loaded the document yet -- when we do, then save.
-                        @once 'connected', =>
-                            @_save_to_disk()
-                    else
-                        @_save_to_disk()
-                # If client is a project and path isn't being properly watched, make it so.
-                if x.project_id? and @_watch_path != x.path
-                    @_update_watch_path(x.path)
-            else
-                if x.deleted
-                    console.log("file is closed!")
+                async.series([
+                    (cb) =>
+                        # wait for patch list to load
+                        if @_patch_list?
+                            cb()
+                        else
+                            @once 'connected', => cb()
+                    (cb) =>
+                        # NOTE: very important to completely do @_update_watch_path
+                        # before @_save_to_disk below.
+                        # If client is a project and path isn't being properly watched, make it so.
+                        if x.project_id? and @_watch_path != x.path
+                            @_update_watch_path(x.path, cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if x.save?.state == 'requested'
+                            @_save_to_disk(cb)
+                        else
+                            cb()
+                ])
 
         @emit('metadata-change')
 
@@ -1164,34 +1193,57 @@ class SyncDoc extends EventEmitter
             return
         dbg("opening watcher")
         @_watch_path = path
-        @_client.watch_file
-            path     : path
-            debounce : 1
-            cb       : (err, watcher) =>
-                if err
-                    dbg("error -- #{err}")
-                    delete @_watch_path
-                    delete @_gaze_file_watcher
-                    cb?(err)
-                else
-                    dbg("success")
-                    @_gaze_file_watcher = watcher
-                    watcher.on 'all', (event) =>
-                        dbg("event #{event}")
-                        if event == 'deleted'
-                            dbg("delete: setting deleted=true and closing")
-                            @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
-                            @_syncstring_table.save () =>  # make sure deleted:true is saved.
-                                @_load_from_disk () =>  # blank file and saves that back to db
-                                    @close()
-                            return
-                        if @_save_to_disk_just_happened
-                            dbg("@_save_to_disk_just_happened")
-                            @_save_to_disk_just_happened = false
+        async.series([
+            (cb) =>
+                @_client.path_exists
+                    path : path
+                    cb   : (err, exists) =>
+                        if err
+                            cb(err)
+                        else if not exists
+                            dbg("write '#{path}' to disk from syncstring in-memory database version -- '#{@get().slice(0,80)}...'")
+                            @_client.write_file
+                                path : path
+                                data : @get()
+                                cb   : (err) =>
+                                    dbg("wrote '#{path}' to disk -- now calling cb")
+                                    cb(err)
                         else
-                            dbg("_load_from_disk")
-                            @_load_from_disk()
-                    cb?()
+                            cb()
+            (cb) =>
+                dbg("now watching file")
+                @_client.watch_file
+                    path     : path
+                    debounce : 1
+                    cb       : (err, watcher) =>
+                        if err
+                            dbg("error -- #{err}")
+                            delete @_watch_path
+                            delete @_gaze_file_watcher
+                            cb(err)
+                        else
+                            dbg("success")
+                            @_gaze_file_watcher = watcher
+                            watcher.on 'all', (event) =>
+                                if @_closed
+                                    return
+                                dbg("event #{event}")
+                                if event == 'deleted'
+                                    dbg("delete: setting deleted=true and closing")
+                                    @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
+                                    @_syncstring_table.save () =>  # make sure deleted:true is saved.
+                                        @set('')
+                                        @save () =>
+                                            @close()
+                                    return
+                                if @_save_to_disk_just_happened
+                                    dbg("@_save_to_disk_just_happened")
+                                    @_save_to_disk_just_happened = false
+                                else
+                                    dbg("_load_from_disk")
+                                    @_load_from_disk()
+                            cb()
+        ], (err) => cb?(err))
 
     _load_from_disk: (cb) =>
         path = @get_path()
@@ -1317,14 +1369,15 @@ class SyncDoc extends EventEmitter
     # A user (web browsers) sets the save state to requested.
     # The project sets the state to saving, does the save to disk, then sets
     # the state to done.
-    _save_to_disk: () =>
+    _save_to_disk: (cb) =>
         path = @get_path()
         #dbg = @dbg("_save_to_disk('#{path}')")
         if not path?
-            # not yet initialized
+            cb?("not yet initialized")
             return
         if not path
             @_set_save(state:'done', error:'cannot save without path')
+            cb?("cannot save without path")
             return
         if @_client.is_project()
             #dbg("project - write to disk file")
@@ -1339,6 +1392,7 @@ class SyncDoc extends EventEmitter
                         @_set_save(state:'done', error:err)
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+                    cb?(err)
         else if @_client.is_user()
             # CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
             # (if it is running) to open the syncstring (if closed), and hence be aware that the client
@@ -1350,10 +1404,13 @@ class SyncDoc extends EventEmitter
 
             #dbg("user - request to write to disk file")
             if not @get_project_id()
-                @_set_save(state:'done', error:'cannot save without project')
+                err = 'cannot save without project'
+                @_set_save(state:'done', error:err)
             else
                 #dbg("send request to save")
+                err = undefined
                 @_set_save(state:'requested', error:false)
+            cb?(err)
 
     ###
     # When the underlying synctable that defines the state of the document changes

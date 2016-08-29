@@ -107,6 +107,7 @@ schema.recent_syncstrings_in_project =
         project_id  : true
         last_active : true
         path        : true
+        deleted     : true
     user_query :
         get :
             all :
@@ -118,6 +119,7 @@ schema.recent_syncstrings_in_project =
                 string_id   : null
                 last_active : null
                 path        : null
+                deleted     : null
             required_fields :
                 project_id  : true
                 max_age_m   : true

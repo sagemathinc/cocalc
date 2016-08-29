@@ -56,8 +56,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
-DEBUG = false
-#DEBUG = true
+#DEBUG = false
+DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
@@ -133,6 +133,7 @@ class exports.Client extends EventEmitter
             max_age_m   : SYNCSTRING_MAX_AGE_M
             path        : null
             last_active : null
+            deleted     : null
 
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
@@ -141,37 +142,68 @@ class exports.Client extends EventEmitter
             @update_recent_syncstrings()
 
         @_recent_syncstrings.once 'change', =>
-            # We have to do this since syncstrings no longer satisfying the max_age_m query
+            # We have to do this interval check since syncstrings no longer satisfying the max_age_m query
             # do NOT automatically get removed from the table (that's just not implemented yet).
-            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 60*1000)
+            # This interval check is also important in order to detect files that were deleted then
+            # recreated.
+            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 7*1000)
 
     update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
         cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
+        @_wait_syncstrings ?= {}
         keys = {}
         x = @_recent_syncstrings.get()
         if not x?
             return
         @_recent_syncstrings.get().map (val, key) =>
+            string_id = val.get('string_id')
+            if @_open_syncstrings[string_id] or @_wait_syncstrings[string_id]
+                # either already open or waiting a bit before opening
+                return
             path = val.get('path')
             if path == '.smc/local_hub/local_hub.log'
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-            string_id = val.get('string_id')
             if val.get("last_active") > cutoff
                 keys[string_id] = true
                 if not @_open_syncstrings[string_id]?
-                    @path_exists
-                        path : path
-                        cb   : (err, exists) =>
-                            if err or not exists
+                    deleted = val.get('deleted')
+                    dbg("path='#{path}', deleted=#{deleted}")
+                    async.series([
+                        (cb) =>
+                            if not deleted
+                                # sync file (in database) is not deleted so we will open
+                                cb()
                                 return
+                            dbg("check if '#{path}' exists")  # if so, undelete, obviously.
+                            @path_exists
+                                path : path
+                                cb   : (err, exists) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        deleted = not exists
+                                        cb()
+                    ], (err) =>
+                        if err
+                            dbg("SERIOUS ERROR -- #{err}")
+                        else if deleted
+                            # do nothing -- don't open
+                            dbg("ignoring deleted path '#{path}'")
+                        else
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
                             ss = @_open_syncstrings[string_id] = @sync_string(path:path)
                             ss.on 'close', () =>
                                 dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
                                 delete @_open_syncstrings[string_id]
+                                # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
+                                @_wait_syncstrings[string_id] = true
+                                setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
+                    )
+            return  # so map doesn't terminate due to funny return value
+
         for string_id, val of @_open_syncstrings
             path = val._path
             if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
@@ -500,6 +532,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
+        @dbg("checking if path exists")(opts.path)
         fs.exists opts.path, (exists) =>
             opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
@@ -550,18 +583,22 @@ class exports.Client extends EventEmitter
                 @path_exists
                     path : path
                     cb   : (err, exists) =>
-                        if not exists
-                            fs.writeFile(path, '', cb)
+                        if err
+                            cb(err)
+                        else if not exists
+                            cb("path '#{path}' must exist in order to watch it")
                         else
                             cb()
             (cb) =>
                 gaze_obj = new Gaze(path, {debounceDelay:opts.debounce})
                 gaze_obj.on 'error', (err) =>
                     dbg("error #{err}")
-                    cb(err)
+                    cb?(err)
+                    cb = undefined  # gave may even error more than once, maybe (?)
                 gaze_obj.on 'ready', () =>
                     dbg("ready")
-                    cb()
+                    cb?()
+                    cb = undefined  # gaze may emit ready more than once -- I've seen this (seems stupid but happened.)
         ], (err) =>
             if err
                 opts.cb(err)
