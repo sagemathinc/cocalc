@@ -610,38 +610,6 @@ FileListing = rclass
             {@render_no_files()}
         </Col>
 
-EmptyTrash = rclass
-    displayName : 'ProjectFiles-EmptyTrash'
-
-    propTypes :
-        actions : rtypes.object.isRequired
-
-    getInitialState : ->
-        open : false
-
-    empty_trash : ->
-        @props.actions.delete_files(paths : ['.trash'])
-        @setState(open : false)
-
-    render_confirm : ->
-        if @state.open
-            <Alert bsStyle='danger'>
-                Are you sure? This will permanently delete all items in the trash.
-                <ButtonToolbar>
-                    <Button onClick={@empty_trash} bsStyle='danger'>Empty trash</Button>
-                    <Button onClick={=>@setState(open : false)}>Cancel</Button>
-                </ButtonToolbar>
-            </Alert>
-
-    render : ->
-        <span>
-            <Space/><Space/><Space/>
-            <Button bsSize='xsmall' bsStyle='danger' onClick={=>@setState(open : not @state.open)}>
-                <Icon name='trash-o' /> Empty Trash...
-            </Button>
-            {@render_confirm()}
-        </span>
-
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
 
@@ -665,14 +633,9 @@ ProjectFilesPath = rclass
                     actions   = {@props.actions} />
         return v
 
-    empty_trash : ->
-        if @props.current_path == '.trash'
-            <EmptyTrash actions={@props.actions} />
-
     render : ->
         <div style={wordWrap:'break-word'}>
             {@make_path()}
-            {@empty_trash()}
         </div>
 
 ProjectFilesButtons = rclass
@@ -714,12 +677,6 @@ ProjectFilesButtons = rclass
         else
             <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
 
-    render_trash : ->
-        if @props.public_view
-            return
-        <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.trash')}>
-            <Icon name='trash' />  </a>
-
     render_backup : ->
         if @props.public_view
             return
@@ -741,7 +698,6 @@ ProjectFilesButtons = rclass
             {@render_refresh()}
             {@render_sort_method()}
             {@render_hidden_toggle()}
-            {@render_trash()}
             {@render_backup()}
             {@render_collaborators()}
         </div>
@@ -1002,10 +958,11 @@ ProjectFilesActionBox = rclass
         @compress_click()
 
     delete_click : ->
-        @props.actions.trash_files
-            src : @props.checked_files.toArray()
+        @props.actions.delete_files
+            paths : @props.checked_files.toArray()
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
+        @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
 
     render_delete_warning : ->
@@ -1022,7 +979,6 @@ ProjectFilesActionBox = rclass
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
-                    <h4>Move to the trash</h4>
                     {@render_selected_files_list()}
                 </Col>
                 {@render_delete_warning()}
