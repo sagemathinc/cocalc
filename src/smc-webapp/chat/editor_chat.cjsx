@@ -28,6 +28,10 @@ AUTHORS:
   - John Jeng
 ###
 
+# --SD81 VIDEO CHAT--
+# Added all the @props.is_side_chat to implement chat room style side chats.
+# the action set_media_streams is not being used/doesn't work
+
 ###
 Chat message JSON format:
 
@@ -177,6 +181,9 @@ class ChatActions extends Actions
 
     set_is_preview: (is_preview) =>
         @setState(is_preview:is_preview)
+
+    set_media_streams: (media_streams) =>
+        @setState(media_streams:media_streams)
 
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered

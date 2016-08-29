@@ -25,6 +25,9 @@
 #    - Vivek Venkatachalam
 ###
 
+# --SD81 VIDEO CHAT--
+# This file was created to combine the video chat and editor chat together
+
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE} = require('../feature')
@@ -61,26 +64,21 @@ ChatRoomContainer = rclass
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
         is_side_chat: rtypes.bool
-        testprop    : rtypes.bool
 
     render: ->
         C = ChatRoom(@props.name)
-        constraints = {
-        audio: false,
-        video: true
-        }
         <div>
-            <VideoChatRoom project_id={@props.project_id} file_use_id={@props.file_use_id} path={@props.path} />
+            <VideoChatRoom redux={@props.redux} actions={@props.actions} project_id={@props.project_id} file_use_id={@props.file_use_id} path={@props.path} />
             <Redux redux={@props.redux}>
                 <C redux={@props.redux} actions={@props.actions} name={@props.name} project_id={@props.project_id} file_use_id={@props.file_use_id} path={@props.path} is_side_chat={@props.is_side_chat} />
             </Redux>
         </div>
 
-render = (redux, project_id, path, is_side_chat, testprop) ->
+render = (redux, project_id, path, is_side_chat) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    <ChatRoomContainer redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} file_use_id={file_use_id} path={path} is_side_chat={is_side_chat} testprop={testprop} />
+    <ChatRoomContainer redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} file_use_id={file_use_id} path={path} is_side_chat={is_side_chat} />
 
-exports.render = (project_id, path, dom_node, redux, is_side_chat, testprop) ->
+exports.render = (project_id, path, dom_node, redux, is_side_chat) ->
     init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path, is_side_chat, testprop), dom_node)
+    ReactDOM.render(render(redux, project_id, path, is_side_chat), dom_node)

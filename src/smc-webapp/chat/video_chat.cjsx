@@ -25,9 +25,11 @@
 #    - Vivek Venkatachalam
 ###
 
-# Events required to sync a broadcast:
-#
-#  1.
+# --SD81 VIDEO CHAT--
+# This file consists of all the video chat stuff worked on at Sage Days 81
+# Uses a SimpleWebRTC with require at ../../webapp-lib/webrtc/latest-v2.js
+# The switching between main video feeds currently does not work.
+# The broadcasting system does work though.
 
 # standard non-SMC libraries
 immutable = require('immutable')
@@ -80,113 +82,213 @@ require.ensure [], =>
             @joinRoom(@SMCRoomName)
             @connection.on('message', (x) => @_handleMessage(x))
 
+        # leave SMC Room
         leaveSMCRoom: ->
             @leaveRoom(@SMCRoomName)
 
         # gets all remote media streams
-        getPeerStreams: () ->
+        getPeerStreams: ->
             peer_streams = []
+            peer_stream_id = []
             for x in @webrtc.peers
-                if x.stream and x.stream not in peer_streams
-                    peer_streams.push(x.stream)
-            #streams = (x.stream for x in @webrtc.peers)
-            console.log("webrtc peer streams: ", peer_streams)
-
-            return peer_streams
+                if x.stream
+                    if x.stream.id not in peer_stream_id
+                        peer_streams.push(x.stream)
+                        peer_stream_id.push(x.stream.id)
+            return [peer_streams, peer_stream_id]
 
         getLocalStream: ->
             @webrtc.localStreams[0]
+
+        getLocalStreamId: ->
+            if @getLocalStream()
+                @webrtc.localStreams[0].id
+            else
+                "No ID"
 
         getAllStreams: ->
             streams = {}
             local_stream = @getLocalStream()
             if local_stream?
-                streams.push(local_stream)
-            streams.push(@getPeerStreams())
+                streams.localStream = local_stream
+            streams.peerStreams = @getPeerStreams()[0]
             return streams
 
     window.SMCWebRTC = SMCWebRTC
 
+# called ChatActions for now
+# class ChatActions extends Actions
+#     set_media_streams: (ms) =>
+#         @setState(media_streams:ms)
 
-VideoFeed = rclass
-    displayName: "VideoFeed"
+VideoStream = rclass
+    displayName: "VideoStream"
 
     propTypes:
-        local_feed    : rtypes.object
-        remote_feeds  : rtypes.object
-
-    shouldComponentUpdate: (next) ->
-        return @props.local_feed != next.local_feed or
-               @props.remote_feed != next.remote_feed
-
+        media_streams   : rtypes.object
+        media_stream    : rtypes.object
+        stream_id       : rtypes.string # Stream Id associated with the media stream
+        local_stream_id : rtypes.string # Your stream id
+        size            : rtypes.number # Size of media_stream list
+        width           : rtypes.string
+        actions         : rtypes.object
+        reposition      : rtypes.func
 
     componentDidUpdate: ->
-        if @props.local_feed.size > 0
-            ReactDOM.findDOMNode(@refs.testing).srcObject = @props.local_feed.first()
+        # webrtc.on('videoAdded', @peer_added)
+        if @props.media_stream.id is @props.local_stream_id
+            ReactDOM.findDOMNode(@refs.localVideo).srcObject = @props.media_stream
+        else
+            ReactDOM.findDOMNode(@refs.remoteVideo).srcObject = @props.media_stream
 
-    video_content: ->
-        <video autoPlay style={width:"291px", transform: "scaleX(-1)"} ref="testing" id="test"></video>
+    # peer_added: ->
+    #     @forceUpdate()
+
+    function: (e) ->
+        #e.preventDefault()
+        @props.reposition(@props.stream_id, @props.media_streams)
 
     render: ->
+        if @props.size == 1
+            if @props.media_stream.id is @props.local_stream_id
+                <video hidden autoPlay onClick={@function} style={width:"291px", transform: "scaleX(-1)"} ref="localVideo" />
+            else
+                <video autoPlay onClick={@function} style={width:"291px"} ref="remoteVideo" />
+        else
+            if @props.media_stream.id is @props.local_stream_id
+                <video autoPlay onClick={@function} style={width:@props.width, transform: "scaleX(-1)"} ref="localVideo" />
+            else
+                <video autoPlay onClick={@function} style={width:@props.width} ref="remoteVideo" />
+
+VideoList = rclass
+    displayName: "VideoList"
+
+    propTypes:
+        media_streams    : rtypes.object
+        local_stream_id  : rtypes.string
+        peer_stream_ids  : rtypes.array
+        actions          : rtypes.object
+        reposition       : rtypes.func
+
+    getInitialState: ->
+        stream_list : {}
+
+    componentDidMount: ->
+        webrtc.on('videoAdded', @peer_added)
+
+    peer_added: ->
+        @forceUpdate()
+
+    # reposition_stream: (stream_id) ->
+    #     clicked_media_stream = []
+    #     @videoFeedList = {}
+    #     for key, val of @props.media_streams
+    #         if key is stream_id
+    #             clicked_media_stream.push(val)
+    #     @videoFeedList[stream_id] = clicked_media_stream[0]
+    #     if webrtc.getAllStreams().peerStreams[0]
+    #         for ids, i in webrtc.getPeerStreams()[1]
+    #             if ids != stream_id
+    #                 @videoFeedList[ids] = webrtc.getAllStreams().peerStreams[i]
+    #     if webrtc.getLocalStream()
+    #         if webrtc.getLocalStreamId() != stream_id
+    #             @videoFeedList[webrtc.getLocalStreamId()] = webrtc.getAllStreams().localStream
+        #return @videoFeedList
+        #@setState(stream_list:@videoFeedList)
+        #@props.actions.set_media_streams(@videoFeedList)
+
+    video_content: ->
+        first_video = []
+        video_list = []
+        media_stream_size = (k for own k of @props.media_streams).length
+        is_first = true
+        for key, val of @props.media_streams
+            if is_first
+                first_video.push <VideoStream key={key} actions={@props.actions} media_stream={val} stream_id={key} local_stream_id={@props.local_stream_id} size={media_stream_size} width={"291px"} reposition={@props.reposition} media_streams={@props.media_streams} />
+                is_first = false
+            else
+                video_list.push <VideoStream key={key} actions={@props.actions} media_stream={val} stream_id={key} local_stream_id={@props.local_stream_id} size={media_stream_size} width={"45px"} reposition={@props.reposition} media_streams={@props.media_streams} />
+
+        return [first_video, video_list]
+
+    render: ->
+        console.log("media props: ", @props.media_streams)
         <div>
-            {@video_content()}
+            <div>
+                <div style={overflowX:"auto"}>
+                    {@video_content()[1]}
+                </div>
+                {@video_content()[0]}
+            </div>
         </div>
 
 exports.VideoChatRoom = VideoChatRoom = rclass
     displayName: "VideoChatRoom"
 
     propTypes:
-        project_id  : rtypes.string.isRequired
-        file_use_id : rtypes.string.isRequired
-        path        : rtypes.string
+        project_id       : rtypes.string.isRequired
+        file_use_id      : rtypes.string.isRequired
+        path             : rtypes.string
+        redux            : rtypes.object
+        actions          : rtypes.object
+
+    getInitialState: ->
+        media_streams : {}
 
     componentWillMount: ->
         webrtc = new SMCWebRTC
             autoRequestMedia : false
 
-        webrtc.SMCRoomName = "SMCDAYS81"
+        webrtc.SMCRoomName = @props.path
         webrtc.joinSMCRoom()
+        webrtc.on('videoAdded', @peer_added)
         window.webrtc = webrtc
-        # webrtc.on('videoAdded', @add_peer)
-        # webrtc.on('createdPeer', @add_peer2)
-        @new_stream_object = immutable.List()
-        @remote_feed_object = immutable.List()
 
-    # componentDidMount: ->
-    #     @temp_feed_object = immutable.List()
-    #     size = webrtc.webrtc.peers.length
-    #     console.log("size of peers", size)
-    #     if size > 0
-    #         for x in [0, 1]
-    #             console.log("peer stream: ", webrtc.webrtc.peers[x].stream)
-    #             if webrtc.webrtc.peers[x].stream
-    #                 @temp_feed_object = @remote_feed_object.push(webrtc.webrtc.peers[x].stream)
-    #                 @forceUpdate()
-        #@new_stream_object = @stream_object.push(webrtc.webrtc.peers[0].stream)
+    obtain_media_feeds: ->
+        @videoFeedList = {}
+        if webrtc.getAllStreams().peerStreams[0]
+            for ids, i in webrtc.getPeerStreams()[1]
+                @videoFeedList[ids] = webrtc.getAllStreams().peerStreams[i]
+        if webrtc.getLocalStream()
+            @videoFeedList[webrtc.getLocalStreamId()] = webrtc.getAllStreams().localStream
+        @setState(media_streams:@videoFeedList)
+        console.log("inside obtain_media_feeds: ", @state.media_streams)
 
-#     add_peer: (videoEl, peer) ->
-#         console.log("add_peer",videoEl)
-#         console.log("add_peer",peer)
+    #on click
+    reposition_stream: (stream_id, all_stream) ->
+        @videoFeedList = {}
+        clicked_media_stream = []
+        for key, val of all_stream
+            if key is stream_id
+                clicked_media_stream.push(val)
+        @videoFeedList[stream_id] = clicked_media_stream[0]
+        if webrtc.getAllStreams().peerStreams[0]
+            for ids, i in webrtc.getPeerStreams()[1]
+                if ids != stream_id
+                    @videoFeedList[ids] = webrtc.getAllStreams().peerStreams[i]
+        if webrtc.getLocalStream()
+            if webrtc.getLocalStreamId() != stream_id
+                @videoFeedList[webrtc.getLocalStreamId()] = webrtc.getAllStreams().localStream
+        @setState(media_streams:@videoFeedList)
+        console.log("what is this: ", @videoFeedList)
+        console.log("Inside reposition: ", @state.media_streams)
+        #@setState(stream_list:@videoFeedList)
+        #@props.actions.set_media_streams(@videoFeedList)
 
-#     add_peer2: (peer) ->
-#         console.log("add_peer2",peer)
+    peer_added: ->
+        @obtain_media_feeds()
+        @forceUpdate()
 
-    #grabs local stream
+    # starts broadcast
     start_broadcast: ->
         webrtc.startBroadcast(@on_received_stream)
-        @forceUpdate()
-
-    add_local_stream: ->
-        @stream_object = immutable.List()
-        @new_stream_object = @stream_object.push(webrtc.webrtc.localStreams[0])
-        # webrtc.leaveSMCRoom()
-        @forceUpdate()
 
     on_received_stream: (err, stream) ->
         if err
             console.log("Error getting stream: ", err)
         else
-            @add_local_stream()
+            @forceUpdate()
+            console.log("A new broadcast has been started")
 
     render: ->
         #video container
@@ -194,11 +296,11 @@ exports.VideoChatRoom = VideoChatRoom = rclass
             <Button onClick={@start_broadcast}>
                 <Icon name='arrow-up'/> Start Video
             </Button>
-            <VideoFeed local_feed={@new_stream_object} remote_feed={@new_stream_object} />
+            <VideoList actions={@props.actions} media_streams={@state.media_streams} local_stream_id={webrtc.getLocalStreamId()} peer_stream_ids={webrtc.getPeerStreams()[1]} reposition={@reposition_stream} />
         </div>
 
-render = (constraints) ->
-    <VideoChatRoom constraints={constraints} />
+# render = (constraints) ->
+#     <VideoChatRoom constraints={constraints} />
 
-exports.render = (dom_node, constraints) ->
-    ReactDOM.render(render(constraints), dom_node)
+# exports.render = (dom_node, constraints) ->
+#     ReactDOM.render(render(constraints), dom_node)

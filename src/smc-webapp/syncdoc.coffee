@@ -150,6 +150,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.emit 'show-chat'
         # @render_chat_log()
 
+        # --SD81 VIDEO CHAT--
+        # This change renders the side chat along with the in progress video chat
         main_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, true, true)
         #side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, true)
 

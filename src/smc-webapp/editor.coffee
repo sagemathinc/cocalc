@@ -2287,7 +2287,6 @@ class CodeMirrorEditor extends FileEditor
         @element.css(top:top, left:0)
         # and position the chat column
         @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height + 2)
-        #@element.find(".salvus-editor-codemirror-chat-column").css(left:"1013px")
 
         # set overall height of the element
         @element.height(elem_height)
@@ -2295,6 +2294,8 @@ class CodeMirrorEditor extends FileEditor
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
 
+        # --SD81 VIDEO CHAT--
+        # Removed all the codemirror video code
         @chat_elt = @element.find(".salvus-editor-codemirror-chat")
 
         if chat
