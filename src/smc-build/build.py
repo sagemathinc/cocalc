@@ -378,7 +378,8 @@ R_PACKAGES = [
     'gplots',
     'Hmisc',
     'survey',
-    'maps'
+    'maps',
+    'plotly',
 ]
 
 SAGE_OPTIONAL_PACKAGES = [

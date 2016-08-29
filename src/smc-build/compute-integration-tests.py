@@ -210,7 +210,8 @@ R_libs_extra = [
     'gplots',
     'Hmisc',
     'survey',
-    'maps'
+    'maps',
+    'plotly',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos, Sage's R and Anaconda
