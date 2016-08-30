@@ -205,6 +205,12 @@ LogEntry = rclass
         v = if v.length > 0 then r_join(v) else 'nothing'
         <span>set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>upgrade contributions</a> to: {v}</span>
 
+    render_invite_user : ->
+        <span>invited user <User user_map={@props.user_map} account_id={@props.event.invitee_account_id} /></span>
+        
+    render_invite_nonuser : ->
+        <span>invited nonuser {@props.event.invitee_email}</span>
+
     file_action_icons :
         deleted    : 'delete'
         downloaded : 'download'
@@ -229,6 +235,10 @@ LogEntry = rclass
                 return @render_file_action()
             when 'upgrade'
                 return @render_upgrade()
+            when 'invite_user'
+                return @render_invite_user()
+            when 'invite_nonuser'
+                return @render_invite_nonuser()
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>
@@ -255,6 +265,10 @@ LogEntry = rclass
                 return file_action_buttons[icon]?.icon
             when 'upgrade'
                 return 'arrow-circle-up'
+            when 'invite_user'
+                return 'user'
+            when 'invite_nonuser'
+                return 'user'
             else
                 return 'dot-circle-o'
 

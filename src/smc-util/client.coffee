@@ -1586,6 +1586,7 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+        #console.log("query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)

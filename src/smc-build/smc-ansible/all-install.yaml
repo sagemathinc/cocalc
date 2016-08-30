@@ -41,7 +41,6 @@
       - htop
       - fio
       - monit
-      - python-pip
       - dstat
       - iotop
       - libssl-dev           # required for R's devtools, but also maybe others
@@ -121,6 +120,7 @@
     - openjdk-8-jre
     - pandoc
     - par2
+    - bup
     - pkg-config
     - python-lxml
     - python-pylibacl
@@ -428,6 +428,7 @@
     - lzip
     - m4
     - markdown
+    - mathgl
     - maven
     - mc
     - mencoder
@@ -733,7 +734,6 @@
     - python-xlwt
     - python-xlrd
     - python-xlsxwriter
-    - python3-simpy
     - python-zmq
     - python-z3
 
@@ -929,6 +929,7 @@
     - python3-sphinx
     - python3-spur
     - python3-simplejson
+    - python3-simpy
     - python3-six
     - python3-skimage
     - python3-sphere

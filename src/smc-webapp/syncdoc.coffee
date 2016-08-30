@@ -610,6 +610,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     #console.log("syncstring before change")
                     @_syncstring.set(@codemirror.getValue())
 
+                # TODO: should do this for all editors, but I don't want to conflict with the top down react rewrite,
+                # and this is kind of ugly...
+                @_syncstring.on "deleted", =>
+                    @editor.editor.close(@filename)
+
                 save_state = () => @_sync()
                 # We debounce instead of throttle, because we want a single "diff/commit" to correspond
                 # a burst of activity, not a bunch of little pieces of that burst.  This is more
@@ -702,6 +707,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 cb()
 
     save: (cb) =>
+        # This first call immediately sets saved button to disabled to make it feel like instant save.
+        @editor.has_unsaved_changes(false)
+        # We then simply ensure the save state is valid 5s later (in case save fails, say).
+        setTimeout(@_update_unsaved_uncommitted_changes, 5000)
+
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
             omit_lines = {}
@@ -735,6 +745,14 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         @_syncstring.on 'cursor_activity', (account_id) =>
             @_render_other_cursor(account_id)
+
+    get_users_cursors: (account_id) =>
+        x = @_syncstring.get_cursors()?.get(account_id)
+        #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
+        # important: must use server time to compare, not local time.
+        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
+            locs = x.get('locs')?.toJS()
+            return locs
 
     _render_other_cursor: (account_id) =>
         if account_id == salvus_client.account_id

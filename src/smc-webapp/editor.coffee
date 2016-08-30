@@ -764,7 +764,7 @@ class CodeMirrorEditor extends FileEditor
         if not opts.public_access
             if not window.FULLY_REACT
                 # TODO: can't do this here when fully react
-                profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
+                profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
 
         @element.data('editor', @)
 
@@ -935,6 +935,15 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @wizard = null
+
+    programmatical_goto_line: (line) =>
+        cm = @codemirror_with_last_focus
+        pos = {line:line-1, ch:0}
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
+
+    get_users_cursors: (account_id) =>
+        return @syncdoc?.get_users_cursors(account_id)
 
     init_file_actions: () =>
         if window.FULLY_REACT
