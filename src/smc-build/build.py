@@ -442,36 +442,36 @@ class BuildSage(object):
         Do everything to patch/update/install/enhance this Sage install.
         """
         actions = [
-            #pull_smc_sage, # broken
-            #unextend_sys_path,
-            patch_sage_location,
-            patch_banner,
-            patch_sage_env,
-            user_site,
-            install_sloane,
-            install_projlib,
-            install_pip,
-            install_pip_packages,
-            install_jinja2, # since sage's is too old and pip packages doesn't upgrade
-            install_R_packages,
-            install_R_bioconductor,
-            install_rstan,
-            install_pystan,
-            install_optional_packages,
-            install_quantlib,
-            install_basemap,
-            install_pydelay,
-            install_gdal,
-            install_stein_watkins,
-            install_jsanimation,
-            install_sage_manifolds,
-            install_r_jupyter_kernel,
-            install_cv2,
-            install_cairo,
-            install_psage,
-            install_pycryptoplus,
-            # install_tensorflow, # doesn't work
-            # install_neuron, # also fails
+            #"pull_smc_sage", # broken
+            #"unextend_sys_path",
+            "patch_sage_location",
+            "patch_banner",
+            "patch_sage_env",
+            "user_site",
+            "install_sloane",
+            "install_projlib",
+            "install_pip",
+            "install_pip_packages",
+            "install_jinja2", # since sage's is too old and pip packages doesn't upgrade
+            "install_R_packages",
+            "install_R_bioconductor",
+            "install_rstan",
+            "install_pystan",
+            "install_optional_packages",
+            "install_quantlib",
+            "install_basemap",
+            "install_pydelay",
+            "install_gdal",
+            "install_stein_watkins",
+            "install_jsanimation",
+            "install_sage_manifolds",
+            "install_r_jupyter_kernel",
+            "install_cv2",
+            "install_cairo",
+            "install_psage",
+            "install_pycryptoplus",
+            # "install_tensorflow", # doesn't work
+            # "install_neuron", # also fails
         ]
 
         try:
