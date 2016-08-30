@@ -27,11 +27,6 @@ $ = window.$
 #
 ####################################################
 
-#if not window.WebSocket?  # websocket support -- mark of a modern browser.
-#    $(".salvus_client_browser_warning").draggable().find(".fa-times").click () ->
-#        $(".salvus_client_browser_warning").hide()
-#    $(".salvus_client_browser_warning").show()
-
 isMobile = exports.isMobile =
     Android    : () -> !! navigator.userAgent.match(/Android/i)
     BlackBerry : () -> !! navigator.userAgent.match(/BlackBerry/i)
@@ -75,7 +70,8 @@ exports.get_mobile = () ->
 
 # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
 if not navigator.cookieEnabled
-    $(".smc-cookie-warning").show()
+    {redux} = require('./smc-react')
+    redux.getActions('page').show_cookie_warning()
 
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
