@@ -64,6 +64,7 @@ BINARIES = [
     ('scilab-cli', 'scilab', '-version', 1),
     ('singular', None, '--version /dev/null'),
     ('echo "quit;" | gap', 'gap', ''),
+    ('mglconv -h | head -2', 'mgl', ''), # mathGL
     ('feynmf', None, None, 255),
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
@@ -210,7 +211,8 @@ R_libs_extra = [
     'gplots',
     'Hmisc',
     'survey',
-    'maps'
+    'maps',
+    'plotly',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos, Sage's R and Anaconda

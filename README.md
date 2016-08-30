@@ -13,9 +13,10 @@
    * `git clone https://github.com/sagemathinc/smc` -- copy repo
    * `cd smc/src`
    * `npm run install-all` -- build
-   * `npm test` -- run test suite
+   * `npm test` -- run test suite (expected failures if your clock is not UTC)
    * `install.py all --compute --web` -- build and install some parts system-wide for development use
    * See `INSTALL.md` for more details.
+   * Docker: https://github.com/sagemathinc/smc/tree/master/src/dev/docker
 
 ## Contributors
 

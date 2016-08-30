@@ -104,7 +104,7 @@ Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account
 
 Put this at end of ~/.bashrc:
 
-    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/smc/smc; . smc-env; cd "$PWD"
+    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/smc/src; . smc-env; cd "$PWD"
 
 If doing development also put
 
