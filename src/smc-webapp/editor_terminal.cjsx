@@ -137,7 +137,7 @@ class DevTerminalActions extends Actions
             @syncstring.sync()
 
 # Makes a terminal which wraps terminal.js
-TerminalEditor = (name) -> rclass
+exports.TerminalEditor = rclass ({name}) ->
     displayName : "DevTerminal"
 
     reduxProps :
@@ -209,7 +209,7 @@ TerminalEditor = (name) -> rclass
             if @props.actions.syncstring?
                 @props.actions.set_value(@_terminal.value)
             @_terminal.remove()
-            
+
     increase_font_size : ->
         console.log("Increase font size")
         @_terminal._increase_font_size()
@@ -303,54 +303,12 @@ TerminalEditor = (name) -> rclass
             </Panel>
         </div>
 
-# boilerplate fitting this into SMC below
-render = (opts) ->
-    {redux, project_id, filename, editor} = opts
-    name = redux_name(project_id, filename)
-    actions = redux.getActions(name)
-    C = TerminalEditor(name)
-    <Redux redux={redux}>
-        <C redux={redux} name={name} actions={actions} project_id={project_id} path={filename} editor={editor}/>
-    </Redux>
+initialize_state = (path, redux, project_id) ->
+    init_redux(redux, project_id, path)
+    return redux_name(project_id, path)
 
-exports.render = (opts) ->
-    console.log("editor_terminal: render")
-    {project_id, filename, dom_node, redux, editor} = opts
-    init_redux(redux, project_id, filename)
-    pack =
-        redux      : redux
-        project_id : project_id
-        filename   : filename
-        editor     : editor
-    ReactDOM.render(render(pack), dom_node)
-
-exports.hide = (opts) ->
-    {project_id, filename, dom_node, redux} = opts
-    console.log("editor_terminal: hide")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (opts) ->
-    {project_id, filename, dom_node, redux, editor} = opts
-    console.log("editor_terminal: show")
-    pack =
-        redux      : redux
-        project_id : project_id
-        filename   : filename
-        editor     : editor
-    ReactDOM.render(render(pack), dom_node)
-
-exports.free = (opts) ->
-    console.log("editor_terminal: free")
-    {project_id, filename, dom_node, redux} = opts
-
-    fname = redux_name(project_id, filename)
-    store = redux.getStore(fname)
-    if not store?
-        return
-    ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncstring?.disconnect_from_session()
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(fname)
-    redux.removeActions(fname)
+require('project_file').register_file_editor
+    ext         : ['term']
+    icon        : 'file-code-o'
+    init      : initialize_state
+    generator : TerminalEditor

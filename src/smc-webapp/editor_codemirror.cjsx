@@ -92,7 +92,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 store.syncstring = actions.syncstring = syncstring
                 actions.set_value(syncstring.live())
 
-CodemirrorEditor = (name) -> rclass
+CodemirrorEditor = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             value       : rtypes.string
@@ -186,43 +186,8 @@ CodemirrorGenerator = (path, redux, project_id) ->
 
     return C_CodemirrorEditor
 
-
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
     init      : initialize_state
     generator : CodemirrorGenerator
-
-render = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
-    actions = redux.getActions(name)
-    CodemirrorEditor_connected = CodemirrorEditor(name)
-    <Redux redux={redux} >
-        <CodemirrorEditor_connected actions={actions} />
-    </Redux>
-
-exports.render = (project_id, filename, dom_node, redux) ->
-    init_redux(redux, project_id, filename)
-    React.render(render(redux, project_id, filename), dom_node)
-
-exports.hide = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: hide")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: show")
-    React.render(render(redux, project_id, filename), dom_node)
-
-exports.free = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: free")
-    fname = redux_name(project_id, filename)
-    store = redux.getStore(fname)
-    if not store?
-        return
-    ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncstring?.disconnect_from_session()
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(fname)
-    redux.removeActions(fname)

@@ -6,7 +6,7 @@ TODO: This and all of the HTML loaded below will GO AWAY with the react.js rewri
 ###
 
 $ = window.$
-html = require('./account.html') + require('./misc_page.html') + require('./alerts.html') + require('./help.html') + require('./console.html') + require('./projects.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
+html = require('./account.html') + require('./misc_page.html') + require('./alerts.html') + require('./help.html') + require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
 
 # Page container is for https://github.com/jschr/bootstrap-modal, which of course will go away...
 html = '<div class="page-container">' + html + '</div>'
