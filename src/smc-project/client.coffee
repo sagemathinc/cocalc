@@ -29,8 +29,6 @@ SYNCSTRING_MAX_AGE_M = 7
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
     sagews : true   # only sagews for now.
 
-## SYNCSTRING_MAX_AGE_M = 1 # for debugging
-
 fs     = require('fs')
 {join} = require('path')
 
@@ -56,8 +54,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
-#DEBUG = false
-DEBUG = true
+DEBUG = false
+#DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
@@ -146,7 +144,7 @@ class exports.Client extends EventEmitter
             # do NOT automatically get removed from the table (that's just not implemented yet).
             # This interval check is also important in order to detect files that were deleted then
             # recreated.
-            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 7*1000)
+            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 5*1000)
 
     update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
@@ -156,21 +154,22 @@ class exports.Client extends EventEmitter
         x = @_recent_syncstrings.get()
         if not x?
             return
-        @_recent_syncstrings.get().map (val, key) =>
+        dbg("open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}")
+        x.map (val, key) =>
             string_id = val.get('string_id')
-            if @_open_syncstrings[string_id] or @_wait_syncstrings[string_id]
-                # either already open or waiting a bit before opening
-                return
             path = val.get('path')
             if path == '.smc/local_hub/local_hub.log'
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
             if val.get("last_active") > cutoff
-                keys[string_id] = true
+                keys[string_id] = true   # anything not set here gets closed below.
+                if @_open_syncstrings[string_id] or @_wait_syncstrings[string_id]
+                    # either already open or waiting a bit before opening
+                    return
                 if not @_open_syncstrings[string_id]?
                     deleted = val.get('deleted')
-                    dbg("path='#{path}', deleted=#{deleted}")
+                    dbg("path='#{path}', deleted=#{deleted}, string_id='#{string_id}'")
                     async.series([
                         (cb) =>
                             if not deleted
@@ -195,6 +194,9 @@ class exports.Client extends EventEmitter
                         else
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
                             ss = @_open_syncstrings[string_id] = @sync_string(path:path)
+                            ss.on 'error', (err) =>
+                                dbg("ERROR creating syncstring '#{path}' -- #{err}; will try again later")
+                                ss.close()
                             ss.on 'close', () =>
                                 dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
                                 delete @_open_syncstrings[string_id]

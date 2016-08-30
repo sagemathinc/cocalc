@@ -575,6 +575,7 @@ class SyncDoc extends EventEmitter
                     string_id   : @_string_id
                     project_id  : @_project_id
                     path        : @_path
+                    deleted     : @_deleted
                     last_active : misc.server_time()
 
     # The project calls this once it has checked for the file on disk; this
@@ -908,7 +909,7 @@ class SyncDoc extends EventEmitter
     _undelete: () =>
         if @_closed
             return
-        @dbg("_undelete")()
+        #@dbg("_undelete")()
         @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', false))
 
     _save_patch: (time, patch, cb) =>
@@ -1132,7 +1133,7 @@ class SyncDoc extends EventEmitter
                 path          : @_path
                 last_snapshot : @_last_snapshot
                 users         : @_users
-                deleted       : false
+                deleted       : @_deleted
             @_syncstring_table.set(obj)
         else
             @_last_snapshot     = x.last_snapshot
@@ -1140,7 +1141,7 @@ class SyncDoc extends EventEmitter
             @_users             = x.users
             @_project_id        = x.project_id
             @_path              = x.path
-            if @_deleted? and x.deleted and not @_deleted # change
+            if @_deleted? and x.deleted and not @_deleted # change to deleted
                 @emit("deleted")
             @_deleted           = x.deleted
 
@@ -1230,12 +1231,14 @@ class SyncDoc extends EventEmitter
                                 dbg("event #{event}")
                                 if event == 'deleted'
                                     dbg("delete: setting deleted=true and closing")
-                                    @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
-                                    @_syncstring_table.save () =>  # make sure deleted:true is saved.
-                                        @set('')
-                                        @save () =>
+                                    @set('')
+                                    @save () =>
+                                        # NOTE: setting deleted=true must be done **after** setting document to blank above,
+                                        # since otherwise the set would set deleted=false.
+                                        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
+                                        @_syncstring_table.save () =>  # make sure deleted:true is saved.
                                             @close()
-                                    return
+                                        return
                                 if @_save_to_disk_just_happened
                                     dbg("@_save_to_disk_just_happened")
                                     @_save_to_disk_just_happened = false
