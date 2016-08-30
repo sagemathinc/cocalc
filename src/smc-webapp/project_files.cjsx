@@ -983,6 +983,12 @@ ProjectFilesActionBox = rclass
                 </Col>
                 {@render_delete_warning()}
             </Row>
+            <Row style={marginBottom:'10px'}>
+                <Col sm=12>
+                    Backups of your files are available in the 
+                    <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>~/.snapshots</a> directory.
+                </Col>
+            </Row>
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
