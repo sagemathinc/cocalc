@@ -786,6 +786,7 @@ exports.Tip = Tip = rclass
         delayShow : rtypes.number
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
+        style     : rtypes.object
 
     getDefaultProps : ->
         placement : 'right'
@@ -818,7 +819,7 @@ exports.Tip = Tip = rclass
             overlay   = {@render_popover()}
             delayShow = 600
             >
-            <span>{@props.children}</span>
+            <span style={@props.style}>{@props.children}</span>
         </OverlayTrigger>
 
 exports.SaveButton = rclass

@@ -302,6 +302,14 @@ class ProjectActions extends Actions
                     cb("#{err}, #{misc.to_json(output)}")
                 else
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
+
+    close_file : (path) =>
+        # TODOJ actually close the file and delete references...
+        x = @get_store().get_open_files_order()
+        index = x.indexOf(path)
+        if index != -1
+            @setState(open_files_order : x.delete(index), open_files : @get_store().get('open_files').delete(path))
+
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
@@ -1012,10 +1020,10 @@ class ProjectStore extends Store
         return @get('current_path')
 
     get_open_files: =>
-        return @get('open_files') ? immutable.Map({})
+        return @get('open_files')
 
     get_open_files_order: =>
-            return @get('open_files_order') ? immutable.List([])
+            return @get('open_files_order')
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
@@ -1164,7 +1172,9 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
-        active_project_tab         : 'files'
+        active_project_tab : 'files'
+        open_files_order   : immutable.List([])
+        open_files         : immutable.Map({})
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 

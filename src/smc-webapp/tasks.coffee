@@ -56,9 +56,9 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (editor, filename, opts) ->
+exports.task_list = (project_id, filename, opts) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(editor, filename, element, opts)
+    new TaskList(project_id, filename, element, opts)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']

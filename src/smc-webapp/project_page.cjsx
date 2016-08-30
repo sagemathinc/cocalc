@@ -29,6 +29,24 @@ ProjectTab = rclass
         tooltip : rtypes.string
         active_project_tab : rtypes.string
         file_tab : rtypes.bool
+        open_files_order : rtypes.object
+
+    close_file : (e, path) ->
+        e.stopPropagation()
+        e.preventDefault()
+        if misc.path_to_tab(path) == @props.active_project_tab
+            index = @props.open_files_order.indexOf(path)
+            size = @props.open_files_order.size
+            next_active_tab = 'files'
+            if index == -1 or size <= 1
+                next_active_tab = 'files'
+            else
+                if index == size - 1
+                    next_active_tab = misc.path_to_tab(@props.open_files_order.get(index - 1))
+                else
+                    next_active_tab = misc.path_to_tab(@props.open_files_order.get(index + 1))
+                @actions(project_id: @props.project_id).set_active_tab(next_active_tab)
+        @actions(project_id: @props.project_id).close_file(path)
 
     render : ->
         styles = {}
@@ -44,8 +62,12 @@ ProjectTab = rclass
             key={@props.name}
             active={@props.name == @props.active_project_tab}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}>
-            <Tip title={@props.tooltip} placement='bottom' size='small'>
-                <Icon style={fontSize: if @props.file_tab then '10pt' else 20} name={@props.icon} /> <span style={filename_styles}>{@props.label}</span>
+            {<Icon
+                name = 'times'
+                className = 'pull-right'
+                onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))} /> if @props.file_tab}
+            <Tip title={@props.tooltip} placement='bottom' size='small' style={filename_styles}>
+                <Icon style={fontSize: if @props.file_tab then '10pt' else 20} name={@props.icon} /> {@props.label}
             </Tip>
         </NavItem>
 
@@ -148,7 +170,8 @@ ProjectPageTemp = rclass ({name}) ->
             tooltip={path}
             project_id={@props.project_id}
             file_tab={true}
-            active_project_tab={@props.active_project_tab} />
+            active_project_tab={@props.active_project_tab}
+            open_files_order={@props.open_files_order} />
 
     render_page : ->
         active = @props.active_project_tab

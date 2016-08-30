@@ -196,7 +196,6 @@ NavTab = rclass
         icon : rtypes.oneOfType([rtypes.string, rtypes.object])
         close : rtypes.bool
         on_click : rtypes.func
-        on_close : rtypes.func
         active_top_tab : rtypes.string
         actions : rtypes.object
 

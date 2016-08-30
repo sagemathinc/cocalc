@@ -563,7 +563,7 @@ class FileEditor extends EventEmitter
         @syncdoc?.show_chat_window()
 
     is_active: () =>
-        misc.tab_to_path(redux.getProjectStore(@project_id).active_project_tab) == @filename
+        misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
     # call it, to set the @default_font_size from the account settings
     init_font_size: () =>
@@ -1016,7 +1016,7 @@ class CodeMirrorEditor extends FileEditor
         e.addClass("alert-#{type}")
 
     is_active: () =>
-        return @codemirror? and misc.tab_to_path(redux.getProjectStore(@project_id).active_project_tab) == @filename
+        return @codemirror? and misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
@@ -2930,7 +2930,7 @@ class TaskList extends FileEditorWrapper
         @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
         require.ensure [], () =>
             tasks = require('./tasks')
-            elt = tasks.task_list(@, @filename, {})
+            elt = tasks.task_list(@project_id, @filename, {})
             @element.replaceWith(elt)
             @element = elt
             @wrapped = elt.data('task_list')
