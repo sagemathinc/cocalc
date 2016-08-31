@@ -340,12 +340,17 @@ whoami = os.environ['USER']
 def client1(port, hostname):
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((hostname, int(port)))
+    print("client1 connected")
+    stok = open(secret_token_path).read().strip()
+    conn.send(stok)
     conn = ConnectionJSON(conn)
 
     conn.send_json(message.start_session())
     typ, mesg = conn.recv()
     pid = mesg['pid']
     print("PID = %s" % pid)
+    c_ack = conn._recv(1)
+    assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
     id = 0
     while True:
@@ -1470,18 +1475,22 @@ def session(conn):
 
     - ``conn`` -- the TCP connection
     """
+    log("SESSION 0")
     mq = MessageQueue(conn)
 
     pid = os.getpid()
 
     # seed the random number generator(s)
+    log("SESSION 1")
     import sage.all; sage.all.set_random_seed()
     import random; random.seed(sage.all.initial_seed())
 
     # get_memory_usage is not aware of being forked...
+    log("SESSION 2")
     import sage.misc.getusage
     sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
+    log("SESSION 3")
     cnt = 0
     while True:
         try:
@@ -1543,6 +1552,7 @@ def session(conn):
             # happen almost instantly.  Ugly, but it works.
             cnt += 1
             if cnt > 10000:
+                log("UGLY EXIT")
                 sys.exit(0)
             else:
                 pass
@@ -1831,10 +1841,12 @@ def serve(port, host, extra_imports=False):
                 PID = os.getpid()
                 log("child process, will now serve this new connection")
                 serve_connection(conn)
+                log("SERVE CONNECTION RETURNED")
 
         # end while
     except Exception as err:
         log("Error taking connection: ", err)
+        log("Exception: ", sys.exc_info()[0])
         traceback.print_exc(file=sys.stdout)
         #log.error("error: %s %s", type(err), str(err))
 
@@ -1890,7 +1902,9 @@ if __name__ == "__main__":
         #log.setLevel(level)
 
     if args.client:
-        client1(port=args.port if args.port else int(open(args.portfile).read()), hostname=args.hostname)
+        port = int(args.port) if args.port else int(open(args.portfile).read())
+        print("port %s"%port)
+        client1(port=port, hostname=args.hostname)
         sys.exit(0)
 
     if not args.port:
