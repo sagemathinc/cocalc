@@ -108,7 +108,7 @@ Avatar = rclass
         #extra div for necessary for overlay not to destroy background color
         <OverlayTrigger placement='top' overlay={@tooltip()}>
             <div style={display:'inline-block'}>
-                <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
+                <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line);$(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000);$(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)}>
                     {@render_image()}
                 </div>
             </div>
