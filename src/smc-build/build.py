@@ -34,6 +34,11 @@ Usage:
     # which instantiates: bs = BuildSage(), hence then:
     >>> bs.everything()
 
+Design:
+* all actions of the `SageBuild` class must be idempotent.
+* it runs from the SAGE_ROOT location, and creates and uses a `tmp` directory right inside of it (downloads, extractions, builds)
+* a few actions do hardcode paths, like `install_stein_watkins`, but most of them are generic.
+
 Read more:
 
 * build.md: how to setup compute nodes → most entries are formalized in smc-ansible, see compute-setup.yaml
@@ -67,7 +72,7 @@ class SMCLoggingContext(logging.Filter):
         record.where = "%s:%s" % (record.filename[:-3], record.lineno)
         return True
 
-fmt = logging.Formatter(fmt = '%(runtime)f %(where)-10s %(levelname)-9s %(message)s')
+fmt = logging.Formatter(fmt = '%(runtime)7.1f %(where)-10s %(levelname)-9s %(message)s')
 sh = logging.StreamHandler()
 sh.setFormatter(fmt)
 sh.setLevel(logging.DEBUG)
@@ -848,6 +853,7 @@ class BuildSage(object):
             log.info("failed pip packages")
             for pip in self.failed_pip:
                 log.info("  * %s", pip)
+
         if len(self.failed_spkg) > 0:
             log.info("failed sage packages")
             for spkg in self.failed_spkg:
@@ -857,7 +863,7 @@ class BuildSage(object):
     def fix_permissions(self):
         log.info("fixing permissions ...")
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
-        log.fino("... done")
+        log.info("... done")
 
 
 bs = BuildSage()
