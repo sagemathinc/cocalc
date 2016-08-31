@@ -867,3 +867,12 @@ class BuildSage(object):
 
 
 bs = BuildSage()
+
+# this is for non-interactive usage
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 1:
+        print("\n\nUsage: ./sage {} everything       [to build and install everything]".format(__file__))
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == 'everything':
+            bs.everything()
