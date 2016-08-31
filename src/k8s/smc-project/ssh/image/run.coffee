@@ -147,7 +147,7 @@ compute_authorized_keys = (project_id) ->
 # command="ssh -q -t [PROJECTID-WITHOUT-DASHES]@[compute6-us.sagemath.com] $SSH_ORIGINAL_COMMAND",no-user-rc [PUBLIC KEY]
 compute_authorized_keys_file = (project_id, username) ->
     keys       = compute_authorized_keys(project_id)
-    ip_address = projects[project_id]?.kubernetes.ip
+    ip_address = projects[project_id]?.kubernetes?.ip
     if not ip_address?
         return ''
     else
