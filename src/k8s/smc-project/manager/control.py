@@ -73,7 +73,10 @@ def run_on_kubernetes(args):
         default_image = util.gcloud_docker_repo('smc-project:' + args.project_tag)
     else:
         default_image = util.gcloud_most_recent_image('smc-project')
-    default_image = default_image[:default_image.rfind('-')]  # remove final -[which image]
+    i = default_image.rfind('-')
+    j = default_image.find(':')
+    if j < i:
+        default_image = default_image[:i]  # remove final -[which image]
 
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image          = tag,
