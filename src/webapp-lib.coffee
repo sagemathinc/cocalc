@@ -55,8 +55,8 @@ require("script!spin/spin.min.js")
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
-# require("script!bootbox/bootbox.min.js")
-require('bootbox')
+require("script!bootbox/bootbox.min.js")
+# require('bootbox')
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
 #require("script!bootstrap-switch/bootstrap-switch.min.js")

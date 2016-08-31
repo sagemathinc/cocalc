@@ -308,7 +308,7 @@ initialize_state = (path, redux, project_id) ->
     return redux_name(project_id, path)
 
 require('project_file').register_file_editor
-    ext         : ['term']
+    ext         : ['term', 'sage-term']
     icon        : 'file-code-o'
     init      : initialize_state
-    generator : TerminalEditor
+    component : TerminalEditor

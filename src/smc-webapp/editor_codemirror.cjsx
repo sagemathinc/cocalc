@@ -174,20 +174,8 @@ initialize_state = (path, redux, project_id) ->
     init_redux(redux, project_id, path)
     return redux_name(project_id, path)
 
-CodemirrorGenerator = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
-    C = CodemirrorEditor(name)
-    C_CodemirrorEditor = ({redux, actions}) ->
-        <Redux redux={redux} >
-            <C actions={actions} />
-        </Redux>
-
-    C_CodemirrorEditor.redux_name = name
-
-    return C_CodemirrorEditor
-
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
     init      : initialize_state
-    generator : CodemirrorGenerator
+    component : CodemirrorEditor

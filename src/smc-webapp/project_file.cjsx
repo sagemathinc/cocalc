@@ -31,6 +31,7 @@ file_editors = {}
 
 ###
 ext       : string or array of strings to associate the editor with
+component : rclass|function
 generator : function (path, redux, project_id) -> rclass|function
 init      : function (path, redux, project_id) -> string
 
@@ -38,7 +39,8 @@ init      : function (path, redux, project_id) -> string
 exports.register_file_editor = (opts) ->
     opts = defaults opts,
         ext       : required
-        generator : required # function
+        component : undefined # rclass
+        generator : undefined # function
         init      : required # function
         icon   : 'file-o'
     console.log "register_file_editor #{opts.ext}"
@@ -47,6 +49,7 @@ exports.register_file_editor = (opts) ->
     for ext in opts.ext
         file_editors[ext] =
             icon      : opts.icon
+            component : opts.component
             generator : opts.generator
             init      : opts.init
 
@@ -64,20 +67,25 @@ exports.initialize = (path, redux, project_id) ->
 exports.generate = (path, redux, project_id) ->
     ext = filename_extension(path)
     generator = file_editors[ext]?.generator
-    if not generator?
-        console.log("generator not found. Using fallback")
-        generator = file_editors['']?.generator
     if generator?
-        return generator(path, redux, project_id) # return the generated class
+        return generator(path, redux, project_id)
+
+    component = file_editors[ext]?.component
+    if not component?
+        console.log("component not found. Using fallback")
+        component = file_editors['']?.component
+    if component?
+        return component # return the class
     else
         return () -> <div>No editor for {path} or fallback editor yet</div>
 
 # Require each module, which loads a file editor.  These call register_file_editor.
 
+# require('./editor_terminal')
 require('./editor_chat')
 require('./editor_archive')
 require('./course/main')
-# require('./editor_codemirror')
+require('./editor_codemirror')
 
 require('./editor').register_nonreact_editors()
 

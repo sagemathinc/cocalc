@@ -141,13 +141,6 @@ class ArchiveActions extends Actions
             @setState(error: err, extract_output: output.stdout)
         )
 
-init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
-    if redux.getActions(name)?
-        return  # already initialized
-    actions = redux.createActions(name, ArchiveActions)
-    store   = redux.createStore(name)
-
 ArchiveContents = rclass
     render : ->
         if not @props.contents?
@@ -155,7 +148,7 @@ ArchiveContents = rclass
         <pre>{@props.contents}</pre>
 
 
-Archive = (name) -> rclass
+Archive = rclass ({name}) ->
     reduxProps:
         "#{name}" :
             contents       : rtypes.string
@@ -190,53 +183,17 @@ Archive = (name) -> rclass
             <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
-initialize_state = (path, redux, project_id) ->
+init_redux = (path, redux, project_id) ->
     console.log("Initializing editor archive")
-    init_redux(redux, project_id, path)
-    return redux_name(project_id, path)
-
-ArchiveEditorGenerator = (path, redux, project_id) ->
-    console.log("Generating Archive Editor-- This should happen once per file opening")
     name = redux_name(project_id, path)
-    C = Archive(name)
-    C_Archive = ({redux, path, actions, project_id}) ->
-        <Redux redux={redux}>
-            <C path={path} actions={actions} project_id={project_id} />
-        </Redux>
-
-    C_Archive.redux_name = name
-
-    C_Archive.propTypes =
-        redux      : rtypes.object
-        path       : rtypes.string.isRequired
-        actions    : rtypes.object.isRequired
-        project_id : rtypes.string.isRequired
-
-    return C_Archive
+    if redux.getActions(name)?
+        return  # already initialized
+    actions = redux.createActions(name, ArchiveActions)
+    store   = redux.createStore(name)
+    return redux_name(project_id, path)
 
 require('project_file').register_file_editor
     ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
     icon   : 'file-archive-o'
-    generator : ArchiveEditorGenerator
-    init      : initialize_state
-
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    actions = redux.getActions(name)
-    Archive_connected = Archive(name)
-    <Redux redux={redux}>
-        <Archive_connected path={path} actions={actions} project_id={project_id} />
-    </Redux>
-
-exports.free = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.render = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.hide = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (project_id, path, dom_node, redux) ->
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+    component : Archive
+    init      : init_redux

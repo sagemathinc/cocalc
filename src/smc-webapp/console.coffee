@@ -45,8 +45,8 @@ IS_MOBILE = feature.IS_MOBILE
 
 CSI = String.fromCharCode(0x9b)
 
-initfile_content = (fn) ->
-    """# This initialization file is associated with your terminal in #{fn}.
+initfile_content = (filename) ->
+    """# This initialization file is associated with your terminal in #{filename}.
 # It is automatically run whenever it starts up -- restart the terminal via Ctrl-d and Return-key.
 
 # Usually, your ~/.bashrc is executed and this behavior is emulated for completeness:

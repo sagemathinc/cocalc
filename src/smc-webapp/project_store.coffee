@@ -243,14 +243,18 @@ class ProjectActions extends Actions
                         open_files = store.get_open_files()
 
                         if open_files.has(opts.path) # Already opened
+                            if opts.foreground
+                                @set_active_tab(misc.path_to_tab(opts.path))
                             return
 
                         open_files_order = store.get_open_files_order()
                         # Intialize the file's store and actions
-                        project_file.initialize(opts.path, @redux, @project_id)
+                        name = project_file.initialize(opts.path, @redux, @project_id)
 
                         # Make the editor
                         editor = project_file.generate(opts.path, @redux, @project_id)
+                        editor.redux_name = name
+
                         # Add it to open files
                         @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
                         if opts.foreground

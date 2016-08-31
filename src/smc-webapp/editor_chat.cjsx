@@ -660,7 +660,7 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = (name) -> rclass
+ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
@@ -1050,8 +1050,6 @@ ChatRoom = (name) -> rclass
                 </Row>
             </Grid>
 
-# boilerplate fitting this into SMC below
-
 initialize_state = (path, redux, project_id) ->
     init_redux(redux, project_id, path)
     return redux_name(project_id, path)
@@ -1059,11 +1057,10 @@ initialize_state = (path, redux, project_id) ->
 ChatEditorGenerator = (path, redux, project_id) ->
     # console.log("Generating Chat Editor -- This should happen once per file opening")
     name = redux_name(project_id, path)
-    C = ChatRoom(name)
-    C_ChatRoom = ({redux, path, actions, project_id}) ->
+    C_ChatRoom = ({path, actions, project_id}) ->
         file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
         <Redux redux={redux}>
-            <C redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
+            <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
         </Redux>
 
     C_ChatRoom.redux_name = name
