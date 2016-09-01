@@ -438,6 +438,11 @@ def test_openmp(tmpdir):
     assert float(v.split()[-1]) < 1.
     print(v)
 
+# this is a test for https://github.com/sagemathinc/smc/issues/857
+@pytest.mark.parametrize('exe', R_setups.keys())
+def test_r_sys_which(exe):
+    v = run('''echo 'cat(Sys.which("ls"))' | {exe} -q --no-save'''.format(exe=exe))
+    assert '/bin/ls' in v
 
 # TODO numexpr
 
