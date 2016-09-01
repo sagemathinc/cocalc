@@ -1088,11 +1088,23 @@ CollaboratorsSearch = rclass
             return <ErrorDisplay error={@state.err} onClose={=>@setState(err:'')} />
         if not @state.select? or not @state.search.trim()
             return
-        select = (r for r in @state.select when not @props.project.get('users').get(r.account_id)?)
+        select = []
+        existing = []
+        for r in @state.select
+            if @props.project.get('users').get(r.account_id)?
+                existing.push(r)
+            else
+                select.push(r)
         if select.length == 0
-            <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                <Icon name='envelope' /> No matches. Send email invitation...
-            </Button>
+            if existing.length == 0
+                <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                    <Icon name='envelope' /> No matches. Send email invitation...
+                </Button>
+            else # no hit, but at least one existing collaborator
+                collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
+                <Alert bsStyle='info'>
+                    Existing collaborator(s): {collabs}
+                </Alert>
         else
             <div style={marginBottom:'10px'}>
                 <Input type='select' multiple ref='select' onClick={@select_list_clicked}>

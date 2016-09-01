@@ -202,6 +202,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
         error   : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         title   : rtypes.string
         style   : rtypes.object
+        bsStyle : rtypes.string
         onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button : ->
@@ -220,7 +221,8 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             error = @props.error
         else
             error = misc.to_json(@props.error)
-        <Alert bsStyle='danger' style={style}>
+        bsStyle = @props.bsStyle ? 'danger'
+        <Alert bsStyle={bsStyle} style={style}>
             {@render_close_button() if @props.onClose?}
             {@render_title() if @props.title}
             {error}
