@@ -163,7 +163,11 @@ exports.StudentsPanel = rclass
         nb_selected = @state.selected_entries?.length ? 0
         _ = require('underscore')
         es = @state.existing_students
-        existing = _.keys(es.email).length + _.keys(es.account).length > 0
+        if es?
+            existing = _.keys(es.email).length + _.keys(es.account).length > 0
+        else
+            # es not defined when user clicks the close button on the warning.
+            existing = 0
         btn_text = switch options.length
             when 0 then (if existing then "Student already added" else "No student found")
             when 1 then "Add student"
@@ -186,10 +190,14 @@ exports.StudentsPanel = rclass
                 user = @props.user_map.get(account_id)
                 existing.push("#{user.get('first_name')} #{user.get('last_name')}")
             if existing.length > 0
-                msg = "Already existing student(s) or project collaborator(s): #{existing.join(', ')}"
+                if existing.length > 1
+                    msg = "Already added students or project collaborators: "
+                else
+                    msg = "Already added student or project collaborator: "
+                msg += existing.join(', ')
                 ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
         if ed?
-            <Row><Col md=12>{ed}</Col></Row>
+            <Row style={marginTop:'1em'}><Col md=5 lgOffset=7>{ed}</Col></Row>
         else
             <Row></Row>
 
