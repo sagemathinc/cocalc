@@ -85,6 +85,7 @@ class FileUseActions extends Actions
             @mark_file(x.project_id, x.path, action, 0, false)
 
     mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
+        console.log(project_id, path, action)
         if fix_path
             path = misc.original_path(path)
         #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
@@ -116,6 +117,7 @@ class FileUseActions extends Actions
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
             obj.last_edited = now
+        console.log(obj)
         table.set obj, (err)=>
             if err
                 if err != "not connected" # ignore "not connected", since save will happen once connection goes through.
