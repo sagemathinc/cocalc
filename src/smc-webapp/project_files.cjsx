@@ -35,6 +35,7 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
+{UsersViewing}        = require('./profile')
 
 {salvus_client} = require('./salvus_client')
 
@@ -1940,6 +1941,9 @@ ProjectFiles = (name) -> rclass
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 <Col sm=3>
+                    <div style={height:0}>  {#height 0 so takes up no vertical space}
+                        <UsersViewing redux={@props.redux} viewing_what='project' project_id={@props.project_id} />
+                    </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
