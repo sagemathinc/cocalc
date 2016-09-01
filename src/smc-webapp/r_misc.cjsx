@@ -20,6 +20,8 @@
 
 async = require('async')
 
+{salvus_client} = require('./salvus_client')
+
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
