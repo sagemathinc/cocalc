@@ -986,8 +986,8 @@ ProjectFilesActionBox = rclass
             <Row style={marginBottom:'10px'}>
                 <Col sm=12>
                     Deleting a file immediately deletes it from disk freeing up space; however, older
-                    backups of your files may still be available in the
-                    <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>~/.snapshots</a> directory.
+                    backups of your files may still be available in
+                    the <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>~/.snapshots</a> directory.
                 </Col>
             </Row>
             <Row>
