@@ -20,13 +20,20 @@ print_sagews = (opts) ->
         author     : required
         date       : required
         contents   : required
+        subdir     : required    # 'true' or 'false', if true, then workdir is a generated subdirectory which will retain the temporary tex files
         extra_data : undefined   # extra data that is useful for displaying certain things in the worksheet.
         timeout    : 90
         cb         : required
 
     extra_data_file = undefined
-    args = [opts.path, '--outfile', opts.outfile, '--title', opts.title, \
-            '--author', opts.author,'--date', opts.date, '--contents', opts.contents]
+    args = [opts.path,                 \
+            '--outfile', opts.outfile, \
+            '--title', opts.title,     \
+            '--author', opts.author,   \
+            '--date', opts.date,       \
+            '--subdir', opts.subdir,   \
+            '--contents', opts.contents\
+           ]
 
     async.series([
         (cb) ->
@@ -71,6 +78,7 @@ exports.print_to_pdf = (socket, mesg) ->
                         author     : mesg.options.author
                         date       : mesg.options.date
                         contents   : mesg.options.contents
+                        subdir     : mesg.options.subdir
                         extra_data : mesg.options.extra_data
                         timeout    : mesg.options.timeout
                         cb         : cb
