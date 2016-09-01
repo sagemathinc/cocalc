@@ -33,9 +33,10 @@ file_editors = {}
 ext       : string or array of strings to associate the editor with
 component : rclass|function
 generator : function (path, redux, project_id) -> rclass|function
-init      : function (path, redux, project_id) -> string
+init      : function (path, redux, project_id) -> string (redux name)
 
 ###
+# component and generator could be merged. We only ever get one or the other.
 exports.register_file_editor = (opts) ->
     opts = defaults opts,
         ext       : required
@@ -60,8 +61,12 @@ exports.register_file_editor = (opts) ->
 # - Initializing Actions
 exports.initialize = (path, redux, project_id) ->
     ext = filename_extension(path)
+    console.log(ext)
     console.log("Initializing store and actions for path:", path)
-    file_editors[ext]?.init(path, redux, project_id)
+    name = file_editors[ext]?.init(path, redux, project_id)
+    if not name?
+        name = file_editors[''].init(path, redux, project_id)
+    return name
 
 # Returns an editor instance for the path
 exports.generate = (path, redux, project_id) ->
@@ -73,7 +78,7 @@ exports.generate = (path, redux, project_id) ->
     component = file_editors[ext]?.component
     if not component?
         console.log("component not found. Using fallback")
-        component = file_editors['']?.component
+        component = file_editors['']?.generator?(path, redux, project_id)
     if component?
         return component # return the class
     else

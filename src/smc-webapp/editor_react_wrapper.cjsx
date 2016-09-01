@@ -53,8 +53,9 @@ exports.register_nonreact_editor = (opts) ->
                 extra_opts = copy(require('./editor').file_options(path)?.opts ? {})
                 e = opts.f(project_id, path, extra_opts)
                 editors[key] = e
-
+            console.log("Initializing non-react editor key:", key)
             return key
+
         generator : (path, redux, project_id) ->
             key = "#{project_id}-#{path}"
 

@@ -250,6 +250,7 @@ class ProjectActions extends Actions
                         open_files_order = store.get_open_files_order()
                         # Intialize the file's store and actions
                         name = project_file.initialize(opts.path, @redux, @project_id)
+                        console.log("name?", name)
 
                         # Make the editor
                         editor = project_file.generate(opts.path, @redux, @project_id)

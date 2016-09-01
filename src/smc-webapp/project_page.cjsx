@@ -191,7 +191,7 @@ ProjectPageTemp = rclass ({name}) ->
                 active = misc.tab_to_path(active)
                 if @props.open_files?.has(active)
                     Page = @props.open_files.get(active)
-                    console.log("Redux name:", Page.redux_name)
+                    console.log("Page id", Page.redux_name)
                     # ideally: name, path, project_id is all we pass down here to any editor
                     return <Page path={active} project_id={@props.project_id} redux={redux} actions={@actions(Page.redux_name)} name={Page.redux_name} />
                 return <div>You should not be here! {@props.active_project_tab}</div>
