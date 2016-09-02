@@ -764,7 +764,7 @@ class CodeMirrorEditor extends FileEditor
         if not opts.public_access
             if not window.FULLY_REACT
                 # TODO: can't do this here when fully react
-                profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
+                profile.render_new_viewing_doc(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
 
         @element.data('editor', @)
 

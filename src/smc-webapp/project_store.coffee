@@ -662,31 +662,6 @@ class ProjectActions extends Actions
             @set_activity(id:id, stop:'')
         @_move_files(opts)
 
-    trash_files: (opts) =>
-        opts = defaults opts,
-            src  : required
-            path : undefined
-            id   : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to the trash", id:id)
-        async.series([
-            (cb) =>
-                @ensure_directory_exists(path:'.trash', cb:cb)
-            (cb) =>
-                @_move_files(src:opts.src, path:opts.path, dest:'.trash', cb:cb, mv_args:['--backup=numbered'])
-        ], (err) =>
-            @set_activity(id:id, stop:'')
-            if err
-                @set_activity(id:id, error:"problem trashing #{misc.to_json(opts.src)} -- #{err}")
-            else
-                @log
-                    event  : 'file_action'
-                    action : 'deleted'
-                    files  : opts.src[0...3],
-                    count  :  if opts.src.length > 3 then opts.src.length
-            @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
-        )
-
     delete_files : (opts) =>
         opts = defaults opts,
             paths : required

@@ -70,7 +70,7 @@ immutable = require('immutable')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar, UsersViewingDocument} = require('./profile')
+{Avatar, UsersViewing} = require('./profile')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
@@ -927,7 +927,7 @@ ChatRoom = rclass ({name}) ->
                         </Button>
                     </Col>
                     <Col xs={4} md={4} style={padding:'0px'}>
-                        <UsersViewingDocument
+                        <UsersViewing
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
                               account_id  = {@props.account_id}
@@ -992,7 +992,7 @@ ChatRoom = rclass ({name}) ->
             <Grid>
                 <Row style={marginBottom:'5px'}>
                     <Col xs={3} style={padding:'0px'}>
-                        <UsersViewingDocument
+                        <UsersViewing
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
                               account_id  = {@props.account_id}
