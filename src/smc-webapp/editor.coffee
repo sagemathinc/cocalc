@@ -1075,13 +1075,13 @@ class exports.Editor
             if @open_file_tabs().length < 1
                 @resize_open_file_tabs()
 
-            if (!(window.localStorage.getItem("opened_files")))
-                window.localStorage.setItem("opened_files", "[]")
-            opened_files = JSON.parse(window.localStorage.getItem("opened_files"))
+            if (!(window.localStorage["opened_files"]))
+                window.localStorage["opened_files"] =  "[]"
+            opened_files = JSON.parse(window.localStorage["opened_files"])
             for value, index in opened_files
                 if value['project_id'] == @project_id and value['path'] == filename
                     opened_files.splice(index, 1)
-            window.localStorage.setItem("opened_files", JSON.stringify(opened_files))
+            window.localStorage["opened_files"] = JSON.stringify(opened_files)
 
             return false
 
