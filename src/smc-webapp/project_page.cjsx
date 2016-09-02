@@ -177,7 +177,7 @@ ProjectPageTemp = rclass ({name}) ->
         active = @props.active_project_tab
         switch active
             when 'files'
-                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} />
+                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} redux={redux}/>
             when 'new'
                 return <ProjectNew name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} />
             when 'log'
