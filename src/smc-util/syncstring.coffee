@@ -571,12 +571,10 @@ class SyncDoc extends EventEmitter
     #   The one state change is that the first time calling @undo or @redo switches
     #   into undo/redo state in which additional calls to undo/redo
     #   move up and down the stack of changes made by this user during this session.
-    #   Calling @save (if there is an actual patch to save) switches out of the undo state.
+    #   Call @exit_undo_mode() to exit undo/redo mode.
     #   Undo and redo *only* impact changes made by this user during this session.
     #   Other users edits are unaffected, and work by this same user working from another
     #   browser tab or session is also unaffected.
-    #
-    #   WARNING: don't autosave when undoing/redoing...
     #
     #   Finally, undo of a past patch by definition means "the state of the document"
     #   if that patch was not applied.  The impact of undo is NOT that the patch is
@@ -637,6 +635,12 @@ class SyncDoc extends EventEmitter
                 state.pointer += 1
             return @version_without(state.without)
 
+    in_undo_mode: () =>
+        return @_undo_state?
+
+    exit_undo_mode: () =>
+        delete @_undo_state
+
     _init_undo_state: () =>
         if @_undo_state?
             @_undo_state
@@ -646,9 +650,6 @@ class SyncDoc extends EventEmitter
         state.pointer = state.my_times.length
         state.without = []
         return state
-
-    _exit_undo_state: () =>
-        delete @_undo_state
 
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
@@ -1011,9 +1012,6 @@ class SyncDoc extends EventEmitter
             cb?()
             return value
 
-        # Exit undo state if in undo state
-        @_exit_undo_state()
-
         # compute transformation from _last to live -- exactly what we did
         patch = make_patch(@_last, value)
         @_last = value
@@ -1054,6 +1052,10 @@ class SyncDoc extends EventEmitter
         @_save_patch_prev = time
         #console.log("_save_patch: #{misc.to_json(obj)}")
         @_my_patches[time - 0] = obj
+
+        # If in undo mode put the just-created patch in our without timestamp list, so it won't be included when doing undo/redo.
+        @_undo_state?.without.unshift(time)
+
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
 

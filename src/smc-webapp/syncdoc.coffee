@@ -541,6 +541,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
 
+        ## window.cm = @  ## DEBUGGING
+
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -631,6 +633,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
                             @save_state_debounce()
+                            @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
@@ -688,6 +691,28 @@ class SynchronizedDocument2 extends SynchronizedDocument
             if changeObj.origin == 'undo' or changeObj.origin == 'redo'
                 changeObj.cancel()
                 @editor.click_history_button()
+
+    # Proper per-session sync-aware undo
+    undo: () =>
+        if not @codemirror?
+            return
+        if not @_syncstring.in_undo_mode()
+            @_syncstring.set(@codemirror.getValue())
+        value = @_syncstring.undo()
+        @codemirror.setValueNoJump(value)
+        @save_state_debounce()
+        @_last_change_time = new Date()
+
+    # Proper per-session sync-aware redo
+    redo: () =>
+        if not @codemirror?
+            return
+        if not @_syncstring.in_undo_mode()
+            return
+        value = @_syncstring.redo()
+        @codemirror.setValueNoJump(value)
+        @save_state_debounce()
+        @_last_change_time = new Date()
 
     _connect: (cb) =>
         # no op
