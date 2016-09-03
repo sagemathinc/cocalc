@@ -1025,7 +1025,7 @@ ChatRoom = (name) -> rclass
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
                         <Input
-                            autoFocus   = {false}
+                            autoFocus   = {true}
                             rows        = 2
                             type        = 'textarea'
                             ref         = 'input'
