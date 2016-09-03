@@ -564,6 +564,92 @@ class SyncDoc extends EventEmitter
     version_without: (times) =>
         return @_patch_list.value(undefined, undefined, times)
 
+    # Undo/redo public api.
+    #   Calling @undo and @redo returns the version of the document after
+    #   the undo or redo operation, but does NOT otherwise change anything!
+    #   The caller can then what they please with that output (e.g., update the UI).
+    #   The one state change is that the first time calling @undo or @redo switches
+    #   into undo/redo state in which additional calls to undo/redo
+    #   move up and down the stack of changes made by this user during this session.
+    #   Calling @save (if there is an actual patch to save) switches out of the undo state.
+    #   Undo and redo *only* impact changes made by this user during this session.
+    #   Other users edits are unaffected, and work by this same user working from another
+    #   browser tab or session is also unaffected.
+    #
+    #   WARNING: don't autosave when undoing/redoing...
+    #
+    #   Finally, undo of a past patch by definition means "the state of the document"
+    #   if that patch was not applied.  The impact of undo is NOT that the patch is
+    #   removed from the patch history; instead it just returns a document here that
+    #   the client can do something with, which may result in future patches.   Thus
+    #   clients could implement a number of different undo strategies without impacting
+    #   other clients code at all.
+    undo: () =>
+        state = @_undo_state
+        if not state?
+            # not in undo mode
+            state = @_undo_state = @_init_undo_state()
+        if state.pointer == state.my_times.length
+            # pointing at live state (e.g., happens on entering undo mode)
+            value = @version()     # last saved version
+            live  = @get()
+            if live != value
+                # user had unsaved changes so last undo is to revert to version without those
+                state.final    = make_patch(value, live)                  # live redo if needed
+                state.pointer -= 1  # most recent timestamp
+                return value
+            else
+                # user had no unsaved changes, so last undo is version without last saved change
+                tm = state.my_times[state.pointer - 1]
+                state.pointer -= 2
+                if tm?
+                    state.without.push(tm)
+                    return @version_without(state.without)
+                else
+                    # no undo information during this session
+                    return value
+        else
+            # pointing at particular timestamp in the past
+            if state.pointer >= 0
+                # there is still more to undo
+                state.without.push(state.my_times[state.pointer])
+                state.pointer -= 1
+            return @version_without(state.without)
+
+    redo: () =>
+        state = @_undo_state
+        if not state?
+            # nothing to do but return latest live version
+            return @get()
+        if state.pointer == state.my_times.length
+            # pointing at live state -- nothing to do
+            return @get()
+        else if state.pointer == state.my_times.length - 1
+            # one back from live state, so apply unsaved patch to live version
+            state.pointer += 1
+            return apply_patch(state.final, @version())[0]
+        else
+            # at least two back from live state
+            state.without.pop()
+            state.pointer += 1
+            if not state.final? and state.pointer == state.my_times.length - 1
+                # special case when there wasn't any live change
+                state.pointer += 1
+            return @version_without(state.without)
+
+    _init_undo_state: () =>
+        if @_undo_state?
+            @_undo_state
+        state = @_undo_state = {}
+        state.my_times = (new Date(parseInt(x)) for x in misc.keys(@_my_patches))
+        state.my_times.sort(misc.cmp_Date)
+        state.pointer = state.my_times.length
+        state.without = []
+        return state
+
+    _exit_undo_state: () =>
+        delete @_undo_state
+
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
         if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
@@ -924,6 +1010,9 @@ class SyncDoc extends EventEmitter
             #dbg("nothing changed so nothing to save")
             cb?()
             return value
+
+        # Exit undo state if in undo state
+        @_exit_undo_state()
 
         # compute transformation from _last to live -- exactly what we did
         patch = make_patch(@_last, value)
@@ -1560,3 +1649,4 @@ class exports.SyncObject extends SyncDoc
         @_doc._value = obj
     get: =>
         @_doc.obj()
+
