@@ -76,6 +76,7 @@ exports.make_patch = make_patch = (s0, s1) ->
 exports.apply_patch = apply_patch = (patch, s) ->
     try
         x = dmp.patch_apply(decompress_patch(patch), s)
+        #console.log('patch_apply ', misc.to_json(decompress_patch(patch)), x)
     catch err
         # If a patch is so corrupted it can't be parsed -- e.g., due to a bug in SMC -- we at least
         # want to make application the identity map, so the document isn't completely unreadable!
@@ -150,7 +151,8 @@ class PatchValueCache
     # by applying the elements of @_patches up to @_patches[start-1]
     # Return undefined if there are no cached values.
     # If time is undefined, returns the newest value in the cache.
-    newest_value_at_most: (time) =>
+    # If strict is true, returns newest value at time strictly older than time
+    newest_value_at_most: (time, strict=false) =>
         v = misc.keys(@cache)
         if v.length == 0
             return
@@ -160,7 +162,7 @@ class PatchValueCache
             return @get(v[0])
         time0 = time - 0
         for t in v
-            if t <= time0
+            if (not strict and t <= time0) or (strict and t < time0)
                 return @get(t)
         return
 
@@ -277,22 +279,48 @@ class SortedPatchList extends EventEmitter
     If force is true, doesn't use snapshot at given input time, even if
     there is one; this is used to update snapshots in case of offline changes
     getting inserted into the changelog.
+
+    If without is defined, it must be an array of Date objects; in that case
+    the current value of the strig is computed, but with all the patches
+    at the given times in "without" ignored.  This is used elsewhere as a building
+    block to implement undo.
     ###
-    value: (time, force=false) =>
+    value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
         # If the time is specified, verify that it is valid.
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
+        if without_times?
+            if not misc.is_array(without_times)
+                throw Error("without_times must be an array")
+            if without_times.length > 0
+                v = {}
+                without = undefined
+                for x in without_times
+                    if not misc.is_date(x)
+                        throw Error("each without_times entry must be a date")
+                    v[+x] = true  # convert to number
+                    if not without? or x < without
+                        without = x
+                if time? and +time < without
+                    # requesting value at time before any without, so without is not relevant, so ignore.
+                    without = undefined
+                    without_times = undefined
+                else
+                    without_times = v # change to map from time in ms to true.
 
         prev_cutoff = @newest_snapshot_time()
         # Determine oldest cached value
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
         # point in time, use it as a base.
-        if oldest_cached_time? and (not time? or +time >= +oldest_cached_time)
+        if oldest_cached_time? and (not time? or +time >= +oldest_cached_time) and (not without? or +without > +oldest_cached_time)
             # There is something in the cache, and it is at least as far back in time
             # as the value we want to compute now.
-            cache = @_cache.newest_value_at_most(time)
+            if without?
+                cache = @_cache.newest_value_at_most(without, true)  # true makes "at most" strict, so <.
+            else
+                cache = @_cache.newest_value_at_most(time)
             value = cache.value
             start = cache.start
             cache_time = cache.time
@@ -301,10 +329,11 @@ class SortedPatchList extends EventEmitter
                     # Done -- no more patches need to be applied
                     break
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
-                    value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
+                    if not without? or (without? and not without_times[+x.time])
+                        value = apply_patch(x.patch, value)[0]   # apply patch x to update value to be closer to what we want
                 cache_time = x.time                      # also record the time of the last patch we applied.
                 start += 1
-            if not time? or start - cache.start >= 10
+            if not without? and (not time? or start - cache.start >= 10)
                 # Newest -- or at least 10 patches needed to be applied -- so cache result
                 @_cache.include(cache_time, value, start)
                 @_cache.prune(Math.max(3, Math.min(Math.ceil(30000000/value.length), MAX_PATCHLIST_CACHE_SIZE)))
@@ -338,10 +367,11 @@ class SortedPatchList extends EventEmitter
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
                 if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
-                    value = apply_patch(x.patch, value)[0]
+                    if not without? or (without? and not without_times[+x.time])
+                        value = apply_patch(x.patch, value)[0]
                 cache_time = x.time
                 cache_start += 1
-            if not time? or cache_time and cache_start - start >= 10
+            if not without? and (not time? or cache_time and cache_start - start >= 10)
                 # Newest -- or at least 10 patches needed to be applied -- so
                 # update the cache with our new known value
                 @_cache.include(cache_time, value, cache_start)
@@ -482,6 +512,8 @@ class SyncDoc extends EventEmitter
         @_save_interval = opts.save_interval
         @_my_patches    = {}  # patches that this client made during this editing session.
 
+        ## window.smc[@_path] = @  # for debugging
+
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
         @connect (err) =>
@@ -526,6 +558,11 @@ class SyncDoc extends EventEmitter
     # time specified, gives the version right now.
     version: (time) =>
         return @_patch_list.value(time)
+
+    # Compute version of document if the patches at the given times were simply not included.
+    # This is a building block that is used for implementing undo functionality for client editors.
+    version_without: (times) =>
+        return @_patch_list.value(undefined, undefined, times)
 
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
