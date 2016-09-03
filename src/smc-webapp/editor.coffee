@@ -3693,12 +3693,7 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        if not IS_MOBILE
-            @element.css(top:@editor.editor_top_position(), position:'fixed')
-        else
-            # TODO: this is a terrible HACK for position the top of the editor.
-            @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
-            @element.css(position:'relative', top:'0')
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
         @wrapped?.show?()
 
     hide: () =>
