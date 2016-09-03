@@ -307,7 +307,7 @@ ProjectSearchHeader = rclass ({name}) ->
         actions : rtypes.object.isRequired
 
     render : ->
-        <h1>
+        <h1 style={marginTop:"0px"}>
             <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
         </h1>
 
@@ -315,7 +315,7 @@ exports.ProjectSearch = rclass ({name}) ->
     displayName : 'ProjectSearch'
 
     render : ->
-        <div style={padding:'10px'}>
+        <div>
             <Row>
                 <Col sm=12>
                     <ProjectSearchHeader actions={@actions(name)} name={name} />

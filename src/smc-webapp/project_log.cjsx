@@ -207,7 +207,7 @@ LogEntry = rclass
 
     render_invite_user : ->
         <span>invited user <User user_map={@props.user_map} account_id={@props.event.invitee_account_id} /></span>
-        
+
     render_invite_nonuser : ->
         <span>invited nonuser {@props.event.invitee_email}</span>
 
@@ -482,6 +482,6 @@ exports.ProjectLog = rclass ({name}) ->
 
     render : ->
         <div>
-            <h1><Icon name='history' /> Project activity log</h1>
+            <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
             {if @props.project_log then @render_log_panel() else <Loading/>}
         </div>

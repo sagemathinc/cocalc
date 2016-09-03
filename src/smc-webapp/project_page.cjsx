@@ -224,7 +224,9 @@ ProjectPageTemp = rclass ({name}) ->
                 {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
                 {@file_tabs()}
             </Nav> if not @props.fullscreen}
-            {@render_page()}
+            <div className="container-content" style={margin:"15px"} >
+                {@render_page()}
+            </div>
         </div>
 
 exports.ProjectPage = rclass

@@ -87,7 +87,7 @@ ProjectNewHeader = rclass
         actions      : rtypes.object.isRequired
 
     render : ->
-        <h1>
+        <h1 style={marginTop:"0px"}>
             <Icon name='plus-circle' /> Create new files in<Space/>
             <PathLink
                 path       = {@props.current_path}
@@ -372,7 +372,7 @@ exports.ProjectNew = rclass ({name}) ->
         actions : rtypes.object
 
     render : ->
-        <div style={padding:'10px'}>
+        <div>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@props.actions} />
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
