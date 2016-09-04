@@ -551,6 +551,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
+        # replace undo/redo by sync-aware versions
+        for cm in [@codemirror, @codemirror1]
+            cm.undo = @undo
+            cm.redo = @redo
+
         @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
@@ -679,18 +684,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     sync: (cb) =>
         @_sync(cb)
-
-    # completely disable undo/redo functionality, and make hitting control+z pop up the
-    # time travel history slider.
-    disable_undo: () =>
-        @codemirror.setOption('undoDepth',1)
-        @codemirror1.setOption('undoDepth',1)
-        @editor.element.find("a[href=#undo]").remove()
-        @editor.element.find("a[href=#redo]").remove()
-        @codemirror.on 'beforeChange', (instance, changeObj) =>
-            if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                changeObj.cancel()
-                @editor.click_history_button()
 
     # Proper per-session sync-aware undo
     undo: () =>
