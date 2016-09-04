@@ -220,6 +220,7 @@ class JupyterWrapper extends EventEmitter
         if @read_only
             @monkey_patch_read_only()
         @monkey_patch_ui()
+        @monkey_patch_methods()
 
         # Jupyter's onbeforeunload does a bunch of stuff we don't want, e.g., it's own autosave, complaints
         # about kernel computations, possibly killing the kernel at some point, etc.  Also, having this at
@@ -229,6 +230,10 @@ class JupyterWrapper extends EventEmitter
         # when active, periodically reset the idle timeout time in client_browser
         # console.log 'iframe', @iframe
         @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
+
+    install_custom_undo_redo: (undo, redo) =>
+        @frame.CodeMirror.prototype.undo = undo
+        @frame.CodeMirror.prototype.redo = redo
 
     monkey_patch_ui: () =>
         # Proper file rename with sync not supported yet (but will be -- TODO;
@@ -274,6 +279,19 @@ class JupyterWrapper extends EventEmitter
         $(@frame.document).find("#menubar").hide()   # instead do this if want to preserve kernel -- find('.nav').hide()
         $(@frame.document).find("#maintoolbar").hide()
         $(@frame.document).find(".current_kernel_logo").hide()
+
+    monkey_patch_methods: () =>
+        # Some of the stupid Jupyter methods don't properly set the dirty flag. It's just flat out bugs that they don't
+        # care about, evidently.  However, they VERY MUCH matter when doing sync.
+        the_notebook = @nb
+        @frame.IPython.Notebook.prototype.smc_move_selection_down = @frame.IPython.Notebook.prototype.move_selection_down
+        @frame.IPython.Notebook.prototype.move_selection_down = () ->
+            this.smc_move_selection_down()
+            the_notebook.dirty = true
+        @frame.IPython.Notebook.prototype.smc_move_selection_up = @frame.IPython.Notebook.prototype.move_selection_up
+        @frame.IPython.Notebook.prototype.move_selection_up = () ->
+            this.smc_move_selection_up()
+            the_notebook.dirty = true
 
     font_size_set: (font_size) =>
         # initialization, if necessary
@@ -718,6 +736,9 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
+
+        ## window.j = @ ## DEBUGGING
+
         @editor = @parent.editor
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
@@ -783,6 +804,7 @@ class JupyterNotebook extends EventEmitter
                 @init_syncstring_change()
                 @init_dom_events()
                 @init_buttons()
+                @dom.install_custom_undo_redo(@undo, @redo)
                 @font_size_init()
                 @state = 'ready'
                 if not @read_only and @syncstring.live() == ""
@@ -882,6 +904,9 @@ class JupyterNotebook extends EventEmitter
         @element.find("a[href=#close]").click () =>
             @editor.project_page.display_tab("project-file-listing")
             return false
+
+        @element.find("a[href=#undo]").click(@undo)
+        @element.find("a[href=#redo]").click(@redo)
 
         @font_size_decr = @element.find("a[href=#font-size-decrease]").click () =>
             @font_size_change(-1)
@@ -1179,6 +1204,13 @@ class JupyterNotebook extends EventEmitter
             @parent.local_storage("font_size", font_size)
             @element.data("font_size", font_size)
 
+    undo: () =>
+        if not @syncstring.in_undo_mode()
+            @_handle_dom_change()
+        @syncstring.undo()
+
+    redo: () =>
+        @syncstring.redo()
 
     ###
     Used for testing.  Call this to have a "robot" count from 1 up to n

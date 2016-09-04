@@ -493,7 +493,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
             @emit('before-change')
 
     live: (s) =>
-        if s?
+        if s? and s != @_syncstring.get()
+            @_syncstring.exit_undo_mode()
             @_syncstring.set(s)
             @emit('sync')
         else
@@ -534,6 +535,18 @@ class SynchronizedString extends AbstractSynchronizedDoc
     has_unsaved_changes: =>
         return @_syncstring.has_unsaved_changes()
 
+    # per-session sync-aware undo
+    undo: () =>
+        @_syncstring.set(@_syncstring.undo())
+        @emit('sync')
+
+    # per-session sync-aware redo
+    redo: () =>
+        @_syncstring.set(@_syncstring.redo())
+        @emit('sync')
+
+    in_undo_mode: () =>
+        return @_syncstring.in_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
@@ -685,7 +698,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     sync: (cb) =>
         @_sync(cb)
 
-    # Proper per-session sync-aware undo
+    # per-session sync-aware undo
     undo: () =>
         if not @codemirror?
             return
@@ -696,7 +709,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @save_state_debounce()
         @_last_change_time = new Date()
 
-    # Proper per-session sync-aware redo
+    # per-session sync-aware redo
     redo: () =>
         if not @codemirror?
             return
