@@ -5,5 +5,5 @@ build-full:
 	docker build --no-cache -t smc .
 
 run:
-	docker run -P smc
+	mkdir -p ../../data/projects && docker run -v `pwd`/../../data/projects:/projects -P smc
 

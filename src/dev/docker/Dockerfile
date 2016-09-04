@@ -26,21 +26,6 @@ RUN \
   wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
   apt-get install -y nodejs
 
-# Grab an initial version of the source code for SMC (do NOT use --depth=1,
-# since we want to be able to checkout any commit later, and use git in container for dev).
-RUN git clone https://github.com/sagemathinc/smc.git
-
-# Do initial build of hub (this means installing all dependencies using npm)
-RUN \
-  cd /smc/src && \
-  . ./smc-env && \
-  ./install.py all --compute && \
-  ./install.py all --web && \
-  rm -rf /root/.npm /root/.node-gyp/
-
-COPY nginx.conf /etc/nginx/sites-available/default
-COPY haproxy.conf /etc/haproxy/haproxy.cfg
-
 # Install RethinkDB.
 RUN \
   source /etc/lsb-release && \
@@ -49,7 +34,25 @@ RUN \
   apt-get update && apt-get install -y rethinkdb python3 python3-requests python3-pip && \
   pip3 install rethinkdb
 
+# Grab an initial version of the source code for SMC (do NOT use --depth=1,
+# since we want to be able to checkout any commit later, and use git in
+# container for dev).
+RUN git clone https://github.com/sagemathinc/smc.git
+
+# Do initial build of hub (this means installing all dependencies using npm)
+RUN \
+  cd /smc/src && \
+  . ./smc-env && \
+  ./install.py all --compute --web && \
+  rm -rf /root/.npm /root/.node-gyp/
+
+COPY login.defs /etc/login.defs
+COPY login /etc/defaults/login
+COPY nginx.conf /etc/nginx/sites-available/default
+COPY haproxy.conf /etc/haproxy/haproxy.cfg
 COPY rethinkdb.conf /etc/rethinkdb/instances.d/default.conf
+
+RUN echo "umask 077" >> /etc/bash.bashrc
 
 # Remove packages needed for the build above, which we don't want to have
 # available when running the hub in production (e.g., having a compiler could
