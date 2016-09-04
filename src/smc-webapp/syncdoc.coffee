@@ -548,6 +548,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
     in_undo_mode: () =>
         return @_syncstring.in_undo_mode()
 
+    exit_undo_mode: () =>
+        return @_syncstring.exit_undo_mode()
+
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,

@@ -1207,10 +1207,16 @@ class JupyterNotebook extends EventEmitter
     undo: () =>
         if not @syncstring.in_undo_mode()
             @_handle_dom_change()
+        else if @dom.get(true) != @_last_dom  # expensive but I don't know how to handle this case otherwise since dirty checking so hard...
+            @exit_undo_mode()
+            @_handle_dom_change()
         @syncstring.undo()
 
     redo: () =>
         @syncstring.redo()
+
+    exit_undo_mode: () =>
+        @syncstring.exit_undo_mode()
 
     ###
     Used for testing.  Call this to have a "robot" count from 1 up to n
