@@ -727,7 +727,7 @@ class BuildSage(object):
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
             try:
-                self.cmd("sage -p %s"%package)
+                self.cmd("sage -p %s <<< yes"%package)
             except:
                 log.error("problem installing sage package %s", package)
                 self.failed_spkg.append(package)
