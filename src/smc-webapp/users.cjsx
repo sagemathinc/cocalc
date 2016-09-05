@@ -25,8 +25,24 @@ misc = require('smc-util/misc')
 
 {TimeAgo} = require('./r_misc')
 
+{salvus_client} = require('./salvus_client')   # needed for getting non-collaborator user names
+
 # Register the actions
-redux.createActions('users')
+class UsersActions extends Actions
+    fetch_non_collaborator: (account_id) =>
+        salvus_client.get_usernames
+            account_ids : [account_id]
+            cb          : (err, x) =>
+                if err
+                    console.warn("ERROR getting username for account with id '#{account_id}'")
+                else
+                    obj = x[account_id]
+                    if obj?
+                        obj.account_id = account_id
+                        @setState
+                            user_map : {"#{account_id}": obj}
+
+actions = redux.createActions('users', UsersActions)
 
 # Define user store: all the users you collaborate with
 class UsersStore extends Store
@@ -43,6 +59,15 @@ class UsersStore extends Store
         m = @getIn(['user_map', account_id])
         if m?
             return "#{m.get('first_name')} #{m.get('last_name')}"
+        else
+            m = @getIn(['other_names', account_id])
+            if m?
+                return m
+            # look it up, which causes it to get saved in the store, which causes a new render later.
+            actions.fetch_non_collaborator(account_id)
+            # for now will just return undefined; when store gets updated with other_names
+            # knowing the account_id, then component will re-reender.
+            return
 
     get_last_active: (account_id) =>
         return @getIn(['user_map', account_id, 'last_active'])
@@ -61,7 +86,7 @@ class UsersStore extends Store
             if c then c else misc.cmp(@get_last_name(a.account_id), @get_last_name(b.account_id))
 
 # Register user store
-redux.createStore('users', UsersStore)
+store = redux.createStore('users', UsersStore)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -103,10 +128,13 @@ exports.User = User = rclass
         return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
 
     render : ->
+        if not @props.user_map? or @props.user_map.size == 0
+            return <span>Loading...</span>
         info = @props.user_map?.get(@props.account_id)
         if not info?
+            actions.fetch_non_collaborator(@props.account_id)
             return <span>Loading...</span>
         else
             info = info.toJS()
-            <span>{@name(info)}{@render_last_active()}</span>
+            return <span>{@name(info)}{@render_last_active()}</span>
 
