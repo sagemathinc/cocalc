@@ -3,6 +3,7 @@
  "argv": ["/usr/local/bin/sage-develop", "--python", "-m", "sage.repl.ipython_kernel", "-f", "{connection_file}"],
  "env":{
     "CPATH": "/projects/sage/sage-dev/local/include:/usr/include/x86_64-linux-gnu",
+    "ECLDIR": "/projects/sage/sage-dev/local/lib/ecl/",
     "LD": "ld",
     "LDFLAGS": "-L/projects/sage/sage-dev/local/lib -Wl,-rpath,/projects/sage/sage-dev/local/lib ",
     "LIBRARY_PATH": "/projects/sage/sage-dev/local/lib:/usr/lib/x86_64-linux-gnu",
