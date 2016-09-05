@@ -3602,6 +3602,9 @@ class RethinkDB
                     cb()
             (cb) =>
                 if on_change_hook? or before_change_hook? or instead_of_change_hook?
+                    if not query[primary_key]?  # I noticed this in the log -- reql will flip on .get(undefined)
+                        cb("query must specify primary key '#{primary_key}'")
+                        return
                     # get the old value before changing it
                     @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
