@@ -27,6 +27,8 @@ misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')   # needed for getting non-collaborator user names
 
+immutable = require('immutable')
+
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
@@ -40,8 +42,10 @@ class UsersActions extends Actions
                     obj = x[account_id]
                     if obj?
                         obj.account_id = account_id
-                        @setState
-                            user_map : {"#{account_id}": obj}
+                        user_map = store.get('user_map')
+                        if user_map? and not user_map.get(account_id)?
+                            user_map = user_map.set(account_id, immutable.fromJS(obj))
+                            @setState(user_map : user_map)
 
 actions = redux.createActions('users', UsersActions)
 
@@ -57,13 +61,13 @@ class UsersStore extends Store
         return @getIn(['user_map', account_id, 'profile', 'color']) ? '#aaa'
 
     get_name: (account_id) =>
-        m = @getIn(['user_map', account_id])
+        user_map = @get('user_map')
+        if not user_map?
+            return
+        m = user_map.get(account_id)
         if m?
             return "#{m.get('first_name')} #{m.get('last_name')}"
         else
-            m = @getIn(['other_names', account_id])
-            if m?
-                return m
             # look it up, which causes it to get saved in the store, which causes a new render later.
             actions.fetch_non_collaborator(account_id)
             # for now will just return undefined; when store gets updated with other_names
@@ -96,7 +100,20 @@ class UsersTable extends Table
         return 'collaborators'
 
     _change: (table, keys) =>
-        @redux.getActions('users').setState(user_map: table.get())
+        # Merge the new table in with what we already have.  If users disappear during the session
+        # *or* if user info is added by fetch_non_collaborator, it is important not to just
+        # forget about their names.
+        upstream_user_map = table.get()
+        user_map = store.get('user_map')
+        if not user_map?
+            @redux.getActions('users').setState(user_map: upstream_user_map)
+            return
+        # merge in upstream changes:
+        table.get().map (data, account_id) =>
+            if data != user_map.get(account_id)
+                user_map = user_map.set(account_id, data)
+            return false
+        @redux.getActions('users').setState(user_map: user_map)
 
 redux.createTable('users', UsersTable)
 
