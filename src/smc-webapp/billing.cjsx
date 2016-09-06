@@ -1007,14 +1007,40 @@ exports.ExplainPlan = ExplainPlan = rclass
         <div style={marginBottom:"10px"}>
             <h3>Course packages</h3>
             <div>
-                We offer course packages for teaching classes in <SiteName/>.
-                Such plans start right after purchase and last for the full indicated period <b>without auto-renewal</b>.
-                Through the interface of <SiteName/>, you start teaching by creating a course.
-                Each time you add a student, a project will be automatically created for that student.
-                After upgrading your student{"'"}s projects, you can create and distribute assignments,
+                <p>
+                We offer course packages to support teaching using <SiteName/>.
+                They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
+                Following <a href="https://github.com/mikecroucher/SMC_tutorial/blob/master/README.md" target="_blank">this
+                guide</a>, create a course file.
+                Each time you add a student to your course, a project will be automatically created for that student.
+                You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
                 in realtime and answer their questions),
                 and you later collect and grade their assignments, then return them.
+                </p>
+
+                <p>
+                Paying is optional, but will ensure that your students have a better
+                experience, network access, and receive priority support.  The cost
+                is <b>between $4 and $9 per student</b>, depending on class size and whether
+                you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
+                and add students immediately before you pay us anything!</i>
+
+                </p>
+
+                <h4>Your or your institution pays</h4>
+                You or your institution may pay for one of the course plans.  You then use your plan to upgrade
+                all projects in the course in the settings tab of the course file.
+
+                <h4>Students pay</h4>
+                In the settings tab of your course, you require that all students
+                pay a one-time $9 fee to move their
+                projects to members only hosts and enable full internet access.
+
+                <br/>
+
+                <br/>
+
             </div>
         </div>
 

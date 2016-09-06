@@ -172,10 +172,12 @@ class SyncTable extends EventEmitter
         dbg = ->
 
         @_connect = () =>
+            dbg("connect #{misc.to_json(@_query)}, state=#{@_state}")
+            if @_state == 'closed'
+                return
             if @_state != 'disconnected'
                 # only try to connect if currently 'disconnected'
                 return
-            dbg("connect #{misc.to_json(@_query)}")
             if @_id?
                 @_client.query_cancel(id:@_id)
                 @_id = undefined
@@ -383,22 +385,23 @@ class SyncTable extends EventEmitter
                 if @_query_id != query_id
                     # ignore any potential output from past attempts to query.
                     return
-
+                if @_state == 'closed'
+                    # already closed so ignore anything else.
+                    return
                 if err == 'socket-end' and @_client.is_project()
                     # This is a synctable in a project and the socket that it was
                     # using for getting changefeed updates from a hub ended.
                     # There may be other sockets that this project can use
                     # to maintain this changefeed: if so, we connect immediately,
                     # and if not, we wait until the next connection.
-                    console.warn("query #{@_table}: _run: socket-end ")
+                    #console.warn("query #{@_table}: _run: socket-end ")
                     @emit('disconnected')
                     @_state = 'disconnected'
                     if @_client.is_connected()
-                        # some socket is still available
                         @_connect()
                     else
-                        # no sockets avialable; wait to connect
                         @_client.once('connected', @_connect)
+                        @_client_listeners.connected = @_connect
                     return
 
                 @_last_err = err
@@ -513,6 +516,10 @@ class SyncTable extends EventEmitter
                     console.warn("_save('#{@_table}') error: #{err}")
                     cb?(err)
                 else
+                    if @_state == 'closed'
+                        # this can happen in case synctable is closed after _save is called but before returning from this query.
+                        cb?("closed")
+                        return
                     @emit('saved', saved_objs)
                     # success: each change in the query what committed successfully to the database; we can
                     # safely set @_value_server (for each value) as long as it didn't change in the meantime.
@@ -853,26 +860,31 @@ class SyncTable extends EventEmitter
 
     close: =>
         if @_state == 'closed'
+            # already closed
             return
         # decrement the reference to this synctable
         if global_cache_decref(@)
             # not zero -- so don't close it yet -- still in use by multiple clients.
             return
         # do a last attempt at a save (so we don't lose data), then really close.
-        @_save () =>
-            @removeAllListeners()
-            if @_id?
-                @_client.query_cancel(id:@_id)
-                delete @_id
-            delete @_value_local
-            delete @_value_server
-            for e, f of @_client_listeners
-                @_client.removeListener(e, f)
-            @_client_listeners = {}
-            @_state = 'closed'
-            if @_heartbeat_interval?
-                clearInterval(@_heartbeat_interval)
-                delete @_heartbeat_interval
+        @_save()  # this will synchronously construct the last save and send it
+        # The moment the sync part of @_save is done, we remove listeners and clear
+        # everything up.  It's critical that as soon as @close is called that there
+        # be no possible way any further connect events (etc) can make this SyncTable
+        # do anything!!  That finality assumption is made elsewhere (e.g in smc-project/client.coffee)
+        @removeAllListeners()
+        if @_id?
+            @_client.query_cancel(id:@_id)
+            delete @_id
+        delete @_value_local
+        delete @_value_server
+        for e, f of @_client_listeners
+            @_client.removeListener(e, f)
+        @_client_listeners = {}
+        @_state = 'closed'
+        if @_heartbeat_interval?
+            clearInterval(@_heartbeat_interval)
+            delete @_heartbeat_interval
 
     # wait until some function of this synctable is truthy
     # (this is exactly the same code as in the rethink.coffee SyncTable!)

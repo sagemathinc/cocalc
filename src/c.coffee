@@ -9,7 +9,7 @@ The functiosns below in some cases return things, and in some cases set global v
 
 async = require('async')
 
-db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['db0']
+db_hosts = process.env.SMC_DB_HOSTS?.split(',') ? ['localhost']
 
 global.misc = require('smc-util/misc')
 global.done = misc.done

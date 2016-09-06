@@ -19,6 +19,16 @@
 #
 ###############################################################################
 
+# The following limit massively reduces the chances of a feedback-loop/race
+# condition bug causing the servers to get killed.   Clients may currently
+# just silently not open new docs if they hit the limit, which is bad.  However,
+# it's very unlikely somebody has 100 files open at once on purpose -- the browser
+# would likely die.  This is meant to prevent situations where a *bug* causes
+# thousands of changefeeds to get opened in a second.
+# If there were a better error, this could be a parameter that depends on
+# whether the user (or project) is paying or not.
+MAX_CHANGEFEEDS_PER_CLIENT = 4*100 # about 3-5 feeds per file right now
+
 fs         = require('fs')
 async      = require('async')
 underscore = require('underscore')
@@ -3098,12 +3108,27 @@ class RethinkDB
         if x?
             delete @_change_feeds[opts.id]
             @_user_query_stats.cancel_changefeed(changefeed_id: opts.id)
-            winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
             async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
+        winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
+
+        ## For serious low level debugging...
+        ##if @_change_feeds?
+        ##    winston.debug("current changefeed ids: #{misc.to_json(misc.keys(@_change_feeds))}")
+        ##    for id, v of @_change_feeds
+        ##        winston.debug("#{id}: #{misc.to_json(v[0]._smc_query)}")
+
+        # Also decrement count of changefeeds for given client
+        client_name = @_user_get_changefeed_id_to_user?[opts.id]
+        if client_name?
+            @_user_get_changefeed_counts[client_name] -= 1
+            delete @_user_get_changefeed_id_to_user[opts.id]
+            cnt = @_user_get_changefeed_counts
+            winston.debug("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+
 
     user_query: (opts) =>
         opts = defaults opts,
@@ -3217,6 +3242,24 @@ class RethinkDB
                 if changes and not multi
                     opts.cb("changefeeds only implemented for multi-document queries")
                     return
+                if changes
+                    # Count the number of changefeeds by a given client so we can cap it.
+                    # This code is here rather than in @user_get_query (or elsewhere) to ensure
+                    # that the counter stays consistent.
+                    client_name = "#{opts.account_id}-#{opts.project_id}"
+                    cnt = @_user_get_changefeed_counts ?= {}
+                    ids = @_user_get_changefeed_id_to_user ?= {}
+                    if not cnt[client_name]?
+                        cnt[client_name] = 1
+                    else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
+                        opts.cb("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+                        return
+                    else
+                        # increment before successfully making it to prevent huge bursts causing trouble!
+                        cnt[client_name] += 1
+                    dbg("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+                    ids[changes.id] = client_name
+
                 @user_get_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -3225,7 +3268,10 @@ class RethinkDB
                     options    : options
                     multi      : multi
                     changes    : changes
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+                    cb         : (err, x) =>
+                        if err and changes
+                            cnt[client_name] -= 1  # didn't actually make the changefeed, so don't count it.
+                        opts.cb(err, {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
@@ -3564,6 +3610,9 @@ class RethinkDB
                     cb()
             (cb) =>
                 if on_change_hook? or before_change_hook? or instead_of_change_hook?
+                    if not query[primary_key]?  # I noticed this in the log -- reql will flip on .get(undefined)
+                        cb("query must specify primary key '#{primary_key}'")
+                        return
                     # get the old value before changing it
                     @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
@@ -4168,6 +4217,7 @@ class RethinkDB
                         else
                             @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
+                            feed._smc_query = {query:opts.query, account_id:opts.account_id, project_id:opts.project_id}  # for logging purposes only
                             @_user_query_stats.changefeed
                                 account_id    : opts.account_id
                                 project_id    : opts.project_id

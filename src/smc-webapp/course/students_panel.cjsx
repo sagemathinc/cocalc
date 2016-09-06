@@ -50,6 +50,7 @@ exports.StudentsPanel = rclass
         add_search       : ''
         add_searching    : false
         add_select       : undefined
+        existing_students: undefined
         selected_entries : undefined
         show_deleted     : false
 
@@ -62,21 +63,25 @@ exports.StudentsPanel = rclass
             return
         search = @state.add_search.trim()
         if search.length == 0
-            @setState(err:undefined, add_select:undefined, selected_entries:undefined)
+            @setState(err:undefined, add_select:undefined, existing_students:undefined, selected_entries:undefined)
             return
-        @setState(add_searching:true, add_select:undefined, selected_entries:undefined)
+        @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_entries:undefined)
         add_search = @state.add_search
         salvus_client.user_search
             query : add_search
             limit : 50
             cb    : (err, select) =>
                 if err
-                    @setState(add_searching:false, err:err, add_select:undefined)
+                    @setState(add_searching:false, err:err, add_select:undefined, existing_students:undefined)
                     return
                 # Get the current collaborators/owners of the project that contains the course.
                 users = @props.redux.getStore('projects').get_users(@props.project_id)
                 # Make a map with keys the email or account_id is already part of the course.
                 already_added = users.toJS()  # start with collabs on project
+                # also track **which** students are already part of the course
+                existing_students = {}
+                existing_students.account = {}
+                existing_students.email   = {}
                 # For each student in course add account_id and/or email_address:
                 @props.students.map (val, key) =>
                     for n in ['account_id', 'email_address']
@@ -85,12 +90,18 @@ exports.StudentsPanel = rclass
                 # This function returns true if we shouldn't list the given account_id or email_address
                 # in the search selector for adding to the class.
                 exclude_add = (account_id, email_address) =>
-                    return already_added[account_id] or already_added[email_address]
+                    aa = already_added[account_id] or already_added[email_address]
+                    if aa
+                        if account_id?
+                            existing_students.account[account_id] = true
+                        if email_address?
+                            existing_students.email[email_address] = true
+                    return aa
                 select = (x for x in select when not exclude_add(x.account_id, x.email_address))
                 # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                select = (x for x in noncloud_emails(select, add_search) when not already_added[x.email_address]).concat(select)
+                select = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select)
                 # We are no longer searching, but now show an options selector.
-                @setState(add_searching:false, add_select:select)
+                @setState(add_searching:false, add_select:select, existing_students:existing_students)
 
     student_add_button : ->
         <Button onClick={@do_add_search}>
@@ -150,8 +161,15 @@ exports.StudentsPanel = rclass
 
     render_add_selector_button : (options) ->
         nb_selected = @state.selected_entries?.length ? 0
+        _ = require('underscore')
+        es = @state.existing_students
+        if es?
+            existing = _.keys(es.email).length + _.keys(es.account).length > 0
+        else
+            # es not defined when user clicks the close button on the warning.
+            existing = 0
         btn_text = switch options.length
-            when 0 then "No student found"
+            when 0 then (if existing then "Student already added" else "No student found")
             when 1 then "Add student"
             else switch nb_selected
                 when 0 then "Select student above"
@@ -161,8 +179,27 @@ exports.StudentsPanel = rclass
         <Button onClick={@add_selected_students} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
     render_error : ->
+        ed = null
         if @state.err
-            <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
+            ed = <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
+        else if @state.existing_students?
+            existing = []
+            for email, v of @state.existing_students.email
+                existing.push(email)
+            for account_id, v of @state.existing_students.account
+                user = @props.user_map.get(account_id)
+                existing.push("#{user.get('first_name')} #{user.get('last_name')}")
+            if existing.length > 0
+                if existing.length > 1
+                    msg = "Already added students or project collaborators: "
+                else
+                    msg = "Already added student or project collaborator: "
+                msg += existing.join(', ')
+                ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
+        if ed?
+            <Row style={marginTop:'1em'}><Col md=5 lgOffset=7>{ed}</Col></Row>
+        else
+            <Row></Row>
 
     render_header : (num_omitted) ->
         <div>
@@ -185,7 +222,7 @@ exports.StudentsPanel = rclass
                             placeholder = "Add student by name or email address..."
                             value       = {@state.add_search}
                             buttonAfter = {@student_add_button()}
-                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.student_add_input.getValue())}
+                            onChange    = {=>@setState(add_select:undefined, existing_students:undefined, add_search:@refs.student_add_input.getValue())}
                             onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>

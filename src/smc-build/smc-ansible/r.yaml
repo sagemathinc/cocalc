@@ -464,6 +464,7 @@
     - SemiParBIVProbit
     - maptree
     - nortest
+    - plotly
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html

@@ -37,6 +37,9 @@ BINARIES = [
     'xz', 'mono', 'cpp', 'cython', 'diff3', 'dvips', 'sha1sum', 'perl', 'php',
     'ruby', 'erb', 'flex', 'm4', 'fish', 'nosetests', 'ElmerSolver',
     ('advpng', 'advancecomp'),
+    ('sage', 'SageMath'),
+    ('git-trac', 'trac command extension for git', '-h'),
+    ('R-sage', 'R version 3'), # that's a wrapper script for sage -R
     'htop', 'h5dump', 'inkscape', 'libreoffice', 'scheme', 'symphony',
     'lilypond', 'lzma', 'make', 'markdown', 'maxima', 'nim', 'rustc', 'cargo',
     ('M2', '1.'),
@@ -61,6 +64,7 @@ BINARIES = [
     ('scilab-cli', 'scilab', '-version', 1),
     ('singular', None, '--version /dev/null'),
     ('echo "quit;" | gap', 'gap', ''),
+    ('mglconv -h | head -2', 'mgl', ''), # mathGL
     ('feynmf', None, None, 255),
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
@@ -120,14 +124,14 @@ PY_COMMON = [
 PY2 = PY_COMMON + [
     'statsmodels', 'patsy', 'blaze', 'bokeh', 'cvxpy',
     'clawpack', # py2 only, and it dosesn't have a version info
-    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim', 'stl',
+    'numba', 'xarray', 'ncpol2sdpa', 'tdigest', 'gensim', 'stl', 'nipype',
 ]
 
 # python 3 libs
 PY3 =  PY_COMMON + [
     # 'statsmodels', # broken right now (2016-07-14), some scipy error
     'patsy', 'blaze', 'bokeh', 'cvxpy', 'numba', 'xarray', 'datasift', 'theano',
-    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'tdigest', 'stl',
+    'cvxpy', 'cytoolz', 'toolz', 'mygene', 'statsmodels', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
 ]
 
 # python libs in sagemath
@@ -138,7 +142,7 @@ PY_SAGE = PY_COMMON + [
     'clawpack', # no canonical version info
     'mercurial', 'netCDF4', 'bitarray', 'munkres', 'plotly', 'oct2py', 'shapely', 'simpy', 'gmpy2',
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
-    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl',
+    'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
 ]
 
@@ -146,7 +150,7 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
 ]
 
 # Tests for R setups and libraries
@@ -207,7 +211,8 @@ R_libs_extra = [
     'gplots',
     'Hmisc',
     'survey',
-    'maps'
+    'maps',
+    'plotly',
 ]
 
 # This is the system wirde offical R from the CRAN ubuntu repos, Sage's R and Anaconda
@@ -433,13 +438,55 @@ def test_openmp(tmpdir):
     assert float(v.split()[-1]) < 1.
     print(v)
 
+# this is a test for https://github.com/sagemathinc/smc/issues/857
+@pytest.mark.parametrize('exe', R_setups.keys())
+def test_r_sys_which(exe):
+    v = run('''echo 'cat(Sys.which("ls"))' | {exe} -q --no-save'''.format(exe=exe))
+    assert '/bin/ls' in v
 
-# TODO numexpr
+# numexpr
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numexpr(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numexpr as ne
+    import numpy as np
+    a = np.array([1,2,3])
+    b = ne.evaluate('2*a+1')
+    print(b)
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '[3 5 7]'
 
-# TODO scipy
+# numpy/scipy, just a very very simple check
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numpy(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numpy as np
+    import scipy.linalg
+    x = np.array([[1,2], [5, -1]])
+    print(x.sum())
+    a, b, c = scipy.linalg.lu(x)
+    print((a.dot(b).dot(c) - x).sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert "7" == out[0]
+    assert "0.0" == out[1]
 
-# TODO pandas
+# pandas
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_pandas(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import pandas as pd
+    x = pd.DataFrame([[1,2], [3, 4], [5, 6]], columns = ['a', 'b'])
+    print(x.a.sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '9'
 
+# TODO check that opencv exists, what is there actually?
 
 # test, that certain env variables are set
 # see smc-ansible/files/terminal-setup.sh and similar

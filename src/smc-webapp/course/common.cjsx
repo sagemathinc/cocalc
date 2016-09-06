@@ -412,7 +412,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             </Button>
         else
             # Waiting for user to start a search
-            <Button onClick={@props.do_search}>
+            <Button onClick={(e)=>@refs.search_input.submit(e)}>
                 <Icon name="search" />
             </Button>
 

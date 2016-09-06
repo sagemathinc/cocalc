@@ -48,9 +48,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
-        # disable disabling undo -- too many complaints
-        #@disable_undo()
-
         if @opts.static_viewer
             @readonly   = true
             @project_id = @editor.project_id
@@ -1138,16 +1135,26 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     _post_save_success: () =>
         @remove_output_blob_ttls()
 
+    # Return array of uuid's of blobs that might possibly be in the worksheet
+    # and have a ttl.  Once a blob is returned from this function, it won't be
+    # returned ever again.
+    _output_blobs_with_possible_ttl: () =>
+        v = []
+        x = @_output_blobs_with_possible_ttl_past ?= {}
+        for c in @get_all_cells()
+            for output in c.output()
+                if output.file?
+                    uuid = output.file.uuid
+                    if uuid?
+                        if not x[uuid]
+                            x[uuid] = true
+                            v.push(uuid)
+        return v
+
     remove_output_blob_ttls: (cb) =>
         # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
         # how worksheets render slightly.
-        v = {}
-        for a in @cm_wrapper().find(".sagews-output-messages").children()
-            blobs = $(a).data('blobs')
-            if blobs?
-                for uuid in blobs
-                    v[uuid] = true
-        uuids = misc.keys(v)
+        uuids = @_output_blobs_with_possible_ttl()
         if uuids?
             salvus_client.remove_blob_ttls
                 uuids : uuids
@@ -2263,7 +2270,10 @@ class SynchronizedWorksheetCell
 
     # return current content of the output line of this cell as a string (or undefined)
     raw_output: =>
-        return @cm.getLine(loc.from.line)
+        x = @_get_output()
+        if not x?
+            return
+        return @cm.getLine(x.loc.from.line)
 
     output: =>
         return (misc.from_json(x) for x in @raw_output().slice(38).split(MARKERS.output) when x)

@@ -1506,7 +1506,7 @@ class CodeMirrorEditor extends FileEditor
             tab_size                  : editor_settings.tab_size
             smart_indent              : editor_settings.smart_indent
             electric_chars            : editor_settings.electric_chars
-            undo_depth                : editor_settings.undo_depth
+            undo_depth                : editor_settings.undo_depth   # no longer relevant, since done via sync system
             match_brackets            : editor_settings.match_brackets
             code_folding              : editor_settings.code_folding
             auto_close_brackets       : editor_settings.auto_close_brackets
@@ -1535,7 +1535,7 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
-            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
+            profile.render_new_viewing_doc(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
 
         @element.data('editor', @)
 
@@ -1711,6 +1711,15 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @wizard = null
+
+    programmatical_goto_line: (line) =>
+        cm = @codemirror_with_last_focus
+        pos = {line:line-1, ch:0}
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
+
+    get_users_cursors: (account_id) =>
+        return @syncdoc?.get_users_cursors(account_id)
 
     init_file_actions: () =>
         if not @element? or not @editor?
@@ -3688,12 +3697,7 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        if not IS_MOBILE
-            @element.css(top:@editor.editor_top_position(), position:'fixed')
-        else
-            # TODO: this is a terrible HACK for position the top of the editor.
-            @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
-            @element.css(position:'relative', top:'0')
+        @element.css(top:@editor.editor_top_position(), position:'fixed')
         @wrapped?.show?()
 
     hide: () =>
@@ -4562,7 +4566,7 @@ class TemplateEditor extends FileEditorWrapper
                 the_editor.show(args...)
         the_editor.render(args...)
 
-        
+
 class TemplateEditor extends FileEditorWrapper
     init_wrapped: () =>
         the_editor = require('./editor_template')
