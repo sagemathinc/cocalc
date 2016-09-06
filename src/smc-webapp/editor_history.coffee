@@ -18,6 +18,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+        ## window.h = @  # DEBUGGING
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -48,8 +49,10 @@ class exports.HistoryEditor extends FileEditor
             path       : @_path
         @syncstring.once 'connected', =>
             @render_slider()
+            @render_diff_slider()
             @syncstring.on 'change', =>
                 @resize_slider()
+                @resize_diff_slider()
             if @syncstring.has_full_history()
                 @load_all.hide()
             else
@@ -145,21 +148,28 @@ class exports.HistoryEditor extends FileEditor
             open_file()
             @syncstring.emit('change')
 
+        @diff_slider    = @element.find(".salvus-editor-history-diff-slider")
+
         @element.find("a[href=#show-diff]").click () =>
-            @show_changes(true)
+            @diff_mode(true)
+            return false
 
         @element.find("a[href=#hide-diff]").click () =>
-            @show_changes(false)
+            @diff_mode(false)
+            return false
 
-    show_changes: (show_changes) =>
-        @_show_changes = show_changes
-        if show_changes
+    diff_mode: (enabled) =>
+        @_diff_mode = enabled
+        if enabled
             @element.find("a[href=#hide-diff]").show()
             @element.find("a[href=#show-diff]").hide()
+            @diff_slider.show()
+            @slider.hide()
         else
             @element.find("a[href=#hide-diff]").hide()
             @element.find("a[href=#show-diff]").show()
-        # TODO: other state change stuff, e.g., swap out the slider for a two-handled slider, and re-render.
+            @diff_slider.hide()
+            @slider.show()
 
     set_doc: (time) ->
         if not time?
@@ -224,15 +234,15 @@ class exports.HistoryEditor extends FileEditor
 
         # debounce actually setting the document content just a little
         set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)
-
         @slider.slider
             animate : false
             min     : 0
             max     : @length - 1
             step    : 1
             value   : @revision_num
-            slide  : (event, ui) => # TODO: debounce this
+            slide  : (event, ui) =>
                 set_doc(@goto_revision(ui.value))
+
         @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>
@@ -244,6 +254,28 @@ class exports.HistoryEditor extends FileEditor
             max : @length - 1
         @update_buttons()
         @goto_revision()
+
+    render_diff_slider: =>
+        @length = @syncstring.all_versions().length
+        @revision_num = @length - 1
+        @diff_slider.slider
+            animate : false
+            min     : 0
+            max     : @length - 1
+            step    : 1
+            values  : [0, @revision_num]
+            range   : true
+            slide  : (event, ui) => # TODO: debounce this
+                console.log(ui.values)
+
+    resize_diff_slider: =>
+        new_len = @syncstring.all_versions().length
+        if new_len == @length
+            return
+        @length = new_len
+        @diff_slider.slider
+            max : @length - 1
+        #@goto_revision() # TODO
 
     process_view: () =>
         if @ext == 'sagews'
@@ -269,6 +301,7 @@ class exports.HistoryEditor extends FileEditor
                 cb?(err)
             else
                 @resize_slider()
+                @resize_diff_slider()
                 if @revision_num?
                     num_added = @syncstring.all_versions().length - n
                     @goto_revision(@revision_num + num_added)
