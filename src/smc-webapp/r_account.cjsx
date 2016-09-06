@@ -403,7 +403,7 @@ AccountSettings = rclass
         <Well style={marginTop: '15px'}>
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>@props.redux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                <Button bsStyle="primary" onClick={=>@props.redux.getActions('account').sign_out(@props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
                 <Button onClick={=>@props.redux.getActions('account').setState(show_sign_out : false)}} >
