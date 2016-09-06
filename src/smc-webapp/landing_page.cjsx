@@ -81,6 +81,9 @@ SignUp = rclass
         signing_up    : rtypes.bool
         style         : rtypes.object
 
+    getInitialState :  ->
+        agree_to_tos : false
+
     make_account : (e) ->
         e.preventDefault()
         name     = @refs.name.getValue()
@@ -116,14 +119,14 @@ SignUp = rclass
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <TermsOfService style={fontSize: "small", textAlign: "center"} />
+                <Input ref='agree_to_tos' type='checkbox' onClick={=>@setState(agree_to_tos:!@state['agree_to_tos'])} style={margin:0, position:'static', display:'inline', float:'left', marginRight: 10} /> I agree to the <a href="https://cloud.sagemath.com/policies/terms.html">Terms of Service</a>  
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
-                    disabled={@props.signing_up}
+                    disabled={not @state['agree_to_tos']}
                     bsStyle="success"
                     bsSize='large'
                     type='submit'
                     block>
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up! {if not @state['agree_to_tos'] then '(Must agree to the terms of use first)'}
                     </Button>
             </form>
             <div style={textAlign: "center"}>
