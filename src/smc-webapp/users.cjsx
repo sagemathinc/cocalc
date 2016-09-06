@@ -32,6 +32,7 @@ class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
         salvus_client.get_usernames
             account_ids : [account_id]
+            use_cache   : false
             cb          : (err, x) =>
                 if err
                     console.warn("ERROR getting username for account with id '#{account_id}'")
