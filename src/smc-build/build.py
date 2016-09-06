@@ -90,6 +90,9 @@ BUILD  = os.path.abspath('build')
 PREFIX = os.path.abspath('local')
 os.environ['PREFIX'] = PREFIX
 
+# http://www.nltk.org/data.html#command-line-installation
+NLTK_DATA_DIR = os.environ.get("NLTK_DATA", "/ext/nltk_data")
+
 log.info("SRC = '%s'"%SRC)
 for path in [SRC, BUILD, TMP]:
     if not os.path.exists(path):
@@ -475,6 +478,7 @@ class BuildSage(object):
             "install_cairo",
             "install_psage",
             "install_pycryptoplus",
+            "install_nltk_data",
             # "install_tensorflow", # doesn't work
             # "install_neuron", # also fails
         ]
@@ -820,6 +824,15 @@ class BuildSage(object):
         cmd("make install", path)
         open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
         shutil.rmtree(path)
+
+    def install_nltk_data(self):
+        """
+        NLTK comes with a data library. See: http://www.nltk.org/data.html#command-line-installation
+
+        This task's prerequesite is that nltk is installed (otherwise it will simply fail)
+        """
+        cmd("mkdir -p {}".format(NLTK_DATA_DIR))
+        cmd("python -m nltk.downloader -d {} all".format(NLTK_DATA_DIR))
 
     def install_tensorflow(self):
         """
