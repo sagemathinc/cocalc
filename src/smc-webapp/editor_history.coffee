@@ -145,6 +145,22 @@ class exports.HistoryEditor extends FileEditor
             open_file()
             @syncstring.emit('change')
 
+        @element.find("a[href=#show-diff]").click () =>
+            @show_changes(true)
+
+        @element.find("a[href=#hide-diff]").click () =>
+            @show_changes(false)
+
+    show_changes: (show_changes) =>
+        @_show_changes = show_changes
+        if show_changes
+            @element.find("a[href=#hide-diff]").show()
+            @element.find("a[href=#show-diff]").hide()
+        else
+            @element.find("a[href=#hide-diff]").hide()
+            @element.find("a[href=#show-diff]").show()
+        # TODO: other state change stuff, e.g., swap out the slider for a two-handled slider, and re-render.
+
     set_doc: (time) ->
         if not time?
             return
