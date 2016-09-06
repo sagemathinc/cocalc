@@ -1159,15 +1159,12 @@ exports.RequestedInvitesList = RequestedInvitesList = rclass
     approve_request_by : (user) ->
         @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), user)
         
-        ir = @props.invite_requests # .toJS()
-        console.log('ir before', JSON.stringify(ir))
+        ir = @props.invite_requests
         delete ir[user]
-        console.log('ir before', JSON.stringify(ir))
         smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project.get('project_id'), invite_requests: ir}}})
         @forceUpdate()
 
     deny_request_by : (user) ->
-        ir = @props.invite_requests # .toJS()
         delete ir[user]
         smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project.get('project_id'), invite_requests: ir}}})
         @forceUpdate()
