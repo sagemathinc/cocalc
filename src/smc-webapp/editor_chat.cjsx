@@ -126,6 +126,7 @@ class ChatActions extends Actions
 
         @syncdb.save()
         @setState(last_sent: mesg)
+        return new Date(time_stamp).valueOf()
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -717,9 +718,7 @@ ChatRoom = (name) -> rclass
             else
                 mesg = @refs.input.getValue()
                 if mesg.length? and mesg.trim().length >= 1
-                    @props.actions.send_chat(mesg)
-                    ids = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
-                    @setState(realtime_typing_message_id:ids[ids.length-1])
+                    @setState(realtime_typing_message_id:String(@props.actions.send_chat(mesg)))
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -857,7 +856,7 @@ ChatRoom = (name) -> rclass
 
         <Tip title='Use Markdown' tip={tip}>
             <div style={color: '#767676', fontSize: '12.5px'}>
-                {@render_realtime_typing_button()} 
+                {@render_realtime_typing_button()}
                 <Space/><Space/>
                 Shift+Enter to send your message.
                 Double click chat bubbles to edit them.
