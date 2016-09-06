@@ -444,11 +444,47 @@ def test_r_sys_which(exe):
     v = run('''echo 'cat(Sys.which("ls"))' | {exe} -q --no-save'''.format(exe=exe))
     assert '/bin/ls' in v
 
-# TODO numexpr
+# numexpr
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numexpr(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numexpr as ne
+    import numpy as np
+    a = np.array([1,2,3])
+    b = ne.evaluate('2*a+1')
+    print(b)
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '[3 5 7]'
 
-# TODO numpy/scipy
+# numpy/scipy, just a very very simple check
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numpy(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numpy as np
+    import scipy.linalg
+    x = np.array([[1,2], [5, -1]])
+    print(x.sum())
+    a, b, c = scipy.linalg.lu(x)
+    print((a.dot(b).dot(c) - x).sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert "7" == out[0]
+    assert "0.0" == out[1]
 
-# TODO pandas
+# pandas
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_pandas(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import pandas as pd
+    x = pd.DataFrame([[1,2], [3, 4], [5, 6]], columns = ['a', 'b'])
+    print(x.a.sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '9'
 
 # TODO check that opencv exists, what is there actually?
 

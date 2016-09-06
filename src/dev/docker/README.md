@@ -2,7 +2,10 @@
 
 This is a self-contained single-image multi-user SageMathCloud server.
 
-**STATUS:** As is, this is ABSOLUTELY NOT SECURE in any way, shape, or form yet!  Do not trust it if you run it for some sort of production use.  For example, there is no RethinkDB password set yet, so any user could do anything.  However, making this much more secure will soon be possible.   Also, no quotas are implemented except idle timeout.
+**STATUS:**
+  - Actually should be reasonably secure -- the database has a long random password, user accounts are separate, etc.
+  - No quotas are implemented except idle timeout.
+  - Sagetex not setup yet.
 
 ## Instructions
 
@@ -20,6 +23,13 @@ which might output
     9eff7133bbd6        williamstein/sagemathcloud   "/bin/sh -c ./run.py"   3 minutes ago       Up 3 minutes        0.0.0.0:32779->80/tcp, 0.0.0.0:32778->443/tcp   evil_almeida
 
 If the port is 32779 (as it is above), then visit http://localhost:32779/
+
+If you're running this docker image on a remote server and want to use
+ssh port forwarding to connect, type
+
+    ssh -L 8080:localhost:32779 username@remote_server
+
+then open your web browser to http://localhost:8080
 
 ### Make all users admins
 

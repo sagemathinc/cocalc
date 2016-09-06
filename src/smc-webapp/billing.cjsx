@@ -1823,7 +1823,6 @@ exports.render_static_pricing_page = () ->
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>
         <hr/>
-        Or you can have students pay $9/month
         <ExplainResources type='shared' is_static={true}/>
         <hr/>
         <FAQ/>

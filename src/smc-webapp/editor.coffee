@@ -733,7 +733,7 @@ class CodeMirrorEditor extends FileEditor
             tab_size                  : editor_settings.tab_size
             smart_indent              : editor_settings.smart_indent
             electric_chars            : editor_settings.electric_chars
-            undo_depth                : editor_settings.undo_depth
+            undo_depth                : editor_settings.undo_depth   # no longer relevant, since done via sync system
             match_brackets            : editor_settings.match_brackets
             code_folding              : editor_settings.code_folding
             auto_close_brackets       : editor_settings.auto_close_brackets

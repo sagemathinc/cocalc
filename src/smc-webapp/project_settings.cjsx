@@ -1348,6 +1348,7 @@ exports.ProjectSettings = rclass ({name}) ->
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
+            user_type       : rtypes.string    # needed for projects get_my_group call in render
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
@@ -1356,6 +1357,7 @@ exports.ProjectSettings = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string.isRequired
         group      : rtypes.string
+        redux      : rtypes.object
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1384,11 +1386,11 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render : ->
-        if not @props.project_map? or not @props.user_map? or not @props.public_paths?
+        if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if @props.group == 'admin'
+        if group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />

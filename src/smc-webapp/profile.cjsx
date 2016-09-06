@@ -98,7 +98,10 @@ Avatar = rclass
             <span> (Line {@props.line})</span>
 
     tooltip: ->
-        if @props.viewing_what == 'project'
+        {ProjectTitle} = require('./projects')
+        if @props.viewing_what == 'projects'
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at <ProjectTitle project_id={@props.project_id} /></Tooltip>
+        else if @props.viewing_what == 'project'
             <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at {@props.path}</Tooltip>
         else
             <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
@@ -117,7 +120,16 @@ Avatar = rclass
 
     render: ->
         #extra div for necessary for overlay not to destroy background color
-        if @props.viewing_what == 'project'
+        {open_project} = require('./projects')
+        if @props.viewing_what == 'projects'
+            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id)}>
+                <div style={display:'inline-block'}>
+                    <div style={@_outerStyle()}>
+                        {@render_image()}
+                    </div>
+                </div>
+            </OverlayTrigger>
+        else if @props.viewing_what == 'project'
             <OverlayTrigger placement='top' overlay={@tooltip()}>
                 <div style={display:'inline-block'}>
                     <div style={@_outerStyle()} onClick={=>@open_path(@props.path)}>
@@ -181,7 +193,43 @@ UsersViewing = rclass
 
         output = []
         all_users = []
-        if @props.viewing_what == 'project'
+        if @props.viewing_what == 'projects'
+            users = {}
+            debug_list = []
+            sortByKey = (array, key) ->
+                array.sort (a,b) ->
+                    if a[key] < b[key]
+                        -1
+                    else if a[key] > b[key]
+                        1
+                    else
+                        0
+            for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
+                for user in p.users
+                    [event, most_recent] = @_find_most_recent(user)
+                    if users[user.account_id]
+                        users[user.account_id].push({"project_id": p.project_id, "path": p.path, "most_recent": most_recent})
+                    else
+                        users[user.account_id] = [{"project_id": p.project_id, "path": p.path, "most_recent": most_recent}]
+            for user_id, paths_edited of users
+                if user_id == @props.account_id
+                    continue
+                account = @props.user_map.get(user_id)?.toJS() ? {}
+                most_recent_path = paths_edited
+                sortByKey(most_recent_path, 'most_recent')
+                most_recent_path = paths_edited.reverse()[0]
+                seconds = most_recent_path['most_recent']
+                time_since =  salvus_client.server_time()/1000 - seconds
+
+                # TODO do something with the type like show a small typing picture
+                # or whatever corresponds to the action like "open" or "edit"
+                style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
+
+                # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
+                if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
+                    all_users.push <Avatar viewing_what='projects' key={user_id} account={account} style={style} project_id={most_recent_path['project_id']} redux={@props.redux} />
+
+        else if @props.viewing_what == 'project'
             users = {}
             debug_list = []
             sortByKey = (array, key) ->

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-import os, tempfile, time, subprocess, sys
+import os, tempfile, time, shutil, subprocess, sys
+
+# ensure that everything we spawn has this umask, which is more secure.
+os.umask(0o077)
 
 join = os.path.join
 
@@ -53,6 +56,7 @@ def self_signed_cert(target= 'nopassphrase.pem'):
                   '-subj', '/C=US/ST=WA/L=WA/O=Network/OU=IT Department/CN=sagemath'], path=tmp)
         s  = open(join(tmp, 'server.crt')).read() + open(join(tmp, 'server.key')).read()
         open(target,'w').write(s)
+        run("chmod og-rwx {target} && mkdir -p /projects/conf && cp {target} /projects/conf/nopassphrase.pem".format(target=target))
 
 def init_projects_path():
     log("initialize /projects path")
@@ -74,6 +78,7 @@ def start_hub():
     run(". smc-env; service_hub.py --host=localhost --single  start & ", path='/smc/src')
 
 def start_compute():
+    run("mkdir -p /projects/conf && chmod og-rwx -R /projects/conf")
     run(". smc-env; compute --host=localhost --single start 1>/var/log/compute.log 2>/var/log/compute.err &", path='/smc/src')
     # sleep to wait for compute server to start and write port/secret
     run("""sleep 5; . smc-env; echo "require('smc-hub/compute-client').compute_server(cb:(e,s)-> s._add_server_single(cb:->process.exit(0)))" | coffee""", path='/smc/src')
@@ -92,12 +97,53 @@ def init_sage():
         # Install sage scripts
         run("""echo "install_scripts('/usr/local/bin/')" | sage""")
 
+def copy_rethinkdb_password():
+    # The password location isn't passed in via the command line, but is currently
+    # hard-coded in rethinkdb.coffee to be at
+    # (process.env.SALVUS_ROOT ? '.') + '/data/secrets/rethinkdb'
+    # Can delete this and use an option if location of pasword file can be set.
+    log("copying over rethinkdb password so the hub can use it.")
+    run("mkdir -p /smc/src/data/secrets && chmod og-rwx -R /smc/src/data && cp /projects/rethinkdb/password /smc/src/data/secrets/rethinkdb")
+
+def init_rethinkdb_password():
+    """
+    If there is no /projects/rethinkdb/password, create it (randomly) with
+    restrictive permissions, and connect to the database and set it.
+    """
+    password_file = '/projects/rethinkdb/password'
+    if os.path.exists(password_file):
+        log("RethinkDB password file '%s' already exists"%password_file)
+        return
+    log("creating RethinkDB password file '%s'"%password_file)
+    import base64
+    n = 63 # password length
+    password = base64.b64encode(os.urandom(n)).decode()[:n]
+    log("wrote Rethinkdb password to disk")
+    open(password_file,'w').write(password)
+    log("ensure database has restrictive permissions")
+    run("chmod og-rwx -R /projects/rethinkdb")
+    log("Set the new password in RethinkDB")
+    for i in range(100):
+        try:
+            import rethinkdb as r
+            conn = r.connect()
+            r.db('rethinkdb').table('users').get('admin').update({'password': password}).run(conn)
+            log("Successfully set database password")
+            return
+        except Exception:
+            log("Failed -- waiting...")
+            time.sleep(1)
+            continue
+    log("Failed to set database password; moving old pasword file so will try to create password next time")
+    shutil.move(password_file, password_file+"old")
 
 def main():
     self_signed_cert('/nopassphrase.pem')
     init_projects_path()
     init_sage()
     start_services()
+    init_rethinkdb_password()
+    copy_rethinkdb_password()
     start_hub()
     start_compute()
     while True:

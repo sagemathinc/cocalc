@@ -39,7 +39,7 @@ markdown = require('./markdown')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
-
+{UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 MAX_DEFAULT_PROJECTS = 50
@@ -1642,12 +1642,15 @@ ProjectSelector = rclass
                     <Col sm=4>
                         {@render_projects_title()}
                     </Col>
-                    <Col sm=8>
+                    <Col sm=4>
                         <ProjectsFilterButtons
                             hidden  = {@props.hidden}
                             deleted = {@props.deleted}
                             show_hidden_button = {@has_hidden_projects() or @props.hidden}
                             show_deleted_button = {@has_deleted_projects() or @props.deleted} />
+                    </Col>
+                    <Col sm=4>
+                        <UsersViewing redux={@props.redux} viewing_what='projects' />
                     </Col>
                 </Row>
                 <Row>

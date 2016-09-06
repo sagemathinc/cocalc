@@ -121,7 +121,7 @@ class Console extends EventEmitter
             font        :   # only for 'ttyjs' renderer
                 family : undefined
                 size   : undefined                           # CSS font-size in points
-                line_height : 115                            # CSS line-height percentage
+                line_height : 120                            # CSS line-height percentage
 
             highlight_mode : 'none'
             renderer       : 'ttyjs'   # options -- 'auto' (best for device); 'codemirror' (mobile support--useless), 'ttyjs' (xterm-color!)
@@ -910,10 +910,10 @@ class Console extends EventEmitter
         # DOM programming...
 
         # Determine size of container DOM.
-        # Determine the average width of a character by inserting 10 blank spaces,
+        # Determine the average width of a character by inserting 10 characters,
         # seeing how wide that is, and dividing by 10.  The result is typically not
         # an integer, which is why we have to use multiple characters.
-        @_c = $("<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>").prependTo(@terminal.element)
+        @_c = $("<span>Term-inal&nbsp;</span>").prependTo(@terminal.element)
 
         # We have to do the actual calculation in the next render loop, since otherwise the terminal
         # might not yet have resized, or the text we just inserted might not yet be visible.
@@ -944,10 +944,10 @@ class Console extends EventEmitter
 
         # Determine the number of columns from the width of a character, computed above.
         font_size = @opts.font.size
-        new_cols = Math.max(1,Math.floor(elt.width() / character_width))
+        new_cols = Math.max(1, Math.floor(elt.width() / character_width))
 
-        # Determine number of rows from the height of the row , as computed above.
-        new_rows = Math.max(1,Math.floor((elt.height()-10) / row_height))
+        # Determine number of rows from the height of the row, as computed above.
+        new_rows = Math.max(1, Math.floor((elt.height() - 10) / row_height))
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)

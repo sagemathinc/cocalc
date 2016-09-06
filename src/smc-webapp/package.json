@@ -10,7 +10,7 @@
     "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.3",
     "bootstrap-switch": "^3.3.2",
-    "codemirror": "^5.7.0",
+    "codemirror": "^5.18.2",
     "coffee-react": "^4.0.0",
     "coffee-react-transform": "^3.3.0",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",

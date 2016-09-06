@@ -493,7 +493,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
             @emit('before-change')
 
     live: (s) =>
-        if s?
+        if s? and s != @_syncstring.get()
+            @_syncstring.exit_undo_mode()
             @_syncstring.set(s)
             @emit('sync')
         else
@@ -534,12 +535,29 @@ class SynchronizedString extends AbstractSynchronizedDoc
     has_unsaved_changes: =>
         return @_syncstring.has_unsaved_changes()
 
+    # per-session sync-aware undo
+    undo: () =>
+        @_syncstring.set(@_syncstring.undo())
+        @emit('sync')
+
+    # per-session sync-aware redo
+    redo: () =>
+        @_syncstring.set(@_syncstring.redo())
+        @emit('sync')
+
+    in_undo_mode: () =>
+        return @_syncstring.in_undo_mode()
+
+    exit_undo_mode: () =>
+        return @_syncstring.exit_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
+
+        ## window.cm = @  ## DEBUGGING
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -548,6 +566,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
+
+        # replace undo/redo by sync-aware versions
+        for cm in [@codemirror, @codemirror1]
+            cm.undo = @undo
+            cm.redo = @redo
 
         @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
 
@@ -631,6 +654,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
                             @save_state_debounce()
+                            @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
@@ -677,17 +701,27 @@ class SynchronizedDocument2 extends SynchronizedDocument
     sync: (cb) =>
         @_sync(cb)
 
-    # completely disable undo/redo functionality, and make hitting control+z pop up the
-    # time travel history slider.
-    disable_undo: () =>
-        @codemirror.setOption('undoDepth',1)
-        @codemirror1.setOption('undoDepth',1)
-        @editor.element.find("a[href=\"#undo\"]").remove()
-        @editor.element.find("a[href=\"#redo\"]").remove()
-        @codemirror.on 'beforeChange', (instance, changeObj) =>
-            if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                changeObj.cancel()
-                @editor.click_history_button()
+    # per-session sync-aware undo
+    undo: () =>
+        if not @codemirror?
+            return
+        if not @_syncstring.in_undo_mode()
+            @_syncstring.set(@codemirror.getValue())
+        value = @_syncstring.undo()
+        @codemirror.setValueNoJump(value)
+        @save_state_debounce()
+        @_last_change_time = new Date()
+
+    # per-session sync-aware redo
+    redo: () =>
+        if not @codemirror?
+            return
+        if not @_syncstring.in_undo_mode()
+            return
+        value = @_syncstring.redo()
+        @codemirror.setValueNoJump(value)
+        @save_state_debounce()
+        @_last_change_time = new Date()
 
     _connect: (cb) =>
         # no op
