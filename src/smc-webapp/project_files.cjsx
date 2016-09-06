@@ -1826,9 +1826,21 @@ ProjectFiles = (name) -> rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
+    request_to_join_project : ->
+        console.log(@props.project_id)
+        if smc.redux.getStore('projects').get_project(@props.project_id)?.invite_requests
+            invite_requests = smc.redux.getStore('projects').get_project(@props.project_id).invite_requests
+        else
+            invite_requests = {}
+        invite_requests[smc.client.account_id] = {timestamp:salvus_client.server_time(), message:'please invite me'}
+        smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project_id, invite_requests:invite_requests}}})
+
     render_not_public_error : ->
         if @props.redux.getStore('account').is_logged_in()
-            <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+                <Button onClick={=>@request_to_join_project()}>Request to join this project</Button>
+            </div>
         else
             <div>
                 <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />

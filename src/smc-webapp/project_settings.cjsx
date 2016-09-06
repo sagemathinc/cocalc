@@ -1144,6 +1144,69 @@ CollaboratorsSearch = rclass
             {@render_send_email()}
         </div>
 
+exports.RequestedInvitesList = RequestedInvitesList = rclass
+    displayName : 'ProjectSettings-RequestedInvitesList'
+
+    propTypes :
+        redux    : rtypes.object.isRequired
+        project  : rtypes.object.isRequired
+        invite_requests : rtypes.object
+        user_map : rtypes.object
+
+    getInitialState : ->
+        removing : undefined  # id's of account that we are currently confirming to remove
+
+    approve_request_by : (user) ->
+        @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), user)
+        
+        ir = @props.invite_requests # .toJS()
+        console.log('ir before', JSON.stringify(ir))
+        delete ir[user]
+        console.log('ir before', JSON.stringify(ir))
+        smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project.get('project_id'), invite_requests: ir}}})
+        @forceUpdate()
+
+    deny_request_by : (user) ->
+        ir = @props.invite_requests # .toJS()
+        delete ir[user]
+        smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project.get('project_id'), invite_requests: ir}}})
+        @forceUpdate()
+
+    render_invite_request : (user, message) ->
+        <div key={user}>
+            <Row>
+                <Col sm=4>
+                    <User account_id={user} user_map={@props.user_map} />
+                </Col>
+                <Col sm=4>
+                    {message}
+                </Col>
+                <Col sm=4>
+                    <Button
+                        style    = {marginBottom: '6px', float: 'right'}
+                        onClick  = {=>@deny_request_by(user)}
+                    >
+                        <Icon name='user-times' /> Deny
+                    </Button>
+                    <Button
+                        style    = {marginBottom: '6px', float: 'right'}
+                        onClick  = {=>@approve_request_by(user)}
+                    >
+                        <Icon name='user-plus' /> Approve
+                    </Button>
+                </Col>
+            </Row>
+        </div>
+
+    render_invite_requests : ->
+        for user of @props.invite_requests
+            @render_invite_request(user, @props.invite_requests[user]['message'])
+
+    render : ->
+        <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
+            {@render_invite_requests()}
+        </Well>
+
 exports.CollaboratorsList = CollaboratorsList = rclass
     displayName : 'ProjectSettings-CollaboratorsList'
 
@@ -1236,7 +1299,9 @@ CollaboratorsPanel = rclass
             <hr />
             <CollaboratorsSearch key='search' project={@props.project} redux={@props.redux} />
             {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
+            <RequestedInvitesList key='requested_invites_list' project={@props.project} user_map={@props.user_map} redux={@props.redux} invite_requests={smc.redux.getStore('projects').get_project(@props.project.get('project_id')).invite_requests} />
+            {<hr /> if @props.project.get('users')?.size > 1}
+            <CollaboratorsList key='collaborators_list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
         </ProjectSettingsPanel>
 
 ProjectSettings = rclass
