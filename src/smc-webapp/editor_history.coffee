@@ -274,3 +274,12 @@ class exports.HistoryEditor extends FileEditor
                     @goto_revision(@revision_num + num_added)
                 cb?()
 
+# Compute a line-level diff between two strings, which
+# is useful when showing a diff between two states.
+{dmp} = require('smc-util/syncstring')
+line_diff = (v0, v1) ->
+    string_mapping = new misc.StringCharMapping()
+    result =
+        patch   : dmp.patch_make(string_mapping.to_string(v0.split('\n')), string_mapping.to_string(v1.split('\n')))
+        to_line : (x) -> string_mapping._to_string[x]
+    return result
