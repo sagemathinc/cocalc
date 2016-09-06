@@ -1158,7 +1158,7 @@ exports.RequestedInvitesList = RequestedInvitesList = rclass
 
     approve_request_by : (user) ->
         @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), user)
-        
+
         ir = @props.invite_requests
         delete ir[user]
         smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project.get('project_id'), invite_requests: ir}}})
@@ -1172,25 +1172,21 @@ exports.RequestedInvitesList = RequestedInvitesList = rclass
     render_invite_request : (user, message) ->
         <div key={user}>
             <Row>
-                <Col sm=4>
+                <Col sm=3>
                     <User account_id={user} user_map={@props.user_map} />
                 </Col>
                 <Col sm=4>
                     {message}
                 </Col>
-                <Col sm=4>
-                    <Button
-                        style    = {marginBottom: '6px', float: 'right'}
-                        onClick  = {=>@deny_request_by(user)}
-                    >
-                        <Icon name='user-times' /> Deny
-                    </Button>
-                    <Button
-                        style    = {marginBottom: '6px', float: 'right'}
-                        onClick  = {=>@approve_request_by(user)}
-                    >
-                        <Icon name='user-plus' /> Approve
-                    </Button>
+                <Col sm=5>
+                    <ButtonToolbar style = {marginBottom: '6px', float: 'right'}>
+                        <Button onClick  = {=>@approve_request_by(user)}>
+                            <Icon name='user-plus' /> Approve
+                        </Button>
+                        <Button onClick  = {=>@deny_request_by(user)}>
+                            <Icon name='user-times' /> Deny
+                        </Button>
+                    </ButtonToolbar>
                 </Col>
             </Row>
         </div>
