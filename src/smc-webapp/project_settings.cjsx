@@ -1383,6 +1383,7 @@ ProjectController = (name) -> rclass
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
+            user_type       : rtypes.string    # needed for projects get_my_group call in render
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
@@ -1391,7 +1392,6 @@ ProjectController = (name) -> rclass
     propTypes :
         project_id : rtypes.string.isRequired
         redux      : rtypes.object
-        group      : rtypes.string
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1420,11 +1420,12 @@ ProjectController = (name) -> rclass
         </Alert>
 
     render : ->
+        group = redux.getStore('projects').get_my_group(@props.project_id)
         if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if @props.group == 'admin'
+        if group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />
@@ -1452,10 +1453,9 @@ render = (project_id) ->
     project_store = redux.getProjectStore(project_id)
     # compute how user is related to this project once for all, so that
     # it stays constant while opening (e.g., stays admin)
-    group = redux.getStore('projects').get_my_group(project_id)
     C = ProjectController(project_store.name)
     <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} group={group} />
+        <C project_id={project_id} redux={redux}/>
     </Redux>
 
 exports.create_page = (project_id, dom_node) ->
