@@ -81,7 +81,7 @@ class ProjectPage
         @init_sortable_editor_tabs()
         @init_new_tab_in_navbar()
         @free_project_warning()
-        
+
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
@@ -175,12 +175,15 @@ class ProjectPage
 
 
     requests_to_join_project_alert: (project_id) =>
-        if Object.keys(redux.getStore('projects').get_project(project_id).invite_requests).length > 0
-            box  = @container.find('.smc-project-requests-to-join-project-alert')
-            box.show()
-            box.find("div a.settings").click =>
-                @load_target('settings')
-        
+        p = redux.getStore('projects').get_project(project_id)?.invite_requests
+        if p?
+            n = misc.keys(p).length
+            if n > 0
+                box  = @container.find('.smc-project-requests-to-join-project-alert')
+                box.show()
+                box.find("div a.settings").click =>
+                    @load_target('settings')
+
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)

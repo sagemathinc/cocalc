@@ -1841,7 +1841,11 @@ ProjectFiles = (name) -> rclass
         else
             invite_requests = {}
         invite_requests[smc.client.account_id] = {timestamp:salvus_client.server_time(), message:@state['reason_for_requesting_to_join_project']}
-        smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project_id, invite_requests:invite_requests}}})
+        smc.client.query
+            query :
+                project_invite_requests :
+                    project_id      : @props.project_id
+                    invite_requests : invite_requests
 
     request_to_join_project : ->
         @setState(is_request_to_join_project_modal_open:true)
@@ -1851,12 +1855,17 @@ ProjectFiles = (name) -> rclass
             <Modal show={@state['is_request_to_join_project_modal_open']} onHide={=>@setState(is_request_to_join_project_modal_open:false)}>
                 <Modal.Header>
                     <Modal.Title>Request to join project</Modal.Title>
+                    <span className="lighten">
+                        Explain to the owner of this project why you would like
+                        to be a collaborator on it.
+                    </span>
                 </Modal.Header>
 
               <Modal.Body>
                 <Input
                     ref         = 'reason_for_requesting_to_join'
-                    type        = 'text'
+                    type        = 'textarea'
+                    rows        = 3
                     placeholder = {'Reason for requesting to join project'}
                     onChange    = {=>@setState(reason_for_requesting_to_join_project:@refs.reason_for_requesting_to_join.getValue())}
                     onKeyDown   = {@handle_keypress}
@@ -1872,14 +1881,21 @@ ProjectFiles = (name) -> rclass
         </div>
 
     render_request_to_join_project_button : ->
-        <Button onClick={=>@request_to_join_project()}>Request to join this project</Button>
+        # TODO: should only show this is user has not already requested to join the project, so give them the option.
+        # However, right now, there's currently no way for the user to know if they have sent an invite -- that 
+        # data just isn't available to them according to the security model.
+        <Button onClick={=>@request_to_join_project()}>Request to join this project...</Button>
 
     render_not_public_error : ->
         if @props.redux.getStore('account').is_logged_in()
             <div>
-                <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
-                {if not smc.client.account_id in smc.redux.getStore('projects').get_project(@props.project_id)?.invite_requests then @render_request_to_join_project_button()}
-                {if @state['is_request_to_join_project_modal_open'] then @render_request_to_join_project_modal()}
+                <ErrorDisplay
+                    title = "Directory is not public"
+                    bsStyle = "warning"
+                    error = {"You are trying to access a non-public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."}
+                />
+                {@render_request_to_join_project_button()}
+                {if @state.is_request_to_join_project_modal_open then @render_request_to_join_project_modal()}
             </div>
         else
             <div>
