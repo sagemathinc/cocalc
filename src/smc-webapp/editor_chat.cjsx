@@ -82,7 +82,7 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
-{Icon, Loading, TimeAgo} = require('./r_misc')
+{Icon, Loading, TimeAgo, Space} = require('./r_misc')
 {Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -687,8 +687,10 @@ ChatRoom = (name) -> rclass
         path        : rtypes.string
 
     getInitialState: ->
-        input          : ''
-        preview        : ''
+        input                      : ''
+        preview                    : ''
+        realtime_typing            : false
+        realtime_typing_message_id : ''
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -699,10 +701,25 @@ ChatRoom = (name) -> rclass
             e.preventDefault()
             @clear_input()
         else if e.keyCode==13 and e.shiftKey # 13: enter key
-            @send_chat(e)
+            @setState(realtime_typing_message_id : '')
+            if not @state['realtime_typing_message_id']
+                @send_chat(e)
+            else
+                @clear_input()
         else if e.keyCode==38 and @refs.input.getValue() == ''
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
+
+    keyup : (e) ->
+        if @state['realtime_typing']
+            if @state['realtime_typing_message_id']
+                @props.actions.send_edit(@props.messages.get(@state['realtime_typing_message_id']), @refs.input.getValue())
+            else
+                mesg = @refs.input.getValue()
+                if mesg.length? and mesg.trim().length >= 1
+                    @props.actions.send_chat(mesg)
+                    ids = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
+                    @setState(realtime_typing_message_id:ids[ids.length-1])
 
     focus_endpoint: (e) ->
         val = e.target.value
@@ -829,6 +846,9 @@ ChatRoom = (name) -> rclass
             foreground         : true
             foreground_project : true
 
+    render_realtime_typing_button: ->
+        <Button onClick={=> @setState(realtime_typing:!@state['realtime_typing'],realtime_typing_message_id:'')}>{if @state['realtime_typing'] then "Don't show" else "Show"} what I{"'"}m typing to others</Button>
+
     # All render methods
     render_bottom_tip: ->
         tip = <span>
@@ -837,6 +857,8 @@ ChatRoom = (name) -> rclass
 
         <Tip title='Use Markdown' tip={tip}>
             <div style={color: '#767676', fontSize: '12.5px'}>
+                {@render_realtime_typing_button()} 
+                <Space/><Space/>
                 Shift+Enter to send your message.
                 Double click chat bubbles to edit them.
                 Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
@@ -966,6 +988,7 @@ ChatRoom = (name) -> rclass
                             type        = 'textarea'
                             ref         = 'input'
                             onKeyDown   = {@keydown}
+                            onKeyUp   = {@keyup}
                             value       = {@props.input}
                             placeholder = {'Type a message...'}
                             onClick     = {@mark_as_read}
@@ -976,7 +999,7 @@ ChatRoom = (name) -> rclass
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
                         <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                        <Button onClick={=>@send_chat();@setState(realtime_typing_message_id : '')} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
                     {@render_bottom_tip()}
                 </Row>
