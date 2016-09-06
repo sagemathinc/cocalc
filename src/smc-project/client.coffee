@@ -20,7 +20,7 @@ as a resut.
 # close our copy of syncstring (so stop watching it for changes, etc) if
 # not active for this long (should be at least 5 minutes).
 SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = .2 # TESTING
+#SYNCSTRING_MAX_AGE_M = .4 # TESTING
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
@@ -154,7 +154,10 @@ class exports.Client extends EventEmitter
         x = @_recent_syncstrings.get()
         if not x?
             return
-        dbg("open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}")
+        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
+        if log_message != @_update_recent_syncstrings_last
+            winston.debug(log_message)
+            @_update_recent_syncstrings_last = log_message
         x.map (val, key) =>
             string_id = val.get('string_id')
             path = val.get('path')
@@ -191,7 +194,7 @@ class exports.Client extends EventEmitter
                         else if deleted
                             # do nothing -- don't open
                             dbg("ignoring deleted path '#{path}'")
-                        else
+                        else if not @_open_syncstrings[string_id]?
                             dbg("open syncstring '#{path}' with id '#{string_id}'")
                             ss = @_open_syncstrings[string_id] = @sync_string(path:path)
                             ss.on 'error', (err) =>

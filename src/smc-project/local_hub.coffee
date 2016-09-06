@@ -143,8 +143,8 @@ terminate_session = (socket, mesg) ->
 
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
-    dbg = (m) -> winston.debug("handle_mesg: #{m}")
-    dbg("mesg=#{json(mesg)}")
+    #dbg = (m) -> winston.debug("handle_mesg: #{m}")
+    #dbg("mesg=#{json(mesg)}")
 
     if hub_client.handle_mesg(mesg, socket)
         return
@@ -234,7 +234,7 @@ start_tcp_server = (secret_token, port, cb) ->
                         # This is a control connection, so we can use it to call the hub later.
                         hub_client.active_socket(socket)
                     if type == "json"   # other types are handled elsewhere in event handling code.
-                        winston.debug("received control mesg -- #{json(mesg)}")
+                        #winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
 
                 socket.on('mesg', handler)

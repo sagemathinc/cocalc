@@ -27,7 +27,7 @@
 # thousands of changefeeds to get opened in a second.
 # If there were a better error, this could be a parameter that depends on
 # whether the user (or project) is paying or not.
-MAX_CHANGEFEEDS_PER_CLIENT = 10*100 # about 3-5 feeds per file right now
+MAX_CHANGEFEEDS_PER_CLIENT = 4*100 # about 3-5 feeds per file right now
 
 fs         = require('fs')
 async      = require('async')
@@ -3108,18 +3108,26 @@ class RethinkDB
         if x?
             delete @_change_feeds[opts.id]
             @_user_query_stats.cancel_changefeed(changefeed_id: opts.id)
-            winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
             async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
+        winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
+
+        ## For serious low level debugging...
+        ##if @_change_feeds?
+        ##    winston.debug("current changefeed ids: #{misc.to_json(misc.keys(@_change_feeds))}")
+        ##    for id, v of @_change_feeds
+        ##        winston.debug("#{id}: #{misc.to_json(v[0]._smc_query)}")
 
         # Also decrement count of changefeeds for given client
         client_name = @_user_get_changefeed_id_to_user?[opts.id]
         if client_name?
             @_user_get_changefeed_counts[client_name] -= 1
             delete @_user_get_changefeed_id_to_user[opts.id]
+            cnt = @_user_get_changefeed_counts
+            winston.debug("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
 
 
     user_query: (opts) =>
@@ -4209,6 +4217,7 @@ class RethinkDB
                         else
                             @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
+                            feed._smc_query = {query:opts.query, account_id:opts.account_id, project_id:opts.project_id}  # for logging purposes only
                             @_user_query_stats.changefeed
                                 account_id    : opts.account_id
                                 project_id    : opts.project_id
