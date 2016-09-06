@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Modal} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
@@ -36,6 +36,7 @@ immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
 {UsersViewing}        = require('./profile')
+{AccountPageRedux}    = require('./account_page')
 
 {salvus_client} = require('./salvus_client')
 
@@ -1693,6 +1694,9 @@ ProjectFiles = (name) -> rclass
         redux         : rtypes.object
         actions       : rtypes.object.isRequired
 
+    getInitialState : ->
+        is_request_to_join_project_modal_open : false
+
     getDefaultProps : ->
         page_number : 0
         file_search : ''
@@ -1825,11 +1829,70 @@ ProjectFiles = (name) -> rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
+    handle_keypress : (e) ->
+        if e.keyCode == 13
+            @setState(reason_for_requesting_to_join_project:@refs.reason_for_requesting_to_join.getValue())
+            @send_request_to_join_project()
+
+    send_request_to_join_project : ->
+        @setState(is_request_to_join_project_modal_open:false)
+        if smc.redux.getStore('projects').get_project(@props.project_id)?.invite_requests
+            invite_requests = smc.redux.getStore('projects').get_project(@props.project_id).invite_requests
+        else
+            invite_requests = {}
+        invite_requests[smc.client.account_id] = {timestamp:salvus_client.server_time(), message:@state['reason_for_requesting_to_join_project']}
+        smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:@props.project_id, invite_requests:invite_requests}}})
+
+    request_to_join_project : ->
+        @setState(is_request_to_join_project_modal_open:true)
+
+    render_request_to_join_project_modal : ->
+        <div className="request_to_join_project_modal">
+            <Modal show={@state['is_request_to_join_project_modal_open']} onHide={=>@setState(is_request_to_join_project_modal_open:false)}>
+                <Modal.Header>
+                    <Modal.Title>Request to join project</Modal.Title>
+                </Modal.Header>
+
+              <Modal.Body>
+                <Input
+                    ref         = 'reason_for_requesting_to_join'
+                    type        = 'text'
+                    placeholder = {'Reason for requesting to join project'}
+                    onChange    = {=>@setState(reason_for_requesting_to_join_project:@refs.reason_for_requesting_to_join.getValue())}
+                    onKeyDown   = {@handle_keypress}
+                />
+              </Modal.Body>
+
+              <Modal.Footer>
+                <Button onClick={=>@setState(is_request_to_join_project_modal_open:false)}>Close</Button>
+                <Button bsStyle="primary" onClick={=>@send_request_to_join_project()}>Send request to join project</Button>
+              </Modal.Footer>
+
+            </Modal>
+        </div>
+
+    render_request_to_join_project_button : ->
+        <Button onClick={=>@request_to_join_project()}>Request to join this project</Button>
+
+    render_not_public_error : ->
+        if @props.redux.getStore('account').is_logged_in()
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+                {if not smc.client.account_id in smc.redux.getStore('projects').get_project(@props.project_id)?.invite_requests then @render_request_to_join_project_button()}
+                {if @state['is_request_to_join_project_modal_open'] then @render_request_to_join_project_modal()}
+            </div>
+        else
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />
+                <AccountPageRedux />
+            </div>
+
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
+            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             switch error
                 when 'no_dir'
                     if @props.current_path == '.trash'
@@ -1846,7 +1909,7 @@ ProjectFiles = (name) -> rclass
                 else
                     e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
-                {e}
+                {if error == '"not_public"' then @render_not_public_error() else e}
                 <br />
                 <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
                     <Icon name='refresh'/> Try again to get directory listing

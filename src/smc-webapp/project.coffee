@@ -81,11 +81,13 @@ class ProjectPage
         @init_sortable_editor_tabs()
         @init_new_tab_in_navbar()
         @free_project_warning()
+        
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
             cb      : (err, group) =>
                 if not err
+                    @requests_to_join_project_alert(@project_id)
                     @public_access = (group == 'public')
                     @editor.public_access = @public_access  # TODO: terrible
                     if @public_access
@@ -171,6 +173,16 @@ class ProjectPage
                     else
                         box.hide()
 
+
+    requests_to_join_project_alert: (project_id) =>
+        console.log('PID', @project_id, redux.getStore('projects').get_project(project_id).invite_requests.length)
+            
+        if Object.keys(redux.getStore('projects').get_project(project_id).invite_requests).length > 0
+            box  = @container.find('.smc-project-requests-to-join-project-alert')
+            box.show()
+            box.find("div a.settings").click =>
+                @load_target('settings')
+        
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
