@@ -694,6 +694,7 @@ ChatRoom = (name) -> rclass
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
     keydown : (e) ->
+        @mark_as_read()
         # TODO: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
@@ -814,6 +815,7 @@ ChatRoom = (name) -> rclass
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
+            @mark_as_read()
             @_use_saved_position = false
 
     componentDidUpdate: ->
@@ -899,6 +901,9 @@ ChatRoom = (name) -> rclass
         </Button>
 
     render : ->
+        console.log('IAB', @is_at_bottom())
+        #if @is_at_bottom()
+        #    @mark_as_read()
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
