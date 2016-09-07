@@ -10,13 +10,9 @@ import hashlib
 # import sys
 
 ###
-# copied/modified from sage_server.py
-# cut and paste because it takes over 30 sec to import sage_server
+# much of the code here is copied from sage_server.py
+# cut and paste was done because it takes over 30 sec to import sage_server
 # and requires the script to be run from sage -sh
-#
-# purpose of these tests
-#   ensure that sage worksheets return correct results for various cell inputs
-#   not to provide unit tests of component fuctions in sagews modules
 ###
 
 def unicode8(s):

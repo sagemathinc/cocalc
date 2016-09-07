@@ -14,8 +14,7 @@ def test_connection_type(sagews):
 
 def test_set_file_env(exec2):
     code = "os.chdir(salvus.data[\'path\']);__file__=salvus.data[\'file\']"
-    output = None
-    exec2(code, output)
+    exec2(code)
 
 def test_assignment(exec2):
     code = "x = 42\nx\n"

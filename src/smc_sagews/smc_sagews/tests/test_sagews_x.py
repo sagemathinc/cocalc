@@ -9,8 +9,7 @@ from textwrap import dedent
 
 def test_plot(sagews, test_id):
     SHA_LEN = 36
-    code = "plot(sin(x))"
-    #code = "plot(cos(x),x,0,pi)"
+    code = "plot(cos(x),x,0,pi)"
 
     # format and send the plot command
     m = conftest.message.execute_code(code = code, id = test_id)
@@ -19,14 +18,17 @@ def test_plot(sagews, test_id):
 
     # send an acknowlegment of the blob to sage_server
     typ, mesg = sagews.recv()
+    # when a blob is sent, the first 36 bytes are the sha1 uuid
     assert typ == 'blob'
     print("blob len %s"%len(mesg))
     file_uuid = mesg[:SHA_LEN]
     assert file_uuid == conftest.uuidsha1(mesg[SHA_LEN:])
+
+    # sage_server expects an ack with the right uuid
     m = conftest.message.save_blob(sha1 = file_uuid)
     sagews.send_json(m)
 
-    # first json response has name of file blob just sent
+    # first json response from sage_server has name of file
     typ, mesg = sagews.recv()
     assert typ == 'json'
     assert 'file' in mesg
