@@ -1286,9 +1286,17 @@ AddStripeUser = rclass
         <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
             <Row>
                 <Col md=6>
-                    <Input ref='input' type='text' value={@state.email}
-                        placeholder = "Email address"
-                        onChange    = {=>e = @setState(email:@refs.input.getValue())}/>
+                    <form>
+                        <FormGroup>
+                            <FormControl
+                                ref   = 'input'
+                                type  = 'text'
+                                value = {@state.email}
+                                placeholder = "Email address"
+                                onChange    = {=>e = @setState(email:ReactDOM.findDOMNode(@refs.input.value))}
+                            />
+                        </FormGroup>
+                    </form>
                 </Col>
                 <Col md=6>
                     <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
