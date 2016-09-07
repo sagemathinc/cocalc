@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
@@ -1185,7 +1185,7 @@ ProjectsSearch = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        ReactDOM.findDOMNode(@refs.projects_search).focus()
+        @refs.projects_search.clear_and_focus_search_input()
 
     delete_search_button : ->
         s = if @props.search?.length > 0 then 'warning' else "default"
@@ -1193,27 +1193,18 @@ ProjectsSearch = rclass
             <Icon name='times-circle' />
         </Button>
 
-    open_first_project : (e) ->
-        e.preventDefault()
-        @props.open_first_project?()
-
     render : ->
-        <form onSubmit={@open_first_project}>
-            <FormGroup>
-                <InputGroup>
-                    <FormControl
-                        ref         = 'projects_search'
-                        autoFocus
-                        type        = 'search'
-                        value       =  @props.search
-                        placeholder = 'Search for projects...'
-                        onChange    = {=>redux.getActions('projects').setState(search: ReactDOM.findDOMNode(this.refs.projects_search).value)} />
-                    <InputGroup.Button>
-                        {@delete_search_button()}
-                    </InputGroup.Button>
-                </InputGroup>
-            </FormGroup>
-        </form>
+        <SearchInput
+            ref         = 'projects_search'
+            autoFocus   = {true}
+            type        = 'search'
+            value       =  @props.search
+            default_value = @props.search
+            placeholder = 'Search for projects...'
+            on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
+            on_submit   = {@props.open_first_project}
+            button_after = {@delete_search_button()}
+        />
 
 HashtagGroup = rclass
     displayName : 'Projects-HashtagGroup'
@@ -1249,6 +1240,7 @@ ProjectsListingDescription = rclass
         search              : rtypes.string
         nb_projects         : rtypes.number.isRequired
         nb_projects_visible : rtypes.number.isRequired
+        on_cancel           : rtypes.func
 
     getDefaultProps : ->
         deleted           : false
@@ -1265,14 +1257,10 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
-    clear_and_focus_input : ->
-        redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
-
     render_span : (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
-        <Button onClick={@clear_and_focus_input}>
+        <Button onClick={@props.on_cancel}>
             Cancel
         </Button></span>
 
@@ -1627,6 +1615,10 @@ ProjectSelector = rclass
                 return true
         return false
 
+    clear_filters_and_focus_search_input : ->
+        @props.redux.getActions('projects').setState(selected_hashtags:{})
+        @refs.search.clear_and_focus_input()
+
     render : ->
         if not @props.project_map?
             if @props.redux.getStore('account')?.get_user_type() == 'public'
@@ -1655,7 +1647,7 @@ ProjectSelector = rclass
                 </Row>
                 <Row>
                     <Col sm=4>
-                        <ProjectsSearch search={@props.search} open_first_project={@open_first_project} />
+                        <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
                     </Col>
                     <Col sm=8>
                         <HashtagGroup
@@ -1678,12 +1670,14 @@ ProjectSelector = rclass
                 <Row>
                     <Col sm=12>
                         <ProjectsListingDescription
-                            nb_projects         = {@project_list().length}
-                            nb_projects_visible = {visible_projects.length}
-                            hidden              = {@props.hidden}
-                            deleted             = {@props.deleted}
-                            search              = {@props.search}
-                            selected_hashtags   = {@props.selected_hashtags[@filter()]} />
+                            nb_projects           = {@project_list().length}
+                            nb_projects_visible   = {visible_projects.length}
+                            hidden                = {@props.hidden}
+                            deleted               = {@props.deleted}
+                            search                = {@props.search}
+                            selected_hashtags     = {@props.selected_hashtags[@filter()]}
+                            on_cancel             = {@clear_filters_and_focus_search_input}
+                        />
                     </Col>
                 </Row>
                 <Row>

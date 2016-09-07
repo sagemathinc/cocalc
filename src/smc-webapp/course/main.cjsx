@@ -1913,7 +1913,7 @@ CourseEditor = (name) -> rclass
             return <Loading />
 
     render : ->
-        <div>
+        <Row style={padding:"7px 7px 7px 7px"}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
@@ -1942,7 +1942,7 @@ CourseEditor = (name) -> rclass
                     {@render_shared_project()}
                 </Tab>
             </Tabs>
-        </div>
+        </Row>
 
 initialize_state = (path, redux, project_id) ->
     console.log("Initializing editor archive")

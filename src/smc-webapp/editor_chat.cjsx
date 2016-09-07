@@ -726,11 +726,11 @@ ChatRoom = rclass ({name}) ->
 
     button_off_click: ->
         @props.actions.set_is_preview(false)
-        ReactDOM.findDOMNode(@refs.input.refs.input).focus()
+        ReactDOM.findDOMNode(@refs.input).focus()
 
     button_on_click: ->
         @props.actions.set_is_preview(true)
-        ReactDOM.findDOMNode(@refs.input.refs.input).focus()
+        ReactDOM.findDOMNode(@refs.input).focus()
         if @is_at_bottom()
             @scroll_to_bottom()
 
