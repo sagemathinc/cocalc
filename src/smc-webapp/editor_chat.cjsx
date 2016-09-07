@@ -74,7 +74,7 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{Markdown, TimeAgo, Tip} = require('./r_misc')
+{Markdown, TimeAgo, Tip, SetIntervalMixin} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 {synchronized_db} = require('./syncdb')
 
@@ -283,7 +283,7 @@ Message = rclass
                @state.edited_message != next_state.edited_message or
                @state.show_history != next_state.show_history or
                ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
-
+               
     componentDidMount: ->
         if @refs.editedMessage
             @setState(edited_message:@props.saved_mesg)
@@ -805,6 +805,12 @@ ChatRoom = (name) -> rclass
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
 
+    mixins: [SetIntervalMixin]
+
+    decide_if_mark_read: ->
+        if @is_at_bottom()
+            @mark_as_read()
+
     componentDidMount: ->
         @scroll_to_position()
         if @props.is_preview
@@ -812,6 +818,7 @@ ChatRoom = (name) -> rclass
                 @debounce_bottom()
         else
             @props.actions.set_is_preview(false)
+        @setInterval(@decide_if_mark_read, 5000)
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
@@ -901,9 +908,6 @@ ChatRoom = (name) -> rclass
         </Button>
 
     render : ->
-        console.log('IAB', @is_at_bottom())
-        #if @is_at_bottom()
-        #    @mark_as_read()
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
