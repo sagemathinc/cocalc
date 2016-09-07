@@ -87,7 +87,7 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-redux_name = redux_name = (project_id, path) ->
+redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
@@ -160,8 +160,8 @@ class ChatActions extends Actions
 
         @syncdb.update
             set :
-                history     : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
-                editing     : message.get('editing').remove(author_id).toJS()
+                history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
+                editing : message.get('editing').remove(author_id).toJS()
             where :
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
@@ -760,7 +760,7 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = ChatRoom = (name) -> rclass
+ChatRoom = (name) -> rclass
     displayName: "ChatRoom"
 
     reduxProps :
@@ -829,7 +829,6 @@ ChatRoom = ChatRoom = (name) -> rclass
 
     button_off_click: ->
         @props.actions.set_is_preview(false)
-        console.log(ReactDOM.findDOMNode(@refs.input))
         ReactDOM.findDOMNode(@refs.input.refs.input).focus()
 
     button_on_click: ->
