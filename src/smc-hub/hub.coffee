@@ -3224,8 +3224,8 @@ stripe_sync = (dump_only, cb) ->
                 # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
                 # and person's name/email.
                 y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
-                y.subscriptions = y.subscriptions.data
-                y.metadata = y.metadata.account_id?.slice(0,8)
+                y.subscriptions = y.subscriptions?.data
+                y.metadata = y.metadata?.account_id?.slice(0,8)
                 dump.push(y)
             fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
         (cb) ->
