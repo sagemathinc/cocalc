@@ -83,9 +83,7 @@ class ConnectionJSON(object):
     def _recv(self, n):
         for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
             try:
-                #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
                 r = self._conn.recv(n)
-                #log("n=%s; received: '%s' of len %s"%(n,r, len(r)))
                 return r
             except socket.error as (errno, msg):
                 #print("socket.error, msg=%s"%msg)
@@ -96,6 +94,7 @@ class ConnectionJSON(object):
     def recv(self):
         n = self._recv(4)
         if len(n) < 4:
+            print("expecting 4 byte header, got", n)
             tries = 0
             while tries < 5:
                 tries += 1
@@ -106,7 +105,7 @@ class ConnectionJSON(object):
             else:
                 raise EOFError
         n = struct.unpack('>L', n)[0]   # big endian 32 bits
-        #log("got header, expect message of length %s"%n)
+        #print("test got header, expect message of length %s"%n)
         s = self._recv(n)
         while len(s) < n:
             t = self._recv(n - len(s))
@@ -140,9 +139,7 @@ class Message(object):
         return m
 
     def start_session(self):
-        m = self._new('start_session')
-        m['type'] = 'sage'
-        return m
+        return self._new('start_session')
 
     def session_description(self, pid):
         return self._new('session_description', {'pid':pid})
@@ -158,6 +155,10 @@ class Message(object):
 
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
+
+    # NOTE: save_blob() is NOT in sage_server.py
+    def save_blob(self, sha1):
+        return self._new('save_blob', {'sha1':sha1})
 
     def output(self, id,
                stdout       = None,
@@ -280,13 +281,98 @@ def path_info():
     file = __file__
     full_path = os.path.abspath(file)
     head, tail = os.path.split(full_path)
-    #head = "/projects/ccd4d4a4-29a8-4c39-85c2-a630cb1e9b6c/TEST_SAGEWS"
-    #file = "/projects/ccd4d4a4-29a8-4c39-85c2-a630cb1e9b6c/TEST_SAGEWS/scratch.sagews"
-    file = head + "/testing.sagews"
+    #file = head + "/testing.sagews"
     return head, file
+
+def recv_til_done(conn, test_id):
+    # XXX should set a timeout here too
+    loop_limit = 5
+    loop_count = 0
+    while loop_count < loop_limit:
+        loop_count += 1
+        typ, mesg = conn.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'done' in mesg
+        if mesg['done']:
+            break
+    else:
+        pytest.fail("too many responses for message id %s"%test_id)
+
+@pytest.fixture()
+def exec_fx(request):
+    for x in dir(request):
+        #print(x)
+        pass
+    test_id = request.getfuncargvalue('test_id')
+    print("test_id %s"%test_id)
+    conn = request.getfuncargvalue('sagews')
+    print("conn %s"%conn)
+    def fin():
+        recv_til_done(conn, test_id)
+    request.addfinalizer(fin)
+    return exec_fx
+
+@pytest.fixture()
+def exec2(request, sagews, test_id):
+    r"""
+    This fixture allows a test to specify only two things,
+
+    - `` code `` -- string of code block to run
+
+    - `` output `` -- string of expected output
+
+    OUTPUT:
+
+    This fixture returns a function to be called by the test function.
+    If no output is expected, set "output" to None.
+
+    EXAMPLES:
+
+    ::
+
+        def test_assg(exec2):
+            code = "x = 42\nx\n"
+            output = "42\n"
+            exec2(code, output)
+
+    ::
+
+        def  test_set_file_env(exec2):
+            code = "os.chdir(salvus.data[\'path\']);__file__=salvus.data[\'file\']"
+            output = None
+            exec2(code, output)
+
+    TODO:
+
+    Add regex parsing for more general results than fixed string output
+    """
+    def execfn(code, output = None):
+        m = message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        # send block of code to be executed
+        sagews.send_json(m)
+        if output is not None:
+            # check stdout
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert mesg['stdout'] == output
+
+    def fin():
+        recv_til_done(sagews, test_id)
+    request.addfinalizer(fin)
+
+    return execfn
 
 @pytest.fixture()
 def test_id(request):
+    r"""
+    Return increasing sequence of integers starting at 1
+
+    In these tests, test_id is the "id" field of messages
+    sent to and from sage_server.
+    """
     test_id.id += 1
     return test_id.id
 test_id.id = 1
@@ -308,15 +394,19 @@ def sagews(request):
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
     # start session
-    conn.send_json(message.start_session())
+    msg = message.start_session()
+    msg['type'] = 'sage'
+    conn.send_json(msg)
     print("start_session sent")
     typ, mesg = conn.recv()
     assert typ == 'json'
     pid = mesg['pid']
     print("sage_server PID = %s" % pid)
 
-    #
-    # start mock worksheet - make different layer of fixture?
-    #conn.send_json({'event':'output', 'id':id, 'done':True})
     # teardown needed - terminate session nicely
+    # use yield instead of request.addfinalizer in newer versions of pytest
+    def fin():
+        conn.send_json(message.terminate_session())
+        print("\nExiting Sage client.")
+    request.addfinalizer(fin)
     return conn
