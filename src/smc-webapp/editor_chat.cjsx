@@ -122,8 +122,6 @@ class ChatActions extends Actions
                 date: time_stamp
             is_equal: (a, b) => (a - 0) == (b - 0)
 
-        #console.log("-- History:", [{author_id: sender_id, content:mesg, date:time_stamp}] )
-
         @syncdb.save()
         @setState(last_sent: mesg)
 
@@ -149,6 +147,8 @@ class ChatActions extends Actions
             is_equal: (a, b) => (a - 0) == (b - 0)
         @syncdb.save()
 
+    # Used to edit sent messages.
+    # Inefficient. Assumes number of edits is small.
     send_edit: (message, mesg) =>
         if not @syncdb?
             # TODO: give an error or try again later?
