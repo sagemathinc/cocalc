@@ -910,9 +910,9 @@ class JupyterNotebook extends EventEmitter
 
         @element.find("a[href=#undo]").click(@undo)
         @element.find("a[href=#redo]").click(@redo)
-            @font_size_change(-1)
 
         @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
+            @font_size_change(-1)
         @font_size_incr = @element.find("a[href=\"#font-size-increase\"]").click () =>
             @font_size_change(1)
 

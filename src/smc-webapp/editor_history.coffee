@@ -238,7 +238,7 @@ class exports.HistoryEditor extends FileEditor
     show: () =>
         if not @is_active() or not @element? or not @view_doc?
             return
-        top = redux.getProjectStore(@project_id).editor_top_position()
+        top = smc.redux.getProjectStore(@project_id).editor_top_position()
         @element.css('top', top)
         if top == 0
             @element.css('position':'fixed', 'width':'100%')

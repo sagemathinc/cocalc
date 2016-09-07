@@ -1386,11 +1386,11 @@ exports.ProjectSettings = rclass ({name}) ->
         </Alert>
 
     render : ->
-        if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
+        if not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if group == 'admin'
+        if @props.group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />

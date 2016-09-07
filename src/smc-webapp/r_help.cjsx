@@ -489,7 +489,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render : ->
-        <Row>
+        <Row style={padding:"10px"}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
                     <Icon name='medkit'/><Space/><Space/>

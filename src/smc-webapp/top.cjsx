@@ -545,7 +545,9 @@ Page = rclass
                 </Nav>
             </Navbar> if not @props.fullscreen}
             {<FullscreenButton />}
-            {@render_page()}
+            <div className="container-content" style={padding:"15px"}>
+                {@render_page()}
+            </div>
         </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container"></div>')

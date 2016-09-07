@@ -218,7 +218,7 @@ ProjectPageTemp = rclass ({name}) ->
                 label : 'Settings'
                 icon : 'wrench'
                 tooltip : 'Project settings and controls'
-        <div>
+        <div style={margin:"-15px"}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<Nav bsStyle="pills" id="project-tabs" style={display: 'flex'}>
                 {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
