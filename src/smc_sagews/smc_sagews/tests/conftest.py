@@ -296,20 +296,6 @@ def recv_til_done(conn, test_id):
         pytest.fail("too many responses for message id %s"%test_id)
 
 @pytest.fixture()
-def exec_fx(request):
-    for x in dir(request):
-        #print(x)
-        pass
-    test_id = request.getfuncargvalue('test_id')
-    print("test_id %s"%test_id)
-    conn = request.getfuncargvalue('sagews')
-    print("conn %s"%conn)
-    def fin():
-        recv_til_done(conn, test_id)
-    request.addfinalizer(fin)
-    return exec_fx
-
-@pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
     This fixture allows a test to specify only two things,
