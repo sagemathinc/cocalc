@@ -1850,34 +1850,17 @@ ProjectFiles = (name) -> rclass
     request_to_join_project : ->
         @setState(is_request_to_join_project_modal_open:true)
 
-    render_request_to_join_project_modal : ->
-        <div className="request_to_join_project_modal">
-            <Modal show={@state['is_request_to_join_project_modal_open']} onHide={=>@setState(is_request_to_join_project_modal_open:false)}>
-                <Modal.Header>
-                    <Modal.Title>Request to join project</Modal.Title>
-                    <span className="lighten">
-                        Explain to the owner of this project why you would like
-                        to be a collaborator on it.
-                    </span>
-                </Modal.Header>
-
-              <Modal.Body>
-                <Input
-                    ref         = 'reason_for_requesting_to_join'
-                    type        = 'textarea'
-                    rows        = 3
-                    placeholder = {'Reason for requesting to join project'}
-                    onChange    = {=>@setState(reason_for_requesting_to_join_project:@refs.reason_for_requesting_to_join.getValue())}
-                    onKeyDown   = {@handle_keypress}
-                />
-              </Modal.Body>
-
-              <Modal.Footer>
-                <Button onClick={=>@setState(is_request_to_join_project_modal_open:false)}>Close</Button>
-                <Button bsStyle="primary" onClick={=>@send_request_to_join_project()}>Send request to join project</Button>
-              </Modal.Footer>
-
-            </Modal>
+    render_request_to_join_project_form : ->
+        <div>
+            <Input
+                ref         = 'reason_for_requesting_to_join'
+                type        = 'textarea'
+                rows        = 3
+                placeholder = {'Reason for requesting to join project'}
+                onChange    = {=>@setState(reason_for_requesting_to_join_project:@refs.reason_for_requesting_to_join.getValue())}
+                onKeyDown   = {@handle_keypress}
+            />
+            <Button bsStyle="primary" onClick={=>@send_request_to_join_project()}>Send request to join project</Button>
         </div>
 
     render_request_to_join_project_button : ->
@@ -1894,8 +1877,7 @@ ProjectFiles = (name) -> rclass
                     bsStyle = "warning"
                     error = {"You are trying to access a non-public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."}
                 />
-                {@render_request_to_join_project_button()}
-                {if @state.is_request_to_join_project_modal_open then @render_request_to_join_project_modal()}
+                {if @state.is_request_to_join_project_modal_open then @render_request_to_join_project_form() else @render_request_to_join_project_button()}
             </div>
         else
             <div>
