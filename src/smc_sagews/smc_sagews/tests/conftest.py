@@ -263,7 +263,7 @@ def get_sage_server_info(log_file = default_log_file):
             else:
                 raise ValueError('Server info not found in log_file',log_file)
     except IOError:
-        pytest.fail("Unable to open log file %s\nYou may need to open a sage worksheet"%log_file)
+        pytest.fail("Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"%log_file)
     return host, int(port)
 
 secret_token = None
