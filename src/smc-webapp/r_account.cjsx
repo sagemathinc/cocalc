@@ -1237,6 +1237,62 @@ SystemMessage = rclass
             when 'edit'
                 @render_editor()
 
+AddStripeUser = rclass
+    displayName : 'Account-AddStripeUser'
+
+    getInitialState : ->
+        email : ''
+        status: ''
+
+    status_mesg : (s) ->
+        @setState(status:@state.status + (if @state.status then '\n' else '') + s.trim())
+
+    add_stripe_user: ->
+        email = @state.email
+        if not email
+            # nothing to do -- shouldn't happen since button should be disabled.
+            return false
+
+        @status_mesg("Adding #{email}...")
+        @setState(email: '')
+        salvus_client.stripe_admin_create_customer
+            email_address : email
+            cb            : (err, mesg) =>
+                if err
+                    @status_mesg("Error: #{misc.to_json(err)}")
+                else
+                    @status_mesg("Successfully added #{email}")
+
+        return false
+
+    render_form: ->
+        <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
+            <Row>
+                <Col md=6>
+                    <Input ref='input' type='text' value={@state.email}
+                        placeholder = "Email address"
+                        onChange    = {=>e = @setState(email:@refs.input.getValue())}/>
+                </Col>
+                <Col md=6>
+                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
+                </Col>
+            </Row>
+        </form>
+
+    render_status: ->
+        if not @state.status
+            return
+        <div>
+            <pre>{@state.status}</pre>
+            <Button onClick={=>@setState(status:'')}>Clear</Button>
+        </div>
+
+    render : ->
+        <div>
+            {@render_form()}
+            {@render_status()}
+        </div>
+
 AdminSettings = rclass
     propTypes :
         groups : rtypes.array
@@ -1244,6 +1300,9 @@ AdminSettings = rclass
     render : ->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
+
+        add_stripe_label = <Tip title="Add Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add Stripe Users</Tip>
+
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Account Creation Token'>
                 <AccountCreationToken />
@@ -1257,6 +1316,11 @@ AdminSettings = rclass
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
                 <Redux redux={redux}>
                     <SystemMessage />
+                </Redux>
+            </LabeledRow>
+            <LabeledRow label={add_stripe_label} style={marginTop:'15px'}>
+                <Redux redux={redux}>
+                    <AddStripeUser />
                 </Redux>
             </LabeledRow>
         </Panel>
