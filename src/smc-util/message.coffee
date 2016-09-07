@@ -973,8 +973,9 @@ message
     id          : undefined
     email_address : undefined # one of email or account_id must be given.
     account_id  : undefined   # user who will be invoiced
-    amount      : required   # currently in US dollars
-    description : required
+    amount      : undefined   # currently in US dollars  (if amount or desc not given, then only creates customer, not invoice)
+    description : undefined
+
 
 #############
 # Support Tickets → right now going through Zendesk
