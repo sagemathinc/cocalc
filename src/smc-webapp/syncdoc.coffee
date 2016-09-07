@@ -172,20 +172,20 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @_video_chat_id = misc.uuid()
             @write_chat_message
                 "event_type" : "chat"
-                "payload"    : {content: "Video Chat Room ID is:#{@_video_chat_id}"}
+                "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}
         video_on_button = @element.find(".salvus-editor-chat-video-is-off")
         video_off_button = @element.find(".salvus-editor-chat-video-is-on")
 
         video_on_button.click () =>
             url = "https://appear.in/" + @_video_chat_id
-            video_chat_window = window.open("", null, "height=640,width=800")
+            video_chat_window = window.open("", "_blank", "location=false,height=640,width=800")
             video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-            video_chat_window.document.write('<iframe src="'+url+'" width="800" height="640" frameborder="0"></iframe>')
+            video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
             video_chat_window.document.write('</body></html>')
 
             @element.find(".salvus-editor-chat-video-is-off").hide()
             @element.find(".salvus-editor-chat-video-is-on").show()
-            $(video_chat_window).on("unload", @on_unload)
+            video_chat_window.addEventListener("unload", @on_unload)
 
         video_off_button.click () =>
             video_chat_window.close()
@@ -217,7 +217,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             for messages in @search_message_log()
                 if messages.payload?
                     is_video[0] = true
-                    is_video[1] = messages.payload.content.split(":")[1]
+                    is_video[1] = messages.payload.content.split(": ")[1]
             return is_video
         else
             return is_video

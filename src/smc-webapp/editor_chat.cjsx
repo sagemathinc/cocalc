@@ -162,7 +162,6 @@ class ChatActions extends Actions
             set :
                 history     : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
                 editing     : message.get('editing').remove(author_id).toJS()
-                video_chat  : {"is_video_chat" : false}
             where :
                 date: message.get('date')
             is_equal: (a, b) => (a - 0) == (b - 0)
@@ -172,12 +171,14 @@ class ChatActions extends Actions
         if not @syncdb?
             # TODO: give an error or try again later?
             return
+        # There has to be a better way to get the project_id
+        project_id = @redux.getStore(@name).name.substring(7,43)
         time_stamp = salvus_client.server_time()
         @syncdb.update
             set :
-                sender_id : "Unknown"
+                sender_id : project_id
                 event     : "chat"
-                history   : [{author_id: "Unknown", content:mesg, date:time_stamp}]
+                history   : [{author_id: project_id, content:mesg, date:time_stamp}]
                 video_chat  : {"is_video_chat" : true}
             where :
                 date: time_stamp
@@ -896,16 +897,18 @@ ChatRoom = ChatRoom = (name) -> rclass
         #debounces it so that the preview shows up then calls
         @scroll_to_bottom()
 
+    send_video_id: ->
+        if not @has_video_id()[0] and not @props.is_side_chat
+            @_video_chat_id = misc.uuid()
+            @props.actions.send_video_chat("Video Chat Room ID is: #{@_video_chat_id}")
+
     componentWillMount: ->
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        @send_video_id = underscore.debounce(@send_video_id, 10)
 
     componentDidMount: ->
-        # This currently creates a video chat message with an ID. doesn't work well though
-        if not @has_video_id()[0] and not @props.is_side_chat
-            @_video_chat_id = misc.uuid()
-            @props.actions.send_video_chat("Video Chat Room ID is:#{@_video_chat_id}")
         @scroll_to_position()
         if @props.is_preview
             if @is_at_bottom()
@@ -918,6 +921,7 @@ ChatRoom = ChatRoom = (name) -> rclass
             @_use_saved_position = false
 
     componentDidUpdate: ->
+        @send_video_id()
         if not @_use_saved_position
             @scroll_to_bottom()
 
@@ -929,9 +933,9 @@ ChatRoom = ChatRoom = (name) -> rclass
         url = "https://appear.in/" + @_video_chat_id
         @video_chat_window = window.open("", null, "height=640,width=800")
         @video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-        @video_chat_window.document.write('<iframe src="'+url+'" width="800" height="640" frameborder="0"></iframe>')
+        @video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
         @video_chat_window.document.write('</body></html>')
-        $(@video_chat_window).on("unload", @on_unload)
+        @video_chat_window.addEventListener("unload", @on_unload)
 
     close_video_chat: ->
         @props.actions.set_is_video_chat(false)
@@ -944,7 +948,7 @@ ChatRoom = ChatRoom = (name) -> rclass
             for key, value of messages.toJS()
                 if value.video_chat.is_video_chat
                     video_chat[0] = true
-                    video_chat[1] = value.history[0].content.split(":")[1]
+                    video_chat[1] = value.history[0].content.split(": ")[1]
         return video_chat
 
     on_unload: ->
@@ -1072,9 +1076,16 @@ ChatRoom = ChatRoom = (name) -> rclass
         mobile_chat_log_style =
             overflowY    : "auto"
             overflowX    : "hidden"
-            width        : "380%"
             maxHeight    : "60vh"
             height       : "100%"
+            margin       : "0px 0px 0px 13px"
+            padding      : "0"
+
+        side_chat_log_style =
+            overflowY    : "auto"
+            overflowX    : "hidden"
+            width        : "380%"
+            height       : "65vh"
             margin       : "0px 0px 0px 13px"
             padding      : "0"
 
@@ -1082,7 +1093,7 @@ ChatRoom = ChatRoom = (name) -> rclass
             <div>
                 <Row>
                     <Col md={3} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Panel style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}

@@ -1619,7 +1619,7 @@ ProjectFilesNew = rclass
     getDefaultProps : ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon : ->
         <span><Icon name='plus-circle' /> Create</span>
