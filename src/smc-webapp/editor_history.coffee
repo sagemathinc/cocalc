@@ -18,7 +18,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        ## window.h = @  # DEBUGGING
+        window.h = @  # DEBUGGING
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -51,8 +51,10 @@ class exports.HistoryEditor extends FileEditor
             @render_slider()
             @render_diff_slider()
             @syncstring.on 'change', =>
-                @resize_slider()
-                @resize_diff_slider()
+                if @_diff_mode
+                    @resize_diff_slider()
+                else
+                    @resize_slider()
             if @syncstring.has_full_history()
                 @load_all.hide()
             else
@@ -80,7 +82,7 @@ class exports.HistoryEditor extends FileEditor
             @element.find(".salvus-editor-history-no-viewer").show()
             @top_elt = @element.find(".salvus-editor-history-no-viewer")
         else
-            @top_elt = @element.find(".salvus-editor-history-slider")
+            @top_elt = @element.find(".salvus-editor-history-sliders")
 
         @element.find(".salvus-editor-history-history_editor").append(@view_doc.element)
 
@@ -121,13 +123,19 @@ class exports.HistoryEditor extends FileEditor
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
                 return false
-            @set_doc(@goto_revision(@revision_num + 1))
+            if @_diff_mode
+                @set_doc_diff(@goto_diff(@revision_num1+1, @revision_num+1)...)
+            else
+                @set_doc(@goto_revision(@revision_num + 1))
             return false
 
         @back_button.click () =>
             if @back_button.hasClass("disabled")
                 return false
-            @set_doc(@goto_revision(@revision_num - 1))
+            if @_diff_mode
+                @set_doc_diff(@goto_diff(@revision_num1-1, @revision_num-1)...)
+            else
+                @set_doc(@goto_revision(@revision_num - 1))
             return false
 
         open_file = () =>
@@ -163,15 +171,17 @@ class exports.HistoryEditor extends FileEditor
         if enabled
             @element.find("a[href=#hide-diff]").show()
             @element.find("a[href=#show-diff]").hide()
+            @element.find(".salvus-editor-history-diff-mode").show()
             @diff_slider.show()
             @slider.hide()
         else
             @element.find("a[href=#hide-diff]").hide()
             @element.find("a[href=#show-diff]").show()
+            @element.find(".salvus-editor-history-diff-mode").hide()
             @diff_slider.hide()
             @slider.show()
 
-    set_doc: (time) ->
+    set_doc: (time) =>
         if not time?
             return
         val = @syncstring.version(time)
@@ -184,7 +194,71 @@ class exports.HistoryEditor extends FileEditor
                 @view_doc.codemirror.setValueNoJump(val)
         @process_view()
 
-    goto_revision: (num) ->
+    set_doc_diff: (time0, time1) =>
+        # Set the doc to show a diff from time0 to time1
+        console.log('set_doc_diff', time0, time1)
+        v0 = @syncstring.version(time0)
+        v1 = @syncstring.version(time1)
+        {patches, to_line} = line_diff(v0, v1)
+        console.log "#{misc.to_json(patches)}"
+        # [{"diffs":[[-1,"BC"],[1,"DCCCBCCECCFCGHCCICJ"]],"start1":0,"start2":0,"length1":2,"length2":19}]
+        lines = []
+        type  = []
+        line_numbers = []
+        seen_context = {}
+        last_x = undefined
+        len_diff = 0
+        for x in patches
+            n1 = x.start1; n2 = x.start2
+            n1 += len_diff
+            len_diff += x.length1 - x.length2
+            for z in x.diffs
+                for c in z[1]
+                    if z[0] == -1
+                        n1 += 1
+                        line_numbers.push([n1, ''])
+                    else if z[0] == 1
+                        n2 += 1
+                        line_numbers.push(['', n2])
+                    else
+                        n1 += 1; n2 += 1
+                        key = "#{n1}-#{n2}"
+                        line_numbers.push([n1, n2])
+                        if seen_context[key]
+                            # don't show the same line twice in context, since that's confusing to readers
+                            continue
+                        seen_context[key] = true
+                    lines.push(to_line[c])
+                    type.push(z[0])
+
+        s = lines.join('\n')
+        line_number = (i, k) ->
+            return $("<span class='smc-history-diff-number'>#{line_numbers[i][k]}</span>")[0]
+        for cm in @view_doc.codemirrors()
+            cm.setValueNoJump(s)
+            cm.setOption('lineNumbers', false)
+            cm.setOption('gutters', ['smc-history-diff-gutter1', 'smc-history-diff-gutter2'])
+            # highlight the lines based on type
+            for i in [0...type.length]
+                if type[i] == -1
+                    for t in ['wrap', 'gutter']
+                        cm.addLineClass(i, t,    "smc-history-diff-#{t}-delete")
+                        cm.removeLineClass(i, t, "smc-history-diff-#{t}-insert")
+                    cm.setGutterMarker(i, 'smc-history-diff-gutter1', line_number(i,0))
+                else if type[i] == +1
+                    for t in ['wrap', 'gutter']
+                        cm.addLineClass(i, t,    "smc-history-diff-#{t}-insert")
+                        cm.removeLineClass(i, t, "smc-history-diff-#{t}-delete")
+                    cm.setGutterMarker(i, 'smc-history-diff-gutter2', line_number(i,1))
+                else
+                    for t in ['wrap', 'gutter']
+                        cm.removeLineClass(i, t)
+                        cm.removeLineClass(i, t)
+                    cm.setGutterMarker(i, 'smc-history-diff-gutter1', line_number(i,0))
+                    cm.setGutterMarker(i, 'smc-history-diff-gutter2', line_number(i,1))
+        @process_view()
+
+    goto_revision: (num) =>
         if not num?
             num = @revision_num
         if not num?
@@ -202,7 +276,6 @@ class exports.HistoryEditor extends FileEditor
             return
         @slider.slider("option", "value", @revision_num)
         @update_buttons()
-        #@element.find(".salvus-editor-history-revision-time").text(time.toLocaleString())
         t = time.toLocaleString()
         @element.find(".salvus-editor-history-revision-time").text($.timeago(t)).attr('title', t)
         @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
@@ -215,12 +288,59 @@ class exports.HistoryEditor extends FileEditor
                 name = "Project: #{name}"
         if name?
             username = ", #{misc.trunc_middle(name,35)}"
+
         else
             username = ''  # don't know user or maybe no recorded user (e.g., initial version)
         if time_sent?
             username += "  (OFFLINE WARNING: sent #{$.timeago(time_sent)}) "
         @element.find(".salvus-editor-history-revision-user").text(username)
         return time
+
+    goto_diff: (num1, num2) =>
+        if not num2?
+            num2 = @revision_num
+        if not num2?
+            return
+        if not num1?
+            num1 = @revision_num1 ? Math.max(0, num2 - 10)
+        versions = @syncstring.all_versions()
+        if not versions?
+            # not yet initialized
+            return
+        time1 = versions[num1]
+        if not time1?
+            num1  = 0
+            time1 = versions[num1]
+        time2 = versions[num2]
+        if not time2?
+            num2  = @length - 1
+            time2 = versions[num2]
+        @revision_num1 = num1
+        @revision_num = num2
+        if not time1? or not time2?
+            return
+        @diff_slider.slider("option", "values", [num1, num2])
+        @update_buttons()
+        t1 = time1.toLocaleString()
+        @element.find(".salvus-editor-history-revision-time").text($.timeago(t1)).attr('title', t1)
+        t2 = time2.toLocaleString()
+        @element.find(".salvus-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
+        @element.find(".salvus-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
+        account_id = @syncstring.account_id(time2)
+        time_sent  = @syncstring.time_sent(time2)
+        name = smc.redux.getStore('users')?.get_name(account_id)
+        if not name?
+            name = smc.redux.getStore('projects')?.get_title(account_id)
+            if name?
+                name = "Project: #{name}"
+        if name?
+            username = ", #{misc.trunc_middle(name,35)}"
+        else
+            username = ''  # don't know user or maybe no recorded user (e.g., initial version)
+        if time_sent?
+            username += "  (OFFLINE WARNING: sent #{$.timeago(time_sent)}) "
+        @element.find(".salvus-editor-history-revision-user").text(username)
+        return [time1, time2]
 
     update_buttons: =>
         if @revision_num == 0         then @back_button.addClass("disabled")    else @back_button.removeClass("disabled")
@@ -258,15 +378,17 @@ class exports.HistoryEditor extends FileEditor
     render_diff_slider: =>
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
+        # debounce actually setting the document content just a little
+        set_doc = underscore.debounce(((time)=>if time? then @set_doc_diff(time[0], time[1])), 150)
         @diff_slider.slider
             animate : false
             min     : 0
             max     : @length - 1
             step    : 1
-            values  : [0, @revision_num]
+            values  : [Math.max(@revision_num - 10, 0), @revision_num]
             range   : true
             slide  : (event, ui) => # TODO: debounce this
-                console.log(ui.values)
+                set_doc(@goto_diff(ui.values[0], ui.values[1]))
 
     resize_diff_slider: =>
         new_len = @syncstring.all_versions().length
@@ -275,7 +397,7 @@ class exports.HistoryEditor extends FileEditor
         @length = new_len
         @diff_slider.slider
             max : @length - 1
-        #@goto_revision() # TODO
+        @goto_diff()
 
     process_view: () =>
         if @ext == 'sagews'
@@ -300,8 +422,10 @@ class exports.HistoryEditor extends FileEditor
             if err
                 cb?(err)
             else
-                @resize_slider()
-                @resize_diff_slider()
+                if @_diff_mode
+                    @resize_diff_slider()
+                else
+                    @resize_slider()
                 if @revision_num?
                     num_added = @syncstring.all_versions().length - n
                     @goto_revision(@revision_num + num_added)
@@ -313,6 +437,6 @@ class exports.HistoryEditor extends FileEditor
 line_diff = (v0, v1) ->
     string_mapping = new misc.StringCharMapping()
     result =
-        patch   : dmp.patch_make(string_mapping.to_string(v0.split('\n')), string_mapping.to_string(v1.split('\n')))
-        to_line : (x) -> string_mapping._to_string[x]
+        patches : dmp.patch_make(string_mapping.to_string(v0.split('\n')), string_mapping.to_string(v1.split('\n')))
+        to_line : string_mapping._to_string
     return result
