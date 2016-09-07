@@ -2151,24 +2151,29 @@ class Client extends EventEmitter
                         customer_id : customer_id
                         cb          : cb
             (cb) =>
-                dbg("now create the invoice item")
-                stripe.invoiceItems.create
-                    customer    : customer_id
-                    amount      : mesg.amount*100
-                    currency    : "usd"
-                    description : mesg.description
-                ,
-                    (err, invoice_item) =>
-                        if err
-                            cb(err)
-                        else
-                            cb()
+                if not (mesg.amount? and mesg.description?)
+                    dbg("no amount or description -- not creating an invoice")
+                    cb()
+                else
+                    dbg("now create the invoice item")
+                    stripe.invoiceItems.create
+                        customer    : customer_id
+                        amount      : mesg.amount*100
+                        currency    : "usd"
+                        description : mesg.description
+                    ,
+                        (err, invoice_item) =>
+                            if err
+                                cb(err)
+                            else
+                                cb()
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @success_to_client(id:mesg.id)
         )
+
 
 ##############################
 # File use tracking
