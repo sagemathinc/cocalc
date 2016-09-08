@@ -261,13 +261,11 @@ class exports.Client extends EventEmitter
             dbg()
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
             socket.on 'end', =>
-                if not x.callbacks?
-                    # end was already triggered
-                    return
                 dbg("end")
-                for id, cb of x.callbacks
-                    cb?('socket closed')
-                delete x.callbacks  # so additional trigger of end doesn't do anything
+                if x.callbacks?
+                    for id, cb of x.callbacks
+                        cb?('socket closed')
+                    delete x.callbacks  # so additional trigger of end doesn't do anything
                 delete @_hub_client_sockets[socket.id]
                 dbg("number of active sockets now equals #{misc.len(@_hub_client_sockets)}")
                 if misc.len(@_hub_client_sockets) == 0
@@ -348,7 +346,6 @@ class exports.Client extends EventEmitter
                     opts.cb?(if resp.error then resp.error else 'error')
                 else
                     opts.cb?(undefined, resp)
-                delete opts.cb
             @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
         # Finally, send the message
         socket.write_mesg('json', opts.message)
