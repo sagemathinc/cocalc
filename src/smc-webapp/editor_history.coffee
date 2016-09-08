@@ -205,11 +205,10 @@ class exports.HistoryEditor extends FileEditor
 
     set_doc_diff: (time0, time1) =>
         # Set the doc to show a diff from time0 to time1
-        console.log('set_doc_diff', time0, time1)
         v0 = @syncstring.version(time0)
         v1 = @syncstring.version(time1)
         {patches, to_line} = line_diff(v0, v1)
-        console.log "#{misc.to_json(patches)}"
+        #console.log "#{misc.to_json(patches)}"
         # [{"diffs":[[-1,"BC"],[1,"DCCCBCCECCFCGHCCICJ"]],"start1":0,"start2":0,"length1":2,"length2":19}]
         lines = []
         type  = []
@@ -270,6 +269,27 @@ class exports.HistoryEditor extends FileEditor
             for i in chunk_boundaries
                 cm.addLineClass(i, 'wrap', 'smc-history-diff-wrap-divide')
 
+        # Set the list of names of users
+        account_ids = {}
+        for t in @syncstring.versions()
+            if t > time0 and t <= time1
+                account_ids[@syncstring.account_id(t)] = true
+
+        usernames = []
+        for account_id,_ of account_ids
+            if account_id == @editor.project_id
+                name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
+            else
+                name = smc.redux.getStore('users')?.get_name(account_id)
+            if name?
+                usernames.push(misc.trunc_middle(name,25).trim())
+        if usernames.length > 0
+            usernames.sort((a,b)->misc.cmp(a.toLowerCase(), b.toLowerCase()))
+            username = usernames.join(', ')
+        else
+            username = ''
+        @element.find(".salvus-editor-history-revision-user").text(username)
+
         @process_view()
 
     goto_revision: (num) =>
@@ -295,13 +315,12 @@ class exports.HistoryEditor extends FileEditor
         @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
-        name = smc.redux.getStore('users')?.get_name(account_id)
-        if not name?
-            name = smc.redux.getStore('projects')?.get_title(account_id)
-            if name?
-                name = "Project: #{name}"
+        if account_id == @editor.project_id
+            name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
+        else
+            name = smc.redux.getStore('users')?.get_name(account_id)
         if name?
-            username = ", #{misc.trunc_middle(name,35)}"
+            username = misc.trunc_middle(name, 50)
 
         else
             username = ''  # don't know user or maybe no recorded user (e.g., initial version)
@@ -340,20 +359,6 @@ class exports.HistoryEditor extends FileEditor
         t2 = time2.toLocaleString()
         @element.find(".salvus-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
         @element.find(".salvus-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
-        account_id = @syncstring.account_id(time2)
-        time_sent  = @syncstring.time_sent(time2)
-        name = smc.redux.getStore('users')?.get_name(account_id)
-        if not name?
-            name = smc.redux.getStore('projects')?.get_title(account_id)
-            if name?
-                name = "Project: #{name}"
-        if name?
-            username = ", #{misc.trunc_middle(name,35)}"
-        else
-            username = ''  # don't know user or maybe no recorded user (e.g., initial version)
-        if time_sent?
-            username += "  (OFFLINE WARNING: sent #{$.timeago(time_sent)}) "
-        @element.find(".salvus-editor-history-revision-user").text(username)
         return [time1, time2]
 
     update_buttons: =>
