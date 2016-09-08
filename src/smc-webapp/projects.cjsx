@@ -39,7 +39,7 @@ markdown = require('./markdown')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
-
+{UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 MAX_DEFAULT_PROJECTS = 50
@@ -220,6 +220,9 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
     invite_collaborator : (project_id, account_id) =>
+        @redux.getProjectActions(project_id).log
+            event    : 'invite_user'
+            invitee_account_id : account_id
         salvus_client.project_invite_collaborator
             project_id : project_id
             account_id : account_id
@@ -228,6 +231,9 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
+        @redux.getProjectActions(project_id).log
+            event    : 'invite_nonuser'
+            invitee_email : to
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()
@@ -1257,6 +1263,17 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
+    clear_and_focus_input : ->
+        redux.getActions('projects').setState(search: '')
+        @refs.projects_search.getInputDOMNode().focus()
+
+    render_span : (query) ->
+        <span>whose title, description or users contain <strong>{query}</strong>
+        <Space/><Space/>
+        <Button onClick={@clear_and_focus_input}>
+            Cancel
+        </Button></span>
+
     render_alert_message : ->
         query = @props.search.toLowerCase()
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
@@ -1264,11 +1281,11 @@ ProjectsListingDescription = rclass
         query += hashtags_string
 
         if query isnt '' or @props.deleted or @props.hidden
-            <Alert bsStyle='warning'>
+            <Alert bsStyle='warning' style={'fontSize':'1.3em'}>
                 Only showing<Space/>
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
-                {if query isnt '' then <span>whose title, description or users contain <strong>{query}</strong></span>}
+                {if query isnt '' then @render_span(query)}
             </Alert>
 
     render : ->
@@ -1623,12 +1640,15 @@ ProjectSelector = rclass
                     <Col sm=4>
                         {@render_projects_title()}
                     </Col>
-                    <Col sm=8>
+                    <Col sm=4>
                         <ProjectsFilterButtons
                             hidden  = {@props.hidden}
                             deleted = {@props.deleted}
                             show_hidden_button = {@has_hidden_projects() or @props.hidden}
                             show_deleted_button = {@has_deleted_projects() or @props.deleted} />
+                    </Col>
+                    <Col sm=4>
+                        <UsersViewing redux={@props.redux} viewing_what='projects' />
                     </Col>
                 </Row>
                 <Row>
