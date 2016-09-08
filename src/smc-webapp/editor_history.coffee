@@ -174,12 +174,19 @@ class exports.HistoryEditor extends FileEditor
             @element.find(".salvus-editor-history-diff-mode").show()
             @diff_slider.show()
             @slider.hide()
+            @set_doc_diff(@goto_diff()...)
         else
+            for cm in @view_doc.codemirrors()
+                cm.setOption('lineNumbers', true)
+                cm.setOption('gutters', [])
+                cm.setValue('')
+                cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
             @element.find("a[href=#hide-diff]").hide()
             @element.find("a[href=#show-diff]").show()
             @element.find(".salvus-editor-history-diff-mode").hide()
             @diff_slider.hide()
             @slider.show()
+            @set_doc(@goto_revision())
 
     set_doc: (time) =>
         if not time?
@@ -302,7 +309,7 @@ class exports.HistoryEditor extends FileEditor
         if not num2?
             return
         if not num1?
-            num1 = @revision_num1 ? Math.max(0, num2 - 10)
+            num1 = @revision_num1 ? Math.max(0, Math.floor(num2/2))
         versions = @syncstring.all_versions()
         if not versions?
             # not yet initialized
@@ -385,7 +392,7 @@ class exports.HistoryEditor extends FileEditor
             min     : 0
             max     : @length - 1
             step    : 1
-            values  : [Math.max(@revision_num - 10, 0), @revision_num]
+            values  : [Math.max(Math.floor(@revision_num/2), 0), @revision_num]
             range   : true
             slide  : (event, ui) => # TODO: debounce this
                 set_doc(@goto_diff(ui.values[0], ui.values[1]))
