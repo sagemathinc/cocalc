@@ -9,14 +9,16 @@
     copy: src="files/prometheus_compute.py"
           dest="~/bin/prometheus_compute.py"
           owner=salvus group=salvus mode=700
+    register: copyfile
 
   - name: "install prometheus compute control file"
     copy: src="files/prometheus_compute.sh"
           dest="~/bin/prometheus_compute.sh"
           owner=salvus group=salvus mode=700
 
-# not sure how to start or restart, but this works:
-# ansible compute -m shell -a '/home/salvus/bin/prometheus_compute.sh restart' -become -become-user=salvus
+  - name: "restart daemon if necessary"
+    shell: "/home/salvus/bin/prometheus_compute.sh restart"
+    when: copyfile.changed
 
   - name: "crontab @reboot entry for prometheus_compute"
     cron: special_time=reboot
