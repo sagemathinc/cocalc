@@ -14,7 +14,7 @@ project page react component
 project_file = require('./project_file')
 {file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
-{NavItem, Nav, Alert} = require('react-bootstrap')
+{NavItem, Nav, Alert, Col, Row} = require('react-bootstrap')
 {Icon, Tip} = require('./r_misc')
 misc = require('misc')
 
@@ -22,14 +22,14 @@ ProjectTab = rclass
     displayName : 'ProjectTab'
 
     propTypes :
-        name : rtypes.string
-        label : rtypes.string
-        icon : rtypes.string
-        project_id : rtypes.string
-        tooltip : rtypes.string
+        name               : rtypes.string    # key
+        label              : rtypes.string    # rendered tab title
+        icon               : rtypes.string    # Affiliated icon
+        project_id         : rtypes.string
+        tooltip            : rtypes.string
         active_project_tab : rtypes.string
-        file_tab : rtypes.bool
-        open_files_order : rtypes.object
+        file_tab           : rtypes.bool      # Whether or not this tab holds a file
+        open_files_order   : rtypes.object
 
     close_file : (e, path) ->
         e.stopPropagation()
@@ -54,21 +54,33 @@ ProjectTab = rclass
             styles.width = 250
         else
             styles.flex = 'none'
+
         filename_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
+            textOverflow: 'ellipsis'
+
         <NavItem
             style={styles}
             key={@props.name}
             active={@props.name == @props.active_project_tab}
-            onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}>
-            {<Icon
-                name = 'times'
-                className = 'pull-right'
-                onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))} /> if @props.file_tab}
-            <Tip title={@props.tooltip} placement='bottom' size='small' style={filename_styles}>
-                <Icon style={fontSize: if @props.file_tab then '10pt' else 20} name={@props.icon} /> {@props.label}
-            </Tip>
+            onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
+        >
+            {# Truncated file name}
+            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+            <div style={width:'100%', lineHeight:'1.75em', marginBottom:'-6px'}> {# -6px for not being able to access underlying <a> tag}
+                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
+                    {<Icon
+                        name = 'times'
+                        onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
+                    /> if @props.file_tab}
+                </div>
+                <div style={filename_styles}>
+                    <Tip title={@props.tooltip} placement='bottom' size='small'>
+                        <Icon style={fontSize: if @props.file_tab then '10pt' else '15pt'} name={@props.icon} /> {@props.label}
+                    </Tip>
+                </div>
+            </div>
         </NavItem>
 
 FreeProjectWarning = rclass ({name}) ->
@@ -171,7 +183,8 @@ ProjectPageTemp = rclass ({name}) ->
             project_id={@props.project_id}
             file_tab={true}
             active_project_tab={@props.active_project_tab}
-            open_files_order={@props.open_files_order} />
+            open_files_order={@props.open_files_order}
+        />
 
     render_page : ->
         active = @props.active_project_tab
@@ -225,7 +238,7 @@ ProjectPageTemp = rclass ({name}) ->
                 {@file_tabs()}
             </Nav> if not @props.fullscreen}
             <div className="container-content">
-                {# Children must define their own padding}
+                {# Children must define their own padding from navbar and screen borders}
                 {@render_page()}
             </div>
         </div>
