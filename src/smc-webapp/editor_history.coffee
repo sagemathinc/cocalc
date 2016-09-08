@@ -213,6 +213,7 @@ class exports.HistoryEditor extends FileEditor
         type  = []
         line_numbers = []
         seen_context = {}
+        chunk_boundaries = []
         last_x = undefined
         len_diff = 0
         for x in patches
@@ -230,13 +231,14 @@ class exports.HistoryEditor extends FileEditor
                     else
                         n1 += 1; n2 += 1
                         key = "#{n1}-#{n2}"
-                        line_numbers.push([n1, n2])
                         if seen_context[key]
                             # don't show the same line twice in context, since that's confusing to readers
                             continue
+                        line_numbers.push([n1, n2])
                         seen_context[key] = true
                     lines.push(to_line[c])
                     type.push(z[0])
+            chunk_boundaries.push(lines.length-1)
 
         s = lines.join('\n')
         line_number = (i, k) ->
@@ -263,6 +265,9 @@ class exports.HistoryEditor extends FileEditor
                         cm.removeLineClass(i, t)
                     cm.setGutterMarker(i, 'smc-history-diff-gutter1', line_number(i,0))
                     cm.setGutterMarker(i, 'smc-history-diff-gutter2', line_number(i,1))
+            for i in chunk_boundaries
+                cm.addLineClass(i, 'wrap', 'smc-history-diff-wrap-divide')
+
         @process_view()
 
     goto_revision: (num) =>
