@@ -73,8 +73,10 @@ class exports.HistoryEditor extends FileEditor
         switch @ext
             when 'ipynb'
                 @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
+                @element.find("a[href=#show-diff]").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
+                @element.find("a[href=#show-diff]").hide()
             else
                 @view_doc = codemirror_session_editor(@editor, @filename, opts)
 
