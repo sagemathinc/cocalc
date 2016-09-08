@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-DIR=/home/salvus/bin/
+DIR=/root/
 DAEMON=$DIR/prometheus_compute.py
 DAEMON_NAME=prometheus_compute
 PIDFILE=$DIR/$DAEMON_NAME.pid
-DAEMON_USER=salvus
+DAEMON_USER=root
 
 . /lib/lsb/init-functions
 
 do_start () {
     log_daemon_msg "Starting system $DAEMON_NAME daemon"
-    start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON -- $DAEMON_OPTS
+    sudo -H -u $DAEMON_USER sh -c "start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON -- $DAEMON_OPTS"
     log_end_msg $?
 }
 do_stop () {
     log_daemon_msg "Stopping system $DAEMON_NAME daemon"
-    start-stop-daemon --stop --pidfile $PIDFILE --retry 10
+    sudo -H -u $DAEMON_USER sh -c "start-stop-daemon --stop --pidfile $PIDFILE --retry 10"
     log_end_msg $?
 }
 
