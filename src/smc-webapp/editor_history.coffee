@@ -395,7 +395,11 @@ class exports.HistoryEditor extends FileEditor
             values  : [Math.max(Math.floor(@revision_num/2), 0), @revision_num]
             range   : true
             slide  : (event, ui) => # TODO: debounce this
-                set_doc(@goto_diff(ui.values[0], ui.values[1]))
+                if ui.values[0] >= ui.values[1]
+                    ui.values[0] = Math.max(0, ui.values[1] - 1)
+                    setTimeout((()=>@diff_slider.slider(values : ui.values)), 200)
+                else
+                    set_doc(@goto_diff(ui.values[0], ui.values[1]))
 
     resize_diff_slider: =>
         new_len = @syncstring.all_versions().length
