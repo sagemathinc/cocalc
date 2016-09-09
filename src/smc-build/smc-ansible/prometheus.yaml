@@ -1,0 +1,28 @@
+---
+- hosts: compute
+  become: yes
+  strategy: free
+  gather_facts: no
+
+  tasks:
+  - name: "install prometheus compute python file"
+    copy: src="files/prometheus_compute.py"
+          dest="/root/prometheus_compute.py"
+          owner=root group=root mode=700
+    register: copyfile
+
+  - name: "install prometheus compute control file"
+    copy: src="files/prometheus_compute.sh"
+          dest="/root/prometheus_compute.sh"
+          owner=root group=root mode=700
+
+  - name: "restart daemon if necessary"
+    shell: "/root/prometheus_compute.sh restart"
+    when: copyfile.changed
+
+  - name: "crontab @reboot entry for prometheus_compute"
+    cron: special_time=reboot
+          job="/root/prometheus_compute.sh start" 
+          name="prometheus_compute monitoring"
+          user=root
+

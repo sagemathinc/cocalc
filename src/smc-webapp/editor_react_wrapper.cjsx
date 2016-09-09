@@ -53,7 +53,7 @@ editors = {}
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
-        f    : required   # a *function* f(editor, filename, extra_opts) that returns instance of editor.FileEditor
+        f    : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor
         ext  : required   # string or list of strings
         icon : undefined
 

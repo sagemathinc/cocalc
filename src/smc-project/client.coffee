@@ -262,8 +262,10 @@ class exports.Client extends EventEmitter
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
             socket.on 'end', =>
                 dbg("end")
-                for id, cb of x.callbacks
-                    cb?('socket closed')
+                if x.callbacks?
+                    for id, cb of x.callbacks
+                        cb?('socket closed')
+                    delete x.callbacks  # so additional trigger of end doesn't do anything
                 delete @_hub_client_sockets[socket.id]
                 dbg("number of active sockets now equals #{misc.len(@_hub_client_sockets)}")
                 if misc.len(@_hub_client_sockets) == 0
@@ -332,6 +334,7 @@ class exports.Client extends EventEmitter
                     dbg("failed")
                     delete @_hub_callbacks[opts.message.id]
                     opts.cb?("timeout after #{opts.timeout}s")
+                    delete opts.cb
                 timer = setTimeout(fail, opts.timeout*1000)
             opts.message.id ?= misc.uuid()
             cb = @_hub_callbacks[opts.message.id] = (resp) =>
