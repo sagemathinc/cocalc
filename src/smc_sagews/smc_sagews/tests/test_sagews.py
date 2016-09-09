@@ -43,3 +43,4 @@ def test_issue819(exec2):
     """)
     output = "22\n"
     exec2(code, output)
+
