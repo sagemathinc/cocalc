@@ -1400,7 +1400,7 @@ exports.ProjectSettings = rclass ({name}) ->
         if not project?
             return <Loading />
         else
-            <div>
+            <div style={padding:'15px', flex:'1'}>
                 {@render_admin_message() if @state.admin_project?}
                 <ProjectSettingsBody
                     project_id   = {@props.project_id}

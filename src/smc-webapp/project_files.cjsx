@@ -1929,7 +1929,7 @@ exports.ProjectFiles = rclass ({name}) ->
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
-        <div style={minHeight:"80vh", padding:"15px"}>
+        <div style={padding:'15px', flex:'1'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
             {@render_error()}

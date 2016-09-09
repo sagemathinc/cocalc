@@ -6,12 +6,17 @@ the UI using React without having to rewrite all the editors.
 
 AUTHORS:
    - William Stein, 2016
+   - John Jeng, 2016
 ###
 
 {rclass, rtypes, ReactDOM, React} = require('./smc-react')
 {defaults, required, copy} = require('smc-util/misc')
 
-WrappedEditor = rclass
+WrappedEditor = rclass ({project_name}) ->
+    reduxProps :
+        "#{project_name}":
+            editor_top_position : rtypes.number
+
     propTypes :
         editor : rtypes.object.isRequired
 
@@ -22,12 +27,22 @@ WrappedEditor = rclass
         if span.length > 0
             span.replaceWith(@props.editor.element[0])
         @props.editor.show()
+        window.addEventListener('resize', @refresh)
 
     componentWillUnmount: ->
         console.log("componentWillUnmount")
+        window.removeEventListener('resize', @refresh)
+
+    componentDidUpdate: ->
+        console.log("componentDidUpdate")
+        @refresh()
+
+    # Refreshes the editor to resize itself
+    refresh: ->
+        @props.editor._show()
 
     render : ->
-        <div>
+        <div style={flex:'1'}>
             <span className="smc-editor-react-wrapper">Editor goes here</span>
         </div>
 
@@ -59,7 +74,7 @@ exports.register_nonreact_editor = (opts) ->
         generator : (path, redux, project_id) ->
             key = "#{project_id}-#{path}"
 
-            wrapper_generator = () -> <WrappedEditor editor={editors[key]} />
+            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name=project_name />
 
             wrapper_generator.redux_name = key
             wrapper_generator.get_editor = -> editors[key]

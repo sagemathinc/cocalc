@@ -1442,17 +1442,6 @@ class CodeMirrorEditor extends FileEditor
             layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
             @_last_layout = @_layout
 
-        # need to do this since theme may have changed
-        # @_style_active_line()
-
-        # CRAZY HACK: add and remove an HTML element to the DOM.
-        # I don't know why this works, but it gets around a *massive bug*, where after
-        # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this "usually" causes things to get properly fixed.  I don't know why.
-        hack = $("<div><br><br><br><br></div>")
-        $("body").append(hack)
-        setTimeout((()=>hack.remove()), 10000)
-
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':height)
@@ -1516,6 +1505,7 @@ class CodeMirrorEditor extends FileEditor
 
         # position the editor element on the screen
         @element.css(top:top, left:0)
+        @element.css(left:0)
         # and position the chat column
         @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
 
@@ -2856,7 +2846,7 @@ class StaticHTML extends FileEditor
             @iframe.contents().find('body')[0].innerHTML = @content
             @iframe.contents().find('body').find("a").attr('target','_blank')
         @element.show()
-        @element.css(top: redux.getProjectStore(@project_id).editor_top_position())
+        #  redux.getProjectStore(@project_id).editor_top_position())
         @element.maxheight(offset:18)
         @iframe.maxheight()
 

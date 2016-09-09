@@ -521,15 +521,23 @@ Page = rclass
             when undefined
                 return
             else
-                return <ProjectPage project_id={@props.active_top_tab} />
+                project_name = redux.getProjectStore(@props.active_top_tab).name
+                <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
     render : ->
-        <div>
+        style =
+            display:'flex'
+            flexDirection:'column'
+            height:'100vh'
+            width:'100vw'
+            overflow:'auto'
+
+        <div style={style}>
             {<SupportRedux /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0}>
+            {<Navbar style={marginBottom: 0, overflowY:'hidden'}>
                 <Nav pullRight>
                     <NavTab name='account' label={@account_name()} icon='cog' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
                     <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
@@ -544,13 +552,13 @@ Page = rclass
                     {@project_tabs()}
                 </Nav>
             </Navbar> if not @props.fullscreen}
-            {<FullscreenButton />}
-            <div className="container-content" style={padding:"15px"}>
-                {@render_page()}
-            </div>
+            <FullscreenButton />
+            {# Children must define their own padding from navbar and screen borders}
+            {# Note that the parent is a flex container}
+            {@render_page()}
         </div>
 
-$('body').css('padding-top':0).append('<div class="page-container smc-react-container"></div>')
+$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')
 page = <Redux redux={redux}>
     <Page redux={redux} page_actions={redux.getActions('page')} notification_count=1 />
 </Redux>

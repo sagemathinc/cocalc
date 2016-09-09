@@ -1627,71 +1627,71 @@ ProjectSelector = rclass
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
 
         visible_projects = @visible_projects()
-        <div>
-        <Grid fluid className='constrained' style={minHeight:"75vh"}>
-            <Well style={marginTop:'1em',overflow:'hidden'}>
-                <Row>
-                    <Col sm=4>
-                        {@render_projects_title()}
-                    </Col>
-                    <Col sm=4>
-                        <ProjectsFilterButtons
-                            hidden  = {@props.hidden}
-                            deleted = {@props.deleted}
-                            show_hidden_button = {@has_hidden_projects() or @props.hidden}
-                            show_deleted_button = {@has_deleted_projects() or @props.deleted} />
-                    </Col>
-                    <Col sm=4>
-                        <UsersViewing redux={@props.redux} viewing_what='projects' />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=4>
-                        <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
-                    </Col>
-                    <Col sm=8>
-                        <HashtagGroup
-                            hashtags          = {@hashtags()}
-                            selected_hashtags = {@props.selected_hashtags[@filter()]}
-                            toggle_hashtag    = {@toggle_hashtag} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12 style={marginTop:'1ex'}>
-                        <NewProjectCreator
-                            nb_projects = {@project_list().length}
-                            customer    = {@props.customer}
-                            upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
-                            upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                            actions                              = {redux.getActions('projects')} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12>
-                        <ProjectsListingDescription
-                            nb_projects           = {@project_list().length}
-                            nb_projects_visible   = {visible_projects.length}
-                            hidden                = {@props.hidden}
-                            deleted               = {@props.deleted}
-                            search                = {@props.search}
-                            selected_hashtags     = {@props.selected_hashtags[@filter()]}
-                            on_cancel             = {@clear_filters_and_focus_search_input}
-                        />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12>
-                        <ProjectList
-                            projects    = {visible_projects}
-                            show_all    = {@props.show_all}
-                            user_map    = {@props.user_map}
-                            redux       = {@props.redux} />
-                    </Col>
-                </Row>
-            </Well>
-        </Grid>
-        <Footer/>
+        <div className='container-content'>
+            <Grid fluid className='constrained' style={minHeight:"75vh"}>
+                <Well style={marginTop:'1em',overflow:'hidden'}>
+                    <Row>
+                        <Col sm=4>
+                            {@render_projects_title()}
+                        </Col>
+                        <Col sm=4>
+                            <ProjectsFilterButtons
+                                hidden  = {@props.hidden}
+                                deleted = {@props.deleted}
+                                show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                                show_deleted_button = {@has_deleted_projects() or @props.deleted} />
+                        </Col>
+                        <Col sm=4>
+                            <UsersViewing redux={@props.redux} viewing_what='projects' />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=4>
+                            <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                        </Col>
+                        <Col sm=8>
+                            <HashtagGroup
+                                hashtags          = {@hashtags()}
+                                selected_hashtags = {@props.selected_hashtags[@filter()]}
+                                toggle_hashtag    = {@toggle_hashtag} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12 style={marginTop:'1ex'}>
+                            <NewProjectCreator
+                                nb_projects = {@project_list().length}
+                                customer    = {@props.customer}
+                                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
+                                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+                                actions                              = {redux.getActions('projects')} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12>
+                            <ProjectsListingDescription
+                                nb_projects           = {@project_list().length}
+                                nb_projects_visible   = {visible_projects.length}
+                                hidden                = {@props.hidden}
+                                deleted               = {@props.deleted}
+                                search                = {@props.search}
+                                selected_hashtags     = {@props.selected_hashtags[@filter()]}
+                                on_cancel             = {@clear_filters_and_focus_search_input}
+                            />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12>
+                            <ProjectList
+                                projects    = {visible_projects}
+                                show_all    = {@props.show_all}
+                                user_map    = {@props.user_map}
+                                redux       = {@props.redux} />
+                        </Col>
+                    </Row>
+                </Well>
+            </Grid>
+            <Footer/>
         </div>
 
 exports.ProjectsPage = ProjectsPage = rclass

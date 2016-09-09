@@ -145,8 +145,8 @@ FreeProjectWarning = rclass ({name}) ->
             {@extra(host, internet)}
         </Alert>
 
-ProjectPageTemp = rclass ({name}) ->
-    displayName : 'ProjectPageTemp'
+exports.ProjectPage = ProjectPage = rclass ({name}) ->
+    displayName : 'ProjectPage'
 
     reduxProps :
         projects :
@@ -158,9 +158,20 @@ ProjectPageTemp = rclass ({name}) ->
             active_project_tab : rtypes.string
             open_files  : rtypes.immutable
             open_files_order : rtypes.immutable
+            free_warning_closed : rtypes.bool     # Makes bottom height update
 
     propTypes :
         project_id      : rtypes.string
+
+    componentDidMount : ->
+        @set_bottom_height()
+
+    componentDidUpdate : ->
+        @set_bottom_height()
+
+    set_bottom_height : ->
+        node = ReactDOM.findDOMNode(@refs.projectNav)
+        @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
 
     file_tabs: ->
         if not @props.open_files_order?
@@ -206,8 +217,16 @@ ProjectPageTemp = rclass ({name}) ->
                     Page = @props.open_files.get(active)
                     console.log("Page id", Page.redux_name)
                     # ideally: name, path, project_id is all we pass down here to any editor
-                    return <Page path={active} project_id={@props.project_id} redux={redux} actions={@actions(Page.redux_name)} name={Page.redux_name} />
-                return <div>You should not be here! {@props.active_project_tab}</div>
+                    <Page
+                        path={active}
+                        project_id={@props.project_id}
+                        redux={redux}
+                        actions={@actions(Page.redux_name)}
+                        name={Page.redux_name}
+                        project_name={"#{name}"}
+                    />
+                else
+                    <div>You should not be here! {@props.active_project_tab}</div>
 
     render : ->
         project_pages =
@@ -231,28 +250,12 @@ ProjectPageTemp = rclass ({name}) ->
                 label : 'Settings'
                 icon : 'wrench'
                 tooltip : 'Project settings and controls'
-        <div style={margin:"-15px"}>
+        <div className='container-content' style={flex:'1', display:'flex', flexDirection:'column'}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<Nav bsStyle="pills" id="project-tabs" style={display: 'flex'}>
+            {<Nav bsStyle="pills" id="project-tabs" ref="projectNav">
                 {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
                 {@file_tabs()}
             </Nav> if not @props.fullscreen}
-            <div className="container-content">
-                {# Children must define their own padding from navbar and screen borders}
-                {@render_page()}
-            </div>
+            {# Children must define their own padding from navbar and screen borders}
+            {@render_page()}
         </div>
-
-exports.ProjectPage = rclass
-    displayName : 'Projects-ProjectPage'
-
-    propTypes :
-        project_id : rtypes.string
-
-    render : ->
-        project_name = redux.getProjectStore(@props.project_id).name
-
-        <Redux redux={redux}>
-            <ProjectPageTemp name            = {project_name}
-                             project_id      = {@props.project_id} />
-        </Redux>

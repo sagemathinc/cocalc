@@ -134,6 +134,9 @@ class ProjectActions extends Actions
             else #editor...
                 @push_state('files/' + misc.tab_to_path(key))
 
+    set_editor_top_position : (pos) =>
+        @setState(editor_top_position : pos)
+
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
 
@@ -1128,7 +1131,7 @@ class ProjectStore extends Store
 
     # Used for resizing editor windows.
     editor_top_position: () =>
-        87 #TODOJ this is awful
+        @get('editor_top_position')
 
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)
