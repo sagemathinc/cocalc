@@ -198,6 +198,7 @@ NavTab = rclass
         on_click : rtypes.func
         active_top_tab : rtypes.string
         actions : rtypes.object
+        style : rtypes.object
 
     make_icon : ->
         if typeof(@props.icon) == 'string'
@@ -213,10 +214,17 @@ NavTab = rclass
         @props.on_click?()
 
     render : ->
+        style = {}
+        if @props.style?
+            style = @props.style
+
+        style.fontSize ?= '14px'
+        style.cursor ?= 'pointer'
+
         <NavItem
             active = {@props.active_top_tab == @props.name}
             onClick = {@on_click}
-            style = {fontSize: '14px', cursor: 'pointer'}>
+            style = {style}>
             {@make_icon()}
             {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
             {@props.children}
@@ -246,7 +254,8 @@ NotificationBell = rclass
             fontSize : '17pt'
             color : '#666'
             cursor : 'pointer'
-            marginRight : 6
+            marginRight : '-10px'
+            marginTop   : '-6px'
 
         <NavItem style={styles}>
             <Icon name='bell-o' />
@@ -293,7 +302,7 @@ ConnectionIndicator = rclass
             fontSize : '10pt'
             lineHeight : '10pt'
             cursor : 'default'
-            marginTop : '0.5ex'
+            marginTop : '-2px'
             marginRight : '2ex'
         <NavItem style={styles} onClick={@connection_click}>
             {@connection_status()}
@@ -371,12 +380,9 @@ SMCLogo = rclass
             backgroundImage : "url('#{smc_icon_url}')"
             backgroundSize : 'contain'
             backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
-            height : 42
-            width : 42
-            marginTop : -15
-            marginLeft: -6
-            marginBottom: -16
-            marginRight : 8
+            height : 41
+            width : 41
+            margin : "-13px 4px -13px -14px"
             position: 'relative'
         <div className='img-rounded' style={styles}></div>
 
@@ -427,6 +433,7 @@ VersionWarning = rclass
             {@render_close()}
             {@render_critical()}
         </div>
+
 Page = rclass
     displayName : "Page"
 
@@ -489,15 +496,34 @@ Page = rclass
         desc = misc.trunc(@props.project_map?.getIn([project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-        <NavTab name={project_id} key={project_id} actions={@props.page_actions} active_top_tab={@props.active_top_tab}>
-            <Icon
-                name = 'times'
-                className = 'pull-right'
-                onClick = {(e)=>@close_project(e, project_id)} />
-            <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                <Icon name={icon} style={fontSize:'20px'} />
-                <span style={marginLeft: "5px"}>{misc.trunc(title, 32)}</span>
-            </Tip>
+
+        project_name_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+        <NavTab
+            name={project_id}
+            key={project_id}
+            actions={@props.page_actions}
+            active_top_tab={@props.active_top_tab}
+            style={flex:"1 0 200px", maxWidth:'200px'}
+        >
+            {# Truncated file name}
+            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+            <div style={width:'100%', lineHeight:'1.75em', marginTop:'-3px'}> {# -6px for not being able to access underlying <a> tag}
+                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
+                    <Icon
+                        name = 'times'
+                        onClick = {(e)=>@close_project(e, project_id)}}
+                    />
+                </div>
+                <div style={project_name_styles}>
+                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                        <Icon name={icon} style={fontSize:'20px'} />
+                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    </Tip>
+                </div>
+            </div>
         </NavTab>
 
     account_name : ->
@@ -524,7 +550,47 @@ Page = rclass
                 project_name = redux.getProjectStore(@props.active_top_tab).name
                 <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
+    render_right_nav : ->
+        item_style =
+            marginTop:'-6px'
+        <Nav style={flex:'0 1 auto', maxHeight:'44px'}>
+            <NavTab
+                name='account'
+                label={@account_name()}
+                icon='cog'
+                actions={@props.page_actions}
+                active_top_tab={@props.active_top_tab}
+                style={item_style}/>
+            <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} style={item_style} />
+            <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} style={item_style}/>
+            {<NotificationBell count={@props.notification_count} style={item_style} /> if @props.is_logged_in()}
+            <ConnectionIndicator actions={@props.page_actions} style={item_style}/>
+        </Nav>
+
+    render_project_nav_button : ->
+        <Nav>
+            <NavTab
+                name='projects'
+                icon={<SMCLogo />}
+                style={maxHeight:'44px'}
+                actions={@props.page_actions}
+                active_top_tab={@props.active_top_tab}
+
+            >
+                <div style={margin: '-24px -6px 0px 36px'}>Projects</div>
+            </NavTab>
+        </Nav>
+
     render : ->
+        shim_style =
+            position : 'absolute'
+            left : '0'
+            marginRight : '0px'
+            marginLeft : '0px'
+            paddingLeft : '0px'
+            width : '100%'
+            display : 'flex'
+
         style =
             display:'flex'
             flexDirection:'column'
@@ -537,20 +603,14 @@ Page = rclass
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0, overflowY:'hidden'}>
-                <Nav pullRight>
-                    <NavTab name='account' label={@account_name()} icon='cog' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
-                    <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
-                    <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)}/>
-                    {<NotificationBell count={@props.notification_count} /> if @props.is_logged_in()}
-                    <ConnectionIndicator actions={@props.page_actions} />
-                </Nav>
-                {<Nav>
-                    <NavTab name='projects' label="Projects" icon={<SMCLogo />} actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
-                </Nav> if @props.is_logged_in()}
-                <Nav>
-                    {@project_tabs()}
-                </Nav>
+            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px'}>
+                <div className="shim" style={shim_style} >
+                    {@render_project_nav_button() if @props.is_logged_in()}
+                    <Nav style={flex:'1 0 auto', display:'flex', maxHeight:'44px'}>
+                        {@project_tabs()}
+                    </Nav>
+                    {@render_right_nav()}
+                </div>
             </Navbar> if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
