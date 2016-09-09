@@ -3128,7 +3128,7 @@ class HTML_MD_Editor extends FileEditor
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
 
         # initialize the codemirror editor
-        @source_editor = codemirror_session_editor(project_id, @filename, @opts)
+        @source_editor = codemirror_session_editor(@project_id, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
 

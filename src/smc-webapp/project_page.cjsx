@@ -171,7 +171,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     set_bottom_height : ->
         node = ReactDOM.findDOMNode(@refs.projectNav)
-        @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
+        if node?
+            @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
+        else
+            @actions(project_id : @props.project_id).set_editor_top_position(0)
 
     file_tabs: ->
         if not @props.open_files_order?
