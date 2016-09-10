@@ -291,6 +291,7 @@ SAGE_PIP_PACKAGES = [
     'npTDMS',
     'nipype',  # https://github.com/nipy/nipype/
     'hypothesis',
+    'xgboost', # https://github.com/dmlc/xgboost
     ]
 
 # additional environment settings for specific packages
