@@ -24,13 +24,13 @@ def test_load_sage():
     os.system("echo '2+2' | /usr/local/bin/sage -python")
     tick = time.time()
     elapsed = tick - start
-    print("elapsed 1 %s"%elapsed)
+    print("elapsed 1: %s"%elapsed)
     # second load after things are cached
     start = time.time()
     os.system("echo '2+2' | /usr/local/bin/sage -python")
     tick = time.time()
     elapsed = tick - start
-    print("elapsed %s"%elapsed)
+    print("elapsed 2: %s"%elapsed)
     assert elapsed < 2.0
 
 def test_import_sage_server():
