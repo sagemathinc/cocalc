@@ -27,9 +27,8 @@ def test_issue70(exec2):
         pass
     'x'
     """)
-    output = dedent(r"""
-    'x'
-    """).lstrip()
+    output = dedent(r"""'x'
+    """)
     exec2(code, output)
 
 def test_issue819(exec2):
