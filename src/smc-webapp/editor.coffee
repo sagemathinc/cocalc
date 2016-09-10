@@ -3816,14 +3816,14 @@ exports.register_nonreact_editors = () ->
 
     reg
         ext : ''  # fallback for any type not otherwise explicitly specified
-        f   : (editor, path, opts) -> codemirror_session_editor(editor, path, opts)
+        f   : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
 
     reg0 = (cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
             ext  : extensions
             icon : icon
-            f    : (editor, path, opts) -> new cls(editor, path, undefined, opts)
+            f    : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
 
     reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
     reg0 LatexEditor,      ['tex']

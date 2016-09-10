@@ -236,6 +236,9 @@ NotificationBell = rclass
     propTypes :
         count : rtypes.number
 
+    on_click : ->
+        console.log("show them notifications!")
+
     notification_count : ->
         count_styles =
             fontSize : '8pt'
@@ -257,7 +260,10 @@ NotificationBell = rclass
             marginRight : '-10px'
             marginTop   : '-6px'
 
-        <NavItem style={styles}>
+        <NavItem
+            style={styles}
+            onClick={@on_click}
+        >
             <Icon name='bell-o' />
             {@notification_count()}
         </NavItem>
@@ -506,7 +512,7 @@ Page = rclass
             key={project_id}
             actions={@props.page_actions}
             active_top_tab={@props.active_top_tab}
-            style={flex:"1 0 200px", maxWidth:'200px'}
+            style={width:'300px', height:'44px'}
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
@@ -553,7 +559,7 @@ Page = rclass
     render_right_nav : ->
         item_style =
             marginTop:'-6px'
-        <Nav style={flex:'0 1 auto', maxHeight:'44px'}>
+        <Nav>
             <NavTab
                 name='account'
                 label={@account_name()}

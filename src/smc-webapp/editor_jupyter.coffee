@@ -739,7 +739,7 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         @project_id = @parent.project_id
-
+        console.log("THE ID:", @project_id)
         ## window.j = @ ## DEBUGGING
 
         @editor = @parent.editor
@@ -908,8 +908,8 @@ class JupyterNotebook extends EventEmitter
             redux.getProjectActions(@project_id).set_active_tab('files')
             return false
 
-        @element.find("a[href=#undo]").click(@undo)
-        @element.find("a[href=#redo]").click(@redo)
+        @element.find("a[href=\"#undo\"]").click(@undo)
+        @element.find("a[href=\"#redo\"]").click(@redo)
 
         @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
             @font_size_change(-1)

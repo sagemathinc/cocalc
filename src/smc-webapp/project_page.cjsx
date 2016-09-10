@@ -46,7 +46,7 @@ ProjectTab = rclass
                     next_active_tab = misc.path_to_tab(@props.open_files_order.get(index - 1))
                 else
                     next_active_tab = misc.path_to_tab(@props.open_files_order.get(index + 1))
-                @actions(project_id: @props.project_id).set_active_tab(next_active_tab)
+            @actions(project_id: @props.project_id).set_active_tab(next_active_tab)
         @actions(project_id: @props.project_id).close_file(path)
 
     render : ->

@@ -39,7 +39,10 @@ WrappedEditor = rclass ({project_name}) ->
 
     # Refreshes the editor to resize itself
     refresh: ->
-        @props.editor._show()
+        if not @props.editor.show?
+            @props.editor._show()
+        else
+            @props.editor.show()
 
     render : ->
         <div style={flex:'1'}>
