@@ -290,6 +290,8 @@ SAGE_PIP_PACKAGES = [
     'blaze',
     'npTDMS',
     'nipype',  # https://github.com/nipy/nipype/
+    'hypothesis',
+    'xgboost', # https://github.com/dmlc/xgboost
     ]
 
 # additional environment settings for specific packages
@@ -306,7 +308,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'jdcal',
     'fiona',
     'enum',
-    'ansi2html', # needed for jupyter, and the jupyter<->sagews bridge
+    'ansi2html', 'configparser', 'entrypoints', # needed for jupyter, and the jupyter<->sagews bridge
     'python_utils',
     'ecos', # cvxpy
     'scs', # cvxpy

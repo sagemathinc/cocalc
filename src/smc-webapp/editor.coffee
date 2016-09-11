@@ -115,6 +115,7 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
+    rmd    : 'gfm2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
