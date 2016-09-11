@@ -2702,6 +2702,7 @@ class Terminal extends FileEditor
         elt = @element.salvus_console
             title     : "Terminal"
             filename  : @filename
+            project_id: @project_id
             resizable : false
             editor    : @
         @console = elt.data("console")
@@ -2767,6 +2768,11 @@ class Terminal extends FileEditor
     remove: () =>
         @element.salvus_console(false)
         super()
+
+    hide : () =>
+        if @console?
+            @element?.hide()
+            @console.blur()
 
     _show: () =>
         if @console?

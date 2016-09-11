@@ -488,7 +488,7 @@ SupportForm = rclass
         </form>
 
 
-Support = rclass
+exports.Support = rclass
     displayName : 'Support-main'
 
     propTypes :
@@ -564,21 +564,6 @@ Support = rclass
                     valid           = {@props.valid} />
         </Modal>
 
-exports.SupportRedux = rclass
-    render : ->
-        store   = redux.getStore('support')
-        actions = redux.getActions('support')
-
-        <Redux redux={redux}>
-            <Support actions = {actions} />
-        </Redux>
-
-render_project_support = (dom_node, redux) ->
-    ReactDOM.render(render(redux), dom_node)
-
-unmount = unmount = (dom_node) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
 init_redux = (redux) ->
     if not redux.getActions('support')?
         redux.createActions('support', SupportActions)
@@ -606,6 +591,3 @@ exports.ShowSupportLink = rclass
                 {@props.text}
             </a>
         </Redux>
-
-exports.show = ->
-    redux.getActions('support').show(true)

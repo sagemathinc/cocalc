@@ -44,7 +44,6 @@ exports.register_file_editor = (opts) ->
         generator : undefined # function
         init      : required # function
         icon   : 'file-o'
-    console.log "register_file_editor #{opts.ext}"
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]
     for ext in opts.ext
@@ -62,13 +61,13 @@ exports.register_file_editor = (opts) ->
 exports.initialize = (path, redux, project_id) ->
     ext = filename_extension(path)
     console.log(ext)
-    console.log("Initializing store and actions for path:", path)
     name = file_editors[ext]?.init(path, redux, project_id)
     if not name?
         name = file_editors[''].init(path, redux, project_id)
     return name
 
 # Returns an editor instance for the path
+
 exports.generate = (path, redux, project_id) ->
     ext = filename_extension(path)
     generator = file_editors[ext]?.generator
@@ -90,7 +89,7 @@ exports.generate = (path, redux, project_id) ->
 require('./editor_chat')
 require('./editor_archive')
 require('./course/main')
-require('./editor_codemirror')
+# require('./editor_codemirror')
 
 require('./editor').register_nonreact_editors()
 

@@ -1913,7 +1913,7 @@ CourseEditor = (name) -> rclass
             return <Loading />
 
     render : ->
-        <Row style={padding:"7px 7px 7px 7px"}>
+        <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
@@ -1942,7 +1942,7 @@ CourseEditor = (name) -> rclass
                     {@render_shared_project()}
                 </Tab>
             </Tabs>
-        </Row>
+        </div>
 
 initialize_state = (path, redux, project_id) ->
     console.log("Initializing editor archive")
@@ -1973,38 +1973,3 @@ require('project_file').register_file_editor
     icon   : 'graduation-cap'
     init      : initialize_state
     generator : CourseGenerator
-
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    # dependence on account below is for adjusting quotas
-    CourseEditor_connected = CourseEditor(name)
-    <Redux redux={redux}>
-        <CourseEditor_connected redux={redux} name={name} project_id={project_id} path={path} />
-    </Redux>
-
-exports.render_course = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.hide_course = (project_id, path, dom_node, redux) ->
-    #console.log("hide_course")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show_course = (project_id, path, dom_node, redux) ->
-    #console.log("show_course")
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.free_course = (project_id, path, dom_node, redux) ->
-    fname = redux_name(project_id, path)
-    db = syncdbs[fname]
-    if not db?
-        return
-    db.destroy()
-    delete syncdbs[fname]
-    ReactDOM.unmountComponentAtNode(dom_node)
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    store = redux.getStore(fname)
-    delete store.state
-    redux.removeStore(fname)
-    redux.removeActions(fname)

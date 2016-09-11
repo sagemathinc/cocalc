@@ -918,72 +918,74 @@ ChatRoom = rclass ({name}) ->
             paddingBottom: paddingBottom
 
         if not IS_MOBILE
-            <Grid>
-                <Row style={marginBottom:'5px'}>
-                    <Col xs={2} mdHidden>
-                        <Button className='smc-small-only'
-                                onClick={@show_files}>
-                                <Icon name='toggle-up'/> Files
-                        </Button>
-                    </Col>
-                    <Col xs={4} md={4} style={padding:'0px'}>
-                        <UsersViewing
-                              file_use_id = {@props.file_use_id}
-                              file_use    = {@props.file_use}
-                              account_id  = {@props.account_id}
-                              user_map    = {@props.user_map} />
-                    </Col>
-                    <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
-                        <ButtonGroup>
-                            {@render_timetravel_button()}
-                            {@render_bottom_button()}
-                        </ButtonGroup>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
-                            <ChatLog
-                                messages     = {@props.messages}
-                                account_id   = {@props.account_id}
-                                user_map     = {@props.user_map}
-                                project_id   = {@props.project_id}
-                                font_size    = {@props.font_size}
-                                file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                                actions      = {@props.actions}
-                                saved_mesg   = {@props.saved_mesg}
-                                focus_end    = {@focus_endpoint}
-                                set_scroll   = {@set_chat_log_state}
-                                show_heads   = true />
-                            {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
-                        </Panel>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus   = {true}
-                                rows        = 4
-                                componentClass = 'textarea'
-                                ref         = 'input'
-                                onKeyDown   = {@keydown}
-                                value       = {@props.input}
-                                placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
-                                onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input).value)}
-                                onFocus     = {@focus_endpoint}
-                                style       = {@chat_input_style}
-                                />
-                        </FormGroup>
-                    </Col>
-                    <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
-                    </Col>
-                    {@render_bottom_tip()}
-                </Row>
-            </Grid>
+            <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
+                <Grid>
+                    <Row style={marginBottom:'5px'}>
+                        <Col xs={2} mdHidden>
+                            <Button className='smc-small-only'
+                                    onClick={@show_files}>
+                                    <Icon name='toggle-up'/> Files
+                            </Button>
+                        </Col>
+                        <Col xs={4} md={4} style={padding:'0px'}>
+                            <UsersViewing
+                                  file_use_id = {@props.file_use_id}
+                                  file_use    = {@props.file_use}
+                                  account_id  = {@props.account_id}
+                                  user_map    = {@props.user_map} />
+                        </Col>
+                        <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
+                            <ButtonGroup>
+                                {@render_timetravel_button()}
+                                {@render_bottom_button()}
+                            </ButtonGroup>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col md={12} style={padding:'0px 2px 0px 2px'}>
+                            <Panel style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
+                                <ChatLog
+                                    messages     = {@props.messages}
+                                    account_id   = {@props.account_id}
+                                    user_map     = {@props.user_map}
+                                    project_id   = {@props.project_id}
+                                    font_size    = {@props.font_size}
+                                    file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                                    actions      = {@props.actions}
+                                    saved_mesg   = {@props.saved_mesg}
+                                    focus_end    = {@focus_endpoint}
+                                    set_scroll   = {@set_chat_log_state}
+                                    show_heads   = true />
+                                {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
+                            </Panel>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
+                            <FormGroup>
+                                <FormControl
+                                    autoFocus   = {true}
+                                    rows        = 4
+                                    componentClass = 'textarea'
+                                    ref         = 'input'
+                                    onKeyDown   = {@keydown}
+                                    value       = {@props.input}
+                                    placeholder = {'Type a message...'}
+                                    onClick     = {@mark_as_read}
+                                    onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input).value)}
+                                    onFocus     = {@focus_endpoint}
+                                    style       = {@chat_input_style}
+                                    />
+                            </FormGroup>
+                        </Col>
+                        <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
+                            <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                            <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                        </Col>
+                        {@render_bottom_tip()}
+                    </Row>
+                </Grid>
+            </div>
 
         else
         ##########################################

@@ -108,6 +108,7 @@ class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
+            project_id  : required
             session     : undefined  # a console_session; use .set_session to set it later instead.
             title       : ""
             filename    : ""
@@ -128,7 +129,6 @@ class Console extends EventEmitter
             draggable      : false    # not very good/useful yet.
 
             color_scheme   : undefined
-            project_id     : undefined # Provided in editor_terminal
             on_pause       : undefined # Called after pause_rendering is called
             on_unpause     : undefined # Called after unpause_rendering is called
             on_reconnecting: undefined
@@ -182,7 +182,6 @@ class Console extends EventEmitter
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
-
         @init_mesg()
 
         # The first time Terminal.bindKeys is called, it makes Terminal
@@ -243,7 +242,6 @@ class Console extends EventEmitter
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
     init_mesg: () =>
-        #console.log("init_mesg")
         @_ignore_mesg = false
         @terminal.on 'mesg', (mesg) =>
             if @_ignore_mesg or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)

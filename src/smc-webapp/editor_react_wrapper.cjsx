@@ -32,6 +32,7 @@ WrappedEditor = rclass ({project_name}) ->
     componentWillUnmount: ->
         console.log("componentWillUnmount")
         window.removeEventListener('resize', @refresh)
+        @props.editor.hide()
 
     componentDidUpdate: ->
         console.log("componentDidUpdate")
@@ -49,10 +50,13 @@ WrappedEditor = rclass ({project_name}) ->
             <span className="smc-editor-react-wrapper">Editor goes here</span>
         </div>
 
-
-# TODO: must do something when editor closes...  right now the editors object just keeps getting bigger.
-
+# Used for caching
 editors = {}
+
+# Expects key of form "#{project_id}-#{path}"
+exports.remove_editor = (key) ->
+    editors["#{key}"].remove()
+    delete editors["#{key}"]
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,

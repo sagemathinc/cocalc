@@ -38,6 +38,7 @@ misc      = require('smc-util/misc')
 register_project_store(exports)
 
 project_file = require('project_file')
+wrapped_editors = require('editor_react_wrapper')
 
 masked_file_exts =
     'py'   : ['pyc']
@@ -317,6 +318,7 @@ class ProjectActions extends Actions
         index = x.indexOf(path)
         if index != -1
             @setState(open_files_order : x.delete(index), open_files : @get_store().get('open_files').delete(path))
+            wrapped_editors.remove_editor("#{@project_id}-#{path}")
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>

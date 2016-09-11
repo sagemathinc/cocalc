@@ -15,7 +15,7 @@ project_file = require('./project_file')
 {file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
 {NavItem, Nav, Alert, Col, Row} = require('react-bootstrap')
-{Icon, Tip} = require('./r_misc')
+{Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
 misc = require('misc')
 
 ProjectTab = rclass
@@ -50,7 +50,13 @@ ProjectTab = rclass
         @actions(project_id: @props.project_id).close_file(path)
 
     render : ->
-        styles = {}
+        styles =
+            borderRadius: "5px 5px 0px 0px"
+
+        is_active_tab = @props.name == @props.active_project_tab
+        if is_active_tab
+            styles.backgroundColor = SAGE_LOGO_COLOR
+
         if @props.file_tab
             styles.width = 250
         else
@@ -64,7 +70,7 @@ ProjectTab = rclass
         <NavItem
             style={styles}
             key={@props.name}
-            active={@props.name == @props.active_project_tab}
+            active={is_active_tab}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
             {# Truncated file name}

@@ -7,7 +7,7 @@
 {ProjectPage} = require('./project_page')
 {AccountPageRedux} = require('./account_page')
 {FileUsePage} = require('./file_use')
-{SupportRedux} = require('./support')
+{Support} = require('./support')
 misc = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
@@ -507,12 +507,16 @@ Page = rclass
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
+        ### Uncomment this out and you can see that it will shrink. I think it has to do with some of the icons and stuff, I'll look into it tomorrow###
+        # <NavTab style={flex:'0 5 300px', maxWidth:'300px', height:'44px'}>{misc.trunc("TRY THIS Really Long Name Title",24)}
+        # </NavTab>
+        ### The shrink problem lies below in this each project tab ###
         <NavTab
             name={project_id}
             key={project_id}
             actions={@props.page_actions}
             active_top_tab={@props.active_top_tab}
-            style={width:'300px', height:'44px'}
+            style={flex:'0 1 200px', maxWidth:'200px', height:'44px'}
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
@@ -526,6 +530,7 @@ Page = rclass
                 <div style={project_name_styles}>
                     <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                         <Icon name={icon} style={fontSize:'20px'} />
+                        {#The Shrink problem is something with this span}
                         <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                     </Tip>
                 </div>
@@ -559,7 +564,7 @@ Page = rclass
     render_right_nav : ->
         item_style =
             marginTop:'-6px'
-        <Nav>
+        <Nav style={height:'44px', flex:'0 0 450px'}>
             <NavTab
                 name='account'
                 label={@account_name()}
@@ -574,7 +579,7 @@ Page = rclass
         </Nav>
 
     render_project_nav_button : ->
-        <Nav>
+        <Nav style={height:'44px', flex:'0 0 111px'}>
             <NavTab
                 name='projects'
                 icon={<SMCLogo />}
@@ -605,16 +610,18 @@ Page = rclass
             overflow:'auto'
 
         <div style={style}>
-            {<SupportRedux /> if @props.show}
+            {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px'}>
                 <div className="shim" style={shim_style} >
                     {@render_project_nav_button() if @props.is_logged_in()}
-                    <Nav style={flex:'1 0 auto', display:'flex', maxHeight:'44px'}>
-                        {@project_tabs()}
-                    </Nav>
+                    <div style={display:'flex', overflow:'hidden'}>
+                        <Nav style={display:'flex', width:'1042px'}>
+                            {@project_tabs()}
+                        </Nav>
+                    </div>
                     {@render_right_nav()}
                 </div>
             </Navbar> if not @props.fullscreen}
