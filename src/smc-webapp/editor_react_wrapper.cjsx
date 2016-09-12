@@ -46,7 +46,7 @@ WrappedEditor = rclass ({project_name}) ->
             @props.editor.show()
 
     render : ->
-        <div style={flex:'1'}>
+        <div>
             <span className="smc-editor-react-wrapper">Editor goes here</span>
         </div>
 

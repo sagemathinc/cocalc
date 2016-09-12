@@ -386,7 +386,7 @@ SMCLogo = rclass
             backgroundImage : "url('#{smc_icon_url}')"
             backgroundSize : 'contain'
             backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
-            height : 41
+            height : 40
             width : 41
             margin : "-13px 4px -13px -14px"
             position: 'relative'

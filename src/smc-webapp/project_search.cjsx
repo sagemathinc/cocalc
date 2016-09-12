@@ -315,7 +315,7 @@ exports.ProjectSearch = rclass ({name}) ->
     displayName : 'ProjectSearch'
 
     render : ->
-        <div style={padding:'15px', flex:'1'}>
+        <div style={padding:'15px'}>
             <Row>
                 <Col sm=12>
                     <ProjectSearchHeader actions={@actions(name)} name={name} />

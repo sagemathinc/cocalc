@@ -14,7 +14,7 @@ project page react component
 project_file = require('./project_file')
 {file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
-{NavItem, Nav, Alert, Col, Row} = require('react-bootstrap')
+{Nav, NavItem, Alert, Col, Row} = require('react-bootstrap')
 {Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
 misc = require('misc')
 
@@ -50,22 +50,28 @@ ProjectTab = rclass
         @actions(project_id: @props.project_id).close_file(path)
 
     render : ->
-        styles =
-            borderRadius: "5px 5px 0px 0px"
+        styles ={}
 
         is_active_tab = @props.name == @props.active_project_tab
-        if is_active_tab
-            styles.backgroundColor = SAGE_LOGO_COLOR
 
         if @props.file_tab
+            if is_active_tab
+                styles.backgroundColor = SAGE_LOGO_COLOR
             styles.width = 250
+            styles.borderRadius = "5px 5px 0px 0px"
         else
             styles.flex = 'none'
 
-        filename_styles =
+        label_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
+
+        x_button_styles =
+            float:'right'
+            whiteSpace:'nowrap'
+            fontSize:'12pt'
+            marginTop: '-3px'
 
         <NavItem
             style={styles}
@@ -75,14 +81,14 @@ ProjectTab = rclass
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', marginBottom:'-6px'}> {# -6px for not being able to access underlying <a> tag}
-                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
+            <div style={width:'100%'}>
+                <div style={x_button_styles}>
                     {<Icon
                         name = 'times'
                         onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
                 </div>
-                <div style={filename_styles}>
+                <div style={label_styles}>
                     <Tip title={@props.tooltip} placement='bottom' size='small'>
                         <Icon style={fontSize: if @props.file_tab then '10pt' else '15pt'} name={@props.icon} /> {@props.label}
                     </Tip>
@@ -253,19 +259,36 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 icon : 'history'
                 tooltip : 'Log of project activity'
             search :
-                label : 'Search'
+                label : 'Find'
                 icon : 'search'
                 tooltip : 'Search files in the project'
             settings :
                 label : 'Settings'
                 icon : 'wrench'
                 tooltip : 'Project settings and controls'
-        <div className='container-content' style={flex:'1', display:'flex', flexDirection:'column'}>
+        page_styles ='
+            #smc-project-tabs-fixed>li>a {
+                padding: 8px 10px
+            }
+            #smc-project-tabs-files>li>a {
+                padding: 13px 15px 7px
+            }'
+
+        <div className='container-content'>
+            <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<Nav bsStyle="pills" id="project-tabs" ref="projectNav">
-                {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
-                {@file_tabs()}
-            </Nav> if not @props.fullscreen}
+            {<div id="smc-project-tabs" ref="projectNav" style={display:"flex"}>
+                <div>
+                    <Nav bsStyle="pills" id="smc-project-tabs-fixed">
+                        {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
+                    </Nav>
+                </div>
+                <div>
+                    <Nav bsStyle="pills" id="smc-project-tabs-files">
+                        {@file_tabs()}
+                    </Nav>
+                </div>
+            </div> if not @props.fullscreen}
             {# Children must define their own padding from navbar and screen borders}
             {@render_page()}
         </div>
