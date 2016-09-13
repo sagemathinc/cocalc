@@ -3761,7 +3761,7 @@ class Course extends FileEditorWrapper
 ###
 class Chat extends FileEditorWrapper
     init_wrapped: () =>
-        editor_chat = require('./smc-chat')
+        editor_chat = require('./smc_chat')
         @element = $("<div>")
         if not IS_MOBILE
             @element.css
