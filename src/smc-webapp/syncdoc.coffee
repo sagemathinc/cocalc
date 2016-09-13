@@ -117,7 +117,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             sender_id : "Unknown"
             event     : opts.event_type
             payload   : opts.payload
-            date      : new Date()
+            date      : salvus_client.server_time()
 
         @chat_session.live(new_message + "\n" + @chat_session.live())
 
