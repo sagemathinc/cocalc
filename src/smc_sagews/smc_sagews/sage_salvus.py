@@ -3662,16 +3662,16 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     if os.path.islink(sage_cmd):
         sage_cmd = os.readlink(sage_cmd)
 
-    # /projects/sage/sage-6.10/src/bin
+    # /projects/sage/sage-x.y/src/bin
     sdir = os.path.dirname(sage_cmd)
 
-    # /projects/sage/sage-6.10
+    # /projects/sage/sage-x.y
     sdir = os.path.dirname(os.path.dirname(sdir))
 
-    # /projects/sage/sage-6.10/sage-6.10/src
-    sdir = glob.glob(sdir + "/sage-*/src/sage")[0]
+    # /projects/sage/sage-x.y/src
+    sdir = glob.glob(sdir + "/src/sage")[0]
 
-    cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
+    cmd = 'cd %s;timeout 5 find . -type f | xargs grep -il "%s" | sed -e "s/..//"'%(sdir, str)
     srch = os.popen(cmd).read().splitlines()
     header = "files matched"
     nftext = header + ": %s"%len(srch)
@@ -3679,7 +3679,7 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     @interact
     def _(fname = selector([nftext]+srch,"view source file:")):
         if not fname.startswith(header):
-            with open('/projects/sage/sage/src/sage/' + fname, 'r') as infile:
+            with open(os.path.join(sdir, fname), 'r') as infile:
                 code = infile.read(max_chars)
             salvus.code(code, mode = "python", filename = fname)
 
