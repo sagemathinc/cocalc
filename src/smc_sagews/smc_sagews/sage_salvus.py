@@ -3671,7 +3671,7 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     # /projects/sage/sage-x.y/src
     sdir = glob.glob(sdir + "/src/sage")[0]
 
-    cmd = 'cd %s;timeout 5 find . -type f | xargs grep -il "%s" | sed -e "s/..//"'%(sdir, str)
+    cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
     srch = os.popen(cmd).read().splitlines()
     header = "files matched"
     nftext = header + ": %s"%len(srch)
