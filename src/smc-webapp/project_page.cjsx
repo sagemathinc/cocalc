@@ -31,6 +31,15 @@ ProjectTab = rclass
         file_tab           : rtypes.bool      # Whether or not this tab holds a file
         open_files_order   : rtypes.object
 
+    getInitialState : () ->
+        hover : false
+
+    mouse_over: ->
+        @setState(hover:true)
+
+    mouse_out: ->
+        @setState(hover:false)
+
     close_file : (e, path) ->
         e.stopPropagation()
         e.preventDefault()
@@ -59,6 +68,8 @@ ProjectTab = rclass
                 styles.backgroundColor = SAGE_LOGO_COLOR
             styles.width = 250
             styles.borderRadius = "5px 5px 0px 0px"
+            styles.flexShrink = '1'
+            styles.overflow = 'hidden'
         else
             styles.flex = 'none'
 
@@ -73,6 +84,9 @@ ProjectTab = rclass
             fontSize:'12pt'
             marginTop: '-3px'
 
+        if @state.hover
+            x_button_styles.color = 'red'
+
         <NavItem
             style={styles}
             key={@props.name}
@@ -84,6 +98,7 @@ ProjectTab = rclass
             <div style={width:'100%'}>
                 <div style={x_button_styles}>
                     {<Icon
+                        onMouseOver={@mouse_over} onMouseOut={@mouse_out}
                         name = 'times'
                         onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
@@ -277,17 +292,13 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         <div className='container-content'>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-project-tabs" ref="projectNav" style={display:"flex"}>
-                <div>
-                    <Nav bsStyle="pills" id="smc-project-tabs-fixed">
-                        {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
-                    </Nav>
-                </div>
-                <div>
-                    <Nav bsStyle="pills" id="smc-project-tabs-files">
-                        {@file_tabs()}
-                    </Nav>
-                </div>
+            {<div id="smc-project-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+                <Nav bsStyle="pills" id="smc-project-tabs-fixed" style={float:'left'}>
+                    {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
+                </Nav>
+                <Nav bsStyle="pills" id="smc-project-tabs-files" style={display:'flex'}>
+                    {@file_tabs()}
+                </Nav>
             </div> if not @props.fullscreen}
             {# Children must define their own padding from navbar and screen borders}
             {@render_page()}

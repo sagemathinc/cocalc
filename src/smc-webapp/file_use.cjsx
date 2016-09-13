@@ -89,7 +89,6 @@ class FileUseActions extends Actions
         #console.log(project_id, path, action)
         if fix_path
             path = misc.original_path(path)
-        #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files

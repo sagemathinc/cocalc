@@ -231,6 +231,8 @@ LogEntry = rclass
                 return @render_set(misc.copy_without(@props.event, 'event'))
             when 'miniterm'
                 return @render_miniterm()
+            when 'termInSearch'
+                return @render_miniterm()
             when 'file_action'
                 return @render_file_action()
             when 'upgrade'
@@ -481,6 +483,7 @@ exports.ProjectLog = rclass ({name}) ->
         </Panel>
 
     render : ->
+        window.log = @project_log
         <div style={padding:'15px'}>
             <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
             {if @props.project_log then @render_log_panel() else <Loading/>}

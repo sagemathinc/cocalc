@@ -82,8 +82,6 @@ exports.redux_name = key = (project_id, name) ->
 
 
 class ProjectActions extends Actions
-    _project : =>
-
     _ensure_project_is_open : (cb) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
@@ -241,6 +239,12 @@ class ProjectActions extends Actions
 
                         # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                         @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
+
+                        @log
+                            event  : 'open'
+                            action : 'open'
+                            filename  : opts.path
+
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
                             return

@@ -44,6 +44,9 @@ class PageActions extends Actions
     show_connection : (shown) ->
         @setState(show_connection : shown)
 
+    toggle_file_use_notification_log : ->
+        console.log("Toggling notification log")
+        @setState(show_file_use_notification_log: true)
 
     set_ping : (ping, avgping) ->
         @setState(ping : ping, avgping : avgping)
@@ -230,6 +233,13 @@ NavTab = rclass
             {@props.children}
         </NavItem>
 
+FileUsePageWrapper = rclass
+    render : ->
+        <div style={position:'absolute', right:'0', top:'44px', width:'40vw', minWidth:'120px', height:'80vh', backgroundColor:'red', zIndex: '99999'}>
+            Holds the file use
+            {#<FileUsePage />}
+        </div>
+
 NotificationBell = rclass
     displayName: 'NotificationBell'
 
@@ -238,14 +248,14 @@ NotificationBell = rclass
 
     on_click : ->
         console.log("show them notifications!")
+        @actions('page').toggle_file_use_notification_log()
 
     notification_count : ->
         count_styles =
             fontSize : '8pt'
             color : 'red'
             position : 'absolute'
-            left : 23
-            top : 16
+            left : '18.5px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 0
@@ -258,7 +268,6 @@ NotificationBell = rclass
             color : '#666'
             cursor : 'pointer'
             marginRight : '-10px'
-            marginTop   : '-6px'
 
         <NavItem
             style={styles}
@@ -308,7 +317,7 @@ ConnectionIndicator = rclass
             fontSize : '10pt'
             lineHeight : '10pt'
             cursor : 'default'
-            marginTop : '-2px'
+            marginTop : '4px'
             marginRight : '2ex'
         <NavItem style={styles} onClick={@connection_click}>
             {@connection_status()}
@@ -457,6 +466,7 @@ Page = rclass
             new_version : rtypes.object
             fullscreen : rtypes.bool
             cookie_warning : rtypes.bool
+            show_file_use_notification_log : rtypes.bool
         account :
             get_fullname : rtypes.func
             is_logged_in : rtypes.func
@@ -507,20 +517,17 @@ Page = rclass
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
-        ### Uncomment this out and you can see that it will shrink. I think it has to do with some of the icons and stuff, I'll look into it tomorrow###
-        # <NavTab style={flex:'0 5 300px', maxWidth:'300px', height:'44px'}>{misc.trunc("TRY THIS Really Long Name Title",24)}
-        # </NavTab>
-        ### The shrink problem lies below in this each project tab ###
+
         <NavTab
             name={project_id}
             key={project_id}
             actions={@props.page_actions}
             active_top_tab={@props.active_top_tab}
-            style={flex:'0 1 200px', maxWidth:'200px', height:'44px'}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'42px', overflow: 'hidden'}
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', marginTop:'-3px'}> {# -6px for not being able to access underlying <a> tag}
+            <div style={width:'100%', lineHeight:'1.75em', marginTop:'-3px'}> {# -3px for not being able to access underlying <a> tag}
                 <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
                     <Icon
                         name = 'times'
@@ -530,7 +537,6 @@ Page = rclass
                 <div style={project_name_styles}>
                     <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                         <Icon name={icon} style={fontSize:'20px'} />
-                        {#The Shrink problem is something with this span}
                         <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                     </Tip>
                 </div>
@@ -562,24 +568,23 @@ Page = rclass
                 <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
     render_right_nav : ->
-        item_style =
-            marginTop:'-6px'
-        <Nav style={height:'44px', flex:'0 0 450px'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'42px', width:'647px', lineHeight:'20px'}>
             <NavTab
                 name='account'
                 label={@account_name()}
                 icon='cog'
                 actions={@props.page_actions}
                 active_top_tab={@props.active_top_tab}
-                style={item_style}/>
-            <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} style={item_style} />
-            <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} style={item_style}/>
-            {<NotificationBell count={@props.notification_count} style={item_style} /> if @props.is_logged_in()}
-            <ConnectionIndicator actions={@props.page_actions} style={item_style}/>
+            />
+            <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
+            <NavItem className='divider-vertical hidden-xs' />
+            <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
+            {<NotificationBell count={@props.notification_count} /> if @props.is_logged_in()}
+            <ConnectionIndicator actions={@props.page_actions} />
         </Nav>
 
     render_project_nav_button : ->
-        <Nav style={height:'44px', flex:'0 0 111px'}>
+        <Nav style={height:'42px', width:'111px'}>
             <NavTab
                 name='projects'
                 icon={<SMCLogo />}
@@ -593,6 +598,13 @@ Page = rclass
         </Nav>
 
     render : ->
+        # Use this pattern very sparingly.
+        # Right now only used to access library generated elements
+        # Very fragile.
+        page_style ='
+            #smc-right-tabs-fixed>li>a {
+                padding: 10px;
+            }'
         shim_style =
             position : 'absolute'
             left : '0'
@@ -610,21 +622,23 @@ Page = rclass
             overflow:'auto'
 
         <div style={style}>
+            <style>{page_style}</style>
+            {<FileUsePageWrapper /> if @props.show_file_use_notification_log}
             {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px'}>
+            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 <div className="shim" style={shim_style} >
                     {@render_project_nav_button() if @props.is_logged_in()}
-                    <div style={display:'flex', overflow:'hidden'}>
-                        <Nav style={display:'flex', width:'1042px'}>
-                            {@project_tabs()}
-                        </Nav>
-                    </div>
+                    <Nav style={display:'flex', width:'100%', overflow: 'hidden'}>
+                        {@project_tabs()}
+                    </Nav>
                     {@render_right_nav()}
                 </div>
             </Navbar> if not @props.fullscreen}
+            <div className="smc-sticky-position-hack" style={minHeight:'44px'}>
+            </div>
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}

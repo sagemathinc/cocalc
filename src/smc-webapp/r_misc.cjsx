@@ -110,6 +110,8 @@ exports.Icon = Icon = rclass
         className  : rtypes.string
         style      : rtypes.object
         onClick    : rtypes.func
+        onMouseOver: rtypes.func
+        onMouseOut : rtypes.func
 
     getDefaultProps : ->
         name    : 'square-o'
@@ -138,7 +140,7 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onClick={@props.onClick}>{@props.children}</i>
+        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -951,7 +953,6 @@ exports.DirectoryInput = rclass
             directory_trees : rtypes.immutable
 
     propTypes :
-        redux         : rtypes.object
         project_id    : rtypes.string.isRequired
         on_change     : rtypes.func.isRequired
         default_value : rtypes.string
@@ -963,7 +964,7 @@ exports.DirectoryInput = rclass
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
         if not x? or new Date() - x.updated >= 15000
-            @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
+            redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?
             # TODO: spaces below are a terrible hack to get around weird design of Combobox.
