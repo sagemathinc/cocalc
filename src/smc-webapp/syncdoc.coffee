@@ -44,7 +44,7 @@ account = require('./account')
 
 {EventEmitter} = require('events')
 
-editor_chat = require('./editor_chat')
+side_chat = require('./side_chat')
 
 {IS_MOBILE} = require('./feature')
 
@@ -150,7 +150,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.emit 'show-chat'
         #@render_chat_log()
 
-        editor_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, true)
+        side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux)
 
     hide_chat_window: () =>
         # HIDE the chat window
