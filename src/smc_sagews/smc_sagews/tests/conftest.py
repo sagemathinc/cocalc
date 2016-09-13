@@ -298,16 +298,20 @@ def recv_til_done(conn, test_id):
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
-    This fixture allows a test to specify only two things,
-
-    - `` code `` -- string of code block to run
-
-    - `` output `` -- string of expected output
+    Fixture for worksheet cell test. Depends on two other fixtures,
+    sagews and test_id.
 
     OUTPUT:
 
-    This fixture returns a function to be called by the test function.
-    If no output is expected, set "output" to None.
+    Fixture function exec2, which takes three arguments. The second and
+    third arguments may be omitted. If both are omitted, the cell is not
+    expected to produce a stdout result.
+
+    - `` code `` -- string of code block to run
+
+    - `` output `` -- string of expected output, to be matched exactly
+
+    - `` pattern `` -- regex to match with expected output
 
     EXAMPLES:
 
@@ -320,26 +324,31 @@ def exec2(request, sagews, test_id):
 
     ::
 
-        def  test_set_file_env(exec2):
+        def test_set_file_env(exec2):
             code = "os.chdir(salvus.data[\'path\']);__file__=salvus.data[\'file\']"
-            output = None
-            exec2(code, output)
+            exec2(code)
 
-    TODO:
+    ::
 
-    Add regex parsing for more general results than fixed string output
+        def test_sh(exec2):
+            exec2("sh('date +%Y-%m-%d')", pattern = '^\d{4}-\d{2}-\d{2}$')
+
     """
-    def execfn(code, output = None):
+    def execfn(code, output = None, pattern = None):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
         # send block of code to be executed
         sagews.send_json(m)
-        if output is not None:
-            # check stdout
+        # check stdout
+        if output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id
-            assert mesg['stdout'] == output
+            assert 'stdout' in mesg
+            if output is not None:
+                assert mesg['stdout'] == output
+            elif pattern is not None:
+                assert re.search(pattern, mesg['stdout']) is not None
 
     def fin():
         recv_til_done(sagews, test_id)

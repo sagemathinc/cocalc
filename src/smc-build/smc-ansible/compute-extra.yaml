@@ -56,6 +56,7 @@
     - numpy-stl
     - npTDMS
     - nipype
+    - xgboost
 
   - name: "install git trac from github"
     tags: [ pip2, update, install ]

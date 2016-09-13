@@ -1601,6 +1601,7 @@ class Capture:
 
 capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
+import sage.misc.cython
 
 def cython(code=None, **kwds):
     """
@@ -1635,7 +1636,6 @@ def cython(code=None, **kwds):
     if 'annotate' not in kwds and not silent:
         kwds['annotate'] = True
 
-    import sage.misc.cython
     modname, path = sage.misc.cython.cython(filename, **kwds)
 
     try:

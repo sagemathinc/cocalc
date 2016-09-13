@@ -88,7 +88,6 @@ def install_primus():
 
 def install_all(compute=False, web=False):
     if compute or web:
-        pull()
         install_hub()  # also contains compute server right now (will refactor later)
     if compute:
         install_pyutil()

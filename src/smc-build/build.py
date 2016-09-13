@@ -290,6 +290,8 @@ SAGE_PIP_PACKAGES = [
     'blaze',
     'npTDMS',
     'nipype',  # https://github.com/nipy/nipype/
+    'hypothesis',
+    'xgboost', # https://github.com/dmlc/xgboost
     ]
 
 # additional environment settings for specific packages
@@ -306,6 +308,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'jdcal',
     'fiona',
     'enum',
+    'ansi2html', 'configparser', 'entrypoints', # needed for jupyter, and the jupyter<->sagews bridge
     'python_utils',
     'ecos', # cvxpy
     'scs', # cvxpy
@@ -328,7 +331,12 @@ SAGE_PIP_PACKAGES_DEPS = [
     'bintrees', # tdigest
     'pyudorandom', # tdigest
     'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
+    'autobahn', 'twisted', 'idna', 'pyasn1', 'ipaddress', 'pycparser', 'cffi', 'cryptography', 'pyopenssl', 'attrs', # datasift
+    'pyasn1-modules', 'service-identity', 'futures', 'requests-futures', 'ndg-httpsclient', # datasift
 ]
+
+# TODO make add an additional category of pip packages, where it is always safe to install with dependencies
+# first candidate for this might be datasift
 
 # Additional packages for R -- compare this to smc-ansible/r.yaml and the compute integration tests
 R_PACKAGES = [
