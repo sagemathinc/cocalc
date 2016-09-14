@@ -146,7 +146,7 @@ def project_collaborators(project_id, only_owner=False):
             # print("email: %s" % eml)
             print("%s %s <%s>" % (fn, ln, eml))  # , group, u["account_id"]))
         except:
-            print("FIXME no email for %s = %s %s" % (fn, ln, k))
+            print("FIXME no email for %s = %s %s" % (fn, ln, group))
 
 
 def project_owner(project_id):
