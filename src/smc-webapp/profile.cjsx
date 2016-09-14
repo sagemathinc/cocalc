@@ -25,7 +25,7 @@
 #    - Vivek Venkatachalam
 ###
 
-{rclass, React, ReactDOM, Redux, rtypes} = require('./smc-react')
+{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {merge} = require('smc-util/misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
@@ -115,7 +115,7 @@ Avatar = rclass
             </span>
 
     open_path: (path) ->
-        @props.redux.getProjectActions(@props.project_id).open_file
+        redux.getProjectActions(@props.project_id).open_file
             path : path
 
     render: ->
@@ -123,7 +123,7 @@ Avatar = rclass
         open_project = @actions('projects').open_project
 
         if @props.viewing_what == 'projects'
-            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id, switch_to:true)}>
+            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id, target:"files", switch_to:true)}>
                 <div style={display:'inline-block'}>
                     <div style={@_outerStyle()}>
                         {@render_image()}
@@ -183,7 +183,6 @@ UsersViewing = rclass
         return [latest_key, newest/1000]
 
     render_avatars: ->
-
         if not (@props.file_use? and @props.user_map?)
             return
 
@@ -205,7 +204,7 @@ UsersViewing = rclass
                         1
                     else
                         0
-            for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
+            for p in redux.getStore('file_use').get_sorted_file_use_list2().toJS()
                 for user in p.users
                     [event, most_recent] = @_find_most_recent(user)
                     if users[user.account_id]
@@ -222,13 +221,14 @@ UsersViewing = rclass
                 seconds = most_recent_path['most_recent']
                 time_since =  salvus_client.server_time()/1000 - seconds
 
+
                 # TODO do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
 
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
                 if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                    all_users.push <Avatar viewing_what='projects' key={user_id} account={account} style={style} project_id={most_recent_path['project_id']} redux={@props.redux} />
+                    all_users.push <Avatar viewing_what='projects' key={user_id} account={account} style={style} project_id={most_recent_path['project_id']} redux={redux} />
 
         else if @props.viewing_what == 'project'
             users = {}
@@ -241,8 +241,7 @@ UsersViewing = rclass
                         1
                     else
                         0
-            for p in @props.redux.getStore('file_use').get_sorted_file_use_list2().toJS()
-
+            for p in redux.getStore('file_use').get_sorted_file_use_list2().toJS()
                 if p.project_id == @props.project_id
                     for user in p.users
                         [event, most_recent] = @_find_most_recent(user)
@@ -250,6 +249,7 @@ UsersViewing = rclass
                             users[user.account_id].push({"path": p.path, "most_recent": most_recent})
                         else
                             users[user.account_id] = [{"path": p.path, "most_recent": most_recent}]
+
             for user_id, paths_edited of users
                 if user_id == @props.account_id
                     continue
@@ -266,7 +266,7 @@ UsersViewing = rclass
 
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
                 if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                    all_users.push <Avatar viewing_what='project' key={user_id} account={account} style={style} path={most_recent_path['path']} project_id={@props.project_id} redux={@props.redux} />
+                    all_users.push <Avatar viewing_what='project' key={user_id} account={account} style={style} path={most_recent_path['path']} project_id={@props.project_id} redux={redux} />
 
         else
             for user_id, events of log

@@ -81,7 +81,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
@@ -1061,9 +1061,7 @@ ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     C_ChatRoom = ({path, actions, project_id}) ->
         file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
-        <Redux redux={redux}>
-            <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
-        </Redux>
+        <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
 
     C_ChatRoom.redux_name = name
 

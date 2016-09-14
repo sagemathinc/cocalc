@@ -24,7 +24,7 @@ async         = require('async')
 misc          = require('smc-util/misc')
 _             = require('underscore')
 
-{redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -1785,17 +1785,13 @@ exports.BillingPageRedux = rclass
     displayName : 'BillingPage-redux'
 
     render : ->
-        <Redux redux={redux}>
-            <BillingPage is_simplified={false} redux={redux} />
-        </Redux>
+        <BillingPage is_simplified={false} redux={redux} />
 
 exports.BillingPageSimplifiedRedux = rclass
     displayName : 'BillingPage-redux'
 
     render : ->
-        <Redux redux={redux}>
-            <BillingPage is_simplified={true} redux={redux} />
-        </Redux>
+        <BillingPage is_simplified={true} redux={redux} />
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>

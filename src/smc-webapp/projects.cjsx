@@ -139,6 +139,7 @@ class ProjectsActions extends Actions
 
     # Open the given project
     #TODOJ: should not be in projects...
+    # J3: Maybe should be in Page actions? I don't see the upside.
     open_project : (opts) =>
         opts = defaults opts,
             project_id : required
@@ -149,7 +150,7 @@ class ProjectsActions extends Actions
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)
         # actions.set_url_to_path(store.get('current_path'))
-        #temporary
+        # temporary
         sort_by_time = store.get('sort_by_time') ? true
         show_hidden = store.get('show_hidden') ? false
         actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
@@ -167,7 +168,7 @@ class ProjectsActions extends Actions
         if misc.is_valid_uuid_string(segments[0])
             t = segments.slice(1).join('/')
             project_id = segments[0]
-            redux.getActions('projects').open_project
+            @open_project
                 project_id: project_id
                 target    : t
                 switch_to : switch_to
@@ -176,7 +177,7 @@ class ProjectsActions extends Actions
     foreground_project : (project_id) =>
         redux.getActions('page').set_active_tab(project_id)
 
-        @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+        redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
@@ -292,6 +293,11 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'save', time:salvus_client.server_time()}
 
+    start_project : (project_id) ->
+        @redux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'start', time:salvus_client.server_time()}
+
     stop_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
@@ -306,11 +312,6 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:salvus_client.server_time()}
-
-    start_project : (project_id) ->
-        @redux.getTable('projects').set
-            project_id     : project_id
-            action_request : {action:'start', time:salvus_client.server_time()}
 
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>
@@ -1306,7 +1307,7 @@ ProjectRow = rclass
 
     render_user_list : ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
-        @props.redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
+        redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
         users = []
         for i in [0...other.length]
             users.push <User
@@ -1396,7 +1397,7 @@ ProjectList = rclass
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
-                             redux    = {@props.redux} />
+                             redux    = {redux} />
             i += 1
 
         return listing
@@ -1438,8 +1439,8 @@ project_is_in_filter = (project, hidden, deleted) ->
         throw Error('project page should not get rendered until after user sign-in and account info is set')
     return !!project.deleted == deleted and !!project.users?[account_id]?.hide == hidden
 
-ProjectSelector = rclass
-    displayName : 'Projects-ProjectSelector'
+exports.ProjectsPage = ProjectsPage = rclass
+    displayName : 'Projects-ProjectsPage'
 
     reduxProps :
         users :
@@ -1616,7 +1617,7 @@ ProjectSelector = rclass
 
     render : ->
         if not @props.project_map?
-            if @props.redux.getStore('account')?.get_user_type() == 'public'
+            if redux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
@@ -1637,7 +1638,7 @@ ProjectSelector = rclass
                                 show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                         </Col>
                         <Col sm=4>
-                            <UsersViewing redux={@props.redux} viewing_what='projects' />
+                            <UsersViewing redux={redux} viewing_what='projects' />
                         </Col>
                     </Row>
                     <Row>
@@ -1681,7 +1682,7 @@ ProjectSelector = rclass
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
-                                redux       = {@props.redux} />
+                                redux       = {redux} />
                         </Col>
                     </Row>
                 </Well>
@@ -1689,20 +1690,12 @@ ProjectSelector = rclass
             <Footer/>
         </div>
 
-exports.ProjectsPage = ProjectsPage = rclass
-    displayName : 'Projects-ProjectsPage'
-
-    render : ->
-        <Redux redux={redux}>
-            <ProjectSelector redux={redux} />
-        </Redux>
-
 exports.ProjectTitle = ProjectTitle = rclass
     displayName : 'Projects-ProjectTitle'
 
     reduxProps :
         projects :
-            project_map  : rtypes.immutable
+            project_map : rtypes.immutable
 
     propTypes :
         project_id   : rtypes.string.isRequired

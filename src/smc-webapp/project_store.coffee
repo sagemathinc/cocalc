@@ -703,6 +703,11 @@ class ProjectActions extends Actions
                     @set_activity(id:id, error: "Error deleting #{mesg} -- #{result.error}", stop:'')
                 else
                     @set_activity(id:id, status:"Successfully deleted #{mesg}.", stop:'')
+                    @log
+                        event  : 'file_action'
+                        action : 'deleted'
+                        files  : opts.paths[0...3]
+                        count  : if opts.paths.length > 3 then opts.paths.length
 
 
     download_file : (opts) =>
@@ -956,38 +961,37 @@ class ProjectActions extends Actions
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
+    # Loads path in this project from string
     #  files/....
-    #  recent
     #  new
     #  log
     #  settings
     #  search
     load_target: (target, foreground=true) =>
         segments = target.split('/')
+        full_path = segments.slice(1).join('/')
+        parent_path = segments.slice(1, segments.length-1).join('/')
         switch segments[0]
             when 'files'
-                if target[target.length-1] == '/'
+                if target[target.length-1] == '/' or full_path == ''
                     # open a directory
-                    @set_current_path(segments.slice(1, segments.length-1).join('/'))
+                    @set_current_path(parent_path)
                     @set_active_tab('files')
                 else
                     # open a file -- foreground option is relevant here.
-                    if foreground
-                        @set_current_path(segments.slice(1, segments.length-1).join('/'))
-                        @set_active_tab(misc.path_to_tab(segments.slice(1).join('/')))
                     @open_file
-                        path       : segments.slice(1).join('/')
+                        path       : full_path
                         foreground : foreground
                         foreground_project : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
-                @set_current_path('segments.slice(1).join('/')')
+                @set_current_path(full_path)
                 @set_active_tab('new')
             when 'log'
                 @set_active_tab('log')
             when 'settings'
                 @set_active_tab('settings')
             when 'search'
-                @set_current_path(segments.slice(1).join('/'))
+                @set_current_path(full_path)
                 @set_active_tab('search')
 
     show_extra_free_warning : =>

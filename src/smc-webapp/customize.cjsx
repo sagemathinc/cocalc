@@ -7,7 +7,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{redux, Redux, rclass, rtypes, React} = require('./smc-react')
+{redux, rclass, rtypes, React} = require('./smc-react')
 {Loading} = require('./r_misc')
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
@@ -22,7 +22,7 @@ $?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         actions.setState(obj)
 
-HelpEmailLink = rclass
+exports.HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
     reduxProps :
         customize :
@@ -35,16 +35,7 @@ HelpEmailLink = rclass
         else
             <Loading/>
 
-exports.HelpEmailLink = rclass
-    displayName : 'HelpEmailLink-redux'
-    propTypes :
-        text : rtypes.string
-    render      : ->
-        <Redux redux={redux}>
-            <HelpEmailLink text={@props.text} />
-        </Redux>
-
-SiteName = rclass
+exports.SiteName = rclass
     displayName : 'SiteName'
     reduxProps :
         customize :
@@ -55,14 +46,7 @@ SiteName = rclass
         else
             <Loading/>
 
-exports.SiteName = rclass
-    displayName : 'SiteName-redux'
-    render      : ->
-        <Redux redux={redux}>
-            <SiteName />
-        </Redux>
-
-SiteDescription = rclass
+exports.SiteDescription = rclass
     displayName : 'SiteDescription'
     propTypes:
         style: rtypes.object
@@ -75,15 +59,6 @@ SiteDescription = rclass
             <span style={style}>{@props.site_description}</span>
         else
             <Loading/>
-
-exports.SiteDescription = rclass
-    displayName : 'SiteDescription-redux'
-    propTypes :
-        style : rtypes.object
-    render      : ->
-        <Redux redux={redux}>
-            <SiteDescription style={@props.style}/>
-        </Redux>
 
 # TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 exports.CompanyName = rclass
@@ -113,11 +88,9 @@ exports.TermsOfService = rclass
         style : rtypes.object
 
     render : ->
-        <Redux redux={redux}>
-            <TermsOfService style={@props.style} />
-        </Redux>
+        <TermsOfService style={@props.style} />
 
-AccountCreationEmailInstructions = rclass
+exports.AccountCreationEmailInstructions = rclass
     displayName : 'AccountCreationEmailInstructions'
 
     reduxProps :
@@ -126,14 +99,6 @@ AccountCreationEmailInstructions = rclass
 
     render : ->
         <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
-
-exports.AccountCreationEmailInstructions = rclass
-    displayName : 'AccountCreationEmailInstructions'
-
-    render : ->
-        <Redux redux={redux}>
-            <AccountCreationEmailInstructions />
-        </Redux>
 
 # first step of centralizing these URLs in one place → collecting all such pages into one
 # react-class with a 'type' prop is the next step (TODO)

@@ -47,7 +47,6 @@ ProjectTab = rclass
             index = @props.open_files_order.indexOf(path)
             size = @props.open_files_order.size
             next_active_tab = 'files'
-            console.log("You just closed a tab!", index, size)
             if index == 0 or size <= 1
                 next_active_tab = 'files'
             else

@@ -804,9 +804,7 @@ render = (redux, project_id, path) ->
     name    = redux_name(project_id, path)
     actions = redux.getActions(name)
     Git_connected = Git(name)
-    <Redux redux={redux}>
-        <Git_connected actions={actions} />
-    </Redux>
+    <Git_connected actions={actions} />
 
 exports.free = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)

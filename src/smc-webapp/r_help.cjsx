@@ -25,7 +25,7 @@
 
 $ = window.$
 
-{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
+{React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -513,9 +513,7 @@ exports.HelpPage = HelpPage = rclass
 
                 <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                <Redux redux={redux}>
-                    <HelpPageUsageSection />
-                </Redux>
+                <HelpPageUsageSection />
 
                 <HelpPageAboutSection />
 

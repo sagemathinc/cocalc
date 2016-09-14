@@ -3,7 +3,7 @@ misc = require('smc-util/misc')
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
 
-{React, ReactDOM, rclass, rtypes, redux, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
 {Tab, Tabs, Grid} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
 {AccountSettingsTop} = require('./r_account')
@@ -72,9 +72,7 @@ AccountPage = rclass
             project_map     = {@props.project_map} />
 
     render_support : ->
-        <Redux redux={redux}>
-            <SupportPage />
-        </Redux>
+        <SupportPage />
 
     render_account_settings : ->
         <AccountSettingsTop
@@ -136,6 +134,4 @@ AccountPage = rclass
 exports.AccountPageRedux = AccountPageRedux = rclass
     render : ->
         actions = redux.getActions('account')
-        <Redux redux={redux}>
-            <AccountPage actions={actions} redux={redux}/>
-        </Redux>
+        <AccountPage actions={actions} redux={redux}/>

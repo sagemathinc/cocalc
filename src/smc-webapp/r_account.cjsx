@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
@@ -1339,14 +1339,10 @@ AdminSettings = rclass
                 <SiteSettings />
             </LabeledRow>
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-                <Redux redux={redux}>
-                    <SystemMessage />
-                </Redux>
+            <SystemMessage />
             </LabeledRow>
             <LabeledRow label={add_stripe_label} style={marginTop:'15px'}>
-                <Redux redux={redux}>
-                    <AddStripeUser />
-                </Redux>
+            <AddStripeUser />
             </LabeledRow>
         </Panel>
 

@@ -947,9 +947,6 @@ class CodeMirrorEditor extends FileEditor
         return @syncdoc?.get_users_cursors(account_id)
 
     init_file_actions: () =>
-        if window.FULLY_REACT
-            # TODO: will have to do in a different way
-            return
         if not @element?
             return
         actions = redux.getProjectActions(@project_id)

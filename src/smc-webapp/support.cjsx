@@ -20,7 +20,7 @@
 ###############################################################################
 $          = window.$
 underscore = _ = require('underscore')
-{React, ReactDOM, Actions, Store, rtypes, rclass, Redux, redux, COLOR}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
 {Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, SearchInput, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
@@ -586,8 +586,6 @@ exports.ShowSupportLink = rclass
         exports.show()
 
     render : ->
-        <Redux redux={redux}>
-            <a onClick={@show} href='#' style={cursor: 'pointer'}>
-                {@props.text}
-            </a>
-        </Redux>
+        <a onClick={@show} href='#' style={cursor: 'pointer'}>
+            {@props.text}
+        </a>

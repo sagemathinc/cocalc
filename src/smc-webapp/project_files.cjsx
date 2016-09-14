@@ -1676,7 +1676,6 @@ error_style =
     position    : 'absolute'
     zIndex      : 15
     right       : '5px'
-    top         : '-43px'
     boxShadow   : '5px 5px 5px grey'
 
 exports.ProjectFiles = rclass ({name}) ->
