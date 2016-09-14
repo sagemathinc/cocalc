@@ -1478,7 +1478,7 @@ class CodeMirrorEditor extends FileEditor
 
         # do size computations: determine height and width of the codemirror editor(s)
         if not opts.top?
-            top           = redux.getProjectStore(@project_id).editor_top_position()
+            top           = redux.getProjectStore(@project_id).get('editor_top_position')
         else
             top           = opts.top
 
@@ -2673,7 +2673,7 @@ class PDF_PreviewEmbed extends FileEditor
 
         @element.show()
         if not geometry.top?
-            @element.css(top: redux.getProjectStore(@project_id).editor_top_position())
+            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
 
         if geometry.height?
             @element.height(geometry.height)
@@ -2778,14 +2778,14 @@ class Terminal extends FileEditor
     _show: () =>
         if @console?
             e = $(@console.terminal.element)
-            top = redux.getProjectStore(@project_id).editor_top_position() + @element.find(".salvus-console-topbar").height()
+            top = redux.getProjectStore(@project_id).get('editor_top_position') + @element.find(".salvus-console-topbar").height()
             # We leave a gap at the bottom of the screen, because often the
             # cursor is at the bottom, but tooltips, etc., would cover that
             ht = $(window).height() - top - 6
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(left:0, top:redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus(true)
 
 class Image extends FileEditor
@@ -2832,7 +2832,7 @@ class Image extends FileEditor
         if not @is_active()
             return
         @element.show()
-        @element.css(top: redux.getProjectStore(@project_id).editor_top_position())
+        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight()
 
 
@@ -2853,7 +2853,7 @@ class StaticHTML extends FileEditor
             @iframe.contents().find('body')[0].innerHTML = @content
             @iframe.contents().find('body').find("a").attr('target','_blank')
         @element.show()
-        #  redux.getProjectStore(@project_id).editor_top_position())
+        #  redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
         @iframe.maxheight()
 
@@ -2907,7 +2907,7 @@ class FileEditorWrapper extends FileEditor
             return
         @element.show()
         if not IS_MOBILE
-            @element.css(top: redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')
+            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
         else
             # TODO: this is a terrible HACK for position the top of the editor.
             @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
@@ -3677,7 +3677,7 @@ class HTML_MD_Editor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
-        @element.css(left:0, top: redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')
+        @element.css(left:0, top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()

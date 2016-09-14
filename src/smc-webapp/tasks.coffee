@@ -1495,25 +1495,19 @@ class TaskList
         if not IS_MOBILE
             @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
+        redux.getActions('page').set_active_key_handler(tasks_key_handler)
 
     hide: () =>
         @element.hide()
-        set_key_handler()
+        redux.getActions('page').clear_active_key_handler(tasks_key_handler)
 
 current_task_list = undefined
-set_key_handler = (task_list) ->
-    current_task_list = task_list
 
-exports.unset_key_handler = unset_key_handler = () ->
-    current_task_list = undefined
+set_key_handler = (task) ->
+    current_task_list = task
 
-require('./file_use.cjsx').add_unset_key_handler(unset_key_handler)
-
-$(window).keydown (evt) =>
+tasks_key_handler = (evt) =>
     if not current_task_list?
-        return
-    if not  current_task_list.element.is(":visible")
-        unset_key_handler()
         return
 
     if help_dialog_open
@@ -1529,6 +1523,7 @@ $(window).keydown (evt) =>
     if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 70 # f
             # global find
+            console.log("trying to focus...")
             current_task_list.element.find(".salvus-tasks-search").focus()
             return false
         if current_task_list.readonly

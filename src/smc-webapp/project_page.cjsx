@@ -289,6 +289,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 padding: 13px 15px 7px
             }'
 
+
         <div className='container-content'>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />

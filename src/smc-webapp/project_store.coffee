@@ -148,7 +148,7 @@ class ProjectActions extends Actions
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
-        x = store.get_activity()?.toJS()
+        x = store.get('activity')?.toJS()
         if not x?
             x = {}
         # Actual implemenation of above specified API is VERY minimal for
@@ -343,6 +343,8 @@ class ProjectActions extends Actions
                 @set_active_tab('files')
 
     set_current_path : (path, update_file_listing=false) =>
+        if typeof path == 'string'
+            throw "Current path should be a string. Revieved #{path} as path."
         # Set the current path for this project. path is either a string or array of segments.
         @setState
             current_path           : path
@@ -1002,17 +1004,11 @@ class ProjectStore extends Store
     destroy: =>
         @_account_store?.removeListener('change', @_account_store_change)
 
-    get_activity: =>
-        return @get('activity')
-
-    get_current_path: =>
-        return @get('current_path')
-
     get_open_files: =>
         return @get('open_files')
 
     get_open_files_order: =>
-            return @get('open_files_order')
+        return @get('open_files_order')
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
@@ -1134,10 +1130,6 @@ class ProjectStore extends Store
                     x.public = map[p]
                     x.is_public = not x.public.disabled
                     pub[x.name] = map[p]
-
-    # Used for resizing editor windows.
-    editor_top_position: () =>
-        @get('editor_top_position')
 
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)

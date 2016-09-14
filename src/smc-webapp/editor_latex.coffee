@@ -393,7 +393,7 @@ class exports.LatexEditor extends editor.FileEditor
             @_split_pos = .5
         @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))
 
-        @element.css(top:redux.getProjectStore(@project_id).editor_top_position(), position:'fixed')
+        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()

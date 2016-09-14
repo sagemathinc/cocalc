@@ -1061,7 +1061,7 @@ class JupyterNotebook extends EventEmitter
             @_last_show_geometry = geometry
         {top, left, width, height} = defaults geometry,
             left   : undefined  # not implemented
-            top    : redux.getProjectStore(@project_id).editor_top_position()
+            top    : redux.getProjectStore(@project_id).get('editor_top_position')
             width  : $(window).width()
             height : undefined  # not implemented
         @element.css(top:top)
@@ -1307,7 +1307,7 @@ class JupyterNBViewer
                 @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
-        @element.css(top: redux.getProjectStore(@project_id).editor_top_position())
+        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
         @element.find(".smc-jupyter-nbviewer-content").maxheight(offset:18)
         @iframe.maxheight(offset:18)

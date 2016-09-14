@@ -22,7 +22,23 @@ require('./jquery_plugins')
 ###
 
 class PageActions extends Actions
-    set_active_tab : (key) ->
+    # Expects a func which takes a browser keydown event
+    # Only allows one keyhandler to be active at a time.
+    set_active_key_handler : (handler) =>
+        if handler?
+            $(window).off("keydown", @active_key_handler)
+            @active_key_handler = handler
+
+        if @active_key_handler?
+            $(window).on("keydown", @active_key_handler)
+
+    clear_active_key_handler : =>
+        $(window).off("keydown", @active_key_handler)
+
+    clear_all_handlers : =>
+        $(window).off("keydown", @active_key_handler)
+
+    set_active_tab : (key) =>
         @setState(active_top_tab : key)
         switch key
             when 'projects'
@@ -41,27 +57,32 @@ class PageActions extends Actions
                 project_map = redux.getStore('projects').get('project_map')
                 set_window_title(project_map?.getIn([key, 'title']))
 
-    show_connection : (shown) ->
+    show_connection : (shown) =>
         @setState(show_connection : shown)
 
-    toggle_file_use_notification_log : ->
-        console.log("Toggling notification log")
-        @setState(show_file_use_notification_log: true)
+    toggle_show_file_use : =>
+        is_shown = redux.getStore('page').get('show_file_use')
+        if is_shown
+            @set_active_key_handler(undefined)
+        else
+            @clear_active_key_handler()
 
-    set_ping : (ping, avgping) ->
+        @setState(show_file_use: !is_shown)
+
+    set_ping : (ping, avgping) =>
         @setState(ping : ping, avgping : avgping)
 
-    set_connection_status : (val, time) ->
+    set_connection_status : (val, time) =>
         if val != 'connecting' or time - (redux.getStore('page').get('last_status_time') ? 0) > 0
             @setState(connection_status : val, last_status_time : time)
 
-    set_new_version : (version) ->
+    set_new_version : (version) =>
         @setState(new_version : version)
 
-    set_fullscreen : (val) ->
+    set_fullscreen : (val) =>
         @setState(fullscreen : val)
 
-    show_cookie_warning : ->
+    show_cookie_warning : =>
         @setState(cookie_warning : true)
 
 redux.createActions('page', PageActions)
@@ -233,12 +254,27 @@ NavTab = rclass
             {@props.children}
         </NavItem>
 
-FileUsePageWrapper = rclass
-    render : ->
-        <div style={position:'absolute', right:'0', top:'44px', width:'40vw', minWidth:'120px', height:'80vh', backgroundColor:'red', zIndex: '99999'}>
-            Holds the file use
-            {#<FileUsePage />}
-        </div>
+FileUsePageWrapper = (props) ->
+    styles =
+        zIndex: '1000'
+        marginLeft: '0'
+        position: 'fixed'
+        boxShadow: '0 0 15px #aaa'
+        border: '2px solid #ccc'
+        top: '43px'
+        background: '#fff'
+        right: '2em'
+        overflowY: 'auto'
+        overflowX: 'hidden'
+        fontSize: '10pt'
+        padding: '4px'
+        borderRadius: '5px'
+        width: '50%'
+        height: '90%'
+
+    <div style={styles}>
+        {<FileUsePage redux={redux} />}
+    </div>
 
 NotificationBell = rclass
     displayName: 'NotificationBell'
@@ -247,8 +283,7 @@ NotificationBell = rclass
         count : rtypes.number
 
     on_click : ->
-        console.log("show them notifications!")
-        @actions('page').toggle_file_use_notification_log()
+        @actions('page').toggle_show_file_use()
 
     notification_count : ->
         count_styles =
@@ -466,7 +501,9 @@ Page = rclass
             new_version : rtypes.object
             fullscreen : rtypes.bool
             cookie_warning : rtypes.bool
-            show_file_use_notification_log : rtypes.bool
+            show_file_use : rtypes.bool
+        file_use :
+            get_notify_count : rtypes.func
         account :
             get_fullname : rtypes.func
             is_logged_in : rtypes.func
@@ -476,6 +513,9 @@ Page = rclass
     propTypes :
         redux : rtypes.object
         page_actions : rtypes.object
+
+    componentWillUnmount : ->
+        @actions('page').clear_all_handlers()
 
     close_project : (e, project_id) ->
         e.stopPropagation()
@@ -579,7 +619,7 @@ Page = rclass
             <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
             <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
-            {<NotificationBell count={@props.notification_count} /> if @props.is_logged_in()}
+            {<NotificationBell count={@props.get_notify_count()} /> if @props.is_logged_in()}
             <ConnectionIndicator actions={@props.page_actions} />
         </Nav>
 
@@ -623,7 +663,7 @@ Page = rclass
 
         <div style={style}>
             <style>{page_style}</style>
-            {<FileUsePageWrapper /> if @props.show_file_use_notification_log}
+            {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
