@@ -82,10 +82,10 @@ exports.redux_name = key = (project_id, name) ->
 
 
 class ProjectActions extends Actions
-    _ensure_project_is_open : (cb) =>
+    _ensure_project_is_open : (cb, switch_to) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
-            @redux.getActions('projects').open_project(project_id:@project_id)
+            @redux.getActions('projects').open_project(project_id:@project_id, switch_to:true)
             s.wait_until_project_is_open(@project_id, 30, cb)
         else
             cb()
@@ -343,8 +343,13 @@ class ProjectActions extends Actions
                 @set_active_tab('files')
 
     set_current_path : (path, update_file_listing=false) =>
-        if typeof path == 'string'
-            throw "Current path should be a string. Revieved #{path} as path."
+        # SMELL: Track from history.coffee
+        if path is NaN
+            path = ''
+        path ?= ''
+        if typeof path != 'string'
+            window.cpath_args = arguments
+            throw "Current path should be a string. Revieved arguments are available in window.cpath_args"
         # Set the current path for this project. path is either a string or array of segments.
         @setState
             current_path           : path

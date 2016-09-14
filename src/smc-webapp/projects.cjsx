@@ -144,6 +144,7 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
+        console.log("OPENING PROJECT", opts.project_id, opts.target, opts.switch_to)
         require('./project_store') # registers the project store with redux...
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)
@@ -156,6 +157,20 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+
+    # should not be in projects...?
+    load_target : (target, switch_to) =>
+        if not target or target.length == 0
+            redux.getActions('page').set_active_tab('projects')
+            return
+        segments = target.split('/')
+        if misc.is_valid_uuid_string(segments[0])
+            t = segments.slice(1).join('/')
+            project_id = segments[0]
+            redux.getActions('projects').open_project
+                project_id: project_id
+                target    : t
+                switch_to : switch_to
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
@@ -589,31 +604,11 @@ redux.createTable('projects', ProjectsTable)
 
 # Should not be necessary/here for React/Redux
 exports.open_project = open_project = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        item       : undefined
-        target     : undefined
-        switch_to  : true
-
-    require.ensure [], ->
-        if opts.switch_to
-            redux.getActions('page').set_active_tab(opts.project_id)
-        if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+    throw "Fix this! #{arguments}"
 
 # Should not be necessary/here for React/Redux
 exports.load_target = load_target = (target, switch_to) ->
-    if not target or target.length == 0
-        redux.getActions('page').set_active_tab('projects')
-        return
-    segments = target.split('/')
-    if misc.is_valid_uuid_string(segments[0])
-        t = segments.slice(1).join('/')
-        project_id = segments[0]
-        redux.getActions('projects').open_project
-            project_id: project_id
-            target    : t
-            switch_to : switch_to
+    throw "Fix this! #{arguments}"
 
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
@@ -944,7 +939,7 @@ NewProjectCreator = rclass
                     @save_upgrade_quotas(project_id)
                 @cancel_editing()
                 if with_upgrades
-                    open_project(project_id:project_id)
+                    @actions('projects').open_project(project_id:project_id)
 
     save_upgrade_quotas : (project_id) ->
         # how much upgrade you have used between all projects
@@ -1322,13 +1317,13 @@ ProjectRow = rclass
         return r_join(users)
 
     open_project_from_list : (e) ->
-        @props.redux.getActions('projects').open_project
+        @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
-        @props.redux.getActions('projects').open_project
+        @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             target     : 'settings'
@@ -1579,7 +1574,7 @@ ProjectSelector = rclass
         else
             # enable the hashtag
             selected_hashtags[filter][tag] = true
-        @props.redux.getActions('projects').setState(selected_hashtags: selected_hashtags)
+        @actions('projects').setState(selected_hashtags: selected_hashtags)
 
     filter : ->
         "#{@props.hidden}-#{@props.deleted}"
@@ -1595,7 +1590,7 @@ ProjectSelector = rclass
     open_first_project : ->
         project = @visible_projects()[0]
         if project?
-            open_project(project_id: project.project_id)
+            @actions('projects').open_project(project_id: project.project_id)
     ###
     # Consolidate the next two functions.
     ###
@@ -1616,7 +1611,7 @@ ProjectSelector = rclass
         return false
 
     clear_filters_and_focus_search_input : ->
-        @props.redux.getActions('projects').setState(selected_hashtags:{})
+        @actions('projects').setState(selected_hashtags:{})
         @refs.search.clear_and_focus_input()
 
     render : ->

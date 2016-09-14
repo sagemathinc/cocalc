@@ -94,7 +94,7 @@ exports.load_target = load_target = (target) ->
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
-                    require('./projects').load_target(segments.slice(1).join('/'), true)
+                    redux.getActions('projects').load_target(segments.slice(1).join('/'), true)
                 else
                     redux.getActions('page').set_active_tab('projects')
         when 'settings'

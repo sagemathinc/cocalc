@@ -120,9 +120,10 @@ Avatar = rclass
 
     render: ->
         #extra div for necessary for overlay not to destroy background color
-        {open_project} = require('./projects')
+        open_project = @actions('projects').open_project
+
         if @props.viewing_what == 'projects'
-            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id)}>
+            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id, switch_to:true)}>
                 <div style={display:'inline-block'}>
                     <div style={@_outerStyle()}>
                         {@render_image()}
