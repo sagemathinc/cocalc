@@ -55,8 +55,9 @@ editors = {}
 
 # Expects key of form "#{project_id}-#{path}"
 exports.remove_editor = (key) ->
-    editors["#{key}"].remove()
-    delete editors["#{key}"]
+    if editors["#{key}"]
+        editors["#{key}"].remove()
+        delete editors["#{key}"]
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,

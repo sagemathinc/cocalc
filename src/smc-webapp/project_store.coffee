@@ -656,8 +656,8 @@ class ProjectActions extends Actions
 
     move_files : (opts) =>
         opts = defaults opts,
-            src     : required
-            dest    : required
+            src     : required    # Array of src paths to mv
+            dest    : required    # Single dest string
             path    : undefined   # default to root of project
             mv_args : undefined
             id      : undefined

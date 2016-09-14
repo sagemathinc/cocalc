@@ -142,10 +142,9 @@ class ProjectsActions extends Actions
     # J3: Maybe should be in Page actions? I don't see the upside.
     open_project : (opts) =>
         opts = defaults opts,
-            project_id : required
-            target     : undefined
-            switch_to  : undefined
-        console.log("OPENING PROJECT", opts.project_id, opts.target, opts.switch_to)
+            project_id : required  # string  id of the project to open
+            target     : undefined # string  The file path to open
+            switch_to  : undefined # bool    Whether or not to foreground it
         require('./project_store') # registers the project store with redux...
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)

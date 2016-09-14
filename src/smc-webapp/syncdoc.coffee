@@ -556,7 +556,6 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
-        console.log("Syncdoc2 made with editor", @editor)
         window.syncdoc2 = @
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
