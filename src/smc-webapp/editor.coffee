@@ -2761,6 +2761,9 @@ class Terminal extends FileEditor
     focus: () =>
         @console?.focus()
 
+    blur: () =>
+        @console?.blur()
+
     terminate_session: () =>
 
     remove: () =>

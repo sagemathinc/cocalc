@@ -85,7 +85,8 @@ exports.set_url = (url) ->
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
     $('body').scrollTop(0) #temporary hack
-    if not target
+    logged_in = redux.getStore('account').is_logged_in()
+    if not target or not logged_in
         return
     segments = target.split('/')
     switch segments[0]

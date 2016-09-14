@@ -27,11 +27,13 @@ WrappedEditor = rclass ({project_name}) ->
         if span.length > 0
             span.replaceWith(@props.editor.element[0])
         @props.editor.show()
+        @props.editor.focus?()
         window.addEventListener('resize', @refresh)
 
     componentWillUnmount: ->
         console.log("componentWillUnmount")
         window.removeEventListener('resize', @refresh)
+        @props.editor.blur?()
         @props.editor.hide()
 
     componentDidUpdate: ->
