@@ -292,6 +292,7 @@ SAGE_PIP_PACKAGES = [
     'nipype',  # https://github.com/nipy/nipype/
     'hypothesis',
     'xgboost', # https://github.com/dmlc/xgboost
+    'pypolymake', # https://github.com/videlec/pypolymake/
     ]
 
 # additional environment settings for specific packages
@@ -482,6 +483,7 @@ class BuildSage(object):
             "install_jsanimation",
             "install_sage_manifolds",
             "install_r_jupyter_kernel",
+            "install_jupyter_ipywidget",
             "install_cv2",
             "install_cairo",
             "install_psage",
@@ -516,6 +518,13 @@ class BuildSage(object):
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
         self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/repr"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R --no-save""")
+
+    def install_jupyter_ipywidget(self):
+        '''
+        This finishes the setup of ipywidget inside jupyter notebook. no idea why this is necessary, and if this would be necessary
+        to run again after something changes ...
+        '''
+        self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
 
     @deprecated
     def pull_smc_sage(self):
