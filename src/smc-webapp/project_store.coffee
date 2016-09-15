@@ -265,21 +265,28 @@ class ProjectActions extends Actions
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= (store.get('current_path') ? "")
-                sort_by_time ?= (store.get('sort_by_time') ? true)
-                show_hidden  ?= (store.get('show_hidden') ? false)
-                if group in ['owner', 'collaborator', 'admin']
-                    method = 'project_directory_listing'
-                else
-                    method = 'public_project_directory_listing'
-                require('./salvus_client').salvus_client[method]
-                    project_id : @project_id
-                    path       : path
-                    time       : sort_by_time
-                    hidden     : show_hidden
-                    timeout    : 45
-                    cb         : (err, x) =>
-                        listing = x; cb(err)
+                f = (fcb) =>
+                    path         ?= (store.get('current_path') ? "")
+                    sort_by_time ?= (store.get('sort_by_time') ? true)
+                    show_hidden  ?= (store.get('show_hidden') ? false)
+                    if group in ['owner', 'collaborator', 'admin']
+                        method = 'project_directory_listing'
+                    else
+                        method = 'public_project_directory_listing'
+                    require('./salvus_client').salvus_client[method]
+                        project_id : @project_id
+                        path       : path
+                        time       : sort_by_time
+                        hidden     : show_hidden
+                        timeout    : 45
+                        cb         : (err, x) ->
+                            listing = x; fcb(err)
+                misc.retry_until_success
+                    f           : f
+                    start_delay : 0
+                    max_time    : 30000
+                    max_delay   : 10000
+                    cb          : cb
         ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
