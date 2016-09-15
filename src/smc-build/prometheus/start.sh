@@ -13,4 +13,4 @@ prometheus -config.file=prometheus.yml             \
            -storage.local.memory-chunks=500000     \
            -storage.local.max-chunks-to-persist=1000000 \
            -storage.local.chunk-encoding-version=2 \
-
+           -alertmanager.url=http://localhost:9093/

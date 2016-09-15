@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # startup-wrapper for alertmanager (mainly, reading the password for emails)
 import yaml
 import os
@@ -28,7 +28,8 @@ config_yaml = yaml.dump(config, default_flow_style=False, canonical=False, inden
 with open(config_fn, 'w') as out:
     out.write(config_yaml)
 
+from shutil import which
 DATA = os.environ['DATA'] # set in prometheus.env
-os.execl(abspath('alertmanager'), '-config.file=%s' % config_fn, '-storage.path', DATA)
+os.execl(which('alertmanager'), '-config.file=%s' % config_fn, '-storage.path', DATA)
 
 
