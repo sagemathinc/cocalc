@@ -41,6 +41,7 @@ markdown = require('./markdown')
 {UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 {UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+{redux_name} = require('project_store')
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -54,10 +55,13 @@ class ProjectsActions extends Actions
         if index == -1
             @setState(open_projects : x.push(project_id))
 
+    # TODO-RR: Close the store and actions.
     set_project_closed : (project_id) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)
         if index != -1
+            redux
+            redux.removeProjectReferences(project_id)
             @setState(open_projects : x.delete(index))
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.

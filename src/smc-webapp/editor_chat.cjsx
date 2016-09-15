@@ -81,7 +81,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
@@ -185,8 +185,8 @@ class ChatActions extends Actions
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
-exports.init_redux = init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
+init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, ChatActions)
@@ -194,11 +194,11 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
 
     synchronized_db
         project_id    : project_id
-        filename      : filename
+        filename      : path
         sync_interval : 0
         cb            : (err, syncdb) ->
             if err
-                alert_message(type:'error', message:"unable to open #{@filename}")
+                alert_message(type:'error', message:"unable to open #{@path}")
             else
                 store.syncdb = actions.syncdb = syncdb
 
@@ -228,6 +228,20 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
 
+    return name
+
+remove_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    store = redux.getStore(name)
+    if not store?
+        return
+    store.syncdb?.destroy()
+    delete store.state
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    redux.removeStore(name)
+    redux.removeActions(name)
+    return name
 
 Message = rclass
     displayName: "Message"
@@ -687,9 +701,30 @@ ChatRoom = rclass ({name}) ->
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         input          : ''
         preview        : ''
+
+    componentWillMount: ->
+        @set_preview_state = underscore.debounce(@set_preview_state, 500)
+        @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
+        @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+
+    componentDidMount: ->
+        @scroll_to_position()
+        if @props.is_preview
+            if @is_at_bottom()
+                @debounce_bottom()
+        else
+            @props.actions.set_is_preview(false)
+
+    componentWillReceiveProps: (next) ->
+        if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
+            @_use_saved_position = false
+
+    componentDidUpdate: ->
+        if not @_use_saved_position
+            @scroll_to_bottom()
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -799,27 +834,6 @@ ChatRoom = rclass ({name}) ->
     debounce_bottom: ->
         #debounces it so that the preview shows up then calls
         @scroll_to_bottom()
-
-    componentWillMount: ->
-        @set_preview_state = underscore.debounce(@set_preview_state, 500)
-        @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
-        @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
-
-    componentDidMount: ->
-        @scroll_to_position()
-        if @props.is_preview
-            if @is_at_bottom()
-                @debounce_bottom()
-        else
-            @props.actions.set_is_preview(false)
-
-    componentWillReceiveProps: (next) ->
-        if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
-            @_use_saved_position = false
-
-    componentDidUpdate: ->
-        if not @_use_saved_position
-            @scroll_to_bottom()
 
     show_files : ->
         @props.redux?.getProjectActions(@props.project_id).set_active_tab('files')
@@ -1052,14 +1066,10 @@ ChatRoom = rclass ({name}) ->
                 </Row>
             </Grid>
 
-initialize_state = (path, redux, project_id) ->
-    init_redux(redux, project_id, path)
-    return redux_name(project_id, path)
-
 ChatEditorGenerator = (path, redux, project_id) ->
     # console.log("Generating Chat Editor -- This should happen once per file opening")
     name = redux_name(project_id, path)
-    C_ChatRoom = ({path, actions, project_id}) ->
+    C_ChatRoom = ({path, actions, project_id, redux}) ->
         file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
         <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
 
@@ -1076,5 +1086,6 @@ ChatEditorGenerator = (path, redux, project_id) ->
 require('project_file').register_file_editor
     ext       : 'sage-chat'
     icon      : 'comment'
-    init      : initialize_state
+    init      : init_redux
     generator : ChatEditorGenerator
+    remove    : remove_redux

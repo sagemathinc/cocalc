@@ -22,7 +22,7 @@ ProjectTab = rclass
     displayName : 'ProjectTab'
 
     propTypes :
-        name               : rtypes.string    # key
+        name               : rtypes.string
         label              : rtypes.string    # rendered tab title
         icon               : rtypes.string    # Affiliated icon
         project_id         : rtypes.string
@@ -188,7 +188,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             free_warning_closed : rtypes.bool     # Makes bottom height update
 
     propTypes :
-        project_id      : rtypes.string
+        project_id : rtypes.string
 
     componentDidMount : ->
         @set_bottom_height()
@@ -254,6 +254,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         actions={@actions(Page.redux_name)}
                         name={Page.redux_name}
                         project_name={"#{name}"}
+                        path={active}
                     />
                 else
                     <div>You should not be here! {@props.active_project_tab}</div>

@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./smc-react')
 {Loading} = require('r_misc')
 {Input} = require('react-bootstrap')
 
@@ -71,26 +71,41 @@ default_store_state =
     value : ''
     options : {}
 
-exports.init_redux = init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
+init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
     console.log("store=smc.redux.getStore('#{name}');actions=smc.redux.getActions('#{name}');")
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, CodemirrorActions)
     store   = redux.createStore(name, default_store_state)
 
-    console.log("getting syncstring for '#{filename}'")
+    console.log("getting syncstring for '#{path}'")
     synchronized_string
         project_id    : project_id
-        filename      : filename
+        path      : path
         sync_interval : 100
         cb            : (err, syncstring) ->
             if err
-                actions.report_error("unable to open #{@filename}")
+                actions.report_error("unable to open #{@path}")
             else
                 syncstring.on('sync', actions.sync)
                 store.syncstring = actions.syncstring = syncstring
                 actions.set_value(syncstring.live())
+
+    return name
+
+remove_redux(path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    store = redux.getStore(name)
+    if not store?
+        return
+    store.syncstring?.destroy()
+    delete store.state
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    redux.removeStore(name)
+    redux.removeActions(name)
+    return name
 
 CodemirrorEditor = rclass ({name}) ->
     reduxProps :
@@ -170,12 +185,9 @@ CodemirrorEditor = rclass ({name}) ->
             <textarea />
         </div>
 
-initialize_state = (path, redux, project_id) ->
-    init_redux(redux, project_id, path)
-    return redux_name(project_id, path)
-
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
-    init      : initialize_state
+    init      : init_redux
     component : CodemirrorEditor
+    remove    : remove_redux

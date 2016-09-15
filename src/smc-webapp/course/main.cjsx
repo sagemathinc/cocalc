@@ -81,7 +81,7 @@ primary_key =
     handouts    : 'handout_id'
 
 syncdbs = {}
-exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
+init_redux = (course_filename, redux, course_project_id) ->
     the_redux_name = redux_name(course_project_id, course_filename)
     get_actions = ->redux.getActions(the_redux_name)
     get_store = -> redux.getStore(the_redux_name)
@@ -1793,9 +1793,16 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         actions.lookup_nonregistered_students()
                         actions.configure_all_projects()
 
-    return # don't return syncdb above
+    return the_redux_name
 
-CourseEditor = (name) -> rclass
+remove_redux = (course_filename, redux, course_project_id) ->
+    the_redux_name = redux_name(course_project_id, course_filename)
+    redux.removeStore(the_redux_name)
+    redux.removeActions(the_redux_name)
+    delete syncdbs[the_redux_name]
+    return the_redux_name
+
+CourseEditor = rclass ({name}) ->
     displayName : "CourseEditor-Main"
 
     reduxProps :
@@ -1944,32 +1951,9 @@ CourseEditor = (name) -> rclass
             </Tabs>
         </div>
 
-initialize_state = (path, redux, project_id) ->
-    console.log("Initializing editor archive")
-    init_redux(redux, project_id, path)
-    return redux_name(project_id, path)
-
-CourseGenerator = (path, redux, project_id) ->
-    console.log("Generating Chat Editor -- This should happen once per file opening")
-    name = redux_name(project_id, path)
-    C = CourseEditor(name)
-    C_CourseEditor = ({redux, path, actions, project_id}) ->
-        <Redux redux={redux}>
-            <C redux={redux} path={path} name={name} actions={actions} project_id={project_id} />
-        </Redux>
-
-    C_CourseEditor.redux_name = name
-
-    C_CourseEditor.propTypes =
-        redux      : rtypes.object
-        path       : rtypes.string.isRequired
-        actions    : rtypes.object.isRequired
-        project_id : rtypes.string.isRequired
-
-    return C_CourseEditor
-
 require('project_file').register_file_editor
     ext    : 'course'
     icon   : 'graduation-cap'
-    init      : initialize_state
-    generator : CourseGenerator
+    init      : init_redux
+    component : CourseEditor
+    remove    : remove_redux

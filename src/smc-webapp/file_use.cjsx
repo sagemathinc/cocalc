@@ -275,6 +275,7 @@ open_file_use_entry = (info, redux) ->
         return
     # mark this file_use entry read
     redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
+    redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.

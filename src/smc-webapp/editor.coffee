@@ -21,7 +21,7 @@
 
 $ = window.$
 
-# Editor for files in a project
+# Editor files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
 #    require('./editor').SHOW_BUTTON_LABELS=0
@@ -3717,104 +3717,6 @@ class HTML_MD_Editor extends FileEditor
         @source_editor?.focus()
 
 {LatexEditor} = require('./editor_latex')
-
-class ReactCodemirror extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_codemirror = require('./editor_codemirror')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_codemirror.free(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_codemirror.hide(args...)
-            show    : =>
-                editor_codemirror.show(args...)
-        editor_codemirror.render(args...)
-
-class ReactTerminal extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_terminal = require('./editor_terminal')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '1px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-
-        args =
-            project_id : @editor.project_id
-            filename   : @filename
-            dom_node   : @element[0]
-            redux      : require('./smc-react').redux
-            editor     : @
-
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_terminal.free(args)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_terminal.hide(args)
-            show    : =>
-                editor_terminal.show(args)
-        editor_terminal.render(args)
-
-###
-# *TEMPLATE* for a react-based editor
-###
-class TemplateEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        the_editor = require('./editor_template')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                the_editor.free(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                the_editor.hide(args...)
-            show    : =>
-                the_editor.show(args...)
-        the_editor.render(args...)
-
 
 exports.register_nonreact_editors = () ->
 

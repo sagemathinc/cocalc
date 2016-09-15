@@ -50,8 +50,22 @@ COMMANDS =
             command : 'xz'
             args    : ['-vfd']
 
-exports.redux_name = redux_name = (project_id, path) ->
+redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
+
+init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    if redux.getActions(name)?
+        return  # already initialized
+    actions = redux.createActions(name, ArchiveActions)
+    store   = redux.createStore(name)
+    return name
+
+remove_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    redux.removeActions(name)
+    redux.removeStore(name)
+    return name
 
 class ArchiveActions extends Actions
     parse_file_type : (file_info) ->
@@ -183,17 +197,9 @@ Archive = rclass ({name}) ->
             <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
-init_redux = (path, redux, project_id) ->
-    console.log("Initializing editor archive")
-    name = redux_name(project_id, path)
-    if redux.getActions(name)?
-        return  # already initialized
-    actions = redux.createActions(name, ArchiveActions)
-    store   = redux.createStore(name)
-    return redux_name(project_id, path)
-
 require('project_file').register_file_editor
     ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
     icon   : 'file-archive-o'
-    component : Archive
     init      : init_redux
+    component : Archive
+    remove    : remove_redux

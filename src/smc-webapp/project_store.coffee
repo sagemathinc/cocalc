@@ -32,7 +32,7 @@ misc      = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table, register_project_store}  = require('./smc-react')
+{Actions, Store, Table, register_project_store, redux}  = require('./smc-react')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -258,7 +258,7 @@ class ProjectActions extends Actions
                         open_files_order = store.get_open_files_order()
                         # Intialize the file's store and actions
                         name = project_file.initialize(opts.path, @redux, @project_id)
-                        console.log("name?", name)
+                        console.log("name? in open_file", name)
 
                         # Make the editor
                         editor = project_file.generate(opts.path, @redux, @project_id)
@@ -268,8 +268,6 @@ class ProjectActions extends Actions
                         @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
                         if opts.foreground
                             @set_active_tab(misc.path_to_tab(opts.path))
-                        if opts.chat
-                            editor.get_editor()?.show_chat_window?()
         return
 
     convert_sagenb_worksheet: (filename, cb) =>
@@ -316,13 +314,25 @@ class ProjectActions extends Actions
                 else
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
 
+    # Closes all files and removes all references
+    close_all_files : () =>
+        file_paths = @get_store().get_open_files_order()
+        if file_paths.isEmpty()
+            return
+
+        empty = file_paths.filter (path) =>
+            project_file.remove(path, @redux, @project_id)
+            return false
+
+        @setState(open_files_order : empty, open_files : {})
+
+    # closes the file and removes all references
     close_file : (path) =>
-        # TODOJ actually close the file and delete references...
         x = @get_store().get_open_files_order()
         index = x.indexOf(path)
         if index != -1
             @setState(open_files_order : x.delete(index), open_files : @get_store().get('open_files').delete(path))
-            wrapped_editors.remove_editor("#{@project_id}-#{path}")
+            project_file.remove(path, @redux, @project_id)
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>
@@ -1165,6 +1175,7 @@ exports.getStore = getStore = (project_id, redux) ->
         active_project_tab : 'files'
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
+        children_stores    : immutable.List([])
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 
@@ -1205,6 +1216,7 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     must_define(redux)
     name = key(project_id)
     redux.getStore(name)?.destroy?()
+    redux.getActions(name).close_all_files()
     redux.removeActions(name)
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))

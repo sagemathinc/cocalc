@@ -234,6 +234,9 @@ class AppRedux
     getProjectTable: (project_id, name) =>
         return project_store?.getTable(project_id, name, @)
 
+    removeProjectReferences: (project_id) =>
+        return project_store?.deleteStoreActionsTable(project_id, @)
+
 redux = new AppRedux()
 
 rtypes = React.PropTypes

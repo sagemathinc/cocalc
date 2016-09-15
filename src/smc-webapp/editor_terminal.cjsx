@@ -11,7 +11,7 @@ underscore = require('underscore')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, redux, Actions, Store}  = require('./smc-react')
 {Loading, SearchInput, Icon} = require('r_misc')
 {Alert, Button, Col, Row, Panel, ButtonToolbar, Input} = require('react-bootstrap')
 
@@ -31,8 +31,7 @@ default_store_state = (project_id, filename) ->
     project_id : project_id
     value     : ''
 
-syncdbs = {}
-exports.init_redux = init_redux = (redux, project_id, filename) ->
+init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
@@ -52,6 +51,20 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                 syncstring.on('sync', actions.sync)
                 store.syncstring = actions.syncstring = syncstring
                 actions.set_value(syncstring.live())
+    return name
+
+remove_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    store = redux.getStore(name)
+    if not store?
+        return
+    store.syncstring?.destroy()
+    delete store.state
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    redux.removeStore(name)
+    redux.removeActions(name)
+    return name
 
 # Putting client -> server actions here as well as action -> state
 class DevTerminalActions extends Actions
@@ -303,12 +316,9 @@ exports.TerminalEditor = rclass ({name}) ->
             </Panel>
         </div>
 
-initialize_state = (path, redux, project_id) ->
-    init_redux(redux, project_id, path)
-    return redux_name(project_id, path)
-
 require('project_file').register_file_editor
     ext         : ['term', 'sage-term']
     icon        : 'file-code-o'
-    init      : initialize_state
+    init      : init_redux
     component : TerminalEditor
+    remove    : remove_redux

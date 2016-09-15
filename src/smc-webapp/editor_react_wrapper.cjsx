@@ -55,12 +55,6 @@ WrappedEditor = rclass ({project_name}) ->
 # Used for caching
 editors = {}
 
-# Expects key of form "#{project_id}-#{path}"
-exports.remove_editor = (key) ->
-    if editors["#{key}"]
-        editors["#{key}"].remove()
-        delete editors["#{key}"]
-
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
         f    : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor
@@ -90,6 +84,13 @@ exports.register_nonreact_editor = (opts) ->
             wrapper_generator.get_editor = -> editors[key]
 
             return wrapper_generator
+
+        remove     : (path, redux, project_id) ->
+            key = "#{project_id}-#{path}"
+            if editors["#{key}"]
+                editors["#{key}"].remove()
+                delete editors["#{key}"]
+
 
 
 
