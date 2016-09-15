@@ -145,6 +145,7 @@ PY_SAGE = PY_COMMON + [
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
+    'polymake', # https://github.com/videlec/pypolymake/
 ]
 
 # and in anaconda
