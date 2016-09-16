@@ -43,6 +43,27 @@ if [[ $- =~ i  && `whoami` != "root"  && `whoami` != "salvus" ]]; then
    echo "│ Experiencing any problems or is something missing?   email help@sagemath.com │"
    echo "└──────────────────────────────────────────────────────────────────────────────┘"
    echo ""
+
+   # and alias pip to pip --user for non-root and non-salvus users
+   PIP2=`which pip2`
+   PIP3=`which pip3`
+
+   __pip () {
+    P=PIP$1
+    PIP=${!P}
+    shift
+    if [[ "$1" == "install" ]]; then
+        shift
+        $PIP install --user $@
+    else
+        $PIP $@
+    fi
+   }
+
+   pip  () { __pip 2 $@; }
+   pip2 () { __pip 2 $@; }
+   pip3 () { __pip 3 $@; }
+  # END aliasing pip, pip2 and pip3
 fi
 
 # colored man pages
