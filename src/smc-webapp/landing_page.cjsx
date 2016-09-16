@@ -82,7 +82,7 @@ SignUp = rclass
         style         : rtypes.object
 
     getInitialState :  ->
-        agree_to_tos : false
+        agree_to_terms : false
 
     make_account : (e) ->
         e.preventDefault()
@@ -106,6 +106,9 @@ SignUp = rclass
         if @props.token
             <Input ref='token' type='text' placeholder='Enter the secret token' />
 
+    toggle_agree_to_terms : ->
+        @setState(agree_to_terms:!@state.agree_to_terms)
+
     render : ->
         <Well style={marginTop:'10px'}>
             {@display_token_input()}
@@ -119,14 +122,14 @@ SignUp = rclass
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <Input ref='agree_to_tos' type='checkbox' onClick={=>@setState(agree_to_tos:!@state['agree_to_tos'])} style={margin:0, position:'static', display:'inline', float:'left', marginRight: 10} /> I agree to the <a href="https://cloud.sagemath.com/policies/terms.html">Terms of Service</a>  
+                <Input style={marginTop: UNIT} checked={@state.agree_to_terms} ref='agree_to_terms' type='checkbox' onClick={=>@toggle_agree_to_terms()} style={margin:0, position:'static', display:'inline', float:'left', marginRight: 10} /> <span onClick={=>@toggle_agree_to_terms()}>I agree to the</span> <a href="https://cloud.sagemath.com/policies/terms.html" target="_blank">Terms of Service</a>  
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
-                    disabled={not @state['agree_to_tos']}
+                    disabled={not @state.agree_to_terms}
                     bsStyle="success"
                     bsSize='large'
                     type='submit'
                     block>
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up! {if not @state['agree_to_tos'] then '(Must agree to the terms of use first)'}
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up! {if not @state.agree_to_terms then '(Agree to the terms of use first)'}
                     </Button>
             </form>
             <div style={textAlign: "center"}>
