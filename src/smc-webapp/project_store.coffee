@@ -1015,7 +1015,7 @@ get_directory_listing = (opts) ->
 
     misc.retry_until_success
         f        : f
-        max_time : opts.max_time
+        max_time : opts.max_time_s * 1000
         #log      : console.log
         cb       : (err) ->
             opts.cb(err, listing)
