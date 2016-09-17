@@ -1,11 +1,13 @@
 ###
 project page react component
-
-
 ###
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+# 3rd party Libraries
+{Nav, NavItem, Alert, Col, Row} = require('react-bootstrap')
+{SortableContainer, SortableElement} = require('react-sortable-hoc')
 
+# SMC Libraries
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {ProjectFiles}    = require('./project_files')
 {ProjectNew}      = require('./project_new')
 {ProjectLog}      = require('./project_log')
@@ -14,9 +16,14 @@ project page react component
 project_file = require('./project_file')
 {file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
-{Nav, NavItem, Alert, Col, Row} = require('react-bootstrap')
 {Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
 misc = require('misc')
+
+default_file_tab_styles =
+    width : 250
+    borderRadius : "5px 5px 0px 0px"
+    flexShrink : '1'
+    overflow : 'hidden'
 
 ProjectTab = rclass
     displayName : 'ProjectTab'
@@ -29,23 +36,25 @@ ProjectTab = rclass
         tooltip            : rtypes.string
         active_project_tab : rtypes.string
         file_tab           : rtypes.bool      # Whether or not this tab holds a file
+        shrink             : rtypes.bool      # Whether or not to shrink to just the icon
         open_files_order   : rtypes.object
 
     getInitialState : () ->
-        hover : false
+        x_hovered : false
 
     mouse_over: ->
-        @setState(hover:true)
+        @setState(x_hovered:true)
 
     mouse_out: ->
-        @setState(hover:false)
+        @setState(x_hovered:false)
+        @actions({project_id:@props.project_id}).clear_ghost_file_tabs()
 
     close_file : (e, path) ->
         e.stopPropagation()
         e.preventDefault()
+        index = @props.open_files_order.indexOf(path)
+        size = @props.open_files_order.size
         if misc.path_to_tab(path) == @props.active_project_tab
-            index = @props.open_files_order.indexOf(path)
-            size = @props.open_files_order.size
             next_active_tab = 'files'
             if index == 0 or size <= 1
                 next_active_tab = 'files'
@@ -55,6 +64,10 @@ ProjectTab = rclass
                 else
                     next_active_tab = misc.path_to_tab(@props.open_files_order.get(index + 1))
             @actions(project_id: @props.project_id).set_active_tab(next_active_tab)
+        if index == size - 1
+            @actions({project_id:@props.project_id}).clear_ghost_file_tabs()
+        else
+            @actions({project_id:@props.project_id}).add_a_ghost_file_tab()
         @actions(project_id: @props.project_id).close_file(path)
 
     render : ->
@@ -63,12 +76,9 @@ ProjectTab = rclass
         is_active_tab = @props.name == @props.active_project_tab
 
         if @props.file_tab
+            styles = misc.copy(default_file_tab_styles)
             if is_active_tab
                 styles.backgroundColor = SAGE_LOGO_COLOR
-            styles.width = 250
-            styles.borderRadius = "5px 5px 0px 0px"
-            styles.flexShrink = '1'
-            styles.overflow = 'hidden'
         else
             styles.flex = 'none'
 
@@ -83,18 +93,19 @@ ProjectTab = rclass
             fontSize:'12pt'
             marginTop: '-3px'
 
-        if @state.hover
+        if @state.x_hovered
             x_button_styles.color = 'red'
+
+        text_color = "white" if is_active_tab
 
         <NavItem
             style={styles}
-            key={@props.name}
             active={is_active_tab}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%'}>
+            <div style={width:'100%', color:text_color}>
                 <div style={x_button_styles}>
                     {<Icon
                         onMouseOver={@mouse_over} onMouseOut={@mouse_out}
@@ -104,11 +115,22 @@ ProjectTab = rclass
                 </div>
                 <div style={label_styles}>
                     <Tip title={@props.tooltip} placement='bottom' size='small'>
-                        <Icon style={fontSize: if @props.file_tab then '10pt' else '15pt'} name={@props.icon} /> {@props.label}
+                        <Icon style={fontSize: if @props.file_tab then '10pt' else '15pt'} name={@props.icon} /> {@props.label if not @props.shrink}
                     </Tip>
                 </div>
             </div>
         </NavItem>
+
+NavWrapper = ({style, children, id, className, bsStyle}) ->
+    React.createElement(Nav, {style:style, id:id, className:className, bsStyle:bsStyle}, children)
+
+GhostTab = (props) ->
+    <NavItem
+        style={default_file_tab_styles}
+    />
+
+SortableProjectTab = SortableElement(ProjectTab)
+SortableNav = SortableContainer(NavWrapper)
 
 FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
@@ -177,15 +199,16 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map : rtypes.immutable
+            project_map  : rtypes.immutable
             get_my_group : rtypes.func
         page :
             fullscreen : rtypes.bool
         "#{name}" :
-            active_project_tab : rtypes.string
-            open_files  : rtypes.immutable
-            open_files_order : rtypes.immutable
+            active_project_tab  : rtypes.string
+            open_files          : rtypes.immutable
+            open_files_order    : rtypes.immutable
             free_warning_closed : rtypes.bool     # Makes bottom height update
+            num_ghost_file_tabs : rtypes.number
 
     propTypes :
         project_id : rtypes.string
@@ -203,19 +226,31 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         else
             @actions(project_id : @props.project_id).set_editor_top_position(0)
 
+    on_sort_end : ({oldIndex, newIndex}) ->
+        console.log("PROJECT FILE SORT ENDED WITH", oldIndex, newIndex)
+        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
+
     file_tabs: ->
         if not @props.open_files_order?
             return
         tabs = []
-        @props.open_files_order.map (path) =>
-            tabs.push(@file_tab(path))
+        @props.open_files_order.map (path, index) =>
+            tabs.push(@file_tab(path, index))
+        if @props.num_ghost_file_tabs == 0
+            return tabs
+
+        num_real_tabs = @props.open_files_order.size
+        num_tabs = num_real_tabs + @props.num_ghost_file_tabs
+        for index in [num_real_tabs..(num_tabs-1)]
+            tabs.push(<GhostTab index={index} key={index}/>)
         return tabs
 
-    file_tab: (path) ->
+    file_tab: (path, index) ->
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
-        <ProjectTab
+        <SortableProjectTab
+            index={index}
             key={path}
             name={misc.path_to_tab(path)}
             label={display_name}
@@ -282,24 +317,77 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 icon : 'wrench'
                 tooltip : 'Project settings and controls'
         page_styles ='
-            #smc-project-tabs-fixed>li>a {
-                padding: 8px 10px
+            #smc-file-tabs-fixed>li>a {
+                padding: 8px 10px;
             }
-            #smc-project-tabs-files>li>a {
-                padding: 13px 15px 7px
+            #smc-file-tabs-files>li>a {
+                padding: 13px 15px 7px;
+            }
+            .smc-file-tab-floating {
+                background-color: rgb(237, 237, 237);
+                border-bottom-left-radius:0px;
+                border-bottom-right-radius:0px;
+                border-top-left-radius:5px;
+                border-top-right-radius:5px;
+                box-sizing:border-box;
+                color:rgb(51, 51, 51);
+                display:block;
+                flex-shrink:1;
+                height:36.8px;
+                line-height:normal;
+                list-style-image:none;
+                list-style-position:outside;
+                list-style-type:none;
+                overflow-x:hidden;
+                overflow-y:hidden;
+                position:relative;
+                text-align:left;
+                width:250px;
+            }
+            .smc-file-tab-floating>a {
+                background-color:rgba(0, 0, 0, 0);
+                border-bottom-left-radius:4px;
+                border-bottom-right-radius:4px;
+                border-top-left-radius:4px;
+                border-top-right-radius:4px;
+                box-sizing:border-box;
+                display:block;
+                height:36.8px;
+                line-height:normal;
+                list-style-image:none;
+                list-style-position:outside;
+                list-style-type:none;
+                padding: 13px 15px 7px;
+                position:relative;
             }'
 
 
         <div className='container-content'>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-project-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
-                <Nav bsStyle="pills" id="smc-project-tabs-fixed" style={float:'left'}>
-                    {[<ProjectTab name={k} label={v.label} icon={v.icon} tooltip={v.tooltip} project_id={@props.project_id} active_project_tab={@props.active_project_tab} /> for k, v of project_pages]}
+            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+                    {[<ProjectTab
+                        name={k}
+                        label={v.label}
+                        icon={v.icon}
+                        tooltip={v.tooltip}
+                        project_id={@props.project_id}
+                        active_project_tab={@props.active_project_tab}
+                        shrink={false}
+                    /> for k, v of project_pages]}
                 </Nav>
-                <Nav bsStyle="pills" id="smc-project-tabs-files" style={display:'flex'}>
+                <SortableNav
+                    helperClass={'smc-file-tab-floating'}
+                    onSortEnd={@on_sort_end}
+                    axis={'x'}
+                    lockAxis={'x'}
+                    lockToContainerEdges
+                    distance={3}
+                    bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
+                >
                     {@file_tabs()}
-                </Nav>
+                </SortableNav>
             </div> if not @props.fullscreen}
             {# Children must define their own padding from navbar and screen borders}
             {@render_page()}

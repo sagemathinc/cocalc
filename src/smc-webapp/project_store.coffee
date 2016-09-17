@@ -112,6 +112,18 @@ class ProjectActions extends Actions
         {analytics_pageview} = require('./misc_page')
         analytics_pageview(window.location.pathname)
 
+    move_file_tab : (opts) =>
+        {old_index, new_index, open_files_order} = defaults opts,
+            old_index : required
+            new_index : required
+            open_files_order: required # immutable
+
+        x = open_files_order
+        item = x.get(old_index)
+        temp_list = x.delete(old_index)
+        new_list = temp_list.splice(new_index, 0, item)
+        @setState(open_files_order:new_list)
+
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
         switch key
@@ -132,6 +144,13 @@ class ProjectActions extends Actions
                 @push_state('settings')
             else #editor...
                 @push_state('files/' + misc.tab_to_path(key))
+
+    add_a_ghost_file_tab : () =>
+        current_num = @get_store().get('num_ghost_file_tabs')
+        @setState(num_ghost_file_tabs : current_num + 1)
+
+    clear_ghost_file_tabs : =>
+        @setState(num_ghost_file_tabs : 0)
 
     set_editor_top_position : (pos) =>
         @setState(editor_top_position : pos)
@@ -1176,6 +1195,7 @@ exports.getStore = getStore = (project_id, redux) ->
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
         children_stores    : immutable.List([])
+        num_ghost_file_tabs: 0
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 

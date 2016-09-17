@@ -55,7 +55,6 @@ class ProjectsActions extends Actions
         if index == -1
             @setState(open_projects : x.push(project_id))
 
-    # TODO-RR: Close the store and actions.
     set_project_closed : (project_id) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)
@@ -161,6 +160,19 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+
+    # Clearly should be in top.cjsx
+    move_project_tab : (opts) =>
+        {old_index, new_index, open_projects} = defaults opts,
+            old_index : required
+            new_index : required
+            open_projects: required # immutable
+
+        x = open_projects
+        item = x.get(old_index)
+        temp_list = x.delete(old_index)
+        new_list = temp_list.splice(new_index, 0, item)
+        @setState(open_projects:new_list)
 
     # should not be in projects...?
     load_target : (target, switch_to) =>
