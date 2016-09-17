@@ -211,7 +211,7 @@ FullscreenButton = rclass
         icon = if @props.fullscreen then 'expand' else 'compress'
         styles =
             position : 'fixed'
-            zIndex : 100000
+            zIndex : 100
             right : 0
             top : 0
             fontSize : '12pt'
@@ -367,7 +367,7 @@ GhostTab = (props) ->
 
 FileUsePageWrapper = (props) ->
     styles =
-        zIndex: '1000'
+        zIndex: '10'
         marginLeft: '0'
         position: 'fixed'
         boxShadow: '0 0 15px #aaa'

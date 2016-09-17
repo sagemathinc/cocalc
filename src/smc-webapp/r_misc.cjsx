@@ -805,7 +805,8 @@ exports.Tip = Tip = rclass
                 bsSize = {@props.size}
                 title  = {@render_title()}
                 id     = {@props.id ? "tip"}
-                >
+                style  = {zIndex:'1000'}
+            >
                 <span style={wordWrap:'break-word'}>
                     {@props.tip}
                 </span>
@@ -813,7 +814,9 @@ exports.Tip = Tip = rclass
         else
             <Tooltip
                 bsSize = {@props.size}
-                id     = {@props.id ? "tip"} >
+                id     = {@props.id ? "tip"}
+                style  = {zIndex:'1000'}
+            >
                 {@render_title()}
             </Tooltip>
 
