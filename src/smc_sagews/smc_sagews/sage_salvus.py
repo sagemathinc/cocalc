@@ -1943,10 +1943,10 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if k[0] != '_':
             salvus.namespace[k] = x
 
-
 def sh(code):
     """
-    Run a bash script in Salvus.
+    Run a bash script in Salvus. Uses jupyter bash kernel
+    which allows keeping state between cells.
 
     EXAMPLES:
 
@@ -1971,8 +1971,27 @@ def sh(code):
         %sh pwd
 
     After that, the variable output contains the current directory
+
+    Remember shell state between cells
+
+        %sh
+        FOO='xyz'
+        cd /tmp
+        ... new cell will show settings from previous cell ...
+        %sh
+        echo $FOO
+        pwd
+
+    Display image file (this is a feature of jupyter bash kernel)
+
+        %sh
+        display < sage_logo.png
+
     """
-    return script('/bin/bash')(code)
+    if sh.jupyter_kernel is None:
+        sh.jupyter_kernel = jupyter("bash")
+    return sh.jupyter_kernel(code)
+sh.jupyter_kernel = None
 
 # Monkey patch the R interpreter interface to support graphics, when
 # used as a decorator.
