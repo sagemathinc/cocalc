@@ -132,6 +132,10 @@ HelpPageUsageSection = rclass
 
 
 SUPPORT_LINKS =
+    frequently_asked_questions :
+        icon : 'question-circle'
+        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        link : 'SageMathCloud documentation'
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -155,10 +159,6 @@ SUPPORT_LINKS =
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
         link : 'Realtime chat and help'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
-        link : 'Wiki portal for help and FAQ'
     # removed since none of us SMC devs use ask.sagemath these days
     #quick_question :
     #    icon : 'question-circle'
@@ -500,6 +500,8 @@ exports.HelpPage = HelpPage = rclass
                     <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
+                    <hr/>
+                    <a href="https://github.com/sagemathinc/smc/wiki/Portal" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
                 <h3>
