@@ -1006,8 +1006,8 @@ get_directory_listing = (opts) ->
         method
             project_id : opts.project_id
             path       : opts.path
-            time       : opts.sort_by_time
-            hidden     : opts.show_hidden
+            time       : opts.time
+            hidden     : opts.hidden
             timeout    : 20
             cb         : (err, x) ->
                 listing = x
