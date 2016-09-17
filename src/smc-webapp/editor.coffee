@@ -999,7 +999,7 @@ class CodeMirrorEditor extends FileEditor
         @hide_startup_message()
         @element.find(".salvus-editor-codemirror-content").show()
         for cm in @codemirrors()
-            cm.refresh()
+            cm?.refresh()
 
     hide_startup_message: () =>
         @element.find(".salvus-editor-codemirror-startup-message").hide()

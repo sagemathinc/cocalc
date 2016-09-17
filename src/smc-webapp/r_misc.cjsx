@@ -967,9 +967,12 @@ exports.DirectoryInput = rclass
             redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?
-            # TODO: spaces below are a terrible hack to get around weird design of Combobox.
-            tree = (x + ' ' for x in tree)
-            group = (s) -> s[0 ... s.indexOf('/')]
+            group = (s) ->
+                i = s.indexOf('/')
+                if i == -1
+                    return s
+                else
+                    return s.slice(0, i)
         else
             group = (s) -> s
         <Combobox
@@ -980,7 +983,7 @@ exports.DirectoryInput = rclass
             defaultValue = {@props.default_value}
             placeholder  = {@props.placeholder}
             messages     = {emptyFilter : '', emptyList : ''}
-            onChange     = {(value) => @props.on_change(value.trim())}
+            onChange     = {(value) => @props.on_change(value)}
             onKeyDown    = {@props.on_key_down}
             onKeyUp      = {@props.on_key_up}
         />

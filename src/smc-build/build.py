@@ -292,6 +292,7 @@ SAGE_PIP_PACKAGES = [
     'nipype',  # https://github.com/nipy/nipype/
     'hypothesis',
     'xgboost', # https://github.com/dmlc/xgboost
+    'pypolymake', # https://github.com/videlec/pypolymake/
     ]
 
 # additional environment settings for specific packages

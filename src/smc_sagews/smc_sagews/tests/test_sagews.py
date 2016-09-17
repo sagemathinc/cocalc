@@ -27,8 +27,9 @@ def test_issue70(exec2):
         pass
     'x'
     """)
-    output = dedent(r"""'x'
-    """)
+    output = dedent(r"""
+    'x'
+    """).lstrip()
     exec2(code, output)
 
 def test_issue819(exec2):
@@ -43,3 +44,9 @@ def test_issue819(exec2):
     output = "22\n"
     exec2(code, output)
 
+class TestSearchSrc:
+    def test_search_src_simple(self, execinteract):
+        execinteract('search_src("convolution")')
+
+    def test_search_src_max_chars(self, execinteract):
+        execinteract('search_src("full cremonadatabase", max_chars = 1000)')

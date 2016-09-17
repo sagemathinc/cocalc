@@ -1,10 +1,13 @@
 ---
-- hosts: compute
+- hosts: compute:storage
   become: yes
   strategy: free
   gather_facts: no
 
   tasks:
+  - name: "showpid group"
+    group: name=showpid system=yes
+
   - name: "monitoring user"
     user: name=monitoring system=yes groups=showpid append=yes
 
