@@ -491,6 +491,8 @@ exports.HelpPage = HelpPage = rclass
         <Row>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
+                    See the <a href="https://github.com/sagemathinc/smc/wiki/Portal">SageMathCloud Wiki</a>.
+                    <hr/>
                     <Icon name='medkit'/><Space/><Space/>
                     <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
                     <br/>
