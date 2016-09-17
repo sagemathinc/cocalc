@@ -360,7 +360,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 padding: 13px 15px 7px;
                 position:relative;
             }'
-
+        shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
 
         <div className='container-content'>
             <style>{page_styles}</style>
@@ -374,7 +374,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         tooltip={v.tooltip}
                         project_id={@props.project_id}
                         active_project_tab={@props.active_project_tab}
-                        shrink={false}
+                        shrink={shrink_fixed_tabs}
                     /> for k, v of project_pages]}
                 </Nav>
                 <SortableNav

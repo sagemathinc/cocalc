@@ -782,7 +782,7 @@ Page = rclass
             width:'100vw'
             overflow:'auto'
 
-        <div style={style}>
+        <div ref="page" style={style}>
             <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
