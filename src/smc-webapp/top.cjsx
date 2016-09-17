@@ -231,6 +231,7 @@ NavTab = rclass
         active_top_tab : rtypes.string
         actions : rtypes.object
         style : rtypes.object
+        inner_style : rtypes.object
 
     make_icon : ->
         if typeof(@props.icon) == 'string'
@@ -248,24 +249,36 @@ NavTab = rclass
     render : ->
         is_active = @props.active_top_tab == @props.name
 
-        style = {}
         if @props.style?
-            style = @props.style
+            outer_style = @props.style
+        else
+            outer_style = {}
 
-        style.fontSize ?= '14px'
-        style.cursor ?= 'pointer'
-        style.border = 'none'
+        outer_style.float = 'left'
+
+        outer_style.fontSize ?= '14px'
+        outer_style.cursor ?= 'pointer'
+        outer_style.border = 'none'
 
         if is_active
-            style.backgroundColor = "#e7e7e7"
+            outer_style.backgroundColor = "#e7e7e7"
+
+        if @props.inner_style
+            inner_style = @props.inner_style
+        else
+            inner_style =
+                padding : '10px'
 
         <NavItem
             active = {is_active}
             onClick = {@on_click}
-            style = {style}>
-            {@make_icon()}
-            {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
-            {@props.children}
+            style = {outer_style}
+        >
+            <div style={inner_style}>
+                {@make_icon()}
+                {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
+                {@props.children}
+            </div>
         </NavItem>
 
 ProjectTab = rclass
@@ -326,7 +339,7 @@ ProjectTab = rclass
         if @state.x_hovered
             x_color = "white"
 
-        <SortableTab
+        <SortableNavTab
             index={@props.index}
             name={@props.project_id}
             actions={@actions('page_actions')}
@@ -335,7 +348,7 @@ ProjectTab = rclass
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', color:text_color, marginTop:'-3px'}> {# -3px for not being able to access underlying <a> tag}
+            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
                 <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
                     <Icon
                         name = 'times'
@@ -351,13 +364,13 @@ ProjectTab = rclass
                     </Tip>
                 </div>
             </div>
-        </SortableTab>
+        </SortableNavTab>
 
 
 NavWrapper = ({style, children, id, className}) ->
     React.createElement(Nav, {style:style, id:id, className:className}, children)
 
-SortableTab = SortableElement(NavTab)
+SortableNavTab = SortableElement(NavTab)
 SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
@@ -408,19 +421,25 @@ NotificationBell = rclass
             <span style={count_styles}>{@props.count}</span>
 
     render : ->
-        styles =
+        outer_styles =
             position : 'relative'
+            marginRight : '-10px'
+            float : 'left'
+
+        inner_styles =
+            padding : '10px'
             fontSize : '17pt'
             color : '#666'
             cursor : 'pointer'
-            marginRight : '-10px'
 
         <NavItem
-            style={styles}
+            style={outer_styles}
             onClick={@on_click}
         >
-            <Icon name='bell-o' />
-            {@notification_count()}
+            <div style={inner_styles} >
+                <Icon name='bell-o' />
+                {@notification_count()}
+            </div>
         </NavItem>
 
 ConnectionIndicator = rclass
@@ -457,7 +476,7 @@ ConnectionIndicator = rclass
         @props.actions.show_connection(true)
 
     render : ->
-        styles =
+        outer_styles =
             width : '6.5em'
             color : '#666'
             fontSize : '10pt'
@@ -465,8 +484,14 @@ ConnectionIndicator = rclass
             cursor : 'default'
             marginTop : '4px'
             marginRight : '2ex'
-        <NavItem style={styles} onClick={@connection_click}>
-            {@connection_status()}
+            float : 'left'
+        inner_styles =
+            padding : '10px'
+
+        <NavItem style={outer_styles} onClick={@connection_click}>
+            <div style={inner_styles} >
+                {@connection_status()}
+            </div>
         </NavItem>
 
 ConnectionInfo = rclass
@@ -542,8 +567,7 @@ SMCLogo = rclass
             backgroundSize : 'contain'
             backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
             height : 40
-            width : 41
-            margin : "-13px 4px -13px -14px"
+            width : 42
             position: 'relative'
         <div className='img-rounded' style={styles}></div>
 
@@ -636,7 +660,7 @@ Page = rclass
         @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
 
     render_project_tabs : ->
-        <SortableNav style={display:'flex', flex:'1', width:'100%', overflow: 'hidden'}
+        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'}
             helperClass={'smc-project-tab-floating'}
             onSortEnd={@on_sort_end}
             axis={'x'}
@@ -702,7 +726,7 @@ Page = rclass
                 <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
     render_right_nav : ->
-        <Nav id='smc-right-tabs-fixed' style={height:'42px', lineHeight:'20px'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'42px', lineHeight:'20px', margin:'0'}>
             <NavTab
                 name='account'
                 label={@account_name()}
@@ -718,16 +742,27 @@ Page = rclass
         </Nav>
 
     render_project_nav_button : ->
-        <Nav style={height:'42px'}>
+        projects_styles =
+            whiteSpace: 'nowrap'
+            float:'right'
+            padding: '11px 7px'
+
+        <Nav style={height:'42px', margin:'0'}>
             <NavTab
                 name='projects'
-                icon={<SMCLogo />}
                 style={maxHeight:'44px'}
+                inner_style={padding:'0px'}
                 actions={@props.page_actions}
                 active_top_tab={@props.active_top_tab}
 
             >
-                <div style={margin: '-24px -6px 0px 36px'}>Projects</div>
+                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+                <div style={width:'100%'}>
+                    <div style={projects_styles}>
+                        Projects
+                    </div>
+                    <SMCLogo />
+                </div>
             </NavTab>
         </Nav>
 
@@ -736,8 +771,8 @@ Page = rclass
         # Right now only used to access library generated elements
         # Very fragile.
         page_style ='
-            #smc-right-tabs-fixed>li>a {
-                padding: 10px;
+            #smc-top-nav-shim>ul>li>a {
+                padding:0px;
             }
             .smc-project-tab-floating {
                 background-color: rgb(255, 255, 255);
@@ -790,7 +825,7 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
-                <div className="shim" style={shim_style} >
+                <div id="smc-top-nav-shim" style={shim_style} >
                     {@render_project_nav_button() if @props.is_logged_in()}
                     {@render_project_tabs()}
                     {@render_right_nav()}
