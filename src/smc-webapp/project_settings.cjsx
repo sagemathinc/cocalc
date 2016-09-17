@@ -1292,7 +1292,7 @@ CollaboratorsPanel = rclass
             <hr />
             <CollaboratorsSearch key='search' project={@props.project} redux={@props.redux} />
             {<hr /> if @props.project.get('users')?.size > 1}
-            <RequestedInvitesList key='requested_invites_list' project={@props.project} user_map={@props.user_map} redux={@props.redux} invite_requests={smc.redux.getStore('projects').get_project(@props.project.get('project_id')).invite_requests} />
+            <RequestedInvitesList key='requested_invites_list' project={@props.project} user_map={@props.user_map} redux={@props.redux} invite_requests={smc.redux.getStore('projects').get_project(@props.project.get('project_id'))?.invite_requests} />
             {<hr /> if @props.project.get('users')?.size > 1}
             <CollaboratorsList key='collaborators_list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
         </ProjectSettingsPanel>
