@@ -131,6 +131,10 @@ HelpPageUsageSection = rclass
 
 
 SUPPORT_LINKS =
+    frequently_asked_questions :
+        icon : 'question-circle'
+        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        link : 'SageMathCloud documentation'
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -154,10 +158,6 @@ SUPPORT_LINKS =
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
         link : 'Realtime chat and help'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
-        link : 'Wiki portal for help and FAQ'
     # removed since none of us SMC devs use ask.sagemath these days
     #quick_question :
     #    icon : 'question-circle'
@@ -491,8 +491,6 @@ exports.HelpPage = HelpPage = rclass
         <Row>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
-                    See the <a href="https://github.com/sagemathinc/smc/wiki/Portal">SageMathCloud Wiki</a>.
-                    <hr/>
                     <Icon name='medkit'/><Space/><Space/>
                     <strong>In case of any questions or problems, <em>do not hesitate</em> to create a <ShowSupportLink />.</strong>
                     <br/>
@@ -501,6 +499,8 @@ exports.HelpPage = HelpPage = rclass
                     <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
+                    <hr/>
+                    <a href="https://github.com/sagemathinc/smc/wiki/Portal" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
                 <h3>
