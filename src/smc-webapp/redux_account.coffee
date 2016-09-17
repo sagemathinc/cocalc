@@ -33,7 +33,6 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        console.log('AAAA', 2)
                         redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
@@ -162,7 +161,7 @@ class AccountStore extends Store
         return @get('account_id')
 
     is_logged_in : =>
-        return @get('account_id')?
+        return @get_user_type() == 'signed_in'
 
     is_admin: =>
         return @get('groups').includes('admin')

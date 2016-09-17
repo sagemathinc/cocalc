@@ -84,7 +84,6 @@ exports.set_url = (url) ->
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
-    $('body').scrollTop(0) #temporary hack
     logged_in = redux.getStore('account').is_logged_in()
     if not target or not logged_in
         return
