@@ -318,24 +318,43 @@ def graphics3d_to_jsonable(p):
     def convert_index_face_set(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
-        p.obj()  # just to ensure a call to triangulate() (needed)
-        try:
-            has_local_colors = p.has_local_colors()
-        except AttributeError:
-            has_local_colors = False
-        if not has_local_colors:
-            face_geometry = [{"material_name": p.texture.id,
-                            "faces": [[int(v) + 1 for v in f] for f in p.index_faces()]}]
-        else:
-            face_geometry = [{"material_name": p.texture.id,
-                            "faces": [[int(v) + 1 for v in f[0]] + [f[1]] for f in p.index_faces_with_colors()]}]
+        face_geometry = parse_obj(p.obj())
+        if hasattr(p, 'has_local_colors') and p.has_local_colors():
+            convert_index_face_set_with_colors(p, T, extra_kwds)
+            return
+        material = parse_mtl(p)
+        vertex_geometry = []
+        obj  = p.obj()
+        for item in obj.split("\n"):
+            if "v" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        vertex_geometry.append(json_float(t))
+                    except ValueError:
+                        pass
+        myobj = {"face_geometry"   : face_geometry,
+                 "type"            : 'index_face_set',
+                 "vertex_geometry" : vertex_geometry,
+                 "material"        : material,
+                 "has_local_colors" : 0}
+        for e in ['wireframe', 'mesh']:
+            if p._extra_kwds is not None:
+                v = p._extra_kwds.get(e, None)
+                if v is not None:
+                    myobj[e] = jsonable(v)
+        obj_list.append(myobj)
+
+    def convert_index_face_set_with_colors(p, T, extra_kwds):
+        face_geometry = [{"material_name": p.texture.id,
+                        "faces": [[int(v) + 1 for v in f[0]] + [f[1]] for f in p.index_faces_with_colors()]}]
         material = parse_mtl(p)
         vertex_geometry = [json_float(t) for v in p.vertices() for t in v]
         myobj = {"face_geometry"    : face_geometry,
                  "type"             : 'index_face_set',
                  "vertex_geometry"  : vertex_geometry,
                  "material"         : material,
-                 "has_local_colors" : int(has_local_colors)}
+                 "has_local_colors" : 1}
         for e in ['wireframe', 'mesh']:
             if p._extra_kwds is not None:
                 v = p._extra_kwds.get(e, None)
