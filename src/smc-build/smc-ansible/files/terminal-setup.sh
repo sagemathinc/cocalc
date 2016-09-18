@@ -64,6 +64,14 @@ if [[ $- =~ i  && `whoami` != "root"  && `whoami` != "salvus" ]]; then
    pip2 () { __pip 2 $@; }
    pip3 () { __pip 3 $@; }
   # END aliasing pip, pip2 and pip3
+
+  # This is mainly for SageMath, i.e. instead of pointing to its own local dir,
+  # this points to the users read-writeable directory.
+  # sagemath tickets: 14243, 18955
+  if [ -z "$PYTHONUSERBASE" ]; then
+    PYTHONUSERBASE="$HOME/.local"
+    export PYTHONUSERBASE
+  fi
 fi
 
 # colored man pages
