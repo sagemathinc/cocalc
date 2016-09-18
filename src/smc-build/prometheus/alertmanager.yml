@@ -12,7 +12,8 @@ receivers:
 route:
   group_by:
   - alertname
-  group_interval: 5m
+  - instance
+  group_interval: 15m
   group_wait: 5s
   receiver: email
   repeat_interval: 4h
