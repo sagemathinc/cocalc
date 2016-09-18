@@ -1987,6 +1987,12 @@ def sh(code):
         %sh
         display < sage_logo.png
 
+    .. WARNING::
+
+        The jupyter bash kernel does not separate stdout and stderr as cell is running.
+        It only returns ok or error depending on exit status of last command in the cell.
+        So all cell output captured goes to either stdout or stderr variable, depending
+        on exit status of the last command in the %sh cell.
     """
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
