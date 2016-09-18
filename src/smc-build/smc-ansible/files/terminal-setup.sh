@@ -18,7 +18,12 @@ path-remove () {
     PATH=${PATH/#"$1:"/}   #delete any instance at the beginning
 }
 
-export ANACONDA3="/ext/anaconda"
+if [ -d "/ext/anaconda" ] ; then
+  export ANACONDA3="/ext/anaconda"
+else
+  export ANACONDA3="/projects/anaconda3"
+fi
+  
 
 anaconda3 () {
     source "$ANACONDA3/bin/activate" root
