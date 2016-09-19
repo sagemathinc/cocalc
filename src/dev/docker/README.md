@@ -24,6 +24,15 @@ which might output
 
 If the port is 32779 (as it is above), then visit http://localhost:32779/
 
+Rather than using a random port assignment (-P) and leaving the terminal attached to the container as suggested in the README.md, I prefer to create the smc container like this:
+
+    $  docker run --name=smc -v ~/smc:/projects -d -p 8080:80 williamstein/sagemathcloud
+
+This gives the container a name (smc), detaches the terminal and assigns local port 8080 for http (you can use a different unused port and also assign another port for https).  The name makes it easier to refer to the container and to use commands like:
+
+    $ docker stop smc
+    $ docker start smc
+
 If you're running this docker image on a remote server and want to use
 ssh port forwarding to connect, type
 

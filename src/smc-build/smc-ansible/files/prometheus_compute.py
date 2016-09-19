@@ -2,6 +2,11 @@
 from prometheus_client import start_http_server, Summary, Gauge
 import random
 import time
+
+# number of cores only set once
+import multiprocessing
+num_cpus = Gauge('num_cpus', 'number of cpu cores')
+num_cpus.set(multiprocessing.cpu_count())
  
 # Create a metric to track time spent and requests made.
 FAKE_METRIC = Summary('fake_compute_metric', 'just for testing ...')
