@@ -1,6 +1,7 @@
 # A very simple interface exposed from setup.py
 
 import os, socket, sys
+import time
 
 def log(s):
     sys.stderr.write('sage_server: %s\n'%s)
@@ -33,7 +34,9 @@ def main(action='', daemon=True):
         open(logfile, 'w')  # for now we clear it on restart...
         log("setting logfile to %s"%logfile)
 
+        t0 = time.time()
         import sage_server
+        log("seconds to import sage_server: %s"%(time.time() - t0))
         run_server = lambda: sage_server.run_server(port=port, host='127.0.0.1', pidfile=pidfile, logfile=logfile)
         if daemon:
             log("daemonizing")
@@ -49,8 +52,9 @@ def main(action='', daemon=True):
         if os.path.exists(pidfile):
             try:
                 pid = int(open(pidfile).read())
-                log("killing %s"%pid)
-                os.kill(pid, 9)
+                sid = os.getsid(pid)
+                log("killing sid %s"%sid)
+                os.killpg(sid, 9)
                 log("successfully killed")
             except Exception, e:
                 log("failed -- %s"%e)

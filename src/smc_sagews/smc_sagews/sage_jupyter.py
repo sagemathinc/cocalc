@@ -156,6 +156,10 @@ def _jkmagic(kernel_name, **kwargs):
         iopub = kc.iopub_channel
         stdinj = kc.stdin_channel
 
+        # buffering for %capture because we don't know whether output is stdout or stderr
+        # until shell execute_reply messasge is received with status 'ok' or 'error'
+        capture_out = ""
+
         # handle iopub messages
         while True:
             try:
@@ -267,11 +271,15 @@ def _jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    if 'name' in content and content['name'] == 'stderr':
-                        sys.stderr.write(content['text'])
-                        sys.stderr.flush()
+                    if hasattr(sys.stdout._f, 'im_func'):
+                        if 'name' in content and content['name'] == 'stderr':
+                            sys.stderr.write(content['text'])
+                            sys.stderr.flush()
+                        else:
+                            hout(content['text'],block = False)
                     else:
-                        hout(content['text'],block = False)
+                        # %capture mode
+                        capture_out += content['text'].replace('\r','')
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -296,15 +304,23 @@ def _jkmagic(kernel_name, **kwargs):
             if msg['parent_header'].get('msg_id') == msg_id:
                 p('shell', msg_type, len(str(content)), str(content)[:300])
                 if msg_type == 'execute_reply':
-                    if content['status'] == 'ok':
-                        if 'payload' in content:
-                            payload = content['payload']
-                            if len(payload) > 0:
-                                if 'data' in payload[0]:
-                                    data = payload[0]['data']
-                                    if 'text/plain' in data:
-                                        text = data['text/plain']
-                                        hout(text, scroll = True)
+                    if hasattr(sys.stdout._f, 'im_func'):
+                        if content['status'] == 'ok':
+                            if 'payload' in content:
+                                payload = content['payload']
+                                if len(payload) > 0:
+                                    if 'data' in payload[0]:
+                                        data = payload[0]['data']
+                                        if 'text/plain' in data:
+                                            text = data['text/plain']
+                                            hout(text, scroll = True)
+                    else:
+                        # %capture mode
+                        if content['status'] == 'ok':
+                            print(capture_out)
+                        elif content['status'] == 'error':
+                            sys.stderr.write(capture_out)
+                            sys.stderr.flush()
                     break
             else:
                 # not our reply
