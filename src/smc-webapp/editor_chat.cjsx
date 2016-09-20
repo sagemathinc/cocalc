@@ -988,23 +988,23 @@ ChatRoom = (name) -> rclass
         ##########################################
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={3} style={padding:'0px'}>
-                        <UsersViewing
-                              file_use_id = {@props.file_use_id}
-                              file_use    = {@props.file_use}
-                              account_id  = {@props.account_id}
-                              user_map    = {@props.user_map} />
-                    </Col>
-                    <Col xs={9} style={padding:'2px', textAlign:'right'}>
-                        <ButtonGroup>
-                            <Button onClick={@show_timetravel} bsStyle='info'>
-                                <Icon name='history'/> TimeTravel
-                            </Button>
-                            <Button onClick={@scroll_to_bottom}>
-                                <Icon name='arrow-down'/> Scroll to Bottom
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
+                    <ButtonGroup>
+                        <Button className='smc-small-only'
+                            onClick={@show_files}>
+                            <Icon name='toggle-up'/> Files
+                        </Button>
+                        <Button onClick={@show_timetravel} bsStyle='info'>
+                            <Icon name='history'/> TimeTravel
+                        </Button>
+                        <Button onClick={@scroll_to_bottom}>
+                            <Icon name='arrow-down'/> Scroll to Bottom
+                        </Button>
+                    </ButtonGroup>
+                    <UsersViewing
+                          file_use_id = {@props.file_use_id}
+                          file_use    = {@props.file_use}
+                          account_id  = {@props.account_id}
+                          user_map    = {@props.user_map} />
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
