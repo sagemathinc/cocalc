@@ -198,7 +198,7 @@ class ProjectActions extends Actions
         if (!(window.localStorage["opened_files"]))
             window.localStorage["opened_files"] =  "{}"
         opened_files = JSON.parse(window.localStorage["opened_files"])
-        opened_files['#{@project_id}-#{path}'] = true
+        opened_files[@project_id+'-'+opts.path] = true
         window.localStorage["opened_files"] = JSON.stringify(opened_files)
         return
 

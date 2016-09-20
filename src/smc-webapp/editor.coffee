@@ -1078,9 +1078,7 @@ class exports.Editor
             if (!(window.localStorage["opened_files"]))
                 window.localStorage["opened_files"] =  "[]"
             opened_files = JSON.parse(window.localStorage["opened_files"])
-            for value, index in opened_files
-                if value['project_id'] == @project_id and value['path'] == filename
-                    opened_files.splice(index, 1)
+            delete opened_files[@project_id+'-'+filename]
             window.localStorage["opened_files"] = JSON.stringify(opened_files)
 
             return false

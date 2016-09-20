@@ -47,15 +47,15 @@ MAX_DEFAULT_PROJECTS = 50
 _create_project_tokens = {}
 window.smc.restore_tabs = () ->
     if (!(window.localStorage["opened_files"]))
-        window.localStorage["opened_files"] = "[]"
+        window.localStorage["opened_files"] = "{}"
     opened_files = JSON.parse(window.localStorage["opened_files"])
-    for tab in opened_files
-        redux.getProjectActions(tab['project_id']).open_file
-            path       : tab['path']
+    for tab in Object.keys(opened_files)
+        redux.getProjectActions(tab.slice(0,36)).open_file
+            path       : tab.slice(37)
             foreground : false
 
 window.smc.reset_tabs = () ->
-    window.localStorage["opened_files"] = "[]"
+    window.localStorage["opened_files"] = "{}"
 
 # Define projects actions
 class ProjectsActions extends Actions
