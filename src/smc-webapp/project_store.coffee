@@ -196,11 +196,9 @@ class ProjectActions extends Actions
                                 @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
         # log file opening to HTML5 storage so we can auto reopen tabs at some point
         if (!(window.localStorage["opened_files"]))
-            window.localStorage["opened_files"] =  "[]"
+            window.localStorage["opened_files"] =  "{}"
         opened_files = JSON.parse(window.localStorage["opened_files"])
-        console.log('opened_files:', window.localStorage["opened_files"])
-        if (!(window.localStorage["opened_files"].indexOf(JSON.stringify({'project_id': @project_id, 'path': opts.path})) > -1))
-            opened_files.push({'project_id': @project_id, 'path': opts.path})
+        opened_files['#{@project_id}-#{path}'] = true
         window.localStorage["opened_files"] = JSON.stringify(opened_files)
         return
 

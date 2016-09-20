@@ -51,7 +51,8 @@ window.smc.restore_tabs = () ->
     opened_files = JSON.parse(window.localStorage["opened_files"])
     for tab in opened_files
         redux.getProjectActions(tab['project_id']).open_file
-            path : tab['path']
+            path       : tab['path']
+            foreground : false
 
 window.smc.reset_tabs = () ->
     window.localStorage["opened_files"] = "[]"
