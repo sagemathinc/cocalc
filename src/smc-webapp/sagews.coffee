@@ -43,7 +43,7 @@ is_marked = (c) ->
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        #window.w = @
+        # window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -783,10 +783,38 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
                 context.uuids[uuid] = true
                 flagstring = x.slice(37, x.length-1)
+
                 if FLAGS.hide_input in flagstring
                     context.hide = line
                 else
                     delete context.hide
+
+                # Record whether or not the output for this cell should be hidden.
+                context.hide_output = FLAGS.hide_output in flagstring
+
+                # Determine the output line, if available, so we can toggle whether or not
+                # the output is hidden.  Note that we are not doing something based on
+                # state change, as that is too hard to reason about, and are just always
+                # setting the line classes properly.  This will have to be re-done someday.
+                n = line + 1
+                output_line = undefined
+                while n < cm.lineCount()
+                    z = cm.getLine(n)?[0]
+                    if z == MARKERS.output
+                        output_line = n
+                        break
+                    if z == MARKERS.input or not z?
+                        break
+                    n += 1
+                if output_line? # found output line -- properly set hide state
+                    if context.hide_output
+                        for t in ['gutter', 'text']
+                            cm.addLineClass(output_line, t, 'hidden')
+                    else
+                        for t in ['gutter', 'text']
+                            cm.removeLineClass(output_line, t, 'hidden')
+
+
                 if marks.length == 1 and (marks[0].type != 'input' or marks[0].uuid != uuid)
                     marks[0].clear()
                     marks = []
@@ -839,7 +867,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     uuid = misc.uuid()
                     cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
                 context.uuids[uuid] = true
-
                 if marks.length == 1 and (marks[0].type != 'output' or marks[0].uuid != uuid)
                     marks[0].clear()
                     marks = []
@@ -863,9 +890,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.dblclick () =>
                             # Double click output to toggle input
                             @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+
                 cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
                 cm.addLineClass(line, 'text',   'sagews-output-cm-text')
                 cm.addLineClass(line, 'wrap',   'sagews-output-cm-wrap')
+
+                # To be sure, definitely properly set output state (should already be properly set when rendering input)
+                if context.hide_output
+                    for t in ['gutter', 'text']
+                        cm.addLineClass(line, t, 'hidden')
+                else
+                    for t in ['gutter', 'text']
+                        cm.removeLineClass(line, t, 'hidden')
+
                 @render_output(marks[0], x.slice(38), line)
 
             else

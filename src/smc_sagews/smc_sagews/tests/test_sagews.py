@@ -44,6 +44,11 @@ def test_issue819(exec2):
     output = "22\n"
     exec2(code, output)
 
+def test_search_doc(exec2):
+    code = "search_doc('laurent')"
+    html = "https://www.google.com/search\?q=site%3Adoc.sagemath.org\+laurent\&oq=site%3Adoc.sagemath.org"
+    exec2(code, html_pattern = html)
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

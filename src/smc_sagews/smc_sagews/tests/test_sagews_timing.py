@@ -8,38 +8,43 @@ import pytest
 import socket
 import conftest
 import os
-import re
 import time
+import signal
 
-def test_basic_timing():
-    start = time.time()
-    os.system('sleep 1')
-    tick = time.time()
-    elapsed = tick - start
-    assert 1.0 == pytest.approx(elapsed, abs = 0.1)
+class TestSageTiming:
+    r"""
+    These tests are to validate the test framework. They do not
+    use sage_server at all.
+    """
+    def test_basic_timing(self):
+        start = time.time()
+        os.system('sleep 1')
+        tick = time.time()
+        elapsed = tick - start
+        assert 1.0 == pytest.approx(elapsed, abs = 0.1)
 
-def test_load_sage():
-    start = time.time()
-    # maybe put first load into fixture
-    os.system("echo '2+2' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed 1: %s"%elapsed)
-    # second load after things are cached
-    start = time.time()
-    os.system("echo '2+2' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed 2: %s"%elapsed)
-    assert elapsed < 2.0
+    def test_load_sage(self):
+        start = time.time()
+        # maybe put first load into fixture
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 1: %s"%elapsed)
+        # second load after things are cached
+        start = time.time()
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 2: %s"%elapsed)
+        assert elapsed < 2.0
 
-def test_import_sage_server():
-    start = time.time()
-    os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed %s"%elapsed)
-    assert elapsed < 10.0
+    def test_import_sage_server(self):
+        start = time.time()
+        os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed %s"%elapsed)
+        assert elapsed < 10.0
 
 @pytest.mark.no_session
 def test_2plus2_timing(test_id):
@@ -113,18 +118,24 @@ def test_2plus2_timing(test_id):
     assert typ == 'json'
     assert mesg['id'] == test_id
     assert mesg['stdout'] == output
+    elapsed = time.time() - start
 
     # teardown connection
     conn.send_json(conftest.message.terminate_session())
     print("\nExiting Sage client.")
+    # wait 3 sec for process to die, then kill it
+    for loop_count in range(6):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            pass
+        time.sleep(0.5)
+    else:
+        print("sending sigterm to %s"%pid)
+        os.kill(pid, signal.SIGTERM)
 
     # check timing
-    elapsed = time.time() - start
     print("elapsed 2+2 %s"%elapsed)
-    assert elapsed < 15.0
+    assert elapsed < 8.0
 
     return
-
-
-
-##
