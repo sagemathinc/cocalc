@@ -94,8 +94,7 @@ Avatar = rclass
         return merge(style, @props.style)
 
     render_line: ->
-        if @props.line
-            <span> (Line {@props.line})</span>
+        <span> (Line {@props.line})</span>
 
     tooltip: ->
         {ProjectTitle} = require('./projects')
@@ -104,7 +103,7 @@ Avatar = rclass
         else if @props.viewing_what == 'project'
             <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at {@props.path}</Tooltip>
         else
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line() if @props.line > 1}</Tooltip>
 
     render_image: ->
         if @has_image()
