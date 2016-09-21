@@ -247,6 +247,11 @@ Handout = rclass
             </ButtonToolbar>
         </div>
 
+    add_ed : (verb) ->
+        if verb.endsWith('e')
+            return verb + 'd'
+        return verb + 'ed'
+
     render_copy_confirm_to_all_or_new : (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
@@ -259,7 +264,7 @@ Handout = rclass
                         disabled={@state["copy_confirm_all_#{step}"]} >
                     {if step=='handout' then 'All' else 'The'} {m} students{step_ready(step, m)}...
                 </Button>
-                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {step_verb(step)}ed {step_direction(step)}</Button> if n}
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {@add_ed(step_verb(step))} {step_direction(step)}</Button> if n}
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
