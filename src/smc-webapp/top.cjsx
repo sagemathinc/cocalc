@@ -821,15 +821,14 @@ Page = rclass
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'44px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
+            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 <div id="smc-top-nav-shim" style={shim_style} >
                     {@render_project_nav_button() if @props.is_logged_in()}
                     {@render_project_tabs()}
                     {@render_right_nav()}
                 </div>
             </Navbar> if not @props.fullscreen}
-            <div className="smc-sticky-position-hack" style={minHeight:'44px'}>
-            </div>
+            {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
