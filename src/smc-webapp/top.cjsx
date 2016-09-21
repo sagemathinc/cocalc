@@ -665,7 +665,7 @@ Page = rclass
             onSortEnd={@on_sort_end}
             axis={'x'}
             lockAxis={'x'}
-            lockToContainerEdges
+            lockToContainerEdges={true}
             distance={3}
         >
             {@project_tabs()}
@@ -795,10 +795,7 @@ Page = rclass
                 outline-color:rgb(85, 85, 85);
                 outline-style:none;
                 outline-width:0px;
-                padding-bottom:15px;
-                padding-left:15px;
-                padding-right:15px;
-                padding-top:15px;
+                padding:0px;
             }
             '
         shim_style =

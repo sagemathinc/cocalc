@@ -23,22 +23,29 @@ WrappedEditor = rclass ({project_name}) ->
     componentDidMount: ->
         console.log("componentDidMount")
         window.editor = @props.editor
-        span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
-        if span.length > 0
-            span.replaceWith(@props.editor.element[0])
+
+        # Right now literally just Jupyter.
+        # Use for any (god forbid..) future Iframe editors..
+        mounted = @props.editor.mount?()
+        if not mounted
+            span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
+            if span.length > 0
+                span.replaceWith(@props.editor.element[0])
+
         @props.editor.show()
         @props.editor.focus?()
         window.addEventListener('resize', @refresh)
 
-    componentWillUnmount: ->
-        console.log("componentWillUnmount")
-        window.removeEventListener('resize', @refresh)
-        @props.editor.blur?()
-        @props.editor.hide()
-
     componentDidUpdate: ->
         console.log("componentDidUpdate")
         @refresh()
+
+    componentWillUnmount: ->
+        console.log("componentWillUnmount")
+        window.removeEventListener('resize', @refresh)
+        # These cover all cases for jquery type overrides.
+        @props.editor.blur?()
+        @props.editor.hide()
 
     # Refreshes the editor to resize itself
     refresh: ->

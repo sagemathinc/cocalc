@@ -2906,12 +2906,12 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        if not IS_MOBILE
-            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
+        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
+
+        if IS_MOBILE
+            @element.css(position:'relative')
         else
-            # TODO: this is a terrible HACK for position the top of the editor.
-            @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
-            @element.css(position:'relative', top:'0')
+            @element.css(position:'fixed')
         @wrapped?.show?()
 
     hide: () =>
@@ -2934,145 +2934,6 @@ class TaskList extends FileEditorWrapper
             @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
 
 ###
-# A Course that you are managing
-###
-class Course extends FileEditorWrapper
-    init_wrapped: () =>
-        course = undefined   # is lazy loaded below
-
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                course?.free_course(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
-            #hide    : =>
-            #    course.hide_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
-            #show    : =>
-            #    course.show_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
-        require.ensure [], () =>
-            course = require('./course/main')
-            course.render_course(args...)
-
-
-###
-# A chat room
-###
-class Chat extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_chat = require('./editor_chat')
-        @element = $("<div>")
-        if not IS_MOBILE
-            @element.css
-                'overflow-y'       : 'auto'
-                padding            : '7px'
-                border             : '1px solid #aaa'
-                width              : '100vw'
-                'background-color' : 'white'
-                left               : 0
-                bottom             : 0
-        else
-            @element.css
-                padding            : '7px'
-                'border-top'       : '1px solid #aaa'
-                width              : '100vw'
-                'background-color' : 'white'
-                bottom             : 0
-        args = [@project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_chat.free(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_chat.hide(args...)
-            show    : =>
-                editor_chat.show(args...)
-        editor_chat.render(args...)
-
-###
-# Git repo
-###
-class GitEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_git = require('./editor_git')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_git.free(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_git.hide(args...)
-            show    : =>
-                editor_git.show(args...)
-        editor_git.render(args...)
-
-###
-# Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
-###
-
-class Archive extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_archive = require('./editor_archive')
-        @element = $("<div>")
-        @element.css
-            'overflow'       : 'auto'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_archive.free(args...)
-                args = undefined
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_archive.hide(args...)
-            show    : =>
-                editor_archive.show(args...)
-        editor_archive.render(args...)
-
-
-###
 # Jupyter notebook
 ###
 jupyter = require('./editor_jupyter')
@@ -3084,6 +2945,12 @@ class JupyterNotebook extends FileEditorWrapper
         @opts.default_font_size = @default_font_size
         @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
+
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
 
 class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
