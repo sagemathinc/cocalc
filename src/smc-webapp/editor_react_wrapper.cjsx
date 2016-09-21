@@ -26,6 +26,7 @@ WrappedEditor = rclass ({project_name}) ->
 
         # Right now literally just Jupyter.
         # Use for any (god forbid..) future Iframe editors..
+        # SMELL: Latex and PDF viewer also do this to save scroll position
         mounted = @props.editor.mount?()
         if not mounted
             span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
@@ -56,7 +57,7 @@ WrappedEditor = rclass ({project_name}) ->
 
     render : ->
         <div>
-            <span className="smc-editor-react-wrapper">Editor goes here</span>
+            <span className="smc-editor-react-wrapper"></span>
         </div>
 
 # Used for caching

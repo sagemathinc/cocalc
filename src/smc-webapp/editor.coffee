@@ -2661,6 +2661,12 @@ class PDF_PreviewEmbed extends FileEditor
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
     show: (geometry={}) =>
         geometry = defaults geometry,
             left   : undefined

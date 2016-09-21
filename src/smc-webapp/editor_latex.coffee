@@ -388,6 +388,12 @@ class exports.LatexEditor extends editor.FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
     _show: (opts={}) =>
         if not @_split_pos?
             @_split_pos = .5
