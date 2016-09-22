@@ -9,7 +9,7 @@ This is a self-contained single-image multi-user SageMathCloud server.
 
 ## Instructions
 
-**Technical Note: This Docker image only supports 64-bit.**
+**Technical Note: This Docker image only supports 64-bit Intel.**
 
 To download the latest docker image (about 7GB):
 
