@@ -497,7 +497,7 @@ def execblob(request, sagews, test_id):
 
     return execblobfn
 
-@pytest.fixture(scope = "module")
+@pytest.fixture(scope = "class")
 def sagews(request):
     r"""
     Module-scoped fixture for tests that don't leave
