@@ -9,6 +9,6 @@ FULLY_REACT = true  # set to true to enable a full react version of SMC
 window.FULLY_REACT = FULLY_REACT
 
 if FULLY_REACT
-    require('./smc-webapp/landing-react')
+    require('./smc-webapp/entry-point')
 else
     require('./smc-webapp/landing')

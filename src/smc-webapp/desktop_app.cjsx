@@ -1,224 +1,30 @@
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store} = require('./smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Popover, Tabs, Tab, Tip, Well, Navbar, Nav, NavItem, Modal} = require('react-bootstrap')
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{Navbar, Nav, NavItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
+
+# SMC Pages
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
 {ProjectPage} = require('./project_page')
-{AccountPageRedux} = require('./account_page')
+{AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
 {Support} = require('./support')
+
+# SMC Libraries
 misc = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
-{set_url} = require('./history')
-{set_window_title} = require('./browser')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
-###
-# Page Redux
-###
+require('./init_page')
 
-class PageActions extends Actions
-    # Expects a func which takes a browser keydown event
-    # Only allows one keyhandler to be active at a time.
-    set_active_key_handler : (handler) =>
-        if handler?
-            $(window).off("keydown", @active_key_handler)
-            @active_key_handler = handler
-
-        if @active_key_handler?
-            $(window).on("keydown", @active_key_handler)
-
-    clear_active_key_handler : =>
-        $(window).off("keydown", @active_key_handler)
-
-    clear_all_handlers : =>
-        $(window).off("keydown", @active_key_handler)
-
-    add_a_ghost_tab : (current_num) =>
-        @setState(num_ghost_tabs : current_num + 1)
-
-    clear_ghost_tabs : =>
-        @setState(num_ghost_tabs : 0)
-
-    set_active_tab : (key) =>
-        @setState(active_top_tab : key)
-        switch key
-            when 'projects'
-                set_url('/projects')
-                set_window_title('Projects')
-            when 'account'
-                redux.getActions('account').push_state()
-                set_window_title('Account')
-            when 'about'
-                set_url('/help')
-                set_window_title('Help')
-            when undefined
-                return
-            else
-                redux.getProjectActions(key)?.push_state()
-                project_map = redux.getStore('projects').get('project_map')
-                set_window_title(project_map?.getIn([key, 'title']))
-
-    show_connection : (shown) =>
-        @setState(show_connection : shown)
-
-    toggle_show_file_use : =>
-        is_shown = redux.getStore('page').get('show_file_use')
-        if is_shown
-            @set_active_key_handler(undefined)
-        else
-            @clear_active_key_handler()
-
-        @setState(show_file_use: !is_shown)
-
-    set_ping : (ping, avgping) =>
-        @setState(ping : ping, avgping : avgping)
-
-    set_connection_status : (val, time) =>
-        if val != 'connecting' or time - (redux.getStore('page').get('last_status_time') ? 0) > 0
-            @setState(connection_status : val, last_status_time : time)
-
-    set_new_version : (version) =>
-        @setState(new_version : version)
-
-    set_fullscreen : (val) =>
-        @setState(fullscreen : val)
-
-    show_cookie_warning : =>
-        @setState(cookie_warning : true)
-
-redux.createActions('page', PageActions)
-
-# Todo: Save entire state to database for #450, saved workspaces
-class PageStore extends Store
-    todo : ->
-        'place holder'
-
-init_store =
-    active_top_tab : 'account' # One of: projects, account, about, [project id]
-
-redux.createStore('page', PageStore, init_store)
-
-recent_disconnects = []
-record_disconnect = () ->
-    recent_disconnects.push(+new Date())
-    # avoid buffer overflow
-    recent_disconnects = recent_disconnects[-100..]
-
-num_recent_disconnects = (minutes=10) ->
-    # note the "+", since we work with timestamps
-    ago = +misc.minutes_ago(minutes)
-    return (x for x in recent_disconnects when x > ago).length
-
-reconnection_warning = null
-
-salvus_client.on "ping", (ping_time) ->
-    ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
-    # reset outside 3x
-    if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
-        ping_time_smooth = ping_time
-    else
-        decay = 1 - Math.exp(-1)
-        ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    redux.getActions('page').set_ping(ping_time, ping_time_smooth)
-
-salvus_client.on "connected", () ->
-    redux.getActions('page').set_connection_status('connected', new Date())
-
-salvus_client.on "disconnected", (state) ->
-    record_disconnect()
-    redux.getActions('page').set_connection_status('disconnected', new Date())
-    redux.getActions('page').set_ping(undefined, undefined)
-
-salvus_client.on "connecting", () ->
-    date = new Date()
-    f = ->
-        redux.getActions('page').set_connection_status('connecting', date)
-    window.setTimeout(f, 2000)
-    attempt = salvus_client._num_attempts ? 1
-    reconnect = (msg) ->
-        # reset recent disconnects, and hope that after the reconnection the situation will be better
-        recent_disconnects = []
-        reconnection_warning = +new Date()
-        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
-        alert_message(msg)
-        salvus_client._fix_connection(true)
-        # remove one extra reconnect added by the call above
-        setTimeout((-> recent_disconnects.pop()), 500)
-
-    console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
-    if num_recent_disconnects() >= 2 or (attempt >= 10)
-        # this event fires several times, limit displaying the message and calling reconnect() too often
-        if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if num_recent_disconnects() >= 5 or attempt >= 20
-                reconnect
-                    type: "error"
-                    timeout: 10
-                    message: "Your internet connection is unstable/down or SMC is temporarily not available. Therefore SMC is not working."
-            else if attempt >= 10
-                reconnect
-                    type: "info"
-                    timeout: 10
-                    message: "Your internet connection could be weak or the SMC service is temporarily unstable. Proceed with caution."
-    else
-        reconnection_warning = null
-
-salvus_client.on 'new_version', (ver) ->
-    redux.getActions('page').set_new_version(ver)
-
+{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./page_shared')
 ###
 # JSX
 ###
-
-CookieWarning = rclass
-    displayName : 'CookieWarning'
-
-    render : ->
-        styles =
-            position : 'fixed'
-            left : 12
-            backgroundColor : 'red'
-            color : '#fff'
-            top : 20
-            opacity : .6
-            borderRadius : 4
-            padding : 5
-            marginTop : '1em'
-            zIndex : 1
-            boxShadow : '8px 8px 4px #888'
-            width : '70%'
-        <div style={styles}>
-            <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
-        </div>
-
-FullscreenButton = rclass
-    displayName : 'FullscreenButton'
-
-    reduxProps :
-        page :
-            fullscreen : rtypes.bool
-
-    on_fullscreen : ->
-        @actions('page').set_fullscreen(not @props.fullscreen)
-
-    render : ->
-        icon = if @props.fullscreen then 'expand' else 'compress'
-        styles =
-            position : 'fixed'
-            zIndex : 100
-            right : 0
-            top : 0
-            fontSize : '12pt'
-            padding : 4
-            color : '#999'
-            fontWeight : 700
-        <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
 NavTab = rclass
     displayName : "NavTab"
@@ -366,7 +172,6 @@ ProjectTab = rclass
             </div>
         </SortableNavTab>
 
-
 NavWrapper = ({style, children, id, className}) ->
     React.createElement(Nav, {style:style, id:id, className:className}, children)
 
@@ -441,183 +246,6 @@ NotificationBell = rclass
                 {@notification_count()}
             </div>
         </NavItem>
-
-ConnectionIndicator = rclass
-    displayName : 'ConnectionIndicator'
-
-    reduxProps :
-        page :
-            avgping : rtypes.number
-            connection_status : rtypes.string
-
-    propTypes :
-        ping : rtypes.number
-        status : rtypes.string
-        actions : rtypes.object
-
-    connection_status : ->
-        if @props.connection_status == 'connected'
-            <span>
-                <span><Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} /></span>
-                {<Tip title='Most recently recorded roundtrip time to message the server.'>
-                    {Math.floor(@props.avgping)}ms
-                </Tip> if @props.avgping?}
-            </span>
-        else if @props.connection_status == 'connecting'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
-                connecting...
-            </span>
-        else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : 'darkred', color : 'white', padding : '1ex', 'zIndex': 100001}>
-                disconnected
-            </span>
-
-    connection_click : ->
-        @props.actions.show_connection(true)
-
-    render : ->
-        outer_styles =
-            width : '6.5em'
-            color : '#666'
-            fontSize : '10pt'
-            lineHeight : '10pt'
-            cursor : 'default'
-            marginTop : '4px'
-            marginRight : '2ex'
-            float : 'left'
-        inner_styles =
-            padding : '10px'
-
-        <NavItem style={outer_styles} onClick={@connection_click}>
-            <div style={inner_styles} >
-                {@connection_status()}
-            </div>
-        </NavItem>
-
-ConnectionInfo = rclass
-    displayName : 'ConnectionInfo'
-
-    propTypes :
-        actions : rtypes.object
-        hub : rtypes.string
-        ping : rtypes.number
-        avgping : rtypes.number
-        status : rtypes.string
-
-    reduxProps :
-        account :
-            hub : rtypes.string
-
-    close : ->
-        @props.actions.show_connection(false)
-
-    connection_body : ->
-        if @props.hub?
-            <div>
-                {<Row>
-                    <Col sm=3>
-                        <h4>Ping Time</h4>
-                    </Col>
-                    <Col sm=5>
-                        <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
-                    </Col>
-                </Row> if @props.ping}
-                <Row>
-                    <Col sm=3>
-                        <h4>Hub Server</h4>
-                    </Col>
-                    <Col sm=5>
-                        <pre>{@props.hub}</pre>
-                    </Col>
-                    <Col sm=3 smOffset=1>
-                        <Button bsStyle='warning' onClick={=>salvus_client._fix_connection(true)}>
-                            <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
-                        </Button>
-                    </Col>
-                </Row>
-            </div>
-        else
-            <div>
-                Not connected to a hub.
-            </div>
-
-    render : ->
-        <Modal show={true} onHide={@close} animation={false}>
-            <Modal.Header closeButton>
-                <Modal.Title>
-                    <Icon name='wifi' style={marginRight: '1em'} /> Connection
-                </Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                {@connection_body()}
-            </Modal.Body>
-            <Modal.Footer>
-                <Button onClick={@close}>Close</Button>
-            </Modal.Footer>
-        </Modal>
-
-SMCLogo = rclass
-    displayName : 'SMCLogo'
-
-    render : ->
-        smc_icon_url = require('salvus-icon.svg')
-        styles =
-            display : 'inline-block'
-            backgroundImage : "url('#{smc_icon_url}')"
-            backgroundSize : 'contain'
-            backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
-            height : 40
-            width : 42
-            position: 'relative'
-        <div className='img-rounded' style={styles}></div>
-
-VersionWarning = rclass
-    displayName : 'VersionWarning'
-
-    propTypes :
-        new_version : rtypes.object
-
-    render_critical : ->
-        if @props.new_version.min_version > salvus_client.version()
-            <div>
-                <br />
-                THIS IS A CRITICAL UPDATE. YOU MUST&nbsp;
-                <a onClick={=>window.location.reload()} style={color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
-                    RELOAD THIS PAGE
-                </a>
-                &nbsp;IMMEDIATELY OR YOU WILL BE DISCONNECTED.  Sorry for the inconvenience.
-            </div>
-
-    render_close : ->
-        if not (@props.new_version.min_version > salvus_client.version())
-            <Icon
-                name = 'times'
-                className = 'pull-right'
-                style = {cursor : 'pointer'}
-                onClick = {=>redux.getActions('page').set_new_version(undefined)} />
-
-    render : ->
-        styles =
-            position : 'fixed'
-            left : 12
-            backgroundColor : 'red'
-            color : '#fff'
-            top : 20
-            opacity : .75
-            borderRadius : 4
-            padding : 5
-            zIndex : 1
-            boxShadow : '8px 8px 4px #888'
-            width : '70%'
-            marginTop : '1em'
-        <div style={styles}>
-            <Icon name='refresh' /> New Version Available: upgrade by clicking on&nbsp;
-            <a onClick={=>window.location.reload()} style={color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
-                reload this page
-            </a>.
-            {@render_close()}
-            {@render_critical()}
-        </div>
 
 Page = rclass
     displayName : "Page"
@@ -714,7 +342,7 @@ Page = rclass
             when 'projects'
                 return <ProjectsPage />
             when 'account'
-                return <AccountPageRedux />
+                return <AccountPage />
             when 'about'
                 return <HelpPage />
             when 'help'

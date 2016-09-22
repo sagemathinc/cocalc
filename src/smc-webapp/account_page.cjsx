@@ -15,7 +15,7 @@ require('./redux_account')
 
 browser = require('./browser')
 
-AccountPage = rclass
+exports.AccountPage = rclass
     displayName : 'AccountPage'
 
     reduxProps :
@@ -55,6 +55,10 @@ AccountPage = rclass
     propTypes :
         actions : rtypes.object.isRequired
         redux   : rtypes.object.isRequired
+
+    getDefaultProps : ->
+        actions : redux.getActions('account')
+        redux   : redux
 
     handle_select : (key) ->
         switch key
@@ -130,8 +134,3 @@ AccountPage = rclass
                 </Tab>
             </Tabs> if logged_in}
         </Grid>
-
-exports.AccountPageRedux = AccountPageRedux = rclass
-    render : ->
-        actions = redux.getActions('account')
-        <AccountPage actions={actions} redux={redux}/>
