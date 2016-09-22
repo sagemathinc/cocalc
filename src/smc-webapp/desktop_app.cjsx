@@ -12,16 +12,16 @@
 
 # SMC Libraries
 misc = require('smc-util/misc')
-{salvus_client} = require('./salvus_client')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
-require('./init_page')
+# Initializes page actions, store, and listeners
+require('./init_app')
 
-{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./page_shared')
+{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
 ###
 # JSX
 ###

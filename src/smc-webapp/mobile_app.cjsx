@@ -12,10 +12,6 @@
 
 # SMC Libraries
 misc = require('smc-util/misc')
-{salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
-{set_url} = require('./history')
-{set_window_title} = require('./browser')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
@@ -23,9 +19,9 @@ misc = require('smc-util/misc')
 require('./jquery_plugins')
 
 # Initializes page actions, store, and listeners
-require('./init_page')
+require('./init_app')
 
-{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./page_shared')
+{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
 ###
 # JSX
 ###
@@ -264,7 +260,6 @@ Page = rclass
             fullscreen        : rtypes.bool
             cookie_warning    : rtypes.bool
             show_file_use     : rtypes.bool
-            num_ghost_tabs    : rtypes.number
         file_use :
             get_notify_count : rtypes.func
         account :
@@ -276,9 +271,6 @@ Page = rclass
     propTypes :
         redux : rtypes.object
         page_actions : rtypes.object
-
-    getDefaultProps : ->
-        num_ghost_tabs : 0
 
     componentWillUnmount : ->
         @actions('page').clear_all_handlers()
@@ -295,37 +287,20 @@ Page = rclass
             lockToContainerEdges={true}
             distance={3}
         >
-
-            <NavDropdown eventKey={3} title="Dropdown" id="basic-nav-dropdown">
-              <MenuItem eventKey={3.1}>Action</MenuItem>
-              <MenuItem eventKey={3.2}>Another action</MenuItem>
-              <MenuItem eventKey={3.3}>Something else here</MenuItem>
-              <MenuItem divider />
-              <MenuItem eventKey={3.3}>Separated link</MenuItem>
-            </NavDropdown>
-            {@project_tabs()}
+            {@project_menu_items()}
         </SortableNavDropDown>
 
-    project_tabs : ->
+    project_menu_items : ->
         v = []
         if not @props.open_projects?
             return
         @props.open_projects.map (project_id, index) =>
             v.push(@project_tab(project_id, index))
 
-        if @props.num_ghost_tabs == 0
-            return v
-
-        num_real_tabs = @props.open_projects.size
-        num_tabs = num_real_tabs + @props.num_ghost_tabs
-        console.log("NUMBER OF GHOST TABS:", @props.num_ghost_tabs)
-        for index in [num_real_tabs..(num_tabs-1)]
-            console.log("adding a ghost index:", index)
-            v.push(<GhostTab index={index} key={index}/>)
         return v
 
     project_tab : (project_id, index) ->
-        <ProjectTab
+        <OpenProjectItem
             index          = {index}
             key            = {project_id}
             project_id     = {project_id}
@@ -460,8 +435,12 @@ Page = rclass
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'relative', right:'0', zIndex:'100', opacity:'0.8'}>
                 <div id="smc-top-nav-shim" style={shim_style} >
-                    {@render_projects_dropdown()}
-                    {@render_right_menu()}
+                    <Nav>
+                        {@render_projects_dropdown()}
+                    </Nav>
+                    <Nav>
+                        {@render_right_menu()}
+                    </Nav>
                     <Nav>
                         <ConnectionIndicator actions={@props.page_actions} />
                     </Nav>

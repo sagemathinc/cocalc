@@ -1,6 +1,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store} = require('./smc-react')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Tip} = require('./r_misc')
+{salvus_client} = require('./salvus_client')
 
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
@@ -69,7 +70,7 @@ exports.ConnectionInfo = rclass
             hub : rtypes.string
 
     close : ->
-        @props.actions.show_connection(false)
+        @actions('page').show_connection(false)
 
     connection_body : ->
         if @props.hub?
