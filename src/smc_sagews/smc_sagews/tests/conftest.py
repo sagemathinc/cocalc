@@ -155,10 +155,6 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    # NOTE: save_blob() is NOT in sage_server.py
-    def save_blob(self, sha1):
-        return self._new('save_blob', {'sha1':sha1})
-
     def output(self, id,
                stdout       = None,
                stderr       = None,
@@ -235,6 +231,13 @@ class Message(object):
         m = self._new('introspect_source_code', locals())
         m['id'] = id
         return m
+
+    # NOTE: these functions are NOT in sage_server.py
+    def save_blob(self, sha1):
+        return self._new('save_blob', {'sha1':sha1})
+
+    def introspect(self, id, line, top):
+        return self._new('introspect', {'id':id, 'line':line, 'top':top})
 
 message = Message()
 
