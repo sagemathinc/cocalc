@@ -38,7 +38,7 @@ underscore            = require('underscore')
 
 {salvus_client} = require('./salvus_client')
 
-Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+Combobox = require('react-widgets/lib/Combobox') # FUTURE: delete this when the combobox is in r_misc
 
 TERM_MODE_CHAR = '/'
 
@@ -409,7 +409,6 @@ NoFiles = rclass
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
 
-    # TODO: Make better help text
     render_help_alert : ->
         last_folder_index = @props.file_search.lastIndexOf('/')
         if @props.file_search.indexOf('\\') != -1
@@ -1216,7 +1215,7 @@ ProjectFilesActionBox = rclass
             return false
         if input is @props.current_directory
             return false
-        if misc.startswith(input, '/') # TODO: make this smarter
+        if misc.startswith(input, '/')
             return false
         return true
 
@@ -1442,7 +1441,6 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
-# TODO: Move state into store.
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
@@ -1915,8 +1913,6 @@ exports.ProjectFiles = rclass ({name}) ->
         if pay? and pay <= salvus_client.server_time()
             return @render_course_payment_required()
 
-        # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
-        # going to do this temporarily so we can make a release.
         public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view

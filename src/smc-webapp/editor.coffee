@@ -58,7 +58,7 @@ require('./codemirror/codemirror')
 # Ensure the console jquery plugin is available
 require('./console')
 
-# TODO: undo doing the import below -- just use misc.[stuff] is more readable.
+# SMELL: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('smc-util/misc')
 
@@ -166,7 +166,7 @@ file_associations['tex'] =
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
     name   : "LaTeX"
-#file_associations['tex'] =  # TODO: only for TESTING!!!
+#file_associations['tex'] =  # WARNING: only for TESTING!!!
 #    editor : 'html-md'
 #    icon   : 'fa-file-code-o'
 #    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
@@ -403,7 +403,7 @@ define_codemirror_sagews_mode = () ->
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
 
     CodeMirror.defineMode "cython", (config) ->
-        # TODO: need to figure out how to do this so that the name
+        # FUTURE: need to figure out how to do this so that the name
         # of the mode is cython
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
 
@@ -443,7 +443,7 @@ define_codemirror_sagews_mode = () ->
     ###
 
 # Initialize all of the codemirror modes and extensions, since the editor may need them.
-# TODO: defer this until we actually open a document that actually relies on codemirror.
+# OPTIMIZATION: defer this until we actually open a document that actually relies on codemirror.
 # (one step at a time!)
 define_codemirror_sagews_mode()
 misc_page.define_codemirror_extensions()
@@ -636,13 +636,13 @@ class FileEditor extends EventEmitter
         delete @_show_uncommitted_warning_timeout
         @uncommitted_element?.show()
 
-    focus: () => # TODO in derived class
+    focus: () => # FUTURE in derived class (???)
 
     _get: () =>
-        console.warn("TODO: editor -- needs to implement _get in derived class")
+        console.warn("Incomplete: editor -- needs to implement _get in derived class")
 
     _set: (content) =>
-        console.warn("TODO: editor -- needs to implement _set in derived class")
+        console.warn("Incomplete: editor -- needs to implement _set in derived class")
 
     restore_cursor_position: () =>
         # implement in a derived class if you need this
@@ -703,7 +703,7 @@ class FileEditor extends EventEmitter
             path       : @filename
             content    : content
             cb         : (err, mesg) =>
-                # TODO -- on error, we *might* consider saving to localStorage...
+                # FUTURE -- on error, we *might* consider saving to localStorage...
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{@filename} -- #{err}")
                     cb?(err)
@@ -763,9 +763,7 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
-            if not window.FULLY_REACT
-                # TODO: can't do this here when fully react
-                profile.render_new_viewing_doc(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
+            profile.render_new_viewing_doc(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux, @get_users_cursors, @programmatical_goto_line)
 
         @element.data('editor', @)
 
@@ -840,9 +838,9 @@ class CodeMirrorEditor extends FileEditor
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
-        # We will replace this by a general framework...
+        # FUTURE: We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase() #TODO
+            evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1100,7 +1098,7 @@ class CodeMirrorEditor extends FileEditor
                 that.click_edit_button($(@).data('name'))
                 return false
 
-        # TODO: implement printing for other file types
+        # FUTURE: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
             @element.find("a[href=\"#print\"]").unbind().hide()
 
@@ -1241,7 +1239,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    # TODO: this "print" is actually for printing Sage worksheets, not arbitrary files.
+    # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
@@ -1666,7 +1664,7 @@ class CodeMirrorEditor extends FileEditor
                     args = args.split(',')
             return that.textedit_command(that.focused_codemirror(), cmd, args)
 
-        # TODO: activate color editing buttons -- for now just hide them
+        # FUTURE: activate color editing buttons -- for now just hide them
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
@@ -2127,7 +2125,7 @@ class PDFLatexDocument
             cb      : cb
 
     _parse_text: (text) =>
-        # todo -- parse through the text file putting the pages in the correspondings @pages dict.
+        # FUTURE -- parse through the text file putting the pages in the correspondings @pages dict.
         # for now... for debugging.
         @_text = text
         n = 1
@@ -2755,13 +2753,14 @@ class Terminal extends FileEditor
             salvus_client.new_session(mesg)
 
 
-    _get: () =>  # TODO
+    _get: () =>  # FUTURE ??
         return @opts.session_uuid ? ''
 
-    _set: (content) =>  # TODO
+    _set: (content) =>  # FUTURE ??
 
     save: (cb) =>
-        # DO nothing -- a no-op for now (no notion of history... YET!)
+        # DO nothing -- a no-op for now
+        # FUTURE: Add notion of history
         cb?()
 
     focus: () =>
@@ -2791,7 +2790,7 @@ class Terminal extends FileEditor
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # HACK: this is hack-ish; needs to be redone!
             @console.focus(true)
 
 class Image extends FileEditor
@@ -2888,11 +2887,11 @@ class FileEditorWrapper extends FileEditor
         return @wrapped?.has_uncommitted_changes?(val)
 
     _get: () =>
-        # TODO
+        # FUTURE
         return 'history saving not yet implemented'
 
     _set: (content) =>
-        # TODO
+        # FUTURE ???
 
     focus: () =>
 
@@ -3353,7 +3352,7 @@ class HTML_MD_Editor extends FileEditor
                     # a single cursor
                     pos = s.head
                     line = lines[pos.line]
-                    # TODO: for now, tags have to start/end on a single line
+                    # FUTURE: for now, tags have to start/end on a single line
                     i = @outside_tag(line, pos.ch)
                     lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
                 else if false  # disable
@@ -3376,9 +3375,9 @@ class HTML_MD_Editor extends FileEditor
                 line = lines[i]
                 line2 = ''
                 for j in [0...line.length]
-                    if line[j] == "<"  # TODO: worry about < in mathjax...
+                    if line[j] == "<"  # WARNING: worry about < in mathjax...
                         s = line.slice(0,j)
-                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # TODO: ridiculously inefficient
+                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # OPTIMIZATION: ridiculously inefficient
                         line2 = "<span data-line=#{i} data-ch=#{j-c} class='smc-pos'></span>" + line.slice(j) + line2
                         line = line.slice(0,j)
                 lines[i] = "<span data-line=#{i} data-ch=0 class='smc-pos'></span>"+line + line2
@@ -3388,7 +3387,7 @@ class HTML_MD_Editor extends FileEditor
         source = misc.replace_all(source, markers.cursor, "<span class='smc-html-cursor'></span>")
 
         # add smc-html-selection class to everything that is selected
-        # TODO: this will *only* work when there is one range selection!!
+        # WARNING: this will *only* work when there is one range selection!!
         i = source.indexOf(markers.from)
         j = source.indexOf(markers.to)
         if i != -1 and j != -1

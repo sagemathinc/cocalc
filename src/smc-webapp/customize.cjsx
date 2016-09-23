@@ -60,7 +60,7 @@ exports.SiteDescription = rclass
         else
             <Loading/>
 
-# TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
+# FUTURE also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 exports.CompanyName = rclass
     displayName : 'CompanyName'
     render :->
@@ -100,8 +100,8 @@ exports.AccountCreationEmailInstructions = rclass
     render : ->
         <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
 
-# first step of centralizing these URLs in one place → collecting all such pages into one
-# react-class with a 'type' prop is the next step (TODO)
+# FUTURE: first step of centralizing these URLs in one place → collecting all such pages into one
+# react-class with a 'type' prop is the next step
 # then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
 smc_base_url = window?.smc_base_url ? ''  # fallback for react-static
 exports.PolicyIndexPageUrl     = smc_base_url + '/policies/index.html'

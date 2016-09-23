@@ -54,7 +54,7 @@ file_type_list = (list, exclude) ->
 new_file_button_types = file_type_list(v, true)
 
 # A link that goes back to the current directory
-# TODO : refactor to use PathSegmentLink?
+# FUTURE: refactor to use PathSegmentLink?
 PathLink = exports.PathLink = rclass
     displayName : 'ProjectNew-PathLink'
 

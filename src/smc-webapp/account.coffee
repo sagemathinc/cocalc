@@ -60,7 +60,7 @@ signed_in = (mesg) ->
 
     if load_file
         # wait until account settings get loaded, then show target page
-        # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
+        # HACK: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
@@ -88,10 +88,10 @@ salvus_client.on "remember_me_failed", () ->
         f = ->
             if not localStorage[remember_me]
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
-        setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
+        setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
 
 # Return a default filename with the given ext (or not extension if ext not given)
-# TODO: make this configurable with different schemas.
+# FUTURE: make this configurable with different schemas.
 exports.default_filename = (ext, is_folder) ->
     return default_filename_iso(ext)
     #return default_filename_mac(ext)

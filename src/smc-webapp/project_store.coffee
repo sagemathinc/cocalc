@@ -1183,7 +1183,7 @@ exports.getStore = getStore = (project_id, redux) ->
     # Create store
     initial_state =
         current_path       : ''
-        sort_by_time       : true #TODO
+        sort_by_time       : true # not implemented
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined

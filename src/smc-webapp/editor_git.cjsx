@@ -495,7 +495,7 @@ Git = (name) -> rclass
 
 
     render_commit_panel : ->
-        window.refs = @refs # TODO: is this needed?
+        window.refs = @refs # SMELL: is this needed?
         head =
             <div>
                 <span>

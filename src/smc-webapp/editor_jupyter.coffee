@@ -238,7 +238,7 @@ class JupyterWrapper extends EventEmitter
         @frame.CodeMirror.prototype.redo = redo
 
     monkey_patch_ui: () =>
-        # Proper file rename with sync not supported yet (but will be -- TODO;
+        # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
         @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
 
@@ -486,7 +486,7 @@ class JupyterWrapper extends EventEmitter
         cell.code_mirror = new_cell.code_mirror
         new_cell.code_mirror = cm
         @nb.delete_cell(index + 1)
-        # TODO: readonly
+        # FUTURE: make readonly
 
     init_cell_cursor: (cell, index) =>
         if @read_only or cell._smc_init_cell_cursor == index
@@ -506,7 +506,7 @@ class JupyterWrapper extends EventEmitter
         # ensure @_cursors is defined; this is map from key to ...?
         #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
-        @_users   ?= smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users   ?= smc.redux.getStore('users')  # SMELL -- obviously not like this...
         x = @_cursors[account_id]
         if not x?
             x = @_cursors[account_id] = []

@@ -2,7 +2,6 @@
 This module loads the static html which gets progressively refined/used as
 templated by jQuery and sticks it at the bottom of the body of the document on load.
 
-TODO: This and all of the HTML loaded below will GO AWAY with the react.js rewrite!
 ###
 
 $ = window.$
@@ -17,6 +16,9 @@ $('body').append(html)
 # TODO this below could work but doesn't. Project page is rendered below the footer
 # that explains, why sometimes there is a gap above the tabs of a project ...
 # Attach footer to all pages
+
+# TODO: Attach footer to bottom of all pages
+
 #{React, ReactDOM} = require('./smc-react')
 #{Footer} = require("./r_misc")
 #$('body').append("<footer id='footer'></footer>")

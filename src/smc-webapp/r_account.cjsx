@@ -294,7 +294,7 @@ PasswordSetting = rclass
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
-# TODO: issue -- if edit an account setting in another browser and in the middle of editing
+# WARNING: issue -- if edit an account setting in another browser and in the middle of editing
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
 AccountSettings = rclass
@@ -651,7 +651,7 @@ ProfileSettings = rclass
              </LabeledRow>
         </Panel>
 
-# TODO: in console.coffee there is also code to set the font size,
+# WARNING: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
@@ -1414,7 +1414,7 @@ f = () ->
     $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
-            # TODO: this forces re-render of the strategy part of the component above!
+            # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.
             redux.getActions('account').setState(strategies:strategies)

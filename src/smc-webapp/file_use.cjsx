@@ -64,7 +64,7 @@ editor = require('./editor')
 {User} = require('./users')
 
 
-_global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
+_global_notify_count = 0  # TODO: eliminate and moved to a store...
 
 class FileUseActions extends Actions
     record_error: (err) =>

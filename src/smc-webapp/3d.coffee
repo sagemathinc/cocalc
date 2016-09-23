@@ -361,7 +361,7 @@ class SalvusThreeJS
             points     : required
             thickness  : 1
             color      : "#000000"
-            arrow_head : false  # TODO
+            arrow_head : false  # FUTURE
         @show_canvas()
 
         geometry = new THREE.Geometry()
@@ -443,7 +443,7 @@ class SalvusThreeJS
         else
             has_local_colors = false
 
-            
+
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
             #console.log("object=", misc.to_json(myobj))
@@ -786,8 +786,9 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         # console.log('render', @opts.element.length)
+        # FUTURE: Render static
         if @renderer_type == 'static'
-            console.log 'render static -- todo'
+            console.log 'render static -- not implemented yet'
             return
 
         if not @camera?
@@ -914,7 +915,7 @@ $.fn.salvus_threejs = (opts={}) ->
         opts.element = e
         opts.container = elt
 
-        # TODO/NOTE -- this explicit reference is brittle -- it is just an animation efficiency, but still...
+        # WARNING -- this explicit reference is brittle -- it is just an animation efficiency, but still...
         opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
 
         f = () ->

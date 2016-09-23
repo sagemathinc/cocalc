@@ -1,5 +1,5 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Navbar, Nav, NavItem} = require('react-bootstrap')
+{Navbar, Nav, NavItem, NavDropdown, MenuItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
@@ -9,22 +9,13 @@
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
 {Support} = require('./support')
-
 # SMC Libraries
 misc = require('smc-util/misc')
-
-{SortableContainer, SortableElement} = require('react-sortable-hoc')
-
 # Makes some things work. Like the save button
 require('./jquery_plugins')
-
 # Initializes page actions, store, and listeners
 require('./init_app')
-
 {CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
-###
-# JSX
-###
 
 NavTab = rclass
     displayName : "NavTab"
@@ -145,7 +136,7 @@ OpenProjectItem = rclass
         if @state.x_hovered
             x_color = "white"
 
-        <SortableNavTab
+        <MenuItem
             index={@props.index}
             name={@props.project_id}
             actions={@actions('page_actions')}
@@ -170,13 +161,7 @@ OpenProjectItem = rclass
                     </Tip>
                 </div>
             </div>
-        </SortableNavTab>
-
-NavDropDownWrapper = ({style, children, id, className}) ->
-    React.createElement(NavDropdown, {style:style, id:id, className:className}, children)
-
-SortableOpenProjectItem = SortableElement(OpenProjectItem)
-SortableDropDown = SortableContainer(NavDropDownWrapper)
+        </MenuItem>
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -274,21 +259,6 @@ Page = rclass
     componentWillUnmount : ->
         @actions('page').clear_all_handlers()
 
-    on_sort_end : ({oldIndex, newIndex}) ->
-        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
-
-    render_projects_dropdown : ->
-        <SortableNavDropDown style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'}
-            helperClass={'smc-project-tab-floating'}
-            onSortEnd={@on_sort_end}
-            axis={'x'}
-            lockAxis={'x'}
-            lockToContainerEdges={true}
-            distance={3}
-        >
-            {@project_menu_items()}
-        </SortableNavDropDown>
-
     project_menu_items : ->
         v = []
         if not @props.open_projects?
@@ -318,6 +288,32 @@ Page = rclass
             name = "Account"
         return name
 
+    render_projects_dropdown : ->
+        <Nav>
+            <DropDown style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'} >
+                {@project_menu_items()}
+            </DropDown>
+        </Nav>
+
+    render_projects_button : ->
+        projects_styles =
+            whiteSpace: 'nowrap'
+            float:'right'
+            padding: '11px 7px'
+
+        <Nav style={height:'42px', margin:'0'}>
+            <NavTab
+                name='projects'
+                style={maxHeight:'44px'}
+                inner_style={padding:'0px'}
+                actions={@actions('page')}
+                active_top_tab={@props.active_top_tab}
+
+            >
+                <SMCLogo />
+            </NavTab>
+        </Nav>
+
     render_page : ->
         switch @props.active_top_tab
             when 'projects'
@@ -334,90 +330,13 @@ Page = rclass
                 project_name = redux.getProjectStore(@props.active_top_tab).name
                 <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
+    # TODO:
     render_right_menu : ->
         <Nav id='smc-right-tabs-fixed' style={height:'42px', lineHeight:'20px', margin:'0'}>
-            <NavDropdown>
-                <NavTab
-                name='account'
-                label={@account_name()}
-                icon='cog'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-                />
-                <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
-                <NavItem className='divider-vertical hidden-xs' />
-                <NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
-                {<NotificationBell count={@props.get_notify_count()} /> if @props.is_logged_in()}
-            </NavDropdown>
-
-        </Nav>
-
-    render_project_nav_button : ->
-        projects_styles =
-            whiteSpace: 'nowrap'
-            float:'right'
-            padding: '11px 7px'
-
-        <Nav style={height:'42px', margin:'0'}>
-            <NavTab
-                name='projects'
-                style={maxHeight:'44px'}
-                inner_style={padding:'0px'}
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-
-            >
-                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-                <div style={width:'100%'}>
-                    <div style={projects_styles}>
-                        Projects
-                    </div>
-                    <SMCLogo />
-                </div>
-            </NavTab>
+            
         </Nav>
 
     render : ->
-        # Use this pattern very sparingly.
-        # Right now only used to access library generated elements
-        # Very fragile.
-        page_style ='
-            #smc-top-nav-shim>ul>li>a {
-                padding:0px;
-            }
-            .smc-project-tab-floating {
-                background-color: rgb(255, 255, 255);
-                border: dotted 1px #9a9a9a;
-                display:block;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                z-index:100;
-            }
-            .smc-project-tab-floating>a {
-                color:rgb(85, 85, 85);
-                display:block;
-                height:51px;
-                line-height:20px;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                outline-color:rgb(85, 85, 85);
-                outline-style:none;
-                outline-width:0px;
-                padding:0px;
-            }
-            '
-        shim_style =
-            position : 'absolute'
-            left : '0'
-            marginRight : '0px'
-            marginLeft : '0px'
-            paddingLeft : '0px'
-            width : '100%'
-            display : 'flex'
-
         style =
             display:'flex'
             flexDirection:'column'
@@ -426,24 +345,15 @@ Page = rclass
             overflow:'auto'
 
         <div ref="page" style={style}>
-            <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'relative', right:'0', zIndex:'100', opacity:'0.8'}>
-                <div id="smc-top-nav-shim" style={shim_style} >
-                    <Nav>
-                        {@render_projects_dropdown()}
-                    </Nav>
-                    <Nav>
-                        {@render_right_menu()}
-                    </Nav>
-                    <Nav>
-                        <ConnectionIndicator actions={@actions('page')} />
-                    </Nav>
-                </div>
+                {@render_projects_button()}
+                {@render_projects_dropdown()}
+                {@render_right_menu()}
             </Navbar> if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}

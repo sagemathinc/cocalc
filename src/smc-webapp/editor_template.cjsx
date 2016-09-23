@@ -4,7 +4,7 @@ and also copy the template-related entries in editor.coffee.
 
 Test this by making a file that ends with .sage-template.
 
-TODO:
+FUTURE:
 
   - show how to open a syncstring file
   - show how to connect to a syncdb database backed by the file, so store is sync'd across users of the file

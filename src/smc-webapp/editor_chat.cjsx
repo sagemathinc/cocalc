@@ -35,9 +35,9 @@ sender_id : String which is the original message sender's account id
 event     : Can only be "chat" right now.
 date      : A date string
 history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"TODO">
+editing   : Object of <account id's> : <"FUTURE">
 
-"TODO" Will likely contain their last edit in the future
+"FUTURE" Will likely contain their last edit in the future
 
  --- History object ---
 author_id : String which is this message version's author's account id
@@ -51,7 +51,7 @@ Example object:
         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
         ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
+"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"FUTURE"}}
 ---
 
 Chat message types after immutable conversion:
@@ -109,7 +109,7 @@ class ChatActions extends Actions
 
     send_chat: (mesg) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         sender_id = @redux.getStore('account').get_account_id()
         time_stamp = salvus_client.server_time()
@@ -127,13 +127,13 @@ class ChatActions extends Actions
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         author_id = @redux.getStore('account').get_account_id()
 
         if is_editing
-            # TODO: Save edit changes
-            editing = message.get('editing').set(author_id, 'TODO')
+            # FUTURE: Save edit changes
+            editing = message.get('editing').set(author_id, 'FUTURE')
         else
             editing = message.get('editing').remove(author_id)
 
@@ -151,7 +151,7 @@ class ChatActions extends Actions
     # Inefficient. Assumes number of edits is small.
     send_edit: (message, mesg) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
@@ -438,7 +438,7 @@ Message = rclass
             verticalAlign : "middle"
             width         : '4%'
 
-        # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+        # FUTURE: do something better when we don't know the user (or when sender account_id is bogus)
         <Col key={0} xsHidden={true} sm={1} style={style} >
             <div>
                 {<Avatar account={account} /> if account? and @props.show_avatar}
@@ -539,7 +539,7 @@ Message = rclass
                 </div>
             </ListGroupItem>
 
-    # TODO: Make this a codemirror input
+    # FUTURE: Make this a codemirror input
     render_input: ->
         <div>
             <FormGroup>
@@ -730,7 +730,7 @@ ChatRoom = rclass ({name}) ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
     keydown : (e) ->
-        # TODO: Add timeout component to is_typing
+        # FUTURE: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
             @clear_input()
@@ -1070,7 +1070,7 @@ ChatEditorGenerator = (path, redux, project_id) ->
     # console.log("Generating Chat Editor -- This should happen once per file opening")
     name = redux_name(project_id, path)
     C_ChatRoom = ({path, actions, project_id, redux}) ->
-        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path) # TODO: how to memoize this?
+        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
         <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
 
     C_ChatRoom.redux_name = name

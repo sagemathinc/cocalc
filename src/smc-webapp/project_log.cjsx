@@ -242,7 +242,7 @@ LogEntry = rclass
             when 'invite_nonuser'
                 return @render_invite_nonuser()
             else
-                # TODO!
+                # FUTURE:
                 return <span>{misc.to_json(@props.event)}</span>
 
     render_user : ->
@@ -313,7 +313,7 @@ LogMessages = rclass
             {@render_entries()}
         </div>
 
-PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
+PAGE_SIZE = 50  # number of entries to show per page (SMELL: move to account settings)
 
 matches = (s, words) ->
     for word in words
@@ -364,7 +364,7 @@ exports.ProjectLog = rclass ({name}) ->
     next_page : ->
         @props.actions.setState(page: @props.page+1)
 
-    search_string : (x) ->  # TODO: this code is ugly, but can be easily changed here only.
+    search_string : (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
         v = [@props.get_name(x.account_id)]
         event = x.event
         if event?
@@ -453,7 +453,7 @@ exports.ProjectLog = rclass ({name}) ->
         num_pages = Math.ceil(log.length / PAGE_SIZE)
         page = @props.page
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
-        # make first visible entry appear "selected" (TODO: implement cursor to move)
+        # make first visible entry appear "selected" (FUTURE: implement cursor to move)
         if log.length > 0
             cursor = log[0].id
             selected = log[0]

@@ -64,7 +64,7 @@ class BillingActions extends Actions
                 else
                     # only call get_invoices if the customer already exists in the system!
                     salvus_client.stripe_get_invoices
-                        limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
+                        limit : 100  # FUTURE: -- this will change when we use webhooks and our own database of info.
                         cb: (err, invoices) =>
                             if not err
                                 @setState(invoices: invoices)
@@ -599,7 +599,7 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
 
 exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render_project_quota: (name, value) ->
-        # TODO is this a code dup from above?
+        # SMELL: is this a code dup from above?
         data = PROJECT_UPGRADES.params[name]
         amount = value * data.pricing_factor
         unit = data.pricing_unit
@@ -1308,7 +1308,7 @@ Subscriptions = rclass
         redux         : rtypes.object.isRequired
 
     getInitialState : ->
-        state : 'view'    # view -> add_new ->         # TODO
+        state : 'view'    # view -> add_new ->         # FUTURE: ??
 
     render_add_subscription_button : ->
         <Button
@@ -1804,7 +1804,7 @@ COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Co
 STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',AS:'American Samoa',DC:'District of Columbia',GU:'Guam',MP:'Northern Mariana Islands',PR:'Puerto Rico',VI:'United States Virgin Islands'}
 
 
-# TODO: make this an action and a getter in the BILLING store
+# FUTURE: make this an action and a getter in the BILLING store
 set_selected_plan = (plan, period) ->
     if period?.slice(0,4) == 'year'
         plan = plan + "-year"

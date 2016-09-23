@@ -375,7 +375,7 @@ class Console extends EventEmitter
 
             #@activity_indicator() TODOJ
         catch e
-            # TODO -- these are all basically bugs, I think...
+            # WARNING -- these are all basically bugs, I think...
             # That said, try/catching them is better than having
             # the whole terminal just be broken.
             console.log("terminal error -- ",e)
@@ -881,7 +881,7 @@ class Console extends EventEmitter
 
         if not @session?
             # don't bother if we don't even have a remote connection
-            # (todo: could queue this up to send)
+            # FUTURE: could queue this up to send
             return
 
         @resize_terminal () =>
@@ -1002,7 +1002,7 @@ class Console extends EventEmitter
         try
             @terminal.blur()
         catch e
-            # TODO: probably should investigate term.js issues further(?)
+            # WARNING: probably should investigate term.js issues further(?)
             # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
             # This would totally break the client, which is bad, so we catch is.
         $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')

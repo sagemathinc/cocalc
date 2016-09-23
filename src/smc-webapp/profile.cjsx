@@ -222,7 +222,7 @@ UsersViewing = rclass
                 time_since =  salvus_client.server_time()/1000 - seconds
 
 
-                # TODO do something with the type like show a small typing picture
+                # FUTURE: do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
 
@@ -260,7 +260,7 @@ UsersViewing = rclass
                 seconds = most_recent_path['most_recent']
                 time_since =  salvus_client.server_time()/1000 - seconds
 
-                # TODO do something with the type like show a small typing picture
+                # FUTURE: do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
 
@@ -280,7 +280,7 @@ UsersViewing = rclass
                 account = @props.user_map.get(user_id)?.toJS() ? {}
                 [event, seconds] = @_find_most_recent(events)
                 time_since =  salvus_client.server_time()/1000 - seconds
-                # TODO do something with the type like show a small typing picture
+                # FUTURE: do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...

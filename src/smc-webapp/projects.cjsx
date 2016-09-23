@@ -207,7 +207,7 @@ class ProjectsActions extends Actions
                 public_projects : {project_id : project_id, title : null}
             cb    : (err, resp) =>
                 if not err
-                    # TODO: use the store somehow to report error?
+                    # FUTURE: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
                     if title?
                         @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
@@ -245,7 +245,7 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
+                if err # SMELL: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
     invite_collaborator : (project_id, account_id) =>
@@ -256,7 +256,7 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
+                if err # SMELL: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
