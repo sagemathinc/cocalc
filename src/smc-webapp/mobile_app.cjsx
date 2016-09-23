@@ -247,9 +247,9 @@ Page = rclass
 
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable # List of open projects and their state
-            project_map    : rtypes.immutable # All projects available to the user
-            public_project_titles : rtypes.immutable
+            open_projects  : rtypes.immutable.List # List of open projects and their state
+            project_map    : rtypes.immutable.Map # All projects available to the user
+            public_project_titles : rtypes.immutable.Map
         page :
             active_top_tab    : rtypes.string    # key of the active tab
             show_connection   : rtypes.bool
@@ -270,7 +270,6 @@ Page = rclass
 
     propTypes :
         redux : rtypes.object
-        page_actions : rtypes.object
 
     componentWillUnmount : ->
         @actions('page').clear_all_handlers()
@@ -342,12 +341,12 @@ Page = rclass
                 name='account'
                 label={@account_name()}
                 icon='cog'
-                actions={@props.page_actions}
+                actions={@actions('page')}
                 active_top_tab={@props.active_top_tab}
                 />
-                <NavTab name='about' label='About' icon='question-circle' actions={@props.page_actions} active_top_tab={@props.active_top_tab} />
+                <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
                 <NavItem className='divider-vertical hidden-xs' />
-                <NavTab label='Help' icon='medkit' actions={@props.page_actions} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
+                <NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
                 {<NotificationBell count={@props.get_notify_count()} /> if @props.is_logged_in()}
             </NavDropdown>
 
@@ -364,7 +363,7 @@ Page = rclass
                 name='projects'
                 style={maxHeight:'44px'}
                 inner_style={padding:'0px'}
-                actions={@props.page_actions}
+                actions={@actions('page')}
                 active_top_tab={@props.active_top_tab}
 
             >
@@ -430,7 +429,7 @@ Page = rclass
             <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@props.page_actions} /> if @props.show_connection}
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'relative', right:'0', zIndex:'100', opacity:'0.8'}>
@@ -442,7 +441,7 @@ Page = rclass
                         {@render_right_menu()}
                     </Nav>
                     <Nav>
-                        <ConnectionIndicator actions={@props.page_actions} />
+                        <ConnectionIndicator actions={@actions('page')} />
                     </Nav>
                 </div>
             </Navbar> if not @props.fullscreen}
@@ -453,7 +452,8 @@ Page = rclass
         </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')
-page = <Redux redux={redux}>
-    <Page redux={redux} page_actions={redux.getActions('page')} notification_count=1 />
-</Redux>
+page =
+    <Redux redux={redux}>
+        <Page />
+    </Redux>
 ReactDOM.render(page, $(".smc-react-container")[0])

@@ -601,7 +601,7 @@ class ProjectsStore extends Store
         return v
 
 init_store =
-    project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
+    project_map   : immutable.Map()   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects
     public_project_titles : immutable.Map()
 

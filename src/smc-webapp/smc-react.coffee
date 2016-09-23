@@ -239,17 +239,110 @@ class AppRedux
 
 redux = new AppRedux()
 
-rtypes = React.PropTypes
-rtypes.immutable = "IMMUTABLE"
+###
+Custom Prop Validation
+FUTURE: Put prop validation code in a debug area so that it doesn't get loaded for production
+
+In addition to React Prop checks, we implement the following type checkers:
+immutable,
+immutable.List,
+immutable.Map,
+immutable.Set,
+immutable.Stack,
+which may be chained with .isRequired just like normal React prop checks
+
+Additional validations may be added with the following signature
+rtypes.custom_checker_name<function (
+        props,
+        propName,
+        componentName,
+        location,
+        propFullName,
+        secret
+    ) => <Error-Like-Object or null>
+>
+Check React lib to see if this has changed.
+
+
+NOT IMPLEMENTED, FUTURE:
+rtypes.immutable.Map.has("jim")
+the prop must be an immutable Map and has("jim") must be true
+Use a more generic strategy to chain the checks in that case
+###
+
+check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
+#    locationName = ReactPropTypeLocationNames[location]
+    if props[propName].toJS? or Object.isFrozen(props[propName])
+        return null
+    else
+        type = typeof props[propName]
+        return new Error(
+            "Invalid prop '#{propName}' of" +
+            " type #{type} supplied to" +
+            " '#{componentName}', expected an immutable collection or frozen object."
+        )
+
+allow_isRequired = (validate) ->
+    check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
+        if not props[propName]? and isRequired
+                return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
+        return validate(props, propName, componentName, location)
+
+    check_type.type = "IMMUTABLE HACK"
+
+    chainedCheckType = check_type.bind(null, false)
+    chainedCheckType.isRequired = check_type.bind(null, true)
+
+    return chainedCheckType
+
+create_immutable_type_required_chain = (validate) ->
+    check_type = (immutable_type_name, props, propName, componentName="ANONYMOUS") ->
+        if immutable_type_name
+            T = immutable_type_name
+            if not props[propName].toJS?
+                return new Error("NOT EVEN IMMUTABLE, wanted immutable.#{T} #{props}, #{propName}")
+            if require('immutable')["#{T}"]["is#{T}"](props[propName])
+                return null
+            else
+                return new Error(
+                    "Component '#{componentName}'" +
+                    " expected an immutable.#{immutable_type_name}" +
+                    " but was supplied #{props[propName]}"
+                )
+        else
+            return validate(props, propName, componentName, location)
+
+    # To add more immutable.js types, mimic code below.
+    check_immutable_chain = allow_isRequired check_type.bind(null, undefined)
+    check_immutable_chain.Map = allow_isRequired check_type.bind(null, "Map")
+    check_immutable_chain.List = allow_isRequired check_type.bind(null, "List")
+    check_immutable_chain.Set = allow_isRequired check_type.bind(null, "Set")
+    check_immutable_chain.Stack = allow_isRequired check_type.bind(null, "Stack")
+
+    return check_immutable_chain
+
+rtypes = {}
+rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
+Object.assign(rtypes, React.PropTypes)
+
+# WARNING: This used below to know the type of data expected by the component
+# It conflates the type checker with the type itself. Fragile.
+# For example onOfType([]) won't work insdie reduxProps for this reason.
+immutable_checkers = [
+    rtypes.immutable, rtypes.immutable.isRequired,
+    rtypes.immutable.List, rtypes.immutable.List.isRequired,
+    rtypes.immutable.Map, rtypes.immutable.Map.isRequired,
+    rtypes.immutable.Set, rtypes.immutable.Set.isRequired,
+    rtypes.immutable.Stack, rtypes.immutable.Stack.isRequired
+]
 
 ###
+Used by Provider to map app state to component props
+
 rclass
     reduxProps:
-
-
-    propTypes:
-        connected_to : rtypes.array
-
+        store_name :
+            prop     : type
 ###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
@@ -259,7 +352,8 @@ connect_component = (spec) =>
         for store_name, info of spec
             for prop, type of info
                 s = state.getIn([store_name, prop])
-                if type != rtypes.immutable
+                # If the type isn't one of our immutable checkers, convert to js
+                if not immutable_checkers.includes(type)
                     props[prop] = if s?.toJS? then s.toJS() else s
                 else
                     props[prop] = s
