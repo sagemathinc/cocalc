@@ -258,7 +258,7 @@ ForgotPassword = rclass
         @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
-        <Modal show={true} backdrop="static" onHide={@hide_forgot_password}>
+        <Modal show={true} onHide={@hide_forgot_password}>
             <Modal.Body>
                 <div>
                     <h1>Forgot Password?</h1>
