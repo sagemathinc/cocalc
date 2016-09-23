@@ -221,17 +221,36 @@ ForgotPassword = rclass
         forgot_password_error : rtypes.string
         forgot_password_success : rtypes.string
 
+    getInitialState : ->
+        empty_input : false
+
     forgot_password : (e) ->
         e.preventDefault()
-        @props.actions.forgot_password(@refs.email.getValue())
+        if @refs.email.getValue().length > 0
+            @props.actions.forgot_password(@refs.email.getValue())
+            @setState(empty_input:false)
+        else
+            ReactDOM.findDOMNode(@refs.email.refs.input).focus()
+            @setState(empty_input:true)
 
     display_error : ->
         if @props.forgot_password_error?
             <span style={color: "red", fontSize: "90%"}>{@props.forgot_password_error}</span>
 
+    display_empty_input_error : ->
+        <span style={color: "red", fontSize: "90%"}>Please enter an email address.</span>
+
     display_success : ->
         if @props.forgot_password_success?
-            <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
+            success_part_1 = @props.forgot_password_success.split("check your spam folder")[0]
+            success_part_2 = @props.forgot_password_success.split("check your spam folder")[1]
+            <span style={color: "green", fontSize: "90%"}>
+                {success_part_1}
+                <span style={color: "red", fontWeight: "bold"}>
+                    check your spam folder
+                </span>
+                {success_part_2}
+            </span>
 
     hide_forgot_password : ->
         @props.actions.setState(show_forgot_password : false)
@@ -239,16 +258,17 @@ ForgotPassword = rclass
         @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
-        <Modal show={true} onHide={@hide_forgot_password}>
+        <Modal show={true} backdrop="static" onHide={@hide_forgot_password}>
             <Modal.Body>
                 <div>
                     <h1>Forgot Password?</h1>
                     Enter your email address to reset your password
                 </div>
                 <form onSubmit={@forgot_password}>
-                    {@display_error()}
-                    {@display_success()}
-                    <Input ref='email' type='email' placeholder='Email address' />
+                    <Input ref='email' type='email' placeholder='Email address' autoFocus={true} />
+                    {@display_error() if not @state.empty_input}
+                    {@display_empty_input_error() if @state.empty_input}
+                    {@display_success() if not @state.empty_input}
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
