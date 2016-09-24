@@ -29,7 +29,7 @@ function do_push() {
 }
 
 # note, before using parallel, this was simple loop:
-# for TARGET in compute{0..7}-us; do
+# for TARGET in compute{0..8}-us; do
 # [...]
 # done
 
