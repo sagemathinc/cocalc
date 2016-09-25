@@ -919,20 +919,20 @@ ChatRoom = (name) -> rclass
         if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={2} mdHidden>
+                    <Col xs={3} mdHidden style={paddingLeft:'2px'}>
                         <Button className='smc-small-only'
                                 onClick={@show_files}>
                                 <Icon name='toggle-up'/> Files
                         </Button>
                     </Col>
-                    <Col xs={4} md={4} style={padding:'0px'}>
+                    <Col xs={3} md={6} style={padding:'0px'}>
                         <UsersViewing
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
                               account_id  = {@props.account_id}
                               user_map    = {@props.user_map} />
                     </Col>
-                    <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
+                    <Col xs={6} md={6} className="pull-right smc-big-only" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             {@render_timetravel_button()}
                             {@render_bottom_button()}
@@ -983,18 +983,15 @@ ChatRoom = (name) -> rclass
             </Grid>
 
         else
-        ##########################################
-        # MOBILE HACK
-        ##########################################
+            ##########################################
+            # MOBILE HACK
+            ##########################################
             <Grid>
                 <Row style={marginBottom:'5px'}>
                     <ButtonGroup>
                         <Button className='smc-small-only'
                             onClick={@show_files}>
                             <Icon name='toggle-up'/> Files
-                        </Button>
-                        <Button onClick={@show_timetravel} bsStyle='info'>
-                            <Icon name='history'/> TimeTravel
                         </Button>
                         <Button onClick={@scroll_to_bottom}>
                             <Icon name='arrow-down'/> Scroll to Bottom
