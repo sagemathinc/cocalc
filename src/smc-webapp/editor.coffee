@@ -2730,7 +2730,8 @@ class PDFLatexDocument
                 opts.cb(false, {n:n, x:x, y:y})
 
     default_tex_command: () =>
-        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+        # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+        return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
@@ -2797,8 +2798,9 @@ class PDFLatexDocument
             command = @default_tex_command()
         sagetex_file = @base_filename + '.sagetex.sage'
         sha_marker = 'sha1sums'
+        # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         @_exec
-            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
+            command : "yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
             bash    : true
             timeout : 20
             err_on_exit : false
