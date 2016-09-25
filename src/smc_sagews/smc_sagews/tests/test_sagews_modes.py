@@ -21,8 +21,6 @@ class TestShMode:
     def test_direct_call(self, exec2):
         exec2("sh('date +%Y-%m-%d')", html_pattern = '\d{4}-\d{2}-\d{2}')
 
-    # need exec finalizer after each cell for capture
-    # that is why two tests
     def test_capture_sh_01(self, exec2):
         exec2("%capture(stdout='output')\n%sh uptime")
     def test_capture_sh_02(self, exec2):
@@ -36,3 +34,15 @@ class TestShMode:
 
     def test_sh_display(self, execblob, image_file):
         execblob("%sh display < " + str(image_file))
+    def test_sh_autocomplete_01(self, exec2):
+        exec2("%sh TESTVAR29=xyz")
+    def test_sh_autocomplete_02(self, test_id, sagews):
+        m = conftest.message.introspect(test_id, line='echo $TESTV', top='%sh')
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == ["AR29"]
+        assert mesg['target'] == "$TESTV"

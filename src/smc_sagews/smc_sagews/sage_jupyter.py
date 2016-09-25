@@ -107,9 +107,6 @@ def _jkmagic(kernel_name, **kwargs):
     """
     km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
-    kn = kernel_name
-    i_am_a_jupyter_client = True
-
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
     def p(*args):
@@ -142,11 +139,10 @@ def _jkmagic(kernel_name, **kwargs):
             h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
 
-    def run_code(code):
+    def run_code(code, get_kernel_name = False):
 
-        # these are used by the worksheet process
-        if (not i_am_a_jupyter_client) or len(kn) == 0:
-            return
+        if get_kernel_name:
+            return kernel_name
 
         # execute the code
         msg_id = kc.execute(code)
