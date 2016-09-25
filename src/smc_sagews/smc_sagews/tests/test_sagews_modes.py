@@ -34,8 +34,6 @@ class TestShMode:
 
     def test_sh_display(self, execblob, image_file):
         execblob("%sh display < " + str(image_file))
-# {u\'preparse\': True, u\'line\': u\'echo $VAR\', u\'top\': u"# autocomplete - don\'t run this cell, put cursor after VAR and hit [TAB]", u\'event\': u\'introspect\', u\'id\': u\'b4542e8b-9f5d-4736-87f6-af37f16d443a\'}
-# {"id": "b4542e8b-9f5d-4736-87f6-af37f16d443a", "event": "introspect_completions", "completions": ["1","2"], "target": "$VAR"}
     def test_sh_autocomplete_01(self, exec2):
         exec2("%sh TESTVAR29=xyz")
     def test_sh_autocomplete_02(self, test_id, sagews):
