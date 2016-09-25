@@ -1517,6 +1517,7 @@ def session(conn):
                         # see if prefix is the name of a jupyter kernel function
                         jkfn = namespace[prefix]
                         if hasattr(jkfn, 'jupyter_kernel'):
+                            # pre-defined jupyter modes like %sh have mode function in attribute
                             jkfn = jkfn.jupyter_kernel
                         jkname = jkfn(None, get_kernel_name = True)
                         log("jupyter introspect %s: %s"%(prefix, jkname)) # e.g. "p2", "python2"
