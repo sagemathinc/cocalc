@@ -238,7 +238,10 @@ class Project(object):
     def chown(self, path, recursive=True):
         if self._dev:
             return
-        cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R' if recursive else '', path])
+        if recursive:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        else:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), path])
 
     def ensure_file_exists(self, src, target):
         target = os.path.abspath(target)
