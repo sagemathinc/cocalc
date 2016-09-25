@@ -84,6 +84,7 @@ class JUPYTER(object):
     __doc__ = property(_get_doc)
 
 jupyter = JUPYTER()
+octave = jupyter('octave')
 
 import jupyter_client
 from Queue import Empty
