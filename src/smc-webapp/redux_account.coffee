@@ -93,7 +93,7 @@ class AccountActions extends Actions
                 else if mesg.err
                     @setState('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
                 else
-                    @setState('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}.")
+                    @setState('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it, check your spam folder; if you have further trouble, write to #{help()}.")
 
     reset_password : (code, new_password) ->
         salvus_client.reset_forgot_password

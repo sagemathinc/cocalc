@@ -155,10 +155,6 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    # NOTE: save_blob() is NOT in sage_server.py
-    def save_blob(self, sha1):
-        return self._new('save_blob', {'sha1':sha1})
-
     def output(self, id,
                stdout       = None,
                stderr       = None,
@@ -236,6 +232,13 @@ class Message(object):
         m['id'] = id
         return m
 
+    # NOTE: these functions are NOT in sage_server.py
+    def save_blob(self, sha1):
+        return self._new('save_blob', {'sha1':sha1})
+
+    def introspect(self, id, line, top):
+        return self._new('introspect', {'id':id, 'line':line, 'top':top})
+
 message = Message()
 
 ###
@@ -248,25 +251,36 @@ def set_salvus_path(self, id):
     """
     m = self._new('execute_code', locals())
 
-default_log_file = os.path.join(os.environ["HOME"], ".smc/sage_server/sage_server.log")
+# hard code SMC for now so we don't have to run with sage wrapper
+SMC = os.path.join(os.environ["HOME"], ".smc")
+default_log_file = os.path.join(SMC, "sage_server", "sage_server.log")
+default_pid_file = os.path.join(SMC, "sage_server", "sage_server.pid")
 
 def get_sage_server_info(log_file = default_log_file):
-    # log file ~/.smc/sage_server/sage_server.log
-    # sample sage_server startup line in first lines of log:
-    # 3136 (2016-08-18 15:02:49.372): Sage server 127.0.0.1:44483
-    try:
-        with open(log_file, "r") as inf:
-            for lno in range(5):
-                line = inf.readline().strip()
-                m = re.search("Sage server (?P<host>[\w.]+):(?P<port>\d+)$", line)
-                if m:
-                    host = m.group('host')
-                    port = int(m.group('port'))
-                    break
-            else:
-                raise ValueError('Server info not found in log_file',log_file)
-    except IOError:
+    for loop_count in range(3):
+        # log file ~/.smc/sage_server/sage_server.log
+        # sample sage_server startup line in first lines of log:
+        # 3136 (2016-08-18 15:02:49.372): Sage server 127.0.0.1:44483
+        try:
+            with open(log_file, "r") as inf:
+                for lno in range(5):
+                    line = inf.readline().strip()
+                    m = re.search("Sage server (?P<host>[\w.]+):(?P<port>\d+)$", line)
+                    if m:
+                        host = m.group('host')
+                        port = int(m.group('port'))
+                        #return host, int(port)
+                        break
+                else:
+                    raise ValueError('Server info not found in log_file',log_file)
+                break
+        except IOError:
+            print("starting new sage_server")
+            os.system("smc-sage-server start")
+            time.sleep(5.0)
+    else:
         pytest.fail("Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"%log_file)
+    print("got host %s  port %s"%(host, port))
     return host, int(port)
 
 secret_token = None
@@ -297,6 +311,34 @@ def recv_til_done(conn, test_id):
             break
     else:
         pytest.fail("too many responses for message id %s"%test_id)
+###
+# Start of fixtures
+###
+
+@pytest.fixture(autouse = True, scope = "session")
+def sage_server_setup(pid_file = default_pid_file, log_file = default_log_file):
+    r"""
+    make sure sage_server pid file exists and process running at given pid
+    """
+    print("initial fixture")
+    try:
+        pid = int(open(pid_file).read())
+        os.kill(pid, 0)
+    except:
+        assert os.geteuid() != 0, "Do not run as root."
+        os.system("pkill -f sage_server_command_line")
+        os.system("rm -f %s"%pid_file)
+        os.system("smc-sage-server start")
+    for loop_count in range(20):
+        time.sleep(0.5)
+        if not os.path.exists(log_file):
+            continue
+        lmsg = "Starting server listening for connections"
+        if lmsg in open(log_file).read():
+            break
+    else:
+        pytest.fail("Unable to start sage_server and setup log file")
+    return
 
 @pytest.fixture()
 def test_id(request):
@@ -458,8 +500,12 @@ def execblob(request, sagews, test_id):
 
     return execblobfn
 
-@pytest.fixture(scope = "session")
+@pytest.fixture(scope = "class")
 def sagews(request):
+    r"""
+    Module-scoped fixture for tests that don't leave
+    extra threads running.
+    """
     # setup connection to sage_server TCP listener
     host, port = get_sage_server_info()
     print("host %s  port %s"%(host, port))
@@ -488,7 +534,32 @@ def sagews(request):
     # teardown needed - terminate session nicely
     # use yield instead of request.addfinalizer in newer versions of pytest
     def fin():
-        conn.send_json(message.terminate_session())
         print("\nExiting Sage client.")
+        conn.send_json(message.terminate_session())
+        # wait several seconds for client to die
+        for loop_count in range(8):
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                # client is dead
+                break
+            time.sleep(0.5)
+        else:
+            print("sending sigterm to %s"%pid)
+            os.kill(pid, signal.SIGTERM)
     request.addfinalizer(fin)
     return conn
+
+import time
+
+@pytest.fixture(scope = "class")
+def own_sage_server(request):
+    assert os.geteuid() != 0, "Do not run as root, will kill all sage_servers."
+    #os.system("pkill -f sage_server_command_line")
+    print("starting new sage_server")
+    os.system("smc-sage-server start")
+    time.sleep(0.5)
+    def fin():
+        print("killing all sage_server processes")
+        os.system("pkill -f sage_server_command_line")
+    request.addfinalizer(fin)

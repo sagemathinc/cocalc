@@ -1272,7 +1272,7 @@ ProjectsListingDescription = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
+        redux.getActions('projects').setState(selected_hashtags: {})
 
     render_span : (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>

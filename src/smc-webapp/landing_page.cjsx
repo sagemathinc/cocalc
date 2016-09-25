@@ -167,7 +167,9 @@ SignIn = rclass
                         <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                     </Row>
                     <Row>
-                        <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
+                        <div style={marginTop: '1ex'}>
+                            <a onClick={@display_forgot_password} style={color: "#FFF", cursor: "pointer"} >Forgot Password?</a>
+                        </div>
                     </Row>
                     <Row>
                         <Button type="submit"
@@ -200,7 +202,9 @@ SignIn = rclass
                 </Row>
                 <Row>
                     <Col xs=7 xsOffset=5 style={paddingLeft:15}>
-                        <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
+                        <div style={marginTop: '1ex'}>
+                            <a onClick={@display_forgot_password} style={cursor: "pointer"} >Forgot Password?</a>
+                        </div>
                     </Col>
                 </Row>
                 <Row className='form-inline pull-right' style={clear : "right"}>
@@ -214,28 +218,42 @@ SignIn = rclass
 ForgotPassword = rclass
     displayName : "ForgotPassword"
 
-    mixins: [ImmutablePureRenderMixin]
-
     propTypes :
-        actions : rtypes.object.isRequired
-        forgot_password_error : rtypes.string
+        actions                 : rtypes.object.isRequired
+        forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string
+
+    getInitialState : ->
+        email : ''
 
     forgot_password : (e) ->
         e.preventDefault()
-        @props.actions.forgot_password(@refs.email.getValue())
+        if @is_valid_email()
+            @props.actions.forgot_password(@state.email)
+            @setState(email:'')
+
+    is_valid_email: () ->
+        return misc.is_valid_email_address(@state.email)
 
     display_error : ->
         if @props.forgot_password_error?
-            <span style={color: "red", fontSize: "90%"}>{@props.forgot_password_error}</span>
+            <span style={color: "red"}>{@props.forgot_password_error}</span>
 
     display_success : ->
         if @props.forgot_password_success?
-            <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
+            success_part_1 = @props.forgot_password_success.split("check your spam folder")[0]
+            success_part_2 = @props.forgot_password_success.split("check your spam folder")[1]
+            <span>
+                {success_part_1}
+                <span style={color: "red", fontWeight: "bold"}>
+                    check your spam folder
+                </span>
+                {success_part_2}
+            </span>
 
     hide_forgot_password : ->
-        @props.actions.setState(show_forgot_password : false)
-        @props.actions.setState(forgot_password_error : undefined)
+        @props.actions.setState(show_forgot_password    : false)
+        @props.actions.setState(forgot_password_error   : undefined)
         @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
@@ -245,15 +263,15 @@ ForgotPassword = rclass
                     <h1>Forgot Password?</h1>
                     Enter your email address to reset your password
                 </div>
-                <form onSubmit={@forgot_password}>
+                <form onSubmit={@forgot_password} style={marginTop:'1em'}>
+                    <Input onChange={=>@setState(email:@refs.email.getValue())} type='email' ref='email' placeholder='Email address' autoFocus={true} value={@state.email} />
                     {@display_error()}
                     {@display_success()}
-                    <Input ref='email' type='email' placeholder='Email address' />
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset Password</Button>
+                            <Button disabled={not @is_valid_email()} type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset Password</Button>
                             <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
                         </div>
                     </Row>
