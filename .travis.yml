@@ -20,9 +20,8 @@ env:
     #- MODE=server
     - MODE=util
 
-# Installation and setup
+# installation and setup
 before_script:
-  # rethinkdb installation according to http://www.rethinkdb.com/docs/install/ubuntu/
   - source /etc/lsb-release
   - rethinkdb --version
   - pip -V
@@ -31,6 +30,7 @@ before_script:
   - node --version
   - sudo pip install pytest
   - pytest --version
+
 # the setup & compilation of SMC
 install:
   - cd smc/src
@@ -50,10 +50,10 @@ install:
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-#  if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
-#  - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
-#  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-  - if [[ $MODE = "util" ]]; then cd ~/smc/src/smc-util/; npm test; fi
+  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
+  - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
+  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
+  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi
 
 # send coverage report over to https://coveralls.io
 #after_success:
