@@ -48,6 +48,9 @@ class TestShMode:
         assert mesg['completions'] == ["AR29"]
         assert mesg['target'] == "$TESTV"
 
+    def test_bad_command(self, exec2):
+        exec2("%sh xyz", html_pattern="command not found")
+
 class TestShDefaultMode:
     def test_start_sh(self, exec2):
         exec2("%default_mode sh")
