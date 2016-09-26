@@ -1021,32 +1021,18 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
-                        {if isMobile.Android()
-                            <Input
-                                autoFocus   = {true}
-                                rows        = 2
-                                type        = 'textarea'
-                                ref         = 'input'
-                                onKeyDown   = {@keydown}
-                                value       = {@props.input}
-                                placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
-                                onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                                style       = {@mobile_chat_input_style}
-                                />
-                        else
-                            <Input
-                                autoFocus   = {false}
-                                rows        = 2
-                                type        = 'textarea'
-                                ref         = 'input'
-                                onKeyDown   = {@keydown}
-                                value       = {@props.input}
-                                placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
-                                onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                                style       = {@mobile_chat_input_style}
-                                />}
+                        <Input
+                            autoFocus   = {if isMobile.Android() then true else false}
+                            rows        = 2
+                            type        = 'textarea'
+                            ref         = 'input'
+                            onKeyDown   = {@keydown}
+                            value       = {@props.input}
+                            placeholder = {'Type a message...'}
+                            onClick     = {@mark_as_read}
+                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
+                            style       = {@mobile_chat_input_style}
+                            />
                     </Col>
                     <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
                         <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
