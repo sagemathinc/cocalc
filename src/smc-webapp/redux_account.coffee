@@ -88,10 +88,10 @@ class AccountActions extends Actions
         salvus_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
+                if mesg?.error
+                    err = mesg.error
                 if err?
-                    @setState('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
-                else if mesg.err
-                    @setState('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
+                    @setState('forgot_password_error': "Error sending password reset message to #{email} -- #{err}. Write to #{help()} for help.")
                 else
                     @setState('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it, check your spam folder; if you have further trouble, write to #{help()}.")
 
