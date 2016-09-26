@@ -1999,6 +1999,7 @@ def sh(code):
     """
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
+        sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
     return sh.jupyter_kernel(code)
 sh.jupyter_kernel = None
 
