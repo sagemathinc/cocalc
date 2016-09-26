@@ -1591,6 +1591,9 @@ class Capture:
     def __call__(self, code=None, stdout=None, stderr=None, append=False, echo=False):
         if code is None:
             return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
+        if salvus._prefix:
+            if not code.startswith("%"):
+                code = salvus._prefix + '\n' + code
         salvus.execute(code)
 
 
