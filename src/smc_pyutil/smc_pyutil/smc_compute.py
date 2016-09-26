@@ -235,10 +235,13 @@ class Project(object):
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
         log("WARNING: failed to kill all procs after %s tries"%max_tries)
 
-    def chown(self, path):
+    def chown(self, path, recursive=True):
         if self._dev:
             return
-        cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        if recursive:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        else:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), path])
 
     def ensure_file_exists(self, src, target):
         target = os.path.abspath(target)
@@ -386,6 +389,7 @@ class Project(object):
         self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
+        self.chown(self.project_path, False) # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
 
         os.environ['SMC_BASE_URL'] = base_url
 

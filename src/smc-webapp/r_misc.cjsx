@@ -1008,9 +1008,9 @@ exports.course_warning = (pay) ->
     return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
-    total = upgrades_you_can_use?.member_host ? 0
-    used  = upgrades_you_applied_to_all_projects?.member_host ? 0
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
+    total = upgrades_you_can_use?[upgrade_type] ? 0
+    used  = upgrades_you_applied_to_all_projects?[upgrade_type] ? 0
     x =
         total          : total
         used           : used

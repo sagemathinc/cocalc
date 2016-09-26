@@ -1209,7 +1209,7 @@ ProjectFilesActionBox = rclass
     valid_copy_input : ->
         src_path = misc.path_split(@props.checked_files.first()).head
         input = @state.copy_destination_directory
-        if input == src_path
+        if input == src_path and @props.project_id == @state.copy_destination_project_id
             return false
         if @state.copy_destination_project_id is ''
             return false

@@ -78,7 +78,7 @@ class InteractCell(object):
         - ``update_args`` -- (default: None) only call f if one of the args in
           this list of strings changes.
         - ``auto_update`` -- (default: True) call f every time an input changes
-          (or one of the argus in update_args).
+          (or one of the arguments in update_args).
         - ``flicker`` -- (default: False) if False, the output part of the cell
           never shrinks; it can only grow, which aleviates flicker.
         - ``output`` -- (default: True) if False, do not automatically
@@ -397,6 +397,13 @@ class Interact(object):
                 interact.is_prime = input_box('True', readonly=True)
             else:
                 del interact.is_prime
+
+    We illustrate not automatically updating the function until a
+    button is pressed::
+
+        @interact(auto_update=False)
+        def f(a=True, b=False):
+            print a, b
 
     You can access the value of a control associated to a variable foo
     that you create using interact.foo, and check whether there is a
@@ -1591,6 +1598,9 @@ class Capture:
     def __call__(self, code=None, stdout=None, stderr=None, append=False, echo=False):
         if code is None:
             return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
+        if salvus._prefix:
+            if not code.startswith("%"):
+                code = salvus._prefix + '\n' + code
         salvus.execute(code)
 
 
@@ -1996,6 +2006,7 @@ def sh(code):
     """
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
+        sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
     return sh.jupyter_kernel(code)
 sh.jupyter_kernel = None
 
