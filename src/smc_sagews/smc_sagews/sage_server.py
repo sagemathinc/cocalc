@@ -1515,13 +1515,11 @@ def session(conn):
                             prefix = top[1:]
                     try:
                         # see if prefix is the name of a jupyter kernel function
-                        # to qualify, prefix should be the name of a function
-                        # and that function has free variables "i_am_a_jupyter_client" and "kn"
                         jkfn = namespace[prefix]
-                        jupyter_client_index = jkfn.func_code.co_freevars.index("i_am_a_jupyter_client")
-                        jkix = jkfn.func_code.co_freevars.index("kn") # e.g. 3
-                        jkname = jkfn.func_closure[jkix].cell_contents # e.g. "python2"
-                        # consider also checking for jkname in list of jupyter kernels
+                        if hasattr(jkfn, 'jupyter_kernel'):
+                            # pre-defined jupyter modes like %sh have mode function in attribute
+                            jkfn = jkfn.jupyter_kernel
+                        jkname = jkfn(None, get_kernel_name = True)
                         log("jupyter introspect %s: %s"%(prefix, jkname)) # e.g. "p2", "python2"
                         jupyter_introspect(conn=conn,
                                            id=mesg['id'],
@@ -1529,7 +1527,10 @@ def session(conn):
                                            preparse=mesg.get('preparse', True),
                                            jkfn=jkfn)
                     except:
-                        # non-jupyter introspection
+                        #import traceback
+                        #exc_type, exc_value, exc_traceback = sys.exc_info()
+                        #lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                        #log(lines)
                         introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
