@@ -22,7 +22,7 @@ require('./jquery_plugins')
 # Initializes page actions, store, and listeners
 require('./init_app')
 
-{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
+{get_project_title, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
 ###
 # JSX
 ###
@@ -89,12 +89,13 @@ NavTab = rclass
         </NavItem>
 
 ProjectTab = rclass
+    reduxProps:
+        projects:
+            get_title : rtypes.func
+
     propTypes:
         project_map           : rtypes.object # immutable.Map
-        open_projects         : rtypes.object # immutable.Map
-        public_project_titles : rtypes.object # immutable.Map
         index                 : rtypes.number
-        num_ghost_tabs        : rtypes.number
         project_id            : rtypes.string
         active_top_tab        : rtypes.string
 
@@ -104,33 +105,13 @@ ProjectTab = rclass
     close_tab : (e) ->
         e.stopPropagation()
         e.preventDefault()
-        index = @props.open_projects.indexOf(@props.project_id)
-        size = @props.open_projects.size
-        if @props.project_id == @props.active_top_tab
-            next_active_tab = 'projects'
-            if index == -1 or size <= 1
-
-                next_active_tab = 'projects'
-            else if index == size - 1
-                next_active_tab = @props.open_projects.get(index - 1)
-            else
-                next_active_tab = @props.open_projects.get(index + 1)
-            @actions('page').set_active_tab(next_active_tab)
-        if index == size - 1
-            @actions('page').clear_ghost_tabs()
-        else
-            @actions('page').add_a_ghost_tab(@props.num_ghost_tabs)
-
-        @actions('projects').set_project_closed(@props.project_id)
+        @actions('page').close_project_tab(@props.project_id)
 
     render : ->
-        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        title = @props.get_title(@props.project_id)
         if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                # Ensure that at some point we'll have the title if possible (e.g., if public)
-                @actions('projects').fetch_public_project_title(@props.project_id)
-                return <Loading key={@props.project_id} />
+            return <Loading key={@props.project_id} />
+
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
@@ -324,8 +305,6 @@ Page = rclass
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
             project_map    = {@props.project_map}
-            open_projects  = {@props.open_projects}
-            num_ghost_tabs = {@props.num_ghost_tabs}
             public_project_titles = {@props.public_project_titles}
         />
 

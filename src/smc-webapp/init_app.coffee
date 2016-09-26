@@ -25,11 +25,37 @@ class PageActions extends Actions
     clear_all_handlers : =>
         $(window).off("keydown", @active_key_handler)
 
-    add_a_ghost_tab : (current_num) =>
+    add_a_ghost_tab : () =>
+        current_num = redux.getStore('page').get('num_ghost_tabs')
         @setState(num_ghost_tabs : current_num + 1)
 
     clear_ghost_tabs : =>
         @setState(num_ghost_tabs : 0)
+
+    close_project_tab : (project_id) =>
+        page_store = redux.getStore('page')
+        projects_store = redux.getStore('projects')
+
+        open_projects = projects_store.get('open_projects')
+        active_top_tab = page_store.get('active_top_tab')
+
+        index = open_projects.indexOf(project_id)
+        size = open_projects.size
+        if project_id == active_top_tab
+            next_active_tab = 'projects'
+            if index == -1 or size <= 1
+                next_active_tab = 'projects'
+            else if index == size - 1
+                next_active_tab = open_projects.get(index - 1)
+            else
+                next_active_tab = open_projects.get(index + 1)
+            @set_active_tab(next_active_tab)
+        if index == size - 1
+            @clear_ghost_tabs()
+        else
+            @add_a_ghost_tab()
+        # SMELL probably should be in here and not projects
+        redux.getActions('projects').set_project_closed(project_id)
 
     set_active_tab : (key) =>
         @setState(active_top_tab : key)

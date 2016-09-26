@@ -1,5 +1,5 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Navbar, Nav, NavItem, NavDropdown, MenuItem} = require('react-bootstrap')
+{Button, Navbar, Nav, NavItem, NavDropdown, MenuItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
@@ -17,74 +17,12 @@ require('./jquery_plugins')
 require('./init_app')
 {CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
 
-NavTab = rclass
-    displayName : "NavTab"
-
-    propTypes :
-        label : rtypes.string
-        icon : rtypes.oneOfType([rtypes.string, rtypes.object])
-        close : rtypes.bool
-        on_click : rtypes.func
-        active_top_tab : rtypes.string
-        actions : rtypes.object
-        style : rtypes.object
-        inner_style : rtypes.object
-
-    make_icon : ->
-        if typeof(@props.icon) == 'string'
-            <Icon
-                name={@props.icon}
-                style={fontSize: 20, paddingRight: 2} />
-        else if @props.icon?
-            @props.icon
-
-    on_click : (e) ->
-        if @props.name?
-            @actions('page').set_active_tab(@props.name)
-        @props.on_click?()
-
-    render : ->
-        is_active = @props.active_top_tab == @props.name
-
-        if @props.style?
-            outer_style = @props.style
-        else
-            outer_style = {}
-
-        outer_style.float = 'left'
-
-        outer_style.fontSize ?= '14px'
-        outer_style.cursor ?= 'pointer'
-        outer_style.border = 'none'
-
-        if is_active
-            outer_style.backgroundColor = "#e7e7e7"
-
-        if @props.inner_style
-            inner_style = @props.inner_style
-        else
-            inner_style =
-                padding : '10px'
-
-        <NavItem
-            active = {is_active}
-            onClick = {@on_click}
-            style = {outer_style}
-        >
-            <div style={inner_style}>
-                {@make_icon()}
-                {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
-                {@props.children}
-            </div>
-        </NavItem>
-
-OpenProjectItem = rclass
+OpenProjectMenuItem = rclass
     propTypes:
         project_map           : rtypes.object # immutable.Map
         open_projects         : rtypes.object # immutable.Map
         public_project_titles : rtypes.object # immutable.Map
         index                 : rtypes.number
-        num_ghost_tabs        : rtypes.number
         project_id            : rtypes.string
         active_top_tab        : rtypes.string
 
@@ -92,26 +30,16 @@ OpenProjectItem = rclass
         x_hovered : false
 
     close_tab : (e) ->
+        console.log("Closing tab", @props.project_id)
         e.stopPropagation()
         e.preventDefault()
-        index = @props.open_projects.indexOf(@props.project_id)
-        size = @props.open_projects.size
-        if @props.project_id == @props.active_top_tab
-            next_active_tab = 'projects'
-            if index == -1 or size <= 1
+        @actions('page').close_project_tab(@props.project_id)
 
-                next_active_tab = 'projects'
-            else if index == size - 1
-                next_active_tab = @props.open_projects.get(index - 1)
-            else
-                next_active_tab = @props.open_projects.get(index + 1)
-            @actions('page').set_active_tab(next_active_tab)
-        if index == size - 1
-            @actions('page').clear_ghost_tabs()
-        else
-            @actions('page').add_a_ghost_tab(@props.num_ghost_tabs)
-
-        @actions('projects').set_project_closed(@props.project_id)
+    open_project : (e) ->
+        console.log("Opening tab", @props.project_id)
+        e.stopPropagation()
+        e.preventDefault()
+        @actions('page').set_active_tab(@props.project_id)
 
     render : ->
         title = @props.project_map?.getIn([@props.project_id, 'title'])
@@ -136,23 +64,16 @@ OpenProjectItem = rclass
         if @state.x_hovered
             x_color = "white"
 
-        <MenuItem
-            index={@props.index}
-            name={@props.project_id}
-            actions={@actions('page_actions')}
-            active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'42px', overflow: 'hidden'}
-        >
+        <MenuItem onClick={@open_project}>
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
             <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
                 <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
-                    <Icon
-                        name = 'times'
-                        onClick = {@close_tab}
-                        onMouseOver = {(e)=>@setState(x_hovered:true)}
-                        onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                    />
+                    <Button bsStyle="warning" onClick={@close_tab}>
+                        <Icon
+                            name = 'times'
+                        />
+                    </Button>
                 </div>
                 <div style={project_name_styles}>
                     <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
@@ -227,13 +148,15 @@ NotificationBell = rclass
             </div>
         </NavItem>
 
+# Project tabs's names are their project id
 Page = rclass
     displayName : "Page"
 
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable.List # List of open projects and their state
-            project_map    : rtypes.immutable.Map # All projects available to the user
+            open_projects  : rtypes.immutable.List.isRequired # List of open projects and their state
+            project_map    : rtypes.immutable.Map.isRequired # All projects available to the user
+            get_title      : rtypes.func
             public_project_titles : rtypes.immutable.Map
         page :
             active_top_tab    : rtypes.string    # key of the active tab
@@ -261,22 +184,18 @@ Page = rclass
 
     project_menu_items : ->
         v = []
-        if not @props.open_projects?
-            return
         @props.open_projects.map (project_id, index) =>
             v.push(@project_tab(project_id, index))
-
         return v
 
     project_tab : (project_id, index) ->
-        <OpenProjectItem
+        <OpenProjectMenuItem
             index          = {index}
             key            = {project_id}
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
             project_map    = {@props.project_map}
             open_projects  = {@props.open_projects}
-            num_ghost_tabs = {@props.num_ghost_tabs}
             public_project_titles = {@props.public_project_titles}
         />
 
@@ -288,30 +207,71 @@ Page = rclass
             name = "Account"
         return name
 
-    render_projects_dropdown : ->
-        <Nav>
-            <DropDown style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'} >
-                {@project_menu_items()}
-            </DropDown>
+    render_projects_button : ->
+        <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
+            <NavItem onClick={(e)=>@actions('page').set_active_tab('projects')}>
+                <SMCLogo />
+            </NavItem>
         </Nav>
 
-    render_projects_button : ->
-        projects_styles =
+    render_projects_dropdown : ->
+        if @props.open_projects.size == 0
+            return <Nav style={margin:'0', flex:'1'}>
+                <NavItem />
+            </Nav>
+
+        if @props.open_projects.contains(@props.active_top_tab)
+            project_id = @props.active_top_tab
+
+            title_text = @props.get_title(project_id)
+            title =  @props.get_title(project_id)
+        else
+            title = "Open projects"
+
+        <Nav style={margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
+            <NavDropdown title=title id="smc-projects-tabs">
+                {@project_menu_items()}
+            </NavDropdown>
+        </Nav>
+
+    render_one_project_tab : (project_id) ->
+        project_name_styles =
             whiteSpace: 'nowrap'
-            float:'right'
-            padding: '11px 7px'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+        title = @props.get_title(project_id)
 
-        <Nav style={height:'42px', margin:'0'}>
-            <NavTab
-                name='projects'
-                style={maxHeight:'44px'}
-                inner_style={padding:'0px'}
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
+        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
-            >
-                <SMCLogo />
-            </NavTab>
+        <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
+            <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
+                {# Truncated file name TODO: Make this pattern into an rclass. It's fuckin' everywhere}
+                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+                <div style={width:'100%'}>
+                    <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
+                        <Icon
+                            name = 'times'
+                            onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
+                        />
+                    </div>
+                    <div style={project_name_styles}>
+                        <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                            <Icon name={icon} style={fontSize:'20px'} />
+                            <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                        </Tip>
+                    </div>
+                </div>
+            </NavItem>
+        </Nav>
+
+    # TODO:
+    render_right_menu : ->
+        <Nav style={margin:'0', padding:'15px', paddingRight:'25px', fontSize:'20px', float:'right'}>
+            <NavItem>
+                <Icon name="bars"/>
+            </NavItem>
         </Nav>
 
     render_page : ->
@@ -330,29 +290,47 @@ Page = rclass
                 project_name = redux.getProjectStore(@props.active_top_tab).name
                 <ProjectPage name={project_name} project_id={@props.active_top_tab} />
 
-    # TODO:
-    render_right_menu : ->
-        <Nav id='smc-right-tabs-fixed' style={height:'42px', lineHeight:'20px', margin:'0'}>
-            
-        </Nav>
-
     render : ->
+        # Use this pattern very sparingly.
+        # Right now only used to access library generated elements
+        # Very fragile.
+        page_style ='
+            #smc-top-bar>.container>ul>li>a {
+                padding:0px;
+            }
+            #smc-top-bar>.container {
+                display:flex;
+                padding:0px;
+            }
+            #smc-projects-tabs {
+                padding:10px;
+            }'
         style =
-            display:'flex'
-            flexDirection:'column'
             height:'100vh'
             width:'100vw'
             overflow:'auto'
 
+        shim_style =
+            position : 'absolute'
+            left : '0'
+            marginRight : '0px'
+            marginLeft : '0px'
+            paddingLeft : '0px'
+            width : '100%'
+            display : 'flex'
+
         <div ref="page" style={style}>
+            <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'relative', right:'0', zIndex:'100', opacity:'0.8'}>
+            {<Navbar id="smc-top-bar" style={margin:'0px'}>
                 {@render_projects_button()}
-                {@render_projects_dropdown()}
+                {@render_projects_dropdown() if @props.open_projects.size > 1}
+                {@render_one_project_tab(@props.open_projects.get(0)) if @props.open_projects.size == 1}
+                {<div style={flex:'1'}> </div> if @props.open_projects.size == 0}
                 {@render_right_menu()}
             </Navbar> if not @props.fullscreen}
             <FullscreenButton />

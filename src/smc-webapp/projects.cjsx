@@ -396,6 +396,9 @@ class ProjectsStore extends Store
     get_title : (project_id) =>
         return @getIn(['project_map', project_id, 'title'])
 
+    get_state : (project_id) =>
+        return @getIn(['project_map', project_id, 'state', 'state'])
+
     get_description : (project_id) =>
         return @getIn(['project_map', project_id, 'description'])
 
