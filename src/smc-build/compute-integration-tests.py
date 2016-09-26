@@ -489,6 +489,20 @@ def test_pandas(exe):
     out = run(CMD).splitlines()
     assert out[0] == '9'
 
+# tensorflow
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_tensorflow(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import tensorflow as tf
+    sess = tf.Session()
+    a = tf.constant(10)
+    b = tf.constant(32)
+    print(sess.run(a + b))
+    "''').format(**locals())
+    out = run(CMD).splitlines()
+    assert out[0] == '42'
+
 # TODO check that opencv exists, what is there actually?
 
 # test, that certain env variables are set

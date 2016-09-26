@@ -8,123 +8,135 @@ import pytest
 import socket
 import conftest
 import os
-import re
 import time
+import signal
 
-def test_basic_timing():
-    start = time.time()
-    os.system('sleep 1')
-    tick = time.time()
-    elapsed = tick - start
-    assert 1.0 == pytest.approx(elapsed, abs = 0.1)
+class TestSageTiming:
+    r"""
+    These tests are to validate the test framework. They do not
+    use sage_server at all.
+    """
+    def test_basic_timing(self):
+        start = time.time()
+        os.system('sleep 1')
+        tick = time.time()
+        elapsed = tick - start
+        assert 1.0 == pytest.approx(elapsed, abs = 0.1)
 
-def test_load_sage():
-    start = time.time()
-    # maybe put first load into fixture
-    os.system("echo '2+2' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed 1: %s"%elapsed)
-    # second load after things are cached
-    start = time.time()
-    os.system("echo '2+2' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed 2: %s"%elapsed)
-    assert elapsed < 2.0
+    def test_load_sage(self):
+        start = time.time()
+        # maybe put first load into fixture
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 1: %s"%elapsed)
+        # second load after things are cached
+        start = time.time()
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 2: %s"%elapsed)
+        assert elapsed < 2.0
 
-def test_import_sage_server():
-    start = time.time()
-    os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
-    tick = time.time()
-    elapsed = tick - start
-    print("elapsed %s"%elapsed)
-    assert elapsed < 10.0
+    def test_import_sage_server(self):
+        start = time.time()
+        os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed %s"%elapsed)
+        assert elapsed < 10.0
 
 @pytest.mark.no_session
-def test_2plus2_timing(test_id):
-    if('no_session' not in pytest.config.option.markexpr):
-        pytest.skip("this test requires pytest -m no_session")
+class TestSagewsNoSession:
+    def test_2plus2_timing(self, test_id):
+        if('no_session' not in pytest.config.option.markexpr):
+            pytest.skip("this test requires pytest -m no_session")
 
-    import sys
+        import sys
 
-    # if sage_server is running, stop it
-    os.system("smc-sage-server stop")
+        # if sage_server is running, stop it
+        os.system("smc-sage-server stop")
 
-    # start the clock
-    start = time.time()
+        # start the clock
+        start = time.time()
 
-    # start a new sage_server process
-    os.system("smc-sage-server start")
-    print("sage_server start time %s sec"%(time.time() - start))
-    # add pause here because sometimes the log file isn't ready immediately
-    time.sleep(0.5)
-
-    # setup connection to sage_server TCP listener
-    host, port = conftest.get_sage_server_info()
-    print("host %s  port %s"%(host, port))
-
-    # multiple tries at connecting because there's a delay between
-    # writing the port number and listening on the socket for connections
-    for attempt in range(10):
-        attempt += 1
-        print("attempt %s"%attempt)
-        try:
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((host, port))
-            break
-        except:
-            print(sys.exc_info()[0])
-            pass
+        # start a new sage_server process
+        os.system("smc-sage-server start")
+        print("sage_server start time %s sec"%(time.time() - start))
+        # add pause here because sometimes the log file isn't ready immediately
         time.sleep(0.5)
-    else:
-        pytest.fail("Could not connect to sage_server at port %s"%port)
-    print("connected to socket")
 
-    # unlock
-    conftest.client_unlock_connection(sock)
-    print("socket unlocked")
-    conn = conftest.ConnectionJSON(sock)
-    c_ack = conn._recv(1)
-    assert c_ack == 'y',"expect ack for token, got %s"%c_ack
+        # setup connection to sage_server TCP listener
+        host, port = conftest.get_sage_server_info()
+        print("host %s  port %s"%(host, port))
 
-    # start session
-    msg = conftest.message.start_session()
-    msg['type'] = 'sage'
-    conn.send_json(msg)
-    print("start_session sent")
-    typ, mesg = conn.recv()
-    assert typ == 'json'
-    pid = mesg['pid']
-    print("sage_server PID = %s" % pid)
+        # multiple tries at connecting because there's a delay between
+        # writing the port number and listening on the socket for connections
+        for attempt in range(10):
+            attempt += 1
+            print("attempt %s"%attempt)
+            try:
 
-    code = "2+2\n"
-    output = "4\n"
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((host, port))
+                break
+            except:
+                print(sys.exc_info()[0])
+                pass
+            time.sleep(0.5)
+        else:
+            pytest.fail("Could not connect to sage_server at port %s"%port)
+        print("connected to socket")
 
-    m = conftest.message.execute_code(code = code, id = test_id)
-    m['preparse'] = True
+        # unlock
+        conftest.client_unlock_connection(sock)
+        print("socket unlocked")
+        conn = conftest.ConnectionJSON(sock)
+        c_ack = conn._recv(1)
+        assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
-    # send block of code to be executed
-    conn.send_json(m)
+        # start session
+        msg = conftest.message.start_session()
+        msg['type'] = 'sage'
+        conn.send_json(msg)
+        print("start_session sent")
+        typ, mesg = conn.recv()
+        assert typ == 'json'
+        pid = mesg['pid']
+        print("sage_server PID = %s" % pid)
 
-    # check stdout
-    typ, mesg = conn.recv()
-    assert typ == 'json'
-    assert mesg['id'] == test_id
-    assert mesg['stdout'] == output
+        code = "2+2\n"
+        output = "4\n"
 
-    # teardown connection
-    conn.send_json(conftest.message.terminate_session())
-    print("\nExiting Sage client.")
+        m = conftest.message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
 
-    # check timing
-    elapsed = time.time() - start
-    print("elapsed 2+2 %s"%elapsed)
-    assert elapsed < 15.0
+        # send block of code to be executed
+        conn.send_json(m)
 
-    return
+        # check stdout
+        typ, mesg = conn.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['stdout'] == output
+        elapsed = time.time() - start
 
+        # teardown connection
+        conn.send_json(conftest.message.terminate_session())
+        print("\nExiting Sage client.")
+        # wait 3 sec for process to die, then kill it
+        for loop_count in range(6):
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                pass
+            time.sleep(0.5)
+        else:
+            print("sending sigterm to %s"%pid)
+            os.kill(pid, signal.SIGTERM)
 
+        # check timing
+        print("elapsed 2+2 %s"%elapsed)
+        assert elapsed < 8.0
 
-##
+        return

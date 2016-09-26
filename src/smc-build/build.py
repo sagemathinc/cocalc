@@ -292,7 +292,6 @@ SAGE_PIP_PACKAGES = [
     'nipype',  # https://github.com/nipy/nipype/
     'hypothesis',
     'xgboost', # https://github.com/dmlc/xgboost
-    'pypolymake', # https://github.com/videlec/pypolymake/
     ]
 
 # additional environment settings for specific packages
@@ -489,7 +488,7 @@ class BuildSage(object):
             "install_psage",
             "install_pycryptoplus",
             "install_nltk_data",
-            # "install_tensorflow", # doesn't work
+            "install_tensorflow",
             # "install_neuron", # also fails
         ]
 
@@ -856,12 +855,14 @@ class BuildSage(object):
         Check for updated wheel packages here:
         https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
 
-        Status: Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
-        it also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+        Status:
+          * Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+            It also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+          * (update 2016-09-26) it works, but no explicit installation of protobuf version 3, just the wheel package.
+            This seems to include all the dependencies and works fine now.
         """
-        cmd("pip install --no-deps --upgrade 'protobuf>=3.0.0a3'")
-        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp27-none-linux_x86_64.whl'
-        cmd("pip install --no-deps --upgrade %s" % TF_BINARY_URL)
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp27-none-linux_x86_64.whl'
+        cmd("pip install --upgrade %s" % TF_BINARY_URL)
 
     def clean_up(self):
         log.info("starting cleanup ...")
