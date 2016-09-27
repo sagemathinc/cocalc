@@ -2,13 +2,26 @@
 # tests of sage worksheet modes
 import pytest
 import conftest
+import re
 
 class TestShMode:
-    # start the jupyter bash kernel
-    # do this as separate step to avoid following tests failing due to
-    # issue890 traitlets deprecation warning
-    def test_start_sh(self, exec2):
-        exec2("%sh")
+    def test_start_sh(self, test_id, sagews):
+        code = "%sh\ndate +%Y-%m-%d"
+        html_pattern = '\d{4}-\d{2}-\d{2}'
+        m = conftest.message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        sagews.send_json(m)
+        # skip initial html responses but fail on deprecation warning
+        for loop_count in range(5):
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'html' in mesg
+            if re.search(html_pattern, mesg['html']) is not None:
+                break
+        else:
+            pytest.fail("sh setup failed %s"%test_id)
+        conftest.recv_til_done(sagews, test_id)
 
     # examples from sh mode docstring in sage_salvus.py
     # note jupyter kernel text ouput is displayed as html
