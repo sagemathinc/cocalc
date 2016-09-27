@@ -133,3 +133,12 @@ class TestOctaveMode:
         code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
         outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
         exec2(code, pattern = outp)
+
+class TestOctaveDefaultMode:
+    def test_octave_capture1(self, exec2):
+        exec2("%default_mode octave")
+    def test_octave_capture2(self, exec2):
+        exec2("%capture(stdout='output')\nx = [1,2]", html_pattern = "DOCTYPE HTML PUBLIC")
+    def test_octave_capture3(self, exec2):
+        exec2("%sage\nprint(output)", pattern = "   1   2")
+
