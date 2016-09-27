@@ -1177,8 +1177,7 @@ except:
 
 class HTML:
     """
-    Cell mode that renders everything after %html as HTML then hides
-    the input (unless you pass in hide=False).
+    Cell mode that renders everything after %html as HTML
 
     EXAMPLES::
 
@@ -1188,7 +1187,7 @@ class HTML:
         <h2>Subtitle</h2>
 
         ---
-        %html(hide=False)
+        %html(hide=True)
         <h1>A Title</h1>
         <h2>Subtitle</h2>
 
@@ -1199,7 +1198,7 @@ class HTML:
         %html(hide=False) <h1>Title</h1>
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -3006,7 +3005,7 @@ def md2html(s):
 # NOTE: this is not used anymore
 class Markdown(object):
     r"""
-    Cell mode that renders everything after %md as markdown and hides the input by default.
+    Cell mode that renders everything after %md as markdown.
 
     EXAMPLES::
 
@@ -3017,17 +3016,17 @@ class Markdown(object):
         ## A subheading
 
         ---
-        %md(hide=False)
+        %md(hide=True)
         # A title
 
         - a list
 
         ---
-        md("# A title", hide=False)
+        md("# A title")
 
 
         ---
-        %md(hide=False) `some code`
+        %md `some code`
 
 
     This uses the Python markdown2 library with the following
@@ -3041,7 +3040,7 @@ class Markdown(object):
     typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
     \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -3091,7 +3090,7 @@ class Marked(object):
         %md(hide=False) `some code`
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
