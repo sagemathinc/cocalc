@@ -443,7 +443,9 @@ Message = rclass
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        #value_old = value
         value = misc_page.sanitize_html(value)
+        #console.log "sanitize: '#{value_old}' -> '#{value}'"
 
         font_size = "#{@props.font_size}px"
 
