@@ -129,22 +129,7 @@ class TestOctaveMode:
     def test_start_octave(self, exec2):
         exec2("%octave", html_pattern = "DOCTYPE HTML PUBLIC")
 
-    def test_euler(self, test_id, sagews):
-        code = "%octave\nexp (i*pi)"
-        patn = "ans = -1.0000e+00 + 1.2246e-16i"
-        m = conftest.message.execute_code(code = code, id = test_id)
-        m['preparse'] = True
-        sagews.send_json(m)
-        for loop_count in range(5):
-            typ, mesg = sagews.recv()
-            assert typ == 'json'
-            assert mesg['id'] == test_id
-            assert 'stdout' in mesg
-            assert 'stderr' not in mesg
-            if patn in mesg['stdout']:
-                break
-        else:
-            pytest.fail("octave euler test failed %s"%test_id)
-        conftest.recv_til_done(sagews, test_id)
-
-
+    def test_octave_calc(self, exec2):
+        code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
+        outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
+        exec2(code, pattern = outp)
