@@ -11,7 +11,6 @@
 ### Prerequisites
 
 - pytest must be installed
-- sage_server must be running
 - file ~/.smc/sage_server/sage_server.log must exist and have the
    current port number around line 3, like this:
    ```
@@ -23,10 +22,4 @@
 ```
 cd smc/src/smc_sagews/smc_sagews
 python -m pytest tests [-s]
-```
-
-Some tests require restarting the sage_server process. These would interfere with fixtures that do sage session setup once at the beginning of a test run and teardown at the end of the run. These tests are skipped by default. To run tests that would disrupt the default test session fixture, invoke tests with ONE of the following:
-```
-pytest -m no_session tests [-s]
-python -m pytest -m no_session tests [-s]
 ```

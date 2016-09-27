@@ -2019,6 +2019,14 @@ def sh(code):
     return sh.jupyter_kernel(code)
 sh.jupyter_kernel = None
 
+# use jupyter kernel for GNU octave instead of sage interpreter interface
+def octave(code):
+    if octave.jupyter_kernel is None:
+        octave.jupyter_kernel = jupyter("octave")
+    return octave.jupyter_kernel(code)
+octave.jupyter_kernel = None
+
+
 # Monkey patch the R interpreter interface to support graphics, when
 # used as a decorator.
 
