@@ -3285,12 +3285,15 @@ def load(*args, **kwds):
     into the web browser DOM (or Javascript session), not the Python process.
 
     If you load a pdf, it is displayed in the output of the worksheet.  The extra
-    options are passed to salvus.pdf -- see the docstring for that.
+    options are passed to smc.pdf -- see the docstring for that.
 
-    In SageMathCloud you may also use load as a decorator, with filenames separated
-    by whitespace or commas::
+    In SageMathCloud you may also use load as a decorator, with exactly one filename as input::
 
-        %load foo.sage  bar.py  a.pyx, b.pyx
+        %load foo.sage
+
+    This loads a single file whose name has a space in it::
+
+        %load a b.sage
 
     The following are all valid ways to use load::
 
@@ -3298,16 +3301,15 @@ def load(*args, **kwds):
         %load a.css
         %load a.js
         %load a.coffee
-        %load a.css a.js a.coffee a.html
+        %load a.css
         load('a.css', 'a.js', 'a.coffee', 'a.html')
-        load('a.css a.js a.coffee a.html')
         load(['a.css', 'a.js', 'a.coffee', 'a.html'])
 
     ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
-        if isinstance(args[0], (unicode,str)):
-            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (unicode, str)):
+            args = (args[0].strip(), )
         if isinstance(args[0], (list, tuple)):
             args = args[0]
 
