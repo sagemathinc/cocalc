@@ -1926,13 +1926,19 @@ class CodeMirrorEditor extends FileEditor
         for i, cm of [@codemirror, @codemirror1]
             size = @local_storage("font_size#{i}")
             if size?
-                @set_font_size(cm, size)
+                @set_font_size(cm, size, 0)
             else if @default_font_size?
-                @set_font_size(cm, @default_font_size)
+                @set_font_size(cm, @default_font_size, 0)
 
-    set_font_size: (cm, size) =>
+    set_font_size: (cm, size, delta) =>
         if size > 1
             elt = $(cm.getWrapperElement())
+            for html in elt.find('.sagews-output-html').children()
+                original_font_size = parseInt($(html).css('font-size'))
+                $(html).css('font-size', original_font_size + delta + 'px')
+            for md in elt.find('.sagews-output-md').children()
+                original_font_size = parseInt($(md).css('font-size'))
+                $(md).css('font-size', original_font_size + delta + 'px')
             elt.css('font-size', size + 'px')
             elt.data('font-size', size)
 
@@ -1946,7 +1952,7 @@ class CodeMirrorEditor extends FileEditor
             s = elt.css('font-size')
             size = parseInt(s.slice(0,s.length-2))
         new_size = size + delta
-        @set_font_size(cm, new_size)
+        @set_font_size(cm, new_size, delta)
         @local_storage("font_size#{cm.name}", new_size)
 
         # we have to do the scrollTo in the next render loop, since otherwise
