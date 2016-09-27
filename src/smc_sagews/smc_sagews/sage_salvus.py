@@ -515,7 +515,7 @@ class control:
         try:
             return self._convert_to_client(value)
         except Exception as err:
-            sys.stderr.write("%s -- %s\n"%(err, self))
+            sys.stderr.write("convert_to_client: %s -- %s\n"%(err, self))
             sys.stderr.flush()
             return jsonable(value)
 
@@ -591,6 +591,8 @@ def automatic_control(default):
         return default
     elif isinstance(default, str):
         return input_box(default, label=label, type=str)
+    elif isinstance(default, unicode):
+        return input_box(default, label=label, type=unicode)
     elif isinstance(default, bool):
         return checkbox(default, label=label)
     elif isinstance(default, list):
@@ -636,7 +638,12 @@ class ParseValue:
         self._type = type
 
     def _eval(self, value):
-        return sage_eval(value, locals=None if salvus is None else salvus.namespace)
+        if isinstance(value, (str, unicode)):
+            if not value:
+                return ''
+            return sage_eval(value, locals=None if salvus is None else salvus.namespace)
+        else:
+            return value
 
     def __call__(self, value):
         from sage.all import Color
@@ -644,6 +651,8 @@ class ParseValue:
             return self._eval(value)
         elif self._type is str:
             return str(value)
+        elif self._type is unicode:
+            return unicode(value)
         elif self._type is Color:
             try:
                 return Color(value)
