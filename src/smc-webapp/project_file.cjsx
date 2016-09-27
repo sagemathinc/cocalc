@@ -30,11 +30,9 @@ Supplies the interface for creating file editors in the webapp
 file_editors = {}
 ###
 ext       : string|array[string] to associate the editor with
-
 component : rclass|function
 generator : function (path, redux, project_id) -> rclass|function
     # One or the other. Calling generator should give the component
-
 init      : function (path, redux, project_id) -> string (redux name)
     # Should initialize all stores, actions, sync, etc
 

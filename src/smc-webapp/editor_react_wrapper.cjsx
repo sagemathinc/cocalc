@@ -21,10 +21,6 @@ WrappedEditor = rclass ({project_name}) ->
         editor : rtypes.object.isRequired
 
     componentDidMount: ->
-        console.log("componentDidMount")
-        window.editor = @props.editor
-
-        # Right now literally just Jupyter.
         # Use for any (god forbid..) future Iframe editors..
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Latex and PDF viewer also do this to save scroll position
@@ -39,11 +35,9 @@ WrappedEditor = rclass ({project_name}) ->
         window.addEventListener('resize', @refresh)
 
     componentDidUpdate: ->
-        console.log("componentDidUpdate")
         @refresh()
 
     componentWillUnmount: ->
-        console.log("componentWillUnmount")
         window.removeEventListener('resize', @refresh)
         # These cover all cases for jquery type overrides.
         @props.editor.blur?()

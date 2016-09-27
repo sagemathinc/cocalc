@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
@@ -1703,12 +1703,15 @@ exports.ProjectFiles = rclass ({name}) ->
 
     propTypes :
         project_id    : rtypes.string
-        actions       : rtypes.object.isRequired
+        actions       : rtypes.object
+        redux         : rtypes.object
 
     getDefaultProps : ->
         page_number : 0
         file_search : ''
         selected_file_index : 0
+        actions : redux.getActions(name) # TODO: Do best practices way
+        redux   : redux
 
     previous_page : ->
         if @props.page_number > 0

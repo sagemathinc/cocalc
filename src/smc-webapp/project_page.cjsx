@@ -194,6 +194,58 @@ FreeProjectWarning = rclass ({name}) ->
             {@extra(host, internet)}
         </Alert>
 
+fixed_project_pages =
+    files :
+        label : 'Files'
+        icon : 'folder-open-o'
+        tooltip : 'Browse files'
+    new :
+        label : 'New'
+        icon : 'plus-circle'
+        tooltip : 'Create new file, folder, worksheet or terminal'
+    log:
+        label : 'Log'
+        icon : 'history'
+        tooltip : 'Log of project activity'
+    search :
+        label : 'Find'
+        icon : 'search'
+        tooltip : 'Search files in the project'
+    settings :
+        label : 'Settings'
+        icon : 'wrench'
+        tooltip : 'Project settings and controls'
+
+# Children must define their own padding from navbar and screen borders
+ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_files}) ->
+    switch active_tab_name
+        when 'files'
+            return <ProjectFiles name={project_name} project_id={project_id} />
+        when 'new'
+            return <ProjectNew name={project_name} project_id={project_id} />
+        when 'log'
+            return <ProjectLog name={project_name} />
+        when 'search'
+            return <ProjectSearch name={project_name} />
+        when 'settings'
+            return <ProjectSettings project_id={project_id} name={project_name} group={group} />
+        else
+            active_path = misc.tab_to_path(active_tab_name)
+            if open_files?.has(active_path)
+                Editor = open_files.get(active_path)
+                # TODO: ideally name, path, project_id is all we pass down here to any editor
+                <Editor
+                    path={active_path}
+                    project_id={project_id}
+                    redux={redux}
+                    actions={redux.getActions(Editor.redux_name)}
+                    name={Editor.redux_name}
+                    project_name={project_name}
+                    path={active_path}
+                />
+            else
+                <div>You should not be here! {active_tab_name}</div>
+
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'
 
@@ -262,60 +314,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             open_files_order={@props.open_files_order}
         />
 
-    render_page : ->
-        active = @props.active_project_tab
-        switch active
-            when 'files'
-                return <ProjectFiles name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} redux={redux}/>
-            when 'new'
-                return <ProjectNew name={@props.name} project_id={@props.project_id} actions={@actions(project_id : @props.project_id)} />
-            when 'log'
-                return <ProjectLog actions={@actions(project_id : @props.project_id)} name={@props.name}/>
-            when 'search'
-                return <ProjectSearch actions={@actions(project_id : @props.project_id)} name={@props.name} />
-            when 'settings'
-                group = @props.get_my_group(@props.project_id)
-                return <ProjectSettings project_id={@props.project_id} name={@props.name} group={group} />
-            else
-                active = misc.tab_to_path(active)
-                if @props.open_files?.has(active)
-                    Page = @props.open_files.get(active)
-                    console.log("Page id", Page.redux_name)
-                    # ideally: name, path, project_id is all we pass down here to any editor
-                    <Page
-                        path={active}
-                        project_id={@props.project_id}
-                        redux={redux}
-                        actions={@actions(Page.redux_name)}
-                        name={Page.redux_name}
-                        project_name={"#{name}"}
-                        path={active}
-                    />
-                else
-                    <div>You should not be here! {@props.active_project_tab}</div>
-
     render : ->
-        project_pages =
-            files :
-                label : 'Files'
-                icon : 'folder-open-o'
-                tooltip : 'Browse files'
-            new :
-                label : 'New'
-                icon : 'plus-circle'
-                tooltip : 'Create new file, folder, worksheet or terminal'
-            log:
-                label : 'Log'
-                icon : 'history'
-                tooltip : 'Log of project activity'
-            search :
-                label : 'Find'
-                icon : 'search'
-                tooltip : 'Search files in the project'
-            settings :
-                label : 'Settings'
-                icon : 'wrench'
-                tooltip : 'Project settings and controls'
         page_styles ='
             #smc-file-tabs-fixed>li>a {
                 padding: 8px 10px;
@@ -375,7 +374,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         project_id={@props.project_id}
                         active_project_tab={@props.active_project_tab}
                         shrink={shrink_fixed_tabs}
-                    /> for k, v of project_pages]}
+                    /> for k, v of fixed_project_pages]}
                 </Nav>
                 <SortableNav
                     helperClass={'smc-file-tab-floating'}
@@ -389,6 +388,110 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     {@file_tabs()}
                 </SortableNav>
             </div> if not @props.fullscreen}
-            {# Children must define their own padding from navbar and screen borders}
-            {@render_page()}
+            <ProjectMainContent
+                project_id={@props.project_id}
+                project_name={@props.name}
+                active_tab_name={@props.active_project_tab}
+                group={@props.get_my_group(@props.project_id)}
+                open_files={@props.open_files}
+            />
+        </div>
+
+exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
+    displayName : 'MoblileProjectPage'
+
+    reduxProps :
+        projects :
+            project_map  : rtypes.immutable
+            get_my_group : rtypes.func
+        page :
+            fullscreen : rtypes.bool
+        "#{name}" :
+            active_project_tab  : rtypes.string
+            open_files          : rtypes.immutable
+            open_files_order    : rtypes.immutable
+            free_warning_closed : rtypes.bool     # Makes bottom height update
+            num_ghost_file_tabs : rtypes.number
+
+    propTypes :
+        project_id : rtypes.string
+
+    componentDidMount : ->
+        @set_bottom_height()
+
+    componentDidUpdate : ->
+        @set_bottom_height()
+
+    set_bottom_height : ->
+        node = ReactDOM.findDOMNode(@refs.projectNav)
+        if node?
+            @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
+        else
+            @actions(project_id : @props.project_id).set_editor_top_position(0)
+
+    on_sort_end : ({oldIndex, newIndex}) ->
+        console.log("PROJECT FILE SORT ENDED WITH", oldIndex, newIndex)
+        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
+
+    file_tabs: ->
+        if not @props.open_files_order?
+            return
+        tabs = []
+        @props.open_files_order.map (path, index) =>
+            tabs.push(@file_tab(path, index))
+        return tabs
+
+    file_tab: (path, index) ->
+        ext = misc.filename_extension(path)
+        icon = file_associations[ext]?.icon ? 'code-o'
+        display_name = misc.trunc(misc.path_split(path).tail, 64)
+        <SortableProjectTab
+            index={index}
+            key={path}
+            name={misc.path_to_tab(path)}
+            label={display_name}
+            icon={icon}
+            tooltip={path}
+            project_id={@props.project_id}
+            file_tab={true}
+            active_project_tab={@props.active_project_tab}
+            open_files_order={@props.open_files_order}
+        />
+
+    render : ->
+        page_styles ='
+            #smc-file-tabs-fixed>li>a {
+                padding: 8px 10px;
+            }
+            #smc-file-tabs-files>li>a {
+                padding: 13px 15px 7px;
+            }'
+
+        <div className='container-content'>
+            <style>{page_styles}</style>
+            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+                    {[<ProjectTab
+                        name={k}
+                        label={v.label}
+                        icon={v.icon}
+                        tooltip={v.tooltip}
+                        project_id={@props.project_id}
+                        active_project_tab={@props.active_project_tab}
+                        shrink={true}
+                    /> for k, v of fixed_project_pages]}
+                </Nav>
+                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
+                >
+                    {@file_tabs()}
+                </Nav>
+            </div> if not @props.fullscreen}
+            <ProjectMainContent
+                project_id={@props.project_id}
+                project_name={@props.name}
+                active_tab_name={@props.active_project_tab}
+                group={@props.get_my_group(@props.project_id)}
+                open_files={@props.open_files}
+            />
         </div>

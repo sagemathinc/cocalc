@@ -333,9 +333,6 @@ exports.ProjectLog = rclass ({name}) ->
             user_map    : rtypes.immutable
             get_name    : rtypes.func
 
-    propTypes :
-        actions : rtypes.object.isRequired
-
     getDefaultProps : ->
         search : ''   # search that user has requested
         page   : 0
@@ -359,10 +356,10 @@ exports.ProjectLog = rclass ({name}) ->
 
     previous_page : ->
         if @props.page > 0
-            @props.actions.setState(page: @props.page-1)
+            @actions(name).setState(page: @props.page-1)
 
     next_page : ->
-        @props.actions.setState(page: @props.page+1)
+        @actions(name).setState(page: @props.page+1)
 
     search_string : (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
         v = [@props.get_name(x.account_id)]
@@ -464,7 +461,7 @@ exports.ProjectLog = rclass ({name}) ->
         <Panel>
             <Row>
                 <Col sm=4>
-                    <LogSearch actions={@props.actions} search={@props.search} selected={selected} />
+                    <LogSearch actions={@actions(name)} search={@props.search} selected={selected} />
                 </Col>
                 <Col sm=4>
                     {@render_paging_buttons(num_pages, @props.page)}
@@ -472,7 +469,7 @@ exports.ProjectLog = rclass ({name}) ->
             </Row>
             <Row>
                 <Col sm=12>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@props.actions} />
+                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@actions(name)} />
                 </Col>
             </Row>
             <Row>

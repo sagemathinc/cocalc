@@ -3,10 +3,12 @@
 {Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
+# SMELL: Page UI's are mixed with their store/state.
+# So we have to require them even though they aren't used
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
 {ProjectPage} = require('./project_page')
-{AccountPage} = require('./account_page')
+{AccountPage} = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage} = require('./file_use')
 {Support} = require('./support')
 # SMC Libraries
@@ -15,7 +17,7 @@ misc = require('smc-util/misc')
 require('./jquery_plugins')
 # Initializes page actions, store, and listeners
 require('./init_app')
-{CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
 
 OpenProjectMenuItem = rclass
     propTypes:
@@ -274,22 +276,6 @@ Page = rclass
             </NavItem>
         </Nav>
 
-    render_page : ->
-        switch @props.active_top_tab
-            when 'projects'
-                return <ProjectsPage />
-            when 'account'
-                return <AccountPage />
-            when 'about'
-                return <HelpPage />
-            when 'help'
-                return <div>To be implemented</div>
-            when undefined
-                return
-            else
-                project_name = redux.getProjectStore(@props.active_top_tab).name
-                <ProjectPage name={project_name} project_id={@props.active_top_tab} />
-
     render : ->
         # Use this pattern very sparingly.
         # Right now only used to access library generated elements
@@ -335,8 +321,7 @@ Page = rclass
             </Navbar> if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
-            {# Note that the parent is a flex container}
-            {@render_page()}
+            <ActiveAppContent active_top_tab={@props.active_top_tab} />
         </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')

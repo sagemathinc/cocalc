@@ -168,6 +168,8 @@ class AppRedux
         if typeof(name) == 'string'
             return @_actions[name]
         else
+            if not name.project_id?
+                throw "Object needs project_id"
             return project_store?.getActions(name.project_id, @)
 
     createStore: (name, store_class=Store, init=undefined) =>

@@ -1347,9 +1347,9 @@ exports.ProjectSettings = rclass ({name}) ->
 
     reduxProps :
         projects :
-            project_map : rtypes.immutable
+            project_map : rtypes.immutable.Map # SMELL isRequired doesn't seem to work here
         users :
-            user_map    : rtypes.immutable
+            user_map    : rtypes.immutable.Map
         account :
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
@@ -1363,7 +1363,6 @@ exports.ProjectSettings = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string.isRequired
         group      : rtypes.string
-        redux      : rtypes.object
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin

@@ -3,6 +3,27 @@
 {Icon, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 
+{HelpPage} = require('./r_help')
+{ProjectsPage} = require('./projects')
+{ProjectPage} = require('./project_page')
+{AccountPage} = require('./account_page')
+
+exports.ActiveAppContent = ({active_top_tab}) ->
+    switch active_top_tab
+        when 'projects'
+            return <ProjectsPage />
+        when 'account'
+            return <AccountPage />
+        when 'about'
+            return <HelpPage />
+        when 'help'
+            return <div>To be implemented</div>
+        when undefined
+            return
+        else
+            project_name = redux.getProjectStore(active_top_tab).name
+            <ProjectPage name={project_name} project_id={active_top_tab} />
+
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 

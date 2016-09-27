@@ -369,11 +369,10 @@ exports.ProjectNew = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
         name : rtypes.string
-        actions : rtypes.object
 
     render : ->
         <div style={padding:'15px'}>
-            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@props.actions} />
+            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>
