@@ -681,7 +681,7 @@ ChatRoom = (name) -> rclass
         </span>
 
         <Button onClick={@show_timetravel} bsStyle='info'>
-            <Tip title='TimeTravel Button' tip={tip}  placement='left'>
+            <Tip title='TimeTravel' tip={tip}  placement='left'>
                 <Icon name='history'/> TimeTravel
             </Tip>
         </Button>
@@ -692,7 +692,7 @@ ChatRoom = (name) -> rclass
         </span>
 
         <Button onClick={@button_scroll_to_bottom}>
-            <Tip title='Scroll to Bottom Button' tip={tip}  placement='left'>
+            <Tip title='Scroll to Bottom' tip={tip}  placement='left'>
                 <Icon name='arrow-down'/> Bottom
             </Tip>
         </Button>
@@ -703,7 +703,7 @@ ChatRoom = (name) -> rclass
         </span>
 
         <Button onClick={@open_video_chat}>
-            <Tip title='Video Chat Button' tip={tip}  placement='left'>
+            <Tip title='Video Chat' tip={tip}  placement='left'>
                 <Icon name='video-camera'/> Video Chat
             </Tip>
         </Button>
