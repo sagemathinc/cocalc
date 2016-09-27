@@ -3,6 +3,7 @@
 import pytest
 import conftest
 import re
+from textwrap import dedent
 
 class TestShMode:
     def test_start_sh(self, test_id, sagews):
@@ -133,6 +134,21 @@ class TestOctaveMode:
         code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
         outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
         exec2(code, pattern = outp)
+
+    def test_octave_fibonacci(self, exec2):
+        code = dedent('''%octave
+        fib = ones (1, 10);
+        for i = 3:10
+            fib(i) = fib(i-1) + fib(i-2);
+            printf('%d,', fib(i))
+        endfor
+        ''')
+        outp = '2,3,5,8,13,21,34,55,'
+        exec2(code, pattern = outp)
+
+    def test_octave_insync(self, exec2):
+        # this just confirms, that input/output is still in sync after the for loop above
+        exec2('%octave\n1+1', pattern = 'ans =  2')
 
 class TestOctaveDefaultMode:
     def test_octave_capture1(self, exec2):
