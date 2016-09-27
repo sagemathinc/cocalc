@@ -156,7 +156,7 @@ def _jkmagic(kernel_name, **kwargs):
         stdinj = kc.stdin_channel
 
         # buffering for %capture because we don't know whether output is stdout or stderr
-        # until shell execute_reply messasge is received with status 'ok' or 'error'
+        # until shell execute_reply message is received with status 'ok' or 'error'
         capture_out = ""
 
         # handle iopub messages
@@ -228,10 +228,11 @@ def _jkmagic(kernel_name, **kwargs):
                     continue
                 p('execute_result data keys: ',content['data'].keys())
                 out_prefix = ""
-                if 'execution_count' in content:
-                    out_data = "Out [%d]: "%content['execution_count']
-                    # don't want line break after this
-                    sys.stdout.write(out_data)
+                # don't display output numbers
+                # if 'execution_count' in content:
+                #     out_data = "Out [%d]: "%content['execution_count']
+                #     # don't want line break after this
+                #     sys.stdout.write(out_data)
                 if 'text/latex' in content['data']:
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):

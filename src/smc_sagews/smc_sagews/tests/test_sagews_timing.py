@@ -46,12 +46,8 @@ class TestSageTiming:
         print("elapsed %s"%elapsed)
         assert elapsed < 10.0
 
-@pytest.mark.no_session
 class TestSagewsNoSession:
     def test_2plus2_timing(self, test_id):
-        if('no_session' not in pytest.config.option.markexpr):
-            pytest.skip("this test requires pytest -m no_session")
-
         import sys
 
         # if sage_server is running, stop it
