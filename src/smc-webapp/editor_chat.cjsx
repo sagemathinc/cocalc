@@ -1022,7 +1022,7 @@ ChatRoom = (name) -> rclass
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
                         <Input
-                            autoFocus   = {if isMobile.Android() then true else false}
+                            autoFocus   = {isMobile.Android()}
                             rows        = 2
                             type        = 'textarea'
                             ref         = 'input'
