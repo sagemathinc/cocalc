@@ -124,3 +124,27 @@ class TestRDefaultMode:
         exec2("%capture(stdout='output')\nsum(xx)")
     def test_capture_r_02(self, exec2):
         exec2("%sage\nprint(output)", "[1] 24\n")
+
+class TestOctaveMode:
+    def test_start_octave(self, exec2):
+        exec2("%octave", html_pattern = "DOCTYPE HTML PUBLIC")
+
+    def test_euler(self, test_id, sagews):
+        code = "%octave\nexp (i*pi)"
+        patn = "ans = -1.0000e+00 + 1.2246e-16i"
+        m = conftest.message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        sagews.send_json(m)
+        for loop_count in range(5):
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stdout' in mesg
+            assert 'stderr' not in mesg
+            if patn in mesg['stdout']:
+                break
+        else:
+            pytest.fail("octave euler test failed %s"%test_id)
+        conftest.recv_til_done(sagews, test_id)
+
+
