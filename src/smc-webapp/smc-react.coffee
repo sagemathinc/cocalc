@@ -287,7 +287,7 @@ check_is_immutable = (props, propName, componentName="ANONYMOUS", location, prop
 allow_isRequired = (validate) ->
     check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
         if not props[propName]? and isRequired
-                return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
+            return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
         return validate(props, propName, componentName, location)
 
     check_type.type = "IMMUTABLE HACK"
@@ -355,6 +355,7 @@ connect_component = (spec) =>
             for prop, type of info
                 s = state.getIn([store_name, prop])
                 # If the type isn't one of our immutable checkers, convert to js
+                # TODOJ: doesn't work for reduxProps...
                 if not immutable_checkers.includes(type)
                     props[prop] = if s?.toJS? then s.toJS() else s
                 else

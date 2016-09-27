@@ -1469,9 +1469,9 @@ exports.ProjectsPage = ProjectsPage = rclass
 
     reduxProps :
         users :
-            user_map : rtypes.immutable.Map.isRequired
+            user_map : rtypes.immutable.Map
         projects :
-            project_map       : rtypes.immutable.Map.isRequired
+            project_map       : rtypes.immutable.Map
             hidden            : rtypes.bool
             deleted           : rtypes.bool
             search            : rtypes.string

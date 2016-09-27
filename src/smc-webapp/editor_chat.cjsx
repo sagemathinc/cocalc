@@ -577,8 +577,8 @@ ChatLog = rclass
     displayName: "ChatLog"
 
     propTypes:
-        messages     : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
-        user_map     : rtypes.object              # immutable js map {collaborators} --> account info
+        messages     : rtypes.immutable.Map.isRequired   # {timestamps} --> message.
+        user_map     : rtypes.immutable.Map             # {collaborators} --> account info
         account_id   : rtypes.string
         project_id   : rtypes.string   # optional -- used to render links more effectively
         file_path    : rtypes.string   # optional -- ...
@@ -679,7 +679,7 @@ ChatRoom = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            messages       : rtypes.immutable.Map
+            messages       : rtypes.immutable
             input          : rtypes.string
             saved_position : rtypes.number
             height         : rtypes.number
@@ -687,12 +687,12 @@ ChatRoom = rclass ({name}) ->
             saved_mesg     : rtypes.string
             is_preview     : rtypes.bool
         users :
-            user_map : rtypes.immutable.Map
+            user_map : rtypes.immutable
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
         file_use :
-            file_use : rtypes.immutable.Map
+            file_use : rtypes.immutable
 
     propTypes :
         redux       : rtypes.object.isRequired
@@ -1063,7 +1063,6 @@ ChatRoom = rclass ({name}) ->
             </Grid>
 
 ChatEditorGenerator = (path, redux, project_id) ->
-    # console.log("Generating Chat Editor -- This should happen once per file opening")
     name = redux_name(project_id, path)
     C_ChatRoom = ({path, actions, project_id, redux}) ->
         file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)

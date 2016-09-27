@@ -124,6 +124,29 @@ class ProjectActions extends Actions
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
 
+    close_tab : (path) =>
+        open_files_order = @get_store().get('open_files_order')
+        active_project_tab = @get_store().get('active_project_tab')
+        index = open_files_order.indexOf(path)
+        size = open_files_order.size
+        if misc.path_to_tab(path) == active_project_tab
+            next_active_tab = 'files'
+            if index == 0 or size <= 1
+                next_active_tab = 'files'
+            else
+                if index == size - 1
+                    next_active_tab = misc.path_to_tab(open_files_order.get(index - 1))
+                else
+                    next_active_tab = misc.path_to_tab(open_files_order.get(index + 1))
+            @set_active_tab(next_active_tab)
+        if index == size - 1
+            @clear_ghost_file_tabs()
+        else
+            @add_a_ghost_file_tab()
+        @close_file(path)
+
+    # Expects one of ['files', 'new', 'log', 'search', 'settings']
+    #            or a file_redux_name
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
         switch key

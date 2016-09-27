@@ -5,10 +5,10 @@
 
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
-{ProjectPage} = require('./project_page')
+{ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 
-exports.ActiveAppContent = ({active_top_tab}) ->
+exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
         when 'projects'
             return <ProjectsPage />
@@ -22,7 +22,10 @@ exports.ActiveAppContent = ({active_top_tab}) ->
             return
         else
             project_name = redux.getProjectStore(active_top_tab).name
-            <ProjectPage name={project_name} project_id={active_top_tab} />
+            if render_small
+                <MobileProjectPage name={project_name} project_id={active_top_tab} />
+            else
+                <ProjectPage name={project_name} project_id={active_top_tab} />
 
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'

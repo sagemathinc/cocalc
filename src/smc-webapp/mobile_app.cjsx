@@ -152,7 +152,7 @@ NotificationBell = rclass
 
 # Project tabs's names are their project id
 Page = rclass
-    displayName : "Page"
+    displayName : "Mobile-App"
 
     reduxProps :
         projects :
@@ -222,10 +222,9 @@ Page = rclass
                 <NavItem />
             </Nav>
 
-        if @props.open_projects.contains(@props.active_top_tab)
+        if @props.open_projects.includes(@props.active_top_tab)
             project_id = @props.active_top_tab
 
-            title_text = @props.get_title(project_id)
             title =  @props.get_title(project_id)
         else
             title = "Open projects"
@@ -259,10 +258,8 @@ Page = rclass
                         />
                     </div>
                     <div style={project_name_styles}>
-                        <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                            <Icon name={icon} style={fontSize:'20px'} />
-                            <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                        </Tip>
+                        <Icon name={icon} style={fontSize:'20px'} />
+                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                     </div>
                 </div>
             </NavItem>
@@ -321,7 +318,7 @@ Page = rclass
             </Navbar> if not @props.fullscreen}
             <FullscreenButton />
             {# Children must define their own padding from navbar and screen borders}
-            <ActiveAppContent active_top_tab={@props.active_top_tab} />
+            <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
         </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')

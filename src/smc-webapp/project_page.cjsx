@@ -3,7 +3,7 @@ project page react component
 ###
 
 # 3rd party Libraries
-{Nav, NavItem, Alert, Col, Row} = require('react-bootstrap')
+{Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
 # SMC Libraries
@@ -34,10 +34,9 @@ ProjectTab = rclass
         icon               : rtypes.string    # Affiliated icon
         project_id         : rtypes.string
         tooltip            : rtypes.string
-        active_project_tab : rtypes.string
+        is_active          : rtypes.bool
         file_tab           : rtypes.bool      # Whether or not this tab holds a file
         shrink             : rtypes.bool      # Whether or not to shrink to just the icon
-        open_files_order   : rtypes.object
 
     getInitialState : () ->
         x_hovered : false
@@ -52,32 +51,14 @@ ProjectTab = rclass
     close_file : (e, path) ->
         e.stopPropagation()
         e.preventDefault()
-        index = @props.open_files_order.indexOf(path)
-        size = @props.open_files_order.size
-        if misc.path_to_tab(path) == @props.active_project_tab
-            next_active_tab = 'files'
-            if index == 0 or size <= 1
-                next_active_tab = 'files'
-            else
-                if index == size - 1
-                    next_active_tab = misc.path_to_tab(@props.open_files_order.get(index - 1))
-                else
-                    next_active_tab = misc.path_to_tab(@props.open_files_order.get(index + 1))
-            @actions(project_id: @props.project_id).set_active_tab(next_active_tab)
-        if index == size - 1
-            @actions({project_id:@props.project_id}).clear_ghost_file_tabs()
-        else
-            @actions({project_id:@props.project_id}).add_a_ghost_file_tab()
-        @actions(project_id: @props.project_id).close_file(path)
+        @actions(project_id:@props.project_id).close_tab(path)
 
     render : ->
         styles ={}
 
-        is_active_tab = @props.name == @props.active_project_tab
-
         if @props.file_tab
             styles = misc.copy(default_file_tab_styles)
-            if is_active_tab
+            if @props.is_active
                 styles.backgroundColor = SAGE_LOGO_COLOR
         else
             styles.flex = 'none'
@@ -96,11 +77,11 @@ ProjectTab = rclass
         if @state.x_hovered
             x_button_styles.color = 'red'
 
-        text_color = "white" if is_active_tab
+        text_color = "white" if @props.is_active
 
         <NavItem
             style={styles}
-            active={is_active_tab}
+            active={@props.is_active}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
             {# Truncated file name}
@@ -310,8 +291,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             tooltip={path}
             project_id={@props.project_id}
             file_tab={true}
-            active_project_tab={@props.active_project_tab}
-            open_files_order={@props.open_files_order}
+            is_active={@props.active_project_tab == misc.path_to_tab(path)}
         />
 
     render : ->
@@ -372,7 +352,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         icon={v.icon}
                         tooltip={v.tooltip}
                         project_id={@props.project_id}
-                        active_project_tab={@props.active_project_tab}
+                        is_active={@props.active_project_tab == k}
                         shrink={shrink_fixed_tabs}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
@@ -397,7 +377,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         </div>
 
-exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
+exports.MobileProjectPage = rclass ({name}) ->
     displayName : 'MoblileProjectPage'
 
     reduxProps :
@@ -411,7 +391,6 @@ exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
             open_files          : rtypes.immutable
             open_files_order    : rtypes.immutable
             free_warning_closed : rtypes.bool     # Makes bottom height update
-            num_ghost_file_tabs : rtypes.number
 
     propTypes :
         project_id : rtypes.string
@@ -429,24 +408,66 @@ exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
         else
             @actions(project_id : @props.project_id).set_editor_top_position(0)
 
-    on_sort_end : ({oldIndex, newIndex}) ->
-        console.log("PROJECT FILE SORT ENDED WITH", oldIndex, newIndex)
-        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
-
-    file_tabs: ->
+    render_files_dropdown: ->
         if not @props.open_files_order?
             return
-        tabs = []
-        @props.open_files_order.map (path, index) =>
-            tabs.push(@file_tab(path, index))
-        return tabs
 
-    file_tab: (path, index) ->
+        dropdown_title = "Open Files"
+        path = misc.tab_to_path(@props.active_project_tab)
+        if @props.open_files_order.includes(path)
+            dropdown_title = misc.trunc(misc.path_split(path).tail, 64)
+
+        items = []
+        @props.open_files_order.map (path, index) =>
+            items.push(@file_menu_item(path, index))
+        <NavDropdown id="smc-project-files-dropdown" title={dropdown_title} style={width:'200px', fontSize:'18px', textAlign:'center'}>
+            {items}
+        </NavDropdown>
+
+    close_file_item : (e, path) ->
+        e.stopPropagation()
+        e.preventDefault()
+        @actions(project_id:@props.project_id).close_tab(path)
+
+    file_menu_item: (path, index) ->
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
-        <SortableProjectTab
-            index={index}
+
+        label_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+
+        x_button_styles =
+            float:'right'
+            whiteSpace:'nowrap'
+            fontSize:'12pt'
+
+        <MenuItem
+            key={path}
+            onClick={()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
+        >
+            <div style={width:'100%'}>
+                <div style={x_button_styles}>
+                    <Button bsStyle="warning" onClick={(e)=>@close_file_item(e, path)}>
+                        <Icon
+                            name = 'times'
+                        />
+                    </Button>
+                </div>
+                <div style={label_styles}>
+                    <Icon style={fontSize:'10pt'} name={icon} /> {display_name}
+                </div>
+            </div>
+        </MenuItem>
+
+    render_one_file_item : ->
+        path = @props.open_files_order.get(0)
+        ext = misc.filename_extension(path)
+        icon = file_associations[ext]?.icon ? 'code-o'
+        display_name = misc.trunc(misc.path_split(path).tail, 64)
+        <ProjectTab
             key={path}
             name={misc.path_to_tab(path)}
             label={display_name}
@@ -454,8 +475,7 @@ exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
             tooltip={path}
             project_id={@props.project_id}
             file_tab={true}
-            active_project_tab={@props.active_project_tab}
-            open_files_order={@props.open_files_order}
+            is_active={@props.active_project_tab == misc.path_to_tab(path)}
         />
 
     render : ->
@@ -478,13 +498,13 @@ exports.MobileProjectPage = MobileProjectPage = rclass ({name}) ->
                         icon={v.icon}
                         tooltip={v.tooltip}
                         project_id={@props.project_id}
-                        active_project_tab={@props.active_project_tab}
+                        is_active={@props.active_project_tab == k}
                         shrink={true}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
-                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
-                >
-                    {@file_tabs()}
+                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}>
+                    {@render_files_dropdown() if @props.open_files_order.size > 1}
+                    {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
             </div> if not @props.fullscreen}
             <ProjectMainContent
