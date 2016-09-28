@@ -34,13 +34,13 @@ esac
 exit
 
 cd ~/smc
-# echo "checking that upstream is SMC github repo"
+# echo "checking that 'upstream' remote is main SMC github repo"
 git config remote.upstream.url | grep -q sagemathinc/smc.git || {
   echo "git remote upstream must point to sagemathinc/smc.git"
   exit 1
 }
 
-# echo "checking that remote is other smc github repo"
+# echo "checking that 'origin' remote is non-upstream SMC github repo"
 git remote show origin|grep "Push.*smc.git"|grep -vq sagemathinc || {
   echo "git remote origin must point to non-sagemathinc smc github repo"
   exit 1
