@@ -333,13 +333,13 @@ Page = rclass
                 z-index:0;
             }'
         shim_style =
-            position : 'absolute'
-            left : '0'
+            position    : 'absolute'
+            left        : '0'
             marginRight : '0px'
-            marginLeft : '0px'
+            marginLeft  : '0px'
             paddingLeft : '0px'
-            width : '100%'
-            display : 'flex'
+            width       : '100%'
+            display     : 'flex'
 
         style =
             display:'flex'
@@ -352,7 +352,6 @@ Page = rclass
             <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<Support actions={@actions('support')} /> if @props.show}
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
@@ -367,9 +366,10 @@ Page = rclass
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
         </div>
 
-$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden"></div>')
+$('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden;position:absolute;top:0px;"></div>')
 page = <Redux redux={redux}>
     <Page redux={redux}/>
 </Redux>

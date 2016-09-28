@@ -125,7 +125,7 @@ exports.ConnectionIndicator = rclass
 
     render : ->
         outer_styles =
-            width : '6.5em'
+            width : '7.5em'
             color : '#666'
             fontSize : '10pt'
             lineHeight : '10pt'
@@ -191,6 +191,7 @@ exports.ConnectionInfo = rclass
 
     render : ->
         <Modal show={true} onHide={@close} animation={false}>
+
             <Modal.Header closeButton>
                 <Modal.Title>
                     <Icon name='wifi' style={marginRight: '1em'} /> Connection
