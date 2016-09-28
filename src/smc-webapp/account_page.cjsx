@@ -4,7 +4,7 @@ misc = require('smc-util/misc')
 require('./redux_account')
 
 {React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
-{Tab, Tabs, Grid} = require('react-bootstrap')
+{Tab, Tabs, Grid, Col, Row} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
 {AccountSettingsTop} = require('./r_account')
 {BillingPageRedux} = require('./billing')
@@ -117,20 +117,24 @@ exports.AccountPage = rclass
 
     render : ->
         logged_in = @props.redux.getStore('account').is_logged_in()
-        <Grid fluid className='constrained'>
+        <Grid className='constrained'>
             {@render_landing_page() if not logged_in}
-            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
-                    {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
-                </Tab>
-                <Tab eventKey="billing" title={<span><Icon name='money'/> Billing</span>}>
-                    {<BillingPageRedux /> if @props.active_page == 'billing'}
-                </Tab>
-                <Tab eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
-                    {@render_upgrades() if @props.active_page == 'upgrades'}
-                </Tab>
-                <Tab eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
-                    {@render_support() if @props.active_page == 'support'}
-                </Tab>
-            </Tabs> if logged_in}
+            {<Row>
+                <Col md={12}>
+                    <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
+                        <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
+                            {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                        </Tab>
+                        <Tab eventKey="billing" title={<span><Icon name='money'/> Billing</span>}>
+                            {<BillingPageRedux /> if @props.active_page == 'billing'}
+                        </Tab>
+                        <Tab eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
+                            {@render_upgrades() if @props.active_page == 'upgrades'}
+                        </Tab>
+                        <Tab eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
+                            {@render_support() if @props.active_page == 'support'}
+                        </Tab>
+                    </Tabs>
+                </Col>
+            </Row> if logged_in}
         </Grid>
