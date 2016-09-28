@@ -27,6 +27,8 @@ misc        = require('smc-util/misc')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 
+{redux} = require('./smc-react')
+
 templates = $("#salvus-misc-templates")
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
@@ -120,7 +122,7 @@ $.fn.process_smc_links = (opts={}) ->
                         url = $(@).attr('href')
                         i = url.indexOf('/projects/')
                         target = url.slice(i + '/projects/'.length)
-                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
                     # internal link

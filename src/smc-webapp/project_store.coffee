@@ -423,11 +423,12 @@ class ProjectActions extends Actions
             most_recent_file_click : undefined
             create_file_alert      : false
 
-    fetch_directory_files : () =>
-        @set_directory_files(@get_store().get('current_path'))
-
     # Update the directory listing cache for the given path
+    # Use current path if path not provided
     set_directory_files : (path, sort_by_time, show_hidden) =>
+        if not path?
+            path = @get_store().get('current_path')
+
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
         _key = "#{path}-#{sort_by_time}-#{show_hidden}"
