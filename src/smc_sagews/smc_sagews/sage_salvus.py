@@ -2530,12 +2530,16 @@ def show(*objs, **kwds):
                 return "$\\displaystyle %s$"%s
             else:
                 return "$%s$"%s
+    sys.stdout.flush()
+    sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
         if display:
             salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
         else:
             salvus.html("<div>%s</div>"%cgi.escape(s))
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show

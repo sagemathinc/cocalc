@@ -547,7 +547,10 @@ def sagews(request):
             time.sleep(0.5)
         else:
             print("sending sigterm to %s"%pid)
-            os.kill(pid, signal.SIGTERM)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
     request.addfinalizer(fin)
     return conn
 
