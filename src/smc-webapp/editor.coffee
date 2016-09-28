@@ -1143,6 +1143,9 @@ class CodeMirrorEditor extends FileEditor
                 @goto_line(cm)
             when 'print'
                 @print()
+        if name != 'goto-line'
+            cm.focus()
+
 
     restore_font_size: () =>
         # we set the font_size from local storage

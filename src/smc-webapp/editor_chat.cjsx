@@ -66,7 +66,7 @@ editing   : immutable.Map
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries
@@ -1041,7 +1041,7 @@ ChatRoom = rclass ({name}) ->
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
                         <FormGroup>
                             <FormControl
-                                autoFocus   = {false}
+                                autoFocus   = {isMobile.Android()}
                                 rows        = 2
                                 componentClass = 'textarea'
                                 ref         = 'input'
