@@ -480,13 +480,10 @@
 
 /*the slider background */
 
-.salvus-editor-history-slider
+.salvus-editor-history-slider-style
   height: 11px
   position: relative
-  margin-top: 5px
-  margin-bottom: 5px
-  margin-left: 10px
-  margin-right: 10px
+  margin: 11px
   > .ui-slider-handle
     width: 16px
     height: 24px
@@ -495,6 +492,34 @@
     margin-left: -6px
     z-index: 200
     outline: none
+
+.smc-history-diff-wrap-delete
+  background-color: #ffecec
+
+.smc-history-diff-gutter-delete
+  background-color: #ffdddd
+
+.smc-history-diff-wrap-insert
+  background-color: #eaffea
+
+.smc-history-diff-gutter-insert
+  background-color:  #dbffdb
+
+.smc-history-diff-wrap-divide
+  border-bottom: 1px solid grey
+  margin-bottom: 2em
+
+.smc-history-diff-gutter1
+  width: 50px
+  color: #999
+
+.smc-history-diff-gutter2
+  width: 50px
+  color: #999
+
+.smc-history-diff-number
+  color: #999
+  padding-left: 10px
 
 /*Style for the slider button */
 
@@ -599,6 +624,12 @@ code
 .sagews-output-raw_input
   font-family: sans-serif
   margin: 1em
+
+
+.smc-sagews-gutter-hide-show
+  width: 12px
+  color: #999
+  margin-left: 10px
 
 .CodeMirror-linewidget
   overflow: hidden

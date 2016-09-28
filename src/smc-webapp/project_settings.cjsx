@@ -174,6 +174,9 @@ UpgradeAdjustor = rclass
             Max
         </Button>
 
+    render_addon : (misc, name, display_unit, limit) ->
+        <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
+
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -183,10 +186,9 @@ UpgradeAdjustor = rclass
         if input_type == 'checkbox'
 
             # the remaining count should decrease if box is checked
-            show_remaining = remaining + current - @state["upgrade_#{name}"]
-            show_remaining = Math.max(show_remaining, 0)
-
             val = @state["upgrade_#{name}"]
+            show_remaining = remaining + current - val
+            show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
                 label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
@@ -196,9 +198,10 @@ UpgradeAdjustor = rclass
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    ({1 - val} of {show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
                     <form>
@@ -232,18 +235,24 @@ UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
                 else
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
                 label = <span></span>
 
+            remaining_all = Math.max(show_remaining, 0)
+            schema_limit = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+            # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
+            remaining_limit = Math.max(0, Math.min(remaining_all, schema_limit["#{name}"]) - current_input)
+
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    ({remaining_limit} of {remaining_all} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
                     <Input
@@ -252,7 +261,7 @@ UpgradeAdjustor = rclass
                         value      = {val}
                         bsStyle    = {bs_style}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
+                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
                     />
                     {label}
                 </Col>
@@ -301,13 +310,10 @@ UpgradeAdjustor = rclass
     valid_changed_upgrade_inputs : (current, limits) ->
         for name, data of @props.quota_params
             factor = data.display_factor
-
             # the highest number the user is allowed to type
             limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
-
             # the current amount applied to the project
             cur_val = misc.round2((current[name] ? 0) * factor)
-
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
             if not new_val? or new_val > limit
@@ -325,15 +331,15 @@ UpgradeAdjustor = rclass
             quota_params = @props.quota_params
             # how much upgrade you have used between all projects
             used_upgrades = @props.upgrades_you_applied_to_all_projects
-
             # how much upgrade you currently use on this one project
             current = @props.upgrades_you_applied_to_this_project
-
             # how much unused upgrade you have remaining
             remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-
             # maximums you can use, including the upgrades already on this project
             limits = misc.map_sum(current, remaining)
+            # additionally, the limits are capped by the maximum per project
+            maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+            limits = misc.map_limit(limits, maximum)
 
             <Alert bsStyle='info'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
@@ -1088,11 +1094,23 @@ CollaboratorsSearch = rclass
             return <ErrorDisplay error={@state.err} onClose={=>@setState(err:'')} />
         if not @state.select? or not @state.search.trim()
             return
-        select = (r for r in @state.select when not @props.project.get('users').get(r.account_id)?)
+        select = []
+        existing = []
+        for r in @state.select
+            if @props.project.get('users').get(r.account_id)?
+                existing.push(r)
+            else
+                select.push(r)
         if select.length == 0
-            <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                <Icon name='envelope' /> No matches. Send email invitation...
-            </Button>
+            if existing.length == 0
+                <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                    <Icon name='envelope' /> No matches. Send email invitation...
+                </Button>
+            else # no hit, but at least one existing collaborator
+                collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
+                <Alert bsStyle='info'>
+                    Existing collaborator(s): {collabs}
+                </Alert>
         else
             <div style={marginBottom:'10px'}>
                 <Input type='select' multiple ref='select' onClick={@select_list_clicked}>
@@ -1261,8 +1279,8 @@ ProjectSettings = rclass
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
-            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
+            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
@@ -1309,6 +1327,7 @@ ProjectController = (name) -> rclass
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
+            user_type       : rtypes.string    # needed for projects get_my_group call in render
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
@@ -1317,7 +1336,6 @@ ProjectController = (name) -> rclass
     propTypes :
         project_id : rtypes.string.isRequired
         redux      : rtypes.object
-        group      : rtypes.string
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1346,11 +1364,12 @@ ProjectController = (name) -> rclass
         </Alert>
 
     render : ->
+        group = redux.getStore('projects').get_my_group(@props.project_id)
         if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if @props.group == 'admin'
+        if group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />
@@ -1378,10 +1397,9 @@ render = (project_id) ->
     project_store = redux.getProjectStore(project_id)
     # compute how user is related to this project once for all, so that
     # it stays constant while opening (e.g., stays admin)
-    group = redux.getStore('projects').get_my_group(project_id)
     C = ProjectController(project_store.name)
     <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} group={group} />
+        <C project_id={project_id} redux={redux}/>
     </Redux>
 
 exports.create_page = (project_id, dom_node) ->

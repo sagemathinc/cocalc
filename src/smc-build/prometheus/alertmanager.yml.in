@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: salvusmath@gmail.com
+  smtp_smarthost: smtp.gmail.com:587
+
+route:
+  receiver: 'email'
+  group_by: [alertname, instance]
+  group_wait: 5s
+  group_interval: 15m
+  repeat_interval: 4h
+
+receivers:
+  - name: 'email'
+    email_configs:
+    - send_resolved: true
+      to: 'hsy@sagemath.com'
+
+

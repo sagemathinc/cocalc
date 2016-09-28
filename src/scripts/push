@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # This script is used to sync out files from one compute node to all the others
 # it is used to sync sage, anaconda, etc.
-# Copyright: SageMathCloud Authors
+# Copyright: SageMath, Inc.
 # License: GPLv3+
 set -v
 set -e
@@ -28,16 +28,11 @@ function do_push() {
    nice ionice -c 2 -n 7 rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete $WHAT/ $TARGET:$WHAT/
 }
 
-# note, before using parallel, this was simple loop:
-# for TARGET in compute{0..7}-us; do
-# [...]
-# done
-
-# needed for parallel
+# local functions need to be exported for gnu parallel
 export -f do_push
 
 # max 4 jobs to avoid memory blowups
 # there are also no closures, that's why "$WHAT" is injected as a second argument
-parallel --no-notice --eta --joblog - -j4 do_push {} "$WHAT" ::: compute{0..7}-us
+parallel --no-notice --eta --joblog - -j4 do_push {} "$WHAT" ::: compute{0..8}-us
 
 

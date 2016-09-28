@@ -56,6 +56,8 @@
     - numpy-stl
     - npTDMS
     - nipype
+    - xgboost
+    - ipywidgets
 
   - name: "install git trac from github"
     tags: [ pip2, update, install ]
@@ -116,6 +118,7 @@
     - numpy-stl
     - npTDMS
     - nipype
+    - ipywidgets
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -180,6 +183,10 @@
     copy: src=files/python2-ubuntu.sh
           dest=/usr/local/bin/python2-ubuntu
           owner=root group=root mode="u=rx,g=rx,o=rx"
+
+  - name: "set NLTK data directory in /etc/environment -- see build.py for setting up sagemath"
+    tags: [install, update]
+    lineinfile: 'dest=/etc/environment regexp=^NLTK_DATA= line=NLTK_DATA="/ext/nltk_data"'
 
   - name: "install pair-based-crypto library system-wide"
     tags: pairbasedcrypto

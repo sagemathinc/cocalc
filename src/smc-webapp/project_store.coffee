@@ -268,18 +268,16 @@ class ProjectActions extends Actions
                 path         ?= (store.get('current_path') ? "")
                 sort_by_time ?= (store.get('sort_by_time') ? true)
                 show_hidden  ?= (store.get('show_hidden') ? false)
-                if group in ['owner', 'collaborator', 'admin']
-                    method = 'project_directory_listing'
-                else
-                    method = 'public_project_directory_listing'
-                require('./salvus_client').salvus_client[method]
+                get_directory_listing
                     project_id : @project_id
                     path       : path
                     time       : sort_by_time
                     hidden     : show_hidden
-                    timeout    : 45
+                    max_time_s : 4*60  # keep trying for up to 4 minutes
+                    group      : group
                     cb         : (err, x) =>
-                        listing = x; cb(err)
+                        listing = x
+                        cb(err)
         ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
@@ -520,31 +518,6 @@ class ProjectActions extends Actions
                 dest   : opts.dest
             @set_activity(id:id, stop:'')
         @_move_files(opts)
-
-    trash_files: (opts) =>
-        opts = defaults opts,
-            src  : required
-            path : undefined
-            id   : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to the trash", id:id)
-        async.series([
-            (cb) =>
-                @ensure_directory_exists(path:'.trash', cb:cb)
-            (cb) =>
-                @_move_files(src:opts.src, path:opts.path, dest:'.trash', cb:cb, mv_args:['--backup=numbered'])
-        ], (err) =>
-            @set_activity(id:id, stop:'')
-            if err
-                @set_activity(id:id, error:"problem trashing #{misc.to_json(opts.src)} -- #{err}")
-            else
-                @log
-                    event  : 'file_action'
-                    action : 'deleted'
-                    files  : opts.src[0...3],
-                    count  :  if opts.src.length > 3 then opts.src.length
-            @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
-        )
 
     delete_files : (opts) =>
         opts = defaults opts,
@@ -1013,3 +986,37 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
+
+get_directory_listing = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        time       : required
+        hidden     : required
+        max_time_s : required
+        group      : required
+        cb         : required
+    {salvus_client} = require('./salvus_client')
+    if opts.group in ['owner', 'collaborator', 'admin']
+        method = salvus_client.project_directory_listing
+    else
+        method = salvus_client.public_project_directory_listing
+    listing = undefined
+    f = (cb) ->
+        method
+            project_id : opts.project_id
+            path       : opts.path
+            time       : opts.time
+            hidden     : opts.hidden
+            timeout    : 20
+            cb         : (err, x) ->
+                listing = x
+                cb(err)
+
+    misc.retry_until_success
+        f        : f
+        max_time : opts.max_time_s * 1000
+        #log      : console.log
+        cb       : (err) ->
+            opts.cb(err, listing)
+

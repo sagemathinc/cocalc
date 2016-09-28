@@ -2153,24 +2153,29 @@ class Client extends EventEmitter
                         customer_id : customer_id
                         cb          : cb
             (cb) =>
-                dbg("now create the invoice item")
-                stripe.invoiceItems.create
-                    customer    : customer_id
-                    amount      : mesg.amount*100
-                    currency    : "usd"
-                    description : mesg.description
-                ,
-                    (err, invoice_item) =>
-                        if err
-                            cb(err)
-                        else
-                            cb()
+                if not (mesg.amount? and mesg.description?)
+                    dbg("no amount or description -- not creating an invoice")
+                    cb()
+                else
+                    dbg("now create the invoice item")
+                    stripe.invoiceItems.create
+                        customer    : customer_id
+                        amount      : mesg.amount*100
+                        currency    : "usd"
+                        description : mesg.description
+                    ,
+                        (err, invoice_item) =>
+                            if err
+                                cb(err)
+                            else
+                                cb()
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @success_to_client(id:mesg.id)
         )
+
 
 ##############################
 # File use tracking
@@ -3221,8 +3226,8 @@ stripe_sync = (dump_only, cb) ->
                 # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
                 # and person's name/email.
                 y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
-                y.subscriptions = y.subscriptions.data
-                y.metadata = y.metadata.account_id?.slice(0,8)
+                y.subscriptions = y.subscriptions?.data
+                y.metadata = y.metadata?.account_id?.slice(0,8)
                 dump.push(y)
             fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
         (cb) ->

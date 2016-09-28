@@ -1152,7 +1152,7 @@ describe "date_to_snapshot_format", ->
 
 describe "smileys", ->
     it "replaces strings", ->
-        misc.smiley(s : "hey :-) you !!!").should.be.eql "hey 😁 you ⚠"
+        misc.smiley(s : "hey :-) you !!! :-)").should.be.eql "hey 😁 you !!! 😁"
     it "wraps for html", ->
         res = misc.smiley
             s : "foo :-) bar"

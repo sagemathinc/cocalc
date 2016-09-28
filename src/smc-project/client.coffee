@@ -20,7 +20,7 @@ as a resut.
 # close our copy of syncstring (so stop watching it for changes, etc) if
 # not active for this long (should be at least 5 minutes).
 SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = .2 # TESTING
+#SYNCSTRING_MAX_AGE_M = .4 # TESTING
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
@@ -28,8 +28,6 @@ SYNCSTRING_MAX_AGE_M = 7
 # kills them, or the project is closed.
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
     sagews : true   # only sagews for now.
-
-## SYNCSTRING_MAX_AGE_M = 1 # for debugging
 
 fs     = require('fs')
 {join} = require('path')
@@ -56,7 +54,8 @@ sage_session = require('./sage_session')
 
 {defaults, required} = misc
 
-DEBUG=false
+DEBUG = false
+#DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
@@ -132,6 +131,7 @@ class exports.Client extends EventEmitter
             max_age_m   : SYNCSTRING_MAX_AGE_M
             path        : null
             last_active : null
+            deleted     : null
 
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
@@ -140,33 +140,79 @@ class exports.Client extends EventEmitter
             @update_recent_syncstrings()
 
         @_recent_syncstrings.once 'change', =>
-            # We have to do this since syncstrings no longer satisfying the max_age_m query
+            # We have to do this interval check since syncstrings no longer satisfying the max_age_m query
             # do NOT automatically get removed from the table (that's just not implemented yet).
-            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 60*1000)
+            # This interval check is also important in order to detect files that were deleted then
+            # recreated.
+            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 5*1000)
 
     update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
         cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
+        @_wait_syncstrings ?= {}
         keys = {}
         x = @_recent_syncstrings.get()
         if not x?
             return
-        @_recent_syncstrings.get().map (val, key) =>
+        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
+        if log_message != @_update_recent_syncstrings_last
+            winston.debug(log_message)
+            @_update_recent_syncstrings_last = log_message
+        x.map (val, key) =>
+            string_id = val.get('string_id')
             path = val.get('path')
             if path == '.smc/local_hub/local_hub.log'
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-            string_id = val.get('string_id')
             if val.get("last_active") > cutoff
-                keys[string_id] = true
+                keys[string_id] = true   # anything not set here gets closed below.
+                if @_open_syncstrings[string_id] or @_wait_syncstrings[string_id]
+                    # either already open or waiting a bit before opening
+                    return
                 if not @_open_syncstrings[string_id]?
-                    dbg("opening syncstring '#{path}' with id '#{string_id}'")
-                    @_open_syncstrings[string_id] = @sync_string(path:path)
+                    deleted = val.get('deleted')
+                    dbg("path='#{path}', deleted=#{deleted}, string_id='#{string_id}'")
+                    async.series([
+                        (cb) =>
+                            if not deleted
+                                # sync file (in database) is not deleted so we will open
+                                cb()
+                                return
+                            dbg("check if '#{path}' exists")  # if so, undelete, obviously.
+                            @path_exists
+                                path : path
+                                cb   : (err, exists) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        deleted = not exists
+                                        cb()
+                    ], (err) =>
+                        if err
+                            dbg("SERIOUS ERROR -- #{err}")
+                        else if deleted
+                            # do nothing -- don't open
+                            dbg("ignoring deleted path '#{path}'")
+                        else if not @_open_syncstrings[string_id]?
+                            dbg("open syncstring '#{path}' with id '#{string_id}'")
+                            ss = @_open_syncstrings[string_id] = @sync_string(path:path)
+                            ss.on 'error', (err) =>
+                                dbg("ERROR creating syncstring '#{path}' -- #{err}; will try again later")
+                                ss.close()
+                            ss.on 'close', () =>
+                                dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
+                                delete @_open_syncstrings[string_id]
+                                # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
+                                @_wait_syncstrings[string_id] = true
+                                setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
+                    )
+            return  # so map doesn't terminate due to funny return value
+
         for string_id, val of @_open_syncstrings
             path = val._path
             if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
-                dbg("closing syncstring '#{path}' with id '#{string_id}'")
+                dbg("close syncstring '#{path}' with id '#{string_id}'")
                 val.close()
                 delete @_open_syncstrings[string_id]
 
@@ -216,8 +262,10 @@ class exports.Client extends EventEmitter
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
             socket.on 'end', =>
                 dbg("end")
-                for id, cb of x.callbacks
-                    cb?('socket closed')
+                if x.callbacks?
+                    for id, cb of x.callbacks
+                        cb?('socket closed')
+                    delete x.callbacks  # so additional trigger of end doesn't do anything
                 delete @_hub_client_sockets[socket.id]
                 dbg("number of active sockets now equals #{misc.len(@_hub_client_sockets)}")
                 if misc.len(@_hub_client_sockets) == 0
@@ -286,6 +334,7 @@ class exports.Client extends EventEmitter
                     dbg("failed")
                     delete @_hub_callbacks[opts.message.id]
                     opts.cb?("timeout after #{opts.timeout}s")
+                    delete opts.cb
                 timer = setTimeout(fail, opts.timeout*1000)
             opts.message.id ?= misc.uuid()
             cb = @_hub_callbacks[opts.message.id] = (resp) =>
@@ -391,6 +440,7 @@ class exports.Client extends EventEmitter
             default : ''
         opts.client = @
         opts.project_id = @project_id
+        @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
@@ -479,7 +529,7 @@ class exports.Client extends EventEmitter
     path_access: (opts) =>
         opts = defaults opts,
             path : required    # string
-            mode : required    # string -- subsequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+            mode : required    # string -- sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
             cb   : required    # cb(err); err = if any access fails; err=undefined if all access is OK
         access = 0
         for s in opts.mode
@@ -490,6 +540,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
+        @dbg("checking if path exists")(opts.path)
         fs.exists opts.path, (exists) =>
             opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
@@ -519,6 +570,9 @@ class exports.Client extends EventEmitter
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
 
+    # Watch for changes to the given file.
+    # We can only watch if the file exists when this function is called, though subsequent
+    # delete and recreate does work, so we create the file if it doesn't exist.
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
     #    - 'error' (err)             - When error occurs
@@ -529,9 +583,33 @@ class exports.Client extends EventEmitter
             debounce : 750
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
-        dbg = @dbg("watch_file")
+        dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
-        g = new Gaze(path, {debounceDelay:opts.debounce})
-        g.on('error', opts.cb)
-        g.on('ready', () => opts.cb(undefined, g))
-
+        gaze_obj = undefined
+        async.series([
+            (cb) =>
+                @path_exists
+                    path : path
+                    cb   : (err, exists) =>
+                        if err
+                            cb(err)
+                        else if not exists
+                            cb("path '#{path}' must exist in order to watch it")
+                        else
+                            cb()
+            (cb) =>
+                gaze_obj = new Gaze(path, {debounceDelay:opts.debounce})
+                gaze_obj.on 'error', (err) =>
+                    dbg("error #{err}")
+                    cb?(err)
+                    cb = undefined  # gave may even error more than once, maybe (?)
+                gaze_obj.on 'ready', () =>
+                    dbg("ready")
+                    cb?()
+                    cb = undefined  # gaze may emit ready more than once -- I've seen this (seems stupid but happened.)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, gaze_obj)
+        )

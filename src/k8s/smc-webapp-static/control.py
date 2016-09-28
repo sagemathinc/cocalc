@@ -20,8 +20,11 @@ NAME='smc-webapp-static'
 def test_mesg(tag):
     print("Test locally by doing 'docker run -P {tag}' then check 'docker ps -l' for the port and connect to it.".format(tag=tag))
 
-def build_base(rebuild=False):
+def build_base(rebuild=False, commit=None):
     v = ['sudo', 'docker', 'build', '-t', 'smc-webapp-static-base']
+    if commit:
+        v.append("--build-arg")
+        v.append("commit={commit}".format(commit=commit))
     if rebuild:
         v.append("--no-cache")
     v.append('.')
@@ -32,7 +35,7 @@ def build(tag, rebuild, commit=None):
     Build Docker container by installing and building everything inside the container itself, and
     NOT using ../../static/ on host.
     """
-    build_base(False)  # ensure base image exists
+    build_base(False, commit)  # ensure base image exists
 
     # Build image we will deploy on top of base
     v = ['sudo', 'docker', 'build', '-t', tag]
@@ -71,7 +74,7 @@ def build_docker(args):
         args.tag += ('-' if args.tag else '') + args.commit[:6]
     tag = util.get_tag(args, NAME)
     if args.rebuild_all:
-        build_base(True)
+        build_base(True, args.commit)
     build(tag, args.rebuild, args.commit)
     if args.local:
         test_mesg(tag)
@@ -84,8 +87,16 @@ def run_on_kubernetes(args):
         args.replicas = util.get_desired_replicas(NAME, 2)
     tag = util.get_tag(args, NAME, build)
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+    if util.get_current_namespace() == 'test':
+        cpu_request    = '5m'
+        memory_request = '50Mi'
+    else:
+        cpu_request    = "250m"
+        memory_request = "64Mi"
     with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
         tmp.write(t.format(image=tag, replicas=args.replicas,
+                           cpu_request=cpu_request,
+                           memory_request=memory_request,
                                pull_policy=util.pull_policy(args)))
         tmp.flush()
         util.update_deployment(tmp.name)

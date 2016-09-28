@@ -524,6 +524,9 @@ schema.projects =
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
+        invite_requests :
+            type : 'map'
+            desc : "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}."
         deleted     :
             type : 'bool'
             desc : 'Whether or not this project is deleted.'
@@ -611,6 +614,7 @@ schema.projects =
                 description    : ''
                 users          : {}
                 invite         : null   # who has been invited to this project via email
+                invite_requests: null   # who has requested to be invited
                 deleted        : null
                 host           : null
                 settings       : DEFAULT_QUOTAS
@@ -626,6 +630,7 @@ schema.projects =
                 title          : true
                 description    : true
                 deleted        : true
+                invite_requests: true   # project collabs can modify this (e.g., to remove from it once user added or rejected)
                 users          : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
                 action_request : true   # used to request that an action be performed, e.g., "save"; handled by before_change
 
@@ -667,6 +672,38 @@ schema.projects_owner =
             fields :
                 project_id : 'project_owner'
                 course     : true
+
+# Table that enables any signed-in user to set an invite request.
+# Later: we can make an index so that users can see all outstanding requests they have made easily.
+# How to test this from the browser console:
+#    project_id = '4e0f5bfd-3f1b-4d7b-9dff-456dcf8725b8' // id of a project you have
+#    invite_requests = {}; invite_requests[smc.client.account_id] = {timestamp:new Date(), message:'please invite me'}
+#    smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:project_id, invite_requests:invite_requests}}})  // set it
+#    smc.redux.getStore('projects').get_project(project_id).invite_requests                 // see requests for this project
+#
+schema.project_invite_requests =
+    virtual    : 'projects'
+    primary_key: 'project_id'
+    fields :
+        project_id      : true
+        invite_requests : true   # {account_id:{timestamp:?, message:?}, ...}
+    user_query :
+        set :
+            fields :
+                project_id      : true
+                invite_requests : true
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                cb()  # actual function will be database._user... as below.
+                #database._user_set_query_project_invite_requests(old_val, new_val, account_id, cb)
+                # For now don't check anything -- this is how we will make it secure later.
+                # This will:
+                #   - that user setting this is signed in
+                #   - ensure user only modifies their own entry (for their own id).
+                #   - enforce some hard limit on number of outstanding invites (say 30).
+                #   - enforce limit on size of invite message.
+                #   - sanity check on timestamp
+                #   - with an index as mentioned above we could limit the number of projects
+                #     to which a single user has requested to be invited.
 
 # Table that provides extended read info about a single project
 # but *ONLY* for admin.

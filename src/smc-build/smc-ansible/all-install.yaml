@@ -428,6 +428,7 @@
     - lzip
     - m4
     - markdown
+    - mathgl
     - maven
     - mc
     - mencoder

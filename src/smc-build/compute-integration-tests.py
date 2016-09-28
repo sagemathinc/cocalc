@@ -64,6 +64,7 @@ BINARIES = [
     ('scilab-cli', 'scilab', '-version', 1),
     ('singular', None, '--version /dev/null'),
     ('echo "quit;" | gap', 'gap', ''),
+    ('mglconv -h | head -2', 'mgl', ''), # mathGL
     ('feynmf', None, None, 255),
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
@@ -116,6 +117,7 @@ PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt', 'gensim',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
+    'ipywidgets',
 ]
 
 
@@ -143,6 +145,7 @@ PY_SAGE = PY_COMMON + [
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
+    'polymake', # https://github.com/videlec/pypolymake/
 ]
 
 # and in anaconda
@@ -150,6 +153,7 @@ PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
+    'plotly', 'geopandas', 'altair',
 ]
 
 # Tests for R setups and libraries
@@ -437,12 +441,67 @@ def test_openmp(tmpdir):
     assert float(v.split()[-1]) < 1.
     print(v)
 
+# this is a test for https://github.com/sagemathinc/smc/issues/857
+@pytest.mark.parametrize('exe', R_setups.keys())
+def test_r_sys_which(exe):
+    v = run('''echo 'cat(Sys.which("ls"))' | {exe} -q --no-save'''.format(exe=exe))
+    assert '/bin/ls' in v
 
-# TODO numexpr
+# numexpr
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numexpr(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numexpr as ne
+    import numpy as np
+    a = np.array([1,2,3])
+    b = ne.evaluate('2*a+1')
+    print(b)
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '[3 5 7]'
 
-# TODO numpy/scipy
+# numpy/scipy, just a very very simple check
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_numpy(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import numpy as np
+    import scipy.linalg
+    x = np.array([[1,2], [5, -1]])
+    print(x.sum())
+    a, b, c = scipy.linalg.lu(x)
+    print((a.dot(b).dot(c) - x).sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert "7" == out[0]
+    assert "0.0" == out[1]
 
-# TODO pandas
+# pandas
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_pandas(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import pandas as pd
+    x = pd.DataFrame([[1,2], [3, 4], [5, 6]], columns = ['a', 'b'])
+    print(x.a.sum())
+    "'''.format(**locals()))
+    out = run(CMD).splitlines()
+    assert out[0] == '9'
+
+# tensorflow
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_tensorflow(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import tensorflow as tf
+    sess = tf.Session()
+    a = tf.constant(10)
+    b = tf.constant(32)
+    print(sess.run(a + b))
+    "''').format(**locals())
+    out = run(CMD).splitlines()
+    assert out[0] == '42'
 
 # TODO check that opencv exists, what is there actually?
 

@@ -1496,8 +1496,8 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : undefined    # one of account_id or email_address must be given
             email_address : undefined
-            amount        : required     # in US dollars
-            description   : required
+            amount        : undefined    # in US dollars -- if amount/description not given, then merely ensures user has stripe account
+            description   : undefined
             cb            : required
         @call
             message : message.stripe_admin_create_invoice_item
@@ -1507,6 +1507,16 @@ class exports.Connection extends EventEmitter
                 description   : opts.description
             error_event : true
             cb          : opts.cb
+
+    # Make it so the SMC user with the given email address has a corresponding stripe
+    # identity, even if they have never entered a credit card.  May only be used by
+    # admin users.
+    stripe_admin_create_customer: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined    # one of account_id or email_address must be given
+            email_address : undefined
+            cb            : required
+        @stripe_admin_create_invoice_item(opts)
 
     # Support Tickets
 
@@ -1594,6 +1604,7 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+        #console.log("query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
