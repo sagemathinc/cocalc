@@ -294,13 +294,12 @@ class ProjectActions extends Actions
 
                         if open_files.has(opts.path) # Already opened
                             if opts.foreground
-                                @set_active_tab(misc.path_to_tab(opts.path))
+                                @foreground_opened_file(opts.path)
                             return
 
                         open_files_order = store.get_open_files_order()
                         # Intialize the file's store and actions
                         name = project_file.initialize(opts.path, @redux, @project_id)
-                        console.log("name? in open_file", name)
 
                         # Make the editor
                         editor = project_file.generate(opts.path, @redux, @project_id)
@@ -309,8 +308,12 @@ class ProjectActions extends Actions
                         # Add it to open files
                         @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
                         if opts.foreground
-                            @set_active_tab(misc.path_to_tab(opts.path))
+                            @foreground_opened_file(opts.path)
         return
+
+    foreground_opened_file : (path) =>
+        @redux.getActions('projects').foreground_project(@project_id)
+        @set_active_tab(misc.path_to_tab(path))
 
     convert_sagenb_worksheet: (filename, cb) =>
         async.series([
