@@ -50,6 +50,7 @@
     "react-redux": "^4.4.5",
     "react-router-bootstrap": "^0.23.0",
     "react-select": "git://github.com/JedWatson/react-select.git",
+    "react-sidebar": "^2.2.1",
     "react-sortable-hoc": "0.0.8",
     "react-timeago": "^3.0.0",
     "react-widgets": "^3.0.0",
