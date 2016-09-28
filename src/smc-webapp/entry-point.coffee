@@ -16,7 +16,7 @@ require('./redux_server_stats')
 
 {IS_MOBILE} = require('./feature')
 
-if IS_MOBILE
+if IS_MOBILE or $(window).width() < 600
     # Mobile
     require('./mobile_app')
 else

@@ -24,71 +24,10 @@ require('./jquery_plugins')
 # Initializes page actions, store, and listeners
 require('./init_app')
 
-{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, SMCLogo, VersionWarning} = require('./app_shared')
 ###
 # JSX
 ###
-
-NavTab = rclass
-    displayName : "NavTab"
-
-    propTypes :
-        label : rtypes.string
-        icon : rtypes.oneOfType([rtypes.string, rtypes.object])
-        close : rtypes.bool
-        on_click : rtypes.func
-        active_top_tab : rtypes.string
-        actions : rtypes.object
-        style : rtypes.object
-        inner_style : rtypes.object
-
-    make_icon : ->
-        if typeof(@props.icon) == 'string'
-            <Icon
-                name={@props.icon}
-                style={fontSize: 20, paddingRight: 2} />
-        else if @props.icon?
-            @props.icon
-
-    on_click : (e) ->
-        if @props.name?
-            @actions('page').set_active_tab(@props.name)
-        @props.on_click?()
-
-    render : ->
-        is_active = @props.active_top_tab == @props.name
-
-        if @props.style?
-            outer_style = @props.style
-        else
-            outer_style = {}
-
-        outer_style.float = 'left'
-
-        outer_style.fontSize ?= '14px'
-        outer_style.cursor ?= 'pointer'
-        outer_style.border = 'none'
-
-        if is_active
-            outer_style.backgroundColor = "#e7e7e7"
-
-        if @props.inner_style
-            inner_style = @props.inner_style
-        else
-            inner_style =
-                padding : '10px'
-
-        <NavItem
-            active = {is_active}
-            onClick = {@on_click}
-            style = {outer_style}
-        >
-            <div style={inner_style}>
-                {@make_icon()}
-                {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
-                {@props.children}
-            </div>
-        </NavItem>
 
 ProjectTab = rclass
     reduxProps:
@@ -390,7 +329,9 @@ Page = rclass
                 outline-width:0px;
                 padding:0px;
             }
-            '
+            .input-group {
+                z-index:0;
+            }'
         shim_style =
             position : 'absolute'
             left : '0'
