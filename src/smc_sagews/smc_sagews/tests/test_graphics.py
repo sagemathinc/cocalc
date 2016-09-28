@@ -3,7 +3,7 @@
 
 import conftest
 
-# XXX refactor this later
+# TODO(hal) refactor this later
 SHA_LEN = 36
 
 class TestGraphics:
