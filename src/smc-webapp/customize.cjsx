@@ -7,7 +7,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{redux, rclass, rtypes, React} = require('./smc-react')
+{redux, Redux, rclass, rtypes, React} = require('./smc-react')
 {Loading} = require('./r_misc')
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
@@ -22,7 +22,7 @@ $?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         actions.setState(obj)
 
-exports.HelpEmailLink = rclass
+HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
     reduxProps :
         customize :
@@ -35,7 +35,16 @@ exports.HelpEmailLink = rclass
         else
             <Loading/>
 
-exports.SiteName = rclass
+exports.HelpEmailLink = rclass
+    displayName : 'HelpEmailLink-redux'
+    propTypes :
+        text : rtypes.string
+    render      : ->
+        <Redux redux={redux}>
+            <HelpEmailLink text={@props.text} />
+        </Redux>
+
+SiteName = rclass
     displayName : 'SiteName'
     reduxProps :
         customize :
@@ -46,7 +55,14 @@ exports.SiteName = rclass
         else
             <Loading/>
 
-exports.SiteDescription = rclass
+exports.SiteName = rclass
+    displayName : 'SiteName-redux'
+    render      : ->
+        <Redux redux={redux}>
+            <SiteName />
+        </Redux>
+
+SiteDescription = rclass
     displayName : 'SiteDescription'
     propTypes:
         style: rtypes.object
@@ -60,7 +76,16 @@ exports.SiteDescription = rclass
         else
             <Loading/>
 
-# FUTURE also make this configurable? Needed in the <Footer/> and maybe elsewhere …
+exports.SiteDescription = rclass
+    displayName : 'SiteDescription-redux'
+    propTypes :
+        style : rtypes.object
+    render      : ->
+        <Redux redux={redux}>
+            <SiteDescription style={@props.style}/>
+        </Redux>
+
+# TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 exports.CompanyName = rclass
     displayName : 'CompanyName'
     render :->
@@ -88,9 +113,11 @@ exports.TermsOfService = rclass
         style : rtypes.object
 
     render : ->
-        <TermsOfService style={@props.style} />
+        <Redux redux={redux}>
+            <TermsOfService style={@props.style} />
+        </Redux>
 
-exports.AccountCreationEmailInstructions = rclass
+AccountCreationEmailInstructions = rclass
     displayName : 'AccountCreationEmailInstructions'
 
     reduxProps :
@@ -100,8 +127,16 @@ exports.AccountCreationEmailInstructions = rclass
     render : ->
         <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
 
-# FUTURE: first step of centralizing these URLs in one place → collecting all such pages into one
-# react-class with a 'type' prop is the next step
+exports.AccountCreationEmailInstructions = rclass
+    displayName : 'AccountCreationEmailInstructions'
+
+    render : ->
+        <Redux redux={redux}>
+            <AccountCreationEmailInstructions />
+        </Redux>
+
+# first step of centralizing these URLs in one place → collecting all such pages into one
+# react-class with a 'type' prop is the next step (TODO)
 # then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
 smc_base_url = window?.smc_base_url ? ''  # fallback for react-static
 exports.PolicyIndexPageUrl     = smc_base_url + '/policies/index.html'

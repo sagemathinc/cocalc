@@ -247,7 +247,7 @@ Message = rclass
     displayName: "Message"
 
     propTypes:
-        message        : rtypes.immutable.Map.isRequired  # immutable.js message object
+        message        : rtypes.object  # immutable.js message object
         history        : rtypes.array
         history_author : rtypes.array
         history_date   : rtypes.array
@@ -577,8 +577,8 @@ ChatLog = rclass
     displayName: "ChatLog"
 
     propTypes:
-        messages     : rtypes.immutable.Map.isRequired   # {timestamps} --> message.
-        user_map     : rtypes.immutable.Map             # {collaborators} --> account info
+        messages     : rtypes.immutable.Map.isRequired  # {timestamps} --> message.
+        user_map     : rtypes.immutable.Map.isRequired  # {collaborators} --> account info
         account_id   : rtypes.string
         project_id   : rtypes.string   # optional -- used to render links more effectively
         file_path    : rtypes.string   # optional -- ...
@@ -679,7 +679,7 @@ ChatRoom = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            messages       : rtypes.immutable
+            messages       : rtypes.immutable.Map
             input          : rtypes.string
             saved_position : rtypes.number
             height         : rtypes.number
@@ -687,12 +687,12 @@ ChatRoom = rclass ({name}) ->
             saved_mesg     : rtypes.string
             is_preview     : rtypes.bool
         users :
-            user_map : rtypes.immutable
+            user_map : rtypes.immutable.Map
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
         file_use :
-            file_use : rtypes.immutable
+            file_use : rtypes.immutable.Map
 
     propTypes :
         redux       : rtypes.object.isRequired

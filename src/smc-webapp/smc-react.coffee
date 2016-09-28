@@ -274,7 +274,7 @@ Use a more generic strategy to chain the checks in that case
 
 check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
 #    locationName = ReactPropTypeLocationNames[location]
-    if props[propName].toJS? or Object.isFrozen(props[propName])
+    if not props[propName]? or props[propName].toJS?
         return null
     else
         type = typeof props[propName]
@@ -290,16 +290,16 @@ allow_isRequired = (validate) ->
             return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
         return validate(props, propName, componentName, location)
 
-    check_type.type = "IMMUTABLE HACK"
-
     chainedCheckType = check_type.bind(null, false)
     chainedCheckType.isRequired = check_type.bind(null, true)
+    chainedCheckType.isRequired.category = "IMMUTABLE"
+    chainedCheckType.category = "IMMUTABLE"
 
     return chainedCheckType
 
 create_immutable_type_required_chain = (validate) ->
     check_type = (immutable_type_name, props, propName, componentName="ANONYMOUS") ->
-        if immutable_type_name
+        if immutable_type_name and props[propName]?
             T = immutable_type_name
             if not props[propName].toJS?
                 return new Error("NOT EVEN IMMUTABLE, wanted immutable.#{T} #{props}, #{propName}")
@@ -308,7 +308,7 @@ create_immutable_type_required_chain = (validate) ->
             else
                 return new Error(
                     "Component '#{componentName}'" +
-                    " expected an immutable.#{immutable_type_name}" +
+                    " expected an immutable.#{T}" +
                     " but was supplied #{props[propName]}"
                 )
         else
@@ -320,6 +320,7 @@ create_immutable_type_required_chain = (validate) ->
     check_immutable_chain.List = allow_isRequired check_type.bind(null, "List")
     check_immutable_chain.Set = allow_isRequired check_type.bind(null, "Set")
     check_immutable_chain.Stack = allow_isRequired check_type.bind(null, "Stack")
+    check_immutable_chain.category = "IMMUTABLE"
 
     return check_immutable_chain
 
@@ -327,16 +328,20 @@ rtypes = {}
 rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
 Object.assign(rtypes, React.PropTypes)
 
-# WARNING: This used below to know the type of data expected by the component
-# It conflates the type checker with the type itself. Fragile.
-# For example onOfType([]) won't work insdie reduxProps for this reason.
-immutable_checkers = [
-    rtypes.immutable, rtypes.immutable.isRequired,
-    rtypes.immutable.List, rtypes.immutable.List.isRequired,
-    rtypes.immutable.Map, rtypes.immutable.Map.isRequired,
-    rtypes.immutable.Set, rtypes.immutable.Set.isRequired,
-    rtypes.immutable.Stack, rtypes.immutable.Stack.isRequired
-]
+###
+Tests if the categories are working correctly.
+test = () ->
+    a = "q"
+    if (rtypes.immutable.category != "IMMUTABLE" or
+            rtypes.immutable.Map.category != "IMMUTABLE" or
+            rtypes.immutable.List.category != "IMMUTABLE" or
+            rtypes.immutable.isRequired.category != "IMMUTABLE" or
+            rtypes.immutable.Map.isRequired.category != "IMMUTABLE" or
+            rtypes.immutable.List.isRequired.category != "IMMUTABLE")
+        throw "Immutable checkers are broken"
+
+test()
+###
 
 ###
 Used by Provider to map app state to component props
@@ -354,12 +359,10 @@ connect_component = (spec) =>
         for store_name, info of spec
             for prop, type of info
                 s = state.getIn([store_name, prop])
-                # If the type isn't one of our immutable checkers, convert to js
-                # TODOJ: doesn't work for reduxProps...
-                if not immutable_checkers.includes(type)
-                    props[prop] = if s?.toJS? then s.toJS() else s
-                else
+                if type.category == "IMMUTABLE"
                     props[prop] = s
+                else
+                    props[prop] = if s?.toJS? then s.toJS() else s
         return props
     return connect(map_state_to_props)
 

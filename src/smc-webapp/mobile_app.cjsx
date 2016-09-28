@@ -159,10 +159,10 @@ Page = rclass
 
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable.List.isRequired # List of open projects and their state
-            project_map    : rtypes.immutable.Map.isRequired # All projects available to the user
+            open_projects  : rtypes.immutable # List of open projects and their state
+            project_map    : rtypes.immutable # All projects available to the user
             get_title      : rtypes.func
-            public_project_titles : rtypes.immutable.Map
+            public_project_titles : rtypes.immutable
         page :
             active_top_tab    : rtypes.string    # key of the active tab
             show_connection   : rtypes.bool
