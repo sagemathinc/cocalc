@@ -50,6 +50,20 @@ class TestBasic:
         html = "https://www.google.com/search\?q=site%3Adoc.sagemath.org\+laurent\&oq=site%3Adoc.sagemath.org"
         exec2(code, html_pattern = html)
 
+    def test_show_doc(self, test_id, sagews):
+        # issue 476
+        code = "show?"
+        patn = "import smc_sagews.graphics; smc_sagews.graphics.graph_to_d3_jsonable?"
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'code' in mesg
+        assert 'source' in mesg['code']
+        assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
+        conftest.recv_til_done(sagews, test_id)
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

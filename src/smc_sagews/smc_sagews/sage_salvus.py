@@ -2411,7 +2411,7 @@ def show(*objs, **kwds):
        - svg: (default: True); if True, show 2d plots using svg (otherwise use png)
 
        - d3: (default: True); if True, show graphs (vertices and edges) using an interactive D3 viewer
-           for the many options for this viewer, type 'import graphics; graphics.graph_to_d3_jsonable?'
+           for the many options for this viewer, type 'import smc_sagews.graphics; smc_sagews.graphics.graph_to_d3_jsonable?'
          If false, graphs are converted to plots and displayed as usual.
 
        - renderer: (default: 'webgl'); for 3d graphics
@@ -2529,12 +2529,16 @@ def show(*objs, **kwds):
                 return "$\\displaystyle %s$"%s
             else:
                 return "$%s$"%s
+    sys.stdout.flush()
+    sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
         if display:
             salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
         else:
             salvus.html("<div>%s</div>"%cgi.escape(s))
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
