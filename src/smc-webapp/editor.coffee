@@ -3891,13 +3891,21 @@ class JupyterNBViewerEmbedded extends FileEditor
         @init_buttons()
 
     init_buttons: () =>
-
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
     show: () =>
         if not @is_active()
             return
         if not @iframe?
             @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
-            @iframe.attr('src', '//nbviewer.jupyter.org/urls/cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb')
+            {join} = require('path')
+            ipynb_src = join(window.location.hostname,
+                             window.smc_base_url,
+                             @editor.project_id,
+                             'raw',
+                             @filename)
+            @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
