@@ -3886,25 +3886,43 @@ class JupyterNBViewer extends FileEditorWrapper
         @wrapped = @element.data('jupyter_nbviewer')
 
 class JupyterNBViewerEmbedded extends FileEditor
+    # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
+    # it's only used for public files and when not part of the project or anonymous
     constructor: (@editor, @filename, @content, opts) ->
-        @element = templates.find(".salvus-editor-static-html").clone()
+        @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 
     init_buttons: () =>
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
+        # code duplication from editor_jupyter/JupyterNBViewer
+        @element.find('a[href=#copy]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('copy')
             return false
+
+        @element.find('a[href=#download]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('download')
+            return false
+
     show: () =>
         if not @is_active()
             return
         if not @iframe?
-            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+            @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
                              window.smc_base_url,
                              @editor.project_id,
                              'raw',
                              @filename)
+            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files)
+            # ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
         @element.css(top:@editor.editor_top_position())
