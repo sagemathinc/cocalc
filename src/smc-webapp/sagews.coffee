@@ -42,6 +42,7 @@ is_marked = (c) ->
 
 open_gutter_elt   = $('<div class="CodeMirror-foldgutter-open CodeMirror-guttermarker-subtle"></div>')
 folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-guttermarker-subtle"></div>')
+line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
@@ -111,6 +112,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         return
                     start = changeObj.from.line
                     stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
+
+                    if @editor.opts.line_numbers
+                        # If stop isn't at a marker, extend stop to include the rest of the input,
+                        # so relatively line numbers for this cell get updated.
+                        x = cm.getLine(stop)?[0]
+                        if x != MARKERS.cell and x != MARKERS.output
+                            n = cm.lineCount() - 1
+                            while stop < n and x != MARKERS.output and x != MARKERS.cell
+                                stop += 1
+                                x = cm.getLine(stop)[0]
+
+                        # Similar for start
+                        x = cm.getLine(start)?[0]
+                        if x != MARKERS.cell and x != MARKERS.output
+                            while start > 0 and x != MARKERS.cell and x != MARKERS.output
+                                start -= 1
+                                x = cm.getLine(start)[0]
+
                     if not @_update_queue_start? or start < @_update_queue_start
                         @_update_queue_start = start
                     if not @_update_queue_stop? or stop > @_update_queue_stop
@@ -125,7 +144,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     init_hide_show_gutter: () =>
         if @readonly
             return
-        gutters = ["smc-sagews-gutter-hide-show", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+        gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
             cm.setOption('gutters', gutters)
             cm.on 'gutterClick', @_handle_input_hide_show_gutter_click
@@ -786,14 +805,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @_handle_input_cell_click0(e, mark)
         return false
 
-    _process_line_gutter: (cm, line, mode) =>
+    _process_line_gutter: (cm, line, mode, relative_line) =>
         switch mode
             when 'show'
                 elt = open_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
             when 'hide'
                 elt = folded_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
             else
-                elt = undefined
+                if @editor.opts.line_numbers
+                    elt = line_number_elt.clone().text(relative_line)[0]
+                else
+                    elt = undefined
         cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
 
     _process_line: (cm, line, context) =>
@@ -823,6 +845,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     uuid = misc.uuid()
                     cm.replaceRange(uuid, {line:line, ch:1}, {line:line, ch:37})
                 context.uuids[uuid] = true
+                context.input_line = line
                 flagstring = x.slice(37, x.length-1)
 
                 if FLAGS.hide_input in flagstring
@@ -947,7 +970,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @render_output(marks[0], x.slice(38), line)
 
             else
-                @_process_line_gutter(cm, line) # no gutter mark
+                if @editor.opts.line_numbers
+                    input_line = context.input_line
+                    if not input_line?
+                        input_line = line - 1
+                        while input_line >= 1 and cm.getLine(input_line)[0] != MARKERS.cell
+                            input_line -= 1
+                    @_process_line_gutter(cm, line, 'number', line - input_line) # relative line number
+                else
+                    @_process_line_gutter(cm, line)
+
                 for b in [MARKERS.cell, MARKERS.output]
                     i = x.indexOf(b)
                     if i != -1
