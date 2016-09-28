@@ -471,6 +471,7 @@ $.fn.extend
 # We factor out this extension so it can be applied to CodeMirror's in iframes, e.g., Jupyter's.
 
 exports.cm_define_diffApply_extension = (cm) ->
+    # applies a diff and returns last pos modified
     cm.defineExtension 'diffApply', (diff) ->
         editor = @
         next_pos = (val, pos) ->
@@ -485,11 +486,13 @@ exports.cm_define_diffApply_extension = (cm) ->
                 return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
         pos = {line:0, ch:0}  # start at the beginning
+        last_pos = undefined
         for chunk in diff
             #console.log(chunk)
             op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
             val = chunk[1]  # the actual text to leave same, delete, or add
             pos1 = next_pos(val, pos)
+
             switch op
                 when 0 # stay the same
                     # Move our pos pointer to the next position
@@ -498,6 +501,7 @@ exports.cm_define_diffApply_extension = (cm) ->
                 when -1 # delete
                     # Delete until where val ends; don't change pos pointer.
                     editor.replaceRange("", pos, pos1)
+                    last_pos = pos
                     #console.log("deleting from ", pos, " to ", pos1)
                 when +1 # insert
                     # Insert the new text right here.
@@ -505,6 +509,8 @@ exports.cm_define_diffApply_extension = (cm) ->
                     #console.log("inserted new text at ", pos)
                     # Move our pointer to just beyond the text we just inserted.
                     pos = pos1
+                    last_pos = pos1
+        return last_pos
 
 exports.cm_define_testbot = (cm) ->
     cm.defineExtension 'testbot', (opts) ->
@@ -702,7 +708,7 @@ exports.define_codemirror_extensions = () ->
 
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
-    CodeMirror.defineExtension 'setValueNoJump', (value) ->
+    CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -715,7 +721,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -725,6 +731,10 @@ exports.define_codemirror_extensions = () ->
 
         if not r
             @setOption('readOnly', false)
+            if scroll_last and last_pos?
+                @scrollIntoView(last_pos)
+                @setCursor(last_pos)
+
         delete @_setValueNoJump
 
     CodeMirror.defineExtension 'patchApply', (patch) ->

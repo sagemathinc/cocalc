@@ -708,7 +708,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if not @_syncstring.in_undo_mode()
             @_syncstring.set(@codemirror.getValue())
         value = @_syncstring.undo()
-        @codemirror.setValueNoJump(value)
+        @codemirror.setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
@@ -719,7 +719,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if not @_syncstring.in_undo_mode()
             return
         value = @_syncstring.redo()
-        @codemirror.setValueNoJump(value)
+        @codemirror.setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
