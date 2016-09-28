@@ -53,7 +53,7 @@ class TestBasic:
     def test_show_doc(self, test_id, sagews):
         # issue 476
         code = "show?"
-        patn = "import smc_sagews.graphics; smc_sagews.graphics.graph_to_d3_jsonable?"
+        patn = "import smc_sagews.graphics\nsmc_sagews.graphics.graph_to_d3_jsonable?"
         m = conftest.message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
         typ, mesg = sagews.recv()
