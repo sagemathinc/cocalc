@@ -167,6 +167,7 @@ class ProjectActions extends Actions
                 @push_state('settings')
             else #editor...
                 @push_state('files/' + misc.tab_to_path(key))
+                @set_current_path(misc.path_split(misc.tab_to_path(key)).head)
 
     add_a_ghost_file_tab : () =>
         current_num = @get_store().get('num_ghost_file_tabs')
@@ -421,6 +422,9 @@ class ProjectActions extends Actions
             file_action            : undefined
             most_recent_file_click : undefined
             create_file_alert      : false
+
+    fetch_directory_files : () =>
+        @set_directory_files(@get_store().get('current_path'))
 
     # Update the directory listing cache for the given path
     set_directory_files : (path, sort_by_time, show_hidden) =>
