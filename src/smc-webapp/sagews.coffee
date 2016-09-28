@@ -40,9 +40,13 @@ is_marked = (c) ->
         return false
     return c.indexOf(MARKERS.cell) != -1 or c.indexOf(MARKERS.output) != -1
 
+
+open_gutter_elt   = $('<div class="CodeMirror-foldgutter-open CodeMirror-guttermarker-subtle"></div>')
+folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-guttermarker-subtle"></div>')
+
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        # window.w = @
+        #window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -59,6 +63,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             sync_interval   : @opts.sync_interval
         super @editor, opts0, () =>
             @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+            @init_hide_show_gutter()  # must be after @readonly set
             @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
             @status cb: (err, status) =>
@@ -117,6 +122,24 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     close: =>
         @execution_queue?.close()
         super()
+
+    init_hide_show_gutter: () =>
+        if @readonly
+            return
+        gutters = ["smc-sagews-gutter-hide-show", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+        for cm in [@codemirror, @codemirror1]
+            cm.setOption('gutters', gutters)
+            cm.on 'gutterClick', @_handle_input_hide_show_gutter_click
+
+    _handle_input_hide_show_gutter_click: (cm, line, gutter) =>
+        if gutter != 'smc-sagews-gutter-hide-show'
+            return
+        x = cm.getLine(line)
+        switch x[0]
+            when MARKERS.cell
+                @action(pos:{line:line, ch:0}, toggle_input:true)
+            when MARKERS.output
+                @action(pos:{line:line, ch:0}, toggle_output:true)
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
@@ -191,20 +214,25 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=#execute]").click () =>
             @action(execute:true, advance:false)
+            @focused_codemirror().focus()
             return false
         buttons.find("a[href=#toggle-input]").click () =>
             @action(execute:false, toggle_input:true)
+            @focused_codemirror().focus()
             return false
         buttons.find("a[href=#toggle-output]").click () =>
             @action(execute:false, toggle_output:true)
+            @focused_codemirror().focus()
             return false
         buttons.find("a[href=#delete-output]").click () =>
             @action(execute:false, delete_output:true)
+            @focused_codemirror().focus()
             return false
 
         if IS_MOBILE
             buttons.find("a[href=#tab]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
+                @focused_codemirror().focus()
                 return false
         else
             @element.find("a[href=#tab]").hide()
@@ -228,6 +256,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @action
                 execute : true
                 advance : true
+            @focused_codemirror().focus()
 
         interrupt_button = buttons.find("a[href=#interrupt]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
@@ -237,7 +266,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     interrupt_button.find("i").removeClass('fa-spin')
                     if err
                         alert_message(type:"error", message:"Unable to interrupt worksheet; try restarting the worksheet instead.")
+            @focused_codemirror().focus()
             return false
+
         kill_button = buttons.find("a[href=#kill]").click () =>
             kill_button.find("i").addClass('fa-spin')
             @_restarting = true
@@ -249,6 +280,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     kill_button.find("i").removeClass('fa-spin')
                     if err
                         alert_message(type:"error", message:"Unable to restart worksheet (the system might be heavily loaded causing Sage to take a while to restart -- try again in a minute)")
+            @focused_codemirror().focus()
             return false
 
     html_editor_save_selection: () =>
@@ -755,6 +787,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @_handle_input_cell_click0(e, mark)
         return false
 
+    _process_line_gutter: (cm, line, mode) =>
+        switch mode
+            when 'show'
+                elt = open_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
+            when 'hide'
+                elt = folded_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
+            else
+                elt = undefined
+        cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
+
     _process_line: (cm, line, context) =>
         ###
         - Ensure that cell start line is properly marked so it looks like a horizontal
@@ -766,6 +808,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         x = cm.getLine(line)
         if not x?
             return
+
         marks = (m for m in cm.findMarks({line:line, ch:0}, {line:line,ch:x.length}) when m.type != 'bookmark')
         if marks.length > 1
             # There should never be more than 1 mark on a line
@@ -784,8 +827,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 flagstring = x.slice(37, x.length-1)
 
                 if FLAGS.hide_input in flagstring
+                    @_process_line_gutter(cm, line, 'hide')
                     context.hide = line
                 else
+                    @_process_line_gutter(cm, line, 'show')
                     delete context.hide
 
                 # Record whether or not the output for this cell should be hidden.
@@ -798,20 +843,22 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 n = line + 1
                 output_line = undefined
                 while n < cm.lineCount()
-                    z = cm.getLine(n)?[0]
-                    if z == MARKERS.output
+                    z = cm.getLine(n)
+                    if z?[0] == MARKERS.output
                         output_line = n
                         break
-                    if z == MARKERS.input or not z?
+                    if z?[0] == MARKERS.input or not z?[0]?
                         break
                     n += 1
+
                 if output_line? # found output line -- properly set hide state
+                    output_marks = cm.findMarks({line:output_line, ch:0}, {line:output_line, ch:z.length})
                     if context.hide_output
-                        for t in ['gutter', 'text']
-                            cm.addLineClass(output_line, t, 'hidden')
+                        @_process_line_gutter(cm, output_line, 'hide')
+                        output_marks?[0]?.element.hide()
                     else
-                        for t in ['gutter', 'text']
-                            cm.removeLineClass(output_line, t, 'hidden')
+                        @_process_line_gutter(cm, output_line, 'show')
+                        output_marks?[0]?.element.show()
 
 
                 if marks.length == 1 and (marks[0].type != 'input' or marks[0].uuid != uuid)
@@ -885,10 +932,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     mark.uuid = uuid
                     mark.rendered = ''
                     marks.push(mark)
-                    if not @readonly
-                        output.dblclick () =>
-                            # Double click output to toggle input
-                            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
 
                 cm.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
                 cm.addLineClass(line, 'text',   'sagews-output-cm-text')
@@ -896,15 +939,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                 # To be sure, definitely properly set output state (should already be properly set when rendering input)
                 if context.hide_output
-                    for t in ['gutter', 'text']
-                        cm.addLineClass(line, t, 'hidden')
+                    @_process_line_gutter(cm, line, 'hide')
+                    marks[0].element.hide()
                 else
-                    for t in ['gutter', 'text']
-                        cm.removeLineClass(line, t, 'hidden')
+                    @_process_line_gutter(cm, line, 'show')
+                    marks[0].element.show()
 
                 @render_output(marks[0], x.slice(38), line)
 
             else
+                @_process_line_gutter(cm, line) # no gutter mark
                 for b in [MARKERS.cell, MARKERS.output]
                     i = x.indexOf(b)
                     if i != -1
@@ -1754,6 +1798,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
 
+        #console.log 'action ', opts
+
         if @readonly
             # don't do any actions on a read-only file.
             return
@@ -1775,6 +1821,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     toggle_input  : opts.toggle_input
                     toggle_output : opts.toggle_output
                     delete_output : opts.delete_output
+                if opts.toggle_output
+                    # toggling output requires explicitly processing due to distance between input line where
+                    # state is stored and output line where displayed.
+                    @process_sage_updates({start:cell.start_line(), stop:cell.end_line()})
             if cells.length == 1 and opts.advance
                 @move_cursor_to_next_cell()
             if cells.length > 0
@@ -1795,7 +1845,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 return
             opts.mode = x.mode; opts.code = x.code; opts.hide = x.hide
         if not opts.hide? and opts.mode in ['md', 'html']
-            opts.hide = true
+            opts.hide = false
         if opts.hide
             opts.cell.set_cell_flag(FLAGS.hide_input)
         cur_height = opts.cell.get_output_height()
@@ -2415,9 +2465,6 @@ class SynchronizedWorksheetCell
                 @set_cell_flag(FLAGS.hide_input)
         if opts.toggle_output
             flags = @get_cell_flags()
-            if FLAGS.hide_input in flags and not (FLAGS.hide_output in flags)
-                # input is currently hidden and output is visible; don't hide it since then everything hidden, which is confusing
-                return
             n = @start_line()
             if not n?
                 return

@@ -374,15 +374,16 @@ def exec2(request, sagews, test_id):
 
     OUTPUT:
 
-    Fixture function exec2, which takes three arguments. The second and
-    third arguments may be omitted. If both are omitted, the cell is not
+    Fixture function exec2. If output & patterns are omitted, the cell is not
     expected to produce a stdout result.
 
     - `` code `` -- string of code block to run
 
     - `` output `` -- string of expected output, to be matched exactly
 
-    - `` pattern `` -- regex to match with expected output
+    - `` pattern `` -- regex to match with expected stdout output
+
+    - `` html_pattern `` -- regex to match with expected html output
 
     EXAMPLES:
 
@@ -546,7 +547,10 @@ def sagews(request):
             time.sleep(0.5)
         else:
             print("sending sigterm to %s"%pid)
-            os.kill(pid, signal.SIGTERM)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
     request.addfinalizer(fin)
     return conn
 
