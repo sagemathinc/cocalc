@@ -21,8 +21,6 @@ templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
-CLICK_TO_EDIT = "(double click to edit)"
-
 log = (s) -> console.log(s)
 
 CLIENT_SIDE_MODE_LINES = {}
@@ -246,13 +244,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             while line >= 0 and cm.getLine(line) == ""
                 line -= 1
             if line >= 0 and cm.getLine(line)[0] == MARKERS.cell
-                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                cm.replaceRange("%html\n", {line:line+1,ch:0})
                 cm.setCursor(line:line+1, ch:0)
             else
                 cm.replaceRange("\n\n\n", {line:line+1,ch:0})
                 @cell_start_marker(line+1)
                 @cell_start_marker(line+3)
-                cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+2,ch:0})
+                cm.replaceRange("%html\n", {line:line+2,ch:0})
                 cm.setCursor(line:line+2, ch:0)
             @action
                 execute : true
@@ -1592,12 +1590,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     line = mark.find().from.line
                     @insert_new_cell(line)
                     if e.shiftKey
-                        cm.replaceRange("%html\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        cm.replaceRange("%html\n", {line:line+1,ch:0})
                         @action
                             execute : true
                             advance : false
                     if (e.altKey or e.metaKey)
-                        cm.replaceRange("%md\n#{CLICK_TO_EDIT}", {line:line+1,ch:0})
+                        cm.replaceRange("%md\n", {line:line+1,ch:0})
                         @action
                             execute : true
                             advance : false
@@ -1677,10 +1675,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         mark.type = MARKERS.output
 
         if not @readonly
-            output.dblclick () =>
-                # Double click output to toggle input
-                @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
-
             output.click (e) =>
                 t = $(e.target)
                 if t.attr('href')? or t.hasParent('.sagews-output-editor').length > 0

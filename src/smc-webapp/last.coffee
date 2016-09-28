@@ -58,10 +58,13 @@ window.MathJax =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
     jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+    # http://docs.mathjax.org/en/latest/options/tex2jax.html
     tex2jax:
         inlineMath: [ ['$','$'], ["\\(","\\)"] ]
         displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
         processEscapes: true
+        ignoreClass: "tex2jax_ignore"
+        skipTags: ["script","noscript","style","textarea","pre","code"]
 
     TeX:
         extensions: ["autoload-all.js"]

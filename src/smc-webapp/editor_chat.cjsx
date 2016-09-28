@@ -680,6 +680,7 @@ ChatRoom = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             messages       : rtypes.immutable.Map
+
             input          : rtypes.string
             saved_position : rtypes.number
             height         : rtypes.number

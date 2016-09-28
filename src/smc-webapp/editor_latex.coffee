@@ -70,11 +70,13 @@ class exports.LatexEditor extends editor.FileEditor
         @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @_pages['log'] = @log
         @log_input = @log.find("input")
+        save_custom_build_command = () =>
+            @set_conf_doc(latex_command: @log_input.val())
+            @save()
         @log_input.keyup (e) =>
             if e.keyCode == 13
-                latex_command = @log_input.val()
-                @set_conf_doc(latex_command: latex_command)
-                @save()
+                save_custom_build_command()
+        @log_input.on('blur', save_custom_build_command)
 
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
