@@ -312,7 +312,7 @@ class ProjectActions extends Actions
         return
 
     foreground_opened_file : (path) =>
-        @redux.getActions('projects').foreground_project(@project_id)
+        @foreground_project(@project_id)
         @set_active_tab(misc.path_to_tab(path))
 
     convert_sagenb_worksheet: (filename, cb) =>

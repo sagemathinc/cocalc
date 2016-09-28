@@ -1616,7 +1616,7 @@ exports.ProjectsPage = ProjectsPage = rclass
     open_first_project : ->
         project = @visible_projects()[0]
         if project?
-            @actions('projects').open_project(project_id: project.project_id)
+            @actions('projects').open_project(project_id: project.project_id, switch_to: true)
     ###
     # Consolidate the next two functions.
     ###
