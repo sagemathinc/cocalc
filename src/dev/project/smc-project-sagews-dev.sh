@@ -31,7 +31,6 @@ y|Y)
   echo canceled
   ;;
 esac
-exit
 
 cd ~/smc
 # echo "checking that 'upstream' remote is main SMC github repo"
