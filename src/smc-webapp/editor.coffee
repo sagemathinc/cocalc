@@ -2036,6 +2036,9 @@ class CodeMirrorEditor extends FileEditor
         submit = () =>
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
+            $print_tempdir = dialog.find(".smc-file-printing-tempdir")
+            $print_tempdir.hide()
+            is_subdir = dialog.find(".salvus-file-print-keepfiles").is(":checked")
             dialog.find(".btn-submit").icon_spin(start:true)
             pdf = undefined
             async.series([
@@ -2050,7 +2053,7 @@ class CodeMirrorEditor extends FileEditor
                             author     : dialog.find(".salvus-file-print-author").text()
                             date       : dialog.find(".salvus-file-print-date").text()
                             contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            subdir     : dialog.find(".salvus-file-print-keepfiles").is(":checked")
+                            subdir     : is_subdir
                             extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
                         cb          : (err, _pdf) =>
                             if err
@@ -2067,8 +2070,28 @@ class CodeMirrorEditor extends FileEditor
                                 cb(err)
                             else
                                 url = mesg.url + "?nocache=#{Math.random()}"
-                                window.open(url,'_blank')
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                                if is_subdir
+                                    subdir_texfile = p.head + "/#{base}-sagews2pdf/tmp.tex"
+                                    # if not reading it, tmp.tex is blank (?)
+                                    salvus_client.read_file_from_project
+                                        project_id : @project_id
+                                        path       : subdir_texfile
+                                        cb         : (err, mesg) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                tempdir_link = $('<a>').text('Click to open temporary file')
+                                                tempdir_link.click =>
+                                                    @editor.project_page.open_file
+                                                        path       : subdir_texfile
+                                                        foreground : true
+                                                    dialog.modal('hide')
+                                                    return false
+                                                $print_tempdir.html(tempdir_link)
+                                                $print_tempdir.show()
+                                else
+                                    window.open(url, '_blank')
                                 cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
