@@ -104,12 +104,12 @@ exports.ConnectionIndicator = rclass
 
     connection_status : ->
         if @props.connection_status == 'connected'
-            <span>
-                <span><Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} /></span>
-                {<Tip title='Most recently recorded roundtrip time to message the server.'>
+            <div>
+                <Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} />
+                {<Tip title={'Most recently recorded roundtrip time to message the server.'}>
                     {Math.floor(@props.avgping)}ms
                 </Tip> if @props.avgping?}
-            </span>
+            </div>
         else if @props.connection_status == 'connecting'
             <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
                 connecting...
@@ -125,16 +125,14 @@ exports.ConnectionIndicator = rclass
 
     render : ->
         outer_styles =
-            width : '7.5em'
+            width : '8.5em'
             color : '#666'
             fontSize : '10pt'
             lineHeight : '10pt'
-            cursor : 'default'
-            marginTop : '4px'
-            marginRight : '2ex'
+            cursor : 'pointer'
             float : 'left'
         inner_styles =
-            padding : '10px'
+            padding : '13.5px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
@@ -191,7 +189,6 @@ exports.ConnectionInfo = rclass
 
     render : ->
         <Modal show={true} onHide={@close} animation={false}>
-
             <Modal.Header closeButton>
                 <Modal.Title>
                     <Icon name='wifi' style={marginRight: '1em'} /> Connection

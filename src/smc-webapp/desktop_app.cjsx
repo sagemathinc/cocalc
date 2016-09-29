@@ -351,6 +351,7 @@ Page = rclass
         <div ref="page" style={style}>
             <style>{page_style}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
@@ -366,7 +367,6 @@ Page = rclass
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
         </div>
 
 $('body').css('padding-top':0).append('<div class="page-container smc-react-container" style="overflow:hidden;position:absolute;top:0px;"></div>')
