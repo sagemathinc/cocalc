@@ -1926,6 +1926,8 @@ class CodeMirrorEditor extends FileEditor
         for i, cm of [@codemirror, @codemirror1]
             size = @local_storage("font_size#{i}")
             if size?
+                if size < 2
+                    size = 2
                 @set_font_size(cm, size, 0)
             else if @default_font_size?
                 @set_font_size(cm, @default_font_size, 0)
@@ -1933,12 +1935,24 @@ class CodeMirrorEditor extends FileEditor
     set_font_size: (cm, size, delta) =>
         if size > 1
             elt = $(cm.getWrapperElement())
-            for html in elt.find('.sagews-output-html').children()
-                original_font_size = parseInt($(html).css('font-size'))
-                $(html).css('font-size', original_font_size + delta + 'px')
-            for md in elt.find('.sagews-output-md').children()
-                original_font_size = parseInt($(md).css('font-size'))
-                $(md).css('font-size', original_font_size + delta + 'px')
+            if delta != 0
+                for html, i in elt.find('.sagews-output-html').children()
+                    original_font_size = parseInt($(html).css('font-size'))
+                    $(html).css('font-size', original_font_size + delta + 'px')
+                    @local_storage("html_font#{i + html}", original_font_size + delta)
+                for md, i in elt.find('.sagews-output-md').children()
+                    original_font_size = parseInt($(md).css('font-size'))
+                    $(md).css('font-size', original_font_size + delta + 'px')
+                    @local_storage("md_font#{i + md}", original_font_size + delta)
+            else
+                z = () =>
+                    for html, i in elt.find('.sagews-output-html').children()
+                        set_font_size = @local_storage("html_font#{i + html}")
+                        $(html).css('font-size', set_font_size + 'px')
+                    for md, i in elt.find('.sagews-output-md').children()
+                        set_font_size = @local_storage("md_font#{i + md}")
+                        $(md).css('font-size', set_font_size + 'px')
+                setTimeout(z, 1000)
             elt.css('font-size', size + 'px')
             elt.data('font-size', size)
 
