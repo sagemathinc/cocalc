@@ -1606,7 +1606,6 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
-            "Enter"        : @enter_key
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
@@ -1848,12 +1847,6 @@ class CodeMirrorEditor extends FileEditor
 
     interrupt_key: () =>
         # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
-
-    enter_key: (editor) =>
-        if @custom_enter_key?
-            @custom_enter_key(editor)
-        else
-            return CodeMirror.Pass
 
     press_tab_key: (editor) =>
         if editor.somethingSelected()
@@ -2546,7 +2539,6 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
                 sync_interval   : 250
             E.syncdoc = new (sagews.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
-            E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"

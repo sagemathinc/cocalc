@@ -105,7 +105,10 @@ def _jkmagic(kernel_name, **kwargs):
     -  ``debug`` - optional, set true to view jupyter messages
 
     """
-    km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
