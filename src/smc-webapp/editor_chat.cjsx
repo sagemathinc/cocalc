@@ -70,7 +70,7 @@ This file is all the parts that are similar between side_chat.cjsx (The side cha
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries

@@ -1177,8 +1177,7 @@ except:
 
 class HTML:
     """
-    Cell mode that renders everything after %html as HTML then hides
-    the input (unless you pass in hide=False).
+    Cell mode that renders everything after %html as HTML
 
     EXAMPLES::
 
@@ -1188,7 +1187,7 @@ class HTML:
         <h2>Subtitle</h2>
 
         ---
-        %html(hide=False)
+        %html(hide=True)
         <h1>A Title</h1>
         <h2>Subtitle</h2>
 
@@ -1199,7 +1198,7 @@ class HTML:
         %html(hide=False) <h1>Title</h1>
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -2019,6 +2018,14 @@ def sh(code):
     return sh.jupyter_kernel(code)
 sh.jupyter_kernel = None
 
+# use jupyter kernel for GNU octave instead of sage interpreter interface
+def octave(code):
+    if octave.jupyter_kernel is None:
+        octave.jupyter_kernel = jupyter("octave")
+    return octave.jupyter_kernel(code)
+octave.jupyter_kernel = None
+
+
 # Monkey patch the R interpreter interface to support graphics, when
 # used as a decorator.
 
@@ -2404,7 +2411,11 @@ def show(*objs, **kwds):
        - svg: (default: True); if True, show 2d plots using svg (otherwise use png)
 
        - d3: (default: True); if True, show graphs (vertices and edges) using an interactive D3 viewer
-           for the many options for this viewer, type 'import graphics; graphics.graph_to_d3_jsonable?'
+         for the many options for this viewer, type
+
+             import smc_sagews.graphics
+             smc_sagews.graphics.graph_to_d3_jsonable?
+
          If false, graphs are converted to plots and displayed as usual.
 
        - renderer: (default: 'webgl'); for 3d graphics
@@ -2522,12 +2533,16 @@ def show(*objs, **kwds):
                 return "$\\displaystyle %s$"%s
             else:
                 return "$%s$"%s
+    sys.stdout.flush()
+    sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
         if display:
             salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
         else:
             salvus.html("<div>%s</div>"%cgi.escape(s))
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
@@ -2998,7 +3013,7 @@ def md2html(s):
 # NOTE: this is not used anymore
 class Markdown(object):
     r"""
-    Cell mode that renders everything after %md as markdown and hides the input by default.
+    Cell mode that renders everything after %md as markdown.
 
     EXAMPLES::
 
@@ -3009,17 +3024,17 @@ class Markdown(object):
         ## A subheading
 
         ---
-        %md(hide=False)
+        %md(hide=True)
         # A title
 
         - a list
 
         ---
-        md("# A title", hide=False)
+        md("# A title")
 
 
         ---
-        %md(hide=False) `some code`
+        %md `some code`
 
 
     This uses the Python markdown2 library with the following
@@ -3033,7 +3048,7 @@ class Markdown(object):
     typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
     \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -3083,7 +3098,7 @@ class Marked(object):
         %md(hide=False) `some code`
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
