@@ -16,12 +16,19 @@ require('./redux_server_stats')
 
 {IS_MOBILE} = require('./feature')
 
-if IS_MOBILE or $(window).width() < 600
-    # Mobile
-    require('./mobile_app')
-else
-    # Primary desktop app
-    require('./desktop_app')
+mobile = require('./mobile_app')
+desktop = require('./desktop_app')
+
+# Is this terrible for performance? I don't know.
+render = () =>
+    if IS_MOBILE or $(window).width() < 600
+        mobile.render()
+    else
+        desktop.render()
+
+render()
+
+$(window).on('resize', render)
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')

@@ -390,4 +390,5 @@ page =
     <Redux redux={redux}>
         <Page />
     </Redux>
-ReactDOM.render(page, $(".smc-react-container")[0])
+
+exports.render = () => ReactDOM.render(page, $(".smc-react-container")[0])

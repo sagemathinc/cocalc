@@ -374,4 +374,5 @@ $('body').css('padding-top':0).append('<div class="page-container smc-react-cont
 page = <Redux redux={redux}>
     <Page redux={redux}/>
 </Redux>
-ReactDOM.render(page, $(".smc-react-container")[0])
+
+exports.render = () => ReactDOM.render(page, $(".smc-react-container")[0])
