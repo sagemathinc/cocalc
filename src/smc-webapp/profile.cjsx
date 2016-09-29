@@ -103,7 +103,7 @@ Avatar = rclass
         else if @props.viewing_what == 'project'
             <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at {@props.path}</Tooltip>
         else
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line() if @props.line > 1}</Tooltip>
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line() if @props.line}</Tooltip>
 
     render_image: ->
         if @has_image()
@@ -271,10 +271,10 @@ UsersViewing = rclass
                 if @props.account_id is user_id
                     continue
                 z = @props.get_users_cursors?(user_id)?[0]?['y']
-                if z?
-                    line = z  + 1
+                if z is undefined
+                    line = undefined
                 else
-                    line = 1
+                    line = z  + 1
                 account = @props.user_map.get(user_id)?.toJS() ? {}
                 [event, seconds] = @_find_most_recent(events)
                 time_since =  salvus_client.server_time()/1000 - seconds
