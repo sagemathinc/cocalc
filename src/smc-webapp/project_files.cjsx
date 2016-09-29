@@ -1698,7 +1698,7 @@ exports.ProjectFiles = rclass ({name}) ->
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
-            get_directory_listings : rtypes.func
+            directory_listings  : rtypes.object
             get_displayed_listing : rtypes.func
 
     propTypes :
@@ -1715,15 +1715,15 @@ exports.ProjectFiles = rclass ({name}) ->
 
     previous_page : ->
         if @props.page_number > 0
-            @props.actions.setState(page_number : @props.page_number - 1)
+            @actions(name).setState(page_number : @props.page_number - 1)
 
     next_page : ->
-        @props.actions.setState(page_number : @props.page_number + 1)
+        @actions(name).setState(page_number : @props.page_number + 1)
 
     create_file : (ext, switch_over=true) ->
         if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
             ext = "sagews"
-        @props.actions.create_file
+        @actions(name).create_file
             name         : @props.file_search
             ext          : ext
             current_path : @props.current_path

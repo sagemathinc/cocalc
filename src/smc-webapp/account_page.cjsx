@@ -20,7 +20,7 @@ exports.AccountPage = rclass
 
     reduxProps :
         projects :
-            project_map             : rtypes.immutable.Map.isRequired
+            project_map             : rtypes.immutable.Map
         account :
             active_page             : rtypes.string
             strategies              : rtypes.array

@@ -33,9 +33,10 @@ ProjectTab = rclass
     reduxProps:
         projects:
             get_title : rtypes.func
+            public_project_titles : rtypes.immutable.Map
 
     propTypes:
-        project_map           : rtypes.object # immutable.Map
+        project_map           : rtypes.immutable.Map # immutable.Map
         index                 : rtypes.number
         project_id            : rtypes.string
         active_top_tab        : rtypes.string
@@ -51,7 +52,9 @@ ProjectTab = rclass
     render : ->
         title = @props.get_title(@props.project_id)
         if not title?
-            return <Loading key={@props.project_id} />
+            title = @props.public_project_titles?.get(@props.project_id)
+            if not title?
+                return <Loading key={@props.project_id} />
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
@@ -175,8 +178,8 @@ Page = rclass
 
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable.List.isRequired # List of open projects and their state
-            project_map    : rtypes.immutable.isRequired # All projects available to the user
+            open_projects  : rtypes.immutable.List # List of open projects and their state
+            project_map    : rtypes.immutable.Map  # All projects available to the user
             public_project_titles : rtypes.immutable
         page :
             active_top_tab    : rtypes.string    # key of the active tab
@@ -233,9 +236,7 @@ Page = rclass
 
         num_real_tabs = @props.open_projects.size
         num_tabs = num_real_tabs + @props.num_ghost_tabs
-        console.log("NUMBER OF GHOST TABS:", @props.num_ghost_tabs)
         for index in [num_real_tabs..(num_tabs-1)]
-            console.log("adding a ghost index:", index)
             v.push(<GhostTab index={index} key={index}/>)
         return v
 

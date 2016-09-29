@@ -147,14 +147,16 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             project_id : required  # string  id of the project to open
             target     : undefined # string  The file path to open
-            switch_to  : undefined # bool    Whether or not to foreground it
+            switch_to  : true      # bool    Whether or not to foreground it
         require('./project_store') # registers the project store with redux...
         store = redux.getProjectStore(opts.project_id)
         actions = redux.getProjectActions(opts.project_id)
-        # actions.set_url_to_path(store.get('current_path'))
-        # temporary
         sort_by_time = store.get('sort_by_time') ? true
         show_hidden = store.get('show_hidden') ? false
+
+        relation = redux.getStore('projects').get_my_group(opts.project_id)
+        if not relation? or relation == 'public' or relation == 'admin'
+            @fetch_public_project_title(opts.project_id)
         actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
@@ -209,8 +211,8 @@ class ProjectsActions extends Actions
                 if not err
                     # FUTURE: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
-                    if title?
-                        @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
+                    title ?= "ANONYMOUS"
+                    @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
     #    directory_tree.project_id = {updated:time, error:err, tree:list},
@@ -477,16 +479,18 @@ class ProjectsStore extends Store
         if user_type == 'public'
             # Not logged in -- so not in group.
             return 'public'
-        if not @get('project_map')?  # signed in but waiting for projects store to load
+        if not @get('project_map')? # or @get('project_map').size == 0
+        # signed in but waiting for projects store to load
+        # If user is part of no projects, doesn't matter anyways
             return
-        p = @getIn(['project_map', project_id])
-        if not p?
+        project = @getIn(['project_map', project_id])
+        if not project?
             if account_store.is_admin()
                 return 'admin'
             else
                 return 'public'
-        u = p.get('users')
-        me = u?.get(account_store.get_account_id())
+        users = project.get('users')
+        me = users?.get(account_store.get_account_id())
         if not me?
             if account_store.is_admin()
                 return 'admin'
@@ -604,7 +608,7 @@ class ProjectsStore extends Store
         return v
 
 init_store =
-    project_map   : immutable.Map()   # when loaded will be an immutable.js map that is synchronized with the database
+    project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects
     public_project_titles : immutable.Map()
 
