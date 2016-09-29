@@ -2,13 +2,27 @@
 # tests of sage worksheet modes
 import pytest
 import conftest
+import re
+from textwrap import dedent
 
 class TestShMode:
-    # start the jupyter bash kernel
-    # do this as separate step to avoid following tests failing due to
-    # issue890 traitlets deprecation warning
-    def test_start_sh(self, exec2):
-        exec2("%sh")
+    def test_start_sh(self, test_id, sagews):
+        code = "%sh\ndate +%Y-%m-%d"
+        html_pattern = '\d{4}-\d{2}-\d{2}'
+        m = conftest.message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        sagews.send_json(m)
+        # skip initial html responses but fail on deprecation warning
+        for loop_count in range(5):
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'html' in mesg
+            if re.search(html_pattern, mesg['html']) is not None:
+                break
+        else:
+            pytest.fail("sh setup failed %s"%test_id)
+        conftest.recv_til_done(sagews, test_id)
 
     # examples from sh mode docstring in sage_salvus.py
     # note jupyter kernel text ouput is displayed as html
@@ -111,3 +125,36 @@ class TestRDefaultMode:
         exec2("%capture(stdout='output')\nsum(xx)")
     def test_capture_r_02(self, exec2):
         exec2("%sage\nprint(output)", "[1] 24\n")
+
+class TestOctaveMode:
+    def test_start_octave(self, exec2):
+        exec2("%octave", html_pattern = "DOCTYPE HTML PUBLIC")
+
+    def test_octave_calc(self, exec2):
+        code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
+        outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
+        exec2(code, pattern = outp)
+
+    def test_octave_fibonacci(self, exec2):
+        code = dedent('''%octave
+        fib = ones (1, 10);
+        for i = 3:10
+            fib(i) = fib(i-1) + fib(i-2);
+            printf('%d,', fib(i))
+        endfor
+        ''')
+        outp = '2,3,5,8,13,21,34,55,'
+        exec2(code, pattern = outp)
+
+    def test_octave_insync(self, exec2):
+        # this just confirms, that input/output is still in sync after the for loop above
+        exec2('%octave\n1+1', pattern = 'ans =  2')
+
+class TestOctaveDefaultMode:
+    def test_octave_capture1(self, exec2):
+        exec2("%default_mode octave")
+    def test_octave_capture2(self, exec2):
+        exec2("%capture(stdout='output')\nx = [1,2]", html_pattern = "DOCTYPE HTML PUBLIC")
+    def test_octave_capture3(self, exec2):
+        exec2("%sage\nprint(output)", pattern = "   1   2")
+

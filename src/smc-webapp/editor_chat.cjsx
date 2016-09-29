@@ -66,7 +66,7 @@ editing   : immutable.Map
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries
@@ -443,7 +443,9 @@ Message = rclass
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        #value_old = value
         value = misc_page.sanitize_html(value)
+        #console.log "sanitize: '#{value_old}' -> '#{value}'"
 
         font_size = "#{@props.font_size}px"
 
@@ -695,10 +697,7 @@ ChatRoom = (name) -> rclass
 
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
-        if e.keyCode==27 # ESC
-            e.preventDefault()
-            @clear_input()
-        else if e.keyCode==13 and e.shiftKey # 13: enter key
+        if e.keyCode==13 and e.shiftKey # 13: enter key
             @send_chat(e)
         else if e.keyCode==38 and @refs.input.getValue() == ''
             # Up arrow on an empty input
@@ -972,11 +971,16 @@ ChatRoom = (name) -> rclass
                             onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
                             onFocus     = {@focus_endpoint}
                             style       = {@chat_input_style}
+                            tabIndex    = {1}
                             />
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                        <Button onClick={@button_on_click}
+                                disabled={@props.input==''} bsStyle='info' tabIndex={3}
+                                style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                        <Button onClick={@send_chat}
+                                disabled={@props.input==''} bsStyle='success' tabIndex={2}
+                                style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
                     {@render_bottom_tip()}
                 </Row>
@@ -1022,7 +1026,7 @@ ChatRoom = (name) -> rclass
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
                         <Input
-                            autoFocus   = {true}
+                            autoFocus   = {isMobile.Android()}
                             rows        = 2
                             type        = 'textarea'
                             ref         = 'input'
