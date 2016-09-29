@@ -974,11 +974,16 @@ ChatRoom = (name) -> rclass
                             onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
                             onFocus     = {@focus_endpoint}
                             style       = {@chat_input_style}
+                            tabIndex    = {1}
                             />
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                        <Button onClick={@button_on_click}
+                                disabled={@props.input==''} bsStyle='info' tabIndex={3}
+                                style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                        <Button onClick={@send_chat}
+                                disabled={@props.input==''} bsStyle='success' tabIndex={2}
+                                style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
                     {@render_bottom_tip()}
                 </Row>
