@@ -65,7 +65,7 @@ editing   : immutable.Map
 ###
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries
@@ -838,7 +838,7 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={@mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Panel style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -847,7 +847,7 @@ ChatRoom = (name) -> rclass
                                 font_size    = {@props.font_size}
                                 file_path    = {if @props.path? then misc.path_split(@props.path).head}
                                 actions      = {@props.actions}
-                                focus_end    = {@focus_endpoint}
+                                focus_end    = {focus_endpoint}
                                 show_heads   = {false} />
                         </Panel>
                     </Col>
@@ -868,7 +868,7 @@ ChatRoom = (name) -> rclass
                             />
                     </Col>
                     <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
+                        <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
                             <Icon name='chevron-circle-right'/>
                         </Button>
                     </Col>
