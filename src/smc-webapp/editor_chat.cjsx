@@ -183,7 +183,7 @@ class ChatActions extends Actions
                 sender_id : project_id
                 event     : "chat"
                 history   : [{author_id: project_id, content:mesg, date:time_stamp}]
-                video_chat  : {"is_video_chat" : true}
+                video_chat: {"is_video_chat" : true}
             where :
                 date: time_stamp
             is_equal: (a, b) => (a - 0) == (b - 0)

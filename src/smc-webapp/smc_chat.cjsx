@@ -414,42 +414,43 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            historyList = @props.messages.get(date).get('history').pop().toJS()
-            h = []
-            a = []
-            t = []
-            for j of historyList
-                h.push(historyList[j].content)
-                a.push(historyList[j].author_id)
-                t.push(historyList[j].date)
+            if not @props.messages.get(date).get('video_chat').get('is_video_chat')
+                historyList = @props.messages.get(date).get('history').pop().toJS()
+                h = []
+                a = []
+                t = []
+                for j of historyList
+                    h.push(historyList[j].content)
+                    a.push(historyList[j].author_id)
+                    t.push(historyList[j].date)
 
-            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
+                sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
+                last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
-            v.push <Message key={date}
-                     account_id       = {@props.account_id}
-                     history          = {h}
-                     history_author   = {a}
-                     history_date     = {t}
-                     user_map         = {@props.user_map}
-                     message          = {@props.messages.get(date)}
-                     date             = {date}
-                     project_id       = {@props.project_id}
-                     file_path        = {@props.file_path}
-                     font_size        = {@props.font_size}
-                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
-                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
-                     include_avatar_col = {@props.show_heads}
-                     get_user_name    = {@get_user_name}
-                     sender_name      = {sender_name}
-                     editor_name      = {last_editor_name}
-                     actions          = {@props.actions}
-                     focus_end        = {@props.focus_end}
-                     saved_mesg       = {@props.saved_mesg}
-                     close_input      = {@close_edit_inputs}
-                     set_scroll       = {@props.set_scroll}
-                    />
+                v.push <Message key={date}
+                         account_id       = {@props.account_id}
+                         history          = {h}
+                         history_author   = {a}
+                         history_date     = {t}
+                         user_map         = {@props.user_map}
+                         message          = {@props.messages.get(date)}
+                         date             = {date}
+                         project_id       = {@props.project_id}
+                         file_path        = {@props.file_path}
+                         font_size        = {@props.font_size}
+                         is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                         is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                         show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                         include_avatar_col = {@props.show_heads}
+                         get_user_name    = {@get_user_name}
+                         sender_name      = {sender_name}
+                         editor_name      = {last_editor_name}
+                         actions          = {@props.actions}
+                         focus_end        = {@props.focus_end}
+                         saved_mesg       = {@props.saved_mesg}
+                         close_input      = {@close_edit_inputs}
+                         set_scroll       = {@props.set_scroll}
+                        />
 
         return v
 
@@ -592,6 +593,7 @@ ChatRoom = (name) -> rclass
         @_video_chat_id = ""
         if @has_video_id()[0]
             @_video_chat_id = @has_video_id()[1]
+            console.log("video caht id: ", @_video_chat_id)
         url = "https://appear.in/" + @_video_chat_id
         @video_chat_window = window.open("", null, "height=640,width=800")
         @video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')

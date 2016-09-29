@@ -111,12 +111,14 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         opts = defaults opts,
             event_type : required  # "chat", "start_video", "stop_video"
             payload    : required  # event-dependent dictionary
+            video      : required
             cb         : undefined # callback
 
         new_message = misc.to_json
             sender_id : "Unknown"
             event     : opts.event_type
             payload   : opts.payload
+            video_chat: opts.video
             date      : salvus_client.server_time()
 
         @chat_session.live(new_message + "\n" + @chat_session.live())
@@ -173,6 +175,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @write_chat_message
                 "event_type" : "chat"
                 "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}
+                "video"      : {"is_video_chat" : true}
         video_on_button = @element.find(".salvus-editor-chat-video-is-off")
         video_off_button = @element.find(".salvus-editor-chat-video-is-on")
 
@@ -215,7 +218,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         is_video = [false, null]
         if @search_message_log().length > 0
             for messages in @search_message_log()
-                if messages.payload?
+                if messages.video_chat?.is_video_chat
                     is_video[0] = true
                     is_video[1] = messages.payload.content.split(": ")[1]
             return is_video
