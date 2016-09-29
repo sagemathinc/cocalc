@@ -25,6 +25,7 @@
 #    - Vivek Venkatachalam
 ###
 
+misc = require('smc-util/misc')
 {rclass, React, ReactDOM, Redux, rtypes} = require('./smc-react')
 {merge} = require('smc-util/misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
@@ -97,14 +98,18 @@ Avatar = rclass
         if @props.line
             <span> (Line {@props.line})</span>
 
+    render_name: ->
+        name = @props.account.first_name + ' ' + @props.account.last_name
+        return misc.trunc_middle(name,15).trim()
+
     tooltip: ->
         {ProjectTitle} = require('./projects')
         if @props.viewing_what == 'projects'
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at <ProjectTitle project_id={@props.project_id} /></Tooltip>
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()} last seen at <ProjectTitle project_id={@props.project_id} /></Tooltip>
         else if @props.viewing_what == 'project'
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name} last seen at {@props.path}</Tooltip>
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()} last seen at {@props.path}</Tooltip>
         else
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}{@render_line()}</Tooltip>
+            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()}{@render_line()}</Tooltip>
 
     render_image: ->
         if @has_image()

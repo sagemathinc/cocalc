@@ -1491,7 +1491,7 @@ initialize_sage_python_r_toolbar = () ->
         [
             ["General"],
             ["Auto execute cell on startup", "#mode_auto"],
-            ["Hide input (or double click output)", "#mode_hide"],
+            ["Hide input", "#mode_hide"],
             ["Set default mode", "#mode_default_mode"],
             ["Typeset output", "#mode_typeset"],
             ["Timing"],

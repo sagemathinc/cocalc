@@ -11,7 +11,6 @@
 ### Prerequisites
 
 - pytest must be installed
-- sage_server must be running
 - file ~/.smc/sage_server/sage_server.log must exist and have the
    current port number around line 3, like this:
    ```

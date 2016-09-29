@@ -78,7 +78,7 @@ class InteractCell(object):
         - ``update_args`` -- (default: None) only call f if one of the args in
           this list of strings changes.
         - ``auto_update`` -- (default: True) call f every time an input changes
-          (or one of the argus in update_args).
+          (or one of the arguments in update_args).
         - ``flicker`` -- (default: False) if False, the output part of the cell
           never shrinks; it can only grow, which aleviates flicker.
         - ``output`` -- (default: True) if False, do not automatically
@@ -398,6 +398,13 @@ class Interact(object):
             else:
                 del interact.is_prime
 
+    We illustrate not automatically updating the function until a
+    button is pressed::
+
+        @interact(auto_update=False)
+        def f(a=True, b=False):
+            print a, b
+
     You can access the value of a control associated to a variable foo
     that you create using interact.foo, and check whether there is a
     control associated to a given variable name using hasattr::
@@ -508,7 +515,7 @@ class control:
         try:
             return self._convert_to_client(value)
         except Exception as err:
-            sys.stderr.write("%s -- %s\n"%(err, self))
+            sys.stderr.write("convert_to_client: %s -- %s\n"%(err, self))
             sys.stderr.flush()
             return jsonable(value)
 
@@ -584,6 +591,8 @@ def automatic_control(default):
         return default
     elif isinstance(default, str):
         return input_box(default, label=label, type=str)
+    elif isinstance(default, unicode):
+        return input_box(default, label=label, type=unicode)
     elif isinstance(default, bool):
         return checkbox(default, label=label)
     elif isinstance(default, list):
@@ -629,7 +638,12 @@ class ParseValue:
         self._type = type
 
     def _eval(self, value):
-        return sage_eval(value, locals=None if salvus is None else salvus.namespace)
+        if isinstance(value, (str, unicode)):
+            if not value:
+                return ''
+            return sage_eval(value, locals=None if salvus is None else salvus.namespace)
+        else:
+            return value
 
     def __call__(self, value):
         from sage.all import Color
@@ -637,6 +651,8 @@ class ParseValue:
             return self._eval(value)
         elif self._type is str:
             return str(value)
+        elif self._type is unicode:
+            return unicode(value)
         elif self._type is Color:
             try:
                 return Color(value)
@@ -1161,8 +1177,7 @@ except:
 
 class HTML:
     """
-    Cell mode that renders everything after %html as HTML then hides
-    the input (unless you pass in hide=False).
+    Cell mode that renders everything after %html as HTML
 
     EXAMPLES::
 
@@ -1172,7 +1187,7 @@ class HTML:
         <h2>Subtitle</h2>
 
         ---
-        %html(hide=False)
+        %html(hide=True)
         <h1>A Title</h1>
         <h2>Subtitle</h2>
 
@@ -1183,7 +1198,7 @@ class HTML:
         %html(hide=False) <h1>Title</h1>
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -1591,6 +1606,9 @@ class Capture:
     def __call__(self, code=None, stdout=None, stderr=None, append=False, echo=False):
         if code is None:
             return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
+        if salvus._prefix:
+            if not code.startswith("%"):
+                code = salvus._prefix + '\n' + code
         salvus.execute(code)
 
 
@@ -1601,6 +1619,7 @@ class Capture:
 
 capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
+import sage.misc.cython
 
 def cython(code=None, **kwds):
     """
@@ -1635,7 +1654,6 @@ def cython(code=None, **kwds):
     if 'annotate' not in kwds and not silent:
         kwds['annotate'] = True
 
-    import sage.misc.cython
     modname, path = sage.misc.cython.cython(filename, **kwds)
 
     try:
@@ -1943,10 +1961,10 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if k[0] != '_':
             salvus.namespace[k] = x
 
-
 def sh(code):
     """
-    Run a bash script in Salvus.
+    Run a bash script in Salvus. Uses jupyter bash kernel
+    which allows keeping state between cells.
 
     EXAMPLES:
 
@@ -1971,8 +1989,42 @@ def sh(code):
         %sh pwd
 
     After that, the variable output contains the current directory
+
+    Remember shell state between cells
+
+        %sh
+        FOO='xyz'
+        cd /tmp
+        ... new cell will show settings from previous cell ...
+        %sh
+        echo $FOO
+        pwd
+
+    Display image file (this is a feature of jupyter bash kernel)
+
+        %sh
+        display < sage_logo.png
+
+    .. WARNING::
+
+        The jupyter bash kernel does not separate stdout and stderr as cell is running.
+        It only returns ok or error depending on exit status of last command in the cell.
+        So all cell output captured goes to either stdout or stderr variable, depending
+        on exit status of the last command in the %sh cell.
     """
-    return script('/bin/bash')(code)
+    if sh.jupyter_kernel is None:
+        sh.jupyter_kernel = jupyter("bash")
+        sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
+    return sh.jupyter_kernel(code)
+sh.jupyter_kernel = None
+
+# use jupyter kernel for GNU octave instead of sage interpreter interface
+def octave(code):
+    if octave.jupyter_kernel is None:
+        octave.jupyter_kernel = jupyter("octave")
+    return octave.jupyter_kernel(code)
+octave.jupyter_kernel = None
+
 
 # Monkey patch the R interpreter interface to support graphics, when
 # used as a decorator.
@@ -2359,7 +2411,11 @@ def show(*objs, **kwds):
        - svg: (default: True); if True, show 2d plots using svg (otherwise use png)
 
        - d3: (default: True); if True, show graphs (vertices and edges) using an interactive D3 viewer
-           for the many options for this viewer, type 'import graphics; graphics.graph_to_d3_jsonable?'
+         for the many options for this viewer, type
+
+             import smc_sagews.graphics
+             smc_sagews.graphics.graph_to_d3_jsonable?
+
          If false, graphs are converted to plots and displayed as usual.
 
        - renderer: (default: 'webgl'); for 3d graphics
@@ -2477,12 +2533,16 @@ def show(*objs, **kwds):
                 return "$\\displaystyle %s$"%s
             else:
                 return "$%s$"%s
+    sys.stdout.flush()
+    sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
         if display:
             salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
         else:
             salvus.html("<div>%s</div>"%cgi.escape(s))
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
@@ -2953,7 +3013,7 @@ def md2html(s):
 # NOTE: this is not used anymore
 class Markdown(object):
     r"""
-    Cell mode that renders everything after %md as markdown and hides the input by default.
+    Cell mode that renders everything after %md as markdown.
 
     EXAMPLES::
 
@@ -2964,17 +3024,17 @@ class Markdown(object):
         ## A subheading
 
         ---
-        %md(hide=False)
+        %md(hide=True)
         # A title
 
         - a list
 
         ---
-        md("# A title", hide=False)
+        md("# A title")
 
 
         ---
-        %md(hide=False) `some code`
+        %md `some code`
 
 
     This uses the Python markdown2 library with the following
@@ -2988,7 +3048,7 @@ class Markdown(object):
     typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
     \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -3038,7 +3098,7 @@ class Marked(object):
         %md(hide=False) `some code`
 
     """
-    def __init__(self, hide=True):
+    def __init__(self, hide=False):
         self._hide = hide
 
     def __call__(self, *args, **kwds):
@@ -3249,12 +3309,15 @@ def load(*args, **kwds):
     into the web browser DOM (or Javascript session), not the Python process.
 
     If you load a pdf, it is displayed in the output of the worksheet.  The extra
-    options are passed to salvus.pdf -- see the docstring for that.
+    options are passed to smc.pdf -- see the docstring for that.
 
-    In SageMathCloud you may also use load as a decorator, with filenames separated
-    by whitespace or commas::
+    In SageMathCloud you may also use load as a decorator, with exactly one filename as input::
 
-        %load foo.sage  bar.py  a.pyx, b.pyx
+        %load foo.sage
+
+    This loads a single file whose name has a space in it::
+
+        %load a b.sage
 
     The following are all valid ways to use load::
 
@@ -3262,16 +3325,15 @@ def load(*args, **kwds):
         %load a.css
         %load a.js
         %load a.coffee
-        %load a.css a.js a.coffee a.html
+        %load a.css
         load('a.css', 'a.js', 'a.coffee', 'a.html')
-        load('a.css a.js a.coffee a.html')
         load(['a.css', 'a.js', 'a.coffee', 'a.html'])
 
     ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
-        if isinstance(args[0], (unicode,str)):
-            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (unicode, str)):
+            args = (args[0].strip(), )
         if isinstance(args[0], (list, tuple)):
             args = args[0]
 
@@ -3662,14 +3724,14 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     if os.path.islink(sage_cmd):
         sage_cmd = os.readlink(sage_cmd)
 
-    # /projects/sage/sage-6.10/src/bin
+    # /projects/sage/sage-x.y/src/bin
     sdir = os.path.dirname(sage_cmd)
 
-    # /projects/sage/sage-6.10
+    # /projects/sage/sage-x.y
     sdir = os.path.dirname(os.path.dirname(sdir))
 
-    # /projects/sage/sage-6.10/sage-6.10/src
-    sdir = glob.glob(sdir + "/sage-*/src/sage")[0]
+    # /projects/sage/sage-x.y/src
+    sdir = glob.glob(sdir + "/src/sage")[0]
 
     cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
     srch = os.popen(cmd).read().splitlines()
@@ -3679,7 +3741,7 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     @interact
     def _(fname = selector([nftext]+srch,"view source file:")):
         if not fname.startswith(header):
-            with open('/projects/sage/sage/src/sage/' + fname, 'r') as infile:
+            with open(os.path.join(sdir, fname), 'r') as infile:
                 code = infile.read(max_chars)
             salvus.code(code, mode = "python", filename = fname)
 

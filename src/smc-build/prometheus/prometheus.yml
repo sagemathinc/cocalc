@@ -1,0 +1,41 @@
+global:
+  scrape_interval:     10s # By default, scrape targets every 15 seconds.
+  evaluation_interval: 10s # default 1m
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    monitor: 'smc-monitor'
+
+rule_files:
+  - 'prometheus.rules'
+  - 'alerts.rules'
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # compute nodes
+  - job_name: 'compute'
+    file_sd_configs:
+      - files:
+         - 'compute-config.yml'
+
+  # storage
+  - job_name: 'storage'
+    static_configs:
+    - targets: ['storage0:9100', 'storage1:9100', 'storage2:9100', 'storage3:9100', 'storage4:9100', 'storage5:9100']
+    
+
+  # admin
+  - job_name: 'admin'
+    static_configs:
+    - targets: ['admin0:9100']
+
+    

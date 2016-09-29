@@ -23,7 +23,9 @@ from setuptools import setup
 from distutils.core import Distribution
 d = Distribution()
 d.parse_command_line()
-if 'user' not in d.command_options.get("install", {}).keys():
+
+# THIS IS NOT WORKING
+if False and 'user' not in d.command_options.get("install", {}).keys():
     # CRITICAL!
     # -s tells python to not load the user's "site" packages in ~/.local
     # otherwise, setuptool's startup scripts do not work, if there is a conflicting

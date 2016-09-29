@@ -66,7 +66,7 @@ editing   : immutable.Map
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, isMobile} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries
@@ -443,7 +443,9 @@ Message = rclass
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        #value_old = value
         value = misc_page.sanitize_html(value)
+        #console.log "sanitize: '#{value_old}' -> '#{value}'"
 
         font_size = "#{@props.font_size}px"
 
@@ -919,20 +921,20 @@ ChatRoom = (name) -> rclass
         if not IS_MOBILE
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={2} mdHidden>
+                    <Col xs={3} mdHidden style={paddingLeft:'2px'}>
                         <Button className='smc-small-only'
                                 onClick={@show_files}>
                                 <Icon name='toggle-up'/> Files
                         </Button>
                     </Col>
-                    <Col xs={4} md={4} style={padding:'0px'}>
+                    <Col xs={3} md={6} style={padding:'0px'}>
                         <UsersViewing
                               file_use_id = {@props.file_use_id}
                               file_use    = {@props.file_use}
                               account_id  = {@props.account_id}
                               user_map    = {@props.user_map} />
                     </Col>
-                    <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
+                    <Col xs={6} md={6} className="pull-right smc-big-only" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             {@render_timetravel_button()}
                             {@render_bottom_button()}
@@ -972,39 +974,41 @@ ChatRoom = (name) -> rclass
                             onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
                             onFocus     = {@focus_endpoint}
                             style       = {@chat_input_style}
+                            tabIndex    = {1}
                             />
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
-                        <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
-                        <Button onClick={@send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
+                        <Button onClick={@button_on_click}
+                                disabled={@props.input==''} bsStyle='info' tabIndex={3}
+                                style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
+                        <Button onClick={@send_chat}
+                                disabled={@props.input==''} bsStyle='success' tabIndex={2}
+                                style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
                     {@render_bottom_tip()}
                 </Row>
             </Grid>
 
         else
-        ##########################################
-        # MOBILE HACK
-        ##########################################
+            ##########################################
+            # MOBILE HACK
+            ##########################################
             <Grid>
                 <Row style={marginBottom:'5px'}>
-                    <Col xs={3} style={padding:'0px'}>
-                        <UsersViewing
-                              file_use_id = {@props.file_use_id}
-                              file_use    = {@props.file_use}
-                              account_id  = {@props.account_id}
-                              user_map    = {@props.user_map} />
-                    </Col>
-                    <Col xs={9} style={padding:'2px', textAlign:'right'}>
-                        <ButtonGroup>
-                            <Button onClick={@show_timetravel} bsStyle='info'>
-                                <Icon name='history'/> TimeTravel
-                            </Button>
-                            <Button onClick={@scroll_to_bottom}>
-                                <Icon name='arrow-down'/> Scroll to Bottom
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
+                    <ButtonGroup>
+                        <Button className='smc-small-only'
+                            onClick={@show_files}>
+                            <Icon name='toggle-up'/> Files
+                        </Button>
+                        <Button onClick={@scroll_to_bottom}>
+                            <Icon name='arrow-down'/> Scroll to Bottom
+                        </Button>
+                    </ButtonGroup>
+                    <UsersViewing
+                          file_use_id = {@props.file_use_id}
+                          file_use    = {@props.file_use}
+                          account_id  = {@props.account_id}
+                          user_map    = {@props.user_map} />
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
@@ -1025,7 +1029,7 @@ ChatRoom = (name) -> rclass
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
                         <Input
-                            autoFocus   = {true}
+                            autoFocus   = {isMobile.Android()}
                             rows        = 2
                             type        = 'textarea'
                             ref         = 'input'

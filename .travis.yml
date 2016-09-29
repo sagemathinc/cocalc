@@ -1,50 +1,59 @@
 # SageMathCloud Travis-CI Configuration File
-language: node_js
+sudo: required
+dist: trusty
 
-# caching not available, but this should work if it is running in container mode
-# container mode disables "sudo", but we need it as long as rethinkdb isn't preinstalled
-cache:
-  apt: true
-#  directories:
-#  - salvus/node_modules
+language: python
+python:
+  - '2.7'
 
-# SMC breaks on iojs
-node_js:
-  - "0.12"
-#  - "0.11"
-#  - "iojs"
+addons:
+  apt:
+    - python-yaml
+    - python-pip
+  rethinkdb: '2.3.5'
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
   matrix:
-    - MODE=server
-    # - MODE=client
+    #- MODE=sagews
+    #- MODE=server
+    - MODE=util
 
-# Installation and setup
+# installation and setup
 before_script:
-  # rethinkdb installation according to http://www.rethinkdb.com/docs/install/ubuntu/
   - source /etc/lsb-release
-  - echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
-  - wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
-  - sudo apt-get update -qq
-  # besides rethinkdb, we need at least python-yaml
-  - sudo apt-get install rethinkdb python-yaml --force-yes
   - rethinkdb --version
-  - rethinkdb --daemon
-  # the setup & compilation of SMC
-  - cd salvus
-  - source salvus-env
+  - pip -V
+  - python -V
+  - nvm install v5.11
+  - node --version
+  - sudo pip install pytest
+  - pytest --version
+
+# the setup & compilation of SMC
+install:
+  - cd smc/src
+  - source smc-env
   - npm install
   - npm run make
+  - cd smc_webapp
+  - npm install
+  - cd ../smc-util
+  - npm install
+  - cd ../smc_pyutil
+  - sudo pip install --upgrade ./
+  - cd ../smc_sagews
+  - sudo pip install --upgrade ./
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - if [[ $MODE = "server" ]]; then npm run test-list; fi
-#  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-#  - if [[ $MODE = "client" ]]; then echo "insert client testing command here" ; fi
+  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
+  - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
+  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
+  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi
 
 # send coverage report over to https://coveralls.io
 #after_success:
@@ -54,3 +63,8 @@ notifications:
   slack:
     rooms:
       - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
+  email:
+    recipients:
+      - hsy@sagemath.com
+    on_success: change
+    on_failure: change

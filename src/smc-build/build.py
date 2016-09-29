@@ -290,6 +290,8 @@ SAGE_PIP_PACKAGES = [
     'blaze',
     'npTDMS',
     'nipype',  # https://github.com/nipy/nipype/
+    'hypothesis',
+    'xgboost', # https://github.com/dmlc/xgboost
     ]
 
 # additional environment settings for specific packages
@@ -306,6 +308,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'jdcal',
     'fiona',
     'enum',
+    'ansi2html', 'configparser', 'entrypoints', # needed for jupyter, and the jupyter<->sagews bridge
     'python_utils',
     'ecos', # cvxpy
     'scs', # cvxpy
@@ -328,7 +331,12 @@ SAGE_PIP_PACKAGES_DEPS = [
     'bintrees', # tdigest
     'pyudorandom', # tdigest
     'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
+    'autobahn', 'twisted', 'idna', 'pyasn1', 'ipaddress', 'pycparser', 'cffi', 'cryptography', 'pyopenssl', 'attrs', # datasift
+    'pyasn1-modules', 'service-identity', 'futures', 'requests-futures', 'ndg-httpsclient', # datasift
 ]
+
+# TODO make add an additional category of pip packages, where it is always safe to install with dependencies
+# first candidate for this might be datasift
 
 # Additional packages for R -- compare this to smc-ansible/r.yaml and the compute integration tests
 R_PACKAGES = [
@@ -474,12 +482,13 @@ class BuildSage(object):
             "install_jsanimation",
             "install_sage_manifolds",
             "install_r_jupyter_kernel",
+            "install_jupyter_ipywidget",
             "install_cv2",
             "install_cairo",
             "install_psage",
             "install_pycryptoplus",
             "install_nltk_data",
-            # "install_tensorflow", # doesn't work
+            "install_tensorflow",
             # "install_neuron", # also fails
         ]
 
@@ -508,6 +517,13 @@ class BuildSage(object):
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
         self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/repr"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R --no-save""")
+
+    def install_jupyter_ipywidget(self):
+        '''
+        This finishes the setup of ipywidget inside jupyter notebook. no idea why this is necessary, and if this would be necessary
+        to run again after something changes ...
+        '''
+        self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
 
     @deprecated
     def pull_smc_sage(self):
@@ -839,12 +855,14 @@ class BuildSage(object):
         Check for updated wheel packages here:
         https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
 
-        Status: Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
-        it also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+        Status:
+          * Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+            It also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+          * (update 2016-09-26) it works, but no explicit installation of protobuf version 3, just the wheel package.
+            This seems to include all the dependencies and works fine now.
         """
-        cmd("pip install --no-deps --upgrade 'protobuf>=3.0.0a3'")
-        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp27-none-linux_x86_64.whl'
-        cmd("pip install --no-deps --upgrade %s" % TF_BINARY_URL)
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp27-none-linux_x86_64.whl'
+        cmd("pip install --upgrade %s" % TF_BINARY_URL)
 
     def clean_up(self):
         log.info("starting cleanup ...")

@@ -70,9 +70,12 @@ def init_projects_path():
             os.makedirs(full_path)
 
 def start_services():
-    run(['service', 'haproxy', 'start'])
-    run(['service', 'nginx', 'start'])
-    run(['service', 'rethinkdb', 'start'])
+    for name in ['haproxy', 'nginx', 'rethinkdb', 'ssh']:
+        run(['service', name, 'start'])
+
+def root_ssh_keys():
+    run("ssh-keygen -b 2048 -N '' -f /root/.ssh/id_rsa")
+    run("cp -v /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys")
 
 def start_hub():
     run(". smc-env; service_hub.py --host=localhost --single  start & ", path='/smc/src')
@@ -142,6 +145,7 @@ def main():
     init_projects_path()
     init_sage()
     start_services()
+    root_ssh_keys()
     init_rethinkdb_password()
     copy_rethinkdb_password()
     start_hub()

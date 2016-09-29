@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+# The purpose of this script is to detect available globally installed sage versions and
+# offer to symlink to a selected version in the project (i.e. ~/bin/sage -> ...)
+
+import os, sys
+if len(sys.argv) == 1:
+    print "%s <version>"%sys.argv[0]
+    versions = [x.split('-')[-1] for x in os.listdir('/usr/local/bin/') if x.startswith('sage-')]
+    print "Available versions: %s"%(', '.join(versions))
+    sys.exit(1)
+
+VERSION=sys.argv[1]
+target = "/usr/local/bin/sage-%s"%VERSION
+if not os.path.exists(target):
+    print "%s does not exist"%target
+    sys.exit(1)
+
+print "Making default sage %s by creating ~/bin/sage symbolic link:"%target
+
+os.system("cd; mkdir -p ~/bin/; cd ~/bin/; rm -f sage; ln -sf %s sage"%target)
+
+print "Restart your project server! (in 'Settings' -> 'Project Control')"
