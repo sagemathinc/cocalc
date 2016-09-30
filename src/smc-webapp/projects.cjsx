@@ -155,7 +155,7 @@ class ProjectsActions extends Actions
         show_hidden = store.get('show_hidden') ? false
 
         relation = redux.getStore('projects').get_my_group(opts.project_id)
-        if not relation? or relation == 'public' or relation == 'admin'
+        if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
         actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
@@ -208,11 +208,13 @@ class ProjectsActions extends Actions
             query :
                 public_projects : {project_id : project_id, title : null}
             cb    : (err, resp) =>
+                # TESTING-RR-JJ
+                console.log("RECIEVED", err, resp)
+                window.resp = resp
                 if not err
-                    # FUTURE: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
-                    title ?= "ANONYMOUS"
-                    @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
+                title ?= "PRIVATE -- Admin req"
+                @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
     #    directory_tree.project_id = {updated:time, error:err, tree:list},
