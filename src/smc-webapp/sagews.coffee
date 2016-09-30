@@ -1247,20 +1247,23 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @remove_output_blob_ttls()
 
     # Return array of uuid's of blobs that might possibly be in the worksheet
-    # and have a ttl.  Once a blob is returned from this function, it won't be
-    # returned ever again.
+    # and have a ttl.
     _output_blobs_with_possible_ttl: () =>
         v = []
-        x = @_output_blobs_with_possible_ttl_past ?= {}
+        x = @_output_blobs_with_possible_ttl_done ?= {}
         for c in @get_all_cells()
             for output in c.output()
                 if output.file?
                     uuid = output.file.uuid
                     if uuid?
                         if not x[uuid]
-                            x[uuid] = true
                             v.push(uuid)
         return v
+
+    # mark these as having been successfully marked to never expire.
+    _output_blobs_ttls_removed: (uuids) =>
+        for uuid in uuids
+            @_output_blobs_with_possible_ttl_done[uuid] = true
 
     remove_output_blob_ttls: (cb) =>
         # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
@@ -1269,7 +1272,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if uuids?
             salvus_client.remove_blob_ttls
                 uuids : uuids
-                cb    : cb
+                cb    : (err) =>
+                    if not err
+                        # don't try again to remove ttls for these blobs -- since did so successfully
+                        @_output_blobs_ttls_removed(uuids)
+                    cb?(err)
 
     raw_input: (raw_input) =>
         prompt = raw_input.prompt
