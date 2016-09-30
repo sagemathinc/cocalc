@@ -324,7 +324,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
     else
         return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git', 'template']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course', 'chat', 'git', 'template']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -942,12 +942,15 @@ class exports.Editor
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
             opts.read_only = true
-            if filename_extension_notilde(filename) == 'html'
+            fn_extension = filename_extension_notilde(filename)
+            if fn_extension == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
                 else
                     editor = new StaticHTML(@, filename, opts.content, extra_opts)
                 return editor
+            if fn_extension == 'ipynb'
+                return new JupyterNBViewerEmbedded(@, filename, opts.content)
 
         # These are used *ONLY* for development purposes; it allows us to easily
         # circumvent everything else for testing.
@@ -3904,6 +3907,50 @@ class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
         @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
+
+class JupyterNBViewerEmbedded extends FileEditor
+    # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
+    # it's only used for public files and when not part of the project or anonymous
+    constructor: (@editor, @filename, @content, opts) ->
+        @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
+        @init_buttons()
+
+    init_buttons: () =>
+        # code duplication from editor_jupyter/JupyterNBViewer
+        @element.find('a[href=#copy]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('copy')
+            return false
+
+        @element.find('a[href=#download]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('download')
+            return false
+
+    show: () =>
+        if not @is_active()
+            return
+        if not @iframe?
+            @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
+            {join} = require('path')
+            ipynb_src = join(window.location.hostname,
+                             window.smc_base_url,
+                             @editor.project_id,
+                             'raw',
+                             @filename)
+            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files)
+            # ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
+            @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+        @iframe.maxheight()
 
 #############################################
 # Editor for HTML/Markdown/ReST documents

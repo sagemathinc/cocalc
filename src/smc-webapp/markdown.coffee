@@ -13,6 +13,9 @@ marked.setOptions
     smartypants : true
 
 exports.markdown_to_html = markdown_to_html = (s) ->
+    # render s to html (from markdown)
+    s = marked(s)
+
     # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
     v = misc.parse_mathjax(s)
     if v.length > 0
@@ -29,9 +32,6 @@ exports.markdown_to_html = markdown_to_html = (s) ->
         s = s0 + s.slice(x0[1])
     else
         has_mathjax = false
-
-    # render s to html (from markdown)
-    s = marked(s)
 
     # if there was any mathjax, put it back in the s
     if has_mathjax
