@@ -23,7 +23,7 @@ WrappedEditor = rclass ({project_name}) ->
     componentDidMount: ->
         # Use for any (god forbid..) future Iframe editors..
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
-        # SMELL: Latex and PDF viewer also do this to save scroll position
+        # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
         mounted = @props.editor.mount?()
         if not mounted
             span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")

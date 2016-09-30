@@ -2967,6 +2967,12 @@ class TaskList extends FileEditorWrapper
             @wrapped = elt.data('task_list')
             @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
 ###
 # Jupyter notebook
 ###
