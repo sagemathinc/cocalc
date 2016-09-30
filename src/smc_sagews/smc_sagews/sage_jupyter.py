@@ -105,10 +105,10 @@ def _jkmagic(kernel_name, **kwargs):
     -  ``debug`` - optional, set true to view jupyter messages
 
     """
-    km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
-
-    kn = kernel_name
-    i_am_a_jupyter_client = True
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
@@ -142,11 +142,10 @@ def _jkmagic(kernel_name, **kwargs):
             h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
         salvus.html(h2)
 
-    def run_code(code):
+    def run_code(code, get_kernel_name = False):
 
-        # these are used by the worksheet process
-        if (not i_am_a_jupyter_client) or len(kn) == 0:
-            return
+        if get_kernel_name:
+            return kernel_name
 
         # execute the code
         msg_id = kc.execute(code)
@@ -157,7 +156,7 @@ def _jkmagic(kernel_name, **kwargs):
         stdinj = kc.stdin_channel
 
         # buffering for %capture because we don't know whether output is stdout or stderr
-        # until shell execute_reply messasge is received with status 'ok' or 'error'
+        # until shell execute_reply message is received with status 'ok' or 'error'
         capture_out = ""
 
         # handle iopub messages
@@ -229,10 +228,11 @@ def _jkmagic(kernel_name, **kwargs):
                     continue
                 p('execute_result data keys: ',content['data'].keys())
                 out_prefix = ""
-                if 'execution_count' in content:
-                    out_data = "Out [%d]: "%content['execution_count']
-                    # don't want line break after this
-                    sys.stdout.write(out_data)
+                # don't display output numbers
+                # if 'execution_count' in content:
+                #     out_data = "Out [%d]: "%content['execution_count']
+                #     # don't want line break after this
+                #     sys.stdout.write(out_data)
                 if 'text/latex' in content['data']:
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):

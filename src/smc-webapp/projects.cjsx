@@ -749,9 +749,11 @@ NewProjectCreator = rclass
             Max
         </Button>
 
+    # TODO refactor: remove this code below and merge it with render_addon in project_settings.cjsx
     render_addon : (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
 
+    # TODO refactor: remove this code below and merge it with render_upgrade_row in project_settings.cjsx
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -761,10 +763,9 @@ NewProjectCreator = rclass
         if input_type == 'checkbox'
 
             # the remaining count should decrease if box is checked
-            show_remaining = remaining + current - @state["upgrade_#{name}"]
-            show_remaining = Math.max(show_remaining, 0)
-
             val = @state["upgrade_#{name}"]
+            show_remaining = remaining + current - val
+            show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
                 label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
@@ -774,9 +775,10 @@ NewProjectCreator = rclass
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    ({1 - val} of {show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
                     <form>
@@ -816,12 +818,18 @@ NewProjectCreator = rclass
             else
                 label = <span></span>
 
+            remaining_all = Math.max(show_remaining, 0)
+            schema_limit = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+            # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
+            remaining_limit = Math.max(0, Math.min(remaining_all, schema_limit["#{name}"]) - current_input)
+
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    ({remaining_limit} of {remaining_all} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=6>
                     <Input
@@ -839,6 +847,7 @@ NewProjectCreator = rclass
             console.warn('Invalid input type in render_upgrade_row: ', input_type)
             return
 
+    # TODO refactor: remove this code and merge it with project_settings.cjsx
     # Returns true if the inputs are valid and different:
     #    - at least one has changed
     #    - none are negative
@@ -847,13 +856,10 @@ NewProjectCreator = rclass
     valid_changed_upgrade_inputs : (current, limits) ->
         for name, data of @props.quota_params
             factor = data.display_factor
-
             # the highest number the user is allowed to type
             limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
-
             # the current amount applied to the project
             cur_val = misc.round2((current[name] ? 0) * factor)
-
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
             if not new_val? or new_val > limit
@@ -862,6 +868,7 @@ NewProjectCreator = rclass
                 changed = true
         return changed
 
+    # TODO refactor: remove this code (after checking diffs) and merge with project_settings.cjsx
     render_upgrades_adjustor : ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
@@ -1265,7 +1272,7 @@ ProjectsListingDescription = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
+        redux.getActions('projects').setState(selected_hashtags: {})
 
     render_span : (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>

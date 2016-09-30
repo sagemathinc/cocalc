@@ -155,10 +155,6 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    # NOTE: save_blob() is NOT in sage_server.py
-    def save_blob(self, sha1):
-        return self._new('save_blob', {'sha1':sha1})
-
     def output(self, id,
                stdout       = None,
                stderr       = None,
@@ -235,6 +231,13 @@ class Message(object):
         m = self._new('introspect_source_code', locals())
         m['id'] = id
         return m
+
+    # NOTE: these functions are NOT in sage_server.py
+    def save_blob(self, sha1):
+        return self._new('save_blob', {'sha1':sha1})
+
+    def introspect(self, id, line, top):
+        return self._new('introspect', {'id':id, 'line':line, 'top':top})
 
 message = Message()
 
@@ -371,15 +374,16 @@ def exec2(request, sagews, test_id):
 
     OUTPUT:
 
-    Fixture function exec2, which takes three arguments. The second and
-    third arguments may be omitted. If both are omitted, the cell is not
+    Fixture function exec2. If output & patterns are omitted, the cell is not
     expected to produce a stdout result.
 
     - `` code `` -- string of code block to run
 
     - `` output `` -- string of expected output, to be matched exactly
 
-    - `` pattern `` -- regex to match with expected output
+    - `` pattern `` -- regex to match with expected stdout output
+
+    - `` html_pattern `` -- regex to match with expected html output
 
     EXAMPLES:
 
@@ -497,7 +501,7 @@ def execblob(request, sagews, test_id):
 
     return execblobfn
 
-@pytest.fixture(scope = "module")
+@pytest.fixture(scope = "class")
 def sagews(request):
     r"""
     Module-scoped fixture for tests that don't leave
@@ -543,7 +547,10 @@ def sagews(request):
             time.sleep(0.5)
         else:
             print("sending sigterm to %s"%pid)
-            os.kill(pid, signal.SIGTERM)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
     request.addfinalizer(fin)
     return conn
 
