@@ -133,14 +133,18 @@ def _jkmagic(kernel_name, **kwargs):
         -  ``scroll`` - set true to put output into scrolling div
         """
         # `full = False` or else cell output is huge
-        h = conv.convert(s, full = False)
-        if block:
-            h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+        if "\x1b" in s:
+            h = conv.convert(s, full = False)
+            if block:
+                h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+            else:
+                h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
+            if scroll:
+                h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
+            salvus.html(h2)
         else:
-            h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
-        if scroll:
-            h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
-        salvus.html(h2)
+            sys.stdout.write(s)
+            sys.stdout.flush()
 
     def run_code(code, get_kernel_name = False):
 
