@@ -8,7 +8,7 @@ from textwrap import dedent
 class TestShMode:
     def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
-        patn = '\d{4}-\d{2}-\d{2}'
+        patn = r'\d{4}-\d{2}-\d{2}'
         exec2(code, pattern=patn, expect_doctype=True)
 
     # examples from sh mode docstring in sage_salvus.py
@@ -20,7 +20,7 @@ class TestShMode:
         exec2("%sh\nFOO=hello\necho $FOO", pattern="hello")
 
     def test_direct_call(self, exec2):
-        exec2("sh('date +%Y-%m-%d')", pattern = '\d{4}-\d{2}-\d{2}')
+        exec2("sh('date +%Y-%m-%d')", pattern = r'\d{4}-\d{2}-\d{2}')
 
     def test_capture_sh_01(self, exec2):
         exec2("%capture(stdout='output')\n%sh uptime")
@@ -30,7 +30,7 @@ class TestShMode:
     def test_remember_settings_01(self, exec2):
         exec2("%sh FOO='testing123'")
     def test_remember_settings_02(self, exec2):
-        exec2("%sh echo $FOO", pattern="^testing123\s+")
+        exec2("%sh echo $FOO", pattern=r"^testing123\s+")
 
     def test_sh_display(self, execblob, image_file):
         execblob("%sh display < " + str(image_file), want_html=False)
@@ -61,7 +61,7 @@ class TestShDefaultMode:
         exec2("FOO=hello\necho $FOO", pattern="^hello")
 
     def test_date(self, exec2):
-        exec2("date +%Y-%m-%d", pattern = '^\d{4}-\d{2}-\d{2}')
+        exec2("date +%Y-%m-%d", pattern = r'^\d{4}-\d{2}-\d{2}')
 
     def test_capture_sh_01(self, exec2):
         exec2("%capture(stdout='output')\nuptime")
@@ -71,7 +71,7 @@ class TestShDefaultMode:
     def test_remember_settings_01(self, exec2):
         exec2("FOO='testing123'")
     def test_remember_settings_02(self, exec2):
-        exec2("echo $FOO", pattern="^testing123\s+")
+        exec2("echo $FOO", pattern=r"^testing123\s+")
 
     def test_sh_display(self, execblob, image_file):
         execblob("display < " + str(image_file), want_html=False)
@@ -115,7 +115,7 @@ class TestOctaveMode:
 
     def test_octave_calc(self, exec2):
         code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
-        outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
+        outp = r"ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389\s+\+\s+0.51038i"
         exec2(code, pattern = outp)
 
     def test_octave_fibonacci(self, exec2):
