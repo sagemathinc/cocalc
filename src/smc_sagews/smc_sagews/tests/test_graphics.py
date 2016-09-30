@@ -2,6 +2,7 @@
 # tests of sage worksheet that return more than stdout, e.g. svg files
 
 import conftest
+import time
 
 # TODO(hal) refactor this later
 SHA_LEN = 36
@@ -14,8 +15,8 @@ class TestOctavePlot:
     def test_plot(self,execblob):
         # assume octave kernel not running at start of test
         execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));")
-        
-class TestShowPlot:
+
+class TestShowGraphs:
     def test_issue594(self, test_id, sagews):
         code = """G = Graph(sparse=True)
 G.allow_multiple_edges(True)

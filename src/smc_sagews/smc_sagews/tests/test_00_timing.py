@@ -11,42 +11,7 @@ import os
 import time
 import signal
 
-class TestSageTiming:
-    r"""
-    These tests are to validate the test framework. They do not
-    use sage_server at all.
-    """
-    def test_basic_timing(self):
-        start = time.time()
-        os.system('sleep 1')
-        tick = time.time()
-        elapsed = tick - start
-        assert 1.0 == pytest.approx(elapsed, abs = 0.1)
-
-    def test_load_sage(self):
-        start = time.time()
-        # maybe put first load into fixture
-        os.system("echo '2+2' | /usr/local/bin/sage -python")
-        tick = time.time()
-        elapsed = tick - start
-        print("elapsed 1: %s"%elapsed)
-        # second load after things are cached
-        start = time.time()
-        os.system("echo '2+2' | /usr/local/bin/sage -python")
-        tick = time.time()
-        elapsed = tick - start
-        print("elapsed 2: %s"%elapsed)
-        assert elapsed < 2.0
-
-    def test_import_sage_server(self):
-        start = time.time()
-        os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
-        tick = time.time()
-        elapsed = tick - start
-        print("elapsed %s"%elapsed)
-        assert elapsed < 10.0
-
-class TestSagewsNoSession:
+class TestStartSageServer:
     def test_2plus2_timing(self, test_id):
         import sys
 
@@ -136,3 +101,38 @@ class TestSagewsNoSession:
         assert elapsed < 8.0
 
         return
+
+class TestSageTiming:
+    r"""
+    These tests are to validate the test framework. They do not
+    run sage_server.
+    """
+    def test_basic_timing(self):
+        start = time.time()
+        os.system('sleep 1')
+        tick = time.time()
+        elapsed = tick - start
+        assert 1.0 == pytest.approx(elapsed, abs = 0.1)
+
+    def test_load_sage(self):
+        start = time.time()
+        # maybe put first load into fixture
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 1: %s"%elapsed)
+        # second load after things are cached
+        start = time.time()
+        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed 2: %s"%elapsed)
+        assert elapsed < 2.0
+
+    def test_import_sage_server(self):
+        start = time.time()
+        os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
+        tick = time.time()
+        elapsed = tick - start
+        print("elapsed %s"%elapsed)
+        assert elapsed < 10.0
