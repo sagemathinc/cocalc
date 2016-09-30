@@ -1379,6 +1379,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 t.html(x.s)
             else
                 t.html_noscript(x.s)
+            #console.log 'sagews:mesg.md, t:', t
             t.mathjax(hide_when_rendering:true)
             output.append(t)
             @process_html_output(t)

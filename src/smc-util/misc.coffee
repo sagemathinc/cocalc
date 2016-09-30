@@ -1046,23 +1046,32 @@ exports.parse_mathjax = (t) ->
         return v
     i = 0
     while i < t.length
-        if t.slice(i,i+2) == '\\$'
+        # escaped dollar sign, ignored
+        if t.slice(i, i+2) == '\\$'
             i += 2
             continue
         for d in mathjax_delim
             contains_linebreak = false
-            if t.slice(i,i+d[0].length) == d[0]
+            # start of a formula detected
+            if t.slice(i, i + d[0].length) == d[0]
                 # a match -- find the close
                 j = i+1
-                while j < t.length and t.slice(j,j+d[1].length) != d[1]
-                    if t.slice(j, j+1) == "\n"
+                while j < t.length and t.slice(j, j + d[1].length) != d[1]
+                    next_char = t.slice(j, j+1)
+                    if next_char == "\n"
                         contains_linebreak = true
                         if d[0] == "$"
                             break
+                    # deal with ending ` char in markdown (mathjax doesn't stop there)
+                    prev_char = t.slice(j-1, j)
+                    if next_char == "`" and prev_char != '\\' # implicitly also covers "```"
+                        j -= 1 # backtrack one step
+                        break
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
-                if !(d[0] == "$" and contains_linebreak)
+                at_end_of_string = j >= t.length
+                if !(d[0] == "$" and (contains_linebreak or at_end_of_string))
                     v.push([i,j])
                 i = j
                 break
