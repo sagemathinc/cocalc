@@ -14,6 +14,9 @@ require('./smc-react')
 # Initialize server stats redux store
 require('./redux_server_stats')
 
+# Systemwide notifications that are broadcast to all users (or set by admins)
+require('./system_notifications')
+
 {IS_MOBILE} = require('./feature')
 
 mobile = require('./mobile_app')

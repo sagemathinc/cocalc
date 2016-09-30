@@ -547,7 +547,7 @@ QuotaConsole = rclass
                 checked  = {@state[label]}
                 style    = {marginLeft:0}
                 onChange = {(e)=>@setState("#{label}" : if e.target.checked then 1 else 0)}>
-                {label}
+                {if @state[label] then "Enabled" else "Enable"}
             </Checkbox>
         else
             # not using react component so the input stays inline
@@ -1020,6 +1020,8 @@ CollaboratorsSearch = rclass
             limit : 50
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
+                console.log("Found", select)
+                window.found = select
 
     render_options : (select) ->
         for r in select
@@ -1043,7 +1045,7 @@ CollaboratorsSearch = rclass
                 @invite_collaborator(account_id)
 
     select_list_clicked : ->
-        selected_names = ReactDOM.findDOMNode(@refs.select).value
+        selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
         @setState(selected_entries: selected_names)
 
     write_email_invite : ->

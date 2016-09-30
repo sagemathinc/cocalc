@@ -1226,7 +1226,14 @@ SystemMessage = rclass
     render_editor: ->
         <Well>
             <FormGroup>
-                <FormControl autofocus value={@state.mesg} ref='input' rows=3 componentClass='textarea' onChange={=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)} />
+                <FormControl
+                    autoFocus
+                    value={@state.mesg}
+                    ref='input'
+                    rows=3
+                    componentClass='textarea'
+                    onChange={=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
+                />
             </FormGroup>
             <ButtonToolbar>
                 <Button onClick={@send} bsStyle="danger"><Icon name='paper-plane-o'/> Send</Button>
@@ -1286,17 +1293,15 @@ AddStripeUser = rclass
         <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
             <Row>
                 <Col md=6>
-                    <form>
-                        <FormGroup>
-                            <FormControl
-                                ref   = 'input'
-                                type  = 'text'
-                                value = {@state.email}
-                                placeholder = "Email address"
-                                onChange    = {=>e = @setState(email:ReactDOM.findDOMNode(@refs.input.value))}
-                            />
-                        </FormGroup>
-                    </form>
+                    <FormGroup>
+                        <FormControl
+                            ref   = 'input'
+                            type  = 'text'
+                            value = {@state.email}
+                            placeholder = "Email address"
+                            onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
+                        />
+                    </FormGroup>
                 </Col>
                 <Col md=6>
                     <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>

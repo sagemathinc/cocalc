@@ -433,7 +433,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     render_add_selector : ->
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : ReactDOM.findDOMNode(@refs.selector).value)}>
+            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : ReactDOM.findDOMNode(@refs.selector).selectedOptions)}>
                 {@render_results_list()}
             </FormControl>
             <ButtonToolbar>
