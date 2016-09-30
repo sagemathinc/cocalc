@@ -135,6 +135,8 @@ class Console extends EventEmitter
             on_reconnected : undefined
             set_title      : undefined
 
+        # window.w = @
+
         @_init_default_settings()
 
         if @opts.project_id
@@ -273,18 +275,29 @@ class Console extends EventEmitter
         if @session?
             # Don't allow set_session to be called multiple times, since both sessions could
             # display data at the same time.
-            console.log("BUG: set_session called after session already set -- ignoring")
+            console.warn("BUG: set_session called after session already set -- ignoring")
             return
+
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server:
         @session = session
 
         @_ignore_mesg = true
+        @_connected = true
+        @_needs_resize = true
 
         # Plug the remote session into the terminal.
-        # Output from the terminal to the remote pty: usually caused by the user typing,
-        # but can also be the result of a device attributes request, etc.
+        # data = output *from the local terminal* to the remote pty.
+        # This is usually caused by the user typing,
+        # but can also be the result of a device attributes request.
         @terminal.on 'data',  (data) =>
+            if not @_connected
+                # not connected, so first connect, then write the data.
+                @session.reconnect (err) =>
+                    if not err
+                        @session.write_data(data)
+                return
+
             @session.write_data(data)
 
             # In case nothing comes back soon, we reconnect -- maybe the session is dead?
@@ -300,72 +313,79 @@ class Console extends EventEmitter
 
         @reset()
 
+        # We resize the terminal first before replaying history, etc. so that it looks better.
         @resize_terminal () =>
+            @config_session()
 
-            # The remote server sends data back to us to display:
-            @session.on 'data',  (data) =>
-                #console.log("terminal got #{data.length} characters -- '#{data}'")
-                @_got_remote_data = new Date()
-                if @_rendering_is_paused
-                    @_render_buffer += data
-                else
-                    @render(data)
+    config_session: () =>
+        # The remote server sends data back to us to display:
+        @session.on 'data',  (data) =>
+            # console.log("terminal got #{data.length} characters -- '#{data}'")
+            @_got_remote_data = new Date()
+            if @_rendering_is_paused
+                @_render_buffer += data
+            else
+                @render(data)
 
-            @session.on 'reconnecting', () =>
-                #console.log('terminal: reconnecting')
-                @element.find(".salvus-console-terminal").css('opacity':'.5')
-                @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
-                @opts.on_reconnecting?()
-
-            @session.on 'reconnect', () =>
-                @_got_remote_data = new Date()
-                #console.log("terminal: reconnect")
-                @element.find(".salvus-console-terminal").css('opacity':'1')
-                @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
-                @_ignore_mesg = true
-                @value = ""
-                @reset()
+            if @_needs_resize
                 @resize()
-                if @session.init_history?
-                    #console.log("writing history")
-                    try
-                        @terminal.write(@session.init_history)
-                    catch e
-                        console.log(e)
-                    #console.log("recording history for copy/paste buffer")
-                    @append_to_value(@session.init_history)
 
-                # On first write we ignore any queued terminal attributes responses that result.
-                @terminal.queue = ''
-                @terminal.showCursor()
-                @_ignore_mesg = false
-                @opts.on_reconnected?()
+        @session.on 'reconnecting', () =>
+            #console.log('terminal: reconnecting')
+            @element.find(".salvus-console-terminal").css('opacity':'.5')
+            @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
-            # Initialize pinging the server to keep the console alive
-            #@_init_session_ping()
-
-            #console.log("session -- history='#{@session.init_history}'")
+        @session.on 'reconnect', () =>
+            partial_code = false
+            @_connected = true
+            @_got_remote_data = new Date()
+            #console.log("terminal: reconnect")
+            @element.find(".salvus-console-terminal").css('opacity':'1')
+            @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+            @_ignore_mesg = true
+            @value = ""
+            @reset()
+            @resize()
             if @session.init_history?
+                #console.log("writing history")
                 try
                     @terminal.write(@session.init_history)
                 catch e
                     console.log(e)
-                # On first write we ignore any queued terminal attributes responses that result.
-                @terminal.queue = ''
+                #console.log("recording history for copy/paste buffer")
                 @append_to_value(@session.init_history)
 
+            # On first write we ignore any queued terminal attributes responses that result.
+            @terminal.queue = ''
             @terminal.showCursor()
-            setTimeout((=> @resize()), 1)  # trigger resizing, after history did load
             @_ignore_mesg = false
 
+        @session.on 'close', () =>
+            @_connected = false
+
+        # Initialize pinging the server to keep the console alive
+        #@_init_session_ping()
+
+        if @session.init_history?
+            #console.log("session -- history.length='#{@session.init_history.length}'")
+            try
+                @terminal.write(@session.init_history)
+            catch e
+                console.log(e)
+            # On first write we ignore any queued terminal attributes responses that result.
+            @terminal.queue = ''
+            @append_to_value(@session.init_history)
+
+        @terminal.showCursor()
+        @_ignore_mesg = false
+        @resize()
+
     render: (data) =>
+        #console.log "render '#{data}'"
         if not data?
             return
         try
             @terminal.write(data)
-            if @value == ""
-                #console.log("empty value")
-                @resize()
             @append_to_value(data)
 
             if @scrollbar_nlines < @terminal.ybase
@@ -378,7 +398,7 @@ class Console extends EventEmitter
             # WARNING -- these are all basically bugs, I think...
             # That said, try/catching them is better than having
             # the whole terminal just be broken.
-            console.log("terminal error -- ",e)
+            console.warn("terminal error -- ",e)
 
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
@@ -633,12 +653,15 @@ class Console extends EventEmitter
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: () =>
+        @session?.close()
+        delete @session
+        @_connected = false
         if @_mousedown?
-             $(document).off 'mousedown', @_mousedown
+             $(document).off('mousedown', @_mousedown)
         if @_mouseup?
-             $(document).off 'mouseup', @_mouseup
+             $(document).off('mouseup', @_mouseup)
         if @_click?
-             $(document).off 'click', @_click
+             $(document).off('click', @_click)
 
     _focus_hidden_textarea: () =>
         @textarea.focus()
@@ -884,7 +907,21 @@ class Console extends EventEmitter
             # FUTURE: could queue this up to send
             return
 
+        if not @_connected
+            return
+
+        if not @value
+            return
+
+        if @_resizing
+            return
+
+        @_resizing = true
         @resize_terminal () =>
+            @_resizing = false
+
+            if not @_connected
+                return
 
             # Resize the remote PTY
             resize_code = (cols, rows) ->
@@ -892,10 +929,12 @@ class Console extends EventEmitter
                 # CSI Ps ; Ps ; Ps t
                 # CSI[4];[height];[width]t
                 return CSI + "4;#{rows};#{cols}t"
+
+            # console.log 'connected: sending resize code'
+            @_needs_resize = false
             @session.write_data(resize_code(@opts.cols, @opts.rows))
 
             @resize_scrollbar()
-
 
             # Refresh depends on correct @opts being set!
             @refresh()
@@ -924,7 +963,7 @@ class Console extends EventEmitter
 
         # The above style trick for character width is not reliable for getting the height of each row.
         # For that we use the terminal itself, since it already has rows, and hopefully at least
-        # one has something in it (a div).
+        # one row has something in it (a div).
         #
         # The row height is in fact *NOT* constant -- it can vary by 1 (say) depending
         # on what is in the row.  So we compute the maximum line height, which is safe, so

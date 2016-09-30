@@ -404,6 +404,7 @@
     - libxslt-dev
     - libxvidcore-dev
     - libzmq-dev
+    - libzmq3-dev
 
   - name: 'Additional packages (mainly for users, not building) - batch #4'
     apt: "name={{ item }} install_recommends=yes state=latest"

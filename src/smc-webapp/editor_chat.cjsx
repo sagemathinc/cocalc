@@ -731,10 +731,7 @@ ChatRoom = rclass ({name}) ->
 
     keydown : (e) ->
         # FUTURE: Add timeout component to is_typing
-        if e.keyCode==27 # ESC
-            e.preventDefault()
-            @clear_input()
-        else if e.keyCode==13 and e.shiftKey # 13: enter key
+        if e.keyCode==13 and e.shiftKey # 13: enter key
             @send_chat(e)
         else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
             # Up arrow on an empty input

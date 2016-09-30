@@ -83,7 +83,12 @@ class Session extends EventEmitter
         # I'm going to leave this in for now -- it's only used for console sessions,
         # and they aren't properly reconnecting in all cases.
         if @reconnect?
-            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+            @conn.on("connected", @reconnect)
+
+    close: () =>
+        @removeAllListeners()
+        if @reconnect?
+            @conn.removeListener("connected", @reconnect)
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
