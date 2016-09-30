@@ -165,6 +165,7 @@ sensitive=true}
 }
 """
 
+# this is part of the preamble above, although this time full of utf8 chars
 COMMON += ur"""
 % mathjax has \lt and \gt
 \newcommand{\lt}{<}
@@ -172,6 +173,7 @@ COMMON += ur"""
 % also support HTML's &le; and &ge;
 \newcommand{\lequal}{≤}
 \newcommand{\gequal}{≥}
+\newcommand{\notequal}{≠}
 
 % defining utf8 characters for listings
 \lstset{literate=
@@ -205,10 +207,20 @@ def escape_path(s):
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
 
+# used in texifyHTML and then again, in tex_escape
+# they're mapped to macros, defined in the latex preamble
+relational_signs = [
+    ('gt', 'gt'),
+    ('lt', 'lt'),
+    ('ge', 'gequal'),
+    ('le', 'lequal'),
+    ('ne', 'notequal')
+]
+
 def tex_escape(s):
     replacements = [
-        (r'\',                 r'{\textbackslash}'),
-        ('_',                  '\_'),
+        ('\\',                 '{\\textbackslash}'),
+        ('_',                  r'\_'),
         (r'{\textbackslash}$', r'\$' ),
         ('%',                  r'\%'),
         ('#',                  r'\#'),
@@ -216,6 +228,9 @@ def tex_escape(s):
     ]
     for rep in replacements:
         s = s.replace(*rep)
+    for rel in relational_signs:
+        a, b = r'{\textbackslash}%s' % rel[1], r'\%s ' % rel[1]
+        s = s.replace(a, b)
     return s
 
 
@@ -354,13 +369,12 @@ def texifyHTML(s):
         ('&#8221;',            "''"),
         ('&#8217;',            "'"),
         ('&amp;',              "&"),
-        ('&gt;',               r'\gt '), # macro
-        ('&lt;',               r'\lt '), # macro
-        ('&ge;',               r'\gequal '), # macro
-        ('&le;',               r'\lequal '), # macro
     ]
     for rep in replacements:
         s = s.replace(*rep)
+    for rel in relational_signs:
+        a, b = '&%s;' % rel[0], r'\%s' % rel[1]
+        s = s.replace(a, b)
     return s
 
 def html2tex(doc, cmds):
@@ -508,13 +522,13 @@ class Cell(object):
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
-                    print "KEYS", v.keys()
+                    #print "KEYS", v.keys()
                     uuid = val['uuid']
                     if uuid in v:
-                        print "TARGET acquired!"
+                        #print "TARGET acquired!"
                         data = v[uuid].pop()
                         width = min(1, 1.2*data.get('width',0.5))
-                        print "width = ", width
+                        #print "width = ", width
                         if 'data-url' in data:
                             data_url = data['data-url']  # 'data:image/png;base64,iVBOR...'
                             i = data_url.find('/')
