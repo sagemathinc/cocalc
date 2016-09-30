@@ -32,6 +32,9 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
+        if not misc.is_valid_uuid_string(account_id)
+            # TESTING-RR-JJ
+            throw "Why the fuck are you asking for a non-uuid account: #{account_id}"
         salvus_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
@@ -150,6 +153,8 @@ exports.User = User = rclass
             return <span>Loading...</span>
         info = @props.user_map?.get(@props.account_id)
         if not info?
+            if not misc.is_valid_uuid_string(@props.account_id)
+                return <span>{@props.account_id} unsucessfully</span>
             actions.fetch_non_collaborator(@props.account_id)
             return <span>Loading...</span>
         else

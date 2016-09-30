@@ -63,9 +63,6 @@ editor = require('./editor')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
 
-
-_global_notify_count = 0  # TODO: eliminate and moved to a store...
-
 class FileUseActions extends Actions
     record_error: (err) =>
         # Record in the store that an error occured as a result of some action
@@ -253,6 +250,7 @@ class FileUseStore extends Store
             sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
             notify_count                   : (x for x in v when x.notify).length
+        require('browser').set_window_title()
         return v
 
     # See above for the definition of unread and unseen.
@@ -526,3 +524,5 @@ init_redux = (redux) ->
 
 init_redux(redux)
 
+# Updates the browser's awareness of a notifcation
+require('./browser').set_notify_count_function(-> redux.getStore('file_use').get_notify_count())

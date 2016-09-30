@@ -458,6 +458,7 @@ exports.ProjectLog = rclass ({name}) ->
             cursor = undefined
             selected = undefined
 
+        window.user_map = @props.user_map
         <Panel>
             <Row>
                 <Col sm=4>

@@ -1032,17 +1032,9 @@ CollaboratorsSearch = rclass
         @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected : ->
-        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        selected_names = ReactDOM.findDOMNode(@refs.select).value
-        if selected_names.length == 0
-            @reset()
-            all_names = ReactDOM.findDOMNode(@refs.select).getElementsByTagName('option')
-            if all_names?.length == 1
-                @invite_collaborator(all_names[0].getAttribute('value'))
-        else
-            @reset()
-            for account_id in selected_names
-                @invite_collaborator(account_id)
+        @reset()
+        for option in @state.selected_entries
+            @invite_collaborator(option.getAttribute('value'))
 
     select_list_clicked : ->
         selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
