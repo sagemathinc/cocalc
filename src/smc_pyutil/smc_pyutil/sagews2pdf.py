@@ -22,7 +22,7 @@
 ###############################################################################
 
 """
-Copyright (c) 2014 -- 2015   The SageMathCloud Authors.
+Copyright (c) 2014 -- 2016   SageMath, Inc..
 
 All rights reserved.
 
@@ -166,6 +166,13 @@ sensitive=true}
 """
 
 COMMON += ur"""
+% mathjax has \lt and \gt
+\newcommand{\lt}{<}
+\newcommand{\gt}{>}
+% also support HTML's &le; and &ge;
+\newcommand{\lequal}{≤}
+\newcommand{\gequal}{≥}
+
 % defining utf8 characters for listings
 \lstset{literate=
   {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
@@ -200,12 +207,12 @@ def wrap(s, c=90):
 
 def tex_escape(s):
     replacements = [
-        ('\\',                 '{\\textbackslash}'),
-        ('_',                  '\\_'),
-        ('{\\textbackslash}$', '\\$' ),
-        ('%',                  '\\%'),
-        ('#',                  '\\#'),
-        ('&',                  '\\&'),
+        (r'\',                 r'{\textbackslash}'),
+        ('_',                  '\_'),
+        (r'{\textbackslash}$', r'\$' ),
+        ('%',                  r'\%'),
+        ('#',                  r'\#'),
+        ('&',                  r'\&'),
     ]
     for rep in replacements:
         s = s.replace(*rep)
@@ -347,6 +354,10 @@ def texifyHTML(s):
         ('&#8221;',            "''"),
         ('&#8217;',            "'"),
         ('&amp;',              "&"),
+        ('&gt;',               r'\gt '), # macro
+        ('&lt;',               r'\lt '), # macro
+        ('&ge;',               r'\gequal '), # macro
+        ('&le;',               r'\lequal '), # macro
     ]
     for rep in replacements:
         s = s.replace(*rep)
