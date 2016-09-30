@@ -1624,6 +1624,12 @@ class CodeMirrorEditor extends FileEditor
                 evaluate_key = "Shift-Enter"
             extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
+        # turn off autoCloseBrackets for haskell files SMC #972
+        if misc.filename_extension_notilde(filename) == "hs" || misc.filename_extension_notilde(filename) == "lhs"
+            acb = false
+        else
+            acb = opts.auto_close_brackets
+
         make_editor = (node) =>
             options =
                 firstLineNumber         : opts.first_line_number
@@ -1637,7 +1643,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars           : opts.electric_chars
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
-                autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseBrackets       : acb
                 autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
