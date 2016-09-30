@@ -416,6 +416,7 @@ def exec2(request, sagews, test_id):
         sagews.send_json(m)
 
         # is there an HTML DOCTYPE
+        # common for first response when starting jupyter kernel
         if expect_doctype:
             typ, mesg = sagews.recv()
             assert typ == 'json'
@@ -520,6 +521,7 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
+    # jupyter kernels can take over 10 seconds to start
     sock.settimeout(15)
     print("connected to socket")
 
