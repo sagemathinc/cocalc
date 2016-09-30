@@ -1499,7 +1499,7 @@ class TaskList
 
     hide: () =>
         @element.hide()
-        redux.getActions('page').clear_active_key_handler(tasks_key_handler)
+        redux.getActions('page').erase_active_key_handler(tasks_key_handler)
 
 current_task_list = undefined
 

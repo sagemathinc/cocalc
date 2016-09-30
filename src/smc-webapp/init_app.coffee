@@ -11,19 +11,35 @@ misc = require('smc-util/misc')
 class PageActions extends Actions
     # Expects a func which takes a browser keydown event
     # Only allows one keyhandler to be active at a time.
+    # FUTURE: Develop more general way to make key mappings for editors
+    # HACK: __suppress_key_handlers is for file_use. See FUTURE above.
+    #       Adding even a single suppressor leads to spaghetti code.
+    #       Don't fucking do it. -- J3
     set_active_key_handler : (handler) =>
         if handler?
             $(window).off("keydown", @active_key_handler)
             @active_key_handler = handler
 
-        if @active_key_handler?
+        if @active_key_handler? and not @__suppress_key_handlers
             $(window).on("keydown", @active_key_handler)
 
-    clear_active_key_handler : =>
+    # Only clears it from the window
+    unattach_active_key_handler : =>
         $(window).off("keydown", @active_key_handler)
 
+    # Actually removes the handler from active memory
+    # takes a handler to only remove if it's the active one
+    erase_active_key_handler : (handler) =>
+        if not handler? or handler == @active_key_handler
+            $(window).off("keydown", @active_key_handler)
+            @active_key_handler = undefined
+
+    # FUTURE: Will also clear all click handlers.
+    # Right now there aren't even any ways (other than manually)
+    # of adding click handlers that the app knows about.
     clear_all_handlers : =>
         $(window).off("keydown", @active_key_handler)
+        @active_key_handler = undefined
 
     add_a_ghost_tab : () =>
         current_num = redux.getStore('page').get('num_ghost_tabs')
@@ -79,14 +95,21 @@ class PageActions extends Actions
     show_connection : (shown) =>
         @setState(show_connection : shown)
 
+    # Toggles visibility of file use widget
+    # Temporarily disables window key handlers until closed
+    # FUTURE: Develop more general way to make key mappings
     toggle_show_file_use : =>
-        is_shown = redux.getStore('page').get('show_file_use')
-        if is_shown
-            @set_active_key_handler(undefined)
+        currently_shown = redux.getStore('page').get('show_file_use')
+        if currently_shown
+            # Enable whatever the current key handler should be
+            @__suppress_key_handlers = false # HACK: Terrible way to do this.
+            @set_active_key_handler()
         else
-            @clear_active_key_handler()
+            # Suppress the activation of any new key handlers until file_use closes
+            @__suppress_key_handlers = true
+            @unattach_active_key_handler()
 
-        @setState(show_file_use: !is_shown)
+        @setState(show_file_use: !currently_shown)
 
     set_ping : (ping, avgping) =>
         @setState(ping : ping, avgping : avgping)
