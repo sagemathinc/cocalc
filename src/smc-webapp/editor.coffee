@@ -2075,7 +2075,8 @@ class CodeMirrorEditor extends FileEditor
                                 url = mesg.url + "?nocache=#{Math.random()}"
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 if is_subdir
-                                    subdir_texfile = p.head + "/#{base}-sagews2pdf/tmp.tex"
+                                    {join} = require('path')
+                                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                                     # if not reading it, tmp.tex is blank (?)
                                     salvus_client.read_file_from_project
                                         project_id : @project_id
