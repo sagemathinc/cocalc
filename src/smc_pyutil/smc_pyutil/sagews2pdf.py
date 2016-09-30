@@ -683,7 +683,10 @@ def main():
     remove_tmpdir=args.remove_tmpdir
 
     if args.subdir:
-        work_dir = '%s-sagews2pdf' % os.path.splitext(os.path.basename(args.filename))[0]
+        from os.path import dirname, basename, splitext, join
+        dir = dirname(args.filename)
+        subdir = '%s-sagews2pdf' % splitext(basename(args.filename))[0]
+        work_dir = join(dir, subdir)
         remove_tmpdir = False
     elif args.work_dir is not None:
         work_dir = os.path.abspath(os.path.expanduser(args.work_dir))
