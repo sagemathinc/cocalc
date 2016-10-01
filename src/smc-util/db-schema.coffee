@@ -682,6 +682,7 @@ schema.projects_owner =
 #    smc.redux.getStore('projects').get_project(project_id).invite_requests                 // see requests for this project
 #
 schema.project_invite_requests =
+    anonymous  : true
     virtual    : 'projects'
     primary_key: 'project_id'
     fields :
