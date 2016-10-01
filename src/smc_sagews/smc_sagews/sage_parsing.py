@@ -204,8 +204,19 @@ def divide_into_blocks(code):
     ## so "2+2" breaks.
     ## return [[0,len(code)-1,('\n'.join(code))%literals]]
 
+    # Remove comments -- otherwise could get empty blocks that can't be exec'd.
+    # For example, exec compile('#', '', 'single') is a syntax error.
+    # Also, comments will confuse the code to break into blocks before.
+    no_comments = {}
+    for label, v in literals.iteritems():
+        if v.startswith('#'):
+            no_comments[label] = ''
+        else:
+            no_comments[label] = "%%(%s)s" % label  # ugly; needed because every label must be specified
+    if no_comments:
+        code = [x%no_comments for x in code]
 
-    # take only non-empty lines now for Python code (string literals have already been removed).
+    # take only non-whitespace lines now for Python code (string literals have already been removed).
     code = [x for x in code if x.strip()]
 
     # Compute the blocks
@@ -222,11 +233,6 @@ def divide_into_blocks(code):
                 paren_depth += code[i].count('(') - code[i].count(')')
                 brack_depth += code[i].count('[') - code[i].count(']')
                 curly_depth += code[i].count('{') - code[i].count('}')
-        # Remove comments -- otherwise could get empty blocks that can't be exec'd.
-        # For example, exec compile('#', '', 'single') is a syntax error.
-        for k, v in literals.iteritems():
-            if v.startswith('#'):
-                literals[k] = ''
         block = ('\n'.join(code[i:]))%literals
         bs = block.strip()
         if bs: # has to not be only whitespace
