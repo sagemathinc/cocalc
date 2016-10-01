@@ -4,10 +4,10 @@
   become: yes
   gather_facts: yes
 
-  taks:
+  tasks:
   - name: "haskell / apt key"
     tags: [haskell, install]
-    apt_key: ''
+    apt_key: 'keyserver=keyserver.ubuntu.com id=575159689BEFB442'
 
   - name: "haskell / apt repo"
     tags: [haskell, install]
