@@ -595,11 +595,14 @@ class ProjectPage
             # unfortunately, download_file doesn't work for pdf these days...
             opts.auto = false
 
-        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
+        url = @download_href(opts.path)
         if opts.auto
             download_file(url)
         else
             window.open(url)
+
+    download_href: (path) =>
+        "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
 
 project_pages = {}
 
