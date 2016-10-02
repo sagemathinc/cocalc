@@ -3658,15 +3658,22 @@ class StaticHTML extends FileEditor
         if not @is_active()
             return
         if not @iframe?
-            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
-            # We do this, since otherwise just loading the iframe using
-            #      @iframe.contents().find('html').html(@content)
-            # messes up the parent html page...
-            @iframe.contents().find('body')[0].innerHTML = @content
-            @iframe.contents().find('body').find("a").attr('target','_blank')
+            # Setting the iframe in the *next* tick is critical on Firefox; otherwise, the browser
+            # just deletes what we set.  I do not claim to fully understand why, but this does work.
+            # See https://github.com/sagemathinc/smc/issues/843
+            # -- wstein
+            setTimeout(@set_iframe, 1)
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+
+    set_iframe: () =>
+        @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+        # We do this, since otherwise just loading the iframe using
+        #      @iframe.contents().find('html').html(@content)
+        # messes up the parent html page...
+        @iframe.contents().find('body')[0].innerHTML = @content
+        @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
     init_buttons: () =>
