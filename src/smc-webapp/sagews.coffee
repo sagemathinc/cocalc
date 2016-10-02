@@ -1813,15 +1813,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # DISABLED!
         return
 
-    enter_key: (cm) =>
-        marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
-        if marks.length > 0
-            @edit_cell
-                line : marks[0].find().from.line
-                cm   : cm
-        else
-            return CodeMirror.Pass
-
     action: (opts={}) =>
         opts = defaults opts,
             pos           : undefined
