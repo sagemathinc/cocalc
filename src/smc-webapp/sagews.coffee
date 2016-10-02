@@ -38,7 +38,7 @@ is_marked = (c) ->
         return false
     return c.indexOf(MARKERS.cell) != -1 or c.indexOf(MARKERS.output) != -1
 
-
+# Create gutter elements
 open_gutter_elt   = $('<div class="CodeMirror-foldgutter-open CodeMirror-guttermarker-subtle"></div>')
 folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-guttermarker-subtle"></div>')
 line_number_elt   = $("<div style='color:#88f'></div>")
@@ -757,7 +757,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
-        ##tm = misc.mswalltime()
+        #tm = misc.mswalltime()
         before = @editor.codemirror.getValue()
         if opts.pad_bottom
             @pad_bottom_with_newlines(opts.pad_bottom)
@@ -770,7 +770,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
         catch e
             console.log("Error rendering worksheet", e)
-        ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
+
+        #console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
+
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
             @_syncstring.set(after)
@@ -804,17 +806,38 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @_handle_input_cell_click0(e, mark)
         return false
 
+    # Process the codemirror gutter local SMC line number and input/output toggles
+    #   cm = codemirror editor
+    #   line = the line number (0 based)
+    #   mode = the mode for the line: 'show', 'hide', 'number'
+    #   relative_line = the relative line number
     _process_line_gutter: (cm, line, mode, relative_line) =>
+        # nb: I did implement a non-jQuery version of this function; the speed was *identical*.
+        want = mode + relative_line  # we want the HTML node to have these params.
+        elt  = cm.lineInfo(line).gutterMarkers?['smc-sagews-gutter-hide-show']
+        if elt?.smc_cur == want  # gutter is already defined and set as desired.
+            return
         switch mode
             when 'show'
-                elt = open_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
+                # A show toggle triangle
+                elt = open_gutter_elt.clone()[0]
             when 'hide'
-                elt = folded_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
-            else
-                if @editor.opts.line_numbers
-                    elt = line_number_elt.clone().text(relative_line)[0]
-                else
-                    elt = undefined
+                # A hide triangle
+                elt = folded_gutter_elt.clone()[0]
+            when 'number'
+                # A line number
+                if not @editor.opts.line_numbers
+                    # Ignore because line numbers are disabled
+                    return
+                if elt?.className == ''
+                    # Gutter elt is already a plain div, so just chnage innerHTML
+                    elt.smc_cur = want
+                    elt.innerHTML = relative_line
+                    return
+                # New gutter element
+                elt = line_number_elt.clone().text(relative_line)[0]
+        elt.smc_cur = want  # elt will have this mode/line
+        # Now set it.
         cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
 
     _process_line: (cm, line, context) =>
@@ -973,7 +996,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     input_line = context.input_line
                     if not input_line?
                         input_line = line - 1
-                        while input_line >= 1 and cm.getLine(input_line)[0] != MARKERS.cell
+                        while input_line >= 0 and cm.getLine(input_line)[0] != MARKERS.cell
                             input_line -= 1
                     @_process_line_gutter(cm, line, 'number', line - input_line) # relative line number
                 else
