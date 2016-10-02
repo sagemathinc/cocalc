@@ -1636,7 +1636,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars           : opts.electric_chars
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
-                autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
                 autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
