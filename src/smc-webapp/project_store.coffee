@@ -536,7 +536,7 @@ class ProjectActions extends Actions
             project_id : @project_id
             command    : 'rm'
             timeout    : 60
-            args       : ['-rf'].concat(opts.paths)
+            args       : ['-rf', '--'].concat(opts.paths)
             cb         : (err, result) =>
                 if err
                     @set_activity(id:id, error: "Network error while trying to delete #{mesg} -- #{err}", stop:'')

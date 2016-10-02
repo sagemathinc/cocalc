@@ -485,7 +485,7 @@ class ProjectPage
             project_id : @project_id
             command    : "mkdir"
             timeout    : 15
-            args       : ['-p', opts.path]
+            args       : ['-p', '--', opts.path]
             cb         : (err, result) =>
                 if opts.alert
                     if err

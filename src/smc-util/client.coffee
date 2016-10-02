@@ -51,9 +51,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 DEFAULT_TIMEOUT = 30  # in seconds
 
 
-# change these soon
-smcls = 'smc-ls'
-
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -1253,11 +1250,12 @@ class exports.Connection extends EventEmitter
         args.push(opts.start)
         if opts.path == ""
             opts.path = "."
+        args.push('--')
         args.push(opts.path)
 
         @exec
             project_id : opts.project_id
-            command    : smcls
+            command    : 'smc-ls'
             args       : args
             timeout    : opts.timeout
             cb         : (err, output) ->
