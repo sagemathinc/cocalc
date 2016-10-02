@@ -1973,6 +1973,7 @@ class CodeMirrorEditor extends FileEditor
         @show()
         @focus()
         cm.focus()
+        @emit 'toggle-split-view'
 
     goto_line: (cm) =>
         focus = () =>

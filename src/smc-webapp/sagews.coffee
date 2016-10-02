@@ -45,7 +45,7 @@ line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        #window.w = @
+        # window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -76,8 +76,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @process_sage_update_queue()
 
             @editor.on 'show', (height) =>
-                @process_sage_updates(caller:"show")
                 @set_all_output_line_classes()
+
+            @editor.on 'toggle-split-view', =>
+                @process_sage_updates(caller:"toggle-split-view")
 
             @init_worksheet_buttons()
 
@@ -114,7 +116,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                     if @editor.opts.line_numbers
                         # If stop isn't at a marker, extend stop to include the rest of the input,
-                        # so relatively line numbers for this cell get updated.
+                        # so relative line numbers for this cell get updated.
                         x = cm.getLine(stop)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             n = cm.lineCount() - 1
