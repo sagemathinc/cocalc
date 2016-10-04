@@ -218,7 +218,6 @@ Page = rclass
             onSortEnd={@on_sort_end}
             axis={'x'}
             lockAxis={'x'}
-            lockToContainerEdges={true}
             distance={3}
         >
             {@project_tabs()}

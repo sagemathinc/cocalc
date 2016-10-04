@@ -84,7 +84,6 @@ exports.generate = (path, redux, project_id) ->
 
     component = file_editors[ext]?.component
     if not component?
-        console.log("component not found. Using fallback")
         component = file_editors['']?.generator?(path, redux, project_id)
     if component?
         return component # return the class

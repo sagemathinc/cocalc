@@ -260,7 +260,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             @actions(project_id : @props.project_id).set_editor_top_position(0)
 
     on_sort_end : ({oldIndex, newIndex}) ->
-        console.log("PROJECT FILE SORT ENDED WITH", oldIndex, newIndex)
         @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
 
     file_tabs: ->

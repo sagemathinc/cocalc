@@ -791,8 +791,9 @@ class ProjectActions extends Actions
         else
             window.open(url)
 
-    download_href : (path) ->
-        @_project().download_href(path)
+    download_href: (path) =>
+            # appending ?download sets the content type to octet-stream -- see smc-project/raw_server.coffee
+            return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
