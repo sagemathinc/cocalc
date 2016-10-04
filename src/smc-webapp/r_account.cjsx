@@ -1053,8 +1053,8 @@ StripeKeys = rclass
 
     getInitialState : ->
         state           : 'view'   # view --> edit --> save --> view
-        secret_key      : undefined
-        publishable_key : undefined
+        secret_key      : ''
+        publishable_key : ''
         error           : undefined
 
     edit : ->
