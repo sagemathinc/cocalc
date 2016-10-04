@@ -742,7 +742,7 @@ AddSubscription = rclass
 
     render_period_selection_buttons : ->
         <div>
-            <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
+            <ButtonGroup bsSize='large' style={marginBottom:'20px', display:'flex'}>
                 <Button
                     bsStyle = {if @state.selected_button is 'month' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month')}
