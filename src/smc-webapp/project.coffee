@@ -591,10 +591,6 @@ class ProjectPage
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
 
-        #if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-        #    opts.auto = false
-
         url = @download_href(opts.path)
         if opts.auto
             download_file(url)
