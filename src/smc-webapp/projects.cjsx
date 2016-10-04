@@ -208,9 +208,6 @@ class ProjectsActions extends Actions
             query :
                 public_projects : {project_id : project_id, title : null}
             cb    : (err, resp) =>
-                # TESTING-RR-JJ
-                console.log("RECIEVED", err, resp)
-                window.resp = resp
                 if not err
                     title = resp?.query?.public_projects?.title
                 title ?= "PRIVATE -- Admin req"

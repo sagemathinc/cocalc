@@ -32,9 +32,6 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
-        if not misc.is_valid_uuid_string(account_id)
-            # TESTING-RR-JJ
-            throw "Why the fuck are you asking for a non-uuid account: #{account_id}"
         salvus_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
