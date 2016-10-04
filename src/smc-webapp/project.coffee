@@ -591,9 +591,9 @@ class ProjectPage
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
 
-        if misc.filename_extension(opts.path) == 'pdf'
+        #if misc.filename_extension(opts.path) == 'pdf'
             # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
+        #    opts.auto = false
 
         url = @download_href(opts.path)
         if opts.auto
@@ -602,7 +602,8 @@ class ProjectPage
             window.open(url)
 
     download_href: (path) =>
-        "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
+        # appending ?download sets the content type to octet-stream -- see smc-project/raw_server.coffee
+        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
 project_pages = {}
 
