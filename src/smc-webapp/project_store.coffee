@@ -553,6 +553,9 @@ class ProjectActions extends Actions
             files  : opts.path
         @_project().download_file(opts)
 
+    download_href : (path) ->
+        @_project().download_href(path)
+
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  If the file contains invalid characters this function
