@@ -292,6 +292,7 @@ SAGE_PIP_PACKAGES = [
     'nipype',  # https://github.com/nipy/nipype/
     'hypothesis',
     'xgboost', # https://github.com/dmlc/xgboost
+    'vpython',
     ]
 
 # additional environment settings for specific packages
@@ -333,6 +334,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
     'autobahn', 'twisted', 'idna', 'pyasn1', 'ipaddress', 'pycparser', 'cffi', 'cryptography', 'pyopenssl', 'attrs', # datasift
     'pyasn1-modules', 'service-identity', 'futures', 'requests-futures', 'ndg-httpsclient', # datasift
+    'vpnotebook', 'ivisual', 'ujson', 'crayola', # vpython deps
 ]
 
 # TODO make add an additional category of pip packages, where it is always safe to install with dependencies
