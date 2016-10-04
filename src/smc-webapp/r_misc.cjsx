@@ -355,12 +355,12 @@ exports.NumberInput = NumberInput = rclass
     displayName : 'Misc-NumberInput'
 
     propTypes :
-        number    : rtypes.number.isRequired
-        min       : rtypes.number.isRequired
-        max       : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-        unit      : rtypes.string
-        disabled  : rtypes.bool
+        number      : rtypes.number.isRequired
+        min         : rtypes.number.isRequired
+        max         : rtypes.number.isRequired
+        on_change   : rtypes.func.isRequired
+        unit        : rtypes.string
+        disabled    : rtypes.bool
 
     componentWillReceiveProps : (next_props) ->
         if @props.number != next_props.number
@@ -370,8 +370,8 @@ exports.NumberInput = NumberInput = rclass
     getInitialState : ->
         number : @props.number
 
-    saveChange : (event) ->
-        event.preventDefault()
+    saveChange : (e) ->
+        e?.preventDefault()
         n = parseInt(@state.number)
         if "#{n}" == "NaN"
             n = @props.number
@@ -397,15 +397,15 @@ exports.NumberInput = NumberInput = rclass
                             ref      = 'input'
                             value    = {if @state.number? then @state.number else @props.number}
                             onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
-                            disabled = {@props.disabled} />
+                            onBlur   = {@saveChange}
+                            onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
+                            disabled = {@props.disabled}
+                        />
                     </FormGroup>
                 </form>
             </Col>
-            <Col xs=2 className="lighten">
+            <Col xs=6 className="lighten">
                 {unit}
-            </Col>
-            <Col xs=4>
-                {@render_save_button()}
             </Col>
         </Row>
 

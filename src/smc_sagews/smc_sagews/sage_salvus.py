@@ -3118,6 +3118,9 @@ md = Marked()
 
 #####
 ## Raw Input
+# - this is the Python 2.x interpretation.  In Python 3.x there is no raw_input,
+# and raw_input is renamed input (to cause more confusion).
+#####
 def raw_input(prompt='', default='', placeholder='', input_width=None, label_width=None, type=None):
     """
     Read a string from the user in the worksheet interface to Sage.
@@ -3139,11 +3142,26 @@ def raw_input(prompt='', default='', placeholder='', input_width=None, label_wid
     - By default, returns a **unicode** string (not a normal Python str). However, can be customized
       by changing the type.
 
-    EXAMPLE:
+    EXAMPLE::
 
-        print(salvus.raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="15ex"))
+         print(raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="25ex"))
+
     """
     return salvus.raw_input(prompt=prompt, default=default, placeholder=placeholder, input_width=input_width, label_width=label_width, type=type)
+
+def input(*args, **kwds):
+    """
+    Read a string from the user in the worksheet interface to Sage and return evaluated object.
+
+    Type raw_input? for more help; this function is the same as raw_input, except with type='sage'.
+
+    EXAMPLE::
+
+         print(type(input("What is your age", default=18, input_width="20ex", label_width="25ex")))
+
+    """
+    kwds['type'] = 'sage'
+    return raw_input(*args, **kwds)
 
 #####
 ## Clear

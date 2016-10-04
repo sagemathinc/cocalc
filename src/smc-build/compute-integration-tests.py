@@ -69,6 +69,7 @@ BINARIES = [
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
     ('haskell-compiler', 'glasgow haskell'),
+    ('stack', 'hpack'), # haskell stack tool
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),

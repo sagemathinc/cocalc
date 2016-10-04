@@ -830,7 +830,6 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
-            "Enter"        : @enter_key
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
@@ -860,7 +859,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars           : opts.electric_chars
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
-                autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
                 autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
@@ -1071,12 +1070,6 @@ class CodeMirrorEditor extends FileEditor
     interrupt_key: () =>
         # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
 
-    enter_key: (editor) =>
-        if @custom_enter_key?
-            @custom_enter_key(editor)
-        else
-            return CodeMirror.Pass
-
     press_tab_key: (editor) =>
         if editor.somethingSelected()
             CodeMirror.commands.defaultTab(editor)
@@ -1201,6 +1194,7 @@ class CodeMirrorEditor extends FileEditor
         @show()
         @focus()
         cm.focus()
+        @emit 'toggle-split-view'
 
     goto_line: (cm) =>
         focus = () =>
@@ -1777,7 +1771,6 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
                 sync_interval   : 250
             E.syncdoc = new (sagews.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
-            E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"
@@ -2880,15 +2873,22 @@ class StaticHTML extends FileEditor
         if not @is_active()
             return
         if not @iframe?
-            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
-            # We do this, since otherwise just loading the iframe using
-            #      @iframe.contents().find('html').html(@content)
-            # messes up the parent html page...
-            @iframe.contents().find('body')[0].innerHTML = @content
-            @iframe.contents().find('body').find("a").attr('target','_blank')
+            # Setting the iframe in the *next* tick is critical on Firefox; otherwise, the browser
+            # just deletes what we set.  I do not claim to fully understand why, but this does work.
+            # See https://github.com/sagemathinc/smc/issues/843
+            # -- wstein
+            setTimeout(@set_iframe, 1)
         @element.show()
         #  redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
+
+    set_iframe: () =>
+        @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+        # We do this, since otherwise just loading the iframe using
+        #      @iframe.contents().find('html').html(@content)
+        # messes up the parent html page...
+        @iframe.contents().find('body')[0].innerHTML = @content
+        @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
     init_buttons: () =>
