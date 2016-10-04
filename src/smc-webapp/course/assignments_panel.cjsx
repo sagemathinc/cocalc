@@ -568,7 +568,8 @@ Assignment = rclass
                 on_change = {(n) => @set_peer_grade(number : n)}
                 min       = 1
                 max       = {(store?.num_students() ? 2) - 1}
-                number    = {config.number ? 1} />
+                number    = {config.number ? 1}
+            />
         </LabeledRow>
 
     render_configure_grading_guidelines: (config) ->

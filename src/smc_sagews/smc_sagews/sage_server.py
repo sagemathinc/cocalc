@@ -1771,7 +1771,8 @@ def serve(port, host, extra_imports=False):
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval',
+                     'mediawiki', 'help', 'raw_input', 'input',
+                     'clear', 'delete_last_output', 'sage_eval',
                      'search_doc','search_src', 'octave', 'license']:
             namespace[name] = getattr(sage_salvus, name)
 

@@ -54,7 +54,7 @@ process.on 'message', (opts, socket) ->
     term = pty.fork(opts.command, opts.args, term_opts)
 
     # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-    # CSI Ps ; Ps ; Ps t
+    # CSI  Ps ; Ps ; Ps t
     # CSI[4];[height];[width]t
     CSI = String.fromCharCode(0x9b)
     resize_sequence = undefined
