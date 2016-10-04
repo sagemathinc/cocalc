@@ -446,6 +446,7 @@ ChatRoom = (name) -> rclass
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
+        max_height  : rtypes.number
 
     getInitialState: ->
         input          : ''
@@ -495,7 +496,7 @@ ChatRoom = (name) -> rclass
             overflowY    : "auto"
             overflowX    : "hidden"
             width        : "380%"
-            height       : "65vh"
+            height       : "#{@props.max_height}"
             margin       : "0px 0px 0px 13px"
             padding      : "0"
 
@@ -543,17 +544,17 @@ ChatRoom = (name) -> rclass
 
 # boilerplate fitting this into SMC below
 
-render = (redux, project_id, path) ->
+render = (redux, project_id, path, max_height) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C = ChatRoom(name)
     <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} max_height={max_height} />
     </Redux>
 
-exports.render = (project_id, path, dom_node, redux) ->
+exports.render = (project_id, path, dom_node, redux, max_height) ->
     init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+    ReactDOM.render(render(redux, project_id, path, max_height), dom_node)
 
 exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
