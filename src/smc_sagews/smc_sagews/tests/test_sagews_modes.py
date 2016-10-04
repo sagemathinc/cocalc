@@ -6,34 +6,21 @@ import re
 from textwrap import dedent
 
 class TestShMode:
-    def test_start_sh(self, test_id, sagews):
+    def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
-        html_pattern = '\d{4}-\d{2}-\d{2}'
-        m = conftest.message.execute_code(code = code, id = test_id)
-        m['preparse'] = True
-        sagews.send_json(m)
-        # skip initial html responses but fail on deprecation warning
-        for loop_count in range(5):
-            typ, mesg = sagews.recv()
-            assert typ == 'json'
-            assert mesg['id'] == test_id
-            assert 'html' in mesg
-            if re.search(html_pattern, mesg['html']) is not None:
-                break
-        else:
-            pytest.fail("sh setup failed %s"%test_id)
-        conftest.recv_til_done(sagews, test_id)
+        patn = r'\d{4}-\d{2}-\d{2}'
+        exec2(code, pattern=patn, expect_doctype=True)
 
     # examples from sh mode docstring in sage_salvus.py
     # note jupyter kernel text ouput is displayed as html
     def test_single_line(self, exec2):
-        exec2("%sh pwd\n", html_pattern=">/")
+        exec2("%sh pwd\n", pattern="^/projects")
 
     def test_multiline(self, exec2):
-        exec2("%sh\nFOO=hello\necho $FOO", html_pattern="hello")
+        exec2("%sh\nFOO=hello\necho $FOO", pattern="hello")
 
     def test_direct_call(self, exec2):
-        exec2("sh('date +%Y-%m-%d')", html_pattern = '\d{4}-\d{2}-\d{2}')
+        exec2("sh('date +%Y-%m-%d')", pattern = r'\d{4}-\d{2}-\d{2}')
 
     def test_capture_sh_01(self, exec2):
         exec2("%capture(stdout='output')\n%sh uptime")
@@ -41,13 +28,12 @@ class TestShMode:
         exec2("output", pattern="up.*user.*load average")
 
     def test_remember_settings_01(self, exec2):
-        exec2("%sh FOO='testing123'", html_pattern="monospace")
-
+        exec2("%sh FOO='testing123'")
     def test_remember_settings_02(self, exec2):
-        exec2("%sh echo $FOO", html_pattern="testing123")
+        exec2("%sh echo $FOO", pattern=r"^testing123\s+")
 
     def test_sh_display(self, execblob, image_file):
-        execblob("%sh display < " + str(image_file))
+        execblob("%sh display < " + str(image_file), want_html=False)
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("%sh TESTVAR29=xyz")
@@ -63,22 +49,19 @@ class TestShMode:
         assert mesg['target'] == "$TESTV"
 
     def test_bad_command(self, exec2):
-        exec2("%sh xyz", html_pattern="command not found")
+        exec2("%sh xyz", pattern="command not found")
 
 class TestShDefaultMode:
     def test_start_sh(self, exec2):
         exec2("%default_mode sh")
     def test_start_sh2(self, exec2):
-        exec2("pwd")
-
-    def test_single_line(self, exec2):
-        exec2("pwd\n", html_pattern=">/")
+        exec2("pwd", pattern="^/project", expect_doctype=True)
 
     def test_multiline(self, exec2):
-        exec2("FOO=hello\necho $FOO", html_pattern="hello")
+        exec2("FOO=hello\necho $FOO", pattern="^hello")
 
     def test_date(self, exec2):
-        exec2("date +%Y-%m-%d", html_pattern = '\d{4}-\d{2}-\d{2}')
+        exec2("date +%Y-%m-%d", pattern = r'^\d{4}-\d{2}-\d{2}')
 
     def test_capture_sh_01(self, exec2):
         exec2("%capture(stdout='output')\nuptime")
@@ -86,12 +69,12 @@ class TestShDefaultMode:
         exec2("%sage\noutput", pattern="up.*user.*load average")
 
     def test_remember_settings_01(self, exec2):
-        exec2("FOO='testing123'", html_pattern="monospace")
+        exec2("FOO='testing123'")
     def test_remember_settings_02(self, exec2):
-        exec2("echo $FOO", html_pattern="testing123")
+        exec2("echo $FOO", pattern=r"^testing123\s+")
 
     def test_sh_display(self, execblob, image_file):
-        execblob("display < " + str(image_file))
+        execblob("display < " + str(image_file), want_html=False)
 
     def test_sh_autocomplete_01(self, exec2):
         exec2("TESTVAR29=xyz")
@@ -128,11 +111,11 @@ class TestRDefaultMode:
 
 class TestOctaveMode:
     def test_start_octave(self, exec2):
-        exec2("%octave", html_pattern = "DOCTYPE HTML PUBLIC")
+        exec2("%octave", expect_doctype=True)
 
     def test_octave_calc(self, exec2):
         code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
-        outp = "ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389 \+ 0.51038i"
+        outp = r"ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389\s+\+\s+0.51038i"
         exec2(code, pattern = outp)
 
     def test_octave_fibonacci(self, exec2):
@@ -154,7 +137,24 @@ class TestOctaveDefaultMode:
     def test_octave_capture1(self, exec2):
         exec2("%default_mode octave")
     def test_octave_capture2(self, exec2):
-        exec2("%capture(stdout='output')\nx = [1,2]", html_pattern = "DOCTYPE HTML PUBLIC")
+        exec2("%capture(stdout='output')\nx = [1,2]", expect_doctype=True)
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
+
+class TestJupyterModes:
+    # 'bash', 'ir', and 'octave' kernel tests above
+    def test_start_a3(self, exec2):
+        exec2('a3 = jupyter("anaconda3")', expect_doctype=True)
+
+    def test_issue_862(self, exec2):
+        exec2('%a3\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
+
+    def test_sagamath(self, exec2):
+        exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1', expect_doctype=True)
+
+    def test_julia1(self, exec2):
+        # julia kernel takes 8-12 sec to load
+        exec2('jlk=jupyter("julia")', expect_doctype=True)
+    def test_julia2(self, exec2):
+        exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 

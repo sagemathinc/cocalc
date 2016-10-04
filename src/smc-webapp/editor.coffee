@@ -1638,7 +1638,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars           : opts.electric_chars
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
-                autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
                 autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
@@ -1975,6 +1975,7 @@ class CodeMirrorEditor extends FileEditor
         @show()
         @focus()
         cm.focus()
+        @emit 'toggle-split-view'
 
     goto_line: (cm) =>
         focus = () =>
@@ -2034,6 +2035,9 @@ class CodeMirrorEditor extends FileEditor
         submit = () =>
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
+            $print_tempdir = dialog.find(".smc-file-printing-tempdir")
+            $print_tempdir.hide()
+            is_subdir = dialog.find(".salvus-file-print-keepfiles").is(":checked")
             dialog.find(".btn-submit").icon_spin(start:true)
             pdf = undefined
             async.series([
@@ -2048,7 +2052,7 @@ class CodeMirrorEditor extends FileEditor
                             author     : dialog.find(".salvus-file-print-author").text()
                             date       : dialog.find(".salvus-file-print-date").text()
                             contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            subdir     : dialog.find(".salvus-file-print-keepfiles").is(":checked")
+                            subdir     : is_subdir
                             extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
                         cb          : (err, _pdf) =>
                             if err
@@ -2065,8 +2069,29 @@ class CodeMirrorEditor extends FileEditor
                                 cb(err)
                             else
                                 url = mesg.url + "?nocache=#{Math.random()}"
-                                window.open(url,'_blank')
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                                if is_subdir
+                                    {join} = require('path')
+                                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
+                                    # if not reading it, tmp.tex is blank (?)
+                                    salvus_client.read_file_from_project
+                                        project_id : @project_id
+                                        path       : subdir_texfile
+                                        cb         : (err, mesg) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                tempdir_link = $('<a>').text('Click to open temporary file')
+                                                tempdir_link.click =>
+                                                    @editor.project_page.open_file
+                                                        path       : subdir_texfile
+                                                        foreground : true
+                                                    dialog.modal('hide')
+                                                    return false
+                                                $print_tempdir.html(tempdir_link)
+                                                $print_tempdir.show()
+                                else
+                                    window.open(url, '_blank')
                                 cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
@@ -3637,15 +3662,22 @@ class StaticHTML extends FileEditor
         if not @is_active()
             return
         if not @iframe?
-            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
-            # We do this, since otherwise just loading the iframe using
-            #      @iframe.contents().find('html').html(@content)
-            # messes up the parent html page...
-            @iframe.contents().find('body')[0].innerHTML = @content
-            @iframe.contents().find('body').find("a").attr('target','_blank')
+            # Setting the iframe in the *next* tick is critical on Firefox; otherwise, the browser
+            # just deletes what we set.  I do not claim to fully understand why, but this does work.
+            # See https://github.com/sagemathinc/smc/issues/843
+            # -- wstein
+            setTimeout(@set_iframe, 1)
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+
+    set_iframe: () =>
+        @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+        # We do this, since otherwise just loading the iframe using
+        #      @iframe.contents().find('html').html(@content)
+        # messes up the parent html page...
+        @iframe.contents().find('body')[0].innerHTML = @content
+        @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
     init_buttons: () =>

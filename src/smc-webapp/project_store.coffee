@@ -536,7 +536,7 @@ class ProjectActions extends Actions
             project_id : @project_id
             command    : 'rm'
             timeout    : 60
-            args       : ['-rf'].concat(opts.paths)
+            args       : ['-rf', '--'].concat(opts.paths)
             cb         : (err, result) =>
                 if err
                     @set_activity(id:id, error: "Network error while trying to delete #{mesg} -- #{err}", stop:'')
@@ -552,6 +552,9 @@ class ProjectActions extends Actions
             action : 'downloaded'
             files  : opts.path
         @_project().download_file(opts)
+
+    download_href : (path) ->
+        @_project().download_href(path)
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have

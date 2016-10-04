@@ -211,10 +211,12 @@ FileRow = rclass
                 </OverlayTrigger>
             </span>
 
+    fullpath : ->
+        misc.path_to_file(@props.current_path, @props.name)
+
     handle_click : (e) ->
-        fullpath = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.open_file
-            path       : fullpath
+            path       : @fullpath()
             foreground : misc.should_open_in_foreground(e)
         @props.actions.set_file_search('')
 
@@ -225,6 +227,8 @@ FileRow = rclass
             backgroundColor : @props.color
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+
+        href_download = @props.actions.download_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
@@ -241,7 +245,17 @@ FileRow = rclass
             </Col>
             <Col sm=4 smPush=5 xs=6>
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
-                <span className='pull-right' style={color:'#666'}>{human_readable_size(@props.size)}</span>
+                <span className='pull-right' style={color:'#666'}>
+                    {human_readable_size(@props.size)}
+                    <Button style={marginLeft: '1em'}
+                            bsStyle='default'
+                            bsSize='xsmall'
+                            target='_blank'
+                            href="#{href_download}"
+                            onClick = {(e)->e.stopPropagation()}>
+                        {String.fromCharCode("8615")}
+                    </Button>
+                </span>
             </Col>
             <Col sm=5 smPull=4 xs=12>
                 {@render_name()}

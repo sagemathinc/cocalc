@@ -660,3 +660,16 @@ code
   border-radius    : 3px
   margin-left      : 5px
   margin-right     : -5px
+
+
+/* IMPORTANT FOR SAGE WORKSHEETS!  Do not remove!
+   We override the bootstrap css styles, which hardcode a specific
+   pixel font-size for headers, and hence can't be zoomed.
+   See https://github.com/sagemathinc/smc/issues/585 */
+
+h1 { font-size: 250% }
+h2 { font-size: 200% }
+h3 { font-size: 170% }
+h4 { font-size: 150% }
+h5 { font-size: 130% }
+h6 { font-size: 110% }
