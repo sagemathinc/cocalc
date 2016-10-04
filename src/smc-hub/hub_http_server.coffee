@@ -85,10 +85,11 @@ exports.init_express_http_server = (opts) ->
             res.send('alive')
 
     router.get '/metrics', (req, res) ->
-        res.header("Content-Type", "application/json")
+        res.header("Content-Type", "text/plain")
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
         if opts.metricsRecorder?
-            res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
+            # res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
+            res.send(opts.metricsRecorder.get())
         else
             res.send(JSON.stringify(error:'no metrics recorder'))
 

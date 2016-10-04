@@ -3274,37 +3274,18 @@ stripe_sales_tax = (opts) ->
         opts.cb(undefined, misc_node.sales_tax(zip))
 
 # real-time reporting of hub metrics
-
 MetricsRecorder = require('./metrics-recorder')
 metricsRecorder = null
 
 init_metrics = (cb) ->
-    if program.statsfile?
-        # make it absolute, with defaults it will sit next to the hub.log file
-        if program.statsfile[0] != '/'
-            STATS_FN = path_module.join(SMC_ROOT, program.statsfile)
-        # make sure the directory exists
-        dir = require('path').dirname(STATS_FN)
-        if not fs.existsSync(dir)
-            fs.mkdirSync(dir)
-    else
-        STATS_FN = null
     dbg = (msg) -> winston.info("MetricsRecorder: #{msg}")
-    {number_of_clients} = require('./hub_register')
-    collect = () ->
-        try
-            record_metric('nb_clients', number_of_clients(), MetricsRecorder.TYPE.CONT)
-        catch err
-
-    metricsRecorder = new MetricsRecorder.MetricsRecorder(STATS_FN, dbg, collect, cb)
+    metricsRecorder = new MetricsRecorder.MetricsRecorder(dbg, cb)
 
 # use record_metric to update its state
-
 exports.record_metric = record_metric = (key, value, type) ->
     metricsRecorder?.record(key, value, type)
 
 # Support Tickets
-
 support = undefined
 init_support = (cb) ->
     {Support} = require('./support')
@@ -3416,6 +3397,11 @@ exports.start_server = start_server = (cb) ->
                     else
                         cb()
             ], cb)
+        (cb) ->
+            if not program.port
+                cb(); return
+            metricsRecorder.setup_monitoring()
+            cb()
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")

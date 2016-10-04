@@ -26,8 +26,15 @@
 
 fs         = require('fs')
 underscore = require('underscore')
-misc       = require('smc-util/misc')
+{defaults} = misc = require('smc-util/misc')
 
+# Prometheus client setup -- https://github.com/siimon/prom-client
+prom_client = require('prom-client')
+prom_default_metrics = prom_client.defaultMetrics
+prom_default_metrics(['process_cpu_seconds_total']) # we have our own cpu metrics
+# additionally, record GC statistics
+# https://www.npmjs.com/package/prometheus-gc-stats
+require('prometheus-gc-stats')()()
 
 # some constants
 FREQ_s     = 10   # write stats every FREQ seconds
@@ -47,18 +54,35 @@ DECAY = [d, Math.pow(d, 5), Math.pow(d, 15)]
 #       disc: discrete, like blocked, will be recorded with timestamp
 #             in a queue of length DISC_LEN
 exports.TYPE = TYPE =
+    COUNT: 'counter'    # strictly non-decrasing integer
+    GAUGE: 'gauge'      # only the most recent value is recorded
     LAST : 'latest'     # only the most recent value is recorded
     DISC : 'discrete'   # timeseries of length DISC_LEN
     CONT : 'continuous' # continuous with exponential decay
     MAX  : 'contmax'    # like CONT, reduces buffer to max value
     SUM  : 'contsum'    # like CONT, reduces buffer to sum of values divided by FREQ_s
 
+exports.new_counter = new_counter = (name, help, labels) ->
+    # a prometheus counter -- https://github.com/siimon/prom-client#counter
+    # use it like counter.labels(labelA, labelB).inc([positive number or default is 1])
+    if not name.endsWith('_total')
+        throw "Counter metric names have to end in [_unit]_total but I got '#{name}' -- https://prometheus.io/docs/practices/naming/"
+    return new prom_client.Counter(name, help, labels)
+
+exports.new_gauge = new_gauge = (name, help, labels) ->
+    # a prometheus gauge -- https://github.com/siimon/prom-client#gauge
+    # basically, use it like gauge.labels(labelA, labelB).set(value)
+    return new prom_client.Gauge(name, help, labels)
+
+exports.new_quantile = new_quantile = (name, help, config={}) ->
+    # invoked as quantile.observe(value)
+    config = defaults config,
+        percentiles: [0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999, 1.0]
+    return new prom_client.Summary(name, help, config)
 
 class exports.MetricsRecorder
-    constructor: (@filename, @dbg, @collect, cb) ->
+    constructor: (@dbg, cb) ->
         ###
-        * @filename: if set, periodically saved there. otherwise use @get.
-        * @collect: call this function on every _update
         * @dbg: e.g. reporting via winston or whatever
         ###
         # stores the current state of the statistics
@@ -67,6 +91,9 @@ class exports.MetricsRecorder
 
         # the full statistic
         @_data  = {}
+        @_lastCpuUsage = null
+
+        @_collectors = []
 
         # start of periodically calling publish/update
         setTimeout((=> setInterval(@_publish, FREQ_s * 1000)), DELAY_s * 1000)
@@ -76,18 +103,52 @@ class exports.MetricsRecorder
         # initialization finished
         cb?()
 
-    get: =>
-        return misc.deep_copy(@_data)
+    get: ->
+        ###
+        get a serialized representation of the metrics status
+        (was a dict that should be JSON, now it is for prometheus)
+        it's only called by hub_http_server for the /metrics endpoint
+        ###
+        #return misc.deep_copy(@_data)
+        return prom_client.register.metrics()
+
+    register_collector: (collector) ->
+        # The added collector functions will be evaluated periodically to gather metrics
+        @_collectors.push(collector)
+
+    setup_monitoring: ->
+        ###
+        setup monitoring of some components
+        called by the hub *after* setting up the DB, etc.
+        ###
+        num_clients_gauge = new_gauge('hub_clients_count', 'Number of connected clients')
+        {number_of_clients} = require('./hub_register')
+        @register_collector ->
+            num_clients_gauge.set(number_of_clients())
+
+        cpu_seconds_total = new_counter('hub_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
+        @register_collector =>
+            if not process.cpuUsage?
+                return
+            #cpuUsage = process.cpuUsage(@_lastCpuUsage)
+            #cpu_seconds_total.labels('user').inc(cpuUsage.user)
+            #cpu_seconds_total.labels('system').inc(cpuUsage.system)
+		    #@_lastCpuUsage = cpuUsage
+
+    _collect: ->
+        # called by @_update to evaluate the collector functions
+        for c in @_collectors
+            c()
 
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
     _update : ->
-        @collect?()
+        @_collect()
 
         smooth = (new_value, arr) ->
             arr ?= []
             arr[0] = new_value
-            # compute smoothed value sval for each decay param
+            # compute smoothed value `sval` for each decay param
             for d, idx in DECAY
                 sval = arr[idx + 1] ? new_value
                 sval = d * new_value + (1-d) * sval

@@ -134,6 +134,8 @@ class RethinkDB
             cb       : undefined
         dbg = @dbg('constructor')
 
+        @_setup_monitoring()
+
         @_debug            = opts.debug
         @_database         = opts.database
         @_num_connections  = opts.pool
@@ -197,6 +199,23 @@ class RethinkDB
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
+
+    _setup_monitoring: () ->
+        @_account_query_counter         = MetricsRecorder.new_counter('hub_db_account_query_total',
+                                                                      "Total number of '_account' calls", ['type'])
+        @_change_password_counter       = MetricsRecorder.new_counter('hub_db_change_password_total',
+                                                                      "Total number of 'change_password' calls", ['invalidate'])
+        @_change_email_address_counter  = MetricsRecorder.new_counter('hub_db_change_email_address_total',
+                                                                      "Total number of 'change_email_address' calls")
+        @_log_file_access_counter       = MetricsRecorder.new_counter('hub_db_log_file_access_total',
+                                                                      "Total number of 'log_file_access' calls", ['phase'])
+        @_log_file_access_size          = MetricsRecorder.new_gauge('hub_db_log_file_access_size',
+                                                                    'Number of entries in the @_log_file_access dict')
+        @_create_project_counter        = MetricsRecorder.new_counter('hub_db_create_project_total',
+                                                                      "Total number of 'create_project' calls", ['account_id'])
+        @_concurrent_gauge              = MetricsRecorder.new_gauge(  'hub_db_concurrent', 'Number of concurrent db queries')
+        @_modified_counter              = MetricsRecorder.new_counter('hub_db_modified_total',     "Number of modified documents", ['type'])
+        @_query_time_quantile           = MetricsRecorder.new_quantile('hub_db_query_summary',     'Quantile summary of query times')
 
     concurrent: () =>
         return @_concurrent_queries
@@ -405,15 +424,23 @@ class RethinkDB
                                 @_stats.n += 1
 
                                 # include some extra info about the query -- if it was a write this can be useful for debugging
-                                modified = (x?.inserted ? 0) + (x?.replaced ? 0) + (x?.deleted ? 0)
+                                mod_inserted = x?.inserted ? 0
+                                mod_replaced = x?.replaced ? 0
+                                mod_deleted  = x?.deleted  ? 0
+                                modified     = mod_inserted + mod_replaced + mod_deleted
                                 qtavg = Math.round(@_stats.sum/@_stats.n)
                                 winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
 
                                 {record_metric} = require('./hub')
-                                record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
-                                record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
-                                record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
-                                record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
+                                #record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
+                                that._concurrent_gauge.set(that._concurrent_queries)
+                                #record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
+                                that._modified_counter.labels('inserted').inc(mod_inserted)
+                                that._modified_counter.labels('replaced').inc(mod_replaced)
+                                that._modified_counter.labels('deleted').inc(mod_deleted)
+                                that._query_time_quantile.observe(tm / 1000.0)
+                                #record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
+                                #record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
 
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
@@ -920,6 +947,7 @@ class RethinkDB
             cb    : required
         @table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
+
 
     get_site_settings: (opts) =>
         opts = defaults opts,
@@ -1440,11 +1468,14 @@ class RethinkDB
     ###
     # Information about a specific account
     ###
+
     _account: (opts) =>
         query = @table('accounts')
         if opts.account_id?
+            @_account_query_counter.labels('account_id').inc()
             return query.getAll(opts.account_id)
         else if opts.email_address?
+            @_account_query_counter.labels('email_address').inc()
             return query.getAll(opts.email_address, {index:'email_address'})
         else
             throw Error("_account: opts must have account_id or email_address field")
@@ -1687,6 +1718,9 @@ class RethinkDB
                         cb         : cb
                 else
                     cb()
+            (cb) =>
+                @_change_password_counter.labels(opts.invalidate_remember_me).inc()
+                cb()
         ], opts.cb)
 
     # Change the email address, unless the email_address we're changing to is already taken.
@@ -1705,6 +1739,7 @@ class RethinkDB
                     opts.cb("email_already_taken")
                 else
                     @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
+                    @_change_email_address_counter.inc()
 
     ###
     # Password reset
@@ -1774,7 +1809,9 @@ class RethinkDB
             account_id : required
             filename   : required
             cb         : undefined
+        @_log_file_access_counter.labels('initial').inc()
         if not @_validate_opts(opts) then return
+        @_log_file_access_counter.labels('valid').inc()
         @_log_file_access ?= {}
         key = "#{opts.project_id}#{opts.account_id}#{opts.filename}"
         v = @_log_file_access[key]
@@ -1795,7 +1832,9 @@ class RethinkDB
                 if v < minute_ago
                     delete @_log_file_access[k]
 
+        @_log_file_access_counter.labels('final').inc()
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
+        @_log_file_access_size.set(underscore.size(@_log_file_access))
 
     ###
     Query for all files accessed in all projects in given time range.
@@ -1829,6 +1868,7 @@ class RethinkDB
             last_edited : new Date()
             users       : {}
         project.users[opts.account_id] = {group:'owner'}
+        @_create_project_counter.inc()
         @table('projects').insert(project).run (err, x) =>
             opts.cb(err, x?.generated_keys[0])
 

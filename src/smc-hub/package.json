@@ -37,6 +37,8 @@
     "password-hash": "^1.2.2",
     "pdfkit": "^0.7.1",
     "primus": "^4.0.1",
+    "prom-client": "^5.0.2",
+    "prometheus-gc-stats": "^0.3.0",
     "read": "^1.0.5",
     "require-reload": "^0.2.2",
     "rethinkdb": "^2.3.1",
