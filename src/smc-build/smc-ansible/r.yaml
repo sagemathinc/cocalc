@@ -465,6 +465,8 @@
     - maptree
     - nortest
     - plotly
+    - AER
+    - QuantPsych
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html

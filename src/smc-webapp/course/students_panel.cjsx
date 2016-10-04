@@ -97,11 +97,14 @@ exports.StudentsPanel = rclass
                         if email_address?
                             existing_students.email[email_address] = true
                     return aa
-                select = (x for x in select when not exclude_add(x.account_id, x.email_address))
+                select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
                 # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                select = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select)
+                # NOTE (see comment on https://github.com/sagemathinc/smc/issues/677): it is very important to pass in
+                # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
+                # bringing back everything in the search, which is a bug.
+                select3 = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select2)
                 # We are no longer searching, but now show an options selector.
-                @setState(add_searching:false, add_select:select, existing_students:existing_students)
+                @setState(add_searching:false, add_select:select3, existing_students:existing_students)
 
     student_add_button : ->
         <Button onClick={@do_add_search}>
