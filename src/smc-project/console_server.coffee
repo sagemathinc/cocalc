@@ -44,6 +44,9 @@ message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
 {secret_token_filename} = require('./common.coffee')
 
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+daemon         = require("start-stop-daemon")
+
 port_manager = require('./port_manager')
 misc = require('smc-util/misc')
 {to_json, from_json, defaults, required} = misc
@@ -58,10 +61,11 @@ abspath = (path) ->
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
-DATA = path.join(process.env['SMC'], 'console_server')
+DATA = path.join(process.env.SMC, 'console_server')
 
-if not fs.existsSync(process.env['SMC'])
-    fs.mkdirSync(process.env['SMC'])
+if not fs.existsSync(process.env.SMC)
+    fs.mkdirSync(process.env.SMC)
+
 if not fs.existsSync(DATA)
     fs.mkdirSync(DATA)
 
@@ -74,7 +78,6 @@ if not fs.existsSync(DATA)
 ##################################################################
 
 misc = require('smc-util/misc')
-
 
 secret_token = undefined
 
@@ -169,36 +172,56 @@ handle_client = (socket, mesg) ->
     catch e
         winston.error "ERROR: '#{e}' handling message '#{to_json(mesg)}'"
 
-server = net.createServer (socket) ->
-    winston.debug "PARENT: received connection"
+handle_connection = (socket) ->
+    winston.debug("PARENT: received a new connection")
     misc_node.unlock_socket socket, secret_token, (err) ->
         if not err
-            # Receive a single message:
+            winston.debug("enable receiving message...")
             misc_node.enable_mesg(socket)
             socket.on 'mesg', (type, mesg) ->
-                winston.debug "received control mesg #{to_json(mesg)}"
+                winston.debug("received control mesg #{to_json(mesg)}")
                 handle_client(socket, mesg)
+        else
+            winston.error("Error unlocking socket - #{err}")
 
 # Start listening for connections on the socket.
 start_server = (cb) ->
+    server = net.createServer(handle_connection)
     async.series([
         (cb) ->
-            # read the secret token
+            winston.debug("read the secret token")
             read_token(cb)
         (cb) ->
-            # start listening for incoming connections
+            winston.debug("start listening for incoming connections")
             server.listen(0, '127.0.0.1', cb)
         (cb) ->
-            # write port that we are listening on to port file
-            fs.writeFile(port_manager.port_file('console'), server.address().port, cb)
+            port = server.address().port
+            file = port_manager.port_file('console')
+            winston.debug("write port (=#{port}) that we are listening on to port file (=#{file})")
+            fs.writeFile(file, port, cb)
     ], (err) ->
         if err
-            cb(err)
+            cb?(err)
         else
             winston.info("listening on port #{server.address().port}")
-            cb()
+            cb?()
     )
 
-start_server (err) ->
-    if err
-        winston.debug("failed to start console server")
+HOME = process.env.HOME
+default_pid = "#{HOME}/.smc/console_server/console_server.pid"
+default_log = "#{HOME}/.smc/console_server/console_server.log"
+program.usage('[start/stop/restart/status/nodaemon] [options]')
+    .option('--pidfile [string]', "store pid in this file (default: #{default_pid})", String, default_pid)
+    .option('--logfile [string]', "write log to this file (default: #{default_log})", String, default_log)
+    .parse(process.argv)
+
+process.addListener "uncaughtException", (err) ->
+    winston.debug("BUG ****************************************************************************")
+    winston.debug("Uncaught exception: " + err)
+    winston.debug(err.stack)
+    winston.debug("BUG ****************************************************************************")
+
+console.log("Running console_server; pidfile=#{program.pidfile}, logfile=#{program.logfile}")
+
+# logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
+daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

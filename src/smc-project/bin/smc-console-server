@@ -2,21 +2,24 @@
 
 import os, sys
 
-if not 'SMC' in os.environ:
-    os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
-
 os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
+os.system("coffee ./console_server.coffee %s"%sys.argv[1])
 
-data = os.path.join(os.environ['SMC'], 'console_server')
-if not os.path.exists(data):
-    os.makedirs(data)
-elif sys.argv[1] == 'start':
-    for x in os.listdir(data):
-        os.unlink(os.path.join(data, x))
-
-path = os.path.split(os.path.realpath(__file__))[0] + '/..'
-target = os.path.abspath(os.path.join(path, 'console_server.coffee'))
-
-cmd = "forever %s -c coffee  -l $SMC/console_server/console_server.log --pidFile $SMC/console_server/console_server.pid -p $SMC/forever/  %s"%(sys.argv[1], target)
-
-os.system(cmd)
+#if 'SMC' not in os.environ:
+#    os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
+#
+#os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
+#
+#data = os.path.join(os.environ['SMC'], 'console_server')
+#if not os.path.exists(data):
+#    os.makedirs(data)
+#elif sys.argv[1] == 'start':
+#    for x in os.listdir(data):
+#        os.unlink(os.path.join(data, x))
+#
+#path = os.path.split(os.path.realpath(__file__))[0] + '/..'
+#target = os.path.abspath(os.path.join(path, 'console_server.coffee'))
+#
+#cmd = "forever %s -c coffee  -l $SMC/console_server/console_server.log --pidFile $SMC/console_server/console_server.pid -p $SMC/forever/  %s"%(sys.argv[1], target)
+#
+#os.system(cmd)

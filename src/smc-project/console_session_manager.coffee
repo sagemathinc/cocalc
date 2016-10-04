@@ -139,9 +139,72 @@ class ConsoleSessions
                 session.clients.push(client_socket)
                 cb?()
 
+    get_session: (mesg, cb) =>
+        dbg = (m) -> winston.debug("console.get_session: #{m}")
+        # NOTE: must be robust against multiple clients opening same session_id at once, which
+        # would be likely to happen on network reconnect.
+        dbg("get_session: console session #{mesg.session_uuid}")
+        session = @_sessions[mesg.session_uuid]
+        if session? and session.status == 'running'
+            dbg("console session: done -- it's already there and working")
+            cb(undefined, session)
+            return
+
+        if not @_get_session_cbs[mesg.session_uuid]?
+            dbg("console session not yet created -- put on stack")
+            @_get_session_cbs[mesg.session_uuid] = [cb]
+        else
+            dbg("console session already being created -- just push cb onto stack and return")
+            @_get_session_cbs[mesg.session_uuid].push(cb)
+            return
+
+        history = session?.history # maintain history
+        dbg("console session does not exist or is not running, so we make a new session")
+        session = undefined
+
+        async.series([
+            (cb) =>
+                # Fork off the console child process that will actually handle the tty.
+                child = child_process.fork(__dirname + '/console_server_child.coffee', [])
+
+                # Get the pid of the child
+                pid = child.pid
+
+                # Disable use of the socket for sending/receiving messages, since
+                # it will be only used for raw xterm stuff hence.
+                misc_node.disable_mesg(socket)
+
+                # Give the socket to the child, along with the options.
+                child.send(opts, socket)
+
+        ], (err) =>
+            # call all the callbacks that were waiting on this session.
+            for cb in @_get_session_cbs[mesg.session_uuid]
+                cb(err, session)
+            delete @_get_session_cbs[mesg.session_uuid]
+        )
+
+    # Connect to (if 'running'), restart (if 'dead'), or create (if
+    # non-existing) the console session with mesg.session_uuid.
+    connect0: (client_socket, mesg, cb) =>
+        if not mesg.session_uuid?
+            mesg.session_uuid = misc.uuid()
+        client_socket.on 'end', () =>
+            winston.debug("a console session client socket ended -- session_uuid=#{mesg.session_uuid}")
+            #client_socket.destroy()
+        @get_session0 mesg, (err, session) =>
+            if err
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
+                cb?(err)
+            else
+                client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
+                misc_node.plug(client_socket, session.socket, 20000)  # 20000 = max burst to client every few ms.
+                session.clients.push(client_socket)
+                cb?()
+
     # Get or create session with given uuid.
     # Can be safely called several times at once without creating multiple sessions...
-    get_session: (mesg, cb) =>
+    get_session0: (mesg, cb) =>
         # NOTE: must be robust against multiple clients opening same session_id at once, which
         # would be likely to happen on network reconnect.
         winston.debug("get_session: console session #{mesg.session_uuid}")
@@ -324,6 +387,8 @@ class ConsoleSessions
                     for client in session.clients
                         # close all of these connections
                         client.end()
+
+
 
     # Return object that describes status of all Console sessions
     info: (project_id) =>
