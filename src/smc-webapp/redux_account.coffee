@@ -137,7 +137,6 @@ class AccountActions extends Actions
                     window.location.reload(false)
 
     push_state: (url) =>
-        console.log("setting", url)
         {set_url} = require('./history')
         if not url?
             url = @_last_history_state
