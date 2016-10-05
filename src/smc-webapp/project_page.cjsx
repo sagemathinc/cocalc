@@ -1,6 +1,7 @@
 ###
 project page react component
 ###
+{IS_MOBILE} = require('./feature')
 
 # 3rd party Libraries
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
@@ -361,7 +362,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     axis={'x'}
                     lockAxis={'x'}
                     lockToContainerEdges
-                    distance={3}
+                    distance={3 if not IS_MOBILE}
                     bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
                 >
                     {@file_tabs()}

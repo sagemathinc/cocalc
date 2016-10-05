@@ -1,3 +1,5 @@
+{isMobile} = require('./feature')
+
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Navbar, Nav, NavItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
@@ -218,7 +220,7 @@ Page = rclass
             onSortEnd={@on_sort_end}
             axis={'x'}
             lockAxis={'x'}
-            distance={3}
+            distance={3 if not isMobile.tablet()}
         >
             {@project_tabs()}
         </SortableNav>

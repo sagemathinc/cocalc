@@ -32,6 +32,7 @@ isMobile = exports.isMobile =
     BlackBerry : () -> !! navigator.userAgent.match(/BlackBerry/i)
     iOS        : () -> !! navigator.userAgent.match(/iPhone|iPad|iPod/i)
     Windows    : () -> !! navigator.userAgent.match(/IEMobile/i)
+    tablet     : () -> !! navigator.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
     any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
 if not $?
