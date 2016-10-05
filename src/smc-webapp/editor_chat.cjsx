@@ -1046,7 +1046,7 @@ ChatRoom = rclass ({name}) ->
                                 value       = {@props.input}
                                 placeholder = {'Type a message...'}
                                 onClick     = {@mark_as_read}
-                                onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input.value))}
+                                onChange    = {(value)=>@props.actions.set_input(ReactDOM.findDOMNode(@refs.input).value)}
                                 style       = {@mobile_chat_input_style}
                                 />
                         </FormGroup>
