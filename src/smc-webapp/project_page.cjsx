@@ -498,7 +498,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                         tooltip={v.tooltip}
                         project_id={@props.project_id}
                         is_active={@props.active_project_tab == k}
-                        shrink={@props.open_files_order.size != 0}
+                        shrink={@props.open_files_order.size != 0 or $(window).width() < 370}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
                 <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}>
