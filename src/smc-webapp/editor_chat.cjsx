@@ -107,7 +107,6 @@ class ChatActions extends Actions
         if m != messages
             @setState(messages: messages)
             if @redux.getStore(@name).get('saved_position') + @redux.getStore(@name).get('offset') + 20 >  @redux.getStore(@name).get('height')
-                console.log('marked read by syncdb change action')
                 project_id = @name.slice(7,43)
                 path = @name.slice(44)
                 @redux.getActions('file_use').mark_file(project_id, path, 'seen', 0, false)
@@ -696,7 +695,6 @@ ChatRoom = (name) -> rclass
         preview        : ''
 
     mark_as_read: ->
-        console.log('Marking as read')
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'seen', 0, false)
 
     keydown : (e) ->
@@ -789,12 +787,10 @@ ChatRoom = (name) -> rclass
                 @scroll_to_bottom()
 
     on_scroll: (e) ->
-        console.log('on scroll')
         @_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
         if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
-            console.log('mark as read')
             @mark_as_read()
         e.preventDefault()
 
