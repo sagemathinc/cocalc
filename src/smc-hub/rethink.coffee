@@ -51,7 +51,7 @@ required = defaults.required
 
 {UserQueryStats} = require './user-query-stats'
 
-MetricsRecorder    = require('./metrics-recorder')
+MetricsRecorder  = require('./metrics-recorder')
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 4
@@ -201,23 +201,25 @@ class RethinkDB
         )
 
     _setup_monitoring: () ->
-        @_account_query_counter         = MetricsRecorder.new_counter('hub_db_account_query_total',
-                                                                      "Total number of '_account' calls", ['type'])
-        @_change_password_counter       = MetricsRecorder.new_counter('hub_db_change_password_total',
-                                                                      "Total number of 'change_password' calls", ['invalidate'])
-        @_change_email_address_counter  = MetricsRecorder.new_counter('hub_db_change_email_address_total',
-                                                                      "Total number of 'change_email_address' calls")
-        @_log_file_access_counter       = MetricsRecorder.new_counter('hub_db_log_file_access_total',
-                                                                      "Total number of 'log_file_access' calls", ['phase'])
-        @_log_file_access_size          = MetricsRecorder.new_gauge('hub_db_log_file_access_size',
-                                                                    'Number of entries in the @_log_file_access dict')
-        @_create_project_counter        = MetricsRecorder.new_counter('hub_db_create_project_total',
-                                                                      "Total number of 'create_project' calls", ['account_id'])
-        @_concurrent_gauge              = MetricsRecorder.new_gauge(  'hub_db_concurrent', 'Number of concurrent db queries')
-        @_modified_counter              = MetricsRecorder.new_counter('hub_db_modified_total',     "Number of modified documents", ['type'])
-        @_query_time_quantile           = MetricsRecorder.new_quantile('hub_db_query_summary',     'Quantile summary of query times')
+        @_account_query_counter         = MetricsRecorder.new_counter( 'db_account_query_total',
+                                                                       "Total number of '_account' calls", ['type'])
+        @_change_password_counter       = MetricsRecorder.new_counter( 'db_change_password_total',
+                                                                       "Total number of 'change_password' calls", ['invalidate'])
+        @_change_email_address_counter  = MetricsRecorder.new_counter( 'db_change_email_address_total',
+                                                                       "Total number of 'change_email_address' calls")
+        @_log_file_access_counter       = MetricsRecorder.new_counter( 'db_log_file_access_total',
+                                                                       "Total number of 'log_file_access' calls", ['phase'])
+        @_log_file_access_size          = MetricsRecorder.new_gauge(   'db_log_file_access_size',
+                                                                       'Number of entries in the @_log_file_access dict')
+        @_create_project_counter        = MetricsRecorder.new_counter( 'db_create_project_total',
+                                                                       "Total number of 'create_project' calls", ['account_id'])
+        @_concurrent_gauge              = MetricsRecorder.new_gauge(   'db_concurrent',         'Number of concurrent db queries')
+        @_concurrent_quantile           = MetricsRecorder.new_quantile('db_concurrent_summary', 'Distribution of concurrent db queries')
+        @_modified_counter              = MetricsRecorder.new_counter( 'db_modified_total',  "Number of modified documents", ['type'])
+        @_query_time_quantile           = MetricsRecorder.new_quantile('db_query_summary',   'Quantile summary of query times')
 
     concurrent: () =>
+        # TODO maybe switch to use the 0.99 @_concurrent_quantile here?
         return @_concurrent_queries
 
     _connect: (cb) =>
@@ -432,15 +434,12 @@ class RethinkDB
                                 winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{qtavg}ms;  -- '#{query_string}'")
 
                                 {record_metric} = require('./hub')
-                                #record_metric('concurrent',     that._concurrent_queries,    MetricsRecorder.TYPE.MAX)
                                 that._concurrent_gauge.set(that._concurrent_queries)
-                                #record_metric('modified',       modified,                    MetricsRecorder.TYPE.SUM)
+                                that._concurrent_quantile.observe(that._concurrent_queries)
                                 that._modified_counter.labels('inserted').inc(mod_inserted)
                                 that._modified_counter.labels('replaced').inc(mod_replaced)
                                 that._modified_counter.labels('deleted').inc(mod_deleted)
                                 that._query_time_quantile.observe(tm / 1000.0)
-                                #record_metric('query_time_max', tm,                          MetricsRecorder.TYPE.MAX)
-                                #record_metric('query_time_avg', qtavg,                       MetricsRecorder.TYPE.CONT)
 
                                 if modified >= that._mod_warn
                                     winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")

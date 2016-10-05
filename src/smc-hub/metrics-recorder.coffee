@@ -27,6 +27,7 @@
 fs         = require('fs')
 path       = require('path')
 underscore = require('underscore')
+{execSync} = require('child_process')
 {defaults} = misc = require('smc-util/misc')
 
 # Prometheus client setup -- https://github.com/siimon/prom-client
@@ -43,6 +44,11 @@ DELAY_s    = 5    # with an initial delay of DELAY seconds
 DISC_LEN   = 10   # length of queue for recording discrete values
 MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
 
+# CLK_TCK (usually 100, but maybe not ...)
+try
+    CLK_TCK = parseInt(execSync('getconf CLK_TCK', {encoding: 'utf8'}))
+catch err
+    CLK_TCK = null
 
 # exponential smoothing, based on linux's load 1-exp(-1) smoothing
 # with compensation for sampling time FREQ_s
@@ -78,8 +84,10 @@ exports.new_gauge = new_gauge = (name, help, labels) ->
 exports.new_quantile = new_quantile = (name, help, config={}) ->
     # invoked as quantile.observe(value)
     config = defaults config,
+        # a few more than the default, in particular including the actual min and max
         percentiles: [0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999, 1.0]
-    return new prom_client.Summary(name, help, config)
+        labels : []
+    return new prom_client.Summary(name, help, config.labels, percentiles: config.percentiles)
 
 class exports.MetricsRecorder
     constructor: (@dbg, cb) ->
@@ -92,6 +100,7 @@ class exports.MetricsRecorder
 
         # the full statistic
         @_data  = {}
+        @_init_monitoring()
 
         @_collectors = []
 
@@ -116,6 +125,10 @@ class exports.MetricsRecorder
         # The added collector functions will be evaluated periodically to gather metrics
         @_collectors.push(collector)
 
+    _init_monitoring: ->
+        # called by constructor, just initalize state variables
+        @dbg("CLK_TCK: #{CLK_TCK}")
+
     setup_monitoring: ->
         ###
         setup monitoring of some components
@@ -127,12 +140,8 @@ class exports.MetricsRecorder
             num_clients_gauge.set(number_of_clients())
 
         # our own CPU metrics monitor, separating user and sys!
-        @_lastCpuUsage =
-            user:      0.0
-            system:    0.0
-            chld_user: 0.0
-            chld_time: 0.0
-        @_cpu_seconds_total = new_counter('process_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
+        # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
+        @_cpu_seconds_total = new_gauge('process_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
 
     _collect: ->
         # called by @_update to evaluate the collector functions
@@ -140,22 +149,17 @@ class exports.MetricsRecorder
             c()
 
         # linux specific: collecting this process and all its children sys+user times
+        # http://man7.org/linux/man-pages/man5/proc.5.html
         fs.readFile path.join('/proc', ''+process.pid, 'stat'), 'utf8', (err, infos) =>
-            if err
+            if err or not CLK_TCK?
                 return
-            index = infos.lastIndexOf(')')
-            infos = infos.substr(index + 2).split(' ')
-            cpu =
-                user:       parseFloat(infos[11])
-                system:     parseFloat(infos[12])
-                chld_user:  parseFloat(infos[13])
-                chld_time:  parseFloat(infos[14])
-            @_cpu_seconds_total.labels('user')       .inc(cpu.user        - @_lastCpuUsage.user)
-            @_cpu_seconds_total.labels('system')     .inc(cpu.system      - @_lastCpuUsage.system)
-            @_cpu_seconds_total.labels('chld_user')  .inc(cpu.chld_user   - @_lastCpuUsage.chld_user)
-            @_cpu_seconds_total.labels('chld_system').inc(cpu.chld_system - @_lastCpuUsage.chld_system)
-
-            @_lastCpuUsage = cpu
+            # there might be spaces in the process name, hence split after the closing bracket!
+            infos = infos[infos.lastIndexOf(')') + 2...].split(' ')
+            @_cpu_seconds_total.labels('user')       .set(parseFloat(infos[11]) / CLK_TCK)
+            @_cpu_seconds_total.labels('system')     .set(parseFloat(infos[12]) / CLK_TCK)
+            # time spent waiting on child processes
+            @_cpu_seconds_total.labels('chld_user')  .set(parseFloat(infos[13]) / CLK_TCK)
+            @_cpu_seconds_total.labels('chld_system').set(parseFloat(infos[14]) / CLK_TCK)
 
 
     # every FREQ_s the _data dict is being updated

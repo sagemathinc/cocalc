@@ -20,16 +20,12 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_node    = require('smc-util-node/misc_node')
-
 hub_register = require('./hub_register')
-
 auth         = require('./auth')
-
 access       = require('./access')
-
 hub_proxy    = require('./proxy')
-
 hub_projects = require('./projects')
+MetricsRecorder  = require('./metrics-recorder')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe-invoice')
@@ -52,6 +48,21 @@ exports.init_express_http_server = (opts) ->
     router = express.Router()
     app    = express()
     router.use(body_parser.urlencoded({ extended: true }))
+
+    # initialize metrics
+    static_counter = MetricsRecorder.new_quantile('http', 'http server',
+                                                      percentiles : [0, 0.5, 0.9, 0.99, 1]
+                                                      labels: ['path', 'method', 'code']
+                                                 )
+
+    router.use (req, res, next) ->
+        start = new Date()
+        original_end = res.end
+        res.end = ->
+            response_time = (new Date() - start) / 1000
+            original_end.apply(res, arguments)
+            static_counter.labels(req.path, req.method, req.statusCode).observe(response_time)
+        next()
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
     webpackHeaderControl = (res, path) ->
