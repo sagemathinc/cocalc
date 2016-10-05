@@ -61,7 +61,9 @@ exports.init_express_http_server = (opts) ->
         res.end = ->
             response_time = (new Date() - start) / 1000
             original_end.apply(res, arguments)
-            static_counter.labels(req.path, req.method, req.statusCode).observe(response_time)
+            # we're only interested in the first part
+            path = req.path.split('/')[1] # for two levels: split('/')[1..2].join('/')
+            static_counter.labels(path, req.method, req.statusCode).observe(response_time)
         next()
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...

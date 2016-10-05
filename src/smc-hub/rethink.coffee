@@ -217,6 +217,8 @@ class RethinkDB
         @_concurrent_quantile           = MetricsRecorder.new_quantile('db_concurrent_summary', 'Distribution of concurrent db queries')
         @_modified_counter              = MetricsRecorder.new_counter( 'db_modified_total',  "Number of modified documents", ['type'])
         @_query_time_quantile           = MetricsRecorder.new_quantile('db_query_summary',   'Quantile summary of query times')
+        # TODO add unique error codes to the reported errors
+        @_client_error_counter          = MetricsRecorder.new_counter( 'db_client_error_total', 'Counts the number of client_errors', ['error', 'code'])
 
     concurrent: () =>
         # TODO maybe switch to use the 0.99 @_concurrent_quantile here?
@@ -919,6 +921,8 @@ class RethinkDB
         if opts.account_id?
             x.account_id = opts.account_id
         @table('client_error_log').insert(x).run((err)=>opts.cb?(err))
+        # TODO add unique error codes for the reported error types
+        @_client_error_counter.inc(error: opts.error, code: '')
 
     get_client_error_log: (opts={}) =>
         opts = defaults opts,

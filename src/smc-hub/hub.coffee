@@ -82,6 +82,9 @@ hub_http_server = require('./hub_http_server')
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
 
+# recording metrics and statistics
+MetricsRecorder = require('./metrics-recorder')
+
 # How frequently to register with the database that this hub is up and running,
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
@@ -121,6 +124,14 @@ database           = null
 
 # the connected clients
 clients = require('./clients').get_clients()
+
+# setting up client metrics
+mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
+                                   'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
+push_to_client_summary         = MetricsRecorder.new_summary('push_to_client',
+                                   'summary stats for Client::push_to_client', labels: ['event'])
+push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
+                                   'summary stats for Client::push_to_client/to_json', labels: ['event'])
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -322,6 +333,7 @@ class Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 winston.debug("client=#{@id}: [#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
+                push_to_client_summary.labels(''+mesg.event).observe(time_taken / 1000)
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
@@ -347,6 +359,7 @@ class Client extends EventEmitter
         if tm > 10
             winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
         @push_data_to_client(JSON_CHANNEL, json)
+        push_to_client_to_json_summary.labels(''+mesg.event).observe(tm / 1000)
         if not listen
             cb?()
             return
@@ -611,12 +624,16 @@ class Client extends EventEmitter
 
     handle_json_message_from_client: (data) =>
         if @_ignore_client
+            mesg_from_client_total.labels('ignore', '').inc()
             return
         try
             mesg = from_json(data)
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
+            mesg_from_client_total.labels('error', '').inc()
             return
+
+        mesg_from_client_total.labels('ok', ''+mesg.event).inc()
         #winston.debug("got message: #{data}")
         if mesg.event != 'ping'
             winston.debug("hub <-- client (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 120)}")
@@ -637,6 +654,7 @@ class Client extends EventEmitter
             handler(mesg)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
+            mesg_from_client_total.labels('unknown', ''+mesg.event).inc()
             if mesg.event == 'get_all_activity'
                 winston.debug("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
@@ -3274,7 +3292,6 @@ stripe_sales_tax = (opts) ->
         opts.cb(undefined, misc_node.sales_tax(zip))
 
 # real-time reporting of hub metrics
-MetricsRecorder = require('./metrics-recorder')
 metricsRecorder = null
 
 init_metrics = (cb) ->

@@ -88,6 +88,7 @@ exports.new_quantile = new_quantile = (name, help, config={}) ->
         percentiles: [0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999, 1.0]
         labels : []
     return new prom_client.Summary(name, help, config.labels, percentiles: config.percentiles)
+exports.new_summary = new_summary = new_quantile
 
 class exports.MetricsRecorder
     constructor: (@dbg, cb) ->
