@@ -21,10 +21,11 @@
 
 # This is a small helper class to record real-time metrics about the hub.
 # It is designed for the hub, such that a local process can easily check its health.
-# optionally, it stores the metrics to a status file -- TODO: also push this to the DB
-# usage: after init, publish key/value pairs which are then going to be reported
+# After an initial version, this has been repurposed to use prometheus.
+# It wraps its client elements and adds some instrumentation to some hub components.
 
 fs         = require('fs')
+path       = require('path')
 underscore = require('underscore')
 {defaults} = misc = require('smc-util/misc')
 
@@ -91,7 +92,6 @@ class exports.MetricsRecorder
 
         # the full statistic
         @_data  = {}
-        @_lastCpuUsage = null
 
         @_collectors = []
 
@@ -121,24 +121,42 @@ class exports.MetricsRecorder
         setup monitoring of some components
         called by the hub *after* setting up the DB, etc.
         ###
-        num_clients_gauge = new_gauge('hub_clients_count', 'Number of connected clients')
+        num_clients_gauge = new_gauge('clients_count', 'Number of connected clients')
         {number_of_clients} = require('./hub_register')
         @register_collector ->
             num_clients_gauge.set(number_of_clients())
 
-        cpu_seconds_total = new_counter('hub_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
-        @register_collector =>
-            if not process.cpuUsage?
-                return
-            #cpuUsage = process.cpuUsage(@_lastCpuUsage)
-            #cpu_seconds_total.labels('user').inc(cpuUsage.user)
-            #cpu_seconds_total.labels('system').inc(cpuUsage.system)
-		    #@_lastCpuUsage = cpuUsage
+        # our own CPU metrics monitor, separating user and sys!
+        @_lastCpuUsage =
+            user:      0.0
+            system:    0.0
+            chld_user: 0.0
+            chld_time: 0.0
+        @_cpu_seconds_total = new_counter('process_cpu_seconds_total', 'Total number of CPU seconds used', ['type'])
 
     _collect: ->
         # called by @_update to evaluate the collector functions
         for c in @_collectors
             c()
+
+        # linux specific: collecting this process and all its children sys+user times
+        fs.readFile path.join('/proc', ''+process.pid, 'stat'), 'utf8', (err, infos) =>
+            if err
+                return
+            index = infos.lastIndexOf(')')
+            infos = infos.substr(index + 2).split(' ')
+            cpu =
+                user:       parseFloat(infos[11])
+                system:     parseFloat(infos[12])
+                chld_user:  parseFloat(infos[13])
+                chld_time:  parseFloat(infos[14])
+            @_cpu_seconds_total.labels('user')       .inc(cpu.user        - @_lastCpuUsage.user)
+            @_cpu_seconds_total.labels('system')     .inc(cpu.system      - @_lastCpuUsage.system)
+            @_cpu_seconds_total.labels('chld_user')  .inc(cpu.chld_user   - @_lastCpuUsage.chld_user)
+            @_cpu_seconds_total.labels('chld_system').inc(cpu.chld_system - @_lastCpuUsage.chld_system)
+
+            @_lastCpuUsage = cpu
+
 
     # every FREQ_s the _data dict is being updated
     # e.g current value, exp decay, later on also "intelligent" min/max, etc.
