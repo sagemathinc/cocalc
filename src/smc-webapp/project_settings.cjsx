@@ -194,13 +194,13 @@ UpgradeAdjustor = rclass
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
-            <Row key={name}>
+            <Row key={name} style={marginTop:'5px'}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
-                    ({1 - val} of {show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                    You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
                 <Col sm=6>
                     <form>
@@ -240,17 +240,25 @@ UpgradeAdjustor = rclass
                 label = <span></span>
 
             remaining_all = Math.max(show_remaining, 0)
-            schema_limit = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+            schema_limit = PROJECT_UPGRADES.max_per_project
+            display_factor = PROJECT_UPGRADES.params[name].display_factor
             # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
-            remaining_limit = Math.max(0, Math.min(remaining_all, schema_limit["#{name}"]) - current_input)
+            total_limit = schema_limit[name]*display_factor
 
-            <Row key={name}>
+            unit = misc.plural(show_remaining, display_unit)
+            if total_limit < remaining
+                remaining_note = <span> You have {remaining_all} unallocated {unit} (you may allocate up to {total_limit} {unit} here)</span>
+
+            else
+                remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
+
+            <Row key={name} style={marginTop:'5px'}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
-                    ({remaining_limit} of {remaining_all} {misc.plural(show_remaining, display_unit)} remaining)
+                    {remaining_note}
                 </Col>
                 <Col sm=6>
                     <FormGroup>
@@ -345,7 +353,7 @@ UpgradeAdjustor = rclass
             maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
             limits = misc.map_limit(limits, maximum)
 
-            <Alert bsStyle='info'>
+            <Alert bsStyle='warning'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
@@ -362,7 +370,7 @@ UpgradeAdjustor = rclass
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
 
-                <ButtonToolbar>
+                <ButtonToolbar style={marginTop:'10px'}>
                     <Button
                         bsStyle  = 'primary'
                         onClick  = {=>@save_upgrade_quotas(remaining)}
@@ -433,8 +441,8 @@ QuotaConsole = rclass
         factor = params_data.display_factor
         unit   = params_data.display_unit
 
+        upgrade_list = []
         if upgrades?
-            upgrade_list = []
             for id, val of upgrades
                 amount = misc.round2(val * factor)
                 li =
@@ -444,11 +452,13 @@ QuotaConsole = rclass
                 upgrade_list.push(li)
 
         amount = misc.round2(base_value * factor)
+        if amount
+            # amount given by free project
+            upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
 
         <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
-                <li>{amount} {misc.plural(amount, unit)} given by free project</li>
                 {upgrade_list}
             </ul>
         </LabeledRow>
