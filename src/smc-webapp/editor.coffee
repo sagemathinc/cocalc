@@ -1862,6 +1862,7 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
+
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
@@ -1888,35 +1889,41 @@ class CodeMirrorEditor extends FileEditor
                     CodeMirror.commands.findNext(cm)
                 else
                     CodeMirror.commands.goPageDown(cm)
+                    cm.focus()
             when 'prev'
                 if cm._searchState?.query
                     CodeMirror.commands.findPrev(cm)
                 else
                     CodeMirror.commands.goPageUp(cm)
+                    cm.focus()
             when 'replace'
                 CodeMirror.commands.replace(cm)
             when 'undo'
                 cm.undo()
+                cm.focus()
             when 'redo'
                 cm.redo()
+                cm.focus()
             when 'split-view'
                 @toggle_split_view(cm)
             when 'autoindent'
                 CodeMirror.commands.indentAuto(cm)
             when 'shift-left'
                 cm.unindent_selection()
+                cm.focus()
             when 'shift-right'
                 @press_tab_key(cm)
+                cm.focus()
             when 'increase-font'
                 @change_font_size(cm, +1)
+                cm.focus()
             when 'decrease-font'
                 @change_font_size(cm, -1)
+                cm.focus()
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
                 @print()
-        if name != 'goto-line'
-            cm.focus()
 
 
     restore_font_size: () =>
