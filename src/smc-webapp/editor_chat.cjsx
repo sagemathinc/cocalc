@@ -106,6 +106,11 @@ class ChatActions extends Actions
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
             @setState(messages: messages)
+            if @redux.getStore(@name).get('saved_position') + @redux.getStore(@name).get('offset') + 20 >  @redux.getStore(@name).get('height')
+                console.log('marked read by syncdb change action')
+                project_id = @name.slice(7,43)
+                path = @name.slice(44)
+                @redux.getActions('file_use').mark_file(project_id, path, 'seen', 0, false)
 
     send_chat: (mesg) =>
         if not @syncdb?
@@ -691,10 +696,10 @@ ChatRoom = (name) -> rclass
         preview        : ''
 
     mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+        console.log('Marking as read')
+        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'seen', 0, false)
 
     keydown : (e) ->
-        @mark_as_read()
         # TODO: Add timeout component to is_typing
         if e.keyCode==27 # ESC
             e.preventDefault()
@@ -784,9 +789,13 @@ ChatRoom = (name) -> rclass
                 @scroll_to_bottom()
 
     on_scroll: (e) ->
+        console.log('on scroll')
         @_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
+            console.log('mark as read')
+            @mark_as_read()
         e.preventDefault()
 
     set_preview_state: ->
@@ -805,12 +814,6 @@ ChatRoom = (name) -> rclass
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
 
-    mixins: [SetIntervalMixin]
-
-    decide_if_mark_read: ->
-        if @is_at_bottom()
-            @mark_as_read()
-
     componentDidMount: ->
         @scroll_to_position()
         if @props.is_preview
@@ -818,11 +821,9 @@ ChatRoom = (name) -> rclass
                 @debounce_bottom()
         else
             @props.actions.set_is_preview(false)
-        @setInterval(@decide_if_mark_read, 5000)
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and @is_at_bottom()
-            @mark_as_read()
             @_use_saved_position = false
 
     componentDidUpdate: ->
@@ -901,7 +902,7 @@ ChatRoom = (name) -> rclass
             Scrolls the chat to the bottom
         </span>
 
-        <Button onClick={@scroll_to_bottom}>
+        <Button onClick={=>@scroll_to_bottom();@mark_as_read()}>
             <Tip title='Scroll to Bottom Button' tip={tip}  placement='left'>
                 <Icon name='arrow-down'/> Bottom
             </Tip>
