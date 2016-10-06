@@ -1238,11 +1238,13 @@ class SyncDoc extends EventEmitter
                     #console.log("recomputing snapshot #{snapshot_time}")
                     @snapshot(snapshot_time, true)
 
-    _handle_syncstring_update: =>
+    _handle_syncstring_update: () =>
+        #dbg = @dbg("_handle_syncstring_update")
+        #dbg()
         if not @_syncstring_table? # nothing more to do
+            #dbg("nothing to do")
             return
         x = @_syncstring_table.get_one()?.toJS()
-        #dbg = @dbg("_handle_syncstring_update")
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
@@ -1263,6 +1265,7 @@ class SyncDoc extends EventEmitter
                 users         : @_users
                 deleted       : @_deleted
             @_syncstring_table.set(obj)
+            @emit('metadata-change')
         else
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval
@@ -1280,33 +1283,48 @@ class SyncDoc extends EventEmitter
                 @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, users:@_users})
 
-            if @_client.is_project()
-                async.series([
-                    (cb) =>
-                        # wait for patch list to load
-                        if @_patch_list?
-                            cb()
-                        else
-                            @once 'connected', => cb()
-                    (cb) =>
-                        # NOTE: very important to completely do @_update_watch_path
-                        # before @_save_to_disk below.
-                        # If client is a project and path isn't being properly watched, make it so.
-                        if x.project_id? and @_watch_path != x.path
-                            @_update_watch_path(x.path, cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if x.save?.state == 'requested'
-                            @_save_to_disk(cb)
-                        else
-                            cb()
-                ])
 
-        @emit('metadata-change')
+            if not @_client.is_project()
+                @emit('metadata-change')
+                return
+
+            #dbg = @dbg("_handle_syncstring_update('#{@_path}')")
+            #dbg("project only handling")
+            # Only done for project:
+            async.series([
+                (cb) =>
+                    if @_patch_list?
+                        #dbg("patch list already loaded")
+                        cb()
+                    else
+                        #dbg("wait for patch list to load...")
+                        @once 'connected', =>
+                            #dbg("patch list loaded")
+                            cb()
+                (cb) =>
+                    # NOTE: very important to completely do @_update_watch_path
+                    # before @_save_to_disk below.
+                    # If client is a project and path isn't being properly watched, make it so.
+                    if x.project_id? and @_watch_path != x.path
+                        #dbg("watch path")
+                        @_update_watch_path(x.path, cb)
+                    else
+                        cb()
+                (cb) =>
+                    if x.save?.state == 'requested'
+                        #dbg("save to disk")
+                        @_save_to_disk(cb)
+                    else
+                        cb()
+            ], (err) =>
+                if err
+                    @dbg("_handle_syncstring_update")("POSSIBLY UNHANDLED ERROR -- #{err}")
+                @emit('metadata-change')
+            )
+
 
     _update_watch_path: (path, cb) =>
-        dbg = @_client.dbg("watch('#{path}')")
+        dbg = @_client.dbg("_update_watch_path('#{path}')")
         if @_gaze_file_watcher?
             dbg("close")
             @_gaze_file_watcher.close()
@@ -1340,7 +1358,7 @@ class SyncDoc extends EventEmitter
                         else
                             cb()
             (cb) =>
-                dbg("now watching file")
+                dbg("now requesting to watch file")
                 @_client.watch_file
                     path     : path
                     debounce : 1
@@ -1366,13 +1384,19 @@ class SyncDoc extends EventEmitter
                                         @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
                                         @_syncstring_table.save () =>  # make sure deleted:true is saved.
                                             @close()
-                                        return
-                                if @_save_to_disk_just_happened
-                                    dbg("@_save_to_disk_just_happened")
-                                    @_save_to_disk_just_happened = false
-                                else
-                                    dbg("_load_from_disk")
-                                    @_load_from_disk()
+                                    return
+                                if event == 'changed'
+                                    if @_save_to_disk_just_happened
+                                        dbg("@_save_to_disk_just_happened")
+                                        @_save_to_disk_just_happened = false
+                                    else
+                                        dbg("_load_from_disk")
+                                        @_load_from_disk()
+                                    return
+                                # NOTE: We do ignore other events, e.g., 'added'
+                                # (since we create the file already); not ignoring
+                                # 'added' was the root cause of this horrible bug:
+                                #   https://github.com/sagemathinc/smc/issues/979
                             cb()
         ], (err) => cb?(err))
 
