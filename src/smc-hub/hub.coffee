@@ -132,6 +132,12 @@ push_to_client_summary         = MetricsRecorder.new_summary('push_to_client',
                                    'summary stats for Client::push_to_client', labels: ['event'])
 push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
                                    'summary stats for Client::push_to_client/to_json', labels: ['event'])
+copy_path_between_projects_summary = MetricsRecorder.new_summary('copy_path_between_projects_seconds_summary',
+                                   'summary stats for Client::copy_path_between_projects [s]')
+write_text_file_to_project_summary = MetricsRecorder.new_summary('write_text_file_to_project_seconds_summary',
+                                   'summary stats for Client::write_text_file_to_project [s]')
+read_text_file_to_project_summary = MetricsRecorder.new_summary('read_text_file_to_project_seconds_summary',
+                                   'summary stats for Client::read_text_file_to_project [s]')
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -966,6 +972,7 @@ class Client extends EventEmitter
         )
 
     mesg_write_text_file_to_project: (mesg) =>
+        write_finished = write_text_file_to_project_summary.startTimer()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -977,8 +984,10 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.file_written_to_project(id:mesg.id))
+                    write_finished()
 
     mesg_read_text_file_from_project: (mesg) =>
+        read_finished = read_text_file_to_project_summary.startTimer()
         @get_project mesg, 'read', (err, project) =>
             if err
                 return
@@ -990,6 +999,7 @@ class Client extends EventEmitter
                     else
                         t = content.blob.toString()
                         @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
+                    read_finished()
 
     mesg_project_exec: (mesg) =>
         if mesg.command == "ipython-notebook"
@@ -1020,6 +1030,7 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"src_path must be defined")
             return
 
+        copy_has_finished = copy_path_between_projects_summary.startTimer()
         async.series([
             (cb) =>
                 # Check permissions for the source and target projects (in parallel) --
@@ -1076,6 +1087,7 @@ class Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.success(id:mesg.id))
+            copy_has_finished()
         )
 
 

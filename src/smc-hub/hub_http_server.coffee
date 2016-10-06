@@ -50,20 +50,25 @@ exports.init_express_http_server = (opts) ->
     router.use(body_parser.urlencoded({ extended: true }))
 
     # initialize metrics
-    static_counter = MetricsRecorder.new_quantile('http', 'http server',
-                                                      percentiles : [0, 0.5, 0.9, 0.99, 1]
-                                                      labels: ['path', 'method', 'code']
-                                                 )
+    response_time_quantile = MetricsRecorder.new_quantile('http_quantile', 'http server',
+                                  percentiles : [0, 0.5, 0.9, 0.99, 1]
+                                  labels: ['path', 'method', 'code']
+                             )
+    response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
+                                  buckets : [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1, 5, 10]
+                                  labels: ['method', 'code']
+                              )
 
     router.use (req, res, next) ->
-        start = new Date()
+        res_finished_q = response_time_quantile.startTimer()
+        res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
         res.end = ->
-            response_time = (new Date() - start) / 1000
             original_end.apply(res, arguments)
             # we're only interested in the first part
             path = req.path.split('/')[1] # for two levels: split('/')[1..2].join('/')
-            static_counter.labels(path, req.method, req.statusCode).observe(response_time)
+            res_finished_q({path:path, method:req.method, code:res.statusCode})
+            res_finished_h({method:req.method, code:res.statusCode})
         next()
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...

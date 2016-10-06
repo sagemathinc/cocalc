@@ -90,6 +90,13 @@ exports.new_quantile = new_quantile = (name, help, config={}) ->
     return new prom_client.Summary(name, help, config.labels, percentiles: config.percentiles)
 exports.new_summary = new_summary = new_quantile
 
+exports.new_histogram = new_histogram = (name, help, config={}) ->
+    # invked as histogram.observe(value)
+    config = defaults config,
+        buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+        labels: []
+    return new prom_client.Histogram(name, help, config.labels, buckets: config.buckets)
+
 class exports.MetricsRecorder
     constructor: (@dbg, cb) ->
         ###

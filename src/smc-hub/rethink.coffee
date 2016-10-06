@@ -438,9 +438,12 @@ class RethinkDB
                                 {record_metric} = require('./hub')
                                 that._concurrent_gauge.set(that._concurrent_queries)
                                 that._concurrent_quantile.observe(that._concurrent_queries)
-                                that._modified_counter.labels('inserted').inc(mod_inserted)
-                                that._modified_counter.labels('replaced').inc(mod_replaced)
-                                that._modified_counter.labels('deleted').inc(mod_deleted)
+                                if mod_inserted > 0
+                                    that._modified_counter.labels('inserted').inc(mod_inserted)
+                                if mod_replaced > 0
+                                    that._modified_counter.labels('replaced').inc(mod_replaced)
+                                if mod_deleted > 0
+                                    that._modified_counter.labels('deleted').inc(mod_deleted)
                                 that._query_time_quantile.observe(tm / 1000.0)
 
                                 if modified >= that._mod_warn
