@@ -70,6 +70,7 @@ BINARIES = [
     ('latex', 'pdfTeX'),
     ('haskell-compiler', 'glasgow haskell'),
     ('stack', 'hpack'), # haskell stack tool
+    ('prolog', 'SWI-Prolog'),
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),
