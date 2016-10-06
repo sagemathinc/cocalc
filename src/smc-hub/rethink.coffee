@@ -215,6 +215,7 @@ class RethinkDB
                                                                        "Total number of 'create_project' calls", ['account_id'])
         @_concurrent_gauge              = MetricsRecorder.new_gauge(   'db_concurrent',         'Number of concurrent db queries')
         @_concurrent_quantile           = MetricsRecorder.new_quantile('db_concurrent_summary', 'Distribution of concurrent db queries')
+        @_concurrent_problems_counter   = MetricsRecorder.new_counter( 'db_concurrent_problems_total', 'counts the number of concurrent errors', ['type', 'reason'])
         @_modified_counter              = MetricsRecorder.new_counter( 'db_modified_total',  "Number of modified documents", ['type'])
         @_query_time_quantile           = MetricsRecorder.new_quantile('db_query_summary',   'Quantile summary of query times')
         # TODO add unique error codes to the reported errors
@@ -386,13 +387,16 @@ class RethinkDB
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
+                            that._concurrent_problems_counter.inc(type: 'warn', reason: 'too_many')
                         if that._concurrent_queries > that._concurrent_kill
                             winston.debug("rethink: *** concurrent_kill *** CONCURRENT KILL THRESHOLD EXCEEDED!")
+                            that._concurrent_problems_counter.inc(type: 'exit', reason: 'too_many') # will never show up in the metrics, though ...
                             process.exit(1)
 
                         if that._concurrent_error and that._concurrent_queries > that._concurrent_error
                             winston.debug("rethink: *** concurrent_error *** CONCURRENT ERROR THRESHOLD #{that._concurrent_error} EXCEEDED -- FAILING QUERY")
                             that._concurrent_queries -= 1
+                            that._concurrent_problems_counter.inc(type: 'error', reason: 'too_many')
                             setTimeout((()=>cb("concurrent_error")), 5*Math.random())
                             return
 
@@ -403,9 +407,11 @@ class RethinkDB
                         warning_too_long = ->
                             # if a connection is slow, display a warning
                             winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._warning_thresh}s!")
+                            that._concurrent_problems_counter.inc(type: 'warn', reason: 'too_long')
 
                         error_too_long = ->
                             winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it!")
+                            that._concurrent_problems_counter.inc(type: 'error', reason: 'too_long')
                             winston.debug("rethink: query -- close existing connection")
                             # this close will cause g below to get called with a RqlRuntimeError
                             conn.close (err) ->
