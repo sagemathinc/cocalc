@@ -247,13 +247,13 @@ FileRow = rclass
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
                 <span className='pull-right' style={color:'#666'}>
                     {human_readable_size(@props.size)}
-                    <Button style={marginLeft: '1em'}
+                    <Button style={marginLeft: '1em', background:'transparent'}
                             bsStyle='default'
                             bsSize='xsmall'
                             target='_blank'
                             href="#{href_download}"
                             onClick = {(e)->e.stopPropagation()}>
-                        {String.fromCharCode("8615")}
+                        <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
                 </span>
             </Col>

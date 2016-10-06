@@ -471,6 +471,7 @@
     - poppler-utils
     - postgresql-client
     - povray
+    - prolog-el
     - proofgeneral
     - proofgeneral-doc
     - protobuf-compiler
@@ -538,6 +539,8 @@
     - sshfs
     - subversion
     - subversion-tools
+    - swi-prolog
+    - swi-prolog-doc
     - sysstat
     - tcsh
     - tig
