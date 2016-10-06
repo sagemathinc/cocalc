@@ -293,6 +293,7 @@ SAGE_PIP_PACKAGES = [
     'hypothesis',
     'xgboost', # https://github.com/dmlc/xgboost
     'vpython',
+    'keras',
     ]
 
 # additional environment settings for specific packages
