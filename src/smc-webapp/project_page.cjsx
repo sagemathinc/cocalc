@@ -42,10 +42,10 @@ ProjectTab = rclass
     getInitialState : () ->
         x_hovered : false
 
-    mouse_over: ->
+    mouse_over_x: ->
         @setState(x_hovered:true)
 
-    mouse_out: ->
+    mouse_out_x: ->
         @setState(x_hovered:false)
         @actions({project_id:@props.project_id}).clear_ghost_file_tabs()
 
@@ -90,7 +90,7 @@ ProjectTab = rclass
             <div style={width:'100%', color:text_color}>
                 <div style={x_button_styles}>
                     {<Icon
-                        onMouseOver={@mouse_over} onMouseOut={@mouse_out}
+                        onMouseOver={@mouse_over_x} onMouseOut={@mouse_out_x}
                         name = 'times'
                         onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
@@ -298,9 +298,17 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         page_styles ='
             #smc-file-tabs-fixed>li>a {
                 padding: 8px 10px;
+                border-bottom-left-radius:0px;
+                border-bottom-right-radius:0px;
+                border-top-left-radius:5px;
+                border-top-right-radius:5px;
             }
             #smc-file-tabs-files>li>a {
                 padding: 13px 15px 7px;
+                border-bottom-left-radius:0px;
+                border-bottom-right-radius:0px;
+                border-top-left-radius:5px;
+                border-top-right-radius:5px;
             }
             .smc-file-tab-floating {
                 background-color: rgb(237, 237, 237);
