@@ -9,7 +9,7 @@ html = require('./console.html') + require('./editor.html') + require('./tasks.h
 $('body').append(html)
 
 # Load/initialize Redux-based react functionality
-require('./smc-react')
+{redux} = require('./smc-react')
 
 # Initialize server stats redux store
 require('./redux_server_stats')
@@ -37,6 +37,7 @@ render = () =>
 render()
 
 $(window).on('resize', render)
+$(window).on('beforeunload', redux.getActions('page').check_unload)
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')

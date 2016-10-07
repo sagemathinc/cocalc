@@ -127,6 +127,12 @@ class PageActions extends Actions
     show_cookie_warning : =>
         @setState(cookie_warning : true)
 
+    check_unload : (e) =>
+        if redux.getStore('account')?.get_confirm_close()
+            return "Changes you make may not have been saved."
+        else
+            return
+
 redux.createActions('page', PageActions)
 
 # FUTURE: Save entire state to database for #450, saved workspaces
