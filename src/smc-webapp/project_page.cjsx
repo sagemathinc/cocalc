@@ -298,24 +298,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         page_styles ='
             #smc-file-tabs-fixed>li>a {
                 padding: 8px 10px;
-                border-bottom-left-radius:0px;
-                border-bottom-right-radius:0px;
-                border-top-left-radius:5px;
-                border-top-right-radius:5px;
+                border-radius: 5px 5px 0px 0px;
             }
             #smc-file-tabs-files>li>a {
                 padding: 13px 15px 7px;
-                border-bottom-left-radius:0px;
-                border-bottom-right-radius:0px;
-                border-top-left-radius:5px;
-                border-top-right-radius:5px;
+                border-radius: 5px 5px 0px 0px;
             }
             .smc-file-tab-floating {
                 background-color: rgb(237, 237, 237);
-                border-bottom-left-radius:0px;
-                border-bottom-right-radius:0px;
-                border-top-left-radius:5px;
-                border-top-right-radius:5px;
+                border-radius: 5px 5px 0px 0px;
                 box-sizing:border-box;
                 color:rgb(51, 51, 51);
                 display:block;
@@ -333,10 +324,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             }
             .smc-file-tab-floating>a {
                 background-color:rgba(0, 0, 0, 0);
-                border-bottom-left-radius:4px;
-                border-bottom-right-radius:4px;
-                border-top-left-radius:4px;
-                border-top-right-radius:4px;
+                border-radius: 5px 5px 0px 0px;
                 box-sizing:border-box;
                 display:block;
                 height:36.8px;
