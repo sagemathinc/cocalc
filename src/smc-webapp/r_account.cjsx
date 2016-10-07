@@ -936,7 +936,7 @@ OtherSettings = rclass
                     checked  = {@props.other_settings.confirm_close}
                     ref      = 'confirm_close'
                     onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
-                    Confirm: always ask for confirmation before closing the browser window]
+                    Confirm: always ask for confirmation before closing the browser window
                 </Checkbox>
     render_page_size_warning : ->
         BIG_PAGE_SIZE = 500
