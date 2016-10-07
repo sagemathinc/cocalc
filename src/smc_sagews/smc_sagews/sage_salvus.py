@@ -2969,6 +2969,8 @@ def reset(vars=None, attached=False):
     sage.misc.reset.reset_interfaces()
     if attached:
         sage.misc.reset.reset_attached()
+    # reset() adds 'pretty_print' and 'view' to show_identifiers()
+    exec('sage.misc.session.state_at_init = dict(globals())',salvus.namespace)
 
 reset.__doc__ += sage.misc.reset.reset.__doc__
 
@@ -3780,3 +3782,16 @@ def search_doc(str):
     '<a href="https://www.google.com/search?q=site%3Adoc.sagemath.org+' + \
     str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
     salvus.html(txt)
+
+import sage.misc.session
+def show_identifiers():
+    """
+    Returns a list of all variable names that have been defined during this session.
+
+    SMC introduces worksheet variables, including 'smc','salvus', and 'require'.
+    These are filtered from the list of variables returned by sage.misc.session.show_identifiers()
+    """
+    si =  eval('sage.misc.session.show_identifiers()',salvus.namespace)
+    # 'sage_salvus' is added when SMC reset() runs
+    si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
+    return si2
