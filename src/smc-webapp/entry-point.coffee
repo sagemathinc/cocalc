@@ -17,14 +17,19 @@ require('./redux_server_stats')
 # Systemwide notifications that are broadcast to all users (or set by admins)
 require('./system_notifications')
 
-{IS_MOBILE, isMobile} = require('./feature')
+# Makes some things work. Like the save button
+require('./jquery_plugins')
 
+# Initializes app stores, actions, etc.
+require('./init_app')
+
+{IS_MOBILE, isMobile} = require('./feature')
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
 
 # Is this terrible for performance? I don't know.
 render = () =>
-    if not isMobile.tablet() and IS_MOBILE or $(window).width() < 600
+    if not isMobile.tablet() and IS_MOBILE or $(window).width() < 770
         mobile.render()
     else
         desktop.render()

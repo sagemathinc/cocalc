@@ -14,76 +14,9 @@ Sidebar = require('react-sidebar').default
 {Support} = require('./support')
 # SMC Libraries
 misc = require('smc-util/misc')
-# Makes some things work. Like the save button
-require('./jquery_plugins')
-# Initializes page actions, store, and listeners
-require('./init_app')
+
+{ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, SMCLogo, VersionWarning} = require('./app_shared')
-
-OpenProjectMenuItem = rclass
-    propTypes:
-        project_map           : rtypes.object # immutable.Map
-        open_projects         : rtypes.object # immutable.Map
-        public_project_titles : rtypes.object # immutable.Map
-        index                 : rtypes.number
-        project_id            : rtypes.string
-        active_top_tab        : rtypes.string
-
-    getInitialState : ->
-        x_hovered : false
-
-    close_tab : (e) ->
-        e.stopPropagation()
-        e.preventDefault()
-        @actions('page').close_project_tab(@props.project_id)
-
-    open_project : (e) ->
-        e.stopPropagation()
-        e.preventDefault()
-        @actions('page').set_active_tab(@props.project_id)
-
-    render : ->
-        title = @props.project_map?.getIn([@props.project_id, 'title'])
-        if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                # Ensure that at some point we'll have the title if possible (e.g., if public)
-                @actions('projects').fetch_public_project_title(@props.project_id)
-                return <Loading key={@props.project_id} />
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-
-        project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
-
-        if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
-
-        if @state.x_hovered
-            x_color = "white"
-
-        <MenuItem onClick={@open_project}>
-            {# Truncated file name}
-            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
-                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
-                    <Button bsStyle="warning" onClick={@close_tab}>
-                        <Icon
-                            name = 'times'
-                        />
-                    </Button>
-                </div>
-                <div style={project_name_styles}>
-                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </Tip>
-                </div>
-            </div>
-        </MenuItem>
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -156,11 +89,6 @@ Page = rclass
     displayName : "Mobile-App"
 
     reduxProps :
-        projects :
-            open_projects  : rtypes.immutable # List of open projects and their state
-            project_map    : rtypes.immutable # All projects available to the user
-            get_title      : rtypes.func
-            public_project_titles : rtypes.immutable
         page :
             active_top_tab    : rtypes.string    # key of the active tab
             show_connection   : rtypes.bool
@@ -188,23 +116,6 @@ Page = rclass
     componentWillUnmount : ->
         @actions('page').clear_all_handlers()
 
-    project_menu_items : ->
-        v = []
-        @props.open_projects.map (project_id, index) =>
-            v.push(@project_tab(project_id, index))
-        return v
-
-    project_tab : (project_id, index) ->
-        <OpenProjectMenuItem
-            index          = {index}
-            key            = {project_id}
-            project_id     = {project_id}
-            active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
-            open_projects  = {@props.open_projects}
-            public_project_titles = {@props.public_project_titles}
-        />
-
     account_name : ->
         name = ''
         if @props.get_fullname?
@@ -217,55 +128,6 @@ Page = rclass
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
             <NavItem onClick={(e)=>@actions('page').set_active_tab('projects')}>
                 <SMCLogo />
-            </NavItem>
-        </Nav>
-
-    render_projects_dropdown : ->
-        if @props.open_projects.size == 0
-            return <Nav style={margin:'0', flex:'1'}>
-                <NavItem />
-            </Nav>
-
-        if @props.open_projects.includes(@props.active_top_tab)
-            project_id = @props.active_top_tab
-
-            title =  @props.get_title(project_id)
-        else
-            title = "Open projects"
-
-        <Nav style={margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title id="smc-projects-tabs">
-                {@project_menu_items()}
-            </NavDropdown>
-        </Nav>
-
-    render_one_project_tab : (project_id) ->
-        project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
-        title = @props.get_title(project_id)
-
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-
-        <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
-            <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
-                {# Truncated file name TODO: Make this pattern into an rclass. It's fuckin' everywhere}
-                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-                <div style={width:'100%'}>
-                    <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
-                        <Icon
-                            name = 'times'
-                            onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
-                        />
-                    </div>
-                    <div style={project_name_styles}>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </div>
-                </div>
             </NavItem>
         </Nav>
 
@@ -336,9 +198,6 @@ Page = rclass
                 display:flex;
                 padding:0px;
             }
-            #smc-projects-tabs {
-                padding:10px;
-            }
             .input-group {
                 z-index:0;
             }'
@@ -346,15 +205,6 @@ Page = rclass
             height:'100vh'
             width:'100vw'
             overflow:'auto'
-
-        shim_style =
-            position : 'absolute'
-            left : '0'
-            marginRight : '0px'
-            marginLeft : '0px'
-            paddingLeft : '0px'
-            width : '100%'
-            display : 'flex'
 
         <div ref="page" style={style}>
             <Sidebar sidebar={@render_right_menu()}
@@ -365,6 +215,7 @@ Page = rclass
                 touch={false}
             >
                 <style>{page_style}</style>
+                <style>{ProjectsNav.dropdown_nav_page_styles}</style>
                 {<FileUsePageWrapper /> if @props.show_file_use}
                 {<Support actions={@actions('support')} /> if @props.show}
                 {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
@@ -372,9 +223,7 @@ Page = rclass
                 {<CookieWarning /> if @props.cookie_warning}
                 {<Navbar id="smc-top-bar" style={margin:'0px'}>
                     {@render_projects_button()}
-                    {@render_projects_dropdown() if @props.open_projects.size > 1}
-                    {@render_one_project_tab(@props.open_projects.get(0)) if @props.open_projects.size == 1}
-                    {<div style={flex:'1'}> </div> if @props.open_projects.size == 0}
+                    <ProjectsNav dropdown={true} />
                     {@render_right_menu_button()}
                 </Navbar> if not @props.fullscreen}
                 <FullscreenButton />

@@ -1,0 +1,343 @@
+# External Libraries
+{SortableContainer, SortableElement} = require('react-sortable-hoc')
+
+# SMC Libraries
+misc = require('smc-util/misc')
+{isMobile} = require('./feature')
+
+# Components
+{React, rclass, rtypes} = require('./smc-react')
+{Button, Nav, NavDropdown, MenuItem, NavItem} = require('react-bootstrap')
+{Loading, Icon, Tip} = require('./r_misc')
+{NavTab} = require('./app_shared')
+
+NavWrapper = ({style, children, id, className}) ->
+    React.createElement(Nav, {style:style, id:id, className:className}, children)
+
+SortableNavTab = SortableElement(NavTab)
+SortableNav = SortableContainer(NavWrapper)
+
+GhostTab = (props) ->
+    <NavItem
+        style={flexShrink:'1', width:'200px', height:'42px', overflow: 'hidden'}
+    />
+
+# Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
+ProjectTab = rclass
+    reduxProps:
+        projects:
+            get_title : rtypes.func
+            public_project_titles : rtypes.immutable.Map
+
+    propTypes:
+        project_map           : rtypes.immutable.Map
+        index                 : rtypes.number
+        project_id            : rtypes.string
+        active_top_tab        : rtypes.string
+
+    getInitialState : ->
+        x_hovered : false
+
+    close_tab : (e) ->
+        e.stopPropagation()
+        e.preventDefault()
+        @actions('page').close_project_tab(@props.project_id)
+
+    render : ->
+        title = @props.get_title(@props.project_id)
+        if not title?
+            title = @props.public_project_titles?.get(@props.project_id)
+            if not title?
+                return <Loading key={@props.project_id} />
+
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
+        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+
+        project_name_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+
+        if @props.project_id == @props.active_top_tab
+            text_color = 'rgb(85, 85, 85)'
+
+        if @state.x_hovered
+            x_color = "white"
+
+        <SortableNavTab
+            index={@props.index}
+            name={@props.project_id}
+            actions={@actions('page')}
+            active_top_tab={@props.active_top_tab}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'42px', overflow: 'hidden'}
+        >
+            {# Truncated file name}
+            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
+                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
+                    <Icon
+                        name = 'times'
+                        onClick = {@close_tab}
+                        onMouseOver = {(e)=>@setState(x_hovered:true)}
+                        onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+                    />
+                </div>
+                <div style={project_name_styles}>
+                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                        <Icon name={icon} style={fontSize:'20px'} />
+                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    </Tip>
+                </div>
+            </div>
+        </SortableNavTab>
+
+FullProjectsNav = rclass
+    reduxProps :
+        projects :
+            open_projects  : rtypes.immutable.List # List of open projects and their state
+            project_map    : rtypes.immutable.Map  # All projects available to the user
+            public_project_titles : rtypes.immutable
+        page :
+            active_top_tab    : rtypes.string    # key of the active tab
+            num_ghost_tabs    : rtypes.number
+
+    getDefaultProps : ->
+        num_ghost_tabs : 0
+
+    on_sort_end : ({oldIndex, newIndex}) ->
+        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
+
+    project_tabs : ->
+        v = []
+        if not @props.open_projects?
+            return
+        @props.open_projects.map (project_id, index) =>
+            v.push(@project_tab(project_id, index))
+
+        if @props.num_ghost_tabs == 0
+            return v
+
+        num_real_tabs = @props.open_projects.size
+        num_tabs = num_real_tabs + @props.num_ghost_tabs
+        for index in [num_real_tabs..(num_tabs-1)]
+            v.push(<GhostTab index={index} key={index}/>)
+        return v
+
+    project_tab : (project_id, index) ->
+        <ProjectTab
+            index          = {index}
+            key            = {project_id}
+            project_id     = {project_id}
+            active_top_tab = {@props.active_top_tab}
+            project_map    = {@props.project_map}
+            public_project_titles = {@props.public_project_titles}
+        />
+
+    render : ->
+        shim_style =
+            position    : 'absolute'
+            left        : '0'
+            marginRight : '0px'
+            marginLeft  : '0px'
+            paddingLeft : '0px'
+            width       : '100%'
+            display     : 'flex'
+
+        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'}
+            helperClass={'smc-project-tab-floating'}
+            onSortEnd={@on_sort_end}
+            axis={'x'}
+            lockAxis={'x'}
+            distance={3 if not isMobile.tablet()}
+        >
+            {@project_tabs()}
+        </SortableNav>
+
+OpenProjectMenuItem = rclass
+    propTypes:
+        project_map           : rtypes.immutable.Map
+        open_projects         : rtypes.immutable.List
+        public_project_titles : rtypes.immutable.Map
+        index                 : rtypes.number
+        project_id            : rtypes.string
+        active_top_tab        : rtypes.string
+
+    getInitialState : ->
+        x_hovered : false
+
+    close_tab : (e) ->
+        e.stopPropagation()
+        e.preventDefault()
+        @actions('page').close_project_tab(@props.project_id)
+
+    open_project : (e) ->
+        e.stopPropagation()
+        e.preventDefault()
+        @actions('page').set_active_tab(@props.project_id)
+
+    render : ->
+        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        if not title?
+            title = @props.public_project_titles?.get(@props.project_id)
+            if not title?
+                # Ensure that at some point we'll have the title if possible (e.g., if public)
+                @actions('projects').fetch_public_project_title(@props.project_id)
+                return <Loading key={@props.project_id} />
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
+        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+
+        project_name_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+
+        if @props.project_id == @props.active_top_tab
+            text_color = 'rgb(85, 85, 85)'
+
+        if @state.x_hovered
+            x_color = "white"
+
+        <MenuItem onClick={@open_project}>
+            {# Truncated file name}
+            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
+                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
+                    <Button bsStyle="warning" onClick={@close_tab}>
+                        <Icon
+                            name = 'times'
+                        />
+                    </Button>
+                </div>
+                <div style={project_name_styles}>
+                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                        <Icon name={icon} style={fontSize:'20px'} />
+                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    </Tip>
+                </div>
+            </div>
+        </MenuItem>
+
+DropdownProjectsNav = rclass
+    reduxProps :
+        projects :
+            open_projects  : rtypes.immutable # List of open projects and their state
+            project_map    : rtypes.immutable # All projects available to the user
+            get_title      : rtypes.func
+            public_project_titles : rtypes.immutable
+        page :
+            active_top_tab    : rtypes.string    # key of the active tab
+
+    project_menu_items : ->
+        v = []
+        @props.open_projects.map (project_id, index) =>
+            v.push(@project_tab(project_id, index))
+        return v
+
+    project_tab : (project_id, index) ->
+        <OpenProjectMenuItem
+            index          = {index}
+            key            = {project_id}
+            project_id     = {project_id}
+            active_top_tab = {@props.active_top_tab}
+            project_map    = {@props.project_map}
+            open_projects  = {@props.open_projects}
+            public_project_titles = {@props.public_project_titles}
+        />
+
+    render_projects_dropdown : ->
+        if @props.open_projects.includes(@props.active_top_tab)
+            project_id = @props.active_top_tab
+            # TODOJ: get public title too
+            title =  @props.get_title(project_id)
+        else
+            title = "Open projects"
+
+        <Nav id='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
+            <NavDropdown title=title id="smc-projects-tabs" style={flex:'1'}>
+                {@project_menu_items()}
+            </NavDropdown>
+        </Nav>
+
+    render_one_project_item : (project_id) ->
+        project_name_styles =
+            whiteSpace: 'nowrap'
+            overflow: 'hidden'
+            textOverflow: 'ellipsis'
+        title = @props.get_title(project_id)
+
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
+        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+
+        <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
+            <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
+                {# Truncated file name TODO: Make this pattern into an rclass. It's fuckin' everywhere}
+                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
+                <div style={width:'100%'}>
+                    <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
+                        <Icon
+                            name = 'times'
+                            onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
+                        />
+                    </div>
+                    <div style={project_name_styles}>
+                        <Icon name={icon} style={fontSize:'20px'} />
+                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                    </div>
+                </div>
+            </NavItem>
+        </Nav>
+
+    render : ->
+        switch @props.open_projects.size
+            when 0
+                <div style={flex:'1'}> </div>
+            when 1
+                @render_one_project_item(@props.open_projects.get(0))
+            else
+                @render_projects_dropdown()
+
+exports.ProjectsNav = ({dropdown}) ->
+    if dropdown
+        <DropdownProjectsNav />
+    else
+        <FullProjectsNav />
+
+# Use this pattern very sparingly.
+# Right now only used to access library generated elements
+# Very fragile.
+exports.ProjectsNav.full_nav_page_styles ='
+    .smc-project-tab-floating {
+        background-color: rgb(255, 255, 255);
+        border: dotted 1px #9a9a9a;
+        display:block;
+        line-height:normal;
+        list-style-image:none;
+        list-style-position:outside;
+        list-style-type:none;
+        z-index:100;
+    }
+    .smc-project-tab-floating>a {
+        color:rgb(85, 85, 85);
+        display:block;
+        height:51px;
+        line-height:20px;
+        list-style-image:none;
+        list-style-position:outside;
+        list-style-type:none;
+        outline-color:rgb(85, 85, 85);
+        outline-style:none;
+        outline-width:0px;
+        padding:0px;
+    }
+    '
+
+exports.ProjectsNav.dropdown_nav_page_styles ='
+    #smc-projects-tabs {
+        padding:10px;
+    }
+    #smc-dropdown-projects>li>ul {
+        width:100%;
+    }'

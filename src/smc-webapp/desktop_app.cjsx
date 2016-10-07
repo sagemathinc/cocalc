@@ -16,100 +16,9 @@
 
 # SMC Libraries
 misc = require('smc-util/misc')
-immutable = require('immutable')
 
-{SortableContainer, SortableElement} = require('react-sortable-hoc')
-
-# Makes some things work. Like the save button
-require('./jquery_plugins')
-
-# Initializes page actions, store, and listeners
-require('./init_app')
-
+{ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, SMCLogo, VersionWarning} = require('./app_shared')
-###
-# JSX
-###
-
-ProjectTab = rclass
-    reduxProps:
-        projects:
-            get_title : rtypes.func
-            public_project_titles : rtypes.immutable.Map
-
-    propTypes:
-        project_map           : rtypes.immutable.Map # immutable.Map
-        index                 : rtypes.number
-        project_id            : rtypes.string
-        active_top_tab        : rtypes.string
-
-    getInitialState : ->
-        x_hovered : false
-
-    close_tab : (e) ->
-        e.stopPropagation()
-        e.preventDefault()
-        @actions('page').close_project_tab(@props.project_id)
-
-    render : ->
-        title = @props.get_title(@props.project_id)
-        if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                return <Loading key={@props.project_id} />
-
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-
-        project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
-
-        if @props.project_id == @props.active_top_tab
-            text_color = 'rgb(85, 85, 85)'
-
-        if @state.x_hovered
-            x_color = "white"
-
-        <SortableNavTab
-            index={@props.index}
-            name={@props.project_id}
-            actions={@actions('page')}
-            active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'42px', overflow: 'hidden'}
-        >
-            {# Truncated file name}
-            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
-                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
-                    <Icon
-                        name = 'times'
-                        onClick = {@close_tab}
-                        onMouseOver = {(e)=>@setState(x_hovered:true)}
-                        onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                    />
-                </div>
-                <div style={project_name_styles}>
-                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </Tip>
-                </div>
-            </div>
-        </SortableNavTab>
-
-NavWrapper = ({style, children, id, className}) ->
-    React.createElement(Nav, {style:style, id:id, className:className}, children)
-
-SortableNavTab = SortableElement(NavTab)
-SortableNav = SortableContainer(NavWrapper)
-
-GhostTab = (props) ->
-    <NavItem
-        style={flexShrink:'1', width:'200px', height:'42px', overflow: 'hidden'}
-    />
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -180,9 +89,7 @@ Page = rclass
 
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable.List # List of open projects and their state
-            project_map    : rtypes.immutable.Map  # All projects available to the user
-            public_project_titles : rtypes.immutable
+            open_projects     : rtypes.immutable.List
         page :
             active_top_tab    : rtypes.string    # key of the active tab
             show_connection   : rtypes.bool
@@ -193,7 +100,6 @@ Page = rclass
             fullscreen        : rtypes.bool
             cookie_warning    : rtypes.bool
             show_file_use     : rtypes.bool
-            num_ghost_tabs    : rtypes.number
         file_use :
             get_notify_count : rtypes.func
         account :
@@ -205,51 +111,8 @@ Page = rclass
     propTypes :
         redux : rtypes.object
 
-    getDefaultProps : ->
-        num_ghost_tabs : 0
-
     componentWillUnmount : ->
         @actions('page').clear_all_handlers()
-
-    on_sort_end : ({oldIndex, newIndex}) ->
-        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
-
-    render_project_tabs : ->
-        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'}
-            helperClass={'smc-project-tab-floating'}
-            onSortEnd={@on_sort_end}
-            axis={'x'}
-            lockAxis={'x'}
-            distance={3 if not isMobile.tablet()}
-        >
-            {@project_tabs()}
-        </SortableNav>
-
-    project_tabs : ->
-        v = []
-        if not @props.open_projects?
-            return
-        @props.open_projects.map (project_id, index) =>
-            v.push(@project_tab(project_id, index))
-
-        if @props.num_ghost_tabs == 0
-            return v
-
-        num_real_tabs = @props.open_projects.size
-        num_tabs = num_real_tabs + @props.num_ghost_tabs
-        for index in [num_real_tabs..(num_tabs-1)]
-            v.push(<GhostTab index={index} key={index}/>)
-        return v
-
-    project_tab : (project_id, index) ->
-        <ProjectTab
-            index          = {index}
-            key            = {project_id}
-            project_id     = {project_id}
-            active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
-            public_project_titles = {@props.public_project_titles}
-        />
 
     account_name : ->
         name = ''
@@ -281,7 +144,7 @@ Page = rclass
             float:'right'
             padding: '11px 7px'
 
-        <Nav style={height:'42px', margin:'0'}>
+        <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
             <NavTab
                 name='projects'
                 style={maxHeight:'44px'}
@@ -305,43 +168,18 @@ Page = rclass
         # Right now only used to access library generated elements
         # Very fragile.
         page_style ='
-            #smc-top-nav-shim>ul>li>a {
+            #smc-top-bar>.container>ul>li>a {
                 padding:0px;
             }
-            .smc-project-tab-floating {
-                background-color: rgb(255, 255, 255);
-                border: dotted 1px #9a9a9a;
-                display:block;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                z-index:100;
-            }
-            .smc-project-tab-floating>a {
-                color:rgb(85, 85, 85);
-                display:block;
-                height:51px;
-                line-height:20px;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                outline-color:rgb(85, 85, 85);
-                outline-style:none;
-                outline-width:0px;
+            #smc-top-bar>.container {
+                position:absolute;
+                display:flex;
                 padding:0px;
+                width:100%;
             }
             .input-group {
                 z-index:0;
             }'
-        shim_style =
-            position    : 'absolute'
-            left        : '0'
-            marginRight : '0px'
-            marginLeft  : '0px'
-            paddingLeft : '0px'
-            width       : '100%'
-            display     : 'flex'
 
         style =
             display:'flex'
@@ -350,19 +188,25 @@ Page = rclass
             width:'100vw'
             overflow:'auto'
 
+        use_dropdown_menu = $(window).width() - 550 < @props.open_projects.size * 120
+
+        if use_dropdown_menu
+            proj_nav_styles = ProjectsNav.dropdown_nav_page_styles
+        else
+            proj_nav_styles = ProjectsNav.full_nav_page_styles
+
         <div ref="page" style={style}>
             <style>{page_style}</style>
+            <style>{proj_nav_styles}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar style={marginBottom: 0, overflowY:'hidden', width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
-                <div id="smc-top-nav-shim" style={shim_style} >
-                    {@render_project_nav_button() if @props.is_logged_in()}
-                    {@render_project_tabs()}
-                    {@render_right_nav()}
-                </div>
+            {<Navbar id="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
+                {@render_project_nav_button() if @props.is_logged_in()}
+                <ProjectsNav dropdown={use_dropdown_menu} />
+                {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}
             <FullscreenButton />
