@@ -2970,6 +2970,8 @@ def reset(vars=None, attached=False):
     if attached:
         sage.misc.reset.reset_attached()
     # reset() adds 'pretty_print' and 'view' to show_identifiers()
+    # user can shadow these and they will appear in show_identifiers()
+    # 'sage_salvus' is added when the following line runs; user may not shadow it
     exec('sage.misc.session.state_at_init = dict(globals())',salvus.namespace)
 
 reset.__doc__ += sage.misc.reset.reset.__doc__
@@ -3788,10 +3790,10 @@ def show_identifiers():
     """
     Returns a list of all variable names that have been defined during this session.
 
-    SMC introduces worksheet variables, including 'smc','salvus', and 'require'.
-    These are filtered from the list of variables returned by sage.misc.session.show_identifiers()
+    SMC introduces worksheet variables, including 'smc','salvus', 'require', and after reset(), 'sage_salvus'.
+    These identifiers are removed from the output of sage.misc.session.show_identifiers() on return.
+    User should not assign to these variables when running code in a worksheet.
     """
     si =  eval('sage.misc.session.show_identifiers()',salvus.namespace)
-    # 'sage_salvus' is added when SMC reset() runs
     si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
     return si2

@@ -1409,6 +1409,8 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         else:
             sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
+# execute.count goes from 0 to 2
+# used for show_identifiers()
 execute.count = 0
 
 
