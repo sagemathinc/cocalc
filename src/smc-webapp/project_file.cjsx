@@ -68,7 +68,6 @@ exports.register_file_editor = (opts) ->
 # - Initializing Actions
 exports.initialize = (path, redux, project_id) ->
     ext = filename_extension(path)
-    console.log(ext)
     redux_name = file_editors[ext]?.init(path, redux, project_id)
     if not redux_name?
         redux_name = file_editors[''].init(path, redux, project_id)

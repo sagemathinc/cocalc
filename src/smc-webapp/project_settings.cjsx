@@ -1030,8 +1030,6 @@ CollaboratorsSearch = rclass
             limit : 50
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
-                console.log("Found", select)
-                window.found = select
 
     render_options : (select) ->
         for r in select

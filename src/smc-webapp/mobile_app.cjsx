@@ -33,13 +33,11 @@ OpenProjectMenuItem = rclass
         x_hovered : false
 
     close_tab : (e) ->
-        console.log("Closing tab", @props.project_id)
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
     open_project : (e) ->
-        console.log("Opening tab", @props.project_id)
         e.stopPropagation()
         e.preventDefault()
         @actions('page').set_active_tab(@props.project_id)

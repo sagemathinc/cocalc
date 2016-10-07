@@ -721,7 +721,7 @@ EditorSettingsCheckboxes = rclass
                key      = {name}
                ref      = {name}
                onChange = {(e)=>@props.on_change(name, e.target.checked)}>
-            {@label_checkbox(name, desc)}]
+            {@label_checkbox(name, desc)}
         </Checkbox>
 
     render : ->

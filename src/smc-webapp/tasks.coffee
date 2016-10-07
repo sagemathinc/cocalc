@@ -1523,7 +1523,6 @@ tasks_key_handler = (evt) =>
     if evt.ctrlKey or evt.metaKey or evt.altKey
         if evt.keyCode == 70 # f
             # global find
-            console.log("trying to focus...")
             current_task_list.element.find(".salvus-tasks-search").focus()
             return false
         if current_task_list.readonly

@@ -739,9 +739,6 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         @project_id = @parent.project_id
-        console.log("THE ID:", @project_id)
-        ## window.j = @ ## DEBUGGING
-
         @editor = @parent.editor
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
