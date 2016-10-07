@@ -1160,14 +1160,15 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render : ->
+        drop_down_style =
+            marginRight : '2px'
+
         if IS_MOBILE
-            <DropdownButton style={marginRight:'2px', height:'45px'} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
-                {@render_menu_items()}
-            </DropdownButton>
-        else
-            <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
-                {@render_menu_items()}
-            </DropdownButton>
+            drop_down_style.height = '45px'
+
+        <DropdownButton style={drop_down_style} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+            {@render_menu_items()}
+        </DropdownButton>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)
