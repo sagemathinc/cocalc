@@ -62,7 +62,7 @@ Avatar = rclass
     _alt: ->
         @props.account.first_name?[0]?.toUpperCase?() or "a"
 
-    _innerStyle_no_image: ->
+    _innerStyle: ->
         display      : 'block'
         width        : '100%'
         height       : '100%'
@@ -71,11 +71,13 @@ Avatar = rclass
         fontSize     : "#{@props.size / 2 + 4}"
         fontFamily   : 'sans-serif'
 
-    _innerStyle_image: ->
-        position     : 'relative'
-        width        : '100%'
-        height       : '100%'
-        borderRadius : if not @props.square then "50%" else "none"
+    # This was formerly the styling used for icons with Avatars, but it
+    # created some alignment problems.
+    # _innerStyle_image: ->
+    #     position     : 'relative'
+    #     width        : '100%'
+    #     height       : '100%'
+    #     borderRadius : if not @props.square then "50%" else "none"
 
     _outerStyle: ->
         style =
@@ -112,9 +114,9 @@ Avatar = rclass
 
     render_image: ->
         if @has_image()
-            <img style={@_innerStyle_image()} src={@_src()} alt={@_alt()} />
+            <img style={@_innerStyle()} src={@_src()} alt={@_alt()} />
         else
-            <span style={@_innerStyle_no_image()}>
+            <span style={@_innerStyle()}>
                 {@_alt()}
             </span>
 
