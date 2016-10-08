@@ -3794,6 +3794,7 @@ def show_identifiers():
     These identifiers are removed from the output of sage.misc.session.show_identifiers() on return.
     User should not assign to these variables when running code in a worksheet.
     """
-    si =  eval('sage.misc.session.show_identifiers()',salvus.namespace)
+    si =  eval('show_identifiers.fn()',salvus.namespace)
     si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
     return si2
+show_identifiers.fn = sage.misc.session.show_identifiers

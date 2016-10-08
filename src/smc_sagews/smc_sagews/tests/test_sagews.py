@@ -106,3 +106,10 @@ class TestIdentifiers:
         exec2(code,output)
     def test_load_session2(self,exec2):
         exec2("pretty_print,view","(8, 9)\n")
+
+    def test_redefine_sage(self,exec2):
+        code = dedent(r"""
+        reset()
+        sage=1
+        show_identifiers()""")
+        exec2(code,"['sage']\n")
