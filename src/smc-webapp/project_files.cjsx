@@ -659,9 +659,19 @@ ProjectFilesButtons = rclass
     propTypes :
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
+        default_sort : rtypes.string
         current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
+
+    componentWillReceiveProps: (next) ->
+        if @props.default_sort != next.default_sort
+            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
+                @props.actions.setState(sort_by_time : next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, next.sort_by_time, next.show_hidden)
+            else
+                @props.actions.setState(sort_by_time : not next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh : (e) ->
         e.preventDefault()
@@ -1633,7 +1643,7 @@ ProjectFilesNew = rclass
     getDefaultProps : ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon : ->
         <span><Icon name='plus-circle' /> Create</span>
@@ -1907,6 +1917,9 @@ ProjectFiles = (name) -> rclass
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
+    file_listing_default_sort: ->
+        return @props.other_settings?.get('default_file_sort') ? 'time'
+
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -1961,6 +1974,7 @@ ProjectFiles = (name) -> rclass
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
+                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />

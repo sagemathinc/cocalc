@@ -802,6 +802,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if result
                     @_handle_input_cell_click0(e, mark)
                 else # what the user really wants...
+                    cm = @focused_codemirror()
                     cm.focus()
                     cm.setCursor({line:mark.find().from.line+1, ch:0})
         else
@@ -2413,7 +2414,12 @@ class SynchronizedWorksheetCell
         return @cm.getLine(x.loc.from.line)
 
     output: =>
-        return (misc.from_json(x) for x in @raw_output().slice(38).split(MARKERS.output) when x)
+        for x in @raw_output().slice(38).split(MARKERS.output)
+            try
+                v.push(misc.from_json(x))
+            catch
+                console.warn("unable to read json message in worksheet: #{x}")
+        return v
 
     _get_output: () =>
         n = @end_line()
