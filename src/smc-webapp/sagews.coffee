@@ -802,6 +802,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if result
                     @_handle_input_cell_click0(e, mark)
                 else # what the user really wants...
+                    cm = @focused_codemirror()
                     cm.focus()
                     cm.setCursor({line:mark.find().from.line+1, ch:0})
         else
