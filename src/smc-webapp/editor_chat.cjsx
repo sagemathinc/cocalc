@@ -106,7 +106,7 @@ class ChatActions extends Actions
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
             @setState(messages: messages)
-            if @redux.getStore(@name).get('saved_position') + @redux.getStore(@name).get('offset') + 20 >  @redux.getStore(@name).get('height')
+            if @redux.getStore(@name).get('saved_position') + @redux.getStore(@name).get('offset') + 20 >  @redux.getStore(@name).get('height') or @redux.getStore('height') == @redux.getStore('client_height')
                 project_id = @name.slice(7,43)
                 path = @name.slice(44)
                 @redux.getActions('file_use').mark_file(project_id, path, 'seen', 0, false)
@@ -182,10 +182,10 @@ class ChatActions extends Actions
     set_is_preview: (is_preview) =>
         @setState(is_preview:is_preview)
 
-    save_scroll_state: (position, height, offset) =>
+    save_scroll_state: (position, height, inner_height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
-            @setState(saved_position:position, height:height, offset:offset)
+            @setState(saved_position:position, height:height, inner_height: inner_height, offset:offset)
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -671,6 +671,7 @@ ChatRoom = (name) -> rclass
             input          : rtypes.string
             saved_position : rtypes.number
             height         : rtypes.number
+            inner_height   : rtypes.number
             offset         : rtypes.number
             saved_mesg     : rtypes.string
             is_preview     : rtypes.bool
@@ -768,13 +769,13 @@ ChatRoom = (name) -> rclass
     set_chat_log_state: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
-            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
 
     scroll_to_bottom: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
             node.scrollTop = node.scrollHeight
-            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
             @_use_saved_position = false
 
     scroll_to_position: ->
@@ -789,7 +790,7 @@ ChatRoom = (name) -> rclass
     on_scroll: (e) ->
         @_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
         if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
             @mark_as_read()
         e.preventDefault()
