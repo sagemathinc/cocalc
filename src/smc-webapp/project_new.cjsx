@@ -27,7 +27,7 @@ underscore = require('underscore')
 
 ReactDOMServer = require('react-dom/server')
 
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
@@ -214,7 +214,8 @@ ProjectNew = (name) -> rclass
         projects_store : rtypes.object.isRequired
 
     getInitialState : ->
-        return filename : @props.default_filename ? @default_filename()
+        filename : @props.default_filename ? @default_filename()
+        warning  : false
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
@@ -239,7 +240,7 @@ ProjectNew = (name) -> rclass
         e.preventDefault()
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else
+        else if @refs.project_new_filename.getValue().split(".").length > 1
             @create_file()
 
     render_header: ->
@@ -272,6 +273,30 @@ ProjectNew = (name) -> rclass
             on_error     : on_error
             switch_over  : true
 
+    keydown : (e) ->
+        if e.keyCode==13 and @refs.project_new_filename.getValue().split(".").length < 2
+            @setState(warning : true)
+            ReactDOM.findDOMNode(@refs.project_new_filename.refs.input).disabled = true
+
+    accept_file : ->
+        @create_file()
+
+    decline_file : ->
+        @setState(warning : false)
+        ReactDOM.findDOMNode(@refs.project_new_filename.refs.input).disabled = false
+
+    render_alert : ->
+        <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
+            <p>Warning: You tried to create a file with no extensions. Are you sure you want to create a file with no extensions?</p>
+            <Button onClick={@accept_file} style={marginRight:'5px'}>
+                Yes
+            </Button>
+            <Button onClick={@decline_file} style={marginRight:'5px'}>
+                No
+            </Button>
+        </Alert>
+
+
     render : ->
         <div>
             {@render_header()}
@@ -285,11 +310,13 @@ ProjectNew = (name) -> rclass
                         <Input
                             autoFocus
                             ref         = 'project_new_filename'
+                            onKeyDown   = {@keydown}
                             value       = @state.filename
                             type        = 'text'
                             placeholder = 'Name your file, folder, or paste in a link...'
                             onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
                     </form>
+                    {@render_alert() if @state.warning}
                     {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
