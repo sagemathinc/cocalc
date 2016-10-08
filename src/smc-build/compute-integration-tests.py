@@ -69,6 +69,8 @@ BINARIES = [
     ('docbook2pdf', 'docbook-utils'),
     ('latex', 'pdfTeX'),
     ('haskell-compiler', 'glasgow haskell'),
+    ('stack', 'hpack'), # haskell stack tool
+    ('prolog', 'SWI-Prolog'),
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),
@@ -117,6 +119,7 @@ PY_COMMON = [
     'yaml', 'mpld3', 'numpy', 'scipy', 'matplotlib', 'pandas', 'patsy', 'markdown', 'seaborn',
     'numexpr', 'tables', 'h5py', 'theano', 'dask', 'psutil', 'rpy2', 'xlrd', 'xlwt', 'gensim',
     'toolz', 'cytoolz', 'geopandas', 'openpyxl', 'sympy', 'Bio', 'wordcloud', 'lxml', 'descartes',
+    'ipywidgets',
 ]
 
 
@@ -144,6 +147,8 @@ PY_SAGE = PY_COMMON + [
     'tabulate', 'fipy', 'periodictable', 'ggplot', 'nltk', 'snappy', 'guppy', 'skimage',
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
+    'polymake', # https://github.com/videlec/pypolymake/
+    'keras',
 ]
 
 # and in anaconda
@@ -151,6 +156,7 @@ PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
+    'plotly', 'geopandas', 'altair', 'simpy', 'keras',
 ]
 
 # Tests for R setups and libraries
@@ -485,6 +491,20 @@ def test_pandas(exe):
     "'''.format(**locals()))
     out = run(CMD).splitlines()
     assert out[0] == '9'
+
+# tensorflow
+@pytest.mark.parametrize('exe', PY_EXES)
+def test_tensorflow(exe):
+    exe = os.path.expandvars(exe)
+    CMD = dedent('''
+    {exe} -c "import tensorflow as tf
+    sess = tf.Session()
+    a = tf.constant(10)
+    b = tf.constant(32)
+    print(sess.run(a + b))
+    "''').format(**locals())
+    out = run(CMD).splitlines()
+    assert out[0] == '42'
 
 # TODO check that opencv exists, what is there actually?
 

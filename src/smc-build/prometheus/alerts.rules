@@ -1,0 +1,8 @@
+ALERT HIGH_LOAD_COMPUTE
+  IF node_load1{job="compute"} > 10
+  FOR 1m
+  LABELS { severity = "low" }
+  ANNOTATIONS {
+   summary = "Compute {{ $labels.instance }} high load",
+   description = "the load1 is currently at {{ $value }}"
+  }

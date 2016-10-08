@@ -348,12 +348,12 @@ exports.NumberInput = NumberInput = rclass
     displayName : 'Misc-NumberInput'
 
     propTypes :
-        number    : rtypes.number.isRequired
-        min       : rtypes.number.isRequired
-        max       : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-        unit      : rtypes.string
-        disabled  : rtypes.bool
+        number      : rtypes.number.isRequired
+        min         : rtypes.number.isRequired
+        max         : rtypes.number.isRequired
+        on_change   : rtypes.func.isRequired
+        unit        : rtypes.string
+        disabled    : rtypes.bool
 
     componentWillReceiveProps : (next_props) ->
         if @props.number != next_props.number
@@ -363,8 +363,8 @@ exports.NumberInput = NumberInput = rclass
     getInitialState : ->
         number : @props.number
 
-    saveChange : (event) ->
-        event.preventDefault()
+    saveChange : (e) ->
+        e?.preventDefault()
         n = parseInt(@state.number)
         if "#{n}" == "NaN"
             n = @props.number
@@ -387,16 +387,16 @@ exports.NumberInput = NumberInput = rclass
                     <Input
                         type     = 'text'
                         ref      = 'input'
-                        value    = {if @state.number? then @state.number else @props.number}
+                        value    = {@state.number ? @props.number}
                         onChange = {=>@setState(number:@refs.input.getValue())}
-                        disabled = {@props.disabled} />
+                        onBlur   = {@saveChange}
+                        onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
+                        disabled = {@props.disabled}
+                    />
                 </form>
             </Col>
-            <Col xs=2 className="lighten">
+            <Col xs=6 className="lighten">
                 {unit}
-            </Col>
-            <Col xs=4>
-                {@render_save_button()}
             </Col>
         </Row>
 
@@ -950,9 +950,12 @@ exports.DirectoryInput = rclass
             @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?
-            # TODO: spaces below are a terrible hack to get around weird design of Combobox.
-            tree = (x + ' ' for x in tree)
-            group = (s) -> s[0 ... s.indexOf('/')]
+            group = (s) ->
+                i = s.indexOf('/')
+                if i == -1
+                    return s
+                else
+                    return s.slice(0, i)
         else
             group = (s) -> s
         <Combobox
@@ -963,7 +966,7 @@ exports.DirectoryInput = rclass
             defaultValue = {@props.default_value}
             placeholder  = {@props.placeholder}
             messages     = {emptyFilter : '', emptyList : ''}
-            onChange     = {(value) => @props.on_change(value.trim())}
+            onChange     = {(value) => @props.on_change(value)}
             onKeyDown    = {@props.on_key_down}
             onKeyUp      = {@props.on_key_up}
         />
@@ -985,9 +988,9 @@ exports.course_warning = (pay) ->
     return salvus_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
-    total = upgrades_you_can_use?.member_host ? 0
-    used  = upgrades_you_applied_to_all_projects?.member_host ? 0
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
+    total = upgrades_you_can_use?[upgrade_type] ? 0
+    used  = upgrades_you_applied_to_all_projects?[upgrade_type] ? 0
     x =
         total          : total
         used           : used

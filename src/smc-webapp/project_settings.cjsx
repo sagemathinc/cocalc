@@ -32,7 +32,7 @@ misc                 = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
+ DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -174,6 +174,9 @@ UpgradeAdjustor = rclass
             Max
         </Button>
 
+    render_addon : (misc, name, display_unit, limit) ->
+        <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
+
     render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
         if not data?
             return
@@ -183,22 +186,22 @@ UpgradeAdjustor = rclass
         if input_type == 'checkbox'
 
             # the remaining count should decrease if box is checked
-            show_remaining = remaining + current - @state["upgrade_#{name}"]
-            show_remaining = Math.max(show_remaining, 0)
-
             val = @state["upgrade_#{name}"]
+            show_remaining = remaining + current - val
+            show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
                 label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
-            <Row key={name}>
+            <Row key={name} style={marginTop:'5px'}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
                 <Col sm=6>
                     <form>
@@ -232,18 +235,32 @@ UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
                 else
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
                 label = <span></span>
 
-            <Row key={name}>
+            remaining_all = Math.max(show_remaining, 0)
+            schema_limit = PROJECT_UPGRADES.max_per_project
+            display_factor = PROJECT_UPGRADES.params[name].display_factor
+            # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
+            total_limit = schema_limit[name]*display_factor
+
+            unit = misc.plural(show_remaining, display_unit)
+            if total_limit < remaining
+                remaining_note = <span> You have {remaining_all} unallocated {unit} (you may allocate up to {total_limit} {unit} here)</span>
+
+            else
+                remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
+
+            <Row key={name} style={marginTop:'5px'}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong><Space/>
+                        <strong>{display}</strong>
                     </Tip>
-                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    <br/>
+                    {remaining_note}
                 </Col>
                 <Col sm=6>
                     <Input
@@ -252,7 +269,7 @@ UpgradeAdjustor = rclass
                         value      = {val}
                         bsStyle    = {bs_style}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
+                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
                     />
                     {label}
                 </Col>
@@ -301,13 +318,10 @@ UpgradeAdjustor = rclass
     valid_changed_upgrade_inputs : (current, limits) ->
         for name, data of @props.quota_params
             factor = data.display_factor
-
             # the highest number the user is allowed to type
             limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
-
             # the current amount applied to the project
             cur_val = misc.round2((current[name] ? 0) * factor)
-
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
             if not new_val? or new_val > limit
@@ -325,17 +339,17 @@ UpgradeAdjustor = rclass
             quota_params = @props.quota_params
             # how much upgrade you have used between all projects
             used_upgrades = @props.upgrades_you_applied_to_all_projects
-
             # how much upgrade you currently use on this one project
             current = @props.upgrades_you_applied_to_this_project
-
             # how much unused upgrade you have remaining
             remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-
             # maximums you can use, including the upgrades already on this project
             limits = misc.map_sum(current, remaining)
+            # additionally, the limits are capped by the maximum per project
+            maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+            limits = misc.map_limit(limits, maximum)
 
-            <Alert bsStyle='info'>
+            <Alert bsStyle='warning'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
@@ -352,7 +366,7 @@ UpgradeAdjustor = rclass
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
 
-                <ButtonToolbar>
+                <ButtonToolbar style={marginTop:'10px'}>
                     <Button
                         bsStyle  = 'primary'
                         onClick  = {=>@save_upgrade_quotas(remaining)}
@@ -423,8 +437,8 @@ QuotaConsole = rclass
         factor = params_data.display_factor
         unit   = params_data.display_unit
 
+        upgrade_list = []
         if upgrades?
-            upgrade_list = []
             for id, val of upgrades
                 amount = misc.round2(val * factor)
                 li =
@@ -434,11 +448,13 @@ QuotaConsole = rclass
                 upgrade_list.push(li)
 
         amount = misc.round2(base_value * factor)
+        if amount
+            # amount given by free project
+            upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
 
         <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
-                <li>{amount} {misc.plural(amount, unit)} given by free project</li>
                 {upgrade_list}
             </ul>
         </LabeledRow>
@@ -1273,8 +1289,8 @@ ProjectSettings = rclass
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
-            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
+            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>

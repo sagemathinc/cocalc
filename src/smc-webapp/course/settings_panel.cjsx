@@ -504,7 +504,7 @@ exports.SettingsPanel = rclass
         @_your_upgrades = your_upgrades
         @_num_projects = num_projects
 
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
             <hr/>
             {@render_upgrade_heading(num_projects)}

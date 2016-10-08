@@ -51,9 +51,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 DEFAULT_TIMEOUT = 30  # in seconds
 
 
-# change these soon
-smcls = 'smc-ls'
-
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -83,7 +80,12 @@ class Session extends EventEmitter
         # I'm going to leave this in for now -- it's only used for console sessions,
         # and they aren't properly reconnecting in all cases.
         if @reconnect?
-            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+            @conn.on("connected", @reconnect)
+
+    close: () =>
+        @removeAllListeners()
+        if @reconnect?
+            @conn.removeListener("connected", @reconnect)
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
@@ -1248,11 +1250,12 @@ class exports.Connection extends EventEmitter
         args.push(opts.start)
         if opts.path == ""
             opts.path = "."
+        args.push('--')
         args.push(opts.path)
 
         @exec
             project_id : opts.project_id
-            command    : smcls
+            command    : 'smc-ls'
             args       : args
             timeout    : opts.timeout
             cb         : (err, output) ->
@@ -1496,8 +1499,8 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : undefined    # one of account_id or email_address must be given
             email_address : undefined
-            amount        : required     # in US dollars
-            description   : required
+            amount        : undefined    # in US dollars -- if amount/description not given, then merely ensures user has stripe account
+            description   : undefined
             cb            : required
         @call
             message : message.stripe_admin_create_invoice_item
@@ -1507,6 +1510,16 @@ class exports.Connection extends EventEmitter
                 description   : opts.description
             error_event : true
             cb          : opts.cb
+
+    # Make it so the SMC user with the given email address has a corresponding stripe
+    # identity, even if they have never entered a credit card.  May only be used by
+    # admin users.
+    stripe_admin_create_customer: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined    # one of account_id or email_address must be given
+            email_address : undefined
+            cb            : required
+        @stripe_admin_create_invoice_item(opts)
 
     # Support Tickets
 

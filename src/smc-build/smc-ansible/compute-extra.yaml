@@ -56,6 +56,9 @@
     - numpy-stl
     - npTDMS
     - nipype
+    - xgboost
+    - ipywidgets
+    - keras
 
   - name: "install git trac from github"
     tags: [ pip2, update, install ]
@@ -116,6 +119,8 @@
     - numpy-stl
     - npTDMS
     - nipype
+    - ipywidgets
+    - keras
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.

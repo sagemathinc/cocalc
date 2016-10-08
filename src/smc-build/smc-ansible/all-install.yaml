@@ -404,6 +404,7 @@
     - libxslt-dev
     - libxvidcore-dev
     - libzmq-dev
+    - libzmq3-dev
 
   - name: 'Additional packages (mainly for users, not building) - batch #4'
     apt: "name={{ item }} install_recommends=yes state=latest"
@@ -470,6 +471,7 @@
     - poppler-utils
     - postgresql-client
     - povray
+    - prolog-el
     - proofgeneral
     - proofgeneral-doc
     - protobuf-compiler
@@ -537,6 +539,8 @@
     - sshfs
     - subversion
     - subversion-tools
+    - swi-prolog
+    - swi-prolog-doc
     - sysstat
     - tcsh
     - tig

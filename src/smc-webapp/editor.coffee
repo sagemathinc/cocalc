@@ -115,6 +115,7 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
+    rmd    : 'gfm2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -323,7 +324,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
     else
         return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat', 'git', 'template']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course', 'chat', 'git', 'template']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -941,12 +942,15 @@ class exports.Editor
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
             opts.read_only = true
-            if filename_extension_notilde(filename) == 'html'
+            fn_extension = filename_extension_notilde(filename)
+            if fn_extension == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
                 else
                     editor = new StaticHTML(@, filename, opts.content, extra_opts)
                 return editor
+            if fn_extension == 'ipynb'
+                return new JupyterNBViewerEmbedded(@, filename, opts.content)
 
         # These are used *ONLY* for development purposes; it allows us to easily
         # circumvent everything else for testing.
@@ -1603,7 +1607,6 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
-            "Enter"        : @enter_key
             "Ctrl-Space"   : "autocomplete"
 
             #"F11"          : (editor)   => console.log('fs', editor.getOption("fullScreen")); editor.setOption("fullScreen", not editor.getOption("fullScreen"))
@@ -1633,7 +1636,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars           : opts.electric_chars
                 undoDepth               : opts.undo_depth
                 matchBrackets           : opts.match_brackets
-                autoCloseBrackets       : opts.auto_close_brackets
+                autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
                 autoCloseTags           : opts.auto_close_xml_tags
                 lineWrapping            : opts.line_wrapping
                 readOnly                : opts.read_only
@@ -1772,7 +1775,7 @@ class CodeMirrorEditor extends FileEditor
         @hide_startup_message()
         @element.find(".salvus-editor-codemirror-content").show()
         for cm in @codemirrors()
-            cm.refresh()
+            cm?.refresh()
 
     hide_startup_message: () =>
         @element.find(".salvus-editor-codemirror-startup-message").hide()
@@ -1846,12 +1849,6 @@ class CodeMirrorEditor extends FileEditor
     interrupt_key: () =>
         # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
 
-    enter_key: (editor) =>
-        if @custom_enter_key?
-            @custom_enter_key(editor)
-        else
-            return CodeMirror.Pass
-
     press_tab_key: (editor) =>
         if editor.somethingSelected()
             CodeMirror.commands.defaultTab(editor)
@@ -1865,6 +1862,7 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
+
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
@@ -1891,33 +1889,42 @@ class CodeMirrorEditor extends FileEditor
                     CodeMirror.commands.findNext(cm)
                 else
                     CodeMirror.commands.goPageDown(cm)
+                    cm.focus()
             when 'prev'
                 if cm._searchState?.query
                     CodeMirror.commands.findPrev(cm)
                 else
                     CodeMirror.commands.goPageUp(cm)
+                    cm.focus()
             when 'replace'
                 CodeMirror.commands.replace(cm)
             when 'undo'
                 cm.undo()
+                cm.focus()
             when 'redo'
                 cm.redo()
+                cm.focus()
             when 'split-view'
                 @toggle_split_view(cm)
             when 'autoindent'
                 CodeMirror.commands.indentAuto(cm)
             when 'shift-left'
                 cm.unindent_selection()
+                cm.focus()
             when 'shift-right'
                 @press_tab_key(cm)
+                cm.focus()
             when 'increase-font'
                 @change_font_size(cm, +1)
+                cm.focus()
             when 'decrease-font'
                 @change_font_size(cm, -1)
+                cm.focus()
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
                 @print()
+
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1973,6 +1980,7 @@ class CodeMirrorEditor extends FileEditor
         @show()
         @focus()
         cm.focus()
+        @emit 'toggle-split-view'
 
     goto_line: (cm) =>
         focus = () =>
@@ -2032,6 +2040,9 @@ class CodeMirrorEditor extends FileEditor
         submit = () =>
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
+            $print_tempdir = dialog.find(".smc-file-printing-tempdir")
+            $print_tempdir.hide()
+            is_subdir = dialog.find(".salvus-file-print-keepfiles").is(":checked")
             dialog.find(".btn-submit").icon_spin(start:true)
             pdf = undefined
             async.series([
@@ -2046,7 +2057,7 @@ class CodeMirrorEditor extends FileEditor
                             author     : dialog.find(".salvus-file-print-author").text()
                             date       : dialog.find(".salvus-file-print-date").text()
                             contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            subdir     : dialog.find(".salvus-file-print-keepfiles").is(":checked")
+                            subdir     : is_subdir
                             extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
                         cb          : (err, _pdf) =>
                             if err
@@ -2063,8 +2074,29 @@ class CodeMirrorEditor extends FileEditor
                                 cb(err)
                             else
                                 url = mesg.url + "?nocache=#{Math.random()}"
-                                window.open(url,'_blank')
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                                if is_subdir
+                                    {join} = require('path')
+                                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
+                                    # if not reading it, tmp.tex is blank (?)
+                                    salvus_client.read_file_from_project
+                                        project_id : @project_id
+                                        path       : subdir_texfile
+                                        cb         : (err, mesg) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                tempdir_link = $('<a>').text('Click to open temporary file')
+                                                tempdir_link.click =>
+                                                    @editor.project_page.open_file
+                                                        path       : subdir_texfile
+                                                        foreground : true
+                                                    dialog.modal('hide')
+                                                    return false
+                                                $print_tempdir.html(tempdir_link)
+                                                $print_tempdir.show()
+                                else
+                                    window.open(url, '_blank')
                                 cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
@@ -2541,7 +2573,6 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
                 sync_interval   : 250
             E.syncdoc = new (sagews.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
-            E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"
@@ -2729,7 +2760,8 @@ class PDFLatexDocument
                 opts.cb(false, {n:n, x:x, y:y})
 
     default_tex_command: () =>
-        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
+        # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+        return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
@@ -2796,8 +2828,9 @@ class PDFLatexDocument
             command = @default_tex_command()
         sagetex_file = @base_filename + '.sagetex.sage'
         sha_marker = 'sha1sums'
+        # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
         @_exec
-            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
+            command : "yes x | " + command + "; echo '#{sha_marker}'; sha1sum '#{sagetex_file}'"
             bash    : true
             timeout : 20
             err_on_exit : false
@@ -3632,15 +3665,22 @@ class StaticHTML extends FileEditor
         if not @is_active()
             return
         if not @iframe?
-            @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
-            # We do this, since otherwise just loading the iframe using
-            #      @iframe.contents().find('html').html(@content)
-            # messes up the parent html page...
-            @iframe.contents().find('body')[0].innerHTML = @content
-            @iframe.contents().find('body').find("a").attr('target','_blank')
+            # Setting the iframe in the *next* tick is critical on Firefox; otherwise, the browser
+            # just deletes what we set.  I do not claim to fully understand why, but this does work.
+            # See https://github.com/sagemathinc/smc/issues/843
+            # -- wstein
+            setTimeout(@set_iframe, 1)
         @element.show()
         @element.css(top:@editor.editor_top_position())
         @element.maxheight(offset:18)
+
+    set_iframe: () =>
+        @iframe = @element.find(".salvus-editor-static-html-content").find('iframe')
+        # We do this, since otherwise just loading the iframe using
+        #      @iframe.contents().find('html').html(@content)
+        # messes up the parent html page...
+        @iframe.contents().find('body')[0].innerHTML = @content
+        @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
     init_buttons: () =>
@@ -3875,6 +3915,50 @@ class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
         @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
+
+class JupyterNBViewerEmbedded extends FileEditor
+    # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
+    # it's only used for public files and when not part of the project or anonymous
+    constructor: (@editor, @filename, @content, opts) ->
+        @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
+        @init_buttons()
+
+    init_buttons: () =>
+        # code duplication from editor_jupyter/JupyterNBViewer
+        @element.find('a[href=#copy]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('copy')
+            return false
+
+        @element.find('a[href=#download]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = redux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
+            actions.set_file_checked(@filename, true)
+            actions.set_file_action('download')
+            return false
+
+    show: () =>
+        if not @is_active()
+            return
+        if not @iframe?
+            @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
+            {join} = require('path')
+            ipynb_src = join(window.location.hostname,
+                             window.smc_base_url,
+                             @editor.project_id,
+                             'raw',
+                             @filename)
+            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files)
+            # ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
+            @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
+        @element.show()
+        @element.css(top:@editor.editor_top_position())
+        @element.maxheight(offset:18)
+        @iframe.maxheight()
 
 #############################################
 # Editor for HTML/Markdown/ReST documents

@@ -211,10 +211,12 @@ FileRow = rclass
                 </OverlayTrigger>
             </span>
 
+    fullpath : ->
+        misc.path_to_file(@props.current_path, @props.name)
+
     handle_click : (e) ->
-        fullpath = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.open_file
-            path       : fullpath
+            path       : @fullpath()
             foreground : misc.should_open_in_foreground(e)
         @props.actions.set_file_search('')
 
@@ -225,6 +227,8 @@ FileRow = rclass
             backgroundColor : @props.color
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
+
+        href_download = @props.actions.download_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
@@ -241,7 +245,17 @@ FileRow = rclass
             </Col>
             <Col sm=4 smPush=5 xs=6>
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
-                <span className='pull-right' style={color:'#666'}>{human_readable_size(@props.size)}</span>
+                <span className='pull-right' style={color:'#666'}>
+                    {human_readable_size(@props.size)}
+                    <Button style={marginLeft: '1em', background:'transparent'}
+                            bsStyle='default'
+                            bsSize='xsmall'
+                            target='_blank'
+                            href="#{href_download}"
+                            onClick = {(e)->e.stopPropagation()}>
+                        <Icon name='cloud-download' style={color: '#666'} />
+                    </Button>
+                </span>
             </Col>
             <Col sm=5 smPull=4 xs=12>
                 {@render_name()}
@@ -645,9 +659,19 @@ ProjectFilesButtons = rclass
     propTypes :
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
+        default_sort : rtypes.string
         current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
+
+    componentWillReceiveProps: (next) ->
+        if @props.default_sort != next.default_sort
+            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
+                @props.actions.setState(sort_by_time : next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, next.sort_by_time, next.show_hidden)
+            else
+                @props.actions.setState(sort_by_time : not next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh : (e) ->
         e.preventDefault()
@@ -1201,7 +1225,7 @@ ProjectFilesActionBox = rclass
     valid_copy_input : ->
         src_path = misc.path_split(@props.checked_files.first()).head
         input = @state.copy_destination_directory
-        if input == src_path
+        if input == src_path and @props.project_id == @state.copy_destination_project_id
             return false
         if @state.copy_destination_project_id is ''
             return false
@@ -1893,6 +1917,9 @@ ProjectFiles = (name) -> rclass
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
+    file_listing_default_sort: ->
+        return @props.other_settings?.get('default_file_sort') ? 'time'
+
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -1947,6 +1974,7 @@ ProjectFiles = (name) -> rclass
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
+                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />

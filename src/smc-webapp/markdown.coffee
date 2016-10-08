@@ -13,6 +13,7 @@ marked.setOptions
     smartypants : true
 
 exports.markdown_to_html = markdown_to_html = (s) ->
+
     # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
     v = misc.parse_mathjax(s)
     if v.length > 0
@@ -30,8 +31,10 @@ exports.markdown_to_html = markdown_to_html = (s) ->
     else
         has_mathjax = false
 
+    #console.log "markdown_to_html: before marked s:", s
     # render s to html (from markdown)
     s = marked(s)
+    #console.log "markdown_to_html: after marked s:", s
 
     # if there was any mathjax, put it back in the s
     if has_mathjax
@@ -40,7 +43,9 @@ exports.markdown_to_html = markdown_to_html = (s) ->
     else if '\$' in s
         has_mathjax = true # still need to parse it to turn \$'s to $'s.
 
-    return {s:s, has_mathjax:has_mathjax}
+    ret = {s:s, has_mathjax:has_mathjax}
+    #console.log "markdown_to_html.ret: ", ret
+    return ret
 
 opts =
     gfm_code  : true

@@ -1,0 +1,8 @@
+prometheus:go_goroutines:avg_rate5m = avg(rate(go_goroutines[5m]))
+compute:num_projects:sum = sum by (groups) (num_projects)
+compute:num_ipynb:sum    = sum by (groups) (num_ipynb)
+compute:num_sage:sum     = sum by (groups) (num_sage)
+node:cpu:nonidle_pct20s  = 100 - (avg without (cpu, mode) (irate(node_cpu{mode="idle"}[20s])) * 100)
+node:cpu:user_pct20s     = 100 * avg without (cpu, mode) (irate(node_cpu{mode="user"}[20s]))
+node:cpu:sys_pct20s      = 100 * avg without (cpu, mode) (irate(node_cpu{mode="system"}[20s]))
+#node:predict_filesystem_free:projects_1d = predict_linear(node_filesystem_free{mountpoint="/projects",job="compute"}[1d], 24*60*60) / (1024^3)

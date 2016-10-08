@@ -59,6 +59,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
       - pypi
       - plotly
       - conda-forge
+      - mutirri
       - defaults
     show_channel_urls: True
 
@@ -74,9 +75,9 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y ecdsa ephem execnet  feedparser flake8 flask-wtf flask-login future gensim geos gunicorn heapdict html5lib  lancet libnetcdf line_profiler llvm locket lockfile logilab-common mako markdown2 mdp mock markdown descartes pysal wordcloud vpython
 
-       conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra
+       conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra plotly geopandas altair
 
-       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials
+       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras
 
 not possible to install (conflict with python 3.5):
 

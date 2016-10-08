@@ -105,10 +105,10 @@ def _jkmagic(kernel_name, **kwargs):
     -  ``debug`` - optional, set true to view jupyter messages
 
     """
-    km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
-
-    kn = kernel_name
-    i_am_a_jupyter_client = True
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
@@ -133,20 +133,23 @@ def _jkmagic(kernel_name, **kwargs):
         -  ``scroll`` - set true to put output into scrolling div
         """
         # `full = False` or else cell output is huge
-        h = conv.convert(s, full = False)
-        if block:
-            h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+        if "\x1b" in s:
+            h = conv.convert(s, full = False)
+            if block:
+                h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+            else:
+                h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
+            if scroll:
+                h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
+            salvus.html(h2)
         else:
-            h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
-        if scroll:
-            h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
-        salvus.html(h2)
+            sys.stdout.write(s)
+            sys.stdout.flush()
 
-    def run_code(code):
+    def run_code(code, get_kernel_name = False):
 
-        # these are used by the worksheet process
-        if (not i_am_a_jupyter_client) or len(kn) == 0:
-            return
+        if get_kernel_name:
+            return kernel_name
 
         # execute the code
         msg_id = kc.execute(code)
@@ -155,6 +158,10 @@ def _jkmagic(kernel_name, **kwargs):
         shell = kc.shell_channel
         iopub = kc.iopub_channel
         stdinj = kc.stdin_channel
+
+        # buffering for %capture because we don't know whether output is stdout or stderr
+        # until shell execute_reply message is received with status 'ok' or 'error'
+        capture_out = ""
 
         # handle iopub messages
         while True:
@@ -225,10 +232,11 @@ def _jkmagic(kernel_name, **kwargs):
                     continue
                 p('execute_result data keys: ',content['data'].keys())
                 out_prefix = ""
-                if 'execution_count' in content:
-                    out_data = "Out [%d]: "%content['execution_count']
-                    # don't want line break after this
-                    sys.stdout.write(out_data)
+                # don't display output numbers
+                # if 'execution_count' in content:
+                #     out_data = "Out [%d]: "%content['execution_count']
+                #     # don't want line break after this
+                #     sys.stdout.write(out_data)
                 if 'text/latex' in content['data']:
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):
@@ -267,11 +275,15 @@ def _jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    if 'name' in content and content['name'] == 'stderr':
-                        sys.stderr.write(content['text'])
-                        sys.stderr.flush()
+                    if hasattr(sys.stdout._f, 'im_func'):
+                        if 'name' in content and content['name'] == 'stderr':
+                            sys.stderr.write(content['text'])
+                            sys.stderr.flush()
+                        else:
+                            hout(content['text'],block = False)
                     else:
-                        hout(content['text'],block = False)
+                        # %capture mode
+                        capture_out += content['text'].replace('\r','')
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -296,15 +308,23 @@ def _jkmagic(kernel_name, **kwargs):
             if msg['parent_header'].get('msg_id') == msg_id:
                 p('shell', msg_type, len(str(content)), str(content)[:300])
                 if msg_type == 'execute_reply':
-                    if content['status'] == 'ok':
-                        if 'payload' in content:
-                            payload = content['payload']
-                            if len(payload) > 0:
-                                if 'data' in payload[0]:
-                                    data = payload[0]['data']
-                                    if 'text/plain' in data:
-                                        text = data['text/plain']
-                                        hout(text, scroll = True)
+                    if hasattr(sys.stdout._f, 'im_func'):
+                        if content['status'] == 'ok':
+                            if 'payload' in content:
+                                payload = content['payload']
+                                if len(payload) > 0:
+                                    if 'data' in payload[0]:
+                                        data = payload[0]['data']
+                                        if 'text/plain' in data:
+                                            text = data['text/plain']
+                                            hout(text, scroll = True)
+                    else:
+                        # %capture mode
+                        if content['status'] == 'ok':
+                            print(capture_out)
+                        elif content['status'] == 'error':
+                            sys.stderr.write(capture_out)
+                            sys.stderr.flush()
                     break
             else:
                 # not our reply

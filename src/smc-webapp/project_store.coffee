@@ -268,18 +268,16 @@ class ProjectActions extends Actions
                 path         ?= (store.get('current_path') ? "")
                 sort_by_time ?= (store.get('sort_by_time') ? true)
                 show_hidden  ?= (store.get('show_hidden') ? false)
-                if group in ['owner', 'collaborator', 'admin']
-                    method = 'project_directory_listing'
-                else
-                    method = 'public_project_directory_listing'
-                require('./salvus_client').salvus_client[method]
+                get_directory_listing
                     project_id : @project_id
                     path       : path
                     time       : sort_by_time
                     hidden     : show_hidden
-                    timeout    : 45
+                    max_time_s : 4*60  # keep trying for up to 4 minutes
+                    group      : group
                     cb         : (err, x) =>
-                        listing = x; cb(err)
+                        listing = x
+                        cb(err)
         ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
@@ -538,7 +536,7 @@ class ProjectActions extends Actions
             project_id : @project_id
             command    : 'rm'
             timeout    : 60
-            args       : ['-rf'].concat(opts.paths)
+            args       : ['-rf', '--'].concat(opts.paths)
             cb         : (err, result) =>
                 if err
                     @set_activity(id:id, error: "Network error while trying to delete #{mesg} -- #{err}", stop:'')
@@ -554,6 +552,9 @@ class ProjectActions extends Actions
             action : 'downloaded'
             files  : opts.path
         @_project().download_file(opts)
+
+    download_href : (path) ->
+        @_project().download_href(path)
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -935,10 +936,16 @@ exports.getStore = getStore = (project_id, redux) ->
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
 
+    set_sort_time = () ->
+        if redux.getStore('account').get('other_settings').get('default_file_sort') == 'time'
+            return true
+        else
+            return false
+
     # Create store
     initial_state =
         current_path       : ''
-        sort_by_time       : true #TODO
+        sort_by_time       : set_sort_time() #TODO
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -988,3 +995,37 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
+
+get_directory_listing = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        time       : required
+        hidden     : required
+        max_time_s : required
+        group      : required
+        cb         : required
+    {salvus_client} = require('./salvus_client')
+    if opts.group in ['owner', 'collaborator', 'admin']
+        method = salvus_client.project_directory_listing
+    else
+        method = salvus_client.public_project_directory_listing
+    listing = undefined
+    f = (cb) ->
+        method
+            project_id : opts.project_id
+            path       : opts.path
+            time       : opts.time
+            hidden     : opts.hidden
+            timeout    : 20
+            cb         : (err, x) ->
+                listing = x
+                cb(err)
+
+    misc.retry_until_success
+        f        : f
+        max_time : opts.max_time_s * 1000
+        #log      : console.log
+        cb       : (err) ->
+            opts.cb(err, listing)
+
