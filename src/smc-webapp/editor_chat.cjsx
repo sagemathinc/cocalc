@@ -790,10 +790,10 @@ ChatRoom = (name) -> rclass
     on_scroll: (e) ->
         @_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
+        # console.log 'on_scroll', node.scrollTop, node.offsetHeight, node.scrollHeight
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
         if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
             @mark_as_read()
-        e.preventDefault()
 
     set_preview_state: ->
         if @refs.log_container?
@@ -810,6 +810,7 @@ ChatRoom = (name) -> rclass
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        @on_scroll = underscore.debounce(@on_scroll, 10)
 
     componentDidMount: ->
         @scroll_to_position()
