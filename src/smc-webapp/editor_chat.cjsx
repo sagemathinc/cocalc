@@ -404,7 +404,6 @@ Message = rclass
                 @props.actions.set_editing(@props.message, false)
 
     save_edit: ->
-        console.log('saving edit')
         mesg = @refs.editedMessage.getValue()
         if mesg != @newest_content()
             @props.actions.send_edit(@props.message, mesg)
@@ -442,17 +441,6 @@ Message = rclass
                 {<Avatar account={account} /> if account? and @props.show_avatar}
             </div>
         </Col>
-
-    is_user_editing: ->
-        other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
-        current_user = @props.user_map.get(@props.account_id).get('first_name') + ' ' + @props.user_map.get(@props.account_id).get('last_name')
-        if @is_editing()
-            if other_editors.size is 0 and not (@state.history_size != @props.message.get('history').size and @state.new_changes)
-                return true
-            else
-                return false
-        else
-            return false
 
     content_column: ->
         value = @newest_content()
