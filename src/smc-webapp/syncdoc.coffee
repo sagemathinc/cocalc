@@ -44,6 +44,10 @@ account = require('./account')
 
 {EventEmitter} = require('events')
 
+side_chat = require('./side_chat')
+
+{IS_MOBILE} = require('./feature')
+
 class AbstractSynchronizedDoc extends EventEmitter
     file_path: () =>
         if not @_file_path?
@@ -79,42 +83,45 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
 
-        # send chat message
-        input.keydown (evt) =>
-            if evt.which == 13 # enter
-                content = $.trim(input.val())
-                if content != ""
-                    input.val("")
-                    @write_chat_message
-                        event_type : "chat"
-                        payload    : {content : content}
-                return false
+        # # send chat message
+        # input.keydown (evt) =>
+        #     if evt.which == 13 # enter
+        #         content = $.trim(input.val())
+        #         if content != ""
+        #             input.val("")
+        #             @write_chat_message
+        #                 event_type : "chat"
+        #                 payload    : {content : content}
+        #         return false
 
-        @chat_session.on('sync', (=>@render_chat_log()))
+        #@chat_session.on('sync', (=>@render_chat_log()))
 
-        @render_chat_log()  # first time
+        #@render_chat_log()  # first time
         @init_chat_toggle()
         @init_video_toggle()
-        @new_chat_indicator(false)
 
 
     # This is an interface that allows messages to be passed between connected
     # clients via a log in the filesystem. These messages are handled on all
     # clients through the render_chat_log() method, which listens to the 'sync'
     # event emitted by the chat_session object.
+
+    # Writes the video chat message
     write_chat_message: (opts={}) =>
         opts = defaults opts,
             event_type : required  # "chat", "start_video", "stop_video"
             payload    : required  # event-dependent dictionary
+            video      : required
             cb         : undefined # callback
 
         new_message = misc.to_json
-            sender_id : redux.getStore('account').get_account_id()
-            date      : new Date()
+            sender_id : "Unknown"
             event     : opts.event_type
             payload   : opts.payload
+            video_chat: opts.video
+            date      : salvus_client.server_time()
 
-        @chat_session.live(@chat_session.live() + "\n" + new_message)
+        @chat_session.live(new_message + "\n" + @chat_session.live())
 
         # save to disk after each message
         @chat_session.save(opts.cb)
@@ -137,14 +144,21 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.local_storage("chat_is_hidden", false)
         @element.find(".salvus-editor-chat-show").hide()
         @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
+        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-12').addClass('col-sm-9')
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
-        @new_chat_indicator(false)
         @editor.show()  # updates editor width
         @editor.emit 'show-chat'
-        @render_chat_log()
+        #@render_chat_log()
+        chat_height = @element.height() + 2 - @element.find(".salvus-editor-codemirror-button-row").height() - 70
+
+        side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
+
+        height_resize = () =>
+            chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
+            side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
+        $(window).on("resize", height_resize)
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -152,73 +166,49 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.local_storage("chat_is_hidden", true)
         @element.find(".salvus-editor-chat-hide").hide()
         @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
+        #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
         @editor.emit 'hide-chat'
 
-    new_chat_indicator: (new_chats) =>
-        # Show a new chat indicatorif new_chats=true
-        # if new_chats=true, indicate that there are new chats
-        # if new_chats=false, don't indicate new chats.
-        elt = @element.find(".salvus-editor-chat-new-chats")
-        elt2 = @element.find(".salvus-editor-chat-no-new-chats")
-        if new_chats
-            elt.show()
-            elt2.hide()
+    init_video_toggle: () =>
+        video_chat_window = null
+        @_video_chat_id = ""
+        if @has_video_id()[0]
+            @_video_chat_id = @has_video_id()[1]
         else
-            elt.hide()
-            elt2.show()
+            @_video_chat_id = misc.uuid()
+            @write_chat_message
+                "event_type" : "chat"
+                "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}
+                "video"      : {"is_video_chat" : true}
+        video_on_button = @element.find(".salvus-editor-chat-video-is-off")
+        video_off_button = @element.find(".salvus-editor-chat-video-is-on")
 
-    # This handles every event in a chat log.
-    render_chat_log: () =>
-        if not @chat_session?
-            # try again in a few seconds -- not done loading
-            setTimeout(@render_chat_log, 5000)
-            return
+        video_on_button.click () =>
+            url = "https://appear.in/" + @_video_chat_id
+            video_chat_window = window.open("", "_blank", "location=false,height=640,width=800")
+            video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
+            video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
+            video_chat_window.document.write('</body></html>')
+
+            @element.find(".salvus-editor-chat-video-is-off").hide()
+            @element.find(".salvus-editor-chat-video-is-on").show()
+            video_chat_window.addEventListener("unload", @on_unload)
+
+        video_off_button.click () =>
+            video_chat_window.close()
+            @element.find(".salvus-editor-chat-video-is-off").show()
+            @element.find(".salvus-editor-chat-video-is-on").hide()
+
+    on_unload: (e) =>
+        @.opener.$(".salvus-editor-chat-video-is-off").show()
+        @.opener.$(".salvus-editor-chat-video-is-on").hide()
+
+    search_message_log: =>
         messages = @chat_session.live()
-        if not messages?
-            # try again in a few seconds -- not done loading
-            setTimeout(@render_chat_log, 5000)
-            return
-        chat_hash = misc.hash_string(messages)
-        if not @_last_chat_hash?
-            @_last_chat_hash = chat_hash
-        else if @_last_chat_hash != chat_hash
-            @_last_chat_hash = chat_hash
-            @new_chat_indicator(true)
-            if not @editor._chat_is_hidden
-                f = () =>
-                    @new_chat_indicator(false)
-                setTimeout(f, 3000)
-
-        if @editor._chat_is_hidden
-            # For this right here, we need to use the database to determine if user has seen all chats.
-            # But that is a nontrivial project to implement, so save for later.   For now, just start
-            # assuming user has seen them.
-            # done -- no need to render anything.
-            return
-
-        # The chat message area
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-
         messages = messages.split('\n')
-
-        @_max_chat_length ?= 100
-
-        if messages.length > @_max_chat_length
-            chat_output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
-            chat_output.find("a:first").click (e) =>
-                @_max_chat_length += 100
-                @render_chat_log()
-                chat_output.scrollTop(0)
-            messages = messages.slice(messages.length - @_max_chat_length)
-
-        # Preprocess all inputs to add a 'sender_name' field to all messages
-        # with a 'sender_id'. Also, keep track of whether or not video should
-        # be displayed
         all_messages = []
-        sender_ids = []
         for m in messages
             if $.trim(m) == ""
                 continue
@@ -228,240 +218,18 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 continue # skip
 
             all_messages.push(new_message)
+        return all_messages
 
-            if new_message.sender_id?
-                sender_ids.push(new_message.sender_id)
-
-        salvus_client.get_usernames
-            account_ids : sender_ids
-            cb          : (err, sender_names) =>
-                if err
-                    console.warn("Error getting user names -- ", err)
-                else
-                    # Clear the chat output
-                    chat_output.empty()
-
-                    # Use handler to render each message
-                    last_mesg = undefined
-                    for mesg in all_messages
-
-                        if mesg.sender_id?
-                            user_info = sender_names[mesg.sender_id]
-                            mesg.sender_name = user_info.first_name + " " +
-                                user_info.last_name
-                        else if mesg.name?
-                            mesg.sender_name = mesg.name
-
-                        if mesg.event?
-                            switch mesg.event
-                                when "chat"
-                                    @handle_chat_text_message(mesg, last_mesg)
-                                when "start_video"
-                                    @handle_chat_start_video(mesg)
-                                    video_chat_room_id = mesg.room_id
-                                when "stop_video"
-                                    @handle_chat_stop_video(mesg)
-                        else # handle old-style log messages (chat only)
-                            @handle_old_chat_text_message(mesg, last_mesg)
-
-                        last_mesg = mesg
-
-                    chat_output.scrollTop(chat_output[0].scrollHeight)
-
-                    if @editor._video_is_on? and @editor._video_is_on
-                        @start_video(video_chat_room_id)
-                    else
-                        @stop_video()
-
-    handle_old_chat_text_message: (mesg, last_mesg) =>
-        entry = templates.find(".salvus-chat-entry").clone()
-
-        header = entry.find(".salvus-chat-header")
-
-        sender_name = mesg.sender_name
-
-        # Assign a fixed color to the sender's ID
-        message_color = mesg.color
-
-        date = new Date(mesg.date)
-        if last_mesg?
-            last_date = new Date(last_mesg.date)
-
-        if not last_mesg? or
-          last_mesg.sender_name != mesg.sender_name or
-          (date.getTime() - last_date.getTime()) > 60000
-
-            header.find(".salvus-chat-header-name")
-                .text(mesg.name)
-                .css(color: "#" + mesg.color)
-            header.find(".salvus-chat-header-date")
-                .attr("title", date.toISOString())
-                .timeago()
-
+    has_video_id: =>
+        is_video = [false, null]
+        if @search_message_log().length > 0
+            for messages in @search_message_log()
+                if messages.video_chat?.is_video_chat
+                    is_video[0] = true
+                    is_video[1] = messages.payload.content.split(": ")[1]
+            return is_video
         else
-            header.hide()
-
-        entry.find(".salvus-chat-entry-content")
-            .html(markdown.markdown_to_html(mesg.mesg.content).s)
-            .mathjax()
-
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
-
-    handle_chat_text_message: (mesg, last_mesg) =>
-        entry = templates.find(".salvus-chat-entry").clone()
-        header = entry.find(".salvus-chat-header")
-
-        sender_name = mesg.sender_name
-
-        # Assign a fixed color to the sender's ID
-        message_color = mesg.sender_id.slice(0, 6)
-
-        date = new Date(mesg.date)
-        if last_mesg?
-            last_date = new Date(last_mesg.date)
-
-        if not last_mesg? or
-          last_mesg.sender_id != mesg.sender_id or
-          (date.getTime() - last_date.getTime()) > 60000
-
-            header.find(".salvus-chat-header-name")
-                .text(sender_name)
-                .css(color: "#" + message_color)
-            header.find(".salvus-chat-header-date")
-                .attr("title", date.toISOString())
-                .timeago()
-        else
-            header.hide()
-
-        entry.find(".salvus-chat-entry-content")
-            .html(markdown.markdown_to_html(mesg.payload.content).s)
-            .mathjax()
-
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
-
-    handle_chat_start_video: (mesg) =>
-        #console.log("Start video message detected: " + mesg.payload.room_id)
-
-        entry = templates.find(".salvus-chat-activity-entry").clone()
-        header = entry.find(".salvus-chat-header")
-
-        sender_name = mesg.sender_name
-
-        # Assign a fixed color to the sender's ID
-        message_color = mesg.sender_id.slice(0, 6)
-
-        date = new Date(mesg.date)
-        if last_mesg?
-            last_date = new Date(last_mesg.date)
-
-        if not last_mesg? or
-          last_mesg.sender_id != mesg.sender_id or
-          (date.getTime() - last_date.getTime()) > 60000
-
-            header.find(".salvus-chat-header-name")
-                .text(sender_name)
-                .css(color: "#" + message_color)
-            header.find(".salvus-chat-header-date")
-                .attr("title", date.toISOString())
-                .timeago()
-        else
-            header.hide()
-
-        header.find(".salvus-chat-header-activity")
-          .html(" started a video chat")
-
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
-
-        @editor._video_is_on = true
-        @editor.local_storage("video_is_on", true)
-        @element.find(".salvus-editor-chat-video-is-off").hide()
-        @element.find(".salvus-editor-chat-video-is-on").show()
-
-    handle_chat_stop_video: (mesg) =>
-        #console.log("Stop video message detected: " + mesg.payload.room_id)
-
-        entry = templates.find(".salvus-chat-activity-entry").clone()
-        header = entry.find(".salvus-chat-header")
-
-        sender_name = mesg.sender_name
-
-        # Assign a fixed color to the sender's ID
-        message_color = mesg.sender_id.slice(0, 6)
-
-        date = new Date(mesg.date)
-        if last_mesg?
-            last_date = new Date(last_mesg.date)
-
-        if not last_mesg? or
-          last_mesg.sender_id != mesg.sender_id or
-          (date.getTime() - last_date.getTime()) > 60000
-
-            header.find(".salvus-chat-header-name")
-                .text(sender_name)
-                .css(color: "#" + message_color)
-            header.find(".salvus-chat-header-date")
-                .attr("title", date.toISOString())
-                .timeago()
-        else
-            header.hide()
-
-        header.find(".salvus-chat-header-activity")
-          .html(" ended a video chat")
-
-        chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.append(entry)
-
-        @editor._video_is_on = false
-        @editor.local_storage("video_is_on", false)
-        @element.find(".salvus-editor-chat-video-is-on").hide()
-        @element.find(".salvus-editor-chat-video-is-off").show()
-
-
-    start_video: (room_id) =>
-        video_height = "232px"
-        @editor._video_chat_room_id = room_id
-
-        video_container = @element.find(".salvus-editor-codemirror-chat-video")
-        video_container.empty()
-        # webpacking this here doesn't, because it needs a parameter and webpack only has js file as targets (if rendered to a file)
-        # maybe https://github.com/webpack/webpack/issues/536 has some answer some day in the future …
-        # TODO make this video chat properly part of the website or get rid of it
-        group_chat_url = window.smc_base_url + "/static/webrtc/group_chat_side.html"
-        video_container.html("<iframe id='#{room_id}' src='#{group_chat_url}?#{room_id}' height='#{video_height}'></iframe>")
-
-        # Update heights of chat and video windows
-        @editor.emit 'show-chat'
-
-    stop_video: () =>
-        video_container = @element.find(".salvus-editor-codemirror-chat-video")
-        video_container.empty()
-
-        # Update heights of chat and video windows
-        @editor.emit 'show-chat'
-
-    init_video_toggle: () =>
-        video_button = @element.find(".salvus-editor-chat-title-video")
-        video_button.click () =>
-            if not @editor._video_is_on
-                @start_video_chat()
-            else
-                @stop_video_chat()
-
-        @editor._video_is_on = false
-
-    start_video_chat: () =>
-        @_video_chat_room_id = Math.floor(Math.random()*1e24 + 1e5)
-        @write_chat_message
-            "event_type" : "start_video"
-            "payload"    : {room_id: @_video_chat_room_id}
-
-    stop_video_chat: () =>
-        @write_chat_message
-            "event_type" : "stop_video"
-            "payload"    : {room_id: @_video_chat_room_id}
+            return is_video
 
 underscore = require('underscore')
 

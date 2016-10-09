@@ -100,7 +100,7 @@ exports.remove = (path, redux, project_id) ->
 # This should be a comprehensive list of all React editors
 
 # require('./editor_terminal')
-require('./editor_chat')
+require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
 # require('./editor_codemirror')
