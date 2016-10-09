@@ -576,9 +576,10 @@ class ProjectsStore extends Store
         v = {}
         @get('project_map').map (project, project_id) =>
             upgrades = @getIn(['project_map', project_id, 'users', account_id, 'upgrades'])?.toJS()
-            for upgrade of upgrades
-                if upgrades[upgrade] > 0
+            for upgrade,val of upgrades
+                if val > 0
                     v[project_id] = upgrades
+                    break
         return v
 
 init_store =
