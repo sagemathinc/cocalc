@@ -52,6 +52,16 @@ scrape_configs:
       - source_labels: [__meta_gce_instance_tags]
         action: replace
         target_label: tags
+      - source_labels: [__meta_gce_instance_name]
+        action: replace
+        target_label: group
+        regex: "compute[0-3].*"
+        replacement: free
+      - source_labels: [__meta_gce_instance_name]
+        action: replace
+        target_label: group
+        regex: "compute[4-9].*"
+        replacement: member
 
   # storage
   - job_name: 'storage'
