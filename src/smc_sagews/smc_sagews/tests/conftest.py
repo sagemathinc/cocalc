@@ -366,6 +366,12 @@ def image_file(tmpdir_factory):
     make_img().savefig(str(fn))
     return fn
 
+@pytest.fixture(scope='session')
+def data_path(tmpdir_factory):
+    path = tmpdir_factory.mktemp("data")
+    path.ensure_dir()
+    return path
+
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""

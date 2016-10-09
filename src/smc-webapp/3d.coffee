@@ -94,6 +94,7 @@ class SalvusThreeJS
 
         @init_eval_note()
         opts.cb?(undefined, @)
+        # window.w = @   # for debugging
 
     # client code should call this when start adding objects to the scene
     init: () =>
@@ -361,14 +362,24 @@ class SalvusThreeJS
             points     : required
             thickness  : 1
             color      : "#000000"
-            arrow_head : false  # FUTURE
+            arrow_head : false
         @show_canvas()
 
-        geometry = new THREE.Geometry()
-        for a in o.points
-            geometry.vertices.push(@vector(a))
-        line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness))
-        @scene.add(line)
+        if o.arrow_head
+            # Draw an arrowhead using the ArrowHelper: https://github.com/mrdoob/three.js/blob/master/src/extras/helpers/ArrowHelper.js
+            orig = @vector(o.points[0])
+            p1   = @vector(o.points[1])
+            dir  = new THREE.Vector3(); dir.subVectors(p1, orig)
+            length = dir.length()
+            dir.normalize()
+            @scene.add(new THREE.ArrowHelper(dir, orig, length, o.color))
+
+        else
+
+            geometry = new THREE.Geometry()
+            for a in o.points
+                geometry.vertices.push(@vector(a))
+            @scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness)))
 
     add_point: (opts) =>
         o = defaults opts,

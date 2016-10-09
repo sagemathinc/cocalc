@@ -70,3 +70,46 @@ class TestSearchSrc:
 
     def test_search_src_max_chars(self, execinteract):
         execinteract('search_src("full cremonadatabase", max_chars = 1000)')
+
+class TestIdentifiers:
+    """
+    see SMC issue #63
+    """
+    def test_ident_set_file_env(self, exec2):
+        """emulate initial code block sent from UI, needed for first show_identifiers"""
+        code = "os.chdir(salvus.data[\'path\']);__file__=salvus.data[\'file\']"
+        exec2(code)
+    def test_show_identifiers_initial(self, exec2):
+        exec2("show_identifiers()","[]\n")
+
+    def test_show_identifiers_vars(self, exec2):
+        code = dedent(r"""
+        k = ['a','b','c']
+        A = {'a':'foo','b':'bar','c':'baz'}
+        z = 99
+        sorted(show_identifiers())""")
+        exec2(code, "['A', 'k', 'z']\n")
+
+    def test_save_and_reset(self,exec2,data_path):
+        code = dedent(r"""
+        save_session('%s')
+        reset()
+        show_identifiers()""")%data_path.join('session').strpath
+        exec2(code,"[]\n")
+    def test_load_session1(self,exec2,data_path):
+        code = dedent(r"""
+        pretty_print = 8
+        view = 9
+        load_session('%s')
+        sorted(show_identifiers())""")%data_path.join('session').strpath
+        output = "['A', 'k', 'pretty_print', 'view', 'z']\n"
+        exec2(code,output)
+    def test_load_session2(self,exec2):
+        exec2("pretty_print,view","(8, 9)\n")
+
+    def test_redefine_sage(self,exec2):
+        code = dedent(r"""
+        reset()
+        sage=1
+        show_identifiers()""")
+        exec2(code,"['sage']\n")
