@@ -2414,6 +2414,7 @@ class SynchronizedWorksheetCell
         return @cm.getLine(x.loc.from.line)
 
     output: =>
+        v = []
         for x in @raw_output().slice(38).split(MARKERS.output)
             try
                 v.push(misc.from_json(x))
