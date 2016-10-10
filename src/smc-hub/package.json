@@ -17,7 +17,7 @@
     "express": "^4.11.2",
     "express-session": "^1.10.4",
     "formidable": "^1.0.17",
-    "gcloud": "^0.24.0",
+    "google-cloud": "^0.41.2",
     "http-proxy": "^1.12.0",
     "immutable": "^3.7.5",
     "json-stable-stringify": "^1.0.1",
