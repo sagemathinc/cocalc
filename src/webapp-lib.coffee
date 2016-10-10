@@ -74,9 +74,9 @@ require("pnotify/src/pnotify.buttons.js");
 require("pnotify/src/pnotify.desktop.js");
 
 # Datetime picker
-# require("script!datetimepicker/bootstrap-datetimepicker.min.js")
+require("script!datetimepicker/bootstrap-datetimepicker.min.js")
 # https://github.com/eonasdan/bootstrap-datetimepicker
-require("eonasdan-bootstrap-datetimepicker")
+# require("eonasdan-bootstrap-datetimepicker")
 
 # XTerm terminal emulator
 require("script!term/term.js")
