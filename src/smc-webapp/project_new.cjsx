@@ -284,16 +284,19 @@ ProjectNew = (name) -> rclass
     decline_file : ->
         @setState(warning : false)
         ReactDOM.findDOMNode(@refs.project_new_filename.refs.input).disabled = false
+        @refs.project_new_filename.getInputDOMNode().focus()
 
     render_alert : ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
-            <p>Warning: You tried to create a file with no extensions. Are you sure you want to create a file with no extensions?</p>
-            <Button onClick={@accept_file} style={marginRight:'5px'}>
-                Yes
-            </Button>
-            <Button onClick={@decline_file} style={marginRight:'5px'}>
-                No
-            </Button>
+            <p>Warning: Are you sure you want to create a file with no extensions?</p>
+            <ButtonToolbar>
+                <Button onClick={@accept_file} bsStyle='success'>
+                    Create file
+                </Button>
+                <Button onClick={@decline_file} bsStyle='default'>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
         </Alert>
 
 
