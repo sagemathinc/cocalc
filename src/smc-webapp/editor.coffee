@@ -1147,8 +1147,11 @@ class exports.Editor
             # responsive mode
             @project_page.destroy_sortable_file_list()
             width = "50%"
+            $("#file_info_button").addClass("btn-lg")
         else
             @project_page.init_sortable_file_list()
+            $("#file_info_button").removeClass("btn-lg")
+            $("#file_info_button").parent().removeClass("btn-group-lg")
             n = x.length
             width = Math.min(250, parseInt((x[0].parent().width() - 40) / n + 2)) # floor to prevent rounding problems
             if width < 0

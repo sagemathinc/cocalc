@@ -35,7 +35,7 @@ Combobox    = require('react-widgets/lib/Combobox')
 misc        = require('smc-util/misc')
 immutable   = require('immutable')
 underscore  = require('underscore')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, is_responsive_mode} = require('./feature')
 
 markdown    = require('./markdown')
 
@@ -1160,13 +1160,10 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render : ->
-        drop_down_style =
-            marginRight : '2px'
+        if is_responsive_mode()
+            bs_style = "large"
 
-        if IS_MOBILE
-            drop_down_style.height = '45px'
-
-        <DropdownButton style={drop_down_style} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bs_style} title={<Icon name='info-circle' />} className='pull-left'>
             {@render_menu_items()}
         </DropdownButton>
 
