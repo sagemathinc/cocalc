@@ -416,7 +416,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         items = []
         @props.open_files_order.map (path, index) =>
             items.push(@file_menu_item(path, index))
-        <NavDropdown id="smc-project-files-dropdown" title={dropdown_title} style={width:'200px', fontSize:'18px', textAlign:'center'}>
+        <NavDropdown id="smc-project-files-dropdown" title={dropdown_title} style={width:'100%', fontSize:'17px', textAlign:'left'}>
             {items}
         </NavDropdown>
 

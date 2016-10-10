@@ -226,7 +226,6 @@ Page = rclass
                     <ProjectsNav dropdown={true} />
                     {@render_right_menu_button()}
                 </Navbar> if not @props.fullscreen}
-                <FullscreenButton />
                 {# Children must define their own padding from navbar and screen borders}
                 <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
             </Sidebar>
