@@ -35,7 +35,7 @@ Combobox    = require('react-widgets/lib/Combobox')
 misc        = require('smc-util/misc')
 immutable   = require('immutable')
 underscore  = require('underscore')
-{IS_MOBILE, is_responsive_mode} = require('./feature')
+{IS_MOBILE} = require('./feature')
 
 markdown    = require('./markdown')
 
@@ -1160,12 +1160,14 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render : ->
-        if is_responsive_mode()
-            bs_style = "large"
-
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bs_style} title={<Icon name='info-circle' />} className='pull-left'>
-            {@render_menu_items()}
-        </DropdownButton>
+        <div>
+            <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize='large' title={<Icon name='info-circle' />} className='pull-left visible-xs'>
+                {@render_menu_items()}
+            </DropdownButton>
+            <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left hidden-xs'>
+                {@render_menu_items()}
+            </DropdownButton>
+        </div>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)
