@@ -195,7 +195,10 @@ Message = rclass
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
-                text = "You are now editing ... Shift+Enter to submit changes."
+                if IS_MOBILE
+                    text = "You are now editing ..."
+                else
+                    text = "You are now editing ... Shift+Enter to submit changes."
         else
             if other_editors.size == 1
                 # One person is editing
@@ -220,6 +223,7 @@ Message = rclass
         else
             <div className="pull-left small" style={color:color}>
                 {text}
+                <Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button>
             </div>
 
     edit_message: ->
@@ -238,6 +242,13 @@ Message = rclass
                 @props.actions.send_edit(@props.message, mesg)
             else
                 @props.actions.set_editing(@props.message, false)
+
+    save_edit: ->
+        mesg = @refs.editedMessage.getValue()
+        if mesg != newest_content(@props.message)
+            @props.actions.send_edit(@props.message, mesg)
+        else
+            @props.actions.set_editing(@props.message, false)
 
     # All the columns
     avatar_column: ->
@@ -314,6 +325,7 @@ Message = rclass
                         {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
                         {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
                         {get_timeago(@props.message)}
+                        <div style={clear:'both'}></div>
                     </ListGroupItem>
                     <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
                 </ListGroup>
