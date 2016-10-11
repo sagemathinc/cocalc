@@ -208,18 +208,18 @@ class SalvusThreeJS
         @opts.element.click () =>
             @set_dynamic_renderer()
 
-    # initialize functions to create new vectors, which take into account the scene's 3d frame aspect ratio.
+    # initialize functions to create new vectors, which take into account the scene's 3d frame aspect ratio,
+    # and also the change of coordinates from THREE.js coords to "math coordinates".
     init_aspect_ratio_functions: () =>
         if @opts.aspect_ratio?
             x = @opts.aspect_ratio[0]; y = @opts.aspect_ratio[1]; z = @opts.aspect_ratio[2]
-            @vector3 = (a,b,c) => new THREE.Vector3(x*a, y*b, z*c)
-            @vector  = (v) => new THREE.Vector3(x*v[0], y*v[1], z*v[2])
-            @aspect_ratio_scale = (v) => [x*v[0], y*v[1], z*v[2]]
+            @vector3 = (a,b,c) => new THREE.Vector3( -y*b   , x*a   , z*c    )
+            @vector  = (v)     => new THREE.Vector3( -y*v[1], x*v[0], z*v[2] )
+            @aspect_ratio_scale = (v) =>           [ -y*v[1], x*v[0], z*v[2] ]
         else
-            @vector3 = (a,b,c) => new THREE.Vector3(a, b, c)
-            @vector  = (v) => new THREE.Vector3(v[0],v[1],v[2])
-            @aspect_ratio_scale = (v) => v
-
+            @vector3 = (a,b,c) => new THREE.Vector3( -b   ,     a,   c   )
+            @vector  = (v)     => new THREE.Vector3( -v[1],   v[0],   v[2])
+            @aspect_ratio_scale = (v) =>           [ -v[1],   v[0],   v[2]]
 
     show_canvas: () =>
         @init()
@@ -639,8 +639,8 @@ class SalvusThreeJS
         @_center = @vector3(mx,my,mz)
 
         if @camera?
-            d = 1.5*Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
-            @camera.position.set(mx+d,my+d,mz+d/2)
+            d = 1.5*Math.max(@aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...)
+            @camera.position.set(mx+d, my+d, mz+d/2)
             # console.log("camera at #{misc.to_json([mx+d,my+d,mz+d])} pointing at #{misc.to_json(@_center)}")
 
         if o.draw
@@ -681,22 +681,22 @@ class SalvusThreeJS
             txt = (x,y,z,text) =>
                 @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, color:o.color, constant_size:false))
 
-            offset = 0.075
+            offset = 0.15
             if o.draw
-                e = (y1 - y0)*offset
-                txt(x1,y0-e,z0,l(z0))
-                txt(x1,y0-e,mz, "z=#{l(z0,z1)}")
-                txt(x1,y0-e,z1,l(z1))
+                e = (x1 - x0)*offset
+                txt(x0 - e, y0, z0, l(z0))
+                txt(x0 - e, y0, mz, "z = #{l(z0,z1)}")
+                txt(x0 - e, y0, z1, l(z1))
 
                 e = (x1 - x0)*offset
-                txt(x1+e,y0,z0,l(y0))
-                txt(x1+e,my,z0, "y=#{l(y0,y1)}")
-                txt(x1+e,y1,z0,l(y1))
+                txt(x1 + e, y0, z0, l(y0))
+                txt(x1 + e, my, z0, "y = #{l(y0,y1)}")
+                txt(x1 + e, y1, z0, l(y1))
 
                 e = (y1 - y0)*offset
-                txt(x1,y1+e,z0,l(x1))
-                txt(mx,y1+e,z0, "x=#{l(x0,x1)}")
-                txt(x0,y1+e,z0,l(x0))
+                txt(x1, y0 - e, z0, l(x1))
+                txt(mx, y0 - e, z0, "x = #{l(x0,x1)}")
+                txt(x0, y0 - e, z0, l(x0))
 
         v = @vector3(mx, my, mz)
         @camera.lookAt(v)
