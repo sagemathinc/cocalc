@@ -358,7 +358,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         <div className='container-content'>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px"}>
                 <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
                     {[<FileTab
                         name={k}
