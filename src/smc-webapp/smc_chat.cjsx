@@ -468,6 +468,7 @@ ChatRoom = (name) -> rclass
             input              : rtypes.string
             saved_position     : rtypes.number
             height             : rtypes.number
+            inner_height       : rtypes.number
             offset             : rtypes.number
             saved_mesg         : rtypes.string
             is_preview         : rtypes.bool
@@ -514,6 +515,7 @@ ChatRoom = (name) -> rclass
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        @on_scroll = underscore.debounce(@on_scroll, 10)
 
     componentDidMount: ->
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
@@ -532,7 +534,7 @@ ChatRoom = (name) -> rclass
             scroll_to_bottom(@refs.log_container, @props.actions)
 
     mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'seen', 0, false)
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
 
     keydown : (e) ->
@@ -547,8 +549,10 @@ ChatRoom = (name) -> rclass
         @props.actions.set_use_saved_position(true)
         #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        e.preventDefault()
+        # console.log 'on_scroll', node.scrollTop, node.offsetHeight, node.scrollHeight
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
+        if node.scrollTop + node.offsetHeight + 20 > node.scrollHeight
+            @mark_as_read()
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, @refs.input, @props.actions)
@@ -569,7 +573,7 @@ ChatRoom = (name) -> rclass
     set_chat_log_state: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
-            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
 
     set_preview_state: ->
         if @refs.log_container?
@@ -612,7 +616,6 @@ ChatRoom = (name) -> rclass
             # so to see if a race happened, and in that case, have a resolution protocol
             # then close and re-open the chat window for any user where the race occurred.
             # This is https://github.com/sagemathinc/smc/issues/1007
-            
 
     on_unload: ->
         @props.actions.set_is_video_chat(false)
@@ -689,7 +692,7 @@ ChatRoom = (name) -> rclass
             Scrolls the chat to the bottom
         </span>
 
-        <Button onClick={@button_scroll_to_bottom}>
+        <Button onClick={=>@button_scroll_to_bottom();@mark_as_read()}>
             <Tip title='Scroll to Bottom' tip={tip}  placement='left'>
                 <Icon name='arrow-down'/> Bottom
             </Tip>
