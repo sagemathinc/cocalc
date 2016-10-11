@@ -1112,7 +1112,7 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : "find"
             timeout    : 15
-            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
             bash       : false
             cb         : (err, result) =>
                 if err
