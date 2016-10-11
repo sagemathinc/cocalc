@@ -194,6 +194,12 @@ class ProjectActions extends Actions
                                 @_project().show_editor_chat_window(opts.path)
                             if opts.foreground
                                 @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
+        # log file opening to HTML5 storage so we can auto reopen tabs at some point
+        if (!(window.localStorage["opened_files"]))
+            window.localStorage["opened_files"] =  "{}"
+        opened_files = JSON.parse(window.localStorage["opened_files"])
+        opened_files[@project_id+'-'+opts.path] = true
+        window.localStorage["opened_files"] = JSON.stringify(opened_files)
         return
 
     foreground_project : =>
