@@ -533,7 +533,6 @@ ChatRoom = (name) -> rclass
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
 
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
@@ -612,7 +611,7 @@ ChatRoom = (name) -> rclass
             # so to see if a race happened, and in that case, have a resolution protocol
             # then close and re-open the chat window for any user where the race occurred.
             # This is https://github.com/sagemathinc/smc/issues/1007
-            
+
 
     on_unload: ->
         @props.actions.set_is_video_chat(false)
