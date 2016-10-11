@@ -357,23 +357,29 @@ class SalvusThreeJS
             thickness  : 1
             color      : "#000000"
             arrow_head : false
+        if o.points.length <= 1
+            # nothing to do...
+            return
+
         @show_canvas()
 
         if o.arrow_head
             # Draw an arrowhead using the ArrowHelper: https://github.com/mrdoob/three.js/blob/master/src/extras/helpers/ArrowHelper.js
-            orig = @vector(o.points[0])
-            p1   = @vector(o.points[1])
+            n    = o.points.length - 1
+            orig = @vector(o.points[n-1])
+            p1   = @vector(o.points[n])
             dir  = new THREE.Vector3(); dir.subVectors(p1, orig)
             length = dir.length()
             dir.normalize()
-            @scene.add(new THREE.ArrowHelper(dir, orig, length, o.color))
+            headLength = Math.max(1, o.thickness/4.0) * 0.2 * length
+            headWidth  = 0.2 * headLength
+            @scene.add(new THREE.ArrowHelper(dir, orig, length, o.color, headLength, headWidth))
 
-        else
-
-            geometry = new THREE.Geometry()
-            for a in o.points
-                geometry.vertices.push(@vector(a))
-            @scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness)))
+        # always render the full line, in case there are extra points, or the thickness isn't 1 (note that ArrowHelper has no line thickness option).
+        geometry = new THREE.Geometry()
+        for a in o.points
+            geometry.vertices.push(@vector(a))
+        @scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness)))
 
     add_point: (opts) =>
         o = defaults opts,
