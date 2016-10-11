@@ -172,20 +172,22 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.emit 'hide-chat'
 
     init_video_toggle: () =>
+        # TODO: this *dangerously* duplicates code that is also in smc_chat.cjsx.
         video_chat_window = null
-        @_video_chat_id = ""
-        if @has_video_id()[0]
-            @_video_chat_id = @has_video_id()[1]
-        else
-            @_video_chat_id = misc.uuid()
-            @write_chat_message
-                "event_type" : "chat"
-                "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}
-                "video"      : {"is_video_chat" : true}
         video_on_button = @element.find(".salvus-editor-chat-video-is-off")
         video_off_button = @element.find(".salvus-editor-chat-video-is-on")
 
         video_on_button.click () =>
+            # see note about race condition in smc_chat.cjsx, referencing https://github.com/sagemathinc/smc/issues/1007
+            # But the fix is to first **delete all this code** in this file related to chat and use the code in smc_chat.cjsx.
+            if @has_video_id()[0]
+                @_video_chat_id = @has_video_id()[1]
+            else
+                @_video_chat_id = misc.uuid()
+                @write_chat_message
+                    "event_type" : "chat"
+                    "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}  # duplicated in smc_chat.cjsx, so don't change without chare.
+                    "video"      : {"is_video_chat" : true}
             url = "https://appear.in/" + @_video_chat_id
             video_chat_window = window.open("", "_blank", "location=false,height=640,width=800")
             video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')

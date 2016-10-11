@@ -195,7 +195,10 @@ Message = rclass
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
                 color = "#E55435"
             else
-                text = "You are now editing ... Shift+Enter to submit changes."
+                if IS_MOBILE
+                    text = "You are now editing ..."
+                else
+                    text = "You are now editing ... Shift+Enter to submit changes."
         else
             if other_editors.size == 1
                 # One person is editing
@@ -220,6 +223,7 @@ Message = rclass
         else
             <div className="pull-left small" style={color:color}>
                 {text}
+                <Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button>
             </div>
 
     edit_message: ->
@@ -238,6 +242,13 @@ Message = rclass
                 @props.actions.send_edit(@props.message, mesg)
             else
                 @props.actions.set_editing(@props.message, false)
+
+    save_edit: ->
+        mesg = @refs.editedMessage.getValue()
+        if mesg != newest_content(@props.message)
+            @props.actions.send_edit(@props.message, mesg)
+        else
+            @props.actions.set_editing(@props.message, false)
 
     # All the columns
     avatar_column: ->
@@ -285,8 +296,6 @@ Message = rclass
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html(value)
 
-#console.log "sanitize: '#{value_old}' -> '#{value}'"
-
         font_size = "#{@props.font_size}px"
 
         if @props.show_avatar
@@ -316,6 +325,7 @@ Message = rclass
                         {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
                         {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
                         {get_timeago(@props.message)}
+                        <div style={clear:'both'}></div>
                     </ListGroupItem>
                     <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
                 </ListGroup>
@@ -516,7 +526,6 @@ ChatRoom = (name) -> rclass
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
-        @send_video_id = underscore.debounce(@send_video_id, 0)
 
     componentDidMount: ->
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
@@ -531,13 +540,11 @@ ChatRoom = (name) -> rclass
             @props.actions.set_use_saved_position(false)
 
     componentDidUpdate: ->
-        @send_video_id()
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
 
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
@@ -586,18 +593,9 @@ ChatRoom = (name) -> rclass
         #debounces it so that the preview shows up then calls
         scroll_to_bottom(@refs.log_container, @props.actions)
 
-    send_video_id: ->
-        if not @has_video_id()[0]
-            @_video_chat_id = misc.uuid()
-            @props.actions.send_video_chat("Video Chat Room ID is: #{@_video_chat_id}")
-
     open_video_chat: ->
         @props.actions.set_is_video_chat(true)
-        @_video_chat_id = ""
-        if @has_video_id()[0]
-            @_video_chat_id = @has_video_id()[1]
-            console.log("video caht id: ", @_video_chat_id)
-        url = "https://appear.in/" + @_video_chat_id
+        url = "https://appear.in/" + @get_video_id()
         @video_chat_window = window.open("", null, "height=640,width=800")
         @video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
         @video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
@@ -608,15 +606,24 @@ ChatRoom = (name) -> rclass
         @props.actions.set_is_video_chat(false)
         @video_chat_window.close()
 
-    has_video_id: ->
-        messages = @props.messages
-        video_chat = [false, null]
-        if @props.messages?
-            for key, value of messages.toJS()
-                if value.video_chat.is_video_chat
-                    video_chat[0] = true
-                    video_chat[1] = value.history[0].content.split(": ")[1]
-        return video_chat
+    get_video_id: ->
+        if not @_video_chat_id?
+            # Not cached, so read it from the message history by iterating over the messages (using the proper immutable.js way)
+            @props.messages?.forEach (mesg, key) ->
+                if mesg.getIn(['video_chat', 'is_video_chat'])
+                    # use ? marks in case something isn't defined -- we can not guarantee anything about object structure.
+                    @_video_chat_id = mesg.get('history')?.get(0)?.get('content')?.split(': ')[1]
+                    return false  # don't iterate further
+        if not @_video_chat_id?
+            # OK, we set it
+            @_video_chat_id = misc.uuid()
+            @props.actions.send_video_chat("Video Chat Room ID is: #{@_video_chat_id}") # wstein -- I find this format disturbing.
+            # TODO: There is a potential race condition if two users add a video chat
+            # ID message at the same time.  We should check back again in 10 seconds or
+            # so to see if a race happened, and in that case, have a resolution protocol
+            # then close and re-open the chat window for any user where the race occurred.
+            # This is https://github.com/sagemathinc/smc/issues/1007
+
 
     on_unload: ->
         @props.actions.set_is_video_chat(false)

@@ -11,7 +11,7 @@ misc = require('smc-util/misc')
 course_funcs = require('./course_funcs')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
-{Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
+{ErrorDisplay, Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
 
 # Could be merged with steps system of assignments.
 # Probably not a good idea mixing the two.
