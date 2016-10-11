@@ -240,8 +240,11 @@ ProjectNew = (name) -> rclass
         e.preventDefault()
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else if @refs.project_new_filename.getValue().split(".").length > 1
+        else if @refs.project_new_filename.getValue().includes('.')
             @create_file()
+        else
+            @setState(warning : true)
+            @refs.project_new_filename.getInputDOMNode().disabled = true
 
     render_header: ->
         if @props.current_path?
@@ -273,24 +276,16 @@ ProjectNew = (name) -> rclass
             on_error     : on_error
             switch_over  : true
 
-    keydown : (e) ->
-        if e.keyCode==13 and @refs.project_new_filename.getValue().split(".").length < 2
-            @setState(warning : true)
-            ReactDOM.findDOMNode(@refs.project_new_filename.refs.input).disabled = true
-
-    accept_file : ->
-        @create_file()
-
     decline_file : ->
         @setState(warning : false)
-        ReactDOM.findDOMNode(@refs.project_new_filename.refs.input).disabled = false
+        @refs.project_new_filename.getInputDOMNode().disabled = false
         @refs.project_new_filename.getInputDOMNode().focus()
 
     render_alert : ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
             <p>Warning: Are you sure you want to create a file with no extensions?</p>
             <ButtonToolbar>
-                <Button onClick={@accept_file} bsStyle='success'>
+                <Button onClick={@create_file} bsStyle='success'>
                     Create file
                 </Button>
                 <Button onClick={@decline_file} bsStyle='default'>
@@ -313,7 +308,6 @@ ProjectNew = (name) -> rclass
                         <Input
                             autoFocus
                             ref         = 'project_new_filename'
-                            onKeyDown   = {@keydown}
                             value       = @state.filename
                             type        = 'text'
                             placeholder = 'Name your file, folder, or paste in a link...'
