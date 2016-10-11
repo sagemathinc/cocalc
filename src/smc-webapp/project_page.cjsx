@@ -49,8 +49,7 @@ FileTab = rclass
         @strip_href()
 
     strip_href : ->
-        window.file_tab = ReactDOM.findDOMNode(@refs.tab)
-        #ReactDOM.findDOMNode(@refs.tab)?.children[0].removeAttribute('href')
+        ReactDOM.findDOMNode(@refs.tab)?.children[0].removeAttribute('href')
 
     mouse_over_x: ->
         @setState(x_hovered:true)

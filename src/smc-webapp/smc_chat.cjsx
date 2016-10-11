@@ -615,7 +615,7 @@ ChatRoom = rclass ({name}) ->
             # so to see if a race happened, and in that case, have a resolution protocol
             # then close and re-open the chat window for any user where the race occurred.
             # This is https://github.com/sagemathinc/smc/issues/1007
-            
+
 
     on_unload: ->
         @props.actions.set_is_video_chat(false)
@@ -814,6 +814,8 @@ ChatRoom = rclass ({name}) ->
                             <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
                             <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
                         </Col>
+                    </Row>
+                    <Row>
                         {@render_bottom_tip()}
                     </Row>
                 </Grid>
