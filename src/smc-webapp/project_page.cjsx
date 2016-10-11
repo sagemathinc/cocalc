@@ -77,6 +77,7 @@ FileTab = rclass
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
+            cursor: 'pointer'
 
         x_button_styles =
             float:'right'
