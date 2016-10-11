@@ -778,7 +778,7 @@ class CodeMirrorEditor extends FileEditor
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
 
-        @chat_filename = "." + @filename + ".sage-chat"
+        @chat_filename = misc.meta_file(@filename, 'chat')
 
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)

@@ -68,6 +68,7 @@
     - SymPy
     - PyPlot # https://github.com/stevengj/PyPlot.jl
     - Bokeh  # https://github.com/JuliaLang/IJulia.jl
+    - Plots
     - Gadfly # https://github.com/dcjones/Gadfly.jl
     - Mocha  # https://github.com/pluskid/Mocha.jl
     - DataFrames # https://github.com/JuliaStats/DataFrames.jl

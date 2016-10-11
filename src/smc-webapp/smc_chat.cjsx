@@ -536,7 +536,6 @@ ChatRoom = rclass ({name}) ->
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'chat')
 
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
