@@ -88,6 +88,48 @@ exports.NavTab = rclass
             </div>
         </NavItem>
 
+exports.NotificationBell = rclass
+    displayName: 'NotificationBell'
+
+    propTypes :
+        count : rtypes.number
+
+    on_click : ->
+        @actions('page').toggle_show_file_use()
+
+    notification_count : ->
+        count_styles =
+            fontSize : '8pt'
+            color : 'red'
+            position : 'absolute'
+            left : '18.5px'
+            fontWeight : 700
+            background : 'transparent'
+        if @props.count > 0
+            <span style={count_styles}>{@props.count}</span>
+
+    render : ->
+        outer_styles =
+            position : 'relative'
+            marginRight : '-10px'
+            float : 'left'
+
+        inner_styles =
+            padding : '10px'
+            fontSize : '17pt'
+            color : '#666'
+            cursor : 'pointer'
+
+        <NavItem
+            style={outer_styles}
+            onClick={@on_click}
+        >
+            <div style={inner_styles} >
+                <Icon name='bell-o' />
+                {@notification_count()}
+            </div>
+        </NavItem>
+
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 

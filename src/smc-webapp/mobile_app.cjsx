@@ -16,7 +16,7 @@ Sidebar = require('react-sidebar').default
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -39,50 +39,6 @@ FileUsePageWrapper = (props) ->
     <div style={styles}>
         {<FileUsePage redux={redux} />}
     </div>
-
-NotificationBell = rclass
-    displayName: 'NotificationBell'
-
-    propTypes :
-        count : rtypes.number
-        on_click : rtypes.func
-
-    on_click : ->
-        @actions('page').toggle_show_file_use()
-        @props.on_click?()
-
-    notification_count : ->
-        count_styles =
-            fontSize : '8pt'
-            color : 'red'
-            position : 'absolute'
-            left : '18.5px'
-            fontWeight : 700
-            background : 'transparent'
-        if @props.count > 0
-            <span style={count_styles}>{@props.count}</span>
-
-    render : ->
-        outer_styles =
-            position : 'relative'
-            marginRight : '-10px'
-            float : 'left'
-
-        inner_styles =
-            padding : '10px'
-            fontSize : '17pt'
-            color : '#666'
-            cursor : 'pointer'
-
-        <NavItem
-            style={outer_styles}
-            onClick={@on_click}
-        >
-            <div style={inner_styles} >
-                <Icon name='bell-o' />
-                {@notification_count()}
-            </div>
-        </NavItem>
 
 # Project tabs's names are their project id
 Page = rclass
