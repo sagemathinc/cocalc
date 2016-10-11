@@ -2416,11 +2416,15 @@ class SynchronizedWorksheetCell
 
     output: =>
         v = []
-        for x in @raw_output().slice(38).split(MARKERS.output)
-            try
-                v.push(misc.from_json(x))
-            catch
-                console.warn("unable to read json message in worksheet: #{x}")
+        raw = @raw_output()
+        if not raw?  # might return undefined, see above
+            return v
+        for x in raw.slice(38).split(MARKERS.output)
+            if x?.length > 0 # empty strings cause json deserialization problems (i.e. that warning below)
+                try
+                    v.push(misc.from_json(x))
+                catch
+                    console.warn("unable to read json message in worksheet: #{x}")
         return v
 
     _get_output: () =>

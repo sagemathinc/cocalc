@@ -227,6 +227,8 @@ FileRow = rclass
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
+        # TODO: actions are not allowed to return anything.  Move this to the store or somewhere else.
+        # See https://github.com/sagemathinc/smc/issues/1020
         href_download = @props.actions.download_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
