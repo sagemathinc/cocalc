@@ -1,13 +1,13 @@
 # External Libraries
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
+{Button, Nav, NavDropdown, MenuItem, NavItem} = require('react-bootstrap')
 
 # SMC Libraries
 misc = require('smc-util/misc')
 {isMobile} = require('./feature')
 
-# Components
-{React, rclass, rtypes} = require('./smc-react')
-{Button, Nav, NavDropdown, MenuItem, NavItem} = require('react-bootstrap')
+# SMC Components
+{React, ReactDOM, rclass, rtypes} = require('./smc-react')
 {Loading, Icon, Tip} = require('./r_misc')
 {NavTab} = require('./app_shared')
 
@@ -19,7 +19,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style={flexShrink:'1', width:'200px', height:'42px', overflow: 'hidden'}
+        style={flexShrink:'1', width:'200px', height:'40px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -37,6 +37,15 @@ ProjectTab = rclass
 
     getInitialState : ->
         x_hovered : false
+
+    componentDidMount : ->
+        @strip_href()
+
+    componentDidUpdate : () ->
+        @strip_href()
+
+    strip_href : ->
+        @refs.tab?.node.children[0].removeAttribute('href')
 
     close_tab : (e) ->
         e.stopPropagation()
@@ -70,7 +79,8 @@ ProjectTab = rclass
             name={@props.project_id}
             actions={@actions('page')}
             active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'42px', overflow: 'hidden'}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden'}
+            ref='tab'
         >
             {# Truncated file name}
             {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}

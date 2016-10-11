@@ -164,6 +164,7 @@ class ProjectsActions extends Actions
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
 
     # Clearly should be in top.cjsx
+    # tab at old_index taken out and then inserted into the resulting array's new index
     move_project_tab : (opts) =>
         {old_index, new_index, open_projects} = defaults opts,
             old_index : required

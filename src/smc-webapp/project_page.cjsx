@@ -26,8 +26,8 @@ default_file_tab_styles =
     flexShrink : '1'
     overflow : 'hidden'
 
-ProjectTab = rclass
-    displayName : 'ProjectTab'
+FileTab = rclass
+    displayName : 'FileTab'
 
     propTypes :
         name               : rtypes.string
@@ -41,6 +41,16 @@ ProjectTab = rclass
 
     getInitialState : () ->
         x_hovered : false
+
+    componentDidMount : ->
+        @strip_href()
+
+    componentDidUpdate : ->
+        @strip_href()
+
+    strip_href : ->
+        window.file_tab = ReactDOM.findDOMNode(@refs.tab)
+        #ReactDOM.findDOMNode(@refs.tab)?.children[0].removeAttribute('href')
 
     mouse_over_x: ->
         @setState(x_hovered:true)
@@ -81,6 +91,7 @@ ProjectTab = rclass
         text_color = "white" if @props.is_active
 
         <NavItem
+            ref='tab'
             style={styles}
             active={@props.is_active}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
@@ -111,7 +122,7 @@ GhostTab = (props) ->
         style={default_file_tab_styles}
     />
 
-SortableProjectTab = SortableElement(ProjectTab)
+SortableFileTab = SortableElement(FileTab)
 SortableNav = SortableContainer(NavWrapper)
 
 FreeProjectWarning = rclass ({name}) ->
@@ -282,7 +293,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
-        <SortableProjectTab
+        <SortableFileTab
             index={index}
             key={path}
             name={misc.path_to_tab(path)}
@@ -303,6 +314,13 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             #smc-file-tabs-files>li>a {
                 padding: 13px 15px 7px;
                 border-radius: 5px 5px 0px 0px;
+                -webkit-touch-callout: none; /* iOS Safari */
+                -webkit-user-select: none;   /* Chrome/Safari/Opera */
+                -khtml-user-select: none;    /* Konqueror */
+                -moz-user-select: none;      /* Firefox */
+                -ms-user-select: none;       /* Internet Explorer/Edge */
+                user-select: none;           /* Non-prefixed version, currently
+                                                not supported by any browser */
             }
             .smc-file-tab-floating {
                 background-color: rgb(237, 237, 237);
@@ -342,7 +360,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
-                    {[<ProjectTab
+                    {[<FileTab
                         name={k}
                         label={v.label}
                         icon={v.icon}
@@ -463,7 +481,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         ext = misc.filename_extension(path)
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
-        <ProjectTab
+        <FileTab
             key={path}
             name={misc.path_to_tab(path)}
             label={display_name}
@@ -488,7 +506,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
-                    {[<ProjectTab
+                    {[<FileTab
                         name={k}
                         label={v.label}
                         icon={v.icon}
