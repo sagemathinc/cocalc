@@ -263,7 +263,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
             @emit('before-change')
 
         @_syncstring.on 'deleted', =>
-            redux.getProjectActions(@project_id).close_file(@filename)
+            redux.getProjectActions(@project_id).close_tab(@filename)
 
     live: (s) =>
         if s? and s != @_syncstring.get()
@@ -408,7 +408,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @_syncstring.set(@codemirror.getValue())
 
                 @_syncstring.on 'deleted', =>
-                    redux.getProjectActions(@editor.project_id).close_file(@filename)
+                    redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
                 # We debounce instead of throttle, because we want a single "diff/commit" to correspond
