@@ -95,21 +95,74 @@ exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
+    _init : () =>
+        # be explicit about exactly what state is in the store
+        @setState
+            height             : 0          # 0 means not rendered; otherwise is the height of the chat editor
+            input              : ''         # content of the input box
+            is_preview         : undefined  # currently displaying preview of the main input chat
+            is_video_chat      : undefined  # the video chat window is open
+            last_sent          : undefined  # last sent message
+            messages           : undefined  # immutablejs map of all messages
+            offset             : undefined  # information about where on screen the chat editor is located
+            position           : undefined  # more info about where chat editor is located
+            saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
+            use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
+
+    # Initialize the state of the store from the contents of the syncdb.
+    init_from_syncdb: () =>
+        v = {}
+        for x in @syncdb.select()
+            if x.corrupt?
+                continue
+            switch x.event
+                when 'chat'
+                    if x.history
+                        x.history = immutable.Stack(immutable.fromJS(x.history))
+                    else if x.payload? # for old chats with payload: content (2014-2016)
+                        initial = immutable.fromJS
+                            content   : x.payload.content
+                            author_id : x.sender_id
+                            date      : x.date
+                        x.history = immutable.Stack([initial])
+                    else if x.mesg? # for old chats with mesg: content (up to 2014)
+                        initial = immutable.fromJS
+                            content   : x.mesg.content
+                            author_id : x.sender_id
+                            date      : x.date
+                        x.history = immutable.Stack([initial])
+                    if not x.editing
+                        x.editing = {}
+                    if not x.video_chat
+                        x.video_chat = {}
+                    v[x.date - 0] = x
+                when 'video'
+                    @setState
+                        video: immutable.fromJS(x)
+
+        @setState(messages : immutable.fromJS(v))
+
     _syncdb_change: (changes) =>
-        m = messages = @redux.getStore(@name).get('messages')
+        messages_before = messages = @store.get('messages')
         for x in changes
             if x.insert
                 # Assumes all fields to be provided in x.insert
                 # console.log('Received', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
-                message = immutable.fromJS(x.insert)
-                message = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
-                message = message.set('editing', immutable.Map(x.insert.editing))
-                message = message.set('video_chat', immutable.Map(x.insert.video_chat))
-                messages = messages.set("#{x.insert.date - 0}", message)
+                switch x.insert.event
+                    when 'chat'
+                        message  = immutable.fromJS(x.insert)
+                        message  = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
+                        message  = message.set('editing', immutable.Map(x.insert.editing))
+                        message  = message.set('video_chat', immutable.Map(x.insert.video_chat))
+                        messages = messages.set("#{x.insert.date - 0}", message)
+                    when 'video'
+                        @setState(video : immutable.fromJS(x.insert))
             else if x.remove
-                messages = messages.delete(x.remove.date - 0)
-        if m != messages
+                if x.remove.event == 'chat'
+                    messages = messages.delete(x.remove.date - 0)
+
+        if messages_before != messages
             @setState(messages: messages)
 
     send_chat: (mesg) =>
@@ -172,6 +225,7 @@ class ChatActions extends Actions
         @syncdb.save()
 
     send_video_chat: (mesg) =>
+        # TODO: get rid of this.
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -180,7 +234,6 @@ class ChatActions extends Actions
         time_stamp = salvus_client.server_time()
         @syncdb.update
             set :
-                sender_id : project_id
                 event     : "chat"
                 history   : [{author_id: project_id, content:mesg, date:time_stamp}]
                 video_chat: {"is_video_chat" : true}
@@ -191,7 +244,7 @@ class ChatActions extends Actions
         @syncdb.save()
 
     set_to_last_input: =>
-        @setState(input:@redux.getStore(@name).get('last_sent'))
+        @setState(input:store.get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)
@@ -213,14 +266,18 @@ class ChatActions extends Actions
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
 
+
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
 exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
+
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name, {input:''})
+    store   = redux.createStore(name)
+
+    actions._init()
 
     synchronized_db
         project_id    : project_id
@@ -230,7 +287,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
             if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
             else
-                store.syncdb = actions.syncdb = syncdb
+                actions.syncdb = syncdb
+                actions.store = store
 
                 if not syncdb.valid_data
                     # This should never happen, but obviously it can -- just open the file and randomly edit with vim!
@@ -239,31 +297,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
                     actions.send_chat("Corrupted chat: " + corrupted.join('\n\n'))
                     syncdb.delete_with_field(field:'corrupt')
 
-                v = {}
-                for x in syncdb.select()
-                    if x.corrupt?
-                        continue
-                    if x.history
-                        x.history = immutable.Stack(immutable.fromJS(x.history))
-                    else if x.payload? # for old chats with payload: content (2014-2016)
-                        initial = immutable.fromJS
-                            content   : x.payload.content
-                            author_id : x.sender_id
-                            date      : x.date
-                        x.history = immutable.Stack([initial])
-                    else if x.mesg? # for old chats with mesg: content (up to 2014)
-                        initial = immutable.fromJS
-                            content   : x.mesg.content
-                            author_id : x.sender_id
-                            date      : x.date
-                        x.history = immutable.Stack([initial])
-                    if not x.editing
-                        x.editing = {}
-                    if not x.video_chat
-                        x.video_chat = {}
-                    v[x.date - 0] = x
-
-                actions.setState(messages : immutable.fromJS(v))
+                actions.init_from_syncdb()
                 syncdb.on('change', actions._syncdb_change)
 
 ### Message Methods ###

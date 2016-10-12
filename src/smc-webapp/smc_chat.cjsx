@@ -19,50 +19,6 @@
 #
 ###############################################################################
 
-###
-AUTHORS:
-
-  - William Stein
-  - Harald Schilly
-  - Simon Luu
-  - John Jeng
-###
-
-###
-Chat message JSON format:
-
-sender_id : String which is the original message sender's account id
-event     : Can only be "chat" right now.
-date      : A date string
-history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"TODO">
-
-"TODO" Will likely contain their last edit in the future
-
- --- History object ---
-author_id : String which is this message version's author's account id
-content   : The raw display content of the message
-date      : The date this edit was sent
-
-Example object:
-{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
-"event":"chat",
-"history":[
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
-        ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
----
-
-Chat message types after immutable conversion:
-(immutable.Map)
-sender_id : String
-event     : String
-date      : Date Object
-history   : immutable.Stack of immutable.Maps
-editing   : immutable.Map
-
-###
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE, isMobile} = require('./feature')
@@ -476,20 +432,23 @@ ChatRoom = (name) -> rclass
 
     reduxProps :
         "#{name}" :
-            messages           : rtypes.immutable
-            input              : rtypes.string
-            saved_position     : rtypes.number
             height             : rtypes.number
-            offset             : rtypes.number
-            saved_mesg         : rtypes.string
+            input              : rtypes.string
             is_preview         : rtypes.bool
             is_video_chat      : rtypes.bool
+            messages           : rtypes.immutable
+            offset             : rtypes.number
+            saved_mesg         : rtypes.string
+            saved_position     : rtypes.number
             use_saved_position : rtypes.bool
+
         users :
             user_map : rtypes.immutable
+
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
+
         file_use :
             file_use : rtypes.immutable
 
@@ -604,7 +563,7 @@ ChatRoom = (name) -> rclass
 
     close_video_chat: ->
         @props.actions.set_is_video_chat(false)
-        @video_chat_window.close()
+        @video_chat_window?.close()   # TODO/bug: don't store data on the class -- this will fail.
 
     get_video_id: ->
         if not @_video_chat_id?
@@ -623,7 +582,7 @@ ChatRoom = (name) -> rclass
             # so to see if a race happened, and in that case, have a resolution protocol
             # then close and re-open the chat window for any user where the race occurred.
             # This is https://github.com/sagemathinc/smc/issues/1007
-
+        return @_video_chat_id
 
     on_unload: ->
         @props.actions.set_is_video_chat(false)
