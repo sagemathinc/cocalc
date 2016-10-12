@@ -273,7 +273,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", marginTop: marginTop, borderRadius: borderRadius}>
                 <ListGroup fill>
-                    <ListGroupItem onDoubleClick={@edit_message if not @props.message.get("video_chat").get("is_video_chat")}
+                    <ListGroupItem onDoubleClick={@edit_message}
                                    style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
                         {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
                         {@render_input() if is_editing(@props.message, @props.account_id)}
@@ -382,43 +382,42 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            if not @props.messages.get(date).get('video_chat').get('is_video_chat')
-                historyList = @props.messages.get(date).get('history').pop().toJS()
-                h = []
-                a = []
-                t = []
-                for j of historyList
-                    h.push(historyList[j].content)
-                    a.push(historyList[j].author_id)
-                    t.push(historyList[j].date)
+            historyList = @props.messages.get(date).get('history').pop().toJS()
+            h = []
+            a = []
+            t = []
+            for j of historyList
+                h.push(historyList[j].content)
+                a.push(historyList[j].author_id)
+                t.push(historyList[j].date)
 
-                sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-                last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
+            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
-                v.push <Message key={date}
-                         account_id       = {@props.account_id}
-                         history          = {h}
-                         history_author   = {a}
-                         history_date     = {t}
-                         user_map         = {@props.user_map}
-                         message          = {@props.messages.get(date)}
-                         date             = {date}
-                         project_id       = {@props.project_id}
-                         file_path        = {@props.file_path}
-                         font_size        = {@props.font_size}
-                         is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
-                         is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                         show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
-                         include_avatar_col = {@props.show_heads}
-                         get_user_name    = {@get_user_name}
-                         sender_name      = {sender_name}
-                         editor_name      = {last_editor_name}
-                         actions          = {@props.actions}
-                         focus_end        = {@props.focus_end}
-                         saved_mesg       = {@props.saved_mesg}
-                         close_input      = {@close_edit_inputs}
-                         set_scroll       = {@props.set_scroll}
-                        />
+            v.push <Message key={date}
+                     account_id       = {@props.account_id}
+                     history          = {h}
+                     history_author   = {a}
+                     history_date     = {t}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     date             = {date}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     include_avatar_col = {@props.show_heads}
+                     get_user_name    = {@get_user_name}
+                     sender_name      = {sender_name}
+                     editor_name      = {last_editor_name}
+                     actions          = {@props.actions}
+                     focus_end        = {@props.focus_end}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
+                     set_scroll       = {@props.set_scroll}
+                    />
 
         return v
 
@@ -435,12 +434,13 @@ ChatRoom = (name) -> rclass
             height             : rtypes.number
             input              : rtypes.string
             is_preview         : rtypes.bool
-            is_video_chat      : rtypes.bool
             messages           : rtypes.immutable
             offset             : rtypes.number
             saved_mesg         : rtypes.string
             saved_position     : rtypes.number
             use_saved_position : rtypes.bool
+            video              : rtypes.immutable
+            video_window       : rtypes.bool
 
         users :
             user_map : rtypes.immutable
@@ -553,39 +553,10 @@ ChatRoom = (name) -> rclass
         scroll_to_bottom(@refs.log_container, @props.actions)
 
     open_video_chat: ->
-        @props.actions.set_is_video_chat(true)
-        url = "https://appear.in/" + @get_video_id()
-        @video_chat_window = window.open("", null, "height=640,width=800")
-        @video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-        @video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
-        @video_chat_window.document.write('</body></html>')
-        @video_chat_window.addEventListener("unload", @on_unload)
+        @props.actions.open_video_chat_window()
 
     close_video_chat: ->
-        @props.actions.set_is_video_chat(false)
-        @video_chat_window?.close()   # TODO/bug: don't store data on the class -- this will fail.
-
-    get_video_id: ->
-        if not @_video_chat_id?
-            # Not cached, so read it from the message history by iterating over the messages (using the proper immutable.js way)
-            @props.messages?.forEach (mesg, key) ->
-                if mesg.getIn(['video_chat', 'is_video_chat'])
-                    # use ? marks in case something isn't defined -- we can not guarantee anything about object structure.
-                    @_video_chat_id = mesg.get('history')?.get(0)?.get('content')?.split(': ')[1]
-                    return false  # don't iterate further
-        if not @_video_chat_id?
-            # OK, we set it
-            @_video_chat_id = misc.uuid()
-            @props.actions.send_video_chat("Video Chat Room ID is: #{@_video_chat_id}") # wstein -- I find this format disturbing.
-            # TODO: There is a potential race condition if two users add a video chat
-            # ID message at the same time.  We should check back again in 10 seconds or
-            # so to see if a race happened, and in that case, have a resolution protocol
-            # then close and re-open the chat window for any user where the race occurred.
-            # This is https://github.com/sagemathinc/smc/issues/1007
-        return @_video_chat_id
-
-    on_unload: ->
-        @props.actions.set_is_video_chat(false)
+        @props.actions.close_video_chat_window()
 
     show_files : ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
@@ -733,8 +704,7 @@ ChatRoom = (name) -> rclass
                     <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             {@render_timetravel_button()}
-                            {@render_video_chat_off_button() if not @props.is_video_chat}
-                            {@render_video_chat_on_button() if @props.is_video_chat}
+                            {if @props.video_window then @render_video_chat_on_button() else @render_video_chat_off_button()}
                             {@render_bottom_button()}
                         </ButtonGroup>
                     </Col>

@@ -96,27 +96,36 @@ exports.redux_name = redux_name = (project_id, path) ->
 
 class ChatActions extends Actions
     _init : () =>
+        ## window.a = @  # for debugging
         # be explicit about exactly what state is in the store
         @setState
             height             : 0          # 0 means not rendered; otherwise is the height of the chat editor
             input              : ''         # content of the input box
             is_preview         : undefined  # currently displaying preview of the main input chat
-            is_video_chat      : undefined  # the video chat window is open
             last_sent          : undefined  # last sent message
             messages           : undefined  # immutablejs map of all messages
             offset             : undefined  # information about where on screen the chat editor is located
             position           : undefined  # more info about where chat editor is located
             saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
             use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
+            video              : undefined  # shared state about video chat: {room_id:'...', users:{account_id:timestamp, ...}}
+            video_window       : undefined  # true if the video window is opened.
+            video_interval     : undefined  # if set, the id of an interval timer that updates video with info about video_window being open
 
     # Initialize the state of the store from the contents of the syncdb.
     init_from_syncdb: () =>
         v = {}
+        video = undefined
         for x in @syncdb.select()
             if x.corrupt?
                 continue
+
             switch x.event
+
                 when 'chat'
+                    if x.video_chat?.is_video_chat
+                        # discard/ignore anything related to the old video chat approach
+                        continue
                     if x.history
                         x.history = immutable.Stack(immutable.fromJS(x.history))
                     else if x.payload? # for old chats with payload: content (2014-2016)
@@ -133,14 +142,14 @@ class ChatActions extends Actions
                         x.history = immutable.Stack([initial])
                     if not x.editing
                         x.editing = {}
-                    if not x.video_chat
-                        x.video_chat = {}
                     v[x.date - 0] = x
-                when 'video'
-                    @setState
-                        video: immutable.fromJS(x)
 
-        @setState(messages : immutable.fromJS(v))
+                when 'video'
+                    video = immutable.fromJS(x.video)
+
+        @setState
+            messages : immutable.fromJS(v)
+            video    : video
 
     _syncdb_change: (changes) =>
         messages_before = messages = @store.get('messages')
@@ -150,14 +159,20 @@ class ChatActions extends Actions
                 # console.log('Received', x.insert)
                 # OPTIMIZATION: make into custom conversion to immutable
                 switch x.insert.event
+
                     when 'chat'
                         message  = immutable.fromJS(x.insert)
                         message  = message.set('history', immutable.Stack(immutable.fromJS(x.insert.history)))
                         message  = message.set('editing', immutable.Map(x.insert.editing))
-                        message  = message.set('video_chat', immutable.Map(x.insert.video_chat))
                         messages = messages.set("#{x.insert.date - 0}", message)
+
                     when 'video'
-                        @setState(video : immutable.fromJS(x.insert))
+                        # got an update to the shared video state...
+                        video = immutable.fromJS(x.insert.video)
+                        if not @store.get('video')?.equals(video)
+                            # and it is really different
+                            @setState(video : video)
+
             else if x.remove
                 if x.remove.event == 'chat'
                     messages = messages.delete(x.remove.date - 0)
@@ -224,25 +239,6 @@ class ChatActions extends Actions
             is_equal: (a, b) => (a - 0) == (b - 0)
         @syncdb.save()
 
-    send_video_chat: (mesg) =>
-        # TODO: get rid of this.
-        if not @syncdb?
-            # TODO: give an error or try again later?
-            return
-        # There has to be a better way to get the project_id
-        project_id = @redux.getStore(@name).name.substring(7,43)
-        time_stamp = salvus_client.server_time()
-        @syncdb.update
-            set :
-                event     : "chat"
-                history   : [{author_id: project_id, content:mesg, date:time_stamp}]
-                video_chat: {"is_video_chat" : true}
-            where :
-                date: time_stamp
-            is_equal: (a, b) => (a - 0) == (b - 0)
-
-        @syncdb.save()
-
     set_to_last_input: =>
         @setState(input:store.get('last_sent'))
 
@@ -255,9 +251,6 @@ class ChatActions extends Actions
     set_is_preview: (is_preview) =>
         @setState(is_preview:is_preview)
 
-    set_is_video_chat: (is_video_chat) =>
-        @setState(is_video_chat:is_video_chat)
-
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
@@ -266,13 +259,62 @@ class ChatActions extends Actions
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
 
+    save_shared_video_info: (video) =>
+        @setState(video: video)
+        @syncdb.update
+            set :
+                video : video   # actual info
+            where :
+                event : 'video'
+        @syncdb.save()  # so other users will know, and so this persists.
 
-# boilerplate setting up actions, stores, sync'd file, etc.
+    # Open the video chat window, if it isn't already opened
+    open_video_chat_window: =>
+        if @store.get('video_window')
+            # video chat window already opened
+            return
+
+        # get shared video chat state
+        video = (@store.get('video')?.toJS()) ? {}
+        room_id = video.room_id
+        if not room_id?
+            # the chatroom id hasn't been set yet, so set it
+            room_id = misc.uuid()
+            video.room_id = room_id
+            @save_shared_video_info(video)
+
+        # Create the pop-up window for the chat
+        url = "https://appear.in/" + room_id
+        w = window.open("", null, "height=640,width=800")
+        w.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
+        w.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
+        w.document.write('</body></html>')
+
+        w.addEventListener "unload", () =>
+            # The user closes the window, so we unset our pointer to the window
+            @setState(video_window: undefined, video_window_room_id: undefined)
+
+        @_video_window = w   # slight cheat, since we can't store a window in REDUX (contains only immutable js objects)
+        @setState
+            video_window         : true
+            video_window_room_id : room_id  # use to re-open window in case another user changes the room id
+
+    # user wants to close the video chat window, but not via just clicking the close button on the popup window
+    close_video_chat_window: =>
+        w = @store.get('video_window')
+        if w
+            # there is an actual pop-up window, so we close it.
+            @_video_window?.close()
+            delete @_video_window
+            # and record that it is gone.
+            @setState(video_window: undefined, video_window_room_id : undefined)
+
+# Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
 syncdbs = {}
 exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
-        return  # already initialized
+        return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
     store   = redux.createStore(name)
@@ -299,6 +341,8 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
 
                 actions.init_from_syncdb()
                 syncdb.on('change', actions._syncdb_change)
+
+    return name
 
 ### Message Methods ###
 

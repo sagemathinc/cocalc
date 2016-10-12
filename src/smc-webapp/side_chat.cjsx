@@ -329,43 +329,42 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            if not @props.messages.get(date).get('video_chat').get('is_video_chat')
-                historyList = @props.messages.get(date).get('history').pop().toJS()
-                h = []
-                a = []
-                t = []
-                for j of historyList
-                    h.push(historyList[j].content)
-                    a.push(historyList[j].author_id)
-                    t.push(historyList[j].date)
+            historyList = @props.messages.get(date).get('history').pop().toJS()
+            h = []
+            a = []
+            t = []
+            for j of historyList
+                h.push(historyList[j].content)
+                a.push(historyList[j].author_id)
+                t.push(historyList[j].date)
 
-                sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
-                last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
+            sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
+            last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
 
-                v.push <Message key={date}
-                         account_id       = {@props.account_id}
-                         history          = {h}
-                         history_author   = {a}
-                         history_date     = {t}
-                         user_map         = {@props.user_map}
-                         message          = {@props.messages.get(date)}
-                         date             = {date}
-                         project_id       = {@props.project_id}
-                         file_path        = {@props.file_path}
-                         font_size        = {@props.font_size}
-                         is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
-                         is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                         show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
-                         include_avatar_col = {@props.show_heads}
-                         get_user_name    = {get_user_name}
-                         sender_name      = {sender_name}
-                         editor_name      = {last_editor_name}
-                         actions          = {@props.actions}
-                         focus_end        = {@props.focus_end}
-                         saved_mesg       = {@props.saved_mesg}
-                         close_input      = {@close_edit_inputs}
-                         set_scroll       = {@props.set_scroll}
-                        />
+            v.push <Message key={date}
+                     account_id       = {@props.account_id}
+                     history          = {h}
+                     history_author   = {a}
+                     history_date     = {t}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     date             = {date}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     include_avatar_col = {@props.show_heads}
+                     get_user_name    = {get_user_name}
+                     sender_name      = {sender_name}
+                     editor_name      = {last_editor_name}
+                     actions          = {@props.actions}
+                     focus_end        = {@props.focus_end}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
+                     set_scroll       = {@props.set_scroll}
+                    />
 
         return v
 
@@ -497,7 +496,7 @@ ChatRoom = (name) -> rclass
         </div>
 
 
-# boilerplate fitting this into SMC below
+# Fitting the side chat into non-react parts of SMC:
 
 render = (redux, project_id, path, max_height) ->
     name = redux_name(project_id, path)
@@ -507,9 +506,11 @@ render = (redux, project_id, path, max_height) ->
         <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} max_height={max_height} />
     </Redux>
 
+# Render the given chatroom, and return the name of the redux actions/store
 exports.render = (project_id, path, dom_node, redux, max_height) ->
-    init_redux(redux, project_id, path)
+    name = init_redux(redux, project_id, path)
     ReactDOM.render(render(redux, project_id, path, max_height), dom_node)
+    return name
 
 exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
