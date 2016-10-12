@@ -106,26 +106,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     # clients through the render_chat_log() method, which listens to the 'sync'
     # event emitted by the chat_session object.
 
-    # Writes the video chat message
-    write_chat_message: (opts={}) =>
-        opts = defaults opts,
-            event_type : required  # "chat", "start_video", "stop_video"
-            payload    : required  # event-dependent dictionary
-            video      : required
-            cb         : undefined # callback
-
-        new_message = misc.to_json
-            sender_id : "Unknown"
-            event     : opts.event_type
-            payload   : opts.payload
-            video_chat: opts.video
-            date      : salvus_client.server_time()
-
-        @chat_session.live(new_message + "\n" + @chat_session.live())
-
-        # save to disk after each message
-        @chat_session.save(opts.cb)
-
     init_chat_toggle: () =>
         title = @element.find(".salvus-editor-chat-title-text")
         title.click () =>
@@ -153,7 +133,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         #@render_chat_log()
         chat_height = @element.height() + 2 - @element.find(".salvus-editor-codemirror-button-row").height() - 70
 
-        side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
+        @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
 
         height_resize = () =>
             chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
@@ -169,43 +149,26 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         #@element.find(".salvus-editor-codemirror-input-box").removeClass('col-sm-9').addClass('col-sm-12')
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
-        @editor.emit 'hide-chat'
+        @editor.emit('hide-chat')
 
     init_video_toggle: () =>
-        # WARNING: this *dangerously* duplicates code that is also in smc_chat.cjsx.
-        video_chat_window = null
-        video_on_button = @element.find(".salvus-editor-chat-video-is-off")
+        video_on_button  = @element.find(".salvus-editor-chat-video-is-off")
         video_off_button = @element.find(".salvus-editor-chat-video-is-on")
 
         video_on_button.click () =>
-            # see note about race condition in smc_chat.cjsx, referencing https://github.com/sagemathinc/smc/issues/1007
-            # But the fix is to first **delete all this code** in this file related to chat and use the code in smc_chat.cjsx.
-            if @has_video_id()[0]
-                @_video_chat_id = @has_video_id()[1]
-            else
-                @_video_chat_id = misc.uuid()
-                @write_chat_message
-                    "event_type" : "chat"
-                    "payload"    : {content: "Video Chat Room ID is: #{@_video_chat_id}"}  # duplicated in smc_chat.cjsx, so don't change without chare.
-                    "video"      : {"is_video_chat" : true}
-            url = "https://appear.in/" + @_video_chat_id
-            video_chat_window = window.open("", "_blank", "location=false,height=640,width=800")
-            video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-            video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
-            video_chat_window.document.write('</body></html>')
-
+            actions = redux.getActions(@_chat_redux_name)
+            actions.open_video_chat_window()
             @element.find(".salvus-editor-chat-video-is-off").hide()
             @element.find(".salvus-editor-chat-video-is-on").show()
-            video_chat_window.addEventListener("unload", @on_unload)
+            actions._video_window.addEventListener "unload", () =>
+                @element.find(".salvus-editor-chat-video-is-off").show()
+                @element.find(".salvus-editor-chat-video-is-on").hide()
 
         video_off_button.click () =>
-            video_chat_window.close()
+            actions = redux.getActions(@_chat_redux_name)
+            actions.close_video_chat_window()
             @element.find(".salvus-editor-chat-video-is-off").show()
             @element.find(".salvus-editor-chat-video-is-on").hide()
-
-    on_unload: (e) =>
-        @.opener.$(".salvus-editor-chat-video-is-off").show()
-        @.opener.$(".salvus-editor-chat-video-is-on").hide()
 
     search_message_log: =>
         messages = @chat_session.live()
@@ -221,17 +184,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
             all_messages.push(new_message)
         return all_messages
-
-    has_video_id: =>
-        is_video = [false, null]
-        if @search_message_log().length > 0
-            for messages in @search_message_log()
-                if messages.video_chat?.is_video_chat
-                    is_video[0] = true
-                    is_video[1] = messages.payload.content.split(": ")[1]
-            return is_video
-        else
-            return is_video
 
 underscore = require('underscore')
 
