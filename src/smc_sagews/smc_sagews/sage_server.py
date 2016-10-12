@@ -1780,14 +1780,14 @@ def serve(port, host, extra_imports=False):
 
         namespace['_salvus_parsing'] = sage_parsing
 
-        for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
-                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
-                     'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'input','show_identifiers',
-                     'clear', 'delete_last_output', 'sage_eval',
-                     'search_doc','search_src', 'octave', 'license']:
+        for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
+                     'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'raw_input',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
+                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
