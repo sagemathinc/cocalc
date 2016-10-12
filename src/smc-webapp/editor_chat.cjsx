@@ -36,6 +36,7 @@ event     : Can only be "chat" right now.
 date      : A date string
 history   : Array of "History" objects (described below)
 editing   : Object of <account id's> : <"TODO">
+video_chat: "is_video_chat" : true/false
 
 "TODO" Will likely contain their last edit in the future
 
@@ -61,16 +62,17 @@ event     : String
 date      : Date Object
 history   : immutable.Stack of immutable.Maps
 editing   : immutable.Map
+video_chat: immutable.Map
 
 ###
 
 ###
-This file is all the parts that are similar between side_chat.cjsx (The side chat rooms of all the files) and smc-chat.cjsx (The sagemathcloud chat room)
+This file has all the parts that are similar between side_chat.cjsx (The side chat rooms of all the files) and smc-chat.cjsx (The sagemathcloud chat room)
 ###
 
 # standard non-SMC libraries
 immutable = require('immutable')
-{IS_MOBILE, isMobile} = require('./feature')
+{IS_MOBILE} = require('./feature')
 underscore = require('underscore')
 
 # SMC libraries
