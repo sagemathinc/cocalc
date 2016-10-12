@@ -371,7 +371,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         do_search        : rtypes.func.isRequired   # Submit search query
         clear_search     : rtypes.func.isRequired
         is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
-        search_results   : rtypes.object #Immutable.List TODO: Turn into rtypes.immutable.List after react rewrite           # contents to put in the selection box after getting search result back
+        search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
         item_name        : rtypes.string
 
     getDefaultProps : ->
@@ -384,6 +384,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
     shouldComponentUpdate : (newProps, newState) ->
         return newProps.search_results != @props.search_results or
             newProps.item_name != @props.item_name or
+            newProps.is_searching != @props.is_searching or
             newState.selected_items != @state.selected_items
 
     componentWillReceiveProps : (newProps) ->
@@ -417,6 +418,12 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
+    change_selection : (e) ->
+        v = []
+        for option in e.target.selectedOptions
+            v.push(option.label)
+        @setState(selected_items : v)
+
     render_results_list : ->
         v = []
         @props.search_results.map (item) =>
@@ -425,7 +432,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     render_add_selector : ->
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : ReactDOM.findDOMNode(@refs.selector).selectedOptions)}>
+            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={@change_selection}>
                 {@render_results_list()}
             </FormControl>
             <ButtonToolbar>

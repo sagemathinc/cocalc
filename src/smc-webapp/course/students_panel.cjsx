@@ -51,7 +51,7 @@ exports.StudentsPanel = rclass
         add_searching    : false
         add_select       : undefined
         existing_students: undefined
-        selected_entries : undefined
+        selected_option_nodes : undefined
         show_deleted     : false
 
     do_add_search : (e) ->
@@ -63,9 +63,9 @@ exports.StudentsPanel = rclass
             return
         search = @state.add_search.trim()
         if search.length == 0
-            @setState(err:undefined, add_select:undefined, existing_students:undefined, selected_entries:undefined)
+            @setState(err:undefined, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
             return
-        @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_entries:undefined)
+        @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
         add_search = @state.add_search
         salvus_client.user_search
             query : add_search
@@ -112,7 +112,7 @@ exports.StudentsPanel = rclass
         </Button>
 
     add_selector_clicked : ->
-        @setState(selected_entries: ReactDOM.findDOMNode(@refs.add_select).value)
+        @setState(selected_option_nodes: ReactDOM.findDOMNode(@refs.add_select).selectedOptions)
 
     add_selected_students : ->
         emails = {}
@@ -120,16 +120,10 @@ exports.StudentsPanel = rclass
             if x.account_id?
                 emails[x.account_id] = x.email_address
         students = []
-
-        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        selected_names = ReactDOM.findDOMNode(@refs.add_select).value
         selections = []
-        if selected_names.length == 0
-            all_names = @refs.add_select.getInputDOMNode().getElementsByTagName('option')
-            if all_names?.length == 1
-                selections = [all_names[0].getAttribute('value')]
-        else
-            selections = selected_names
+
+        for option in @state.selected_option_nodes
+            selections.push(option.getAttribute('value'))
 
         for y in selections
             if misc.is_valid_uuid_string(y)
@@ -139,7 +133,7 @@ exports.StudentsPanel = rclass
             else
                 students.push({email_address:y})
         @props.redux.getActions(@props.name).add_students(students)
-        @setState(err:undefined, add_select:undefined, selected_entries:undefined, add_search:'')
+        @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
     get_add_selector_options : ->
         v = []
@@ -158,12 +152,14 @@ exports.StudentsPanel = rclass
             return
         options = @get_add_selector_options()
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>{options}</FormControl>
+            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>
+                {options}
+            </FormControl>
             {@render_add_selector_button(options)}
         </FormGroup>
 
     render_add_selector_button : (options) ->
-        nb_selected = @state.selected_entries?.length ? 0
+        nb_selected = @state.selected_option_nodes?.length ? 0
         _ = require('underscore')
         es = @state.existing_students
         if es?
