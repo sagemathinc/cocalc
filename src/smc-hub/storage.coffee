@@ -313,8 +313,8 @@ delete_SNAPSHOT = (opts) ->
 exports.delete_old_BUPs = (opts) ->
     opts = defaults opts,
         database  : required
-        age_m     : misc.months_ago(10*12)  # select projects at most this old
-        min_age_m : misc.months_ago(12)     # if given, selects only projects that are at least this old
+        age_m     : 60*24*365*10  # select projects at most this old
+        min_age_m : 60*24*365     # if given, selects only projects that are at least this old
         threads   : 1
         limit     : undefined               # delete at most this many (mainly used for testing)
         cb        : required
@@ -337,7 +337,7 @@ exports.delete_old_BUPs = (opts) ->
                         cb(err)
                     else
                         dbg("Got #{v.length} total projects")
-                        projects = (x for x in v when x.storage == hostname)
+                        projects = (x for x in v when x.storage?.host == hostname)
                         dbg("Got #{projects.length} projects on this host '#{hostname}'")
                         cb()
         (cb) ->
@@ -352,7 +352,7 @@ exports.delete_old_BUPs = (opts) ->
                         m += 1
                         dbg("#{Math.round(m*100/projects.length)}%: finished #{m} of #{projects.length} -- #{err}")
                         cb(err)
-            async.mapLimit(projects, opts.threads, f, cb)
+            async.mapLimit(projects, opts.threads, f, ((err)->cb(err)))
         ], opts.cb)
 
 delete_BUP = (opts) ->
@@ -362,9 +362,10 @@ delete_BUP = (opts) ->
     winston.debug("delete_BUP('#{opts.project_id}')")
     target = "/bups/#{opts.project_id}"
     fs.exists target, (exists) ->
-        rmdir(target, opts.cb)
-    else
-        opts.cb()
+        if exists
+            rmdir(target, opts.cb)
+        else
+            opts.cb()
 
 # Both LIVE and SNAPSHOT must already be closed; this sync BUP repo to GCS,
 # then delete BUP from this machine.  So the only copy of this project
