@@ -59,6 +59,7 @@ Page = rclass
             cookie_warning    : rtypes.bool
             show_file_use     : rtypes.bool
         file_use :
+            file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
             get_fullname : rtypes.func
