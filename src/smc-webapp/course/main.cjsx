@@ -1783,6 +1783,7 @@ init_redux = (course_filename, redux, course_project_id) ->
                     t[k] = immutable.fromJS(v)
                 get_actions().setState(t)
                 syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
                 redux.getStore('projects').wait
