@@ -155,7 +155,7 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync happening...
-                    #@db.on('sync', => @editor?.activity_indicator()) TODOJ
+                    @db.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                     # Handle any changes, merging in with current state.
                     @db.on('change', @handle_changes)

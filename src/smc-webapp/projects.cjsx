@@ -59,7 +59,6 @@ class ProjectsActions extends Actions
         x = store.get('open_projects')
         index = x.indexOf(project_id)
         if index != -1
-            redux
             redux.removeProjectReferences(project_id)
             @setState(open_projects : x.delete(index))
 

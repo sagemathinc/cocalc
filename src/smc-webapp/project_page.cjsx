@@ -38,6 +38,7 @@ FileTab = rclass
         is_active          : rtypes.bool
         file_tab           : rtypes.bool      # Whether or not this tab holds a file
         shrink             : rtypes.bool      # Whether or not to shrink to just the icon
+        has_activity       : rtypes.bool      # Whether or not some activity is happening with the file
 
     getInitialState : () ->
         x_hovered : false
@@ -72,6 +73,15 @@ FileTab = rclass
                 styles.backgroundColor = SAGE_LOGO_COLOR
         else
             styles.flex = 'none'
+
+        icon_style =
+            fontSize: '15pt'
+
+        if @props.file_tab
+            icon_style.fontSize = '10pt'
+
+        if @props.has_activity
+            icon_style.color = 'orange'
 
         label_styles =
             whiteSpace: 'nowrap'
@@ -108,7 +118,7 @@ FileTab = rclass
                 </div>
                 <div style={label_styles}>
                     <Tip title={@props.tooltip} placement='bottom' size='small'>
-                        <Icon style={fontSize: if @props.file_tab then '10pt' else '15pt'} name={@props.icon} /> {@props.label if not @props.shrink}
+                        <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
                     </Tip>
                 </div>
             </div>
@@ -225,7 +235,7 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
         else
             active_path = misc.tab_to_path(active_tab_name)
             if open_files?.has(active_path)
-                Editor = open_files.get(active_path)
+                Editor = open_files.getIn([active_path, 'component'])
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
                     path={active_path}
@@ -302,6 +312,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             tooltip={path}
             project_id={@props.project_id}
             file_tab={true}
+            has_activity={@props.open_files.getIn([path, 'has_activity'])}
             is_active={@props.active_project_tab == misc.path_to_tab(path)}
         />
 

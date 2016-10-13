@@ -260,8 +260,11 @@ DropdownProjectsNav = rclass
     render_projects_dropdown : ->
         if @props.open_projects.includes(@props.active_top_tab)
             project_id = @props.active_top_tab
-            # TODOJ: get public title too
-            title =  @props.get_title(project_id)
+
+            title = null
+            title ?= @props.get_title(project_id)
+            title ?= @props.public_project_titles?.get(project_id)
+            title ?= <Loading key={@props.project_id} />
         else
             title = "Open projects"
 

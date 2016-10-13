@@ -306,10 +306,27 @@ class ProjectActions extends Actions
                         editor.redux_name = name
 
                         # Add it to open files
-                        @setState(open_files: open_files.set(opts.path, editor), open_files_order:open_files_order.push(opts.path))
+                        @setState(open_files: open_files.setIn([opts.path, 'component'], editor), open_files_order:open_files_order.push(opts.path))
                         if opts.foreground
                             @foreground_opened_file(opts.path)
         return
+
+    flag_file_activity: (filename) =>
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[filename]
+        if timer?
+            clearTimeout(timer)
+
+        open_files = @get_store().get('open_files')
+        set_inactive = () =>
+            new_files_data = open_files.setIn([filename, 'has_activity'], false)
+            @setState(open_files : new_files_data)
+
+        @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
+
+        new_files_data = open_files.setIn([filename, 'has_activity'], true)
+        @setState(open_files : new_files_data)
 
     foreground_opened_file : (path) =>
         @foreground_project(@project_id)
@@ -1220,6 +1237,10 @@ exports.getStore = getStore = (project_id, redux) ->
             return false
 
     # Create store
+    # open_files :
+    #     file_path :
+    #         component    : react_renderable
+    #         has_activity : bool
     initial_state =
         current_path       : ''
         sort_by_time       : set_sort_time() #TODO
@@ -1231,8 +1252,8 @@ exports.getStore = getStore = (project_id, redux) ->
         active_project_tab : 'files'
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
-        children_stores    : immutable.List([])
         num_ghost_file_tabs: 0
+
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 

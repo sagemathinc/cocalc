@@ -392,8 +392,7 @@ class Console extends EventEmitter
                 @update_scrollbar()
 
             setTimeout(@set_scrollbar_to_term, 10)
-
-            #@activity_indicator() TODOJ
+            redux.getProjectActions(@project_id).flag_file_activity(@filename)
         catch e
             # WARNING -- these are all basically bugs, I think...
             # That said, try/catching them is better than having
@@ -1093,6 +1092,7 @@ class Console extends EventEmitter
         @element.find(".salvus-console-title").text(title)
 
     set_filename: (filename) ->
+        @filename = filename
         @element.find(".salvus-console-filename").text(filename)
 
 

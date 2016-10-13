@@ -40,8 +40,8 @@ remember_me = salvus_client.remember_me_key()
 if window.smc_target and not localStorage[remember_me] and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
-    #redux.getActions('page').set_active_tab('account') #TODOJ
-    0
+    redux.getActions('page').set_active_tab('account')
+
 
 client = window.smc.client
 if client._connected
