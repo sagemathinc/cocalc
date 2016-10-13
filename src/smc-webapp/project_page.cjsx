@@ -319,6 +319,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render : ->
         page_styles ='
             #smc-file-tabs-fixed>li>a {
+                height:36px;
                 padding: 8px 10px;
                 border-radius: 5px 5px 0px 0px;
             }
@@ -340,7 +341,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 color:rgb(51, 51, 51);
                 display:block;
                 flex-shrink:1;
-                height:36.8px;
+                height:36px;
                 line-height:normal;
                 list-style-image:none;
                 list-style-position:outside;
@@ -356,7 +357,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 border-radius: 5px 5px 0px 0px;
                 box-sizing:border-box;
                 display:block;
-                height:36.8px;
+                height:36px;
                 line-height:normal;
                 list-style-image:none;
                 list-style-position:outside;
