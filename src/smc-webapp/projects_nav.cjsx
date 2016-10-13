@@ -159,6 +159,7 @@ FullProjectsNav = rclass
             onSortEnd={@on_sort_end}
             axis={'x'}
             lockAxis={'x'}
+            lockToContainerEdges={true}
             distance={3 if not isMobile.tablet()}
         >
             {@project_tabs()}

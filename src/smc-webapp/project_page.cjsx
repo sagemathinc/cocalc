@@ -375,7 +375,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     onSortEnd={@on_sort_end}
                     axis={'x'}
                     lockAxis={'x'}
-                    lockToContainerEdges
+                    lockToContainerEdges={true}
                     distance={3 if not IS_MOBILE}
                     bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
                 >
