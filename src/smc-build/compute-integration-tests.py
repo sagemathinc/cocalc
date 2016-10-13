@@ -70,6 +70,7 @@ BINARIES = [
     ('latex', 'pdfTeX'),
     ('haskell-compiler', 'glasgow haskell'),
     ('stack', 'hpack'), # haskell stack tool
+    ('prolog', 'SWI-Prolog'),
     ('gfortran', 'fortran'),
     ('f77', 'fortran'),
     ('f95', 'fortran'),
@@ -147,6 +148,7 @@ PY_SAGE = PY_COMMON + [
     'jinja2', 'ncpol2sdpa', 'pymc3', 'pysal', 'cobra', 'gensim', 'tdigest', 'stl', 'nipype',
     # 'pymc', # doesn't compile, pymc3 works
     'polymake', # https://github.com/videlec/pypolymake/
+    'keras',
 ]
 
 # and in anaconda
@@ -154,7 +156,7 @@ PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
     'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
-    'plotly', 'geopandas', 'altair', 'simpy',
+    'plotly', 'geopandas', 'altair', 'simpy', 'keras',
 ]
 
 # Tests for R setups and libraries

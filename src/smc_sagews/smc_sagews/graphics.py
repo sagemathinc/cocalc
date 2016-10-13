@@ -167,6 +167,8 @@ from sage.structure.element import Element
 def jsonable(x):
     if isinstance(x, Element):
         return json_float(x)
+    elif isinstance(x, (list, tuple)):
+        return [jsonable(y) for y in x]
     return x
 
 
@@ -201,7 +203,6 @@ def graphics3d_to_jsonable(p):
             color = texture_pop.color
             tmp_dict = {"name":name,"color":color}
             texture_dict.append(tmp_dict)
-
         return texture_dict
 
     def get_color(name,texture_set):
@@ -374,7 +375,7 @@ def graphics3d_to_jsonable(p):
 
     def convert_line(p, T, extra_kwds):
         obj_list.append({"type"       : "line",
-                         "points"     : p.points if T is None else [T.transform_point(point) for point in p.points],
+                         "points"     : jsonable(p.points if T is None else [T.transform_point(point) for point in p.points]),
                          "thickness"  : jsonable(p.thickness),
                          "color"      : "#" + p.get_texture().hex_rgb(),
                          "arrow_head" : bool(p.arrow_head)})

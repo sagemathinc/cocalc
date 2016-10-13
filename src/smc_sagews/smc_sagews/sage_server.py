@@ -934,6 +934,9 @@ class Salvus(object):
         except:
             log("Error - unable to import sage.repl.interpreter")
 
+        import sys
+        import sage.misc.session
+
         for start, stop, block in blocks:
             # if import sage.repl.interpreter fails, sag_repl_interpreter is unreferenced
             try:
@@ -954,6 +957,14 @@ class Salvus(object):
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()
+                    if execute.count < 2:
+                        execute.count += 1
+                        if execute.count == 2:
+                            # this fixup has to happen after first block has executed (os.chdir etc)
+                            # but before user assigns any variable in worksheet
+                            # sage.misc.session.init() is not called until first call of show_identifiers
+                            block2 = "_=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -1398,6 +1409,9 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         else:
             sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
+# execute.count goes from 0 to 2
+# used for show_identifiers()
+execute.count = 0
 
 
 def drop_privileges(id, home, transient, username):
@@ -1771,7 +1785,7 @@ def serve(port, host, extra_imports=False):
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
                      'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
                      'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'input',
+                     'mediawiki', 'help', 'raw_input', 'input','show_identifiers',
                      'clear', 'delete_last_output', 'sage_eval',
                      'search_doc','search_src', 'octave', 'license']:
             namespace[name] = getattr(sage_salvus, name)

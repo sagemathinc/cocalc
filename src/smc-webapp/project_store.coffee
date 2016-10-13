@@ -553,8 +553,9 @@ class ProjectActions extends Actions
             files  : opts.path
         @_project().download_file(opts)
 
-    download_href : (path) ->
-        @_project().download_href(path)
+    download_href: (path) =>
+        # appending ?download sets the content type to octet-stream -- see smc-project/raw_server.coffee
+        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -936,10 +937,16 @@ exports.getStore = getStore = (project_id, redux) ->
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
 
+    set_sort_time = () ->
+        if redux.getStore('account').get('other_settings').get('default_file_sort') == 'time'
+            return true
+        else
+            return false
+
     # Create store
     initial_state =
         current_path       : ''
-        sort_by_time       : true #TODO
+        sort_by_time       : set_sort_time() #TODO
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
