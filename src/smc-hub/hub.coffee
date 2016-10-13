@@ -138,6 +138,7 @@ write_text_file_to_project_summary = MetricsRecorder.new_summary('write_text_fil
                                    'summary stats for Client::write_text_file_to_project [s]')
 read_text_file_to_project_summary = MetricsRecorder.new_summary('read_text_file_to_project_seconds_summary',
                                    'summary stats for Client::read_text_file_to_project [s]')
+uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
 
 #############################################################
 # Client = a client that is connected via a persistent connection to the hub
@@ -3539,6 +3540,7 @@ if program._name.slice(0,3) == 'hub'
         winston.debug("Uncaught exception: " + err)
         winston.debug(err.stack)
         winston.debug("BUG ****************************************************************************")
+        uncaught_exception_total.inc()
 
     if program.passwd
         console.log("Resetting password")
