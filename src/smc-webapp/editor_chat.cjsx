@@ -353,9 +353,9 @@ exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
     account_id == message.get('sender_id')
 
 exports.get_timeago = get_timeago = (message) ->
-    <div className="pull-right small" style={color:'#888'}>
+    <span className="pull-right small" style={color:'#888'}>
         <TimeAgo date={new Date(message.get('date'))} />
-    </div>
+    </span>
 
 exports.show_user_name = show_user_name = (sender_name) ->
     <div className={"small"} style={color:"#888", marginBottom:'1px', marginLeft:'10px'}>
@@ -369,10 +369,9 @@ exports.blank_column = blank_column = ->
     <Col key={2} xs={2} sm={2}></Col>
 
 exports.render_markdown = render_markdown = (value, project_id, file_path) ->
-    <div style={paddingBottom: '1px', marginBottom: '5px'}>
-        <Markdown value={value}
-                     project_id={project_id}
-                     file_path={file_path} />
+    # the marginBottom offsets that markdown wraps everything in a p tag
+    <div style={marginBottom:'-10px'}>
+        <Markdown value={value} project_id={project_id} file_path={file_path} />
     </div>
 
 exports.render_history_title = render_history_title = (color, font_size) ->
