@@ -15,7 +15,7 @@ RUN \
 
 RUN \
   apt-get update && \
-  apt-get install -y texlive tmux screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc sagemath-upstream-binary haproxy nginx vim inetutils-ping lynx telnet git emacs subversion ssh m4
+  apt-get install -y texlive tmux screen pandoc aspell poppler-utils net-tools wget git python python-pip make g++ sudo psmisc sagemath-upstream-binary haproxy nginx vim bup inetutils-ping lynx telnet git emacs subversion ssh m4
 
 # Jupyter from pip (since apt-get is ancient)
 RUN \
