@@ -65,55 +65,60 @@ FileTab = rclass
         @actions(project_id:@props.project_id).close_tab(path)
 
     render : ->
-        li_style = {}
-        tab_style = {}
-        label_icon_style =
+        styles ={}
+
+        if @props.file_tab
+            styles = misc.copy(default_file_tab_styles)
+            if @props.is_active
+                styles.backgroundColor = SAGE_LOGO_COLOR
+        else
+            styles.flex = 'none'
+
+        icon_style =
             fontSize: '15pt'
 
         if @props.file_tab
-            li_style = misc.copy(default_file_tab_styles)
-            label_icon_style.fontSize = '10pt'
-        else
-            li_style.flex = 'none'
+            icon_style.fontSize = '10pt'
 
         if @props.has_activity
-            label_icon_style.color = 'orange'
+            icon_style.color = 'orange'
 
-        if @props.is_active
-            tab_style.color = "white"
-            if @props.file_tab
-                li_style.backgroundColor = SAGE_LOGO_COLOR
-
-        label_style =
+        label_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
             cursor: 'pointer'
 
-        x_button_style =
+        x_button_styles =
             float:'right'
             whiteSpace:'nowrap'
             fontSize:'12pt'
+            marginTop: '-3px'
 
         if @state.x_hovered
-            x_button_style.color = 'red'
+            x_button_styles.color = 'red'
+
+        text_color = "white" if @props.is_active
 
         <NavItem
             ref='tab'
-            style={li_style}
+            style={styles}
             active={@props.is_active}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
-            <div style={tab_style}>
-                {<Icon
-                    name = 'times'
-                    style={x_button_style}
-                    onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
-                    onMouseOver={@mouse_over_x} onMouseOut={@mouse_out_x}
-                /> if @props.file_tab}
-                <Tip title={@props.tooltip} placement='bottom' size='small' style={label_style}>
-                    <Icon style={label_icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
-                </Tip>
+            <div style={width:'100%', color:text_color}>
+                <div style={x_button_styles}>
+                    {<Icon
+                        onMouseOver={@mouse_over_x} onMouseOut={@mouse_out_x}
+                        name = 'times'
+                        onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
+                    /> if @props.file_tab}
+                </div>
+                <div style={label_styles}>
+                    <Tip title={@props.tooltip} placement='bottom' size='small'>
+                        <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
+                    </Tip>
+                </div>
             </div>
         </NavItem>
 
@@ -453,12 +458,12 @@ exports.MobileProjectPage = rclass ({name}) ->
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
 
-        label_style =
+        label_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
 
-        x_button_style =
+        x_button_styles =
             float:'right'
             whiteSpace:'nowrap'
             fontSize:'12pt'
@@ -467,14 +472,17 @@ exports.MobileProjectPage = rclass ({name}) ->
             key={path}
             onClick={()=>@actions(project_id: @props.project_id).set_active_tab(misc.path_to_tab(path))}
         >
-            <Button style={x_button_style} bsStyle="warning" onClick={(e)=>@close_file_item(e, path)}>
-                <Icon
-                    name = 'times'
-                />
-            </Button>
-            <div style={label_style}>
-                <Icon style={fontSize:'10pt'} name={icon} />
-                {display_name}
+            <div style={width:'100%'}>
+                <div style={x_button_styles}>
+                    <Button bsStyle="warning" onClick={(e)=>@close_file_item(e, path)}>
+                        <Icon
+                            name = 'times'
+                        />
+                    </Button>
+                </div>
+                <div style={label_styles}>
+                    <Icon style={fontSize:'10pt'} name={icon} /> {display_name}
+                </div>
             </div>
         </MenuItem>
 
@@ -518,7 +526,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                         shrink={@props.open_files_order.size != 0 or $(window).width() < 370}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
-                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex', height:'36px', overflow:'hidden'}>
+                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}>
                     {@render_files_dropdown() if @props.open_files_order.size > 1}
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
