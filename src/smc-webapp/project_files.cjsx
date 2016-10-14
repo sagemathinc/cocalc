@@ -1939,8 +1939,6 @@ exports.ProjectFiles = rclass ({name}) ->
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
-        window.fprops = @props
-
         pay = @props.date_when_course_payment_required(@props.project_id)
         if pay? and pay <= salvus_client.server_time()
             return @render_course_payment_required()

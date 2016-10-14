@@ -165,7 +165,6 @@ FreeProjectWarning = rclass ({name}) ->
         </div>
 
     render : ->
-        window.wprops = @props
         if @props.free_warning_closed
             return null
         quotas = @props.get_total_project_quotas(@props.project_id)
