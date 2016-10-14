@@ -88,8 +88,10 @@ Page = rclass
         </Nav>
 
     render_right_menu_button : ->
-        <Nav style={margin:'0', padding:'15px', paddingRight:'25px', fontSize:'20px', float:'right'}>
-            <NavItem onClick={()=>@setState(show_right_menu: true)}>
+        <Nav style={margin:'0', padding:'15px', paddingRight:'25px', fontSize:'20px', float:'right'}
+            onClick={()=>@setState(show_right_menu: true)}
+        >
+            <NavItem>
                 <Icon name="bars"/>
             </NavItem>
         </Nav>
