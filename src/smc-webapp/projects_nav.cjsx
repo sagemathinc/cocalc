@@ -19,7 +19,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style={flexShrink:'1', width:'200px', height:'40px', overflow: 'hidden'}
+        style={flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -79,26 +79,22 @@ ProjectTab = rclass
             name={@props.project_id}
             actions={@actions('page')}
             active_top_tab={@props.active_top_tab}
-            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden'}
+            style={flexShrink:'1', width:'200px', maxWidth:'200px', height:'41px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref='tab'
         >
-            {# Truncated file name}
-            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
-                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
-                    <Icon
-                        name = 'times'
-                        onClick = {@close_tab}
-                        onMouseOver = {(e)=>@setState(x_hovered:true)}
-                        onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                    />
-                </div>
-                <div style={project_name_styles}>
-                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </Tip>
-                </div>
+            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}>
+                <Icon
+                    name = 'times'
+                    onClick = {@close_tab}
+                    onMouseOver = {(e)=>@setState(x_hovered:true)}
+                    onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+                />
+            </div>
+            <div style={project_name_styles}>
+                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                    <Icon name={icon} style={fontSize:'20px'} />
+                    <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
+                </Tip>
             </div>
         </SortableNavTab>
 
@@ -154,7 +150,7 @@ FullProjectsNav = rclass
             width       : '100%'
             display     : 'flex'
 
-        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', margin:'0'}
+        <SortableNav style={display:'flex', flex:'1', overflow: 'hidden', height:'41px', margin:'0'}
             helperClass={'smc-project-tab-floating'}
             onSortEnd={@on_sort_end}
             axis={'x'}
@@ -210,33 +206,29 @@ OpenProjectMenuItem = rclass
         if @state.x_hovered
             x_color = "white"
 
-        <MenuItem onClick={@open_project}>
-            {# Truncated file name}
-            {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-            <div style={width:'100%', lineHeight:'1.75em', color:text_color}>
-                <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', marginTop:'-3px', color:x_color}>
-                    <Button bsStyle="warning" onClick={@close_tab}>
-                        <Icon
-                            name = 'times'
-                        />
-                    </Button>
+        <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color}>
+            <Button
+                bsStyle="warning"
+                onClick={@close_tab}
+                style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt', color:x_color}
+            >
+                <Icon name='times'/>
+            </Button>
+            <Tip style={project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                <div style={height: '36px', padding: '7px 5px', fontSize: '18px'}>
+                    <Icon name={icon} style={fontSize:'20px'} />
+                    <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
-                <div style={project_name_styles}>
-                    <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </Tip>
-                </div>
-            </div>
+            </Tip>
         </MenuItem>
 
 DropdownProjectsNav = rclass
     reduxProps :
         projects :
-            open_projects  : rtypes.immutable # List of open projects and their state
-            project_map    : rtypes.immutable # All projects available to the user
+            open_projects  : rtypes.immutable.List # Open projects and their state
+            project_map    : rtypes.immutable.Map  # All projects available to the user
             get_title      : rtypes.func
-            public_project_titles : rtypes.immutable
+            public_project_titles : rtypes.immutable.Map
         page :
             active_top_tab    : rtypes.string    # key of the active tab
 
@@ -287,19 +279,14 @@ DropdownProjectsNav = rclass
 
         <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
             <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
-                {# Truncated file name TODO: Make this pattern into an rclass. It's fuckin' everywhere}
-                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-                <div style={width:'100%'}>
-                    <div style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}>
-                        <Icon
-                            name = 'times'
-                            onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
-                        />
-                    </div>
-                    <div style={project_name_styles}>
-                        <Icon name={icon} style={fontSize:'20px'} />
-                        <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                    </div>
+                <Icon
+                    name = 'times'
+                    style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}
+                    onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
+                />
+                <div style={project_name_styles}>
+                    <Icon name={icon} style={fontSize:'20px'} />
+                    <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
             </NavItem>
         </Nav>
@@ -354,4 +341,8 @@ exports.ProjectsNav.dropdown_nav_page_styles ='
     }
     #smc-dropdown-projects>li>ul {
         width:100%;
+    }
+    #smc-dropdown-projects>li>ul>li>a {
+        height: 39px;
+        padding: 2px 10px;
     }'

@@ -82,7 +82,7 @@ Page = rclass
         return name
 
     render_right_nav : ->
-        <Nav id='smc-right-tabs-fixed' style={height:'42px', lineHeight:'20px', margin:'0'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             <NavTab
                 name='account'
                 label={@account_name()}
@@ -106,19 +106,15 @@ Page = rclass
         <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
             <NavTab
                 name='projects'
-                style={maxHeight:'44px'}
                 inner_style={padding:'0px'}
                 actions={@actions('page')}
                 active_top_tab={@props.active_top_tab}
 
             >
-                {# http://stackoverflow.com/questions/7046819/how-to-place-two-divs-side-by-side-where-one-sized-to-fit-and-other-takes-up-rem}
-                <div style={width:'100%'}>
-                    <div style={projects_styles}>
-                        Projects
-                    </div>
-                    <SMCLogo />
+                <div style={projects_styles}>
+                    Projects
                 </div>
+                <SMCLogo />
             </NavTab>
         </Nav>
 
