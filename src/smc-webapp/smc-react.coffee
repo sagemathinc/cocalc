@@ -418,10 +418,12 @@ react_component = (x) ->
     return C
 
 COUNT = false
+#COUNT = true
 if COUNT
     # Use these in the console:
-    #  reset_render_count()
-    #  JSON.stringify(get_render_count())
+    #  smc.reset_render_count()
+    #  smc.show_render_count()
+    #  smc.get_render_count()
     render_count = {}
     rclass = (x) ->
         x._render = x.render
@@ -429,13 +431,17 @@ if COUNT
             render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
             return @_render()
         return react_component(x)
-    window.get_render_count = ->
+    window.smc.get_render_count = ->
         total = 0
         for k,v of render_count
             total += v
         return {counts:render_count, total:total}
-    window.reset_render_count = ->
+    window.smc.reset_render_count = ->
         render_count = {}
+    window.smc.show_render_count = ->
+        v = ([name, count] for name, count of render_count)
+        v.sort (a,b) -> -misc.cmp(a[1], b[1])
+        console.log(JSON.stringify(v))
 else
     rclass = react_component
 

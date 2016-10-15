@@ -821,6 +821,7 @@ exports.Tip = Tip = rclass
             </Tooltip>
 
     render : ->
+        console.log "Tip ", @props.title, @props.tip
         <OverlayTrigger
             placement = {@props.placement}
             overlay   = {@render_popover()}

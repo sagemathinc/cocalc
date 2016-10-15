@@ -345,10 +345,11 @@ ChatLog = rclass
         set_scroll   : rtypes.func
 
     shouldComponentUpdate: (next) ->
-        return @props.messages != next.messages or
-               @props.user_map != next.user_map or
+        return @props.messages   != next.messages or
+               @props.user_map   != next.user_map or
                @props.account_id != next.account_id or
                @props.saved_mesg != next.saved_mesg
+               @props.font_size  != next.font_size
 
     get_user_name: (account_id) ->
         account = @props.user_map?.get(account_id)
@@ -461,7 +462,7 @@ ChatRoom = rclass ({name}) ->
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
-        path        : rtypes.string
+        path        : rtypes.string.isRequired
 
     getInitialState: ->
         input          : ''
@@ -526,9 +527,6 @@ ChatRoom = rclass ({name}) ->
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
 
-    button_scroll_to_bottom: ->
-        scroll_to_bottom(@refs.log_container, @props.actions)
-
     button_off_click: ->
         @props.actions.set_is_preview(false)
         ReactDOM.findDOMNode(@refs.input.refs.input).focus()
@@ -555,20 +553,8 @@ ChatRoom = rclass ({name}) ->
         #debounces it so that the preview shows up then calls
         scroll_to_bottom(@refs.log_container, @props.actions)
 
-    open_video_chat: ->
-        @props.actions.open_video_chat_window()
-
-    close_video_chat: ->
-        @props.actions.close_video_chat_window()
-
     show_files : ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
-
-    show_timetravel: ->
-        @props.redux?.getProjectActions(@props.project_id).open_file
-            path               : misc.history_path(@props.path)
-            foreground         : true
-            foreground_project : true
 
     # All render methods
     render_bottom_tip: ->
@@ -617,50 +603,6 @@ ChatRoom = rclass ({name}) ->
                 <Col sm={1}></Col>
             </Row>
 
-    render_timetravel_button: ->
-        tip = <span>
-            Browse all versions of this chatroom.
-        </span>
-
-        <Button onClick={@show_timetravel} bsStyle='info'>
-            <Tip title='TimeTravel' tip={tip}  placement='left'>
-                <Icon name='history'/> TimeTravel
-            </Tip>
-        </Button>
-
-    render_bottom_button: ->
-        tip = <span>
-            Scrolls the chat to the bottom
-        </span>
-
-        <Button onClick={@button_scroll_to_bottom}>
-            <Tip title='Scroll to Bottom' tip={tip}  placement='left'>
-                <Icon name='arrow-down'/> Bottom
-            </Tip>
-        </Button>
-
-    render_video_chat_off_button: ->
-        tip = <span>
-            Opens up the video chat window
-        </span>
-
-        <Button onClick={@open_video_chat}>
-            <Tip title='Video Chat' tip={tip}  placement='left'>
-                <Icon name='video-camera'/> Video Chat
-            </Tip>
-        </Button>
-
-    render_video_chat_on_button: ->
-        tip = <span>
-            Closes up the video chat window
-        </span>
-
-        <Button onClick={@close_video_chat}>
-            <Tip title='Video Chat Button' tip={tip}  placement='left'>
-                <Icon name='video-camera' style={color: "red"}/> Video Chat
-            </Tip>
-        </Button>
-
     render : ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -705,11 +647,13 @@ ChatRoom = rclass ({name}) ->
                               user_map    = {@props.user_map} />
                     </Col>
                     <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
-                        <ButtonGroup>
-                            {@render_timetravel_button()}
-                            {if @props.video_window then @render_video_chat_on_button() else @render_video_chat_off_button()}
-                            {@render_bottom_button()}
-                        </ButtonGroup>
+                        <ChatButtons
+                            actions       = {@props.actions}
+                            log_container = {@refs.log_container}
+                            path          = {@props.path}
+                            project_id    = {@props.project_id}
+                            video_window  = {@props.video_window}
+                        />
                     </Col>
                 </Row>
                 <Row>
@@ -819,6 +763,118 @@ ChatRoom = rclass ({name}) ->
                     </Col>
                 </Row>
             </Grid>
+
+TimeTravelButton = rclass
+    propTypes: ->
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
+
+    shouldComponentUpdate: ->
+        return false
+
+    show_timetravel: ->
+        smc.redux.getProjectActions(@props.project_id).open_file
+            path               : misc.history_path(@props.path)
+            foreground         : true
+            foreground_project : true
+
+    render : ->
+        tip = <span>
+            Browse all versions of this chatroom.
+        </span>
+
+        <Button onClick={@show_timetravel} bsStyle='info'>
+            <Tip title='TimeTravel' tip={tip}  placement='left'>
+                <Icon name='history'/> TimeTravel
+            </Tip>
+        </Button>
+
+VideoChatButton = rclass
+    propTypes: ->
+        actions     : rtypes.object
+        video_window : rtypes.bool
+
+    shouldComponentUpdate: (next) ->
+        return @props.video_window != next.video_window
+
+    click : () ->
+        if @props.video_window
+            @props.actions.close_video_chat_window()
+        else
+            @props.actions.open_video_chat_window()
+
+    render: ->
+        tip = <span>
+            {if @props.video_window then 'Close' else 'Open'} the video chat window
+        </span>
+
+        <Button onClick={@click}>
+            <Tip
+                title     = 'Video Chat'
+                style     = {if @props.video_window then {color: "red"}}
+                tip       = {tip}
+                placement = 'left' >
+                <Icon name='video-camera'/> Video Chat
+            </Tip>
+        </Button>
+
+BottomButton = rclass
+    propTypes: ->
+        actions       : rtypes.object.isRequired
+        log_container : rtypes.object
+
+    scroll_to_bottom: ->
+        scroll_to_bottom(@props.log_container, @props.actions)
+
+    shouldComponentUpdate: (next) ->
+        return next.log_container != @props.log_container
+
+    render: ->
+        tip = <span>Scrolls the chat to the bottom</span>
+
+        <Button onClick={@scroll_to_bottom}>
+            <Tip title='Scroll to Bottom' tip={tip}  placement='left'>
+                <Icon name='arrow-down'/> Bottom
+            </Tip>
+        </Button>
+
+ChatButtons = rclass
+    propTypes: ->
+        actions       : rtypes.object.isRequired
+        log_container : rtypes.object.isRequired
+        path          : rtypes.string.isRequired
+        project_id    : rtypes.string.isRequired
+        video_window  : rtypes.bool
+
+    render_timetravel_button: ->
+        tip = <span>
+            Browse all versions of this chatroom.
+        </span>
+
+        <Button onClick={@show_timetravel} bsStyle='info'>
+            <Tip title='TimeTravel' tip={tip}  placement='left'>
+                <Icon name='history'/> TimeTravel
+            </Tip>
+        </Button>
+
+    shouldComponentUpdate: (next) ->
+        return @props.video_window != next.video_window
+
+    render : ->
+        <ButtonGroup>
+            <TimeTravelButton
+                project_id = {@props.project_id}
+                path       = {@props.path}
+            />
+            <VideoChatButton
+                actions      = {@props.actions}
+                video_window = {@props.video_window}
+            />
+            <BottomButton
+                log_container = {@props.log_container}
+                actions      = {@props.actions}
+            />
+        </ButtonGroup>
 
 ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)

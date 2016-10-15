@@ -87,7 +87,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -449,6 +449,7 @@ exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     saved_position + offset + 20 > height
 
 exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
+    console.log log_container, actions
     if log_container?
         node = ReactDOM.findDOMNode(log_container)
         node.scrollTop = node.scrollHeight
