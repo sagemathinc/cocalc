@@ -327,9 +327,14 @@ FileUse = rclass
         open_file_use_entry(@info, @props.redux)
 
     render_path : ->
+        text = misc.trunc_middle(@info.path, TRUNCATE_LENGTH)
+        name_and_ext = misc.separate_file_extension(text)
+        name = name_and_ext.name
+        ext = name_and_ext.ext
         #  style={if @info.is_unread then {fontWeight:'bold'}}
-        <span key='path' style={fontWeight:'bold'}>
-            {misc.trunc_middle(@info.path, TRUNCATE_LENGTH)}
+        <span>
+            <span style={fontWeight: if @info.is_unread then 'bold' else 'normal'}>{name}</span>
+            <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
         </span>
 
     render_project : ->

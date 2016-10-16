@@ -165,10 +165,10 @@ FileRow = rclass
 
     render_name : ->
         name = @props.display_name ? @props.name
-        ext  = misc.filename_extension(name)
-        if ext isnt ''
-            name = name[0...name.length - ext.length - 1] # remove the ext and the .
-
+        name_and_ext = misc.separate_file_extension(name)
+        name = name_and_ext.name
+        ext = name_and_ext.ext
+        
         show_tip = (@props.display_name? and @props.name isnt @props.display_name) or name.length > 50
 
         styles =

@@ -411,6 +411,13 @@ exports.filename_extension_notilde = (filename) ->
         ext = ext.slice(0, ext.length-1)
     return ext
 
+
+exports.separate_file_extension = (name) ->
+    ext  = exports.filename_extension(name)
+    if ext isnt ''
+        name = name[0...name.length - ext.length - 1] # remove the ext and the .
+    return {name: name, ext: ext}
+
 # shallow copy of a map
 exports.copy = (obj) ->
     if not obj? or typeof(obj) isnt 'object'
