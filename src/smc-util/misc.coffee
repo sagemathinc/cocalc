@@ -411,7 +411,8 @@ exports.filename_extension_notilde = (filename) ->
         ext = ext.slice(0, ext.length-1)
     return ext
 
-
+# If input name foo.bar, returns object {name:'foo', ext:'bar'}.
+# If there is no . in input name, returns {name:name, ext:''}
 exports.separate_file_extension = (name) ->
     ext  = exports.filename_extension(name)
     if ext isnt ''

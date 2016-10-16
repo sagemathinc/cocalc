@@ -327,10 +327,9 @@ FileUse = rclass
         open_file_use_entry(@info, @props.redux)
 
     render_path : ->
-        text = misc.trunc_middle(@info.path, TRUNCATE_LENGTH)
-        name_and_ext = misc.separate_file_extension(text)
-        name = name_and_ext.name
-        ext = name_and_ext.ext
+        {name, ext} = misc.separate_file_extension(@info.path)
+        name = misc.trunc_middle(name, TRUNCATE_LENGTH)
+        ext  = misc.trunc_middle(ext, TRUNCATE_LENGTH)
         #  style={if @info.is_unread then {fontWeight:'bold'}}
         <span>
             <span style={fontWeight: if @info.is_unread then 'bold' else 'normal'}>{name}</span>
