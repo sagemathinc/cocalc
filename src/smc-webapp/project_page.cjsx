@@ -65,7 +65,7 @@ FileTab = rclass
         @actions(project_id:@props.project_id).close_tab(path)
 
     render : ->
-        styles ={}
+        styles = {}
 
         if @props.file_tab
             styles = misc.copy(default_file_tab_styles)
@@ -87,7 +87,6 @@ FileTab = rclass
             whiteSpace: 'nowrap'
             overflow: 'hidden'
             textOverflow: 'ellipsis'
-            cursor: 'pointer'
 
         x_button_styles =
             float:'right'
@@ -106,7 +105,7 @@ FileTab = rclass
             active={@props.is_active}
             onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
-            <div style={width:'100%', color:text_color}>
+            <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_styles}>
                     {<Icon
                         onMouseOver={@mouse_over_x} onMouseOut={@mouse_out_x}
