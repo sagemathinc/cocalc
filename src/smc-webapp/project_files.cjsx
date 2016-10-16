@@ -168,7 +168,7 @@ FileRow = rclass
         name_and_ext = misc.separate_file_extension(name)
         name = name_and_ext.name
         ext = name_and_ext.ext
-        
+
         show_tip = (@props.display_name? and @props.name isnt @props.display_name) or name.length > 50
 
         styles =
@@ -703,8 +703,9 @@ ProjectFilesButtons = rclass
             <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
 
     render_backup : ->
-        if @props.public_view
+        if @props.public_view or not require('./customize').commercial
             return
+        # NOTE -- snapshots aren't available except in commercial version -- they are complicated nontrivial thing that isn't usually setup...
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
             <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
         </a>

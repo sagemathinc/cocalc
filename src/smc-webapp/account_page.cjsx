@@ -115,6 +115,21 @@ exports.AccountPage = rclass
             remember_me             = {@props.remember_me}
             has_account             = {localStorage.length > 0} />
 
+    render_commercial_tabs: ->
+        if not require('./customize').commercial
+            return null
+        v = []
+        v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> Billing</span>}>
+            {<BillingPageRedux /> if @props.active_page == 'billing'}
+        </Tab>
+        v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
+            {@render_upgrades() if @props.active_page == 'upgrades'}
+        </Tab>
+        v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
+            {@render_support() if @props.active_page == 'support'}
+        </Tab>
+        return v
+
     render : ->
         logged_in = @props.redux.getStore('account').is_logged_in()
         <Grid className='constrained'>
@@ -122,18 +137,10 @@ exports.AccountPage = rclass
             {<Row>
                 <Col md={12}>
                     <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                        <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
+                        <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
                             {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                         </Tab>
-                        <Tab eventKey="billing" title={<span><Icon name='money'/> Billing</span>}>
-                            {<BillingPageRedux /> if @props.active_page == 'billing'}
-                        </Tab>
-                        <Tab eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
-                            {@render_upgrades() if @props.active_page == 'upgrades'}
-                        </Tab>
-                        <Tab eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
-                            {@render_support() if @props.active_page == 'support'}
-                        </Tab>
+                        {@render_commercial_tabs()}
                     </Tabs>
                 </Col>
             </Row> if logged_in}

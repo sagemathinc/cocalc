@@ -92,7 +92,7 @@ Page = rclass
             />
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            <NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} />
+            {<NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} /> if require('./customize').commercial}
             {<NotificationBell count={@props.get_notify_count()} /> if @props.is_logged_in()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>

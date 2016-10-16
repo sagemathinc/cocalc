@@ -140,6 +140,7 @@ SUPPORT_LINKS =
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
+        commercial: true
     # commented out since link doesn't work
     #getting_started :
     #    icon : 'play'
@@ -221,7 +222,10 @@ HelpPageSupportSection = rclass
         support_links : rtypes.object
 
     get_support_links : ->
+        {commercial} = require('./customize')
         for name, data of @props.support_links
+            if data.commercial and not commercial
+                continue
             <li key={name} style={li_style} className={if data.className? then data.className}>
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
@@ -517,7 +521,7 @@ exports.HelpPage = HelpPage = rclass
 
                 <HelpPageUsageSection />
 
-                <HelpPageAboutSection />
+                {<HelpPageAboutSection /> if require('./customize').commercial}
 
                 <HelpPageGettingStartedSection />
             </Col>

@@ -385,6 +385,8 @@ UpgradeAdjustor = rclass
             </Alert>
 
     render_upgrades_button : ->
+        if not require('./customize').commercial
+            return null
         <Row>
             <Col sm=12>
                 <Button bsStyle='primary' onClick={@show_upgrade_quotas} style={float: 'right', marginBottom : '5px'}>
@@ -641,6 +643,8 @@ UsagePanel = rclass
         actions                              : rtypes.object.isRequired # projects actions
 
     render : ->
+        if not require('./customize').commercial
+            return null
         <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
             <UpgradeAdjustor
                 project_id                           = {@props.project_id}
@@ -1307,9 +1311,11 @@ ProjectSettingsBody = rclass ({name}) ->
         total_project_quotas                 = @props.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = @props.get_upgrades_to_project(id)
 
+        {commercial} = require('./customize')
+
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
-            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
