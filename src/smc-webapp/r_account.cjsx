@@ -19,9 +19,9 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
 
-{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
 
@@ -52,18 +52,19 @@ TextSetting = rclass
         onBlur   : rtypes.func
 
     getValue : ->
-        @refs.input.getValue()
+        ReactDOM.findDOMNode(@refs.input).value
 
     render : ->
         <LabeledRow label={@props.label}>
-            <Input
-                ref      = 'input'
-                type     = 'text'
-                hasFeedback
-                value    = {@props.value}
-                onChange = {@props.onChange}
-                onBlur   = {@props.onBlur}
-            />
+            <FormGroup>
+                <FormControl
+                    ref      = 'input'
+                    type     = 'text'
+                    value    = {@props.value}
+                    onChange = {@props.onChange}
+                    onBlur   = {@props.onBlur}
+                />
+            </FormGroup>
         </LabeledRow>
 
 EmailAddressSetting = rclass
@@ -125,24 +126,28 @@ EmailAddressSetting = rclass
 
     render_edit : ->
         <Well style={marginTop: '3ex'}>
-            New email address
-            <Input
-                autoFocus
-                type        = 'email_address'
-                ref         = 'email_address'
-                value       = {@state.email_address}
-                placeholder = 'user@example.com'
-                onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
-            />
+            <FormGroup>
+                New email address
+                <FormControl
+                    autoFocus
+                    type        = 'email_address'
+                    ref         = 'email_address'
+                    value       = {@state.email_address}
+                    placeholder = 'user@example.com'
+                    onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
+                />
+            </FormGroup>
             Current password
             <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
-                <Input
-                    type        = 'password'
-                    ref         = 'password'
-                    value       = {@state.password}
-                    placeholder = 'Current password'
-                    onChange    = {=>@setState(password : @refs.password.getValue())}
-                />
+                <FormGroup>
+                    <FormControl
+                        type        = 'password'
+                        ref         = 'password'
+                        value       = {@state.password}
+                        placeholder = 'Current password'
+                        onChange    = {=>@setState(password : ReactDOM.findDOMNode(@refs.password).value)}
+                    />
+                </FormGroup>
             </form>
             <ButtonToolbar>
                 {@change_button()}
@@ -243,24 +248,28 @@ PasswordSetting = rclass
 
     render_edit : ->
         <Well style={marginTop:'3ex'}>
-            Current password
-            <Input
-                autoFocus
-                type        = 'password'
-                ref         = 'old_password'
-                value       = {@state.old_password}
-                placeholder = 'Current password'
-                onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
-            />
+            <FormGroup>
+                Current password
+                <FormControl
+                    autoFocus
+                    type        = 'password'
+                    ref         = 'old_password'
+                    value       = {@state.old_password}
+                    placeholder = 'Current password'
+                    onChange    = {=>@setState(old_password : ReactDOM.findDOMNode(@refs.old_password).value)}
+                />
+            </FormGroup>
             New password
             <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
-                <Input
-                    type        = 'password'
-                    ref         = 'new_password'
-                    value       = {@state.new_password}
-                    placeholder = 'New password'
-                    onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
-                />
+                <FormGroup>
+                    <FormControl
+                        type        = 'password'
+                        ref         = 'new_password'
+                        value       = {@state.new_password}
+                        placeholder = 'New password'
+                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(zxcvbn:password_score(x), new_password:x)}
+                    />
+                </FormGroup>
             </form>
             {@password_meter()}
             <ButtonToolbar>
@@ -285,7 +294,7 @@ PasswordSetting = rclass
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
-# TODO: issue -- if edit an account setting in another browser and in the middle of editing
+# WARNING: issue -- if edit an account setting in another browser and in the middle of editing
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
 AccountSettings = rclass
@@ -307,14 +316,14 @@ AccountSettings = rclass
         remote_strategy_button : undefined
 
     handle_change : (field) ->
-        value = @refs[field].getValue()
+        value = ReactDOM.findDOMNode(@refs[field]).value
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
         @props.redux.getActions('account').setState("#{field}": value)
 
     save_change : (field) ->
-        @props.redux.getTable('account').set("#{field}": @refs[field].getValue())
+        @props.redux.getTable('account').set("#{field}": ReactDOM.findDOMNode(@refs[field]).value)
 
     render_add_strategy_link: ->
         if not @state.add_strategy_link
@@ -534,14 +543,16 @@ DeleteAccountConfirmation = rclass
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To proceed, enter your first and last name below.
-            <Input
-                autoFocus
-                value       = {@state.confirmation_text}
-                type        = 'text'
-                ref         = 'confirmation_field'
-                onChange    = {=>@setState(confirmation_text : @refs.confirmation_field.getValue())}
-                style       = {marginTop : '1ex'}
-            />
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    value       = {@state.confirmation_text}
+                    type        = 'text'
+                    ref        = 'confirmation_field'
+                    onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button
                     disabled={@state.confirmation_text != @props.required_text}
@@ -591,8 +602,8 @@ ProfileSettings = rclass
     onColorChange : (value) ->
         @props.redux.getTable('account').set(profile : {color: value})
 
-    onGravatarSelect : () ->
-        if @refs.checkbox.getChecked()
+    onGravatarSelect : (e) ->
+        if e.target.checked
             email = @props.email_address
             gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
             @props.redux.getTable('account').set(profile : {image: gravatar_url})
@@ -618,13 +629,12 @@ ProfileSettings = rclass
     render_set_gravatar: ->
         <Row>
             <Col md=6 key='checkbox'>
-                <Input
+                <Checkbox
                     ref="checkbox"
-                    label='Use gravatar'
-                    type='checkbox'
                     checked={@props.profile?.image? and (@props.profile.image isnt "")}
                     onChange={@onGravatarSelect}>
-                </Input>
+                    Use gravatar
+                </Checkbox>
             </Col>
             <Col md=6 key='set'>
                 {@render_gravatar_button() if not @state.show_instructions}
@@ -641,7 +651,7 @@ ProfileSettings = rclass
              </LabeledRow>
         </Panel>
 
-# TODO: in console.coffee there is also code to set the font size,
+# WARNING: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
@@ -707,13 +717,12 @@ EditorSettingsCheckboxes = rclass
         return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
 
     render_checkbox : (name, desc) ->
-        <Input checked  = {@props.editor_settings[name]}
+        <Checkbox checked  = {@props.editor_settings[name]}
                key      = {name}
-               type     = 'checkbox'
-               label    = {@label_checkbox(name, desc)}
                ref      = {name}
-               onChange = {=>@props.on_change(name, @refs[name].getChecked())}
-        />
+               onChange = {(e)=>@props.on_change(name, e.target.checked)}>
+            {@label_checkbox(name, desc)}
+        </Checkbox>
 
     render : ->
         <span>
@@ -923,14 +932,12 @@ OtherSettings = rclass
 
     render_confirm : ->
         if not require('./feature').IS_MOBILE
-            <Input
-                type     = 'checkbox'
-                checked  = {@props.other_settings.confirm_close}
-                ref      = 'confirm_close'
-                onChange = {=>@on_change('confirm_close', @refs.confirm_close.getChecked())}
-                label    = 'Confirm: always ask for confirmation before closing the browser window'
-            />
-
+                <Checkbox
+                    checked  = {@props.other_settings.confirm_close}
+                    ref      = 'confirm_close'
+                    onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
+                    Confirm: always ask for confirmation before closing the browser window
+                </Checkbox>
     render_page_size_warning : ->
         BIG_PAGE_SIZE = 500
         if @props.other_settings.page_size > BIG_PAGE_SIZE
@@ -943,13 +950,13 @@ OtherSettings = rclass
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
-            <Input
-                type     = 'checkbox'
+            <Checkbox
                 checked  = {@props.other_settings.mask_files}
                 ref      = 'mask_files'
-                onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
-                label    = 'Mask files: grey-out files in the files viewer that you probably do not want to open'
-            />
+                onChange = {(e)=>@on_change('mask_files', e.target.checked)}
+            >
+                Mask files: grey-out files in the files viewer that you probably do not want to open
+            </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
                     selected  = {@props.other_settings.default_file_sort}
@@ -1010,12 +1017,14 @@ AccountCreationToken = rclass
             when 'edit', 'save'
                 <Well>
                     <form onSubmit={@save}>
-                        <Input
-                            ref      = 'input'
-                            type     = 'text'
-                            value    = {@state.token}
-                            onChange = {=>@setState(token:@refs.input.getValue())}}
-                        />
+                        <FormGroup>
+                            <FormControl
+                                ref      = 'input'
+                                type     = 'text'
+                                value    = {@state.token}
+                                onChange = {=>@setState(token:ReactDOM.findDOMNode(@refs.input).value)}}
+                            />
+                        </FormGroup>
                     </form>
                     {@render_save_button()}
                     <Button onClick={=>@setState(state:'view', token:'')}>Cancel</Button>
@@ -1044,8 +1053,8 @@ StripeKeys = rclass
 
     getInitialState : ->
         state           : 'view'   # view --> edit --> save --> view
-        secret_key      : undefined
-        publishable_key : undefined
+        secret_key      : ''
+        publishable_key : ''
         error           : undefined
 
     edit : ->
@@ -1081,12 +1090,16 @@ StripeKeys = rclass
             when 'edit'
                 <Well>
                     <LabeledRow label='Secret key'>
-                        <Input ref='input_secret_key' type='text' value={@state.secret_key}
-                            onChange={=>@setState(secret_key:@refs.input_secret_key.getValue())} />
+                        <FormGroup>
+                            <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
+                                onChange={=>@setState(secret_key:ReactDOM.findDOMNode(@refs.input_secret_key).value)} />
+                        </FormGroup>
                     </LabeledRow>
                     <LabeledRow label='Publishable key'>
-                        <Input ref='input_publishable_key' type='text' value={@state.publishable_key}
-                            onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
+                        <FormGroup>
+                            <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
+                                onChange={=>@setState(publishable_key:ReactDOM.findDOMNode(@refs.input_publishable_key).value)} />
+                        </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
                         <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
@@ -1164,8 +1177,10 @@ SiteSettings = rclass
         conf = site_settings_conf[name]
         label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
         <LabeledRow key={name} label={label}>
-            <Input ref={name} type='text' value={value}
-                onChange={=>e = misc.copy(@state.edited); e[name]=@refs[name].getValue(); @setState(edited:e)} />
+            <FormGroup>
+                <FormControl ref={name} type='text' value={value}
+                    onChange={=>e = misc.copy(@state.edited); e[name]=ReactDOM.findDOMNode(@refs[name]).value; @setState(edited:e)} />
+            </FormGroup>
         </LabeledRow>
 
     render_editor: ->
@@ -1210,7 +1225,16 @@ SystemMessage = rclass
 
     render_editor: ->
         <Well>
-            <Input autofocus value={@state.mesg} ref='input' rows=3 type='textarea' onChange={=>@setState(mesg:@refs.input.getValue())} />
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    value={@state.mesg}
+                    ref='input'
+                    rows=3
+                    componentClass='textarea'
+                    onChange={=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
+                />
+            </FormGroup>
             <ButtonToolbar>
                 <Button onClick={@send} bsStyle="danger"><Icon name='paper-plane-o'/> Send</Button>
                 <Button onClick={=>@setState(state:'view')}>Cancel</Button>
@@ -1269,9 +1293,15 @@ AddStripeUser = rclass
         <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
             <Row>
                 <Col md=6>
-                    <Input ref='input' type='text' value={@state.email}
-                        placeholder = "Email address"
-                        onChange    = {=>e = @setState(email:@refs.input.getValue())}/>
+                    <FormGroup>
+                        <FormControl
+                            ref   = 'input'
+                            type  = 'text'
+                            value = {@state.email}
+                            placeholder = "Email address"
+                            onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
+                        />
+                    </FormGroup>
                 </Col>
                 <Col md=6>
                     <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
@@ -1314,14 +1344,10 @@ AdminSettings = rclass
                 <SiteSettings />
             </LabeledRow>
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-                <Redux redux={redux}>
-                    <SystemMessage />
-                </Redux>
+            <SystemMessage />
             </LabeledRow>
             <LabeledRow label={add_stripe_label} style={marginTop:'15px'}>
-                <Redux redux={redux}>
-                    <AddStripeUser />
-                </Redux>
+            <AddStripeUser />
             </LabeledRow>
         </Panel>
 
@@ -1393,7 +1419,7 @@ f = () ->
     $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
-            # TODO: this forces re-render of the strategy part of the component above!
+            # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.
             redux.getActions('account').setState(strategies:strategies)
@@ -1405,8 +1431,6 @@ ugly_error = (err) ->
     if typeof(err) != 'string'
         err = misc.to_json(err)
     require('./alerts').alert_message(type:"error", message:"Settings error -- #{err}")
-
-
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load
@@ -1425,35 +1449,3 @@ password_score = (password) ->
             # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             #    zxcvbn = window.zxcvbn
     return
-
-
-###
-Top Navbar button label at the top
-###
-
-AccountName = rclass
-    displayName : 'AccountName'
-
-    reduxProps :
-        account :
-            first_name : rtypes.string
-            last_name  : rtypes.string
-
-    shouldComponentUpdate: (next) ->
-        return @props.first_name != next.first_name or @props.last_name != next.last_name
-
-    render : ->
-        name = ''
-        if @props.first_name? and @props.last_name?
-            name = misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)
-        if not name.trim()
-            name = "Account"
-        <span><Icon name='cog' style={fontSize:'20px'}/> {name}</span>
-
-render_top_navbar_button = ->
-    <Redux redux={redux}>
-        <AccountName />
-    </Redux>
-
-if not window.FULLY_REACT
-    ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]

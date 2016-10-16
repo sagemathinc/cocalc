@@ -35,9 +35,9 @@ sender_id : String which is the original message sender's account id
 event     : Can only be "chat" right now.
 date      : A date string
 history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"TODO">
+editing   : Object of <account id's> : <"FUTURE">
 
-"TODO" Will likely contain their last edit in the future
+"FUTURE" Will likely contain their last edit in the future
 
  --- History object ---
 author_id : String which is this message version's author's account id
@@ -51,7 +51,7 @@ Example object:
         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
         ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
+"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"FUTURE"}}
 ---
 
 Chat message types after immutable conversion:
@@ -85,9 +85,9 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -182,7 +182,7 @@ class ChatActions extends Actions
 
     send_chat: (mesg) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         sender_id = @redux.getStore('account').get_account_id()
         time_stamp = salvus_client.server_time()
@@ -200,13 +200,13 @@ class ChatActions extends Actions
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         author_id = @redux.getStore('account').get_account_id()
 
         if is_editing
-            # TODO: Save edit changes
-            editing = message.get('editing').set(author_id, 'TODO')
+            # FUTURE: Save edit changes
+            editing = message.get('editing').set(author_id, 'FUTURE')
         else
             editing = message.get('editing').remove(author_id)
 
@@ -224,7 +224,7 @@ class ChatActions extends Actions
     # Inefficient. Assumes number of edits is small.
     send_edit: (message, mesg) =>
         if not @syncdb?
-            # TODO: give an error or try again later?
+            # WARNING: give an error or try again later?
             return
         author_id = @redux.getStore('account').get_account_id()
         # OPTIMIZATION: send less data over the network?
@@ -311,8 +311,8 @@ class ChatActions extends Actions
 
 # Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
 syncdbs = {}
-exports.init_redux = init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
+exports.init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
     if redux.getActions(name)?
         return name  # already initialized
 
@@ -321,13 +321,13 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
 
     actions._init()
 
-    synchronized_db
+    require('./syncdb').synchronized_db
         project_id    : project_id
-        filename      : filename
+        filename      : path
         sync_interval : 0
         cb            : (err, syncdb) ->
             if err
-                alert_message(type:'error', message:"unable to open #{@filename}")
+                alert_message(type:'error', message:"unable to open #{@path}")
             else
                 actions.syncdb = syncdb
                 actions.store = store
@@ -341,11 +341,24 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
 
                 actions.init_from_syncdb()
                 syncdb.on('change', actions._syncdb_change)
+    return name
+
+exports.remove_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    store = redux.getStore(name)
+    if not store?
+        return
+    store.syncdb?.destroy()
+    delete store.state
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    redux.removeStore(name)
+    redux.removeActions(name)
+    return name
 
     return name
 
 ### Message Methods ###
-
 exports.newest_content = newest_content = (message) ->
     message.get('history').peek()?.get('content') ? ''
 
@@ -378,7 +391,6 @@ exports.render_history_title = render_history_title = (color, font_size) ->
     <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px', textAlign:'center'}>
         <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
     </ListGroupItem>
-
 exports.render_history_footer = render_history_footer = (color, font_size) ->
     <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
     </ListGroupItem>
@@ -416,11 +428,9 @@ exports.get_user_name = get_user_name = (account_id, user_map) ->
         account_name = "Unknown"
 
 ### ChatRoom Methods ###
-
-exports.send_chat = send_chat = (e, log_container, input, actions) ->
+exports.send_chat = send_chat = (e, log_container, mesg, actions) ->
     scroll_to_bottom(log_container, actions)
     e.preventDefault()
-    mesg = input.getValue()
     # block sending empty messages
     if mesg.length? and mesg.trim().length >= 1
         actions.send_chat(mesg)
@@ -439,6 +449,7 @@ exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     saved_position + offset + 20 > height
 
 exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
+    console.log log_container, actions
     if log_container?
         node = ReactDOM.findDOMNode(log_container)
         node.scrollTop = node.scrollHeight
@@ -453,3 +464,4 @@ exports.scroll_to_position = scroll_to_position = (log_container, saved_position
             node.scrollTop = saved_position
         else
             scroll_to_bottom(log_container, actions)
+

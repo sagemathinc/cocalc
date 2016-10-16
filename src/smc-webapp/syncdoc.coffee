@@ -5,7 +5,7 @@
 #    Copyright (C) 2014, 2015, 2016 William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
+#    it under the terms of the GNU Gener@al Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
 #
@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-
+$        = window.$
 misc     = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -214,6 +214,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring.on 'before-change', =>
             @emit('before-change')
 
+        @_syncstring.on 'deleted', =>
+            redux.getProjectActions(@project_id).close_tab(@filename)
+
     live: (s) =>
         if s? and s != @_syncstring.get()
             @_syncstring.exit_undo_mode()
@@ -275,6 +278,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
+        window.syncdoc2 = @
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
@@ -355,10 +359,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     #console.log("syncstring before change")
                     @_syncstring.set(@codemirror.getValue())
 
-                # TODO: should do this for all editors, but I don't want to conflict with the top down react rewrite,
-                # and this is kind of ugly...
-                @_syncstring.on "deleted", =>
-                    @editor.editor.close(@filename)
+                @_syncstring.on 'deleted', =>
+                    redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
                 # We debounce instead of throttle, because we want a single "diff/commit" to correspond

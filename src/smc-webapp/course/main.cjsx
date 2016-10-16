@@ -81,7 +81,7 @@ primary_key =
     handouts    : 'handout_id'
 
 syncdbs = {}
-exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
+init_redux = (course_filename, redux, course_project_id) ->
     the_redux_name = redux_name(course_project_id, course_filename)
     get_actions = ->redux.getActions(the_redux_name)
     get_store = -> redux.getStore(the_redux_name)
@@ -1783,6 +1783,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     t[k] = immutable.fromJS(v)
                 get_actions().setState(t)
                 syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
                 redux.getStore('projects').wait
@@ -1793,9 +1794,16 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         actions.lookup_nonregistered_students()
                         actions.configure_all_projects()
 
-    return # don't return syncdb above
+    return the_redux_name
 
-CourseEditor = (name) -> rclass
+remove_redux = (course_filename, redux, course_project_id) ->
+    the_redux_name = redux_name(course_project_id, course_filename)
+    redux.removeStore(the_redux_name)
+    redux.removeActions(the_redux_name)
+    delete syncdbs[the_redux_name]
+    return the_redux_name
+
+CourseEditor = rclass ({name}) ->
     displayName : "CourseEditor-Main"
 
     reduxProps :
@@ -1913,14 +1921,14 @@ CourseEditor = (name) -> rclass
             return <Loading />
 
     render : ->
-        <div>
+        <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
             {@render_files_button()}
             {@render_title()}
             {@render_save_timetravel()}
-            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
+            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}
@@ -1944,37 +1952,9 @@ CourseEditor = (name) -> rclass
             </Tabs>
         </div>
 
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    # dependence on account below is for adjusting quotas
-    CourseEditor_connected = CourseEditor(name)
-    <Redux redux={redux}>
-        <CourseEditor_connected redux={redux} name={name} project_id={project_id} path={path} />
-    </Redux>
-
-exports.render_course = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.hide_course = (project_id, path, dom_node, redux) ->
-    #console.log("hide_course")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show_course = (project_id, path, dom_node, redux) ->
-    #console.log("show_course")
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.free_course = (project_id, path, dom_node, redux) ->
-    fname = redux_name(project_id, path)
-    db = syncdbs[fname]
-    if not db?
-        return
-    db.destroy()
-    delete syncdbs[fname]
-    ReactDOM.unmountComponentAtNode(dom_node)
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    store = redux.getStore(fname)
-    delete store.state
-    redux.removeStore(fname)
-    redux.removeActions(fname)
+require('project_file').register_file_editor
+    ext    : 'course'
+    icon   : 'graduation-cap'
+    init      : init_redux
+    component : CourseEditor
+    remove    : remove_redux

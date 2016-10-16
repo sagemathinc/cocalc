@@ -33,7 +33,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -68,7 +68,7 @@ class AccountActions extends Actions
                     when "signed_in"
                         {analytics_event} = require('./misc_page')
                         analytics_event('account', 'create_account') # user created an account
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -112,7 +112,7 @@ class AccountActions extends Actions
                     else
                         # success
                         # TODO: can we automatically log them in?
-                        history.pushState("", document.title, window.location.pathname)
+                        window.history.pushState("", document.title, window.location.pathname)
                         @setState(reset_key : '', reset_password_error : '')
     sign_out : (everywhere) ->
         delete localStorage[remember_me]
@@ -136,6 +136,18 @@ class AccountActions extends Actions
                     # or blead into the next login somehow.
                     window.location.reload(false)
 
+    push_state: (url) =>
+        {set_url} = require('./history')
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = ''
+        @_last_history_state = url
+        set_url('/settings' + misc.encode_path(url))
+
+    set_active_tab : (tab) =>
+        @setState(active_page : tab)
+
 # Register account actions
 actions = redux.createActions('account', AccountActions)
 
@@ -152,7 +164,7 @@ class AccountStore extends Store
         return @get('account_id')
 
     is_logged_in : =>
-        return @get('account_id')?
+        return @get_user_type() == 'signed_in'
 
     is_admin: =>
         return @get('groups').includes('admin')

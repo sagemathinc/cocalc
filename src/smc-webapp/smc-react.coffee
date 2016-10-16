@@ -165,7 +165,12 @@ class AppRedux
         return @_actions[name] ?= new actions_class(name, @)
 
     getActions: (name) =>
-        return @_actions[name]
+        if typeof(name) == 'string'
+            return @_actions[name]
+        else
+            if not name.project_id?
+                throw "Object needs project_id"
+            return project_store?.getActions(name.project_id, @)
 
     createStore: (name, store_class=Store, init=undefined) =>
         if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})
@@ -174,6 +179,10 @@ class AppRedux
         S = @_stores[name]
         if not S?
             S = @_stores[name] = new store_class(name, @)
+            # Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
+            C = immutable.Map(S)
+            C = C.delete('redux') # No circular pointing
+            @_set_state({"#{name}":C})
             if init?
                 @_set_state({"#{name}":init})
         return S
@@ -227,11 +236,121 @@ class AppRedux
     getProjectTable: (project_id, name) =>
         return project_store?.getTable(project_id, name, @)
 
+    removeProjectReferences: (project_id) =>
+        return project_store?.deleteStoreActionsTable(project_id, @)
+
 redux = new AppRedux()
 
-rtypes = React.PropTypes
-rtypes.immutable = "IMMUTABLE"
+###
+Custom Prop Validation
+FUTURE: Put prop validation code in a debug area so that it doesn't get loaded for production
 
+In addition to React Prop checks, we implement the following type checkers:
+immutable,
+immutable.List,
+immutable.Map,
+immutable.Set,
+immutable.Stack,
+which may be chained with .isRequired just like normal React prop checks
+
+Additional validations may be added with the following signature
+rtypes.custom_checker_name<function (
+        props,
+        propName,
+        componentName,
+        location,
+        propFullName,
+        secret
+    ) => <Error-Like-Object or null>
+>
+Check React lib to see if this has changed.
+
+
+NOT IMPLEMENTED, FUTURE:
+rtypes.immutable.Map.has("jim")
+the prop must be an immutable Map and has("jim") must be true
+Use a more generic strategy to chain the checks in that case
+###
+
+check_is_immutable = (props, propName, componentName="ANONYMOUS", location, propFullName) ->
+#    locationName = ReactPropTypeLocationNames[location]
+    if not props[propName]? or props[propName].toJS?
+        return null
+    else
+        type = typeof props[propName]
+        return new Error(
+            "Invalid prop '#{propName}' of" +
+            " type #{type} supplied to" +
+            " '#{componentName}', expected an immutable collection or frozen object."
+        )
+
+allow_isRequired = (validate) ->
+    check_type = (isRequired, props, propName, componentName="ANONYMOUS", location) ->
+        if not props[propName]? and isRequired
+            return new Error("Required prop `#{propName}` was not specified in '#{componentName}'")
+        return validate(props, propName, componentName, location)
+
+    chainedCheckType = check_type.bind(null, false)
+    chainedCheckType.isRequired = check_type.bind(null, true)
+    chainedCheckType.isRequired.category = "IMMUTABLE"
+    chainedCheckType.category = "IMMUTABLE"
+
+    return chainedCheckType
+
+create_immutable_type_required_chain = (validate) ->
+    check_type = (immutable_type_name, props, propName, componentName="ANONYMOUS") ->
+        if immutable_type_name and props[propName]?
+            T = immutable_type_name
+            if not props[propName].toJS?
+                return new Error("NOT EVEN IMMUTABLE, wanted immutable.#{T} #{props}, #{propName}")
+            if require('immutable')["#{T}"]["is#{T}"](props[propName])
+                return null
+            else
+                return new Error(
+                    "Component '#{componentName}'" +
+                    " expected an immutable.#{T}" +
+                    " but was supplied #{props[propName]}"
+                )
+        else
+            return validate(props, propName, componentName, location)
+
+    # To add more immutable.js types, mimic code below.
+    check_immutable_chain = allow_isRequired check_type.bind(null, undefined)
+    check_immutable_chain.Map = allow_isRequired check_type.bind(null, "Map")
+    check_immutable_chain.List = allow_isRequired check_type.bind(null, "List")
+    check_immutable_chain.Set = allow_isRequired check_type.bind(null, "Set")
+    check_immutable_chain.Stack = allow_isRequired check_type.bind(null, "Stack")
+    check_immutable_chain.category = "IMMUTABLE"
+
+    return check_immutable_chain
+
+rtypes = {}
+rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
+Object.assign(rtypes, React.PropTypes)
+
+###
+Tests if the categories are working correctly.
+test = () ->
+    a = "q"
+    if (rtypes.immutable.category != "IMMUTABLE" or
+            rtypes.immutable.Map.category != "IMMUTABLE" or
+            rtypes.immutable.List.category != "IMMUTABLE" or
+            rtypes.immutable.isRequired.category != "IMMUTABLE" or
+            rtypes.immutable.Map.isRequired.category != "IMMUTABLE" or
+            rtypes.immutable.List.isRequired.category != "IMMUTABLE")
+        throw "Immutable checkers are broken"
+
+test()
+###
+
+###
+Used by Provider to map app state to component props
+
+rclass
+    reduxProps:
+        store_name :
+            prop     : type
+###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
         props = {}
@@ -240,36 +359,71 @@ connect_component = (spec) =>
         for store_name, info of spec
             for prop, type of info
                 s = state.getIn([store_name, prop])
-                if type != rtypes.immutable
-                    props[prop] = if s?.toJS? then s.toJS() else s
-                else
+                if type.category == "IMMUTABLE"
                     props[prop] = s
+                else
+                    props[prop] = if s?.toJS? then s.toJS() else s
         return props
     return connect(map_state_to_props)
 
+###
+
+###
 react_component = (x) ->
-    if x.reduxProps?
-        # Inject the propTypes based on the ones injected by reduxProps.
-        propTypes = x.propTypes ? {}
-        for store_name, info of x.reduxProps
-            for prop, type of info
-                if type != rtypes.immutable
-                    propTypes[prop] = type
-                else
-                    propTypes[prop] = rtypes.object
-        x.propTypes = propTypes
-    C = React.createClass(x)
-    if x.reduxProps?
-        # Make the ones comming from redux get automatically injected, as long
-        # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
-        C = connect_component(x.reduxProps)(C)
+    if typeof x == 'function'
+        # Enhance the return value of x with an HOC
+        cached = React.createClass
+
+            # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
+            render : () ->
+                @cache ?= {}
+                # OPTIMIZATION: check for cached the keys in props
+                # currently assumes making a new object is fast enough
+                definition = x(@props)
+                key = misc.keys(definition.reduxProps).sort().join('')
+
+                if definition.actions?
+                    throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+
+                definition.actions = redux.getActions
+
+                @cache[key] ?= rclass(definition) # wait.. is this even the slow part?
+
+                return React.createElement(@cache[key], @props, @props.children)
+
+        return cached
+
+    else
+        if x.reduxProps?
+            # Inject the propTypes based on the ones injected by reduxProps.
+            propTypes = x.propTypes ? {}
+            for store_name, info of x.reduxProps
+                for prop, type of info
+                    if type != rtypes.immutable
+                        propTypes[prop] = type
+                    else
+                        propTypes[prop] = rtypes.object
+            x.propTypes = propTypes
+
+        if x.actions? and x.actions != redux.getActions
+            throw Error("You may not define a method named actions in an rclass. This is used to expose redux actions")
+
+        x.actions = redux.getActions
+
+        C = React.createClass(x)
+        if x.reduxProps?
+            # Make the ones comming from redux get automatically injected, as long
+            # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
+            C = connect_component(x.reduxProps)(C)
     return C
 
 COUNT = false
+#COUNT = true
 if COUNT
     # Use these in the console:
-    #  reset_render_count()
-    #  JSON.stringify(get_render_count())
+    #  smc.reset_render_count()
+    #  smc.show_render_count()
+    #  smc.get_render_count()
     render_count = {}
     rclass = (x) ->
         x._render = x.render
@@ -277,13 +431,17 @@ if COUNT
             render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
             return @_render()
         return react_component(x)
-    window.get_render_count = ->
+    window.smc.get_render_count = ->
         total = 0
         for k,v of render_count
             total += v
         return {counts:render_count, total:total}
-    window.reset_render_count = ->
+    window.smc.reset_render_count = ->
         render_count = {}
+    window.smc.show_render_count = ->
+        v = ([name, count] for name, count of render_count)
+        v.sort (a,b) -> -misc.cmp(a[1], b[1])
+        console.log(JSON.stringify(v))
 else
     rclass = react_component
 

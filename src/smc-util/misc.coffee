@@ -1669,3 +1669,38 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 # converts ticket number to support ticket url (currently zendesk)
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
+
+# Apply various transformations to url's before downloading a file using the "+ New" from web thing:
+# This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
+# content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
+
+exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
+    URL_TRANSFORMS =
+        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.ipython.org/urls/':'https://'
+    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
+        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+
+    if exports.startswith(url, 'git@github.com:')
+        command = 'git'  # kind of useless due to host keys...
+        args = ['clone', url]
+    else if url.slice(url.length-4) == ".git"
+        command = 'git'
+        args = ['clone', url]
+    else
+        # fall back
+        for a,b of URL_TRANSFORMS
+            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        command = 'wget'
+        args = [url]
+
+    return {command:command, args:args}
+
+# convert a file path to the "name" of the underlying editor tab.
+# needed because otherwise filenames like 'log' would cause problems
+exports.path_to_tab = (name) ->
+    "editor-#{name}"
+
+# assumes a valid editor tab name...
+exports.tab_to_path = (name) ->
+    name.substring(7)
