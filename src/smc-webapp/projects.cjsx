@@ -1014,6 +1014,7 @@ NewProjectCreator = rclass
         $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
 
     render_upgrade_before_create : (subs) ->
+        return
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>
@@ -1036,7 +1037,7 @@ NewProjectCreator = rclass
 
     render_no_title_alert : ->
         if @state.title_text == '' and @state.state != 'saving'
-            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
+            <Alert bsStyle='danger' style={marginTop:'15px'}>No project title specified. Please enter title at the top.</Alert>
 
     render_create_with_upgrades_button : (create_btn_disabled) ->
         <ButtonToolbar>
@@ -1099,7 +1100,7 @@ NewProjectCreator = rclass
                             disabled = {@state.title_text == '' or @state.state == 'saving'}
                             bsStyle  = 'success'
                             onClick  = {=>@create_project(false)} >
-                            Create project without upgrades
+                            Create project{#without upgrades}
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}
@@ -1118,7 +1119,7 @@ NewProjectCreator = rclass
                 <Col sm=12 style={color:'#555'}>
                     <div>
                         A <b>project</b> is your own private computational workspace that you can
-                        share with others and <a href="" onClick={@go_to_upgrade}>upgrade</a>.
+                        share with others and upgrade. {#<a href="" onClick={@go_to_upgrade}>upgrade</a>.}
                     </div>
                 </Col>
             </Row>
@@ -1127,8 +1128,8 @@ NewProjectCreator = rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    {@render_no_title_alert() if subs > 0}
-                    {@render_create_with_upgrades_button(create_btn_disabled) if subs > 0}
+                    {@render_no_title_alert()}
+                    {#@render_create_with_upgrades_button(create_btn_disabled) if subs > 0}
                     {@render_error()}
                 </Col>
             </Row>
