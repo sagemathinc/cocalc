@@ -643,7 +643,7 @@ ChatRoom = (name) -> rclass
 
         <Button onClick={@open_video_chat}>
             <Tip title='Video Chat' tip={tip}  placement='left'>
-                <Icon name='video-camera'/> Video Chat
+                <Icon name='video-camera'/> Video Chat ({(@props.video?.get('users').size ? 0)})
             </Tip>
         </Button>
 
@@ -654,7 +654,7 @@ ChatRoom = (name) -> rclass
 
         <Button onClick={@close_video_chat}>
             <Tip title='Video Chat Button' tip={tip}  placement='left'>
-                <Icon name='video-camera' style={color: "red"}/> Video Chat
+                <Icon name='video-camera' style={color: "red"}/> Video Chat ({@props.video?.get('users').size ? 0})
             </Tip>
         </Button>
 

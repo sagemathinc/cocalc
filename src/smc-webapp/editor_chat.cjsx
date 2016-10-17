@@ -274,14 +274,24 @@ class ChatActions extends Actions
             # video chat window already opened
             return
 
+        # get account id of user opening video chat
+        account_id = @redux.getStore('account').get_account_id()
+
         # get shared video chat state
         video = (@store.get('video')?.toJS()) ? {}
         room_id = video.room_id
+        users = video.users
         if not room_id?
             # the chatroom id hasn't been set yet, so set it
             room_id = misc.uuid()
+            # no chatroom id means no users, so set the first user
+            users = [account_id]
             video.room_id = room_id
-            @save_shared_video_info(video)
+        else
+            # add subsequent users
+            users.push(account_id)
+        video.users = users
+        @save_shared_video_info(video)
 
         # Create the pop-up window for the chat
         url = "https://appear.in/" + room_id
@@ -291,6 +301,15 @@ class ChatActions extends Actions
         w.document.write('</body></html>')
 
         w.addEventListener "unload", () =>
+            video = (@store.get('video')?.toJS()) ? {}
+            users = video.users
+            # deletes the user from the user list
+            index = users.indexOf(account_id)
+            if index != -1
+                users.splice(index, 1)
+                video.users = users
+                @save_shared_video_info(video)
+
             # The user closes the window, so we unset our pointer to the window
             @setState(video_window: undefined, video_window_room_id: undefined)
 
