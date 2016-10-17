@@ -264,7 +264,7 @@ ForgotPassword = rclass
 
     display_success : ->
         if @props.forgot_password_success?
-            s = @props.forgot_password_success.split("check your spam folder").split()
+            s = @props.forgot_password_success.split("check your spam folder")
             <span>
                 {s[0]}
                 <span style={color: "red", fontWeight: "bold"}>
