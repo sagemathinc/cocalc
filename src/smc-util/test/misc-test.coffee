@@ -1226,3 +1226,11 @@ describe "map_limit limits the values of a by the values in b", ->
         b = {'x': 4.4, 'y': 2.2}
         e = {'x': 4.4, 'y': -1, 'z': 5}
         misc.map_limit(a, b).should.eql e
+
+describe 'is_valid_email_address is', ->
+    valid = misc.is_valid_email_address
+    it "true for test@test.com", ->
+        valid('test@test.com').should.be.true()
+    it "false for blabla", ->
+        valid('blabla').should.be.false()
+
