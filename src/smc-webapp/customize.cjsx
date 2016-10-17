@@ -20,6 +20,7 @@ store    = redux.createStore('customize', defaults)
 # to generate static content, which can't be customized.
 $?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
+        exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
         actions.setState(obj)
 
 HelpEmailLink = rclass

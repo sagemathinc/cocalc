@@ -23,8 +23,9 @@
 # Help Page
 ###
 
+$ = window.$
 
-{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
+{React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -139,6 +140,7 @@ SUPPORT_LINKS =
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
+        commercial: true
     # commented out since link doesn't work
     #getting_started :
     #    icon : 'play'
@@ -220,7 +222,10 @@ HelpPageSupportSection = rclass
         support_links : rtypes.object
 
     get_support_links : ->
+        {commercial} = require('./customize')
         for name, data of @props.support_links
+            if data.commercial and not commercial
+                continue
             <li key={name} style={li_style} className={if data.className? then data.className}>
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
@@ -488,7 +493,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render : ->
-        <Row>
+        <Row style={padding:'10px', margin:'0px'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
                     <Icon name='medkit'/><Space/><Space/>
@@ -514,11 +519,9 @@ exports.HelpPage = HelpPage = rclass
 
                 <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                <Redux redux={redux}>
-                    <HelpPageUsageSection />
-                </Redux>
+                <HelpPageUsageSection />
 
-                <HelpPageAboutSection />
+                {<HelpPageAboutSection /> if require('./customize').commercial}
 
                 <HelpPageGettingStartedSection />
             </Col>
@@ -527,12 +530,6 @@ exports.HelpPage = HelpPage = rclass
                 <Footer/>
             </Col>
         </Row>
-
-exports.render_help_page = () ->
-    ReactDOM.render(<HelpPage />, document.getElementById('salvus-help'))
-    # also setup a listener for switching to the page. (TODO: temporary until react-router...)
-    require('./top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
-        window.history.pushState("", "", window.smc_base_url + '/help')
 
 exports._test =
     HelpPageSupportSection : HelpPageSupportSection

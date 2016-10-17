@@ -3,6 +3,7 @@ Misc jquery plugins
 Will hopefully all go away with react rewrite.
 ###
 
+$ = window.$
 {defaults} = require('smc-util/misc')
 
 $.fn.icon_spin = (start) ->
