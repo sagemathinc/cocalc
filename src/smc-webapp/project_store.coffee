@@ -1006,14 +1006,14 @@ class ProjectActions extends Actions
 
         if store.get('subdirectories')
             if store.get('hidden_files')
-                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
-                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
             if store.get('hidden_files')
-                cmd = "grep -I -H #{ins} #{search_query} .* *"
+                cmd = "grep -I -H #{ins} #{search_query} -- .* *"
             else
-                cmd = "grep -I -H #{ins} #{search_query} *"
+                cmd = "grep -I -H #{ins} #{search_query} -- *"
 
         cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
