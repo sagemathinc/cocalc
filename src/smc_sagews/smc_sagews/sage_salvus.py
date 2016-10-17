@@ -2529,6 +2529,12 @@ def show(*objs, **kwds):
                 # better than nothing.
                 sage.misc.latex.latex.eval(s)
                 return ''
+            elif r'\begin{tabular}' in s:
+                # tabular is an environment for text, not formular.
+                # Sage's `tabular` should actually use \array!
+                sage.misc.latex.latex.eval(s)
+                return ''
+            # default
             elif display:
                 return "$\\displaystyle %s$"%s
             else:
@@ -2537,10 +2543,11 @@ def show(*objs, **kwds):
     sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
-        if display:
-            salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
-        else:
-            salvus.html("<div>%s</div>"%cgi.escape(s))
+        if len(s) > 0:
+            if display:
+                salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
+            else:
+                salvus.html("<div>%s</div>"%cgi.escape(s))
         sys.stdout.flush()
         sys.stderr.flush()
 
