@@ -315,15 +315,17 @@ AccountSettings = rclass
         add_strategy_link      : undefined
         remote_strategy_button : undefined
 
-    handle_change : (field) ->
-        value = ReactDOM.findDOMNode(@refs[field]).value
+    handle_change : (evt, field) ->
+        # value = ReactDOM.findDOMNode(@refs[field]).value
+        value = evt.target.value
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
         @props.redux.getActions('account').setState("#{field}": value)
 
-    save_change : (field) ->
-        @props.redux.getTable('account').set("#{field}": ReactDOM.findDOMNode(@refs[field]).value)
+    save_change : (evt, field) ->
+        value = evt.target.value
+        @props.redux.getTable('account').set("#{field}": value)
 
     render_add_strategy_link: ->
         if not @state.add_strategy_link
@@ -454,15 +456,15 @@ AccountSettings = rclass
                 label    = 'First name'
                 value    = {@props.first_name}
                 ref      = 'first_name'
-                onChange = {=>@handle_change('first_name')}
-                onBlur   = {=>@save_change('first_name')}
+                onChange = {(e)=>@handle_change(e, 'first_name')}
+                onBlur   = {(e)=>@save_change(e, 'first_name')}
                 />
             <TextSetting
                 label    = 'Last name'
                 value    = {@props.last_name}
                 ref      = 'last_name'
-                onChange = {=>@handle_change('last_name')}
-                onBlur   = {=>@save_change('last_name')}
+                onChange = {(e)=>@handle_change(e, 'last_name')}
+                onBlur   = {(e)=>@save_change(e, 'last_name')}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
