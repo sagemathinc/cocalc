@@ -257,7 +257,6 @@ ForgotPassword = rclass
         @setState
             email_address  : email
             is_email_valid : misc.is_valid_email_address(email)
-        console.log @state.email_address, @state.is_email_valid
 
     display_error : ->
         if @props.forgot_password_error?
