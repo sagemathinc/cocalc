@@ -313,6 +313,16 @@ setNODE_ENV         = new webpack.DefinePlugin
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
 
+# https://webpack.github.io/docs/shimming-modules.html
+# do *not* require('jquery') but $ = window.$
+# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
+# rather, webapp-lib.coffee defines the one and only global jquery instance!
+#provideGlobals      = new webpack.ProvidePlugin
+#                                        '$'             : 'jquery'
+#                                        'jQuery'        : 'jquery'
+#                                        "window.jQuery" : "jquery"
+#                                        "window.$"      : "jquery"
+
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.
 # (i.e. if require.ensure really creates chunkfiles, etc.)
@@ -418,6 +428,7 @@ module.exports =
 
     module:
         loaders: [
+            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
@@ -448,6 +459,9 @@ module.exports =
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
+        #alias:
+        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
+        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
 

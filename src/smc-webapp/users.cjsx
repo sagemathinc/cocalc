@@ -150,6 +150,8 @@ exports.User = User = rclass
             return <span>Loading...</span>
         info = @props.user_map?.get(@props.account_id)
         if not info?
+            if not misc.is_valid_uuid_string(@props.account_id)
+                return <span>{@props.account_id} unsucessfully</span>
             actions.fetch_non_collaborator(@props.account_id)
             return <span>Loading...</span>
         else

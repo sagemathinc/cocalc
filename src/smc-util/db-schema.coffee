@@ -816,6 +816,11 @@ exports.site_settings_conf =
         name    : "Help email address"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
+    commercial:
+        name    : "Commercial UI elements"
+        desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
+        default : "no"
+
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
 

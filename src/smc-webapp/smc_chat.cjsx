@@ -19,50 +19,6 @@
 #
 ###############################################################################
 
-###
-AUTHORS:
-
-  - William Stein
-  - Harald Schilly
-  - Simon Luu
-  - John Jeng
-###
-
-###
-Chat message JSON format:
-
-sender_id : String which is the original message sender's account id
-event     : Can only be "chat" right now.
-date      : A date string
-history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"TODO">
-
-"TODO" Will likely contain their last edit in the future
-
- --- History object ---
-author_id : String which is this message version's author's account id
-content   : The raw display content of the message
-date      : The date this edit was sent
-
-Example object:
-{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
-"event":"chat",
-"history":[
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
-        ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
----
-
-Chat message types after immutable conversion:
-(immutable.Map)
-sender_id : String
-event     : String
-date      : Date Object
-history   : immutable.Stack of immutable.Maps
-editing   : immutable.Map
-
-###
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE, isMobile} = require('./feature')
@@ -73,7 +29,6 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 {synchronized_db} = require('./syncdb')
 
@@ -81,12 +36,12 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
-{Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+{redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -149,27 +104,27 @@ Message = rclass
 
     componentDidUpdate: ->
         if @refs.editedMessage
-            @props.actions.saved_message(@refs.editedMessage.getValue())
+            @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
     show_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
+            <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
                 <Tip title='Message History' tip='Show history of editing of this message.'>
                     <Icon name='history'/>
                 </Tip>
-            </div>
+            </span>
 
     hide_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-left small"
+            <span className="small"
                  style={color:'#888', marginLeft:'10px', cursor:'pointer'}
                  onClick={@disable_history} >
                 <Tip title='Message History' tip='Hide history of editing of this message.'>
                     <Icon name='history'/> Hide History
                 </Tip>
-            </div>
+            </span>
 
     disable_history: ->
         @setState(show_history:false)
@@ -215,16 +170,16 @@ Message = rclass
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <div className="pull-left small" style={color:color}>
+            <span className="small" style={color:color}>
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
-            </div>
+            </span>
         else
-            <div className="pull-left small" style={color:color}>
+            <span className="small" style={color:color}>
                 {text}
                 {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
-            </div>
+            </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
@@ -237,14 +192,14 @@ Message = rclass
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # 13: enter key
-            mesg = @refs.editedMessage.getValue()
+            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
             if mesg != newest_content(@props.message)
                 @props.actions.send_edit(@props.message, mesg)
             else
                 @props.actions.set_editing(@props.message, false)
 
     save_edit: ->
-        mesg = @refs.editedMessage.getValue()
+        mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
         if mesg != newest_content(@props.message)
             @props.actions.send_edit(@props.message, mesg)
         else
@@ -286,7 +241,7 @@ Message = rclass
         value = newest_content(@props.message)
 
         if sender_is_viewer(@props.account_id, @props.message)
-            color = '#f5f5f5'
+            color = '#eee'
         else
             color = '#fff'
 
@@ -313,23 +268,24 @@ Message = rclass
         else if not @props.is_next_sender
             borderRadius = '5px 5px 10px 10px'
 
+        message_style =
+            background   : color
+            wordWrap     : "break-word"
+            marginBottom : "3px"
+            marginTop    : marginTop
+            borderRadius : borderRadius
+            fontSize     : font_size
+
         <Col key={1} xs={10} sm={9}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", marginTop: marginTop, borderRadius: borderRadius}>
-                <ListGroup fill>
-                    <ListGroupItem onDoubleClick={@edit_message if not @props.message.get("video_chat").get("is_video_chat")}
-                                   style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
-                        {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
-                        {@render_input() if is_editing(@props.message, @props.account_id)}
-                        {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                        {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
-                        {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
-                        {get_timeago(@props.message)}
-                        <div style={clear:'both'}></div>
-                    </ListGroupItem>
-                    <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
-                </ListGroup>
-            </Panel>
+            <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
+                {get_timeago(@props.message)}
+                {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
+                {@render_input()   if is_editing(@props.message, @props.account_id)}
+                {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                {@show_history()   if not @state.show_history and @props.message.get('history').size > 1}
+                {@hide_history()   if @state.show_history and @props.message.get('history').size > 1}
+            </Well>
             {render_history_title(color, font_size) if @state.show_history}
             {render_history(color, font_size, @props.history, @props.history_author, @props.history_date, @props.user_map) if @state.show_history}
             {render_history_footer(color, font_size) if @state.show_history}
@@ -340,15 +296,18 @@ Message = rclass
     # TODO: Make this a codemirror input
     render_input: ->
         <div>
-            <Input
-                autoFocus = {true}
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'editedMessage'
-                onKeyDown = {@on_keydown}
-                value     = {@state.edited_message}
-                onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
-                onFocus   = {@props.focus_end} />
+            <FormGroup>
+                <FormControl
+                    autoFocus = {true}
+                    rows      = 4
+                    componentClass = 'textarea'
+                    ref       = 'editedMessage'
+                    onKeyDown = {@on_keydown}
+                    value     = {@state.edited_message}
+                    onChange  = {(e)=>@setState(edited_message: e.target.value)}
+                    onFocus   = {@props.focus_end}
+                />
+            </FormGroup>
         </div>
 
     render: ->
@@ -426,43 +385,42 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            if not @props.messages.get(date).get('video_chat').get('is_video_chat')
-                historyList = @props.messages.get(date).get('history').pop().toJS()
-                h = []
-                a = []
-                t = []
-                for j of historyList
-                    h.push(historyList[j].content)
-                    a.push(historyList[j].author_id)
-                    t.push(historyList[j].date)
+            historyList = @props.messages.get(date).get('history').pop().toJS()
+            h = []
+            a = []
+            t = []
+            for j of historyList
+                h.push(historyList[j].content)
+                a.push(historyList[j].author_id)
+                t.push(historyList[j].date)
 
-                sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-                last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
+            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
+            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'))
 
-                v.push <Message key={date}
-                         account_id       = {@props.account_id}
-                         history          = {h}
-                         history_author   = {a}
-                         history_date     = {t}
-                         user_map         = {@props.user_map}
-                         message          = {@props.messages.get(date)}
-                         date             = {date}
-                         project_id       = {@props.project_id}
-                         file_path        = {@props.file_path}
-                         font_size        = {@props.font_size}
-                         is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
-                         is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                         show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
-                         include_avatar_col = {@props.show_heads}
-                         get_user_name    = {@get_user_name}
-                         sender_name      = {sender_name}
-                         editor_name      = {last_editor_name}
-                         actions          = {@props.actions}
-                         focus_end        = {@props.focus_end}
-                         saved_mesg       = {@props.saved_mesg}
-                         close_input      = {@close_edit_inputs}
-                         set_scroll       = {@props.set_scroll}
-                        />
+            v.push <Message key={date}
+                     account_id       = {@props.account_id}
+                     history          = {h}
+                     history_author   = {a}
+                     history_date     = {t}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     date             = {date}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     include_avatar_col = {@props.show_heads}
+                     get_user_name    = {@get_user_name}
+                     sender_name      = {sender_name}
+                     editor_name      = {last_editor_name}
+                     actions          = {@props.actions}
+                     focus_end        = {@props.focus_end}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
+                     set_scroll       = {@props.set_scroll}
+                    />
 
         return v
 
@@ -471,25 +429,29 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = (name) -> rclass
+ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
         "#{name}" :
-            messages           : rtypes.immutable
-            input              : rtypes.string
-            saved_position     : rtypes.number
             height             : rtypes.number
+            input              : rtypes.string
+            is_preview         : rtypes.bool
+            messages           : rtypes.immutable
             offset             : rtypes.number
             saved_mesg         : rtypes.string
-            is_preview         : rtypes.bool
-            is_video_chat      : rtypes.bool
+            saved_position     : rtypes.number
             use_saved_position : rtypes.bool
+            video              : rtypes.immutable
+            video_window       : rtypes.bool
+
         users :
             user_map : rtypes.immutable
+
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
+
         file_use :
             file_use : rtypes.immutable
 
@@ -549,8 +511,8 @@ ChatRoom = (name) -> rclass
     keydown : (e) ->
         # TODO: Add timeout component to is_typing
         if e.keyCode==13 and e.shiftKey # 13: enter key
-            send_chat(e, @refs.log_container, @refs.input, @props.actions)
-        else if e.keyCode==38 and @refs.input.getValue() == ''
+            send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
+        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
 
@@ -562,7 +524,7 @@ ChatRoom = (name) -> rclass
         e.preventDefault()
 
     button_send_chat: (e) ->
-        send_chat(e, @refs.log_container, @refs.input, @props.actions)
+        send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
 
     button_scroll_to_bottom: ->
         scroll_to_bottom(@refs.log_container, @props.actions)
@@ -594,39 +556,10 @@ ChatRoom = (name) -> rclass
         scroll_to_bottom(@refs.log_container, @props.actions)
 
     open_video_chat: ->
-        @props.actions.set_is_video_chat(true)
-        url = "https://appear.in/" + @get_video_id()
-        @video_chat_window = window.open("", null, "height=640,width=800")
-        @video_chat_window.document.write('<html><head><title>Video Chat</title></head><body style="margin: 0px;">')
-        @video_chat_window.document.write('<iframe src="'+url+'" width="100%" height="100%" frameborder="0"></iframe>')
-        @video_chat_window.document.write('</body></html>')
-        @video_chat_window.addEventListener("unload", @on_unload)
+        @props.actions.open_video_chat_window()
 
     close_video_chat: ->
-        @props.actions.set_is_video_chat(false)
-        @video_chat_window.close()
-
-    get_video_id: ->
-        if not @_video_chat_id?
-            # Not cached, so read it from the message history by iterating over the messages (using the proper immutable.js way)
-            @props.messages?.forEach (mesg, key) ->
-                if mesg.getIn(['video_chat', 'is_video_chat'])
-                    # use ? marks in case something isn't defined -- we can not guarantee anything about object structure.
-                    @_video_chat_id = mesg.get('history')?.get(0)?.get('content')?.split(': ')[1]
-                    return false  # don't iterate further
-        if not @_video_chat_id?
-            # OK, we set it
-            @_video_chat_id = misc.uuid()
-            @props.actions.send_video_chat("Video Chat Room ID is: #{@_video_chat_id}") # wstein -- I find this format disturbing.
-            # TODO: There is a potential race condition if two users add a video chat
-            # ID message at the same time.  We should check back again in 10 seconds or
-            # so to see if a race happened, and in that case, have a resolution protocol
-            # then close and re-open the chat window for any user where the race occurred.
-            # This is https://github.com/sagemathinc/smc/issues/1007
-
-
-    on_unload: ->
-        @props.actions.set_is_video_chat(false)
+        @props.actions.close_video_chat_window()
 
     show_files : ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
@@ -774,15 +707,14 @@ ChatRoom = (name) -> rclass
                     <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             {@render_timetravel_button()}
-                            {@render_video_chat_off_button() if not @props.is_video_chat}
-                            {@render_video_chat_on_button() if @props.is_video_chat}
+                            {if @props.video_window then @render_video_chat_on_button() else @render_video_chat_off_button()}
                             {@render_bottom_button()}
                         </ButtonGroup>
                     </Col>
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
+                        <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -796,29 +728,33 @@ ChatRoom = (name) -> rclass
                                 set_scroll   = {@set_chat_log_state}
                                 show_heads   = true />
                             {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
-                        </Panel>
+                        </Well>
                     </Col>
                 </Row>
                 <Row>
                     <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
-                        <Input
-                            autoFocus   = {true}
-                            rows        = 4
-                            type        = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                            onFocus     = {focus_endpoint}
-                            style       = {@chat_input_style}
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {true}
+                                rows        = 4
+                                componentClass = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onClick     = {@mark_as_read}
+                                onChange    = {(e)=>@props.actions.set_input(e.target.value)}
+                                onFocus     = {focus_endpoint}
+                                style       = {@chat_input_style}
                             />
+                        </FormGroup>
                     </Col>
                     <Col xs={2} md={1} style={height:'98.6px', padding:'0px 2px 0px 2px', marginBottom: '12px'}>
                         <Button onClick={@button_on_click} disabled={@props.input==''} bsStyle='info' style={height:'30%', width:'100%', marginTop:'5px'}>Preview</Button>
                         <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='success' style={height:'60%', width:'100%'}>Send</Button>
                     </Col>
+                </Row>
+                <Row>
                     {@render_bottom_tip()}
                 </Row>
             </Grid>
@@ -845,7 +781,7 @@ ChatRoom = (name) -> rclass
                 </Row>
                 <Row>
                     <Col md={12} style={padding:'0px 2px 0px 2px'}>
-                        <Panel style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                        <Well style={mobile_chat_log_style} ref='log_container' onScroll={@on_scroll} >
                             <ChatLog
                                 messages     = {@props.messages}
                                 account_id   = {@props.account_id}
@@ -856,23 +792,25 @@ ChatRoom = (name) -> rclass
                                 actions      = {@props.actions}
                                 focus_end    = {focus_endpoint}
                                 show_heads   = {false} />
-                        </Panel>
+                        </Well>
                     </Col>
                 </Row>
                 <Row>
                     <Col xs={10} style={padding:'0px 2px 0px 2px'}>
-                        <Input
-                            autoFocus   = {isMobile.Android()}
-                            rows        = 2
-                            type        = 'textarea'
-                            ref         = 'input'
-                            onKeyDown   = {@keydown}
-                            value       = {@props.input}
-                            placeholder = {'Type a message...'}
-                            onClick     = {@mark_as_read}
-                            onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                            style       = {@mobile_chat_input_style}
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {isMobile.Android()}
+                                rows        = 2
+                                type        = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onClick     = {@mark_as_read}
+                                onChange    = {(e)=>@props.actions.set_input(e.target.value)}
+                                style       = {@mobile_chat_input_style}
                             />
+                        </FormGroup>
                     </Col>
                     <Col xs={2} style={height:'57px', padding:'0px 2px 0px 2px'}>
                         <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
@@ -882,35 +820,27 @@ ChatRoom = (name) -> rclass
                 </Row>
             </Grid>
 
-# boilerplate fitting this into SMC below
-
-render = (redux, project_id, path) ->
+ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)
-    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    C = ChatRoom(name)
-    <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
-    </Redux>
+    C_ChatRoom = ({path, actions, project_id, redux}) ->
+        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+        <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
+            <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
+        </div>
 
-exports.render = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+    C_ChatRoom.redux_name = name
 
-exports.hide = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
+    C_ChatRoom.propTypes =
+        redux      : rtypes.object
+        path       : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
 
-exports.show = (project_id, path, dom_node, redux) ->
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+    return C_ChatRoom
 
-exports.free = (project_id, path, dom_node, redux) ->
-    fname = redux_name(project_id, path)
-    store = redux.getStore(fname)
-    if not store?
-        return
-    ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncdb?.destroy()
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(fname)
-    redux.removeActions(fname)
+require('project_file').register_file_editor
+    ext       : 'sage-chat'
+    icon      : 'comment'
+    init      : init_redux
+    generator : ChatEditorGenerator
+    remove    : remove_redux

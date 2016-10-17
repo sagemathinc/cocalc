@@ -19,51 +19,6 @@
 #
 ###############################################################################
 
-###
-AUTHORS:
-
-  - William Stein
-  - Harald Schilly
-  - Simon Luu
-  - John Jeng
-###
-
-###
-Chat message JSON format:
-
-sender_id : String which is the original message sender's account id
-event     : Can only be "chat" right now.
-date      : A date string
-history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"TODO">
-
-"TODO" Will likely contain their last edit in the future
-
- --- History object ---
-author_id : String which is this message version's author's account id
-content   : The raw display content of the message
-date      : The date this edit was sent
-
-Example object:
-{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
-"event":"chat",
-"history":[
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
-        ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"TODO"}}
----
-
-Chat message types after immutable conversion:
-(immutable.Map)
-sender_id : String
-event     : String
-date      : Date Object
-history   : immutable.Stack of immutable.Maps
-editing   : immutable.Map
-
-###
-
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE} = require('./feature')
@@ -83,7 +38,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -149,7 +104,7 @@ Message = rclass
 
     componentDidUpdate: ->
         if @refs.editedMessage
-            @props.actions.saved_message(@refs.editedMessage.getValue())
+            @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
     show_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
@@ -231,7 +186,7 @@ Message = rclass
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # 13: enter key
-            mesg = @refs.editedMessage.getValue()
+            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
             if mesg != newest_content(@props.message)
                 @props.actions.send_edit(@props.message, mesg)
             else
@@ -294,17 +249,20 @@ Message = rclass
 
     # TODO: Make this a codemirror input
     render_input: ->
-        <div>
-            <Input
-                autoFocus = {true}
-                rows      = 4
-                type      = 'textarea'
-                ref       = 'editedMessage'
-                onKeyDown = {@on_keydown}
-                value     = {@state.edited_message}
-                onChange  = {=>@setState(edited_message: @refs.editedMessage.getValue())}
-                onFocus   = {@props.focus_end} />
-        </div>
+        <form>
+            <FormGroup>
+                <FormControl
+                    autoFocus = {true}
+                    rows      = 4
+                    componentClass = 'textarea'
+                    ref       = 'editedMessage'
+                    onKeyDown = {@on_keydown}
+                    value     = {@state.edited_message}
+                    onChange  = {(e)=>@setState(edited_message: e.target.value)}
+                    onFocus   = {@props.focus_end}
+                />
+            </FormGroup>
+        </form>
 
     render: ->
         if @props.include_avatar_col
@@ -374,43 +332,42 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            if not @props.messages.get(date).get('video_chat').get('is_video_chat')
-                historyList = @props.messages.get(date).get('history').pop().toJS()
-                h = []
-                a = []
-                t = []
-                for j of historyList
-                    h.push(historyList[j].content)
-                    a.push(historyList[j].author_id)
-                    t.push(historyList[j].date)
+            historyList = @props.messages.get(date).get('history').pop().toJS()
+            h = []
+            a = []
+            t = []
+            for j of historyList
+                h.push(historyList[j].content)
+                a.push(historyList[j].author_id)
+                t.push(historyList[j].date)
 
-                sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
-                last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
+            sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
+            last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
 
-                v.push <Message key={date}
-                         account_id       = {@props.account_id}
-                         history          = {h}
-                         history_author   = {a}
-                         history_date     = {t}
-                         user_map         = {@props.user_map}
-                         message          = {@props.messages.get(date)}
-                         date             = {date}
-                         project_id       = {@props.project_id}
-                         file_path        = {@props.file_path}
-                         font_size        = {@props.font_size}
-                         is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
-                         is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
-                         show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
-                         include_avatar_col = {@props.show_heads}
-                         get_user_name    = {get_user_name}
-                         sender_name      = {sender_name}
-                         editor_name      = {last_editor_name}
-                         actions          = {@props.actions}
-                         focus_end        = {@props.focus_end}
-                         saved_mesg       = {@props.saved_mesg}
-                         close_input      = {@close_edit_inputs}
-                         set_scroll       = {@props.set_scroll}
-                        />
+            v.push <Message key={date}
+                     account_id       = {@props.account_id}
+                     history          = {h}
+                     history_author   = {a}
+                     history_date     = {t}
+                     user_map         = {@props.user_map}
+                     message          = {@props.messages.get(date)}
+                     date             = {date}
+                     project_id       = {@props.project_id}
+                     file_path        = {@props.file_path}
+                     font_size        = {@props.font_size}
+                     is_prev_sender   = {is_prev_message_sender(i, sorted_dates, @props.messages)}
+                     is_next_sender   = {is_next_message_sender(i, sorted_dates, @props.messages)}
+                     show_avatar      = {@props.show_heads and not is_next_message_sender(i, sorted_dates, @props.messages)}
+                     include_avatar_col = {@props.show_heads}
+                     get_user_name    = {get_user_name}
+                     sender_name      = {sender_name}
+                     editor_name      = {last_editor_name}
+                     actions          = {@props.actions}
+                     focus_end        = {@props.focus_end}
+                     saved_mesg       = {@props.saved_mesg}
+                     close_input      = {@close_edit_inputs}
+                     set_scroll       = {@props.set_scroll}
+                    />
 
         return v
 
@@ -459,16 +416,19 @@ ChatRoom = (name) -> rclass
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
-    keydown : (e) ->
+    on_keydown : (e) ->
         # TODO: Add timeout component to is_typing
         if e.keyCode==13 and e.shiftKey # 13: enter key
-            send_chat(e, @refs.log_container, @refs.input, @props.actions)
-        else if e.keyCode==38 and @refs.input.getValue() == ''
+            send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
+        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
+        else if e.keyCode == 13
+            e.preventDefault()
+            console.log("REFRESH?? WHY?")
 
     button_send_chat: (e) ->
-        send_chat(e, @refs.log_container, @refs.input, @props.actions)
+        send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
 
     on_scroll: (e) ->
         @props.actions.set_use_saved_position(true)
@@ -496,7 +456,7 @@ ChatRoom = (name) -> rclass
             overflowY    : "auto"
             overflowX    : "hidden"
             width        : "380%"
-            height       : "#{@props.max_height}"
+            height       : "#{@props.max_height}px"
             margin       : "0px 0px 0px 13px"
             padding      : "0"
 
@@ -519,19 +479,23 @@ ChatRoom = (name) -> rclass
             </Row>
             <Row>
                 <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "13px", width:"60%"}>
-                    <Input
-                        autoFocus   = {true}
-                        rows        = 2
-                        type        = 'textarea'
-                        ref         = 'input'
-                        onKeyDown   = {@keydown}
-                        value       = {@props.input}
-                        placeholder = {'Type a message...'}
-                        onClick     = {@mark_as_read}
-                        onChange    = {(value)=>@props.actions.set_input(@refs.input.getValue())}
-                        onFocus     = {focus_endpoint}
-                        style       = {@mobile_chat_input_style}
-                        />
+                    <form>
+                        <FormGroup>
+                            <FormControl
+                                autoFocus   = {true}
+                                rows        = {2}
+                                componentClass = 'textarea'
+                                ref         = 'input'
+                                onKeyDown   = {@on_keydown}
+                                value       = {@props.input}
+                                placeholder = {'Type a message...'}
+                                onClick     = {@mark_as_read}
+                                onChange    = {(e)=>@props.actions.set_input(e.target.value)}
+                                onFocus     = {focus_endpoint}
+                                style       = {@mobile_chat_input_style}
+                            />
+                        </FormGroup>
+                    </form>
                 </Col>
                 <Col xs={1} style={height:'57px', padding:'0px 2px 0px 2px', width:"31%"}>
                     <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
@@ -542,7 +506,7 @@ ChatRoom = (name) -> rclass
         </div>
 
 
-# boilerplate fitting this into SMC below
+# Fitting the side chat into non-react parts of SMC:
 
 render = (redux, project_id, path, max_height) ->
     name = redux_name(project_id, path)
@@ -552,9 +516,11 @@ render = (redux, project_id, path, max_height) ->
         <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} max_height={max_height} />
     </Redux>
 
+# Render the given chatroom, and return the name of the redux actions/store
 exports.render = (project_id, path, dom_node, redux, max_height) ->
-    init_redux(redux, project_id, path)
+    name = init_redux(path, redux, project_id)
     ReactDOM.render(render(redux, project_id, path, max_height), dom_node)
+    return name
 
 exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
