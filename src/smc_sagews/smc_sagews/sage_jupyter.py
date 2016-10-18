@@ -91,6 +91,7 @@ from ansi2html import Ansi2HTMLConverter
 import tempfile, sys, re
 import base64
 
+
 def _jkmagic(kernel_name, **kwargs):
     r"""
     Called when user issues `my_kernel = jupyter("kernel_name")` from a cell, not intended to be called directly by user.
@@ -106,6 +107,7 @@ def _jkmagic(kernel_name, **kwargs):
 
     """
     import warnings
+    import sage.misc.latex
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
@@ -146,10 +148,16 @@ def _jkmagic(kernel_name, **kwargs):
             sys.stdout.write(s)
             sys.stdout.flush()
 
-    def run_code(code, get_kernel_name = False):
+    def run_code(code=None, **kwargs):
 
-        if get_kernel_name:
+        if kwargs.get('get_kernel_client',False):
+            return kc
+
+        if kwargs.get('get_kernel_name',False):
             return kernel_name
+
+        if code is None:
+            return
 
         # execute the code
         msg_id = kc.execute(code)
@@ -185,10 +193,50 @@ def _jkmagic(kernel_name, **kwargs):
             p('iopub', msg_type, str(content)[:300])
 
             def display_mime(msg_data):
+                print('display_mime %s'%msg_data)
                 '''
                 jupyter server does send data dictionaries, that do contain mime-type:data mappings
                 depending on the type, handle them in the salvus API
                 '''
+                if kernel_name == 'ir':
+                    #jkfn = salvus.namespace[kernel_name]
+                    jkfn = salvus.namespace['r']
+                    dm = getattr(jkfn, 'display_mode', 'text/html')
+                    if 'image/svg+xml' in msg_data:
+                        data = msg_data['image/svg+xml']
+                        fname = tempfile.mkstemp(suffix=".svg")[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    elif 'image/png' in msg_data:
+                        data = base64.standard_b64decode(msg_data['image/png'])
+                        fname = tempfile.mkstemp(suffix=".png")[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    elif 'image/jpeg' in msg_data:
+                        data = base64.standard_b64decode(msg_data['image/jpeg'])
+                        fname = tempfile.mkstemp(suffix=".jpg")[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    elif dm not in msg_data:
+                        dms = ['text/html','text/plain','text/markdown','text/latex']
+                        dm = next(m for m in dms if m in msg_data)
+                    elif dm == 'text/plain':
+                        txt = re.sub(r"^\[\d+\] ", "", msg_data[dm])
+                        sys.stdout.write(txt)
+                        sys.stderr.flush()
+                    elif dm == 'text/html':
+                        salvus.html(msg_data[dm])
+                    elif dm == 'text/latex':
+                        sage.misc.latex.latex.eval(msg_data[dm])
+                    elif dm == 'text/markdown':
+                        salvus.md(msg_data[dm])
+                    return
                 for mime, data in msg_data.iteritems():
                     p('mime',mime)
                     # when there is latex, it takes precedence over the text representation
@@ -241,7 +289,6 @@ def _jkmagic(kernel_name, **kwargs):
                     ldata = content['data']['text/latex']
                     if re.match('\W*begin{tabular}',ldata):
                         # sagemath R emits latex tabular output, not supported by MathJAX
-                        import sage.misc.latex
                         sage.misc.latex.latex.eval(ldata)
                     else:
                         # convert display to inline for execution output
@@ -291,9 +338,10 @@ def _jkmagic(kernel_name, **kwargs):
                     tr = content['traceback']
                     if isinstance(tr, list):
                         for tr in content['traceback']:
-                            hout(tr)
+                            sys.stderr.write(tr+'\n')
                     else:
-                        hout(tr)
+                        sys.stderr.write(tr)
+                    sys.stderr.flush()
 
         # handle shell messages
         while True:
@@ -331,5 +379,7 @@ def _jkmagic(kernel_name, **kwargs):
                 continue
         return
 
+    run_code.default_text_mode = 'html'
+    run_code.default_image_mode = 'svg'
     return run_code
 
