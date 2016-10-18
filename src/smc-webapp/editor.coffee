@@ -717,6 +717,10 @@ exports.FileEditor = FileEditor
 
 ###############################################
 # Codemirror-based File Editor
+# Emits:
+#     - 'saved' : when the file is successfully saved by the user
+#     - 'show'  :
+#     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
