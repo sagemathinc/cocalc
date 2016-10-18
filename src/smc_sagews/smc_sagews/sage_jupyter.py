@@ -120,8 +120,6 @@ def _jkmagic(kernel_name, **kwargs):
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
-    salvus.html(conv.convert(""))
-
     def hout(s, block = True, scroll = False):
         r"""
         wrapper for ansi conversion before displaying output

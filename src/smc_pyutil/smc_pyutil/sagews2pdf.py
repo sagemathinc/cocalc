@@ -198,6 +198,7 @@ site = 'https://cloud.sagemath.com'
 
 import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
+from pprint import pprint
 
 def escape_path(s):
     # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
@@ -429,7 +430,10 @@ class Cell(object):
             for x in w[1:]:
                 if x:
                     try:
-                        self.output.append(json.loads(x))
+                        x_json = json.loads(x)
+                        #pprint(self.input_uuid)
+                        #pprint(x_json)
+                        self.output.append(x_json)
                     except ValueError:
                         try:
                             print "**WARNING:** Unable to de-json '%s'"%x
