@@ -1234,3 +1234,17 @@ describe 'is_valid_email_address is', ->
     it "false for blabla", ->
         valid('blabla').should.be.false()
 
+describe 'suggest_duplicate_filename', ->
+    dup = misc.suggest_duplicate_filename
+    it "works with numbers", ->
+        dup('filename-1.test').should.be.eql 'filename-2.test'
+        dup('filename-99.test').should.be.eql 'filename-100.test'
+        dup('filename_001.test').should.be.eql 'filename_2.test'
+        dup('filename_99.test').should.be.eql 'filename_100.test'
+    it "works also without", ->
+        dup('filename-test').should.be.eql 'filename-test-1'
+        dup('filename-xxx.test').should.be.eql 'filename-xxx-1.test'
+        dup('bla').should.be.eql 'bla-1'
+        dup('foo.bar').should.be.eql 'foo-1.bar'
+    it "also works with weird corner cases", ->
+        dup('asdf-').should.be.eql 'asdf--1'
