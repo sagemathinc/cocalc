@@ -27,7 +27,10 @@ Supplies the interface for creating file editors in the webapp
 {filename_extension, defaults, required} = require('smc-util/misc')
 
 # Map of extensions to the appropriate structures below
-file_editors = {}
+file_editors =
+    true  : {}    # true = is_public
+    false : {}    # false = not public
+
 ###
 ext       : string|array[string] to associate the editor with
 component : rclass|function
@@ -40,21 +43,24 @@ remove    : function (path, redux, project_id) -> string (redux name)
     # Should remove all stores, actions, sync, etc
 
 ###
+
 # component and generator could be merged. We only ever get one or the other.
 exports.register_file_editor = (opts) ->
     opts = defaults opts,
         ext       : required
+        is_public : false
         component : undefined # rclass
         generator : undefined # function
         init      : required  # function
         remove    : required
-        icon   : 'file-o'
+        icon      : 'file-o'
+
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]
 
     # Assign to the extension(s)
     for ext in opts.ext
-        file_editors[ext] =
+        file_editors[!!opts.is_public][ext] =
             icon      : opts.icon
             component : opts.component
             generator : opts.generator
@@ -66,35 +72,39 @@ exports.register_file_editor = (opts) ->
 # Examples of things that go here:
 # - Initializing store state
 # - Initializing Actions
-exports.initialize = (path, redux, project_id) ->
+exports.initialize = (path, redux, project_id, is_public) ->
+    is_public = !!is_public
     ext = filename_extension(path)
-    redux_name = file_editors[ext]?.init(path, redux, project_id)
+    redux_name = file_editors[is_public][ext]?.init(path, redux, project_id)
     if not redux_name?
-        redux_name = file_editors[''].init(path, redux, project_id)
+        redux_name = file_editors[is_public][''].init(path, redux, project_id)
     return redux_name
 
 # Returns an editor instance for the path
-
-exports.generate = (path, redux, project_id) ->
+exports.generate = (path, redux, project_id, is_public) ->
+    is_public = !!is_public
     ext = filename_extension(path)
-    generator = file_editors[ext]?.generator
+
+    generator = file_editors[is_public][ext]?.generator
     if generator?
         return generator(path, redux, project_id)
 
-    component = file_editors[ext]?.component
+    component = file_editors[is_public][ext]?.component
     if not component?
-        component = file_editors['']?.generator?(path, redux, project_id)
+        component = file_editors[is_public]['']?.generator?(path, redux, project_id)
     if component?
         return component # return the class
     else
         return () -> <div>No editor for {path} or fallback editor yet</div>
 
-exports.remove = (path, redux, project_id) ->
+exports.remove = (path, redux, project_id, is_public) ->
+    is_public = !!is_public
     ext = filename_extension(path)
-    redux_name = file_editors[ext]?.remove(path, redux, project_id)
+    redux_name = file_editors[is_public][ext]?.remove(path, redux, project_id)
     if not redux_name?
-        redux_name = file_editors[''].remove(path, redux, project_id)
+        redux_name = file_editors[is_public][''].remove(path, redux, project_id)
     return redux_name
+
 
 # Require each module, which loads a file editor.  These call register_file_editor.
 # This should be a comprehensive list of all React editors
