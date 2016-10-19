@@ -470,6 +470,7 @@ class BuildSage(object):
             "patch_banner",
             "patch_sage_env",
             "user_site",
+            "install_sagemanifolds",
             "install_sloane",
             "install_projlib",
             "install_pip",
@@ -726,7 +727,7 @@ class BuildSage(object):
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db", "oligo", "limma", "gcrma", "affy", "GEOquery", "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus", "biomaRt"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db", "oligo", "limma", "gcrma", "affy", "GEOquery", "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus", "biomaRt", "pumadata"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
@@ -765,6 +766,17 @@ class BuildSage(object):
         # We also have to do a "sage -b", since some optional packages don't get fully installed
         # until rebuilding Cython modules.  I posted to sage-devel about this bug on Aug 4.
         self.cmd("sage -b")
+
+    def install_sagemanifolds(self):
+        """
+        Basically runs the script from http://sagemanifolds.obspm.fr/download.html
+        """
+        log.info("Sage Manifolds Start")
+        try:
+            self.cmd("curl -s http://sagemanifolds.obspm.fr/spkg/sm-install.sh | sage -sh")
+        except:
+            log.error("Problem installing Sage Manifolds")
+        log.info("Sage Manifolds End")
 
     def install_quantlib(self):
         cmd("cd $TMP && rm -rf QuantLib-SWIG && git clone https://github.com/lballabio/QuantLib-SWIG && cd QuantLib-SWIG && ./autogen.sh && make -j%s -C Python install && cd $SAGE_ROOT/local/lib/ && ln -s /usr/local/lib/*QuantLib* ."%NCPU)
@@ -872,8 +884,8 @@ class BuildSage(object):
           * (update 2016-09-26) it works, but no explicit installation of protobuf version 3, just the wheel package.
             This seems to include all the dependencies and works fine now.
         """
-        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp27-none-linux_x86_64.whl'
-        cmd("pip install --upgrade %s" % TF_BINARY_URL)
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl'
+        self.cmd("sage -pip install --upgrade %s" % TF_BINARY_URL)
 
     def clean_up(self):
         log.info("starting cleanup ...")

@@ -242,14 +242,21 @@ ForgotPassword = rclass
         forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string
 
+    getInitialState : ->
+        email_address  : ''
+        is_email_valid : false
+
     forgot_password : (e) ->
         e.preventDefault()
-        value = ReactDOM.findDOMNode(@refs.email).value
-        if @is_valid_email(value)
+        value = @state.email_address
+        if misc.is_valid_email_address(value)
             @props.actions.forgot_password(value)
 
-    is_valid_email: (email) ->
-        return misc.is_valid_email_address(email)
+    set_email : (evt) ->
+        email = evt.target.value
+        @setState
+            email_address  : email
+            is_email_valid : misc.is_valid_email_address(email)
 
     display_error : ->
         if @props.forgot_password_error?
@@ -257,14 +264,13 @@ ForgotPassword = rclass
 
     display_success : ->
         if @props.forgot_password_success?
-            success_part_1 = @props.forgot_password_success.split("check your spam folder")[0]
-            success_part_2 = @props.forgot_password_success.split("check your spam folder")[1]
+            s = @props.forgot_password_success.split("check your spam folder")
             <span>
-                {success_part_1}
+                {s[0]}
                 <span style={color: "red", fontWeight: "bold"}>
                     check your spam folder
                 </span>
-                {success_part_2}
+                {s[1]}
             </span>
 
     hide_forgot_password : ->
@@ -281,16 +287,15 @@ ForgotPassword = rclass
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
                     <FormGroup>
-                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} />
+                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
                     </FormGroup>
-                    {@display_error()}
-                    {@display_success()}
+                    {if @props.forgot_password_error then @display_error() else @display_success()}
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button disabled={not @is_valid_email()} type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset Password</Button>
-                            <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
+                            <Button disabled={not @state.is_email_valid} type="submit" bsStyle="primary" style={marginRight : 10}>Reset Password</Button>
+                            <Button onClick={@hide_forgot_password}>Close</Button>
                         </div>
                     </Row>
                 </form>
@@ -334,8 +339,8 @@ ResetPassword = rclass
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset password</Button>
-                            <Button onClick={@hide_reset_password} bsSize="medium">Cancel</Button>
+                            <Button type="submit" bsStyle="primary" style={marginRight : 10}>Reset password</Button>
+                            <Button onClick={@hide_reset_password}>Cancel</Button>
                         </div>
                     </Row>
                 </form>

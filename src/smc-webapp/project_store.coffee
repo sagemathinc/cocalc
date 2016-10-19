@@ -229,7 +229,8 @@ class ProjectActions extends Actions
                     # TODO: what do we want to do if a log doesn't get recorded?
                     console.log('error recording a log entry: ', err)
 
-    open_file : (opts) =>
+
+    open_file: (opts) =>
         opts = defaults opts,
             path               : required
             foreground         : true      # display in foreground as soon as possible
@@ -249,11 +250,17 @@ class ProjectActions extends Actions
                     timeout : 60
                     cb      : (err, group) =>
                         if err
-                            @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
+                            @set_activity
+                                id    : misc.uuid()
+                                error : "opening file -- #{err}"
+                            return
+
+                        is_public = group == 'public'
 
                         ext = misc.filename_extension_notilde(opts.path).toLowerCase()
 
-                        if ext == "sws" or ext.slice(0,4) == "sws~"   # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+                        if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
+                            # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
                             alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
                             @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
@@ -266,7 +273,7 @@ class ProjectActions extends Actions
                                     require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
                             return
 
-                        if ext == "docx"   # Microsoft Word Document
+                        if not is_public and ext == "docx"   # Microsoft Word Document
                             alert_message(type:"info", message:"Opening converted plain text file instead of '#{opts.path}...")
                             @convert_docx_file opts.path, (err, new_filename) =>
                                 if not err
@@ -279,13 +286,14 @@ class ProjectActions extends Actions
                                     require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
                             return
 
-                        # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
-                        @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
+                        if not is_public
+                            # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
+                            @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
 
-                        @log
-                            event  : 'open'
-                            action : 'open'
-                            filename  : opts.path
+                            @log
+                                event     : 'open'
+                                action    : 'open'
+                                filename  : opts.path
 
                         store = @get_store()
                         if not store?  # if store not initialized we can't set activity
@@ -298,15 +306,20 @@ class ProjectActions extends Actions
                             return
 
                         open_files_order = store.get_open_files_order()
-                        # Intialize the file's store and actions
-                        name = project_file.initialize(opts.path, @redux, @project_id)
+
+                        # Initialize the file's store and actions
+                        name = project_file.initialize(opts.path, @redux, @project_id, is_public)
 
                         # Make the editor
-                        editor = project_file.generate(opts.path, @redux, @project_id)
+                        editor = project_file.generate(opts.path, @redux, @project_id, is_public)
                         editor.redux_name = name
+                        editor.is_public  = is_public
 
                         # Add it to open files
-                        @setState(open_files: open_files.setIn([opts.path, 'component'], editor), open_files_order:open_files_order.push(opts.path))
+                        @setState
+                            open_files       : open_files.setIn([opts.path, 'component'], editor)
+                            open_files_order : open_files_order.push(opts.path)
+
                         if opts.foreground
                             @foreground_opened_file(opts.path)
         return
@@ -382,8 +395,10 @@ class ProjectActions extends Actions
         if file_paths.isEmpty()
             return
 
+        open_files = @get_store().get('open_files')
         empty = file_paths.filter (path) =>
-            project_file.remove(path, @redux, @project_id)
+            is_public = open_files.getIn([path, 'component'])?.is_public
+            project_file.remove(path, @redux, @project_id, is_public)
             return false
 
         @setState(open_files_order : empty, open_files : {})
@@ -393,8 +408,12 @@ class ProjectActions extends Actions
         x = @get_store().get_open_files_order()
         index = x.indexOf(path)
         if index != -1
-            @setState(open_files_order : x.delete(index), open_files : @get_store().get('open_files').delete(path))
-            project_file.remove(path, @redux, @project_id)
+            @setState
+                open_files_order : x.delete(index)
+                open_files       : @get_store().get('open_files').delete(path)
+            open_files = @get_store().get('open_files')
+            is_public = open_files.getIn([path, 'component'])?.is_public
+            project_file.remove(path, @redux, @project_id, is_public)
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>
@@ -1006,14 +1025,14 @@ class ProjectActions extends Actions
 
         if store.get('subdirectories')
             if store.get('hidden_files')
-                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
-                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
             if store.get('hidden_files')
-                cmd = "grep -I -H #{ins} #{search_query} .* *"
+                cmd = "grep -I -H #{ins} #{search_query} -- .* *"
             else
-                cmd = "grep -I -H #{ins} #{search_query} *"
+                cmd = "grep -I -H #{ins} #{search_query} -- *"
 
         cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
