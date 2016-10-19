@@ -304,6 +304,9 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
+    clear_project_upgrades : (project_id) =>
+        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+
     save_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
@@ -353,9 +356,13 @@ class ProjectsActions extends Actions
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
+        is_deleted = @redux.getStore('projects').is_deleted(project_id)
+        if not is_deleted
+            @clear_project_upgrades(project_id)
+
         @redux.getTable('projects').set
             project_id : project_id
-            deleted    : not @redux.getStore('projects').is_deleted(project_id)
+            deleted    : not is_deleted
 
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)

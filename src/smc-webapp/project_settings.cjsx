@@ -827,6 +827,9 @@ HideDeletePanel = rclass
             <Row>
                 <Col sm=8>
                     {@delete_message()}
+                    {<Alert bsStyle="info" style={padding:'8px', marginTop:'4px'} >
+                        <b>New -- </b>This will also clear all upgrades from this project. Undeleting the project will not automatically restore them.
+                    </Alert> if not @props.project.get('deleted')}
                 </Col>
                 <Col sm=4>
                     <Button bsStyle='danger' onClick={@toggle_delete_project} style={float: 'right'}>
