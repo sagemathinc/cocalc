@@ -64,10 +64,6 @@ editing   : immutable.Map
 
 ###
 
-###
-This file is all the parts that are similar between side_chat.cjsx (The side chat rooms of all the files) and smc-chat.cjsx (The sagemathcloud chat room)
-###
-
 # standard non-SMC libraries
 immutable = require('immutable')
 {IS_MOBILE, isMobile} = require('./feature')
@@ -87,7 +83,7 @@ misc_page = require('./misc_page')
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -388,35 +384,36 @@ exports.render_markdown = render_markdown = (value, project_id, file_path) ->
     </div>
 
 exports.render_history_title = render_history_title = (color, font_size) ->
-    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px', textAlign:'center'}>
+    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
         <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
     </ListGroupItem>
 exports.render_history_footer = render_history_footer = (color, font_size) ->
     <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
     </ListGroupItem>
 
-exports.render_history = render_history = (color, font_size, history, history_author, history_date, user_map) ->
-    for date of history and history_author and history_date
-        value = history[date]
+exports.render_history = render_history = (color, font_size, history, user_map) ->
+    historyList = history?.pop()?.toJS()
+    for index, objects of historyList
+        value = objects.content
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html(value)
-        author = user_map.get(history_author[date]).get('first_name') + ' ' + user_map.get(history_author[date]).get('last_name')
-        if history[date].trim() == ''
+        author = user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name')
+        if value.trim() == ''
             text = "Message deleted "
         else
             text = "Last edit "
-        <ListGroupItem key={date} style={background:color, fontSize: font_size, paddingBottom:'20px'}>
-            <div style={paddingBottom: '1px', marginBottom: '5px', wordWrap:'break-word'}>
+        <Well key={index} bsSize="small" style={background:color, fontSize: font_size, marginBottom:'0px'}>
+            <div style={marginBottom: '-10px', wordWrap:'break-word'}>
                 <Markdown value={value}/>
             </div>
-            <div className="pull-left small" style={color:'#888'}>
+            <div className="small" style={color:'#888'}>
                 {text}
-                <TimeAgo date={new Date(history_date[date])} />
+                <TimeAgo date={new Date(objects.date)} />
                 {' by ' + author}
             </div>
-        </ListGroupItem>
+        </Well>
 
 ### ChatLog Methods ###
 
