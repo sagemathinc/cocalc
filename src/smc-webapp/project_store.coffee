@@ -229,7 +229,7 @@ class ProjectActions extends Actions
                     # TODO: what do we want to do if a log doesn't get recorded?
                     console.log('error recording a log entry: ', err)
 
-    open_file : (opts) =>
+    open_file: (opts) =>
         opts = defaults opts,
             path               : required
             foreground         : true      # display in foreground as soon as possible
@@ -249,7 +249,10 @@ class ProjectActions extends Actions
                     timeout : 60
                     cb      : (err, group) =>
                         if err
-                            @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
+                            @set_activity
+                                id    : misc.uuid()
+                                error : "opening file -- #{err}"
+                            return
 
                         ext = misc.filename_extension_notilde(opts.path).toLowerCase()
 
@@ -283,8 +286,8 @@ class ProjectActions extends Actions
                         @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
 
                         @log
-                            event  : 'open'
-                            action : 'open'
+                            event     : 'open'
+                            action    : 'open'
                             filename  : opts.path
 
                         store = @get_store()
