@@ -487,7 +487,6 @@ class BuildSage(object):
             "install_gdal",
             "install_stein_watkins",
             "install_jsanimation",
-            "install_sage_manifolds",
             "install_r_jupyter_kernel",
             "install_jupyter_ipywidget",
             "install_cv2",
@@ -516,10 +515,6 @@ class BuildSage(object):
             self.fix_permissions()
 
         #install_ipython_patch()  # must be done manually still
-
-    def install_sage_manifolds(self):
-        # TODO: this will probably fail due to an interactive merge request (?)
-        self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemanifolds/sage.git </dev/null && sage -br < /dev/null")
 
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
@@ -774,6 +769,7 @@ class BuildSage(object):
         log.info("Sage Manifolds Start")
         try:
             self.cmd("curl -s http://sagemanifolds.obspm.fr/spkg/sm-install.sh | sage -sh")
+            self.cmd("rm -f manifolds-*.tar.gz")
         except:
             log.error("Problem installing Sage Manifolds")
         log.info("Sage Manifolds End")
