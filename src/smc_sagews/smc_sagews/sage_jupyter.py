@@ -169,7 +169,6 @@ def _jkmagic(kernel_name, **kwargs):
 
         # buffering for %capture because we don't know whether output is stdout or stderr
         # until shell execute_reply message is received with status 'ok' or 'error'
-        capture_out = ""
         capture_mode = not hasattr(sys.stdout._f, 'im_func')
 
         # handle iopub messages
@@ -221,8 +220,8 @@ def _jkmagic(kernel_name, **kwargs):
                     #            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
                     #            os.unlink(tmp)
                     #print('image')
-                    dfim = run_code.default_image_mode
-                    #print('default_image_mode %s'%dfim)
+                    dfim = run_code.default_image_fmt
+                    #print('default_image_fmt %s'%dfim)
                     dispmode = next((m for m in mkeys if dfim in m), None)
                     if dispmode is None:
                         dispmode = next(m for m in imgmodes if m in mkeys)
@@ -253,10 +252,10 @@ def _jkmagic(kernel_name, **kwargs):
                         os.unlink(fname)
                     return
                 elif any('text' in k for k in mkeys):
-                    dftm = run_code.default_text_mode
+                    dftm = run_code.default_text_fmt
                     if capture_mode:
                         dftm = 'plain'
-                    #print('default_text_mode %s'%dftm)
+                    #print('default_text_fmt %s'%dftm)
                     dispmode = next((m for m in mkeys if dftm in m), None)
                     if dispmode is None:
                         dispmode = next(m for m in txtmodes if m in mkeys)
@@ -279,35 +278,7 @@ def _jkmagic(kernel_name, **kwargs):
                 if not 'data' in content:
                     continue
                 p('execute_result data keys: ',content['data'].keys())
-                if True:
-                    display_mime(content['data'])
-                else:
-                    out_prefix = ""
-                    # don't display output numbers
-                    # if 'execution_count' in content:
-                    #     out_data = "Out [%d]: "%content['execution_count']
-                    #     # don't want line break after this
-                    #     sys.stdout.write(out_data)
-                    if 'text/latex' in content['data']:
-                        ldata = content['data']['text/latex']
-                        if re.match('\W*begin{tabular}',ldata):
-                            # sagemath R emits latex tabular output, not supported by MathJAX
-                            sage.misc.latex.latex.eval(ldata)
-                        else:
-                            # convert display to inline for execution output
-                            # this matches jupyter notebook behavior
-                            ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
-                            salvus.html(ldata)
-                    elif 'image/png' in content['data']:
-                        display_mime(content['data'])
-                    elif 'text/markdown' in content['data']:
-                        display_mime(content['data'])
-                    elif 'text/html' in content['data']:
-                        display_mime(content['data'])
-                    elif 'text/plain' in content['data']:
-                        # don't show text/plain if there is latex content
-                        # display_mime(content['data'])
-                        sys.stdout.write(content['data']['text/plain'])
+                display_mime(content['data'])
 
             elif msg_type == 'display_data':
                 if 'data' in content:
@@ -327,14 +298,11 @@ def _jkmagic(kernel_name, **kwargs):
                 if 'text' in content:
                     # bash kernel uses stream messages with output in 'text' field
                     # might be ANSI color-coded
-                    if capture_mode and False:
-                        capture_out += content['text'].replace('\r','')
+                    if 'name' in content and content['name'] == 'stderr':
+                        sys.stderr.write(content['text'])
+                        sys.stderr.flush()
                     else:
-                        if 'name' in content and content['name'] == 'stderr':
-                            sys.stderr.write(content['text'])
-                            sys.stderr.flush()
-                        else:
-                            hout(content['text'],block = False)
+                        hout(content['text'],block = False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -360,32 +328,25 @@ def _jkmagic(kernel_name, **kwargs):
             if msg['parent_header'].get('msg_id') == msg_id:
                 p('shell', msg_type, len(str(content)), str(content)[:300])
                 if msg_type == 'execute_reply':
-                    if capture_mode and False:
-                        if content['status'] == 'ok':
-                            print(capture_out)
-                        elif content['status'] == 'error':
-                            sys.stderr.write(capture_out)
-                            sys.stderr.flush()
-                    else:
-                        if content['status'] == 'ok':
-                            if 'payload' in content:
-                                payload = content['payload']
-                                if len(payload) > 0:
-                                    if 'data' in payload[0]:
-                                        data = payload[0]['data']
-                                        if 'text/plain' in data:
-                                            text = data['text/plain']
-                                            hout(text, scroll = True)
+                    if content['status'] == 'ok':
+                        if 'payload' in content:
+                            payload = content['payload']
+                            if len(payload) > 0:
+                                if 'data' in payload[0]:
+                                    data = payload[0]['data']
+                                    if 'text/plain' in data:
+                                        text = data['text/plain']
+                                        hout(text, scroll = True)
                     break
             else:
                 # not our reply
                 continue
         return
     # 'html', 'plain', 'latex', 'markdown'
-    run_code.default_text_mode = 'html'
+    run_code.default_text_fmt = 'html'
 
     # 'svg', 'png', 'jpeg'
-    run_code.default_image_mode = 'svg'
+    run_code.default_image_fmt = 'svg'
 
     return run_code
 
