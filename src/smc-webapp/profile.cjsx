@@ -307,7 +307,7 @@ UsersViewing = rclass
         if all_users.length > num_users_to_display
             rest =
                 <span style={fontSize:"small", cursor:"pointer", marginBottom:"4px", marginRight:"10px"}>
-                    {"+ #{all_users.length-4}"}
+                    {"+ #{all_users.length-5}"}
                 </span>
             users_to_display.push <OverlayTrigger
                     rootClose = true
