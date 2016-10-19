@@ -2875,7 +2875,7 @@ class Image extends FileEditor
 
 
 
-class StaticHTML extends FileEditor
+class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".salvus-editor-static-html").clone()
         if not @content?
@@ -2917,8 +2917,8 @@ class StaticHTML extends FileEditor
         @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
-class StaticCodeMirrorEditor extends CodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts) ->
+class PublicCodeMirrorEditor extends CodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts, cb) ->
         opts.read_only = true
         opts.public_access = true
         super(@project_id, @filename, "Loading...", opts)
@@ -2932,6 +2932,16 @@ class StaticCodeMirrorEditor extends CodeMirrorEditor
                 if err
                     content = "Error opening file -- #{err}"
                 @_set(content)
+                cb?(err)
+
+class PublicSagews extends PublicCodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts) ->
+        super @project_id, @filename, content, opts, (err) =>
+            @element.find("a[href=\"#split-view\"]").hide()  # disable split view
+            if not err
+                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
+                @syncdoc.process_sage_updates()
+                @syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
     constructor: (@project_id, @filename, @content, @opts) ->
@@ -3746,6 +3756,6 @@ exports.register_nonreact_editors = () ->
             icon      : icon
             f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
 
-    reg1 StaticHTML, ['html']
-
-    reg1 StaticCodeMirrorEditor, ['']
+    reg1 PublicHTML,             ['html']
+    reg1 PublicCodeMirrorEditor, ['']
+    reg1 PublicSagews,           ['sagews']
