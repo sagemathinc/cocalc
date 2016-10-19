@@ -1214,8 +1214,52 @@ class HTML:
             salvus.hide('input')
         salvus.html(s)
 
-    def table(self):
-        raise NotImplementedError("html.table not implemented in SageMathCloud yet")
+    def table(self, rows = None, header=False):
+        """
+        Renders a given matrix or nested list as an HTML table.
+
+        Arguments::
+
+        * **rows**: the rows of the table as a list of lists
+        * **header**: if True, the first row is formatted as a header (default: False)
+        """
+        # TODO: support columns as in http://doc.sagemath.org/html/en/reference/misc/sage/misc/table.html
+        assert rows is not None, '"rows" is a mandatory argument, should be a list of lists'
+
+        from sage.matrix.matrix import is_Matrix
+        import numpy as np
+
+        if is_Matrix(rows):
+            table = list(rows) # list of Sage Vectors
+        elif isinstance(rows, np.ndarray):
+            table = rows.tolist()
+        else:
+            table = rows
+
+        assert isinstance(table, (tuple, list)), '"rows" must be a list of lists'
+
+        def as_unicode(s):
+            '''
+            This not only deals with unicode strings, but also converts e.g. `Integer` objects to a str
+            '''
+            if not isinstance(s, unicode):
+                try:
+                    return unicode(s, 'utf8')
+                except:
+                    return unicode(str(s), 'utf8')
+            return s
+
+        def mk_row(row, header=False):
+            is_vector = hasattr(row, 'is_vector') and row.is_vector()
+            assert isinstance(row, (tuple, list)) or is_vector, '"rows" must contain lists or vectors for each row'
+            tag = 'th' if header else 'td'
+            row = [u'<{tag}>{}</{tag}>'.format(as_unicode(_), tag = tag) for _ in row]
+            return u'<tr>{}</tr>'.format(u''.join(row))
+
+        thead = u'<thead>{}</thead>'.format(mk_row(table.pop(0), header=True)) if header else ''
+        h_rows = [mk_row(row) for row in table]
+        html_table = u'<table style="width: auto;" class="table table-bordered">{}<tbody>{}</tbody></table>'
+        self(html_table.format(thead, ''.join(h_rows)))
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
