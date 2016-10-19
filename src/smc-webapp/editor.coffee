@@ -717,6 +717,10 @@ exports.FileEditor = FileEditor
 
 ###############################################
 # Codemirror-based File Editor
+# Emits:
+#     - 'saved' : when the file is successfully saved by the user
+#     - 'show'  :
+#     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -1360,8 +1364,11 @@ class CodeMirrorEditor extends FileEditor
         @_saving = true
         @save_button.icon_spin(start:true, delay:8000)
         @save (err) =>
+            # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
+            else
+                @emit('saved')
             @save_button.icon_spin(false)
             @_saving = false
         return false
