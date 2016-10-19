@@ -178,7 +178,7 @@ Message = rclass
         else
             <span className="small" style={color:color}>
                 {text}
-                <Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button>
+                {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
             </span>
 
     edit_message: ->
