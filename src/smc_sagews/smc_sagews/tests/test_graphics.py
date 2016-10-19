@@ -14,7 +14,7 @@ class TestGraphics:
 class TestOctavePlot:
     def test_plot(self,execblob):
         # assume octave kernel not running at start of test
-        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));")
+        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", want_html=False)
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):
