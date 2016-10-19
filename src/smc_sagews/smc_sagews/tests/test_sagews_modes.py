@@ -3,6 +3,7 @@
 import pytest
 import conftest
 import re
+import os
 from textwrap import dedent
 
 class TestShMode:
@@ -108,6 +109,17 @@ class TestRDefaultMode:
         exec2("%capture(stdout='output')\nsum(xx)")
     def test_capture_r_02(self, exec2):
         exec2("%sage\nprint(output)", "24\n")
+
+class TestRWD:
+    "issue 240"
+    def test_wd0(self, exec2, data_path):
+        dp = data_path.strpath
+        code = "os.chdir('%s')"%dp
+        exec2(code)
+
+    def test_wd(self, exec2, data_path):
+        dp = data_path.strpath
+        exec2("%r\ngetwd()", html_pattern=dp, expect_doctype=True)
 
 class TestOctaveMode:
     def test_start_octave(self, exec2):
