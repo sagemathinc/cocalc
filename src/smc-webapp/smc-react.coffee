@@ -228,15 +228,27 @@ class AppRedux
     # initialized by calling register_project_store.  This
     # happens when project_store is require'd.
     getProjectStore: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getProjectStore: INVALID project_id -- #{project_id}")
         return project_store?.getStore(project_id, @)
 
     getProjectActions: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getProjectActions: INVALID project_id -- #{project_id}")
         return project_store?.getActions(project_id, @)
 
     getProjectTable: (project_id, name) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getProjectTable: INVALID project_id -- #{project_id}")
         return project_store?.getTable(project_id, name, @)
 
     removeProjectReferences: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
         return project_store?.deleteStoreActionsTable(project_id, @)
 
 redux = new AppRedux()
