@@ -562,7 +562,7 @@ ChatRoom = rclass ({name}) ->
         @props.actions.close_video_chat_window()
 
     show_files : ->
-        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).load_target('files')
 
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file
