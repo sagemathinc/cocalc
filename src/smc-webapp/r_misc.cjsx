@@ -1226,7 +1226,7 @@ exports.UpgradeAdjustor = rclass
         quota_params                         : rtypes.object.isRequired # from the schema
         submit_upgrade_quotas                : rtypes.func.isRequired
         cancel_upgrading                     : rtypes.func.isRequired
-        disable_submit                   : rtypes.bool
+        disable_submit                       : rtypes.bool
         upgrades_you_can_use                 : rtypes.object
         upgrades_you_applied_to_all_projects : rtypes.object
         upgrades_you_applied_to_this_project : rtypes.object
