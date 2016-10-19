@@ -137,6 +137,7 @@ FreeProjectWarning = rclass ({name}) ->
 
     reduxProps :
         projects :
+            project_map : rtypes.immutable.Map
             get_total_project_quotas : rtypes.func
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
