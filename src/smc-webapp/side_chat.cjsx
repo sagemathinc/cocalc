@@ -103,31 +103,26 @@ Message = rclass
         if @refs.editedMessage
             @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
-    show_history: ->
+    toggle_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <span className="small" style={color:'#888', marginRight:'10px', cursor:'pointer'} onClick={@enable_history_side_chat}>
-                <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
-                    <Icon name='history'/>
-                </Tip>
-            </span>
+            if not @state.show_history
+                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
+                    <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
+                        <Icon name='history'/>
+                    </Tip>
+                </span>
+            else
+                <span className="small"
+                        style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                        onClick={=>@toggle_history_side_chat(false)} >
+                    <Tip title='Message History' tip='Hide history of editing of this message.' placement='left'>
+                        <Icon name='history'/> Hide History
+                    </Tip>
+                </span>
 
-    hide_history: ->
-        #No history for mobile, since right now messages in mobile are too clunky
-        if not IS_MOBILE
-            <span className="small"
-                    style={color:'#888', marginRight:'10px', cursor:'pointer'}
-                    onClick={@disable_history_side_chat} >
-                <Tip title='Message History' tip='Hide history of editing of this message.' placement='left'>
-                    <Icon name='history'/> Hide History
-                </Tip>
-            </span>
-
-    disable_history_side_chat: ->
-        @setState(show_history:false)
-
-    enable_history_side_chat: ->
-        @setState(show_history:true)
+    toggle_history_side_chat: (bool) ->
+        @setState(show_history:bool)
 
     editing_status: ->
         other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
@@ -229,8 +224,7 @@ Message = rclass
                 {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
                 {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
-                {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
+                {@toggle_history() if @props.message.get('history').size > 1}
             </Well>
             {render_history_title(color, font_size) if @state.show_history}
             {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}

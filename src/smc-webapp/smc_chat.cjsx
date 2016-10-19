@@ -104,32 +104,26 @@ Message = rclass
         if @refs.editedMessage
             @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
-    show_history: ->
+    toggle_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={@enable_history}>
-                <Tip title='Message History' tip='Show history of editing of this message.'>
-                    <Icon name='history'/>
-                </Tip>
-            </span>
+            if not @state.show_history
+                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_chat(true)}>
+                    <Tip title='Message History' tip='Show history of editing of this message.'>
+                        <Icon name='history'/>
+                    </Tip>
+                </span>
+            else
+                <span className="small"
+                     style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                     onClick={=>@toggle_history_chat(false)} >
+                    <Tip title='Message History' tip='Hide history of editing of this message.'>
+                        <Icon name='history'/> Hide History
+                    </Tip>
+                </span>
 
-    hide_history: ->
-        #No history for mobile, since right now messages in mobile are too clunky
-        if not IS_MOBILE
-            <span className="small"
-                 style={color:'#888', marginLeft:'10px', cursor:'pointer'}
-                 onClick={@disable_history} >
-                <Tip title='Message History' tip='Hide history of editing of this message.'>
-                    <Icon name='history'/> Hide History
-                </Tip>
-            </span>
-
-    disable_history: ->
-        @setState(show_history:false)
-        @props.set_scroll()
-
-    enable_history: ->
-        @setState(show_history:true)
+    toggle_history_chat: (bool) ->
+        @setState(show_history:bool)
         @props.set_scroll()
 
     editing_status: ->
@@ -281,8 +275,7 @@ Message = rclass
                 {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
                 {@render_input()   if is_editing(@props.message, @props.account_id)}
                 {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                {@show_history()   if not @state.show_history and @props.message.get('history').size > 1}
-                {@hide_history()   if @state.show_history and @props.message.get('history').size > 1}
+                {@toggle_history() if @props.message.get('history').size > 1}
             </Well>
             {render_history_title(color, font_size) if @state.show_history}
             {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
@@ -624,27 +617,19 @@ ChatRoom = rclass ({name}) ->
             </Tip>
         </Button>
 
-    render_video_chat_off_button: ->
-        tip = <span>
-            Opens up the video chat window
-        </span>
-
-        <Button onClick={@open_video_chat}>
-            <Tip title='Video Chat' tip={tip}  placement='left'>
-                <Icon name='video-camera'/> Video Chat
-            </Tip>
-        </Button>
-
-    render_video_chat_on_button: ->
-        tip = <span>
-            Closes up the video chat window
-        </span>
-
-        <Button onClick={@close_video_chat}>
-            <Tip title='Video Chat Button' tip={tip}  placement='left'>
-                <Icon name='video-camera' style={color: "red"}/> Video Chat
-            </Tip>
-        </Button>
+    render_video_chat_button: ->
+        if @props.video_window
+            <Button onClick={@close_video_chat}>
+                <Tip title='Video Chat' tip='Closes up the video chat window'  placement='left'>
+                    <Icon name='video-camera' style={color: "red"}/> Video Chat
+                </Tip>
+            </Button>
+        else
+            <Button onClick={@open_video_chat}>
+                <Tip title='Video Chat' tip='Opens up the video chat window'  placement='left'>
+                    <Icon name='video-camera'/> Video Chat
+                </Tip>
+            </Button>
 
     render : ->
         if not @props.messages? or not @props.redux?
@@ -692,7 +677,7 @@ ChatRoom = rclass ({name}) ->
                     <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                         <ButtonGroup>
                             {@render_timetravel_button()}
-                            {if @props.video_window then @render_video_chat_on_button() else @render_video_chat_off_button()}
+                            {@render_video_chat_button()}
                             {@render_bottom_button()}
                         </ButtonGroup>
                     </Col>
