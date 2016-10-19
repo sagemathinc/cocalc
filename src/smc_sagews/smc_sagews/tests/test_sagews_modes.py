@@ -91,23 +91,23 @@ class TestShDefaultMode:
 
 class TestRMode:
     def test_assignment(self, exec2):
-        exec2("%r\nxx <- c(4,7,13)\nmean(xx)", "[1] 8")
+        exec2("%r\nxx <- c(4,7,13)\nmean(xx)", html_pattern="^8$", expect_doctype=True)
 
     def test_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\n%r\nsum(xx)")
     def test_capture_r_02(self, exec2):
-        exec2("print(output)", "[1] 24\n")
+        exec2("print(output)", "24\n")
 
 class TestRDefaultMode:
     def test_set_r_mode(self, exec2):
         exec2("%default_mode r")
     def test_assignment(self, exec2):
-        exec2("xx <- c(4,7,13)\nmean(xx)", "[1] 8")
+        exec2("xx <- c(4,7,13)\nmean(xx)", html_pattern="^8$", expect_doctype=True)
 
     def test_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\nsum(xx)")
     def test_capture_r_02(self, exec2):
-        exec2("%sage\nprint(output)", "[1] 24\n")
+        exec2("%sage\nprint(output)", "24\n")
 
 class TestOctaveMode:
     def test_start_octave(self, exec2):
