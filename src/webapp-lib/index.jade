@@ -71,9 +71,6 @@ html
         function smcLoadStatus(msg) {
         try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
 
-    //- Billing related functionality
-    script(type="text/javascript" src="https://js.stripe.com/v2/")
-
     //- if we have a GA token, insert the google analytics async script
     - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
     if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null

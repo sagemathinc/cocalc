@@ -1953,8 +1953,8 @@ CourseEditor = rclass ({name}) ->
         </div>
 
 require('project_file').register_file_editor
-    ext    : 'course'
-    icon   : 'graduation-cap'
+    ext       : 'course'
+    icon      : 'graduation-cap'
     init      : init_redux
     component : CourseEditor
     remove    : remove_redux
