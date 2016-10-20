@@ -122,7 +122,7 @@ def _jkmagic(kernel_name, **kwargs):
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
-    def hout(s, block = True, scroll = False):
+    def hout(s, block = True, scroll = False, error = False):
         r"""
         wrapper for ansi conversion before displaying output
 
@@ -131,9 +131,11 @@ def _jkmagic(kernel_name, **kwargs):
         -  ``block`` - set false to prevent newlines between output segments
 
         -  ``scroll`` - set true to put output into scrolling div
+
+        -  ``error`` - set true to send text output to stderr
         """
         # `full = False` or else cell output is huge
-        if "\x1b" in s:
+        if "\x1b[" in s:
             h = conv.convert(s, full = False)
             if block:
                 h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
@@ -143,8 +145,12 @@ def _jkmagic(kernel_name, **kwargs):
                 h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
             salvus.html(h2)
         else:
-            sys.stdout.write(s)
-            sys.stdout.flush()
+            if error:
+                sys.stderr.write(s)
+                sys.stderr.flush()
+            else:
+                sys.stdout.write(s)
+                sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
 
@@ -308,10 +314,9 @@ def _jkmagic(kernel_name, **kwargs):
                     tr = content['traceback']
                     if isinstance(tr, list):
                         for tr in content['traceback']:
-                            sys.stderr.write(tr+'\n')
+                            hout(tr+'\n', error = True)
                     else:
-                        sys.stderr.write(tr)
-                    sys.stderr.flush()
+                        hout(tr, error = True)
 
         # handle shell messages
         while True:
