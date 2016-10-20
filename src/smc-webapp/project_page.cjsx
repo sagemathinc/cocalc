@@ -234,16 +234,20 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
         else
             active_path = misc.tab_to_path(active_tab_name)
             if open_files?.has(active_path)
-                Editor = open_files.getIn([active_path, 'component'])
+                {Editor, redux_name} = open_files.getIn([active_path, 'component'])
+                if not Editor?
+                    throw Error("Editor must be defined")
+                if not redux_name?
+                    throw Error("redux_name must be defined")
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
-                    path={active_path}
-                    project_id={project_id}
-                    redux={redux}
-                    actions={redux.getActions(Editor.redux_name)}
-                    name={Editor.redux_name}
-                    project_name={project_name}
-                    path={active_path}
+                    path         = {active_path}
+                    project_id   = {project_id}
+                    redux        = {redux}
+                    actions      = {redux.getActions(redux_name)}
+                    name         = {redux_name}
+                    project_name = {project_name}
+                    path         = {active_path}
                 />
             else
                 <div>You should not be here! {active_tab_name}</div>

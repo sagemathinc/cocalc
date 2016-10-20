@@ -1089,7 +1089,6 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
-
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
@@ -1359,6 +1358,8 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
+        if @opts.read_only
+            return
         if @_saving
             return
         @_saving = true

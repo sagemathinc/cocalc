@@ -1529,22 +1529,19 @@ def session(conn):
                             prefix = top[1:]
                     try:
                         # see if prefix is the name of a jupyter kernel function
-                        jkfn = namespace[prefix]
-                        if hasattr(jkfn, 'jupyter_kernel'):
-                            # pre-defined jupyter modes like %sh have mode function in attribute
-                            jkfn = jkfn.jupyter_kernel
-                        jkname = jkfn(None, get_kernel_name = True)
-                        log("jupyter introspect %s: %s"%(prefix, jkname)) # e.g. "p2", "python2"
+                        kc = eval(prefix+"(get_kernel_client=True)",namespace,locals())
+                        kn = eval(prefix+"(get_kernel_name=True)",namespace,locals())
+                        log("jupyter introspect prefix %s kernel %s"%(prefix, kn)) # e.g. "p2", "python2"
                         jupyter_introspect(conn=conn,
                                            id=mesg['id'],
                                            line=mesg['line'],
                                            preparse=mesg.get('preparse', True),
-                                           jkfn=jkfn)
+                                           kc=kc)
                     except:
-                        #import traceback
-                        #exc_type, exc_value, exc_traceback = sys.exc_info()
-                        #lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                        #log(lines)
+                        import traceback
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                        log(lines)
                         introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
@@ -1562,14 +1559,12 @@ def session(conn):
             else:
                 pass
 
-def jupyter_introspect(conn, id, line, preparse, jkfn):
+def jupyter_introspect(conn, id, line, preparse, kc):
     import jupyter_client
     from Queue import Empty
 
     try:
         salvus = Salvus(conn=conn, id=id)
-        kcix = jkfn.func_code.co_freevars.index("kc")
-        kc = jkfn.func_closure[kcix].cell_contents
         msg_id = kc.complete(line)
         shell = kc.shell_channel
         iopub = kc.iopub_channel
@@ -1780,14 +1775,14 @@ def serve(port, host, extra_imports=False):
 
         namespace['_salvus_parsing'] = sage_parsing
 
-        for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
-                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
-                     'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'input','show_identifiers',
-                     'clear', 'delete_last_output', 'sage_eval',
-                     'search_doc','search_src', 'octave', 'license']:
+        for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
+                     'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
+                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself

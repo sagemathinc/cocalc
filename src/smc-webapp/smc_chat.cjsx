@@ -813,8 +813,6 @@ ChatEditorGenerator = (path, redux, project_id) ->
             <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
         </div>
 
-    C_ChatRoom.redux_name = name
-
     C_ChatRoom.propTypes =
         redux      : rtypes.object
         path       : rtypes.string.isRequired
