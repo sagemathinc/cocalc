@@ -640,6 +640,16 @@ init_redux = (course_filename, redux, course_project_id) ->
                 set   : {deleted: false}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
+        toggle_assignment_expansion: (assignment_id) =>
+            store = get_store()
+            return if not store?
+            expanded_assignments = store.get('expanded_assignments')
+            if expanded_assignments.has(assignment_id)
+                adjusted = expanded_assignments.delete(assignment_id)
+            else
+                adjusted = expanded_assignments.add(assignment_id)
+            @setState(expanded_assignments : adjusted)
+
         set_grade: (assignment, student, grade) =>
             store = get_store()
             return if not store?
@@ -1758,7 +1768,10 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_handout_status[handout_id] = info
             return info
 
-    redux.createStore(the_redux_name, CourseStore)
+    initial_store_state =
+        expanded_assignments : immutable.Set()
+
+    redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
     synchronized_db
         project_id : course_project_id
