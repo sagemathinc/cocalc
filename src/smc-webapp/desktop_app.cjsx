@@ -62,6 +62,8 @@ Page = rclass
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
+            first_name   : rtypes.string
+            last_name    : rtypes.string
             get_fullname : rtypes.func
             is_logged_in : rtypes.func
         support :

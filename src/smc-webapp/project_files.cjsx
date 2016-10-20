@@ -1348,9 +1348,7 @@ ProjectFilesActionBox = rclass
     render_public_share_url : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        # display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
-        # TODO: undo this hotfix for #1064
-        display_url = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
         if @props.file_map[misc.path_split(single_item).tail]?.isdir
             display_url += '/'
         <pre style={@pre_styles}>
