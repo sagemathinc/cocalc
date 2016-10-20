@@ -283,6 +283,20 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update(set:{pay:pay}, where:{table:'settings'})
             @set_all_student_project_course_info(pay)
 
+        # Takes an item_name and the id of the time
+        # item_name should be one of
+        # ['student', 'assignment', handout']
+        toggle_item_expansion: (item_name, item_id) =>
+            store = get_store()
+            return if not store?
+            field_name = "expanded_#{item_name}s"
+            expanded_items = store.get(field_name)
+            if expanded_items.has(item_id)
+                adjusted = expanded_items.delete(item_id)
+            else
+                adjusted = expanded_items.add(item_id)
+            @setState("#{field_name}" : adjusted)
+
         # Students
         add_students: (students) =>
             # students = array of account_id or email_address
@@ -639,16 +653,6 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update
                 set   : {deleted: false}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
-
-        toggle_assignment_expansion: (assignment_id) =>
-            store = get_store()
-            return if not store?
-            expanded_assignments = store.get('expanded_assignments')
-            if expanded_assignments.has(assignment_id)
-                adjusted = expanded_assignments.delete(assignment_id)
-            else
-                adjusted = expanded_assignments.add(assignment_id)
-            @setState(expanded_assignments : adjusted)
 
         set_grade: (assignment, student, grade) =>
             store = get_store()
@@ -1769,7 +1773,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             return info
 
     initial_store_state =
-        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded
+        expanded_students    : immutable.Set() # Set of student id's (string) which should be expanded on render
+        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded on render
+        expanded_handouts    : immutable.Set() # Set of handout id's (string) which should be expanded on render
 
     redux.createStore(the_redux_name, CourseStore, initial_store_state)
 

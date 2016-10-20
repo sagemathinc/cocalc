@@ -636,7 +636,7 @@ Assignment = rclass
         </span>
 
     render_assignment_title_link : ->
-        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_assignment_expansion(@props.assignment.get('assignment_id'))}>
+        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('assignment', @props.assignment.get('assignment_id'))}>
             <Icon style={marginRight:'10px'}
                   name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
             {@render_assignment_name()}
