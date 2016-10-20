@@ -1,20 +1,21 @@
-async = require('async')
+$         = window.$
+async     = require('async')
 stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
-misc     = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-message  = require('smc-util/message')
-markdown = require('./markdown')
-{salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
+misc_page         = require('./misc_page')
+message           = require('smc-util/message')
+markdown          = require('./markdown')
+{salvus_client}   = require('./salvus_client')
+{alert_message}   = require('./alerts')
 
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE}       = require('./feature')
 
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
@@ -143,8 +144,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         super()
 
     init_hide_show_gutter: () =>
-        if @readonly
-            return
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
             cm.setOption('gutters', gutters)
@@ -231,34 +230,34 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        buttons.find("a[href=#execute]").click () =>
+        buttons.find("a[href=\"#execute\"]").click () =>
             @action(execute:true, advance:false)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-input]").click () =>
+        buttons.find("a[href=\"#toggle-input\"]").click () =>
             @action(execute:false, toggle_input:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-output]").click () =>
+        buttons.find("a[href=\"#toggle-output\"]").click () =>
             @action(execute:false, toggle_output:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#delete-output]").click () =>
+        buttons.find("a[href=\"#delete-output\"]").click () =>
             @action(execute:false, delete_output:true)
             @focused_codemirror().focus()
             return false
 
         if IS_MOBILE
-            buttons.find("a[href=#tab]").click () =>
+            buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 @focused_codemirror().focus()
                 return false
         else
-            @element.find("a[href=#tab]").hide()
-            @element.find("a[href=#undo]").hide()
-            @element.find("a[href=#redo]").hide()
+            @element.find("a[href=\"#tab\"]").hide()
+            @element.find("a[href=\"#undo\"]").hide()
+            @element.find("a[href=\"#redo\"]").hide()
 
-        buttons.find("a[href=#new-html]").click () =>
+        buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
             line = cm.lineCount()-1
             while line >= 0 and cm.getLine(line) == ""
@@ -277,7 +276,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 advance : true
             @focused_codemirror().focus()
 
-        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+        interrupt_button = buttons.find("a[href=\"#interrupt\"]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt
                 maxtime : 15
@@ -288,7 +287,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @focused_codemirror().focus()
             return false
 
-        kill_button = buttons.find("a[href=#kill]").click () =>
+        kill_button = buttons.find("a[href=\"#kill\"]").click () =>
             kill_button.find("i").addClass('fa-spin')
             @_restarting = true
             @kill
@@ -2595,7 +2594,6 @@ class Cell
 
 class Worksheet
     constructor : (@worksheet) ->
-        @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>

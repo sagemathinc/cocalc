@@ -9,7 +9,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 RUN \
   apt-get update && \
   apt-get install -y wget git python make g++ sudo && \
-  wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
+  wget -qO- https://deb.nodesource.com/setup_6.x | bash - && \
   apt-get install -y nodejs
 
 # Grab an initial version of the source code for SMC (do NOT use --depth=1, since we want to be able to checkout any commit later)
