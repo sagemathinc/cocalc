@@ -152,8 +152,15 @@ SignIn = rclass
         has_account : rtypes.bool
         xs          : rtypes.bool
 
+    componentDidMount : ->
+        @actions('page').set_sign_in_func(@sign_in)
+
+    componentWillUnmount : ->
+        @actions('page').remove_sign_in_func()
+
     sign_in : (e) ->
-        e.preventDefault()
+        if e?
+            e.preventDefault()
         @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password : ->

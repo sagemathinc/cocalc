@@ -133,6 +133,17 @@ class PageActions extends Actions
         else
             return
 
+    set_sign_in_func : (func) =>
+        @sign_in = func
+
+    remove_sign_in_func : =>
+        @sign_in = => false
+
+    # Expected to be overridden by functions above
+    sign_in : =>
+        false
+
+
 redux.createActions('page', PageActions)
 
 # FUTURE: Save entire state to database for #450, saved workspaces
