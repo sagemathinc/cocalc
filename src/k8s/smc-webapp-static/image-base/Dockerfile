@@ -16,7 +16,7 @@ RUN \
   apt-get update && \
   apt-get install -y wget && \
   wget -qO- https://deb.nodesource.com/setup_5.x | bash - && \
-  apt-get install -y nodejs git python python-yaml make && \
+  apt-get install -y nodejs git python python-yaml python-psutil make && \
   npm install coffee-script -g
 
 # Grab source code for some version of SMC (when web build this image)

@@ -19,9 +19,12 @@
 #
 ###############################################################################
 
+$ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')
+
+# Primus = require('webapp-lib/primus/primus-engine.js')
 
 #{SMC_ICON_URL} = require('./misc_page')
 SMC_ICON_URL = require('salvus-icon.svg')

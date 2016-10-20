@@ -1,5 +1,5 @@
 ---
-- hosts: compute:storage
+- hosts: compute:storage:db
   become: yes
   strategy: free
   gather_facts: no

@@ -1,5 +1,5 @@
 ALERT HIGH_LOAD_COMPUTE
-  IF node_load1{job="compute"} > 10
+  IF node_load1{job="compute", group="member"} > 15
   FOR 1m
   LABELS { severity = "low" }
   ANNOTATIONS {

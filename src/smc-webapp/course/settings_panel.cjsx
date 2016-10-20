@@ -6,9 +6,9 @@ misc = require('smc-util/misc')
 schema = require('smc-util/schema')
 
 # React libraries and Components
-{React, rclass, rtypes}  = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Well} = require('react-bootstrap')
+{React, rclass, rtypes, ReactDOM}  = require('../smc-react')
+{Alert, Button, ButtonToolbar, ButtonGroup, Row, Col,
+    Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
 # SMC Components
 {Calendar, Icon, LabeledRow, Loading, MarkdownInput,
@@ -370,16 +370,16 @@ exports.SettingsPanel = rclass
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
                 label = <span></span>
-            <span>
-                <Input
+            <FormGroup>
+                <FormControl
                     type       = 'text'
                     ref        = {ref}
                     value      = {val}
                     bsStyle    = {bs_style}
-                    onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
+                    onChange   = {=>u=@state.upgrades; u[quota] = ReactDOM.findDOMNode(@refs[ref]).value; @setState(upgrades:u)}
                 />
                 {label}
-            </span>
+            </FormGroup>
         else if input_type == 'checkbox'
             val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
             is_valid = @is_upgrade_input_valid(val, limit)
@@ -389,13 +389,12 @@ exports.SettingsPanel = rclass
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
             <form>
-                <Input
+                <Checkbox
                     ref      = {ref}
-                    type     = 'checkbox'
                     checked  = {val > 0}
-                    label    = {label}
-                    onChange = {=>u=@state.upgrades; u[quota] = (if @refs[ref].getChecked() then 1 else 0); @setState(upgrades:u)}
+                    onChange = {(e)=>u=@state.upgrades; u[quota] = (if e.target.checked then 1 else 0); @setState(upgrades:u)}
                     />
+                {label}
             </form>
         else
             console.warn('Invalid input type in render_upgrade_row_input: ', input_type)
@@ -516,7 +515,7 @@ exports.SettingsPanel = rclass
 
     save_admin_upgrade: (e) ->
         e.preventDefault()
-        s = @refs.admin_input.getValue()
+        s = ReactDOM.findDOMNode(@refs.admin_input).value
         quotas = JSON.parse(s)
         console.log("admin upgrade '#{s}' -->", quotas)
         @props.redux.getActions(@props.name).admin_upgrade_all_student_projects(quotas)
@@ -529,11 +528,13 @@ exports.SettingsPanel = rclass
             <h3>Admin Upgrade</h3>
             Enter an Javascript-parseable object and hit enter (see the Javascript console for feedback):
             <form onSubmit={@save_admin_upgrade}>
-                <Input
-                    ref         = 'admin_input'
-                    type        = 'text'
-                    placeholder = {JSON.stringify(require('smc-util/schema').DEFAULT_QUOTAS)}
-                />
+                <FormGroup>
+                    <FormControl
+                        ref         = 'admin_input'
+                        type        = 'text'
+                        placeholder = {JSON.stringify(require('smc-util/schema').DEFAULT_QUOTAS)}
+                    />
+                </FormGroup>
             </form>
         </div>
 
@@ -637,8 +638,8 @@ exports.SettingsPanel = rclass
             </Button>
         </ButtonToolbar>
 
-    handle_students_pay_checkbox: ->
-        if @refs.student_pay.getChecked()
+    handle_students_pay_checkbox: (e) ->
+        if e.target.checked
             @setState
                 students_pay      : true
                 students_pay_when : @get_student_pay_when()
@@ -657,13 +658,14 @@ exports.SettingsPanel = rclass
             <span>Require that students upgrade...</span>
 
     render_students_pay_checkbox: ->
-        <Input checked  = {@state.students_pay}
-               key      = 'students_pay'
-               type     = 'checkbox'
-               label    = {@render_students_pay_checkbox_label()}
-               ref      = 'student_pay'
-               onChange = {@handle_students_pay_checkbox}
-        />
+        <span>
+            <Checkbox checked  = {@state.students_pay}
+                   key      = 'students_pay'
+                   ref      = 'student_pay'
+                   onChange = {@handle_students_pay_checkbox}
+            />
+            {@render_students_pay_checkbox_label()}
+        </span>
 
     render_students_pay_dialog: ->
         <Alert bsStyle='info'>

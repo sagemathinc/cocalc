@@ -28,14 +28,17 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
-
+{alert_message} = require('./alerts')
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table, register_project_store}  = require('./smc-react')
+{Actions, Store, Table, register_project_store, redux}  = require('./smc-react')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
+
+project_file = require('project_file')
+wrapped_editors = require('editor_react_wrapper')
 
 masked_file_exts =
     'py'   : ['pyc']
@@ -79,13 +82,10 @@ exports.redux_name = key = (project_id, name) ->
 
 
 class ProjectActions extends Actions
-    _project : =>
-        return require('./project').project_page(@project_id)
-
-    _ensure_project_is_open : (cb) =>
+    _ensure_project_is_open : (cb, switch_to) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
-            @redux.getActions('projects').open_project(project_id:@project_id)
+            @redux.getActions('projects').open_project(project_id:@project_id, switch_to:true)
             s.wait_until_project_is_open(@project_id, 30, cb)
         else
             cb()
@@ -102,14 +102,81 @@ class ProjectActions extends Actions
         @push_state('files/' + current_path)
 
     push_state: (url) =>
+        {set_url} = require('./history')
         if not url?
             url = @_last_history_state
         if not url?
             url = ''
         @_last_history_state = url
-        window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
+        set_url('/projects/' + @project_id + '/' + misc.encode_path(url))
         {analytics_pageview} = require('./misc_page')
         analytics_pageview(window.location.pathname)
+
+    move_file_tab : (opts) =>
+        {old_index, new_index, open_files_order} = defaults opts,
+            old_index : required
+            new_index : required
+            open_files_order: required # immutable
+
+        x = open_files_order
+        item = x.get(old_index)
+        temp_list = x.delete(old_index)
+        new_list = temp_list.splice(new_index, 0, item)
+        @setState(open_files_order:new_list)
+
+    close_tab : (path) =>
+        open_files_order = @get_store().get('open_files_order')
+        active_project_tab = @get_store().get('active_project_tab')
+        closed_index = open_files_order.indexOf(path)
+        size = open_files_order.size
+        if misc.path_to_tab(path) == active_project_tab
+            if size == 1
+                next_active_tab = 'files'
+            else
+                if closed_index == size - 1
+                    next_active_tab = misc.path_to_tab(open_files_order.get(closed_index - 1))
+                else
+                    next_active_tab = misc.path_to_tab(open_files_order.get(closed_index + 1))
+            @set_active_tab(next_active_tab)
+        if closed_index == size - 1
+            @clear_ghost_file_tabs()
+        else
+            @add_a_ghost_file_tab()
+        @close_file(path)
+
+    # Expects one of ['files', 'new', 'log', 'search', 'settings']
+    #            or a file_redux_name
+    set_active_tab : (key) =>
+        @setState(active_project_tab : key)
+        switch key
+            when 'files'
+                @set_url_to_path(@get_store().get('current_path') ? '')
+                store = @get_store()
+                sort_by_time = store.get('sort_by_time') ? true
+                show_hidden = store.get('show_hidden') ? false
+                @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+            when 'new'
+                @push_state('new/' + @get_store().get('current_path'))
+                @set_next_default_filename(require('./account').default_filename())
+            when 'log'
+                @push_state('log')
+            when 'search'
+                @push_state('search/' + @get_store().get('current_path'))
+            when 'settings'
+                @push_state('settings')
+            else #editor...
+                @push_state('files/' + misc.tab_to_path(key))
+                @set_current_path(misc.path_split(misc.tab_to_path(key)).head)
+
+    add_a_ghost_file_tab : () =>
+        current_num = @get_store().get('num_ghost_file_tabs')
+        @setState(num_ghost_file_tabs : current_num + 1)
+
+    clear_ghost_file_tabs : =>
+        @setState(num_ghost_file_tabs : 0)
+
+    set_editor_top_position : (pos) =>
+        @setState(editor_top_position : pos)
 
     set_next_default_filename : (next) =>
         @setState(default_filename: next)
@@ -123,7 +190,7 @@ class ProjectActions extends Actions
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
-        x = store.get_activity()?.toJS()
+        x = store.get('activity')?.toJS()
         if not x?
             x = {}
         # Actual implemenation of above specified API is VERY minimal for
@@ -183,18 +250,151 @@ class ProjectActions extends Actions
                     cb      : (err, group) =>
                         if err
                             @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
-                        else
-                            # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
-                            @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            # TEMPORARY -- later this will happen as a side effect of changing the store...
-                            if opts.foreground_project
-                                @foreground_project()
-                            @_project().open_file(path:opts.path, foreground:opts.foreground)
-                            if opts.chat
-                                @_project().show_editor_chat_window(opts.path)
+
+                        ext = misc.filename_extension_notilde(opts.path).toLowerCase()
+
+                        if ext == "sws" or ext.slice(0,4) == "sws~"   # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+                            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
+                            @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
+                                if not err
+                                    @open_file
+                                        path : sagews_filename
+                                        forgeound : opts.foreground
+                                        foreground_project : opts.foreground_project
+                                        chat : opts.chat
+                                else
+                                    require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
+                            return
+
+                        if ext == "docx"   # Microsoft Word Document
+                            alert_message(type:"info", message:"Opening converted plain text file instead of '#{opts.path}...")
+                            @convert_docx_file opts.path, (err, new_filename) =>
+                                if not err
+                                    @open_file
+                                        path : new_filename
+                                        forgeound : opts.foreground
+                                        foreground_project : opts.foreground_project
+                                        chat : opts.chat
+                                else
+                                    require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
+                            return
+
+                        # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
+                        @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
+
+                        @log
+                            event  : 'open'
+                            action : 'open'
+                            filename  : opts.path
+
+                        store = @get_store()
+                        if not store?  # if store not initialized we can't set activity
+                            return
+                        open_files = store.get_open_files()
+
+                        if open_files.has(opts.path) # Already opened
                             if opts.foreground
-                                @set_current_path(misc.path_split(opts.path).head, update_file_listing=false)
+                                @foreground_opened_file(opts.path)
+                            return
+
+                        open_files_order = store.get_open_files_order()
+                        # Intialize the file's store and actions
+                        name = project_file.initialize(opts.path, @redux, @project_id)
+
+                        # Make the editor
+                        editor = project_file.generate(opts.path, @redux, @project_id)
+                        editor.redux_name = name
+
+                        # Add it to open files
+                        @setState(open_files: open_files.setIn([opts.path, 'component'], editor), open_files_order:open_files_order.push(opts.path))
+                        if opts.foreground
+                            @foreground_opened_file(opts.path)
         return
+
+    flag_file_activity: (filename) =>
+        if not @_activity_indicator_timers?
+            @_activity_indicator_timers = {}
+        timer = @_activity_indicator_timers[filename]
+        if timer?
+            clearTimeout(timer)
+
+        open_files = @get_store().get('open_files')
+        set_inactive = () =>
+            new_files_data = open_files.setIn([filename, 'has_activity'], false)
+            @setState(open_files : new_files_data)
+
+        @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
+
+        new_files_data = open_files.setIn([filename, 'has_activity'], true)
+        @setState(open_files : new_files_data)
+
+    foreground_opened_file : (path) =>
+        @foreground_project(@project_id)
+        @set_active_tab(misc.path_to_tab(path))
+
+    convert_sagenb_worksheet: (filename, cb) =>
+        async.series([
+            (cb) =>
+                ext = misc.filename_extension(filename)
+                if ext == "sws"
+                    cb()
+                else
+                    i = filename.length - ext.length
+                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
+                    salvus_client.exec
+                        project_id : @project_id
+                        command    : "cp"
+                        args       : [filename, new_filename]
+                        cb         : (err, output) =>
+                            if err
+                                cb(err)
+                            else
+                                filename = new_filename
+                                cb()
+            (cb) =>
+                salvus_client.exec
+                    project_id : @project_id
+                    command    : "smc-sws2sagews"
+                    args       : [filename]
+                    cb         : (err, output) =>
+                        cb(err)
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
+        )
+
+    convert_docx_file: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "smc-docx2txt"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-4) + 'txt')
+
+    # Closes all files and removes all references
+    close_all_files : () =>
+        file_paths = @get_store().get_open_files_order()
+        if file_paths.isEmpty()
+            return
+
+        empty = file_paths.filter (path) =>
+            project_file.remove(path, @redux, @project_id)
+            return false
+
+        @setState(open_files_order : empty, open_files : {})
+
+    # closes the file and removes all references
+    close_file : (path) =>
+        x = @get_store().get_open_files_order()
+        index = x.indexOf(path)
+        if index != -1
+            @setState(open_files_order : x.delete(index), open_files : @get_store().get('open_files').delete(path))
+            project_file.remove(path, @redux, @project_id)
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>
@@ -212,16 +412,17 @@ class ProjectActions extends Actions
             else
                 @foreground_project()
                 @set_current_path(path, update_file_listing=true)
-                @set_focused_page('project-file-listing')
-
-    set_focused_page : (page) =>
-        # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
-        # influence what is displayed
-        @_project().display_tab(page)
+                @set_active_tab('files')
 
     set_current_path : (path, update_file_listing=false) =>
+        # SMELL: Track from history.coffee
+        if path is NaN
+            path = ''
+        path ?= ''
+        if typeof path != 'string'
+            window.cpath_args = arguments
+            throw "Current path should be a string. Revieved arguments are available in window.cpath_args"
         # Set the current path for this project. path is either a string or array of segments.
-        p = @_project()
         @setState
             current_path           : path
             page_number            : 0
@@ -239,7 +440,11 @@ class ProjectActions extends Actions
             create_file_alert      : false
 
     # Update the directory listing cache for the given path
+    # Use current path if path not provided
     set_directory_files : (path, sort_by_time, show_hidden) =>
+        if not path?
+            path = @get_store().get('current_path')
+
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
         _key = "#{path}-#{sort_by_time}-#{show_hidden}"
@@ -362,19 +567,47 @@ class ProjectActions extends Actions
             @redux.getActions('projects').fetch_directory_tree(@project_id)
         @setState(file_action : action)
 
-    ensure_directory_exists : (opts)=>
-        #Temporary: call from project page
-        @_project().ensure_directory_exists(opts)
+    ensure_directory_exists: (opts) =>
+        opts = defaults opts,
+            path  : required
+            cb    : undefined  # cb(true or false)
+            alert : true
+        salvus_client.exec
+            project_id : @project_id
+            command    : "mkdir"
+            timeout    : 15
+            args       : ['-p', opts.path]
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                opts.cb?(err or result.event == 'error')
 
-    get_from_web : (opts)=>
-        #Temporary: call from project page
-        @_project().get_from_web(opts)
+    get_from_web : (opts) =>
+        opts = defaults opts,
+            url     : required
+            dest    : undefined
+            timeout : 45
+            alert   : true
+            cb      : undefined     # cb(true or false, depending on error)
 
-    create_editor_tab : (opts) =>
-        @_project().editor.create_tab(opts)
+        {command, args} = misc.transform_get_url(opts.url)
 
-    display_editor_tab : (opts) =>
-        @_project().editor.display_tab(opts)
+        require('./salvus_client').salvus_client.exec
+            project_id : @project_id
+            command    : command
+            timeout    : opts.timeout
+            path       : opts.dest
+            args       : args
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                opts.cb?(err or result.event == 'error')
 
     # function used internally by things that call salvus_client.exec
     _finish_exec : (id) =>
@@ -497,8 +730,8 @@ class ProjectActions extends Actions
 
     move_files : (opts) =>
         opts = defaults opts,
-            src     : required
-            dest    : required
+            src     : required    # Array of src paths to mv
+            dest    : required    # Single dest string
             path    : undefined   # default to root of project
             mv_args : undefined
             id      : undefined
@@ -544,17 +777,38 @@ class ProjectActions extends Actions
                     @set_activity(id:id, error: "Error deleting #{mesg} -- #{result.error}", stop:'')
                 else
                     @set_activity(id:id, status:"Successfully deleted #{mesg}.", stop:'')
+                    @log
+                        event  : 'file_action'
+                        action : 'deleted'
+                        files  : opts.paths[0...3]
+                        count  : if opts.paths.length > 3 then opts.paths.length
 
 
     download_file : (opts) =>
-        @log
-            event  : 'file_action'
-            action : 'downloaded'
-            files  : opts.path
-        @_project().download_file(opts)
+        {download_file} = require('./misc_page')
+        opts = defaults opts,
+            path    : required
+            log     : false
+            auto    : true
+            timeout : 45
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+        if opts.log
+            @log
+                event  : 'file_action'
+                action : 'downloaded'
+                files  : opts.path
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
 
-    download_href : (path) ->
-        @_project().download_href(path)
+        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto
+            download_file(url)
+        else
+            window.open(url)
+
+    download_href: (path) =>
+        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
     # This is the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -597,7 +851,7 @@ class ProjectActions extends Actions
                 if not err and switch_over
                     #TODO reporting of errors...
                     @set_current_path(p, update_file_listing=true)
-                    @set_focused_page('project-file-listing')
+                    @set_active_tab('files')
 
     create_file : (opts) =>
         opts = defaults opts,
@@ -608,7 +862,6 @@ class ProjectActions extends Actions
             on_error     : undefined
             on_empty     : undefined
             switch_over  : true       # Whether or not to switch to the new file
-
         name = opts.name
         if (name == ".." or name == ".") and not opts.ext?
             opts.on_error?("Cannot create a file named . or ..")
@@ -651,16 +904,15 @@ class ProjectActions extends Actions
                 if err
                     opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else if opts.switch_over
-                    @set_focused_page('project-editor')
-                    tab = @create_editor_tab(filename:p, content:'')
-                    @display_editor_tab(path: p)
+                    @open_file
+                        path : p
 
     new_file_from_web : (url, current_path, cb) =>
         d = current_path
         if d == ''
             d = 'root directory of project'
         id = misc.uuid()
-        @set_focused_page('project-file-listing')
+        @set_active_tab('files')
         @set_activity
             id:id
             status:"Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
@@ -754,14 +1006,14 @@ class ProjectActions extends Actions
 
         if store.get('subdirectories')
             if store.get('hidden_files')
-                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
-                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
             if store.get('hidden_files')
-                cmd = "grep -I -H #{ins} #{search_query} .* *"
+                cmd = "grep -I -H #{ins} #{search_query} -- .* *"
             else
-                cmd = "grep -I -H #{ins} #{search_query} *"
+                cmd = "grep -I -H #{ins} #{search_query} -- *"
 
         cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
@@ -786,6 +1038,46 @@ class ProjectActions extends Actions
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
+    # Loads path in this project from string
+    #  files/....
+    #  new
+    #  log
+    #  settings
+    #  search
+    load_target: (target, foreground=true) =>
+        segments = target.split('/')
+        full_path = segments.slice(1).join('/')
+        parent_path = segments.slice(1, segments.length-1).join('/')
+        switch segments[0]
+            when 'files'
+                if target[target.length-1] == '/' or full_path == ''
+                    # open a directory
+                    @set_current_path(parent_path)
+                    @set_active_tab('files')
+                else
+                    # open a file -- foreground option is relevant here.
+                    @open_file
+                        path       : full_path
+                        foreground : foreground
+                        foreground_project : foreground
+            when 'new'  # ignore foreground for these and below, since would be nonsense
+                @set_current_path(full_path)
+                @set_active_tab('new')
+            when 'log'
+                @set_active_tab('log')
+            when 'settings'
+                @set_active_tab('settings')
+            when 'search'
+                @set_current_path(full_path)
+                @set_active_tab('search')
+
+    show_extra_free_warning : =>
+        @setState(free_warning_extra_shown : true)
+
+    close_free_warning : =>
+        @setState(free_warning_closed : true)
+
+
 class ProjectStore extends Store
     _init : (project_id) =>
         @project_id = project_id
@@ -798,11 +1090,11 @@ class ProjectStore extends Store
     destroy: =>
         @_account_store?.removeListener('change', @_account_store_change)
 
-    get_activity: =>
-        return @get('activity')
+    get_open_files: =>
+        return @get('open_files')
 
-    get_current_path: =>
-        return @get('current_path')
+    get_open_files_order: =>
+        return @get('open_files_order')
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
@@ -932,6 +1224,8 @@ exports.getStore = getStore = (project_id, redux) ->
     if store?
         return store
 
+    # Initialize everything
+
     # Create actions
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
@@ -943,6 +1237,10 @@ exports.getStore = getStore = (project_id, redux) ->
             return false
 
     # Create store
+    # open_files :
+    #     file_path :
+    #         component    : react_renderable
+    #         has_activity : bool
     initial_state =
         current_path       : ''
         sort_by_time       : set_sort_time() #TODO
@@ -951,6 +1249,11 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
+        active_project_tab : 'files'
+        open_files_order   : immutable.List([])
+        open_files         : immutable.Map({})
+        num_ghost_file_tabs: 0
+
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 
@@ -991,6 +1294,7 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     must_define(redux)
     name = key(project_id)
     redux.getStore(name)?.destroy?()
+    redux.getActions(name).close_all_files()
     redux.removeActions(name)
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))

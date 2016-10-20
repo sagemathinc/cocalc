@@ -31,8 +31,8 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes}  = require('./smc-react')
-{Button, Input, Row, Col} = require('react-bootstrap')
+{rclass, React, rtypes, ReactDOM}  = require('./smc-react')
+{Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
 {salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
@@ -136,15 +136,21 @@ exports.MiniTerminal = MiniTerminal = rclass
         # We don't use inline, since we still want the full horizontal width.
         <div>
             <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px'}>
-                <Input
-                    type        = 'text'
-                    value       = {@state.input}
-                    ref         = 'input'
-                    placeholder = 'Terminal command...'
-                    onChange    = {(e) => e.preventDefault(); @setState(input:@refs.input.getValue())}
-                    onKeyDown   = {@keydown}
-                    buttonAfter = {@render_button()}
-                    />
+                <FormGroup>
+                    <InputGroup>
+                        <FormControl
+                            type        = 'text'
+                            value       = {@state.input}
+                            ref         = 'input'
+                            placeholder = 'Terminal command...'
+                            onChange    = {(e) => e.preventDefault(); @setState(input:ReactDOM.findDOMNode(@refs.input).value)}
+                            onKeyDown   = {@keydown}
+                            />
+                        <InputGroup.Button>
+                            {@render_button()}
+                        </InputGroup.Button>
+                    </InputGroup>
+                </FormGroup>
             </form>
             <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}

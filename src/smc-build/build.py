@@ -294,6 +294,7 @@ SAGE_PIP_PACKAGES = [
     'xgboost', # https://github.com/dmlc/xgboost
     'vpython',
     'keras',
+    'altair', # https://github.com/ellisonbg/altair
     ]
 
 # additional environment settings for specific packages
@@ -336,6 +337,8 @@ SAGE_PIP_PACKAGES_DEPS = [
     'autobahn', 'twisted', 'idna', 'pyasn1', 'ipaddress', 'pycparser', 'cffi', 'cryptography', 'pyopenssl', 'attrs', # datasift
     'pyasn1-modules', 'service-identity', 'futures', 'requests-futures', 'ndg-httpsclient', # datasift
     'vpnotebook', 'ivisual', 'ujson', 'crayola', # vpython deps
+    'cufflinks', 'colorlover', # plot.ly deps (mabye not py2 compatible)
+    'vega', # altair
 ]
 
 # TODO make add an additional category of pip packages, where it is always safe to install with dependencies
@@ -527,6 +530,11 @@ class BuildSage(object):
         to run again after something changes ...
         '''
         self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
+
+    def install_altair(self):
+        # altair's vega dependency installation
+        self.cmd('jupyter nbextension install --sys-prefix --py vega')
+        self.cmd('jupyter nbextension enable vega --py --sys-prefix')
 
     @deprecated
     def pull_smc_sage(self):
