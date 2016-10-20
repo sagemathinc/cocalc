@@ -13,6 +13,7 @@ misc_page         = require('./misc_page')
 message           = require('smc-util/message')
 markdown          = require('./markdown')
 {salvus_client}   = require('./salvus_client')
+{redux}           = require('./smc-react')
 {alert_message}   = require('./alerts')
 
 {IS_MOBILE}       = require('./feature')
@@ -1237,7 +1238,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     y.click (e) ->
                         n = (document.location.origin + '/projects/').length
                         target = $(@).attr('href').slice(n)
-                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
                     # internal link
@@ -1255,7 +1256,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         else
                             # realtive to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
-                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server
