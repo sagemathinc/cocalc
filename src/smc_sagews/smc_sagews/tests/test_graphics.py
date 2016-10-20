@@ -9,7 +9,7 @@ SHA_LEN = 36
 
 class TestGraphics:
     def test_plot(self, execblob):
-        execblob("plot(cos(x),x,0,pi)")
+        execblob("plot(cos(x),x,0,pi)", want_html=False)
 
 class TestOctavePlot:
     def test_plot(self,execblob):
@@ -49,10 +49,10 @@ for i in range(2):
         assert mesg['id'] == test_id
         assert 'file' in mesg
         # 4 html
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'html' in mesg
+        #typ, mesg = sagews.recv()
+        #assert typ == 'json'
+        #assert mesg['id'] == test_id
+        #assert 'html' in mesg
         # 5 stdout AFTER PLOT 0
         typ, mesg = sagews.recv()
         assert typ == 'json'
@@ -78,10 +78,10 @@ for i in range(2):
         assert mesg['id'] == test_id
         assert 'file' in mesg
         # 9 html
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'html' in mesg
+        #typ, mesg = sagews.recv()
+        #assert typ == 'json'
+        #assert mesg['id'] == test_id
+        #assert 'html' in mesg
         # 10 stdout AFTER PLOT 1
         typ, mesg = sagews.recv()
         assert typ == 'json'
