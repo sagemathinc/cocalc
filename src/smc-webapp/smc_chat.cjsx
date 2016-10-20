@@ -663,7 +663,7 @@ ChatRoom = rclass ({name}) ->
             padding      : "0"
             paddingRight : "10px"
             paddingBottom: paddingBottom
-
+            background   : 'white'
 
         mobile_chat_log_style =
             overflowY    : "auto"
@@ -672,6 +672,7 @@ ChatRoom = rclass ({name}) ->
             height       : "100%"
             margin       : "0px 0px 0px 13px"
             padding      : "0"
+            background   : 'white'
 
         if not IS_MOBILE
             <Grid>
