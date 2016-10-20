@@ -1769,7 +1769,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             return info
 
     initial_store_state =
-        expanded_assignments : immutable.Set()
+        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded
 
     redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
