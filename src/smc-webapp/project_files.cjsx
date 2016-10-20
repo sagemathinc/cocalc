@@ -848,6 +848,7 @@ ProjectFilesActions = rclass
                     'compress'
                     'delete'
                     'rename'
+                    'duplicate'
                     'move'
                     'copy'
                     'share'
@@ -1114,7 +1115,7 @@ ProjectFilesActionBox = rclass
                 <Col sm=12>
                     <ButtonToolbar>
                         <Button bsStyle='info' onClick={=>@rename_or_duplicate_click()} disabled={not @valid_rename_input(single_item)}>
-                            <Icon name='pencil' /> {action_title} file
+                            <Icon name='pencil' /> {action_title} item
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel

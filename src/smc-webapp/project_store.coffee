@@ -581,12 +581,29 @@ class ProjectActions extends Actions
             checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
 
+    _suggest_duplicate_filename: (name) =>
+        store = @get_store()
+        files_in_dir = {}
+        # This will set files_in_dir to our current view of the files in the current
+        # directory (at least the visible ones) or do nothing in case we don't know
+        # anything about files (highly unlikely).  Unfortunately (for this), our
+        # directory listings are stored as (immutable) lists, so we have to make
+        # a map out of them.
+        store.get_directory_listings()?.get(store.get('current_path'))?.map (x) ->
+            files_in_dir[x.get('name')] = true
+            return
+        # This loop will keep trying new names until one isn't in the directory
+        while true
+            name = misc.suggest_duplicate_filename(name)
+            if not files_in_dir[name]
+                return name
+
     set_file_action : (action, get_basename) =>
         switch action
             when 'move'
                 @redux.getActions('projects').fetch_directory_tree(@project_id)
             when 'duplicate'
-                @setState(new_name : misc.suggest_duplicate_filename(get_basename()))
+                @setState(new_name : @_suggest_duplicate_filename(get_basename()))
             when 'rename'
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
