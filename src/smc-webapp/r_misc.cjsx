@@ -20,9 +20,8 @@
 
 async = require('async')
 
-
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux} = require('./smc-react')
+{Alert, Button, ButtonToolbar, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
@@ -111,9 +110,13 @@ exports.Icon = Icon = rclass
         inverse    : rtypes.bool
         className  : rtypes.string
         style      : rtypes.object
+        onClick    : rtypes.func
+        onMouseOver: rtypes.func
+        onMouseOut : rtypes.func
 
     getDefaultProps : ->
-        name : 'square-o'
+        name    : 'square-o'
+        onClick : ->
 
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
@@ -138,7 +141,7 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames}>{@props.children}</i>
+        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -297,16 +300,17 @@ exports.SelectorInput = SelectorInput = rclass
                 <option key={value} value={value}>{display}</option>
 
     render : ->
-        <Input
-            value        = {@props.selected}
-            defaultValue = {@props.selected}
-            type         = 'select'
-            ref          = 'input'
-            onChange     = {=>@props.on_change?(@refs.input.getValue())}
-            disabled     = {@props.disabled}
-        >
-            {@render_options()}
-        </Input>
+        <FormGroup>
+            <FormControl
+                value          = {@props.selected}
+                componentClass = 'select'
+                ref            = 'input'
+                onChange       = {=>@props.on_change?(ReactDOM.findDOMNode(@refs.input).value)}
+                disabled       = {@props.disabled}
+            >
+                {@render_options()}
+            </FormControl>
+        </FormGroup>
 
 exports.TextInput = rclass
     displayName : 'Misc-TextInput'
@@ -334,10 +338,13 @@ exports.TextInput = rclass
             <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render_input : ->
-        <Input type={@props.type ? 'text'} ref='input' rows={@props.rows}
-                   value={if @state.text? then @state.text else @props.text}
-                   onChange={=>@setState(text:@refs.input.getValue())}
+        <FormGroup>
+            <FormControl type={@props.type ? 'text'} ref='input' rows={@props.rows}
+                       componentClass={if @props.type == 'textarea' then 'textarea' else 'input'}
+                       value={if @state.text? then @state.text else @props.text}
+                       onChange={=>@setState(text:ReactDOM.findDOMNode(@refs.input).value)}
             />
+        </FormGroup>
 
     render : ->
         <form onSubmit={@saveChange}>
@@ -385,15 +392,17 @@ exports.NumberInput = NumberInput = rclass
         <Row>
             <Col xs=6>
                 <form onSubmit={@saveChange}>
-                    <Input
-                        type     = 'text'
-                        ref      = 'input'
-                        value    = {@state.number ? @props.number}
-                        onChange = {=>@setState(number:@refs.input.getValue())}
-                        onBlur   = {@saveChange}
-                        onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
-                        disabled = {@props.disabled}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            type     = 'text'
+                            ref      = 'input'
+                            value    = {if @state.number? then @state.number else @props.number}
+                            onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
+                            onBlur   = {@saveChange}
+                            onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
+                            disabled = {@props.disabled}
+                        />
+                    </FormGroup>
                 </form>
             </Col>
             <Col xs=6 className="lighten">
@@ -413,7 +422,6 @@ exports.LabeledRow = LabeledRow = rclass
         label_cols : 4
 
     render : ->
-
         <Row style={@props.style}>
             <Col xs={@props.label_cols}>
                 {@props.label}
@@ -478,7 +486,7 @@ timeago_formatter = (value, unit, suffix, date) ->
         unit += 's'
     return "#{value} #{unit} #{suffix}"
 
-TimeAgo = require('react-timeago')
+TimeAgo = require('react-timeago').default
 exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
@@ -529,9 +537,10 @@ exports.SearchInput = rclass
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
+        buttonAfter     : rtypes.object
 
     getInitialState : ->
-        value     : @props.default_value
+        value     : @props.default_value ? ''
         ctrl_down : false
 
     get_opts : ->
@@ -543,11 +552,11 @@ exports.SearchInput = rclass
 
     componentDidMount : ->
         if @props.autoSelect
-            @refs.input.getInputDOMNode().select()
+            ReactDOM.findDOMNode(@refs.input).select()
 
     clear_and_focus_search_input : ->
         @set_value('')
-        @refs.input.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.input).focus()
 
     search_button : ->
         if @props.buttonAfter?
@@ -592,17 +601,23 @@ exports.SearchInput = rclass
         @set_value('')
 
     render : ->
-        <Input
-            autoFocus   = {@props.autoFocus}
-            ref         = 'input'
-            type        = 'text'
-            placeholder = {@props.placeholder}
-            value       = {@state.value}
-            buttonAfter = {@search_button()}
-            onChange    = {=>@set_value(@refs.input.getValue())}
-            onKeyDown   = {@key_down}
-            onKeyUp     = {@key_up}
-        />
+        <FormGroup>
+            <InputGroup>
+                <FormControl
+                    autoFocus   = {@props.autoFocus}
+                    ref         = 'input'
+                    type        = 'text'
+                    placeholder = {@props.placeholder}
+                    value       = {@state.value}
+                    onChange    = {=>@set_value(ReactDOM.findDOMNode(@refs.input).value)}
+                    onKeyDown   = {@key_down}
+                    onKeyUp     = {@key_up}
+                />
+                <InputGroup.Button>
+                    {@search_button()}
+                </InputGroup.Button>
+            </InputGroup>
+        </FormGroup>
 
 exports.MarkdownInput = rclass
     displayName : 'Misc-MarkdownInput'
@@ -660,15 +675,17 @@ exports.MarkdownInput = rclass
                     <Button key='cancel' onClick={@cancel}>Cancel</Button>
                 </ButtonToolbar>
                 <form onSubmit={@save} style={marginBottom: '-20px'}>
-                    <Input autoFocus
-                        ref         = 'input'
-                        type        = 'textarea'
-                        rows        = {@props.rows ? 4}
-                        placeholder = {@props.placeholder}
-                        value       = {@state.value}
-                        onChange    = {=>x=@refs.input.getValue();@setState(value:x); @props.on_change?(x)}
-                        onKeyDown   = {@keydown}
-                    />
+                    <FormGroup>
+                        <FormControl autoFocus
+                            ref         = 'input'
+                            componentClass = 'textarea'
+                            rows        = {@props.rows ? 4}
+                            placeholder = {@props.placeholder}
+                            value       = {@state.value}
+                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value;@setState(value:x); @props.on_change?(x)}
+                            onKeyDown   = {@keydown}
+                        />
+                    </FormGroup>
                 </form>
                 <div style={paddingTop:'8px', color:'#666'}>
                     <Tip title='Use Markdown' tip={tip}>
@@ -725,8 +742,8 @@ activity_style =
     float           : 'right'
     backgroundColor : 'white'
     position        : 'absolute'
-    right           : '5px'
-    top             : '5px'
+    right           : '25px'
+    top             : '65px'
     border          : '1px solid #ccc'
     padding         : '10px'
     zIndex          : '10'
@@ -774,6 +791,7 @@ exports.Tip = Tip = rclass
         delayShow : rtypes.number
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
+        style     : rtypes.object
 
     getDefaultProps : ->
         placement : 'right'
@@ -788,7 +806,8 @@ exports.Tip = Tip = rclass
                 bsSize = {@props.size}
                 title  = {@render_title()}
                 id     = {@props.id ? "tip"}
-                >
+                style  = {zIndex:'1000'}
+            >
                 <span style={wordWrap:'break-word'}>
                     {@props.tip}
                 </span>
@@ -796,7 +815,9 @@ exports.Tip = Tip = rclass
         else
             <Tooltip
                 bsSize = {@props.size}
-                id     = {@props.id ? "tip"} >
+                id     = {@props.id ? "tip"}
+                style  = {zIndex:'1000'}
+            >
                 {@render_title()}
             </Tooltip>
 
@@ -806,7 +827,7 @@ exports.Tip = Tip = rclass
             overlay   = {@render_popover()}
             delayShow = 600
             >
-            <span>{@props.children}</span>
+            <span style={@props.style}>{@props.children}</span>
         </OverlayTrigger>
 
 exports.SaveButton = rclass
@@ -843,7 +864,7 @@ exports.FileLink = rclass
         e.preventDefault()
         if misc.endswith(@props.path, '/')
             @props.actions.set_current_path(@props.path)
-            @props.actions.set_focused_page('project-file-listing')
+            @props.actions.set_active_tab('files')
         else
             @props.actions.open_file
                 path       : @props.path
@@ -936,7 +957,6 @@ exports.DirectoryInput = rclass
             directory_trees : rtypes.immutable
 
     propTypes :
-        redux         : rtypes.object
         project_id    : rtypes.string.isRequired
         on_change     : rtypes.func.isRequired
         default_value : rtypes.string
@@ -948,7 +968,7 @@ exports.DirectoryInput = rclass
     render : ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
         if not x? or new Date() - x.updated >= 15000
-            @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
+            redux.getActions('projects').fetch_directory_tree(@props.project_id)
         tree = x?.tree
         if tree?
             group = (s) ->
@@ -1087,7 +1107,7 @@ exports.LoginLink = rclass
         <Alert bsStyle='info' style={margin:'15px'}>
             <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please<Space/>
             <a style={cursor: 'pointer'}
-                onClick={=>require('./top_navbar').top_navbar.switch_to_page('account')}>
+                onClick={=>redux.getActions('page').set_active_tab('account')}>
                 login or create an account...
             </a>
         </Alert>
@@ -1131,7 +1151,7 @@ EditorFileInfoDropdown = rclass
 
     handle_click : (name) ->
         @props.actions.set_current_path(misc.path_split(@props.filename).head)
-        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_active_tab('files')
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)
         @props.actions.set_file_action(name)
@@ -1170,7 +1190,7 @@ EditorFileInfoDropdown = rclass
         </div>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
-    ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)
+    ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
 
 exports.UPGRADE_ERROR_STYLE =
     color        : 'white'
@@ -1179,5 +1199,3 @@ exports.UPGRADE_ERROR_STYLE =
     borderRadius : '3px'
     fontWeight   : 'bold'
     marginBottom : '1em'
-
-

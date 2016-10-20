@@ -19,7 +19,9 @@
 #
 ###############################################################################
 
-# Editor for files in a project
+$ = window.$
+
+# Editor files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
 #    require('./editor').SHOW_BUTTON_LABELS=0
@@ -56,14 +58,12 @@ require('./codemirror/codemirror')
 # Ensure the console jquery plugin is available
 require('./console')
 
-# TODO: undo doing the import below -- just use misc.[stuff] is more readable.
+# SMELL: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('smc-util/misc')
 
 syncdoc = require('./syncdoc')
 sagews  = require('./sagews')
-
-top_navbar =  $(".salvus-top_navbar")
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -166,7 +166,7 @@ file_associations['tex'] =
     icon   : 'fa-file-excel-o'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
     name   : "LaTeX"
-#file_associations['tex'] =  # TODO: only for TESTING!!!
+#file_associations['tex'] =  # WARNING: only for TESTING!!!
 #    editor : 'html-md'
 #    icon   : 'fa-file-code-o'
 #    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
@@ -403,7 +403,7 @@ define_codemirror_sagews_mode = () ->
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
 
     CodeMirror.defineMode "cython", (config) ->
-        # TODO: need to figure out how to do this so that the name
+        # FUTURE: need to figure out how to do this so that the name
         # of the mode is cython
         return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
 
@@ -443,7 +443,7 @@ define_codemirror_sagews_mode = () ->
     ###
 
 # Initialize all of the codemirror modes and extensions, since the editor may need them.
-# TODO: defer this until we actually open a document that actually relies on codemirror.
+# OPTIMIZATION: defer this until we actually open a document that actually relies on codemirror.
 # (one step at a time!)
 define_codemirror_sagews_mode()
 misc_page.define_codemirror_extensions()
@@ -465,6 +465,18 @@ guess_file_extension_type = (content) ->
     if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
         return 'c++'
     return undefined
+
+exports.file_options = (filename, content) ->   # content may be undefined
+    ext = misc.filename_extension_notilde(filename)?.toLowerCase()
+    if not ext? and content?   # no recognized extension, but have contents
+        ext = guess_file_extension_type(content)
+    if ext == ''
+        x = file_associations["noext-#{misc.path_split(filename).tail}"]
+    else
+        x = file_associations[ext]
+    if not x?
+        x = file_associations['']
+    return x
 
 SEP = "\uFE10"
 
@@ -533,783 +545,8 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
 
 templates = $("#salvus-editor-templates")
 
-class exports.Editor
-    constructor: (opts) ->
-        opts = defaults opts,
-            project_page  : required
-            initial_files : undefined # if given, attempt to open these files on creation
-            counter       : undefined # if given, is a jQuery set of DOM objs to set to the number of open files
-        @counter = opts.counter
-        @project_page  = opts.project_page
-        @project_path = opts.project_page.project.location?.path
-        if not @project_path
-            @project_path = '.'  # if location isn't defined yet -- and this is the only thing used anyways.
-        @project_id = opts.project_page.project.project_id
-        @element = templates.find(".salvus-editor").clone().show()
-
-        # read-only public access to project only
-        @public_access = opts.project_page.public_access
-
-        @nav_tabs = @element.find(".nav-pills")
-
-        @tabs = {}   # filename:{useful stuff}
-
-        @init_openfile_search()
-
-        if opts.initial_files?
-            for filename in opts.initial_files
-                @open(filename)
-
-    activate_handlers: () =>
-        #console.log "activate_handlers - #{@project_id}"
-        $(document).keyup(@keyup_handler)
-        $(window).resize(@_window_resize_while_editing)
-
-    remove_handlers: () =>
-        #console.log "remove_handlers - #{@project_id}"
-        clearInterval(@_autosave_interval); delete @_autosave_interval
-        $(document).unbind 'keyup', @keyup_handler
-        $(window).unbind 'resize', @_window_resize_while_editing
-
-    close_all_open_files: () =>
-        for filename, tab of @tabs
-            tab.close_editor()
-
-    destroy: () =>
-        @element.empty()
-        @remove_handlers()
-        @close_all_open_files()
-
-    keyup_handler: (ev) =>
-        #console.log("keyup handler for -- #{@project_id}", ev)
-        if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-            #console.log("editor keyup")
-            @project_page.display_tab("project-file-listing")
-            return false
-        else if window.tab_switching and ev.ctrlKey  # note: window.tab_switching is for testing or if anybody complains (unlikely)
-            # this functionality (1) seems broken, and (2) is \ on a german keyboard
-            #console.log("mod ", ev.keyCode)
-            if ev.keyCode == 219    # [{
-                @switch_tab(-1)
-            else if ev.keyCode == 221   # }]
-                @switch_tab(1)
-            return false
-
-    switch_tab: (delta) =>
-        #console.log("switch_tab", delta)
-        pgs = @project_page.container.find(".file-pages")
-        idx = pgs.find(".active").index()
-        if idx == -1 # nothing active
-            return
-        e = pgs.children()
-        n = (idx + delta) % e.length
-        if n < 0
-            n += e.length
-        path = $(e[n]).data('name')
-        if path
-            @display_tab
-                path : path
-
-    activity_indicator: (filename) =>
-        e = @tabs[filename]?.open_file_pill
-        if not e?
-            return
-        if not @_activity_indicator_timers?
-            @_activity_indicator_timers = {}
-        timer = @_activity_indicator_timers[filename]
-        if timer?
-            clearTimeout(timer)
-        e.find("i:last").addClass("salvus-editor-filename-pill-icon-active")
-        f = () ->
-            e.find("i:last").removeClass("salvus-editor-filename-pill-icon-active")
-        @_activity_indicator_timers[filename] = setTimeout(f, 1000)
-
-        @project_page.activity_indicator()
-
-    hide_editor_content: () =>
-        @_editor_content_visible = false
-        @element.find(".salvus-editor-content").hide()
-
-    show_editor_content: () =>
-        @_editor_content_visible = true
-        @element.find(".salvus-editor-content").show()
-        # temporary / ugly
-        for tab in @project_page.tabs
-            tab.label.removeClass('active')
-
-        @project_page.container.css('position', 'fixed')
-
-    # Used for resizing editor windows.
-    editor_top_position: () =>
-        if salvus_client.in_fullscreen_mode()
-            return 0
-        else
-            e = @project_page.container
-            return e.position().top + e.height() - 1
-
-    refresh: () =>
-        @_window_resize_while_editing()
-
-    _window_resize_while_editing: () =>
-        #console.log("_window_resize_while_editing -- #{@project_id}")
-        @resize_open_file_tabs()
-        if not @active_tab? or not @_editor_content_visible
-            return
-        @active_tab.editor().show()
-
-    init_openfile_search: () =>
-        search_box = @element.find(".salvus-editor-search-openfiles-input")
-        include = 'active' #salvus-editor-openfile-included-in-search'
-        exclude = 'salvus-editor-openfile-excluded-from-search'
-        search_box.focus () =>
-            search_box.select()
-
-        update = (event) =>
-            @active_tab?.editor().hide()
-
-            if event?
-                if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                    #console.log("keyup: openfile_search")
-                    @project_page.display_tab("project-new-file")
-                    return false
-
-                if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                    @display_tab(path:@active_tab.filename)
-                    return
-
-            v = $.trim(search_box.val()).toLowerCase()
-            if v == ""
-                for filename, tab of @tabs
-                    tab.link.removeClass(include)
-                    tab.link.removeClass(exclude)
-                match = (s) -> true
-            else
-                terms = v.split(' ')
-                match = (s) ->
-                    s = s.toLowerCase()
-                    for t in terms
-                        if s.indexOf(t) == -1
-                            return false
-                    return true
-
-            first = true
-
-            for link in @nav_tabs.children()
-                tab = $(link).data('tab')
-                filename = tab.filename
-                if match(filename)
-                    if first and event?.keyCode == 13 # enter -- select first match (if any)
-                        @display_tab(path:filename)
-                        first = false
-                    if v != ""
-                        tab.link.addClass(include); tab.link.removeClass(exclude)
-                else
-                    if v != ""
-                        tab.link.addClass(exclude); tab.link.removeClass(include)
-
-        @element.find(".salvus-editor-search-openfiles-input-clear").click () =>
-            search_box.val('')
-            update()
-            search_box.select()
-            return false
-
-        search_box.keyup(update)
-
-    update_counter: () =>
-        if @counter?
-            @counter.text(len(@tabs))
-
-    open: (filename, cb) =>   # cb(err, actual_opened_filename)
-        if not filename?
-            cb?("BUG -- open(undefined) makes no sense")
-            return
-
-        if @tabs[filename]?
-            cb?(false, filename)
-            return
-
-        if @public_access
-            binary = @file_options(filename).binary
-        else
-            # following only makes sense for read-write project access
-            ext = filename_extension_notilde(filename).toLowerCase()
-
-            if filename == ".sagemathcloud.log"
-                cb?("You can only edit '.sagemathcloud.log' via the terminal.")
-                return
-
-            if ext == "sws" or ext.slice(0,4) == "sws~"   # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
-                alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
-                @convert_sagenb_worksheet filename, (err, sagews_filename) =>
-                    if not err
-                        @open(sagews_filename, cb)
-                    else
-                        cb?("Error converting Sage Notebook sws file -- #{err}")
-                return
-
-            if ext == "docx"   # Microsoft Word Document
-                alert_message(type:"info", message:"Opening converted plain text file instead of '#{filename}...")
-                @convert_docx_file filename, (err, new_filename) =>
-                    if not err
-                        @open(new_filename, cb)
-                    else
-                        cb?("Error converting Microsoft docx file -- #{err}")
-                return
-
-        content = undefined
-        extra_opts = {}
-        async.series([
-            (c) =>
-                if @public_access and not binary
-                    salvus_client.public_get_text_file
-                        project_id : @project_id
-                        path       : filename
-                        timeout    : 60
-                        cb         : (err, data) =>
-                            if err
-                                c(err)
-                            else
-                                content = data
-                                extra_opts.read_only = true
-                                extra_opts.public_access = true
-                                # TODO: Allowing arbitrary javascript eval is dangerous
-                                # for public documents, so we disable it, at least
-                                # until we implement an option for loading in an iframe.
-                                extra_opts.allow_javascript_eval = false
-                                c()
-                else
-                    c()
-        ], (err) =>
-            if err
-                cb?(err)
-            else
-                @tabs[filename] = @create_tab
-                    filename   : filename
-                    content    : content
-                    extra_opts : extra_opts
-                cb?(false, filename)
-        )
-
-
-    convert_sagenb_worksheet: (filename, cb) =>
-        async.series([
-            (cb) =>
-                ext = misc.filename_extension(filename)
-                if ext == "sws"
-                    cb()
-                else
-                    i = filename.length - ext.length
-                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
-                    salvus_client.exec
-                        project_id : @project_id
-                        command    : "cp"
-                        args       : [filename, new_filename]
-                        cb         : (err, output) =>
-                            if err
-                                cb(err)
-                            else
-                                filename = new_filename
-                                cb()
-            (cb) =>
-                salvus_client.exec
-                    project_id : @project_id
-                    command    : "smc-sws2sagews"
-                    args       : [filename]
-                    cb         : (err, output) =>
-                        cb(err)
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
-        )
-
-    convert_docx_file: (filename, cb) =>
-        salvus_client.exec
-            project_id : @project_id
-            command    : "smc-docx2txt"
-            args       : [filename]
-            cb         : (err, output) =>
-                if err
-                    cb("#{err}, #{misc.to_json(output)}")
-                else
-                    cb(false, filename.slice(0,filename.length-4) + 'txt')
-
-    file_options: (filename, content) =>   # content may be undefined
-        ext = filename_extension_notilde(filename)?.toLowerCase()
-        if not ext? and content?   # no recognized extension, but have contents
-            ext = guess_file_extension_type(content)
-        if ext == ''
-            x = file_associations["noext-#{misc.path_split(filename).tail}"]
-        else
-            x = file_associations[ext]
-        if not x?
-            x = file_associations['']
-        return x
-
-    create_tab: (opts) =>
-        opts = defaults opts,
-            filename     : required
-            content      : undefined
-            extra_opts   : undefined
-
-        filename = opts.filename
-        if @tabs[filename]?
-            return @tabs[filename]
-
-        content = opts.content
-        opts0 = @file_options(filename, content)
-        extra_opts = copy(opts0.opts)
-
-        if opts.extra_opts?
-            for k, v of opts.extra_opts
-                extra_opts[k] = v
-
-        link = templates.find(".salvus-editor-filename-pill").clone().show()
-        link_filename = link.find(".salvus-editor-tab-filename")
-        link_filename.text(trunc(filename,64))
-
-        containing_path = misc.path_split(filename).head
-        ignore_clicks = false
-        link.find("a").mousedown (e) =>
-            if ignore_clicks
-                return false
-            foreground = not(e.which==2 or e.ctrlKey)
-            @display_tab
-                path       : link_filename.text()
-                foreground : not(e.which==2 or (e.ctrlKey or e.metaKey))
-            if foreground
-                @project_page.set_current_path(containing_path)
-            return false
-
-        create_editor_opts =
-            editor_name : opts0.editor
-            filename    : filename
-            content     : content
-            extra_opts  : extra_opts
-
-        x = @tabs[filename] =
-            link     : link
-
-            filename : filename
-
-            editor   : () =>
-                if x._editor?
-                    return x._editor
-                else
-                    x._editor = @create_editor(create_editor_opts)
-                    @element.find(".salvus-editor-content").append(x._editor.element.hide())
-                    return x._editor
-
-            hide_editor : () => x._editor?.hide()
-
-            editor_open : () => x._editor?   # editor is defined if the editor is open.
-
-            close_editor: () =>
-                if x._editor?
-                    x._editor.disconnect_from_session()
-                    x._editor.remove()
-                    delete x._editor
-                # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
-                # will end up overwriting it with stale contents.
-                delete create_editor_opts.content
-                delete window.smc.editors?[filename]          # FOR DEBUGGING ONLY!
-
-        link.data('tab', @tabs[filename])
-        @nav_tabs.append(link)
-
-        @update_counter()
-        return @tabs[filename]
-
-    create_editor: (opts) =>
-        {editor_name, filename, content, extra_opts} = defaults opts,
-            editor_name : required
-            filename    : required
-            content     : undefined
-            extra_opts  : required
-
-        ext = filename_extension_notilde(filename)
-
-        if editor_name == 'codemirror'
-            if ext == 'sagews'
-                typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
-            else
-                typ = 'file'
-        else
-            typ = editor_name
-        @project_page.actions.log({event:'open', filename:filename, type:typ})
-
-        # This approach to public "editor"/viewer types is temporary.
-        if extra_opts.public_access
-            opts.read_only = true
-            fn_extension = filename_extension_notilde(filename)
-            if fn_extension == 'html'
-                if opts.content.indexOf("#ipython_notebook") != -1
-                    editor = new JupyterNBViewer(@, filename, opts.content)
-                else
-                    editor = new StaticHTML(@, filename, opts.content, extra_opts)
-                return editor
-            if fn_extension == 'ipynb'
-                return new JupyterNBViewerEmbedded(@, filename, opts.content)
-
-        # These are used *ONLY* for development purposes; it allows us to easily
-        # circumvent everything else for testing.
-        if ext == 'dev-codemirror'
-            console.log("dev-codemirror")
-            return new ReactCodemirror(@, filename, content, extra_opts)
-
-        # Some of the editors below might get the content later and will
-        # call @file_options again then.
-        switch editor_name
-            # TODO: JSON, since I have that jsoneditor plugin...
-            # codemirror is the default...
-            when 'codemirror', undefined
-                if extra_opts.public_access
-                    # This is used only for public access to files
-                    editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
-                    if filename_extension_notilde(filename) == 'sagews'
-                        editor.syncdoc = new (sagews.SynchronizedWorksheet)(editor, {static_viewer:true})
-                        editor.once 'show', () =>
-                            editor.syncdoc.process_sage_updates()
-                else
-                    # realtime synchronized editing session
-                    editor = codemirror_session_editor(@, filename, extra_opts)
-            when 'terminal'
-                editor = new Terminal(@, filename, content, extra_opts)
-            when 'image'
-                editor = new Image(@, filename, content, extra_opts)
-            when 'latex'
-                editor = new LatexEditor(@, filename, content, extra_opts)
-            when 'html-md'
-                if extra_opts.public_access
-                    editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                else
-                    editor = new HTML_MD_Editor(@, filename, content, extra_opts)
-            when 'history'
-                {HistoryEditor} = require('./editor_history')
-                editor = new HistoryEditor(@, filename, content, extra_opts)
-            when 'pdf'
-                editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
-            when 'tasks'
-                editor = new TaskList(@, filename, content, extra_opts)
-            when 'archive'
-                editor = new Archive(@, filename, content, extra_opts)
-            when 'course'
-                editor = new Course(@, filename, content, extra_opts)
-            when 'chat'
-                editor = new Chat(@, filename, content, extra_opts)
-            when 'git'
-                editor = new GitEditor(@, filename, content, extra_opts)
-            when 'ipynb'
-                editor = new JupyterNotebook(@, filename, content, extra_opts)
-            when 'template'
-                editor = new TemplateEditor(@, filename, content, extra_opts)
-            else
-                throw("Unknown editor type '#{editor_name}'")
-
-        # FOR DEBUGGING!
-        window.smc.editors ?= {}
-        window.smc.editors[filename] = editor
-
-        editor.init_autosave()
-        return editor
-
-    create_opened_file_tab: (filename) =>
-        link_bar = @project_page.container.find(".file-pages")
-
-        link = templates.find(".salvus-editor-filename-pill").clone()
-        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 0})
-
-        link.data('name', filename)
-
-        link_filename = link.find(".salvus-editor-tab-filename")
-        display_name = path_split(filename).tail
-        link_filename.text(display_name)
-
-        # Add an icon to the file tab based on the extension. Default icon is fa-file-o
-        ext = filename_extension_notilde(filename)
-        file_icon = file_icon_class(ext)
-        link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
-
-        open_file = (name) =>
-            @project_page.set_current_path(misc.path_split(name).head)
-            @project_page.display_tab("project-editor")
-            @display_tab(path:name)
-
-        close_tab = () =>
-            if ignore_clicks
-                return false
-
-            if @active_tab? and @active_tab.filename == filename
-                @active_tab = undefined
-
-            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
-                next = link.next()
-                # skip past div's inserted by tooltips
-                while next.is("div")
-                    next = next.next()
-                name = next.data('name')  # need li selector because tooltip inserts itself after in DOM
-                if name?
-                    open_file(name)
-
-            link.tooltip('destroy')
-            link.hide()
-            link.remove()
-
-            if @project_page.current_tab.name == 'project-editor' and not @active_tab?
-                # open last file if there is one
-                next_link = link_bar.find("li").last()
-                name = next_link.data('name')
-                if name?
-                    @resize_open_file_tabs()
-                    open_file(name)
-                else
-                    # just show the file listing
-                    @project_page.display_tab('project-file-listing')
-
-            tab = @tabs[filename]
-            if tab?
-                if tab.open_file_pill?
-                    delete tab.open_file_pill
-                tab.close_editor()
-                delete @tabs[filename]
-
-            @_currently_closing_files = true
-            if @open_file_tabs().length < 1
-                @resize_open_file_tabs()
-
-            return false
-
-        link.find(".salvus-editor-close-button-x").click(close_tab)
-
-        ignore_clicks = false
-        link.find("a").click (e) =>
-            if ignore_clicks
-                return false
-            open_file(filename)
-            return false
-
-        link.find("a").mousedown (e) =>
-            if ignore_clicks
-                return false
-            if e.which==2 or e.ctrlKey
-                # middle (or control-) click on open tab: close the editor
-                close_tab()
-                return false
-
-
-        #link.draggable
-        #    zIndex      : 1000
-        #    containment : "parent"
-        #    stop        : () =>
-        #        ignore_clicks = true
-        #        setTimeout( (() -> ignore_clicks=false), 100)
-
-        @tabs[filename].open_file_pill = link
-        @tabs[filename].close_tab = close_tab
-
-        link_bar.mouseleave () =>
-            if @_currently_closing_files
-                @_currently_closing_files = false
-                @resize_open_file_tabs()
-
-        link_bar.append(link)
-        @resize_open_file_tabs()
-
-    open_file_tabs: () =>
-        x = []
-        for a in @project_page.container.find(".file-pages").children()
-            t = $(a)
-            if t.hasClass("salvus-editor-filename-pill")
-                x.push(t)
-        return x
-
-    hide: () =>
-        for filename, tab of @tabs
-            if tab?
-                if tab.editor_open()
-                    tab.editor().hide?()
-
-    resize_open_file_tabs: () =>
-        # First hide/show labels on the project navigation buttons (Files, New, Log..)
-        if @open_file_tabs().length > require('./editor').SHOW_BUTTON_LABELS
-            @project_page.container.find(".project-pages-button-label").hide()
-        else
-            @project_page.container.find(".project-pages-button-label").show()
-
-        # Make a list of the tabs after the search tab.
-        x = @open_file_tabs()
-        if x.length == 0
-            return
-
-        if feature.is_responsive_mode()
-            # responsive mode
-            @project_page.destroy_sortable_file_list()
-            width = "50%"
-        else
-            @project_page.init_sortable_file_list()
-            n = x.length
-            width = Math.min(250, parseInt((x[0].parent().width() - 40) / n + 2)) # floor to prevent rounding problems
-            if width < 0
-                width = 0
-
-        for a in x
-            a.width(width)
-
-    make_open_file_pill_active: (link) =>
-        @project_page.container.find(".file-pages").children().removeClass('active')
-        link.addClass('active')
-
-    # Close tab with given filename
-    close: (filename) =>
-        tab = @tabs[filename]
-        if not tab? # nothing to do -- tab isn't opened anymore
-            return
-
-        if tab.editor_open()
-            # Disconnect from remote session (if relevant), clean up, etc.
-            e = tab.editor()
-            e.save?()
-            e.disconnect_from_session?()
-            e.remove?()
-
-        tab.link.remove()
-        tab.close_tab?()
-        delete @tabs[filename]
-        @update_counter()
-
-
-    show_chat_window: (path) =>
-        @tabs[path]?.editor()?.show_chat_window()
-
-    # Reload content of this tab.  Warn user if this will result in changes.
-    reload: (filename) =>
-        tab = @tabs[filename]
-        if not tab? # nothing to do
-            return
-        salvus_client.read_text_file_from_project
-            project_id : @project_id
-            timeout    : 5
-            path       : filename
-            cb         : (err, mesg) =>
-                if err
-                    alert_message(type:"error", message:"Communications issue loading new version of #{filename} -- #{err}")
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error loading new version of #{filename} -- #{to_json(mesg.error)}")
-                else
-                    current_content = tab.editor().val()
-                    new_content = mesg.content
-                    if current_content != new_content
-                        @warn_user filename, (proceed) =>
-                            if proceed
-                                tab.editor().val(new_content)
-
-    # Warn user about unsaved changes (modal)
-    warn_user: (filename, cb) =>
-        cb(true)
-
-    # Make the tab appear in the tabs at the top, and
-    # if foreground=true, also make that tab active.
-    display_tab: (opts) =>
-        opts = defaults opts,
-            path       : required
-            foreground : true      # display in foreground as soon as possible
-        filename = opts.path
-        if not @tabs[filename]?
-            return
-
-        if opts.foreground
-            @_active_tab_filename = filename
-            @push_state('files/' + opts.path)
-            @show_editor_content()
-            # record that file placed in the foreground by this client
-            window?.smc.redux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
-
-        prev_active_tab = @active_tab
-        for name, tab of @tabs
-            if name == filename
-                if not tab.open_file_pill?
-                    @create_opened_file_tab(filename)
-
-                if opts.foreground
-                    # make sure that there is a tab and show it if necessary, and also
-                    # set it to the active tab (if necessary).
-                    @active_tab = tab
-                    @make_open_file_pill_active(tab.open_file_pill)
-                    ed = tab.editor()
-                    ed.show()
-                    ed.focus()
-
-            else if opts.foreground
-                # ensure all other tabs are hidden.
-                tab.hide_editor()
-
-        @project_page.init_sortable_file_list()
-
-    add_tab_to_navbar: (filename) =>
-        navbar = require('./top_navbar').top_navbar
-        tab = @tabs[filename]
-        if not tab?
-            return
-        id = @project_id + filename
-        if not navbar.pages[id]?
-            navbar.add_page
-                id     : id
-                label  : misc.path_split(filename).tail
-                onshow : () =>
-                    navbar.switch_to_page(@project_id)
-                    @display_tab(path:filename)
-                    navbar.make_button_active(id)
-
-    onshow: () =>  # should be called when the editor is shown.
-        #if @active_tab?
-        #    @display_tab(@active_tab.filename)
-        if not IS_MOBILE
-            @element.find(".salvus-editor-search-openfiles-input").focus()
-
-    push_state: (url) =>
-        if not url?
-            url = @_last_history_state
-        if not url?
-            url = 'recent'
-        @_last_history_state = url
-        @project_page.actions.push_state(url)
-
-    # Save the file to disk/repo
-    save: (filename, cb) =>       # cb(err)
-        if not filename?  # if filename not given, save all *open* files
-            tasks = []
-            for filename, tab of @tabs
-                if tab.editor_open()
-                    f = (c) =>
-                        @save(arguments.callee.filename, c)
-                    f.filename = filename
-                    tasks.push(f)
-            async.parallel(tasks, cb)
-            return
-
-        tab = @tabs[filename]
-        if not tab?
-            cb?()
-            return
-
-        tab.editor().save(cb)
-
-    change_tab_filename: (old_filename, new_filename) =>
-        tab = @tabs[old_filename]
-        if not tab?
-            # TODO -- fail silently or this?
-            alert_message(type:"error", message:"change_tab_filename (bug): attempt to change #{old_filename} to #{new_filename}, but there is no tab #{old_filename}")
-            return
-        tab.filename = new_filename
-        tab.link.find(".salvus-editor-tab-filename").text(new_filename)
-        delete @tabs[old_filename]
-        @tabs[new_filename] = tab
-
-
 ###############################################
-# Abstract base class for editors
+# Abstract base class for editors (not exports.Editor)
 ###############################################
 # Derived classes must:
 #    (1) implement the _get and _set methods
@@ -1320,27 +557,20 @@ class exports.Editor
 #
 
 class FileEditor extends EventEmitter
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         @val(content)
-
-    activity_indicator: () =>
-        @editor?.activity_indicator(@filename)
 
     show_chat_window: () =>
         @syncdoc?.show_chat_window()
 
     is_active: () =>
-        return @editor? and @editor._active_tab_filename == @filename
+        misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
     # call it, to set the @default_font_size from the account settings
     init_font_size: () =>
-        if not @editor?
-            return
         @default_font_size = redux.getStore('account').get('font_size')
 
     init_autosave: () =>
-        if not @editor?  # object already freed
-            return
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
             # autosave interval, in case user changes the settings.
@@ -1350,14 +580,6 @@ class FileEditor extends EventEmitter
         autosave = redux.getStore('account').get('autosave')
         if autosave
             save_if_changed = () =>
-                if not @editor?.tabs?
-                    clearInterval(@_autosave_interval); delete @_autosave_interval
-                    return
-                if not @editor.tabs[@filename]?.editor_open()
-                    # don't autosave anymore if the doc is closed -- since autosave references
-                    # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
-                    clearInterval(@_autosave_interval)
-                    return
                 if @has_unsaved_changes() and (new Date()  -  (@_when_had_no_unsaved_changes ? 0)) >= @_autosave_interval
                     # Both has some unsaved changes *and* has had those changes for at least @_autosave_interval ms.
                     # NOTE: the second condition won't really work for documents that don't yet
@@ -1414,13 +636,13 @@ class FileEditor extends EventEmitter
         delete @_show_uncommitted_warning_timeout
         @uncommitted_element?.show()
 
-    focus: () => # TODO in derived class
+    focus: () => # FUTURE in derived class (???)
 
     _get: () =>
-        console.warn("TODO: editor -- needs to implement _get in derived class")
+        console.warn("Incomplete: editor -- needs to implement _get in derived class")
 
     _set: (content) =>
-        console.warn("TODO: editor -- needs to implement _set in derived class")
+        console.warn("Incomplete: editor -- needs to implement _set in derived class")
 
     restore_cursor_position: () =>
         # implement in a derived class if you need this
@@ -1429,7 +651,7 @@ class FileEditor extends EventEmitter
         # implement in a derived class if you need this
 
     local_storage: (key, value) =>
-        return local_storage(@editor.project_id, @filename, key, value)
+        return local_storage(@project_id, @filename, key, value)
 
     show: (opts) =>
         if not opts?
@@ -1438,8 +660,10 @@ class FileEditor extends EventEmitter
             else
                 opts = {}
         @_last_show_opts = opts
-        if not @is_active?()
-            return
+
+        # OPTIMIZATION: fix this performance update for active shows
+        #if not @is_active?()
+        #    return
 
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
         # the last call before doing the show.
@@ -1474,12 +698,12 @@ class FileEditor extends EventEmitter
             return
 
         salvus_client.write_text_file_to_project
-            project_id : @editor.project_id
+            project_id : @project_id
             timeout    : 10
             path       : @filename
             content    : content
             cb         : (err, mesg) =>
-                # TODO -- on error, we *might* consider saving to localStorage...
+                # FUTURE -- on error, we *might* consider saving to localStorage...
                 if err
                     alert_message(type:"error", message:"Communications issue saving #{@filename} -- #{err}")
                     cb?(err)
@@ -1493,9 +717,13 @@ exports.FileEditor = FileEditor
 
 ###############################################
 # Codemirror-based File Editor
+# Emits:
+#     - 'saved' : when the file is successfully saved by the user
+#     - 'show'  :
+#     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : required
@@ -1535,7 +763,7 @@ class CodeMirrorEditor extends FileEditor
 
         #console.log("mode =", opts.mode)
 
-        @project_id = @editor.project_id
+        @project_id = @project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
@@ -1550,10 +778,11 @@ class CodeMirrorEditor extends FileEditor
 
         @init_file_actions()
 
-        @init_close_button()
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
+
+        @chat_filename = misc.meta_file(@filename, 'chat')
 
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
@@ -1614,9 +843,9 @@ class CodeMirrorEditor extends FileEditor
         if opts.match_xml_tags
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
-        # We will replace this by a general framework...
+        # FUTURE: We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase() #TODO
+            evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1662,8 +891,6 @@ class CodeMirrorEditor extends FileEditor
             if opts.theme? and opts.theme != "standard"
                 options.theme = opts.theme
 
-            window.node = node
-            window.options = options
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
 
@@ -1723,9 +950,9 @@ class CodeMirrorEditor extends FileEditor
         return @syncdoc?.get_users_cursors(account_id)
 
     init_file_actions: () =>
-        if not @element? or not @editor?
+        if not @element?
             return
-        actions = redux.getProjectActions(@editor.project_id)
+        actions = redux.getProjectActions(@project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
         require('./r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
 
@@ -1790,7 +1017,7 @@ class CodeMirrorEditor extends FileEditor
         e.addClass("alert-#{type}")
 
     is_active: () =>
-        return @codemirror? and @editor? and @editor._active_tab_filename == @filename
+        return @codemirror? and misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
     set_theme: (theme) =>
         # Change the editor theme after the editor has been created
@@ -1862,17 +1089,18 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
+
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
-            e = @element.find("a[href=##{name}]")
+            e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
 
-        # TODO: implement printing for other file types
+        # FUTURE: implement printing for other file types
         if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=#print]").unbind().hide()
+            @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -1888,35 +1116,41 @@ class CodeMirrorEditor extends FileEditor
                     CodeMirror.commands.findNext(cm)
                 else
                     CodeMirror.commands.goPageDown(cm)
+                    cm.focus()
             when 'prev'
                 if cm._searchState?.query
                     CodeMirror.commands.findPrev(cm)
                 else
                     CodeMirror.commands.goPageUp(cm)
+                    cm.focus()
             when 'replace'
                 CodeMirror.commands.replace(cm)
             when 'undo'
                 cm.undo()
+                cm.focus()
             when 'redo'
                 cm.redo()
+                cm.focus()
             when 'split-view'
                 @toggle_split_view(cm)
             when 'autoindent'
                 CodeMirror.commands.indentAuto(cm)
             when 'shift-left'
                 cm.unindent_selection()
+                cm.focus()
             when 'shift-right'
                 @press_tab_key(cm)
+                cm.focus()
             when 'increase-font'
                 @change_font_size(cm, +1)
+                cm.focus()
             when 'decrease-font'
                 @change_font_size(cm, -1)
+                cm.focus()
             when 'goto-line'
                 @goto_line(cm)
             when 'print'
                 @print()
-        if name != 'goto-line'
-            cm.focus()
 
 
     restore_font_size: () =>
@@ -2015,7 +1249,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
-    # TODO: this "print" is actually for printing Sage worksheets, not arbitrary files.
+    # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
@@ -2109,13 +1343,8 @@ class CodeMirrorEditor extends FileEditor
             dialog.find(".salvus-file-options-sagews").show()
         dialog.modal('show')
 
-    init_close_button: () =>
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
-            return false
-
     init_save_button: () =>
-        @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
+        @save_button = @element.find("a[href=\"#save\"]").tooltip().click(@click_save_button)
         @save_button.find(".spinner").hide()
 
     init_uncommitted_element: () =>
@@ -2134,15 +1363,18 @@ class CodeMirrorEditor extends FileEditor
             return
         @_saving = true
         @save_button.icon_spin(start:true, delay:8000)
-        @editor.save @filename, (err) =>
+        @save (err) =>
+            # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
+            else
+                @emit('saved')
             @save_button.icon_spin(false)
             @_saving = false
         return false
 
     click_history_button: () =>
-        @editor.project_page.open_file
+        redux.getProjectActions(@project_id).open_file
             path       : misc.history_path(@filename)
             foreground : true
 
@@ -2197,7 +1429,7 @@ class CodeMirrorEditor extends FileEditor
         # in case of more than one view on the document...
         @_show_extra_codemirror_view()
 
-        btn = @element.find("a[href=#split-view]")
+        btn = @element.find("a[href=\"#split-view\"]")
         btn.find("i").hide()
         if not @_split_view
             @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
@@ -2243,17 +1475,6 @@ class CodeMirrorEditor extends FileEditor
             layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
             @_last_layout = @_layout
 
-        # need to do this since theme may have changed
-        # @_style_active_line()
-
-        # CRAZY HACK: add and remove an HTML element to the DOM.
-        # I don't know why this works, but it gets around a *massive bug*, where after
-        # aggressive resizing, the codemirror editor gets all corrupted. For some reason,
-        # doing this "usually" causes things to get properly fixed.  I don't know why.
-        hack = $("<div><br><br><br><br></div>")
-        $("body").append(hack)
-        setTimeout((()=>hack.remove()), 10000)
-
         for {cm,height,width} in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':height)
@@ -2284,18 +1505,17 @@ class CodeMirrorEditor extends FileEditor
 
 
     _show: (opts={}) =>
-
         # show the element that contains this editor
         @element.show()
 
         # do size computations: determine height and width of the codemirror editor(s)
         if not opts.top?
-            top           = @editor.editor_top_position()
+            top           = redux.getProjectStore(@project_id).get('editor_top_position')
         else
             top           = opts.top
 
         height            = $(window).height()
-        elem_height       = height - top - 5
+        elem_height       = height - top
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
@@ -2318,8 +1538,9 @@ class CodeMirrorEditor extends FileEditor
 
         # position the editor element on the screen
         @element.css(top:top, left:0)
+        @element.css(left:0)
         # and position the chat column
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height + 2)
 
         # set overall height of the element
         @element.height(elem_height)
@@ -2327,30 +1548,32 @@ class CodeMirrorEditor extends FileEditor
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
 
-        if chat
-            chat_elt = @element.find(".salvus-editor-codemirror-chat")
-            chat_elt.height(cm_height)
+        @chat_elt = @element.find(".salvus-editor-codemirror-chat")
 
-            chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
-            chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
-            chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
+#         if chat
+#             chat_elt = @element.find(".salvus-editor-codemirror-chat")
+#             chat_elt.height(cm_height)
 
-            chat_input_top = $(window).height() - chat_input.height() - 15
+#             chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
+#             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
+#             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
 
-            if chat_video
-                video_height = chat_video_loc.height()
-            else
-                video_height = 0
+#             chat_input_top = $(window).height() - chat_input.height() - 15
 
-            video_top = chat_video_loc.offset().top
+#             if chat_video
+#                 video_height = chat_video_loc.height()
+#             else
+#                 video_height = 0
 
-            chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
-            chat_output_top = video_top + video_height
+#             video_top = chat_video_loc.offset().top
 
-            chat_input.offset({top:chat_input_top})
+#             chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
+#             chat_output_top = video_top + video_height
 
-            chat_output.height(chat_output_height)
-            chat_output.offset({top:chat_output_top})
+#             chat_input.offset({top:chat_input_top})
+
+#             chat_output.height(chat_output_height)
+#             chat_output.offset({top:chat_output_top})
 
     focus: () =>
         if not @codemirror?
@@ -2480,11 +1703,11 @@ class CodeMirrorEditor extends FileEditor
                     args = args.split(',')
             return that.textedit_command(that.focused_codemirror(), cmd, args)
 
-        # TODO: activate color editing buttons -- for now just hide them
+        # FUTURE: activate color editing buttons -- for now just hide them
         @element.find(".sagews-output-editor-foreground-color-selector").hide()
         @element.find(".sagews-output-editor-background-color-selector").hide()
 
-        @fallback_buttons.find("a[href=#todo]").click () =>
+        @fallback_buttons.find("a[href=\"#todo\"]").click () =>
             bootbox.alert("<i class='fa fa-wrench' style='font-size: 18pt;margin-right: 1em;'></i> Button bar not yet implemented in <code>#{mode_display.text()}</code> cells.")
             return false
 
@@ -2548,11 +1771,11 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".salvus-editor-codemirror-textedit-buttons").mathjax()
 
 
-codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
+codemirror_session_editor = exports.codemirror_session_editor = (project_id, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
     ext = filename_extension_notilde(filename)
 
-    E = new CodeMirrorEditor(editor, filename, "", extra_opts)
+    E = new CodeMirrorEditor(project_id, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
     opts =
         cursor_interval : E.opts.cursor_interval
@@ -2942,7 +2165,7 @@ class PDFLatexDocument
             cb      : cb
 
     _parse_text: (text) =>
-        # todo -- parse through the text file putting the pages in the correspondings @pages dict.
+        # FUTURE -- parse through the text file putting the pages in the correspondings @pages dict.
         # for now... for debugging.
         @_text = text
         n = 1
@@ -3094,8 +2317,8 @@ class PDFLatexDocument
 exports.PDFLatexDocument = PDFLatexDocument
 
 class PDF_Preview extends FileEditor
-    constructor: (@editor, @filename, contents, opts) ->
-        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
+    constructor: (@project_id, @filename, contents, opts) ->
+        @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
         @element = templates.find(".salvus-editor-pdf-preview").clone()
@@ -3421,7 +2644,7 @@ class PDF_Preview extends FileEditor
 exports.PDF_Preview = PDF_Preview
 
 class PDF_PreviewEmbed extends FileEditor
-    constructor: (@editor, @filename, contents, @opts) ->
+    constructor: (@project_id, @filename, contents, @opts) ->
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @pdf_title = @element.find(".salvus-editor-pdf-title")
         @pdf_title.find("span").text("loading ...")
@@ -3436,12 +2659,8 @@ class PDF_PreviewEmbed extends FileEditor
 
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
 
-        @element.find("a[href=#refresh]").click () =>
+        @element.find("a[href=\"#refresh\"]").click () =>
             @update()
-            return false
-
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
             return false
 
     focus: () =>
@@ -3453,7 +2672,7 @@ class PDF_PreviewEmbed extends FileEditor
             return
         width = @element.width()
 
-        button = @element.find("a[href=#refresh]")
+        button = @element.find("a[href=\"#refresh\"]")
         button.icon_spin(true)
 
         @_last_width = width
@@ -3465,7 +2684,7 @@ class PDF_PreviewEmbed extends FileEditor
 
         @spinner.show().spin(true)
         salvus_client.read_file_from_project
-            project_id : @editor.project_id
+            project_id : @project_id
             path       : @filename
             timeout    : 20
             cb         : (err, result) =>
@@ -3480,6 +2699,12 @@ class PDF_PreviewEmbed extends FileEditor
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
     show: (geometry={}) =>
         geometry = defaults geometry,
             left   : undefined
@@ -3489,7 +2714,7 @@ class PDF_PreviewEmbed extends FileEditor
 
         @element.show()
         if not geometry.top?
-            @element.css(top:@editor.editor_top_position())
+            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
 
         if geometry.height?
             @element.height(geometry.height)
@@ -3514,18 +2739,18 @@ class PDF_PreviewEmbed extends FileEditor
 exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
 class Terminal extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
             filename  : @filename
+            project_id: @project_id
             resizable : false
-            close     : () => @editor.project_page.display_tab("project-file-listing")
             editor    : @
         @console = elt.data("console")
         @element = @console.element
         salvus_client.read_text_file_from_project
-            project_id : @editor.project_id
+            project_id : @project_id
             path       : @filename
             cb         : (err, result) =>
                 if err
@@ -3543,7 +2768,7 @@ class Terminal extends FileEditor
         mesg =
             timeout    : 30  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
-            project_id : @editor.project_id
+            project_id : @project_id
             cb : (err, session) =>
                 if err
                     alert_message(type:'error', message:err)
@@ -3554,7 +2779,7 @@ class Terminal extends FileEditor
                     @console.set_session(session)
                     @opts.session_uuid = session.session_uuid
                     salvus_client.write_text_file_to_project
-                        project_id : @editor.project_id
+                        project_id : @project_id
                         path       : @filename
                         content    : session.session_uuid
                         cb         : cb
@@ -3568,17 +2793,21 @@ class Terminal extends FileEditor
             salvus_client.new_session(mesg)
 
 
-    _get: () =>  # TODO
+    _get: () =>  # FUTURE ??
         return @opts.session_uuid ? ''
 
-    _set: (content) =>  # TODO
+    _set: (content) =>  # FUTURE ??
 
     save: (cb) =>
-        # DO nothing -- a no-op for now (no notion of history... YET!)
+        # DO nothing -- a no-op for now
+        # FUTURE: Add notion of history
         cb?()
 
     focus: () =>
         @console?.focus()
+
+    blur: () =>
+        @console?.blur()
 
     terminate_session: () =>
 
@@ -3586,33 +2815,37 @@ class Terminal extends FileEditor
         @element.salvus_console(false)
         super()
 
+    hide : () =>
+        if @console?
+            @element?.hide()
+            @console.blur()
+
     _show: () =>
         if @console?
             e = $(@console.terminal.element)
-            top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
+            top = redux.getProjectStore(@project_id).get('editor_top_position') + @element.find(".salvus-console-topbar").height()
             # We leave a gap at the bottom of the screen, because often the
             # cursor is at the bottom, but tooltips, etc., would cover that
             ht = $(window).height() - top - 6
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # HACK: this is hack-ish; needs to be redone!
             @console.focus(true)
 
 class Image extends FileEditor
-    constructor: (@editor, @filename, url, @opts) ->
+    constructor: (@project_id, @filename, url, @opts) ->
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
-        refresh = @element.find("a[href=#refresh]")
+        refresh = @element.find("a[href=\"#refresh\"]")
         refresh.click () =>
             refresh.icon_spin(true)
             @update (err) =>
                 refresh.icon_spin(false)
             return false
 
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
+        @element.find("a[href=\"#close\"]").click () =>
             return false
 
         if url?
@@ -3622,13 +2855,13 @@ class Image extends FileEditor
             @update()
 
     update: (cb) =>
-        @element.find("a[href=#refresh]").icon_spin(start:true)
+        @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
         salvus_client.read_file_from_project
-            project_id : @editor.project_id
+            project_id : @project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
-                @element.find("a[href=#refresh]").icon_spin(false)
+                @element.find("a[href=\"#refresh\"]").icon_spin(false)
                 @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
@@ -3644,15 +2877,28 @@ class Image extends FileEditor
         if not @is_active()
             return
         @element.show()
-        @element.css(top:@editor.editor_top_position())
+        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight()
 
 
 
-class StaticHTML extends FileEditor
-    constructor: (@editor, @filename, @content, opts) ->
+class PublicHTML extends FileEditor
+    constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".salvus-editor-static-html").clone()
-        @init_buttons()
+        if not @content?
+            @content = 'Loading...'
+            # Now load the content from the backend...
+            salvus_client.public_get_text_file
+                project_id : @project_id
+                path       : @filename
+                timeout    : 60
+                cb         : (err, content) =>
+                    if err
+                        @content = "Error opening file -- #{err}"
+                    else
+                        @content = content
+                    if @iframe?
+                        @set_iframe()
 
     show: () =>
         if not @is_active()
@@ -3663,8 +2909,10 @@ class StaticHTML extends FileEditor
             # See https://github.com/sagemathinc/smc/issues/843
             # -- wstein
             setTimeout(@set_iframe, 1)
+        else
+            @set_iframe()
         @element.show()
-        @element.css(top:@editor.editor_top_position())
+        #  redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
 
     set_iframe: () =>
@@ -3676,14 +2924,35 @@ class StaticHTML extends FileEditor
         @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
-    init_buttons: () =>
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
-            return false
+class PublicCodeMirrorEditor extends CodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts, cb) ->
+        opts.read_only = true
+        opts.public_access = true
+        super(@project_id, @filename, "Loading...", opts)
+        @element.find("a[href=\"#save\"]").hide()       # no need to even put in the button for published
+        @element.find("a[href=\"#readonly\"]").hide()   # ...
+        salvus_client.public_get_text_file
+            project_id : @project_id
+            path       : @filename
+            timeout    : 60
+            cb         : (err, content) =>
+                if err
+                    content = "Error opening file -- #{err}"
+                @_set(content)
+                cb?(err)
+
+class PublicSagews extends PublicCodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts) ->
+        super @project_id, @filename, content, opts, (err) =>
+            @element.find("a[href=\"#split-view\"]").hide()  # disable split view
+            if not err
+                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
+                @syncdoc.process_sage_updates()
+                @syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
-    constructor: (@editor, @filename, @content, @opts) ->
-        @init_wrapped(@editor, @filename, @content, @opts)
+    constructor: (@project_id, @filename, @content, @opts) ->
+        @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
         # Define @element and @wrapped in derived class
@@ -3702,11 +2971,11 @@ class FileEditorWrapper extends FileEditor
         return @wrapped?.has_uncommitted_changes?(val)
 
     _get: () =>
-        # TODO
+        # FUTURE
         return 'history saving not yet implemented'
 
     _set: (content) =>
-        # TODO
+        # FUTURE ???
 
     focus: () =>
 
@@ -3718,7 +2987,7 @@ class FileEditorWrapper extends FileEditor
     remove: () =>
         super()
         @wrapped?.destroy?()
-        delete @editor; delete @filename; delete @content; delete @opts
+        delete @filename; delete @content; delete @opts
 
     show: () =>
         if not @is_active()
@@ -3726,7 +2995,12 @@ class FileEditorWrapper extends FileEditor
         if not @element?
             return
         @element.show()
-        @element.css(top:@editor.editor_top_position(), position:'fixed')
+        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
+
+        if IS_MOBILE
+            @element.css(position:'relative')
+        else
+            @element.css(position:'fixed')
         @wrapped?.show?()
 
     hide: () =>
@@ -3742,154 +3016,17 @@ class TaskList extends FileEditorWrapper
         @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
         require.ensure [], () =>
             tasks = require('./tasks')
-            elt = tasks.task_list(@, @filename, {})
+            elt = tasks.task_list(@project_id, @filename, {})
             @element.replaceWith(elt)
             @element = elt
             @wrapped = elt.data('task_list')
             @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
 
-###
-# A Course that you are managing
-###
-class Course extends FileEditorWrapper
-    init_wrapped: () =>
-        course = undefined   # is lazy loaded below
-
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                course?.free_course(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
-            #hide    : =>
-            #    course.hide_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
-            #show    : =>
-            #    course.show_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
-        require.ensure [], () =>
-            course = require('./course/main')
-            course.render_course(args...)
-
-
-###
-# A chat room
-###
-class Chat extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_chat = require('./editor_chat')
-        @element = $("<div>")
-        if not IS_MOBILE
-            @element.css
-                'overflow-y'       : 'auto'
-                padding            : '7px'
-                border             : '1px solid #aaa'
-                width              : '100vw'
-                'background-color' : 'white'
-                left               : 0
-                bottom             : 0
-        else
-            @element.css
-                padding            : '7px'
-                'border-top'       : '1px solid #aaa'
-                width              : '100vw'
-                'background-color' : 'white'
-                bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_chat.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_chat.hide(args...)
-            show    : =>
-                editor_chat.show(args...)
-        editor_chat.render(args...)
-
-###
-# Git repo
-###
-class GitEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_git = require('./editor_git')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_git.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_git.hide(args...)
-            show    : =>
-                editor_git.show(args...)
-        editor_git.render(args...)
-
-###
-# Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
-###
-
-class Archive extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_archive = require('./editor_archive')
-        @element = $("<div>")
-        @element.css
-            'overflow'       : 'auto'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_archive.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_archive.hide(args...)
-            show    : =>
-                editor_archive.show(args...)
-        editor_archive.render(args...)
-
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
 
 ###
 # Jupyter notebook
@@ -3904,31 +3041,38 @@ class JupyterNotebook extends FileEditorWrapper
         @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
 class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
-        @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
+        @element = jupyter.jupyter_nbviewer(@project_id, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
 
 class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
-    constructor: (@editor, @filename, @content, opts) ->
+    constructor: (@project_id, @filename, @content, opts) ->
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
+        #window.w = @
 
     init_buttons: () =>
         # code duplication from editor_jupyter/JupyterNBViewer
-        @element.find('a[href=#copy]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href="#copy"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.load_target('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@filename, true)
             actions.set_file_action('copy')
             return false
 
-        @element.find('a[href=#download]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href="#download"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.load_target('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@filename, true)
             actions.set_file_action('download')
@@ -3942,14 +3086,15 @@ class JupyterNBViewerEmbedded extends FileEditor
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
                              window.smc_base_url,
-                             @editor.project_id,
+                             @project_id,
                              'raw',
                              @filename)
-            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files)
-            # ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
+            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files, since it
+            # still requires the user to be logged in with access to the host project)
+            #ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
-        @element.css(top:@editor.editor_top_position())
+        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
         @iframe.maxheight()
 
@@ -3958,11 +3103,12 @@ class JupyterNBViewerEmbedded extends FileEditor
 #############################################
 
 class HTML_MD_Editor extends FileEditor
-    constructor: (@editor, @filename, content, @opts) ->
+    constructor: (@project_id, @filename, content, @opts) ->
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
         @ext = filename_extension_notilde(@filename)   #'html' or 'md'
+        # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
@@ -3997,7 +3143,7 @@ class HTML_MD_Editor extends FileEditor
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
 
         # initialize the codemirror editor
-        @source_editor = codemirror_session_editor(@editor, @filename, @opts)
+        @source_editor = codemirror_session_editor(@project_id, @filename, @opts)
         @element.find(".salvus-editor-html-md-source-editor").append(@source_editor.element)
         @source_editor.action_key = @action_key
 
@@ -4077,8 +3223,8 @@ class HTML_MD_Editor extends FileEditor
 
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
-        @element.find("a[href=#save]").click(@click_save_button)
-        @print_button = @element.find("a[href=#print]").show().click(@print)
+        @element.find("a[href=\"#save\"]").click(@click_save_button)
+        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -4098,14 +3244,14 @@ class HTML_MD_Editor extends FileEditor
                 @sync()
 
     init_preview_buttons: () =>
-        disable = @element.find("a[href=#disable-preview]").click () =>
+        disable = @element.find("a[href=\"#disable-preview\"]").click () =>
             disable.hide()
             enable.show()
             @disable_preview = true
             @local_storage("disable_preview", true)
             @preview_content.html('')
 
-        enable = @element.find("a[href=#enable-preview]").click () =>
+        enable = @element.find("a[href=\"#enable-preview\"]").click () =>
             disable.show()
             enable.hide()
             @disable_preview = false
@@ -4131,7 +3277,7 @@ class HTML_MD_Editor extends FileEditor
         if true #  @ext != 'html'
             # hide some buttons, since these are not markdown friendly operations:
             for t in ['clean'] # I don't like this!
-                @edit_buttons.find("a[href=##{t}]").hide()
+                @edit_buttons.find("a[href=\"##{t}\"]").hide()
 
         # initialize the color controls
         button_bar = @edit_buttons
@@ -4204,7 +3350,7 @@ class HTML_MD_Editor extends FileEditor
                 alert_message(type:"error", message:"Printing error -- #{err}")
             else
                 salvus_client.read_file_from_project
-                    project_id : @editor.project_id
+                    project_id : @project_id
                     path       : output.filename
                     cb         : (err, mesg) =>
                         if err
@@ -4233,7 +3379,7 @@ class HTML_MD_Editor extends FileEditor
                 @save(cb)
             (cb) =>
                 salvus_client.exec
-                    project_id  : @editor.project_id
+                    project_id  : @project_id
                     command     : command
                     args        : args
                     err_on_exit : true
@@ -4271,7 +3417,7 @@ class HTML_MD_Editor extends FileEditor
             mode = 'none'
         #t0 = misc.mswalltime()
         salvus_client.exec
-            project_id  : @editor.project_id
+            project_id  : @project_id
             command     : "cat '#{@filename}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
             bash        : true
             err_on_exit : true
@@ -4342,7 +3488,7 @@ class HTML_MD_Editor extends FileEditor
                     # a single cursor
                     pos = s.head
                     line = lines[pos.line]
-                    # TODO: for now, tags have to start/end on a single line
+                    # FUTURE: for now, tags have to start/end on a single line
                     i = @outside_tag(line, pos.ch)
                     lines[pos.line] = line.slice(0,i)+markers.cursor+line.slice(i)
                 else if false  # disable
@@ -4365,9 +3511,9 @@ class HTML_MD_Editor extends FileEditor
                 line = lines[i]
                 line2 = ''
                 for j in [0...line.length]
-                    if line[j] == "<"  # TODO: worry about < in mathjax...
+                    if line[j] == "<"  # WARNING: worry about < in mathjax...
                         s = line.slice(0,j)
-                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # TODO: ridiculously inefficient
+                        c = s.split(markers.cursor).length + s.split(markers.from).length + s.split(markers.to).length - 3  # OPTIMIZATION: ridiculously inefficient
                         line2 = "<span data-line=#{i} data-ch=#{j-c} class='smc-pos'></span>" + line.slice(j) + line2
                         line = line.slice(0,j)
                 lines[i] = "<span data-line=#{i} data-ch=0 class='smc-pos'></span>"+line + line2
@@ -4377,7 +3523,7 @@ class HTML_MD_Editor extends FileEditor
         source = misc.replace_all(source, markers.cursor, "<span class='smc-html-cursor'></span>")
 
         # add smc-html-selection class to everything that is selected
-        # TODO: this will *only* work when there is one range selection!!
+        # WARNING: this will *only* work when there is one range selection!!
         i = source.indexOf(markers.from)
         j = source.indexOf(markers.to)
         if i != -1 and j != -1
@@ -4417,7 +3563,7 @@ class HTML_MD_Editor extends FileEditor
                 @save(cb)
             (cb) =>
                 salvus_client.exec
-                    project_id  : @editor.project_id
+                    project_id  : @project_id
                     command     : opts.command
                     args        : opts.args
                     err_on_exit : false
@@ -4490,7 +3636,7 @@ class HTML_MD_Editor extends FileEditor
             src = y.attr('src')
             if not src? or src[0] == '/' or src.indexOf('://') != -1
                 continue
-            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
         # make relative links to objects use the raw server
         for x in e.find("object")
@@ -4498,7 +3644,7 @@ class HTML_MD_Editor extends FileEditor
             src = y.attr('data')
             if not src? or src[0] == '/' or src.indexOf('://') != -1
                 continue
-            new_src = "/#{@editor.project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('data', new_src)
 
     init_preview_select: () =>
@@ -4539,7 +3685,7 @@ class HTML_MD_Editor extends FileEditor
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, @_split_pos))
-        @element.css(left:0, top:@editor.editor_top_position(), position:'fixed')
+        @element.css(left:0, top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
         @element.width($(window).width())
 
         width = @element.width()
@@ -4552,6 +3698,8 @@ class HTML_MD_Editor extends FileEditor
 
         @_dragbar.css('left',editor_width+left)
 
+        # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
+
         @source_editor.show
             width : editor_width
             top   : top + @edit_buttons.height()
@@ -4561,111 +3709,63 @@ class HTML_MD_Editor extends FileEditor
         @preview.maxheight(offset:button_bar_height)
 
         @_dragbar.height(@source_editor.element.height())
-        @_dragbar.css('top',top-9)  # -9 = ugly hack
+        @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
+        @_dragbar.css('top', "#{@edit_buttons.height() + button_bar_height + 9}px") # +9 is not good
 
         # position the preview
+        @preview.offset
+            top: @source_editor.element.offset() + button_bar_height
+
         @preview.css
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
-            top   : top
-
+            top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
 
     focus: () =>
         @source_editor?.focus()
 
 {LatexEditor} = require('./editor_latex')
 
-class ReactCodemirror extends FileEditorWrapper
-    init_wrapped: () =>
-        editor_codemirror = require('./editor_codemirror')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                editor_codemirror.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                editor_codemirror.hide(args...)
-            show    : =>
-                editor_codemirror.show(args...)
-        editor_codemirror.render(args...)
+exports.register_nonreact_editors = () ->
 
+    # Make non-react editors available in react rewrite
+    reg = require('./editor_react_wrapper').register_nonreact_editor
 
-###
-# *TEMPLATE* for a react-based editor
-###
-class TemplateEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        the_editor = require('./editor_template')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                the_editor.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                the_editor.hide(args...)
-            show    : =>
-                the_editor.show(args...)
-        the_editor.render(args...)
+    reg
+        ext : ''  # fallback for any type not otherwise explicitly specified
+        f   : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        is_public : false
 
+    # Editors for private normal editable files.
+    reg0 = (cls, extensions) ->
+        icon = file_icon_class(extensions[0])
+        reg
+            ext       : extensions
+            is_public : false
+            icon      : icon
+            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
 
-class TemplateEditor extends FileEditorWrapper
-    init_wrapped: () =>
-        the_editor = require('./editor_template')
-        @element = $("<div>")
-        @element.css
-            'overflow-y'       : 'auto'
-            padding            : '7px'
-            border             : '1px solid #aaa'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
-            left               : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
-        @wrapped =
-            save    : undefined
-            destroy : =>
-                if not args?
-                    return
-                the_editor.free(args...)
-                args = undefined
-                delete @editor
-                @element?.empty()
-                @element?.remove()
-                delete @element
-            hide    : =>
-                the_editor.hide(args...)
-            show    : =>
-                the_editor.show(args...)
-        the_editor.render(args...)
+    reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
+    reg0 LatexEditor,      ['tex']
+    reg0 Terminal,         ['term', 'sage-term']
+    reg0 Image,            ['png', 'jpg', 'gif', 'svg']
+
+    {HistoryEditor} = require('./editor_history')
+    reg0 HistoryEditor,    ['sage-history']
+    reg0 PDF_PreviewEmbed, ['pdf']
+    reg0 TaskList,         ['tasks']
+    reg0 JupyterNotebook,  ['ipynb']
+
+    # "Editors" for read-only public files
+    reg1 = (cls, extensions) ->
+        icon = file_icon_class(extensions[0])
+        reg
+            ext       : extensions
+            is_public : true
+            icon      : icon
+            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
+
+    reg1 PublicCodeMirrorEditor,  ['']
+    reg1 PublicHTML,              ['html']
+    reg1 PublicSagews,            ['sagews']
+    reg1 JupyterNBViewerEmbedded, ['ipynb']

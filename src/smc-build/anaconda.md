@@ -1,6 +1,14 @@
 # Installing Anaconda
 
-Written down on 2015-12-28, hopefully helpful for the next time.
+
+## Changelog
+
+* Started to write down on 2015-12-28, hopefully helpful for the next time.
+* Maintained and working well at least until 2016-10
+
+TODO: transform this into a `setup_anaconda.sh` file (similar to the `update_anaconda.sh` in `scripts`)
+
+## Setup
 
 1. https://www.continuum.io/downloads
 1. linux, python 3.5, 64-bit
@@ -59,6 +67,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
       - pypi
       - plotly
       - conda-forge
+      - mutirri
       - defaults
     show_channel_urls: True
 
@@ -76,7 +85,7 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra plotly geopandas altair
 
-       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials
+       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras altair
 
 not possible to install (conflict with python 3.5):
 
@@ -129,8 +138,6 @@ pip3 = [
 ]
 ```
 
-
-
 ### older install notes:
 
 To learn about them, do `anaconda search -t conda PACKAGENAMEPATTERN` and then `anaconda show …` as told in the output string.
@@ -140,3 +147,7 @@ To learn about them, do `anaconda search -t conda PACKAGENAMEPATTERN` and then `
     conda install -y --channel https://conda.anaconda.org/IOOS oct2py
 
 
+### fix permissions (umask 022 not always works)
+
+    chmod a+r -R . || true
+    find . -perm /u+x -execdir chmod a+x {} \; || true

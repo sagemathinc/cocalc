@@ -19,9 +19,9 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
+{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
@@ -31,7 +31,6 @@ misc = require('smc-util/misc')
 {MiniTerminal}        = require('./project_miniterm')
 {file_associations}   = require('./editor')
 account               = require('./account')
-{top_navbar}          = require('./top_navbar')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
@@ -39,7 +38,7 @@ underscore            = require('underscore')
 
 {salvus_client} = require('./salvus_client')
 
-Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
+Combobox = require('react-widgets/lib/Combobox') # FUTURE: delete this when the combobox is in r_misc
 
 TERM_MODE_CHAR = '/'
 
@@ -166,9 +165,9 @@ FileRow = rclass
 
     render_name : ->
         name = @props.display_name ? @props.name
-        ext  = misc.filename_extension(name)
-        if ext isnt ''
-            name = name[0...name.length - ext.length - 1] # remove the ext and the .
+        name_and_ext = misc.separate_file_extension(name)
+        name = name_and_ext.name
+        ext = name_and_ext.ext
 
         show_tip = (@props.display_name? and @props.name isnt @props.display_name) or name.length > 50
 
@@ -228,6 +227,8 @@ FileRow = rclass
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
+        # TODO: actions are not allowed to return anything.  Move this to the store or somewhere else.
+        # See https://github.com/sagemathinc/smc/issues/1020
         href_download = @props.actions.download_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
@@ -247,13 +248,13 @@ FileRow = rclass
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
                 <span className='pull-right' style={color:'#666'}>
                     {human_readable_size(@props.size)}
-                    <Button style={marginLeft: '1em'}
+                    <Button style={marginLeft: '1em', background:'transparent'}
                             bsStyle='default'
                             bsSize='xsmall'
                             target='_blank'
                             href="#{href_download}"
                             onClick = {(e)->e.stopPropagation()}>
-                        {String.fromCharCode("8615")}
+                        <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
                 </span>
             </Col>
@@ -395,7 +396,7 @@ NoFiles = rclass
     # Go to the new file tab if there is no file search
     handle_click : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page('project-new-file')
+            @props.actions.set_active_tab('new')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -424,7 +425,6 @@ NoFiles = rclass
             <Icon name='plus-circle' /> {@button_text()}
         </Button>
 
-    # TODO: Make better help text
     render_help_alert : ->
         last_folder_index = @props.file_search.lastIndexOf('/')
         if @props.file_search.indexOf('\\') != -1
@@ -659,9 +659,19 @@ ProjectFilesButtons = rclass
     propTypes :
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
+        default_sort : rtypes.string
         current_path : rtypes.string
         public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
+
+    componentWillReceiveProps: (next) ->
+        if @props.default_sort != next.default_sort
+            if next.default_sort == 'time' and next.sort_by_time is true or next.default_sort == 'name' and next.sort_by_time is false
+                @props.actions.setState(sort_by_time : next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, next.sort_by_time, next.show_hidden)
+            else
+                @props.actions.setState(sort_by_time : not next.sort_by_time)
+                @props.actions.set_directory_files(next.current_path, not next.sort_by_time, next.show_hidden)
 
     handle_refresh : (e) ->
         e.preventDefault()
@@ -693,8 +703,9 @@ ProjectFilesButtons = rclass
             <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
 
     render_backup : ->
-        if @props.public_view
+        if @props.public_view or not require('./customize').commercial
             return
+        # NOTE -- snapshots aren't available except in commercial version -- they are complicated nontrivial thing that isn't usually setup...
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
             <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
         </a>
@@ -703,7 +714,7 @@ ProjectFilesButtons = rclass
         if @props.public_view
             return
         <div>
-            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_focused_page('project-settings')} style={marginLeft:'7px'}>
+            <a href='' onClick={(e)=>e.preventDefault(); @props.actions.set_active_tab('settings')} style={marginLeft:'7px'}>
                 <Icon name='user' /> <span style={fontSize: 14} className='hidden-sm'>Add Collaborators</span>
             </a>
         </div>
@@ -890,8 +901,13 @@ ProjectFilesActionBox = rclass
         project_id    : rtypes.string.isRequired
         public_view   : rtypes.bool
         file_map      : rtypes.object.isRequired
-        redux         : rtypes.object
         actions       : rtypes.object.isRequired
+
+    reduxProps :
+        projects :
+            get_project_select_list : rtypes.func
+        account :
+            get_user_type : rtypes.func
 
     getInitialState : ->
         copy_destination_directory  : ''
@@ -926,7 +942,7 @@ ProjectFilesActionBox = rclass
         </pre>
 
     compress_click : ->
-        destination = @refs.result_archive.getValue()
+        destination = ReactDOM.findDOMNode(@refs.result_archive).value
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(@props.current_path, destination)
@@ -944,15 +960,17 @@ ProjectFilesActionBox = rclass
 
                 <Col sm=5 style={color:'#666'}>
                     <h4>Result archive</h4>
-                    <Input
-                        autoFocus    = {true}
-                        ref          = 'result_archive'
-                        key          = 'result_archive'
-                        type         = 'text'
-                        defaultValue = {account.default_filename('zip')}
-                        placeholder  = 'Result archive...'
-                        onKeyDown    = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus    = {true}
+                            ref          = 'result_archive'
+                            key          = 'result_archive'
+                            type         = 'text'
+                            defaultValue = {account.default_filename('zip')}
+                            placeholder  = 'Result archive...'
+                            onKeyDown    = {@action_key}
+                        />
+                    </FormGroup>
                 </Col>
             </Row>
             <Row>
@@ -1021,7 +1039,7 @@ ProjectFilesActionBox = rclass
 
     rename_click : ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
-        destination = @refs.new_name.getValue()
+        destination = ReactDOM.findDOMNode(@refs.new_name).value
         @props.actions.move_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(rename_dir, destination)
@@ -1060,16 +1078,18 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=5 style={color:'#666'}>
                     <h4>New name</h4>
-                    <Input
-                        autoFocus    = {true}
-                        ref          = 'new_name'
-                        key          = 'new_name'
-                        type         = 'text'
-                        defaultValue = {misc.path_split(single_item).tail}
-                        placeholder  = 'New file name...'
-                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())}
-                        onKeyDown    = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus    = {true}
+                            ref          = 'new_name'
+                            key          = 'new_name'
+                            type         = 'text'
+                            defaultValue = {misc.path_split(single_item).tail}
+                            placeholder  = 'New file name...'
+                            onChange     = {=>@setState(new_name : ReactDOM.findDOMNode(@refs.new_name).value)}
+                            onKeyDown    = {@action_key}
+                        />
+                    </FormGroup>
                     {@render_rename_warning()}
                 </Col>
             </Row>
@@ -1126,7 +1146,6 @@ ProjectFilesActionBox = rclass
                         key           = 'move_destination'
                         default_value = ''
                         placeholder   = 'Home directory'
-                        redux         = {@props.redux}
                         project_id    = {@props.project_id}
                         on_key_up     = {@action_key}
                     />
@@ -1152,7 +1171,7 @@ ProjectFilesActionBox = rclass
 
     render_different_project_dialog : ->
         if @state.show_different_project
-            data = @props.redux.getStore('projects').get_project_select_list(@props.project_id)
+            data = @props.get_project_select_list(@props.project_id)
             if not data?
                 return <Loading />
             <Col sm=4 style={color:'#666',marginBottom:'15px'}>
@@ -1172,14 +1191,16 @@ ProjectFilesActionBox = rclass
     render_copy_different_project_options : ->
         if @props.project_id isnt @state.copy_destination_project_id
             <div>
-                <Input
-                    ref   = 'delete_extra_files_checkbox'
-                    type  = 'checkbox'
-                    label = 'Delete extra files in target directory' />
-                <Input
-                    ref   = 'overwrite_newer_checkbox'
-                    type  = 'checkbox'
-                    label = 'Overwrite newer versions of files' />
+                <Checkbox
+                    ref = 'delete_extra_files_checkbox'
+                    onChange = {(e)=>@setState('delete_extra_files': e.target.checked)}>
+                    Delete extra files in target directory
+                </Checkbox>
+                <Checkbox
+                    ref = 'overwrite_newer_checkbox'
+                    onChange = {(e)=>@setState('overwrite_newer': e.target.checked)}>
+                    Overwrite newer versions of files
+                </Checkbox>
             </div>
 
     different_project_button : ->
@@ -1194,8 +1215,8 @@ ProjectFilesActionBox = rclass
     copy_click : ->
         destination_directory  = @state.copy_destination_directory
         destination_project_id = @state.copy_destination_project_id
-        overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
-        delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
+        overwrite_newer        = @state.overwrite_newer
+        delete_extra_files     = @state.delete_extra_files
         paths = @props.checked_files.toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
@@ -1221,13 +1242,13 @@ ProjectFilesActionBox = rclass
             return false
         if input is @props.current_directory
             return false
-        if misc.startswith(input, '/') # TODO: make this smarter
+        if misc.startswith(input, '/')
             return false
         return true
 
     render_copy : ->
         size = @props.checked_files.size
-        signed_in = @props.redux.getStore('account').get_user_type() == 'signed_in'
+        signed_in = @props.get_user_type() == 'signed_in'
         if @props.public_view and not signed_in
             <div>
                 <LoginLink />
@@ -1262,7 +1283,6 @@ ProjectFilesActionBox = rclass
                             key           = 'copy_destination_directory'
                             placeholder   = 'Home directory'
                             default_value = ''
-                            redux         = {@props.redux}
                             project_id    = {@state.copy_destination_project_id}
                             on_key_up     = {@action_key}
                         />
@@ -1287,7 +1307,7 @@ ProjectFilesActionBox = rclass
             @copy_click()
 
     share_click : ->
-        description = @refs.share_description.getValue()
+        description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), description)
         @props.actions.set_file_action()
 
@@ -1305,7 +1325,9 @@ ProjectFilesActionBox = rclass
     render_public_share_url : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
+        # display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
+        # TODO: undo this hotfix for #1064
+        display_url = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
         if @props.file_map[misc.path_split(single_item).tail]?.isdir
             display_url += '/'
         <pre style={@pre_styles}>
@@ -1332,16 +1354,18 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
-                    <Input
-                        autoFocus     = {true}
-                        ref          = 'share_description'
-                        key          = 'share_description'
-                        type         = 'text'
-                        defaultValue = {single_file_data.public?.description ? ''}
-                        disabled     = {parent_is_public}
-                        placeholder  = 'Description...'
-                        onKeyUp      = {@action_key}
-                    />
+                    <FormGroup>
+                        <FormControl
+                            autoFocus     = {true}
+                            ref          = 'share_description'
+                            key          = 'share_description'
+                            type         = 'text'
+                            defaultValue = {single_file_data.public?.description ? ''}
+                            disabled     = {parent_is_public}
+                            placeholder  = 'Description...'
+                            onKeyUp      = {@action_key}
+                        />
+                    </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
@@ -1377,6 +1401,7 @@ ProjectFilesActionBox = rclass
     download_click : ->
         @props.actions.download_file
             path : @props.checked_files.first()
+            log : true
         @props.actions.set_file_action()
 
     render_download_link : (single_item) ->
@@ -1445,7 +1470,6 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
-# TODO: Move state into store.
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
@@ -1603,7 +1627,8 @@ ProjectFilesSearch = rclass
     render : ->
         <span>
             <SearchInput
-                autoFocus autoSelect
+                autoFocus
+                autoSelect
                 placeholder   = 'Filename'
                 value         = {@props.file_search}
                 on_change     = {@on_change}
@@ -1633,7 +1658,7 @@ ProjectFilesNew = rclass
     getDefaultProps : ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon : ->
         <span><Icon name='plus-circle' /> Create</span>
@@ -1654,7 +1679,7 @@ ProjectFilesNew = rclass
     # Go to new file tab if no file is specified
     on_create_button_clicked : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page('project-new-file')
+            @props.actions.set_active_tab('new')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -1678,15 +1703,16 @@ error_style =
     position    : 'absolute'
     zIndex      : 15
     right       : '5px'
-    top         : '-43px'
     boxShadow   : '5px 5px 5px grey'
 
-ProjectFiles = (name) -> rclass
+exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
         projects :
             project_map   : rtypes.immutable
+            date_when_course_payment_required : rtypes.func
+            get_my_group : rtypes.func
         account :
             other_settings : rtypes.immutable
         "#{name}" :
@@ -1701,28 +1727,32 @@ ProjectFiles = (name) -> rclass
             checked_files       : rtypes.immutable
             file_creation_error : rtypes.string
             selected_file_index : rtypes.number
+            directory_listings  : rtypes.object
+            get_displayed_listing : rtypes.func
 
     propTypes :
         project_id    : rtypes.string
+        actions       : rtypes.object
         redux         : rtypes.object
-        actions       : rtypes.object.isRequired
 
     getDefaultProps : ->
         page_number : 0
         file_search : ''
         selected_file_index : 0
+        actions : redux.getActions(name) # TODO: Do best practices way
+        redux   : redux
 
     previous_page : ->
         if @props.page_number > 0
-            @props.actions.setState(page_number : @props.page_number - 1)
+            @actions(name).setState(page_number : @props.page_number - 1)
 
     next_page : ->
-        @props.actions.setState(page_number : @props.page_number + 1)
+        @actions(name).setState(page_number : @props.page_number + 1)
 
     create_file : (ext, switch_over=true) ->
         if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
             ext = "sagews"
-        @props.actions.create_file
+        @actions(name).create_file
             name         : @props.file_search
             ext          : ext
             current_path : @props.current_path
@@ -1777,7 +1807,6 @@ ProjectFiles = (name) -> rclass
                 project_id    = {@props.project_id}
                 public_view   = {public_view}
                 file_map      = {file_map}
-                redux         = {@props.redux}
                 actions       = {@props.actions} />
         </Col>
 
@@ -1886,7 +1915,7 @@ ProjectFiles = (name) -> rclass
             </div>
 
     start_project: ->
-        @props.redux.getActions('projects').start_project(@props.project_id)
+        @actions('projects').start_project(@props.project_id)
 
     render_start_project_button: (project_state) ->
         <Button
@@ -1907,30 +1936,30 @@ ProjectFiles = (name) -> rclass
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
+    file_listing_default_sort: ->
+        return @props.other_settings?.get('default_file_sort') ? 'time'
+
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
+        window.fprops = @props
 
-        projects_store = @props.redux.getStore('projects')  # component depends on this so OK
-
-        pay = projects_store.date_when_course_payment_required(@props.project_id)
+        pay = @props.date_when_course_payment_required(@props.project_id)
         if pay? and pay <= salvus_client.server_time()
             return @render_course_payment_required()
 
-        # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
-        # going to do this temporarily so we can make a release.
-        public_view = projects_store.get_my_group(@props.project_id) == 'public'
+        public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing(TERM_MODE_CHAR)
+        {listing, error, file_map} = @props.get_displayed_listing(TERM_MODE_CHAR)
 
         file_listing_page_size= @file_listing_page_size()
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
-        <div style={minHeight:"80vh"}>
+        <div style={padding:'15px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
             {@render_error()}
@@ -1961,6 +1990,7 @@ ProjectFiles = (name) -> rclass
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
+                        default_sort = {@file_listing_default_sort()}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
@@ -1979,24 +2009,3 @@ ProjectFiles = (name) -> rclass
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
-
-render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id, redux)
-    actions = redux.getProjectActions(project_id)
-    C = ProjectFiles(store.name)
-    <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} actions={actions}/>
-    </Redux>
-
-exports.render_new = (project_id, dom_node, redux) ->
-    #console.log("mount")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.mount = (project_id, dom_node, redux) ->
-    #console.log("mount")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount")
-    ReactDOM.unmountComponentAtNode(dom_node)
-

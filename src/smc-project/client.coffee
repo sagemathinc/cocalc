@@ -137,17 +137,18 @@ class exports.Client extends EventEmitter
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
         @_recent_syncstrings.on 'change', =>
             dbg("@_recent_syncstrings change")
-            @update_recent_syncstrings()
+            @_update_recent_syncstrings()
 
         @_recent_syncstrings.once 'change', =>
             # We have to do this interval check since syncstrings no longer satisfying the max_age_m query
             # do NOT automatically get removed from the table (that's just not implemented yet).
             # This interval check is also important in order to detect files that were deleted then
             # recreated.
-            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 5*1000)
+            @_recent_syncstrings_interval = setInterval(@_update_recent_syncstrings, 5*1000)
 
-    update_recent_syncstrings: () =>
+    _update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
+        dbg('doing an update')
         cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
         @_wait_syncstrings ?= {}
         keys = {}
@@ -165,9 +166,11 @@ class exports.Client extends EventEmitter
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
+
             if val.get("last_active") > cutoff
                 keys[string_id] = true   # anything not set here gets closed below.
-                if @_open_syncstrings[string_id] or @_wait_syncstrings[string_id]
+                dbg("considering '#{path}' with id '#{string_id}'")
+                if @_open_syncstrings[string_id]? or @_wait_syncstrings[string_id]
                     # either already open or waiting a bit before opening
                     return
                 if not @_open_syncstrings[string_id]?
@@ -572,7 +575,7 @@ class exports.Client extends EventEmitter
 
     # Watch for changes to the given file.
     # We can only watch if the file exists when this function is called, though subsequent
-    # delete and recreate does work, so we create the file if it doesn't exist.
+    # delete and recreate does work.
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
     #    - 'error' (err)             - When error occurs
@@ -580,7 +583,7 @@ class exports.Client extends EventEmitter
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
-            debounce : 750
+            debounce : 500
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
         dbg = @dbg("watch_file(path='#{path}')")
@@ -598,6 +601,7 @@ class exports.Client extends EventEmitter
                         else
                             cb()
             (cb) =>
+                #gaze_obj = new Gaze(path, {debounceDelay:opts.debounce, interval:2500, mode:'poll'})
                 gaze_obj = new Gaze(path, {debounceDelay:opts.debounce})
                 gaze_obj.on 'error', (err) =>
                     dbg("error #{err}")

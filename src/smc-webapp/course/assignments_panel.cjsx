@@ -5,7 +5,7 @@ misc = require('smc-util/misc')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
 # SMC and course components
 course_funcs = require('./course_funcs')
@@ -536,13 +536,14 @@ Assignment = rclass
         @props.redux.getActions(@props.name).set_peer_grade(@props.assignment, config)
 
     render_configure_peer_checkbox: (config) ->
-        <Input checked  = {config.enabled}
-               key      = 'peer_grade_checkbox'
-               type     = 'checkbox'
-               label    = {"Enable Peer Grading"}
-               ref      = 'peer_grade_checkbox'
-               onChange = {=>@set_peer_grade(enabled:@refs.peer_grade_checkbox.getChecked())}
-        />
+        <span>
+            <Checkbox checked  = {config.enabled}
+                   key      = 'peer_grade_checkbox'
+                   ref      = 'peer_grade_checkbox'
+                   onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
+            />
+            Enable Peer Grading
+        </span>
 
     peer_due_change : (date) ->
         if not date

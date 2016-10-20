@@ -366,13 +366,18 @@ def image_file(tmpdir_factory):
     make_img().savefig(str(fn))
     return fn
 
+@pytest.fixture(scope='session')
+def data_path(tmpdir_factory):
+    path = tmpdir_factory.mktemp("data")
+    path.ensure_dir()
+    return path
+
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
     Fixture for worksheet cell test. Depends on two other fixtures,
     sagews and test_id.
-
-    OUTPUT:
+    - `` code `` -- string of code block to run
 
     Fixture function exec2. If output & patterns are omitted, the cell is not
     expected to produce a stdout result. Arguments after 'code' are optional.

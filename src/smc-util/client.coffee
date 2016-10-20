@@ -1112,7 +1112,7 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : "find"
             timeout    : 15
-            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
             bash       : false
             cb         : (err, result) =>
                 if err
@@ -1282,14 +1282,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(false, resp.state)
-
-    #################################################
-    # Some UI state
-    #################################################
-    in_fullscreen_mode: (state) =>
-        if state?
-            @_fullscreen_mode = state
-        return $(window).width() <= 767 or @_fullscreen_mode
 
     #################################################
     # Print file to pdf
