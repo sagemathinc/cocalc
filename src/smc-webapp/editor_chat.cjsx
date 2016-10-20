@@ -283,7 +283,7 @@ class ChatActions extends Actions
             # no chatroom id means no users, so set the first user
             users = [account_id]
             video.room_id = room_id
-        else
+        else if users.length < 8 # max number of users is 8 for appear.in
             # add subsequent users
             users.push(account_id)
         video.users = users
