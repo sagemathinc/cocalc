@@ -390,8 +390,6 @@ def exec2(request, sagews, test_id):
 
     - `` html_pattern `` -- regex to match with expected html output
 
-    - `` expect_doctype `` -- if True, expect doctype message after code
-
     EXAMPLES:
 
     ::
@@ -413,21 +411,11 @@ def exec2(request, sagews, test_id):
             exec2("sh('date +%Y-%m-%d')", pattern = '^\d{4}-\d{2}-\d{2}$')
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None,
-               expect_doctype = False):
+    def execfn(code, output = None, pattern = None, html_pattern = None):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
         # send block of code to be executed
         sagews.send_json(m)
-
-        # is there an HTML DOCTYPE
-        # common for first response when starting jupyter kernel
-        if expect_doctype:
-            typ, mesg = sagews.recv()
-            assert typ == 'json'
-            assert mesg['id'] == test_id
-            assert 'html' in mesg
-            assert 'DOCTYPE HTML PUBLIC' in mesg['html']
 
         # check stdout
         if output or pattern:
