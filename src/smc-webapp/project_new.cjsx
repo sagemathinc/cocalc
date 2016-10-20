@@ -220,6 +220,10 @@ ProjectNewForm = rclass ({name}) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
 
+    componentDidUpdate: ->
+        if not @state.warning
+            ReactDOM.findDOMNode(@refs.project_new_filename).focus()
+
     default_filename : ->
         return require('./account').default_filename()
 
@@ -239,7 +243,7 @@ ProjectNewForm = rclass ({name}) ->
         e.preventDefault()
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else if ReactDOM.findDOMNode(@refs.project_new_filename).value.includes('.')
+        else if @state.filename.includes(".")
             @create_file()
         else
             @setState(warning : true)
@@ -274,11 +278,6 @@ ProjectNewForm = rclass ({name}) ->
             on_error     : on_error
             switch_over  : true
 
-    decline_file : ->
-        @setState(warning : false)
-        ReactDOM.findDOMNode(@refs.project_new_filename).disabled = false
-        ReactDOM.findDOMNode(@refs.project_new_filename).focus()
-
     render_alert : ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
             <p>Warning: Are you sure you want to create a file with no extensions?</p>
@@ -286,7 +285,7 @@ ProjectNewForm = rclass ({name}) ->
                 <Button onClick={=>@create_file()} bsStyle='success'>
                     Create file
                 </Button>
-                <Button onClick={@decline_file} bsStyle='default'>
+                <Button onClick={=>@setState(warning : false)} bsStyle='default'>
                     Cancel
                 </Button>
             </ButtonToolbar>
