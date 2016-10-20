@@ -433,8 +433,9 @@ ChatRoom = (name) -> rclass
             overflowX    : "hidden"
             width        : "380%"
             height       : "#{@props.max_height}px"
-            margin       : "0px 0px 0px 13px"
+            margin       : "0px 0px 0px 15px"
             padding      : "0"
+            background   : "white"
 
         <div>
             <Row>
@@ -454,7 +455,7 @@ ChatRoom = (name) -> rclass
                 </Col>
             </Row>
             <Row>
-                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "13px", width:"60%"}>
+                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "15px", width:"60%"}>
                     <form>
                         <FormGroup>
                             <FormControl
