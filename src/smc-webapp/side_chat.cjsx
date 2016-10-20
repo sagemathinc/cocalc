@@ -29,7 +29,6 @@ underscore = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
-{Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 {synchronized_db} = require('./syncdb')
 
@@ -37,8 +36,8 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
-{Icon, Loading, TimeAgo} = require('./r_misc')
-{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup} = require('react-bootstrap')
+{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -49,9 +48,7 @@ Message = rclass
 
     propTypes:
         message        : rtypes.object.isRequired  # immutable.js message object
-        history        : rtypes.array
-        history_author : rtypes.array
-        history_date   : rtypes.array
+        history        : rtypes.object
         account_id     : rtypes.string.isRequired
         date           : rtypes.string
         sender_name    : rtypes.string
@@ -106,31 +103,26 @@ Message = rclass
         if @refs.editedMessage
             @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
-    show_history: ->
+    toggle_history: ->
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
-            <div className="pull-right small" style={color:'#888', marginRight:'10px', cursor:'pointer'} onClick={@enable_history_side_chat}>
-                <Tip title='Message History' tip='Show history of editing of this message.'>
-                    <Icon name='history'/>
-                </Tip>
-            </div>
+            if not @state.show_history
+                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
+                    <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
+                        <Icon name='history'/>
+                    </Tip>
+                </span>
+            else
+                <span className="small"
+                        style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                        onClick={=>@toggle_history_side_chat(false)} >
+                    <Tip title='Message History' tip='Hide history of editing of this message.' placement='left'>
+                        <Icon name='history'/> Hide History
+                    </Tip>
+                </span>
 
-    hide_history: ->
-        #No history for mobile, since right now messages in mobile are too clunky
-        if not IS_MOBILE
-            <div className="pull-right small"
-                    style={color:'#888', marginRight:'10px', cursor:'pointer'}
-                    onClick={@disable_history_side_chat} >
-                <Tip title='Message History' tip='Hide history of editing of this message.'>
-                    <Icon name='history'/> Hide History
-                </Tip>
-            </div>
-
-    disable_history_side_chat: ->
-        @setState(show_history:false)
-
-    enable_history_side_chat: ->
-        @setState(show_history:true)
+    toggle_history_side_chat: (bool) ->
+        @setState(show_history:bool)
 
     editing_status: ->
         other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
@@ -165,15 +157,15 @@ Message = rclass
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <div className="small" style={color:color}>
+            <span className="small" style={color:color}>
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
-            </div>
+            </span>
         else
-            <div className="small" style={color:color}>
+            <span className="small" style={color:color}>
                 {text}
-            </div>
+            </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
@@ -197,7 +189,7 @@ Message = rclass
         value = newest_content(@props.message)
 
         if sender_is_viewer(@props.account_id, @props.message)
-            color = '#f5f5f5'
+            color = '#eee'
         else
             color = '#fff'
 
@@ -219,28 +211,23 @@ Message = rclass
         else if not @props.is_next_sender
             borderRadius = '5px 5px 10px 10px'
 
-        mesg_style =
-            paddingRight: "3px"
-            paddingLeft: "3px"
-            width: "100%"
+        message_style =
+            background    : color
+            wordWrap      : "break-word"
+            marginBottom  : "3px"
+            borderRadius  : borderRadius
 
-        <Col key={1} xs={11} style={mesg_style}>
+        <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Panel style={background:color, wordWrap:"break-word", marginBottom: "3px", borderRadius: borderRadius}>
-                <ListGroup fill>
-                    <ListGroupItem onDoubleClick={@edit_message if not @props.message.get("payload")} style={background:color, fontSize: font_size, borderRadius: borderRadius, paddingBottom:'20px'}>
-                        {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
-                        {@render_input() if is_editing(@props.message, @props.account_id)}
-                        {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                        {get_timeago(@props.message)}
-                        {@show_history() if not @state.show_history and @props.message.get('history').size > 1}
-                        {@hide_history() if @state.show_history and @props.message.get('history').size > 1}
-                    </ListGroupItem>
-                    <div></div>  {#This div tag fixes a weird bug where <li> tags would be rendered below the <ListGroupItem>}
-                </ListGroup>
-            </Panel>
+            <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
+                {get_timeago(@props.message)}
+                {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
+                {@render_input() if is_editing(@props.message, @props.account_id)}
+                {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                {@toggle_history() if @props.message.get('history').size > 1}
+            </Well>
             {render_history_title(color, font_size) if @state.show_history}
-            {render_history(color, font_size, @props.history, @props.history_author, @props.history_date, @props.user_map) if @state.show_history}
+            {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
             {render_history_footer(color, font_size) if @state.show_history}
         </Col>
 
@@ -332,23 +319,12 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            historyList = @props.messages.get(date).get('history').pop().toJS()
-            h = []
-            a = []
-            t = []
-            for j of historyList
-                h.push(historyList[j].content)
-                a.push(historyList[j].author_id)
-                t.push(historyList[j].date)
-
             sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
             last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
-                     history          = {h}
-                     history_author   = {a}
-                     history_date     = {t}
+                     history          = {@props.messages.get(date).get('history')}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
                      date             = {date}
@@ -457,13 +433,14 @@ ChatRoom = (name) -> rclass
             overflowX    : "hidden"
             width        : "380%"
             height       : "#{@props.max_height}px"
-            margin       : "0px 0px 0px 13px"
+            margin       : "0px 0px 0px 15px"
             padding      : "0"
+            background   : "white"
 
         <div>
             <Row>
                 <Col md={3} style={padding:'0px 2px 0px 2px'}>
-                    <Panel style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                    <Well style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
                         <ChatLog
                             messages     = {@props.messages}
                             account_id   = {@props.account_id}
@@ -474,11 +451,11 @@ ChatRoom = (name) -> rclass
                             actions      = {@props.actions}
                             focus_end    = {focus_endpoint}
                             show_heads   = {false} />
-                    </Panel>
+                    </Well>
                 </Col>
             </Row>
             <Row>
-                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "13px", width:"60%"}>
+                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "15px", width:"60%"}>
                     <form>
                         <FormGroup>
                             <FormControl

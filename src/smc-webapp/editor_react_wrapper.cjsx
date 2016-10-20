@@ -60,12 +60,14 @@ editors = {}
 
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
-        f    : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor
-        ext  : required   # string or list of strings
-        icon : undefined
+        f         : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor
+        ext       : required   # string or list of strings
+        icon      : undefined
+        is_public : false
 
     require('project_file').register_file_editor
         ext       : opts.ext
+        is_public : opts.is_public
         icon      : opts.icon
         init      : (path, redux, project_id) ->
             key = "#{project_id}-#{path}"

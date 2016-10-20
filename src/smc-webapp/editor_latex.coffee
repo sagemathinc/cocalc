@@ -40,6 +40,12 @@ class exports.LatexEditor extends editor.FileEditor
         latex_buttonbar = @element.find(".salvus-editor-latex-buttonbar")
         latex_buttonbar.show()
 
+        @latex_editor.on 'saved', () =>
+            @update_preview () =>
+                if @_current_page == 'pdf-preview'
+                    @preview_embed.update()
+            @spell_check()
+
         @latex_editor.syncdoc.on 'connect', () =>
             @preview.zoom_width = @load_conf().zoom_width
             @update_preview()
@@ -362,10 +368,13 @@ class exports.LatexEditor extends editor.FileEditor
     get_resolution: () =>
         return @preview.opts.resolution
 
-
+    # This function isn't called on save button click since
+    # the codemirror's save button is called...
     click_save_button: () =>
         @latex_editor.click_save_button()
 
+    # This function isn't called on save
+    # @latex_editor.save is called instead for some reason
     save: (cb) =>
         @latex_editor.save (err) =>
             cb?(err)

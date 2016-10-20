@@ -140,7 +140,7 @@ $.fn.process_smc_links = (opts={}) ->
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
                             target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
-                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server

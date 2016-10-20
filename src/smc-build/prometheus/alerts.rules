@@ -6,3 +6,13 @@ ALERT HIGH_LOAD_COMPUTE
    summary = "Compute {{ $labels.instance }} high load",
    description = "the load1 is currently at {{ $value }}"
   }
+
+ALERT LOW_DB_DISK
+  IF (node_filesystem_free{mountpoint="/",job="db"} / (1024^3)) < 20
+  FOR 1h
+  LABELS { severity = "high" }
+  ANNOTATIONS {
+    summary = "Low disk space on {{ $labels.instance }}",
+    description = "Only {{ $value }} MiB left!"
+  }
+
