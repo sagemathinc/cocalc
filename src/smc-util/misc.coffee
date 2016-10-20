@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -1712,3 +1712,22 @@ exports.path_to_tab = (name) ->
 # assumes a valid editor tab name...
 exports.tab_to_path = (name) ->
     name.substring(7)
+
+# suggest a new filename when duplicating it
+# 1. strip extension, split at '_' or '-' if it exists
+# try to parse a number, if it works, increment it, etc.
+exports.suggest_duplicate_filename = (name) ->
+    {name, ext} = exports.separate_file_extension(name)
+    idx_dash = name.lastIndexOf('-')
+    idx_under = name.lastIndexOf('_')
+    idx = exports.max([idx_dash, idx_under])
+    new_name = null
+    if idx > 0
+        [prfx, ending] = [name[...idx+1], name[idx+1...]]
+        num = parseInt(ending)
+        if not Number.isNaN(num)
+            new_name = "#{prfx}#{num+1}"
+    new_name ?= "#{name}-1"
+    if ext?.length > 0
+        new_name += ".#{ext}"
+    return new_name

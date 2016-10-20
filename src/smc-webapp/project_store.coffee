@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -310,14 +310,13 @@ class ProjectActions extends Actions
                         # Initialize the file's store and actions
                         name = project_file.initialize(opts.path, @redux, @project_id, is_public)
 
-                        # Make the editor
-                        editor = project_file.generate(opts.path, @redux, @project_id, is_public)
-                        editor.redux_name = name
-                        editor.is_public  = is_public
+                        # Make the Editor react component
+                        Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
                         # Add it to open files
+                        info = {Editor:Editor, redux_name:name, is_public:is_public}
                         @setState
-                            open_files       : open_files.setIn([opts.path, 'component'], editor)
+                            open_files       : open_files.setIn([opts.path, 'component'], info)
                             open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
@@ -405,21 +404,22 @@ class ProjectActions extends Actions
 
     # closes the file and removes all references
     close_file : (path) =>
-        x = @get_store().get_open_files_order()
+        store = @get_store()
+        x = store.get_open_files_order()
         index = x.indexOf(path)
         if index != -1
+            open_files = store.get('open_files')
+            is_public = open_files.getIn([path, 'component'])?.is_public
             @setState
                 open_files_order : x.delete(index)
-                open_files       : @get_store().get('open_files').delete(path)
-            open_files = @get_store().get('open_files')
-            is_public = open_files.getIn([path, 'component'])?.is_public
+                open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
                 # TODO!
-                console.log('error putting project in the foreground: ', err, @project_id, path)
+                console.warn('error putting project in the foreground: ', err, @project_id, path)
             else
                 @redux.getActions('projects').foreground_project(@project_id)
 
@@ -581,9 +581,31 @@ class ProjectActions extends Actions
             checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
 
-    set_file_action : (action) =>
-        if action == 'move'
-            @redux.getActions('projects').fetch_directory_tree(@project_id)
+    _suggest_duplicate_filename: (name) =>
+        store = @get_store()
+        files_in_dir = {}
+        # This will set files_in_dir to our current view of the files in the current
+        # directory (at least the visible ones) or do nothing in case we don't know
+        # anything about files (highly unlikely).  Unfortunately (for this), our
+        # directory listings are stored as (immutable) lists, so we have to make
+        # a map out of them.
+        store.get_directory_listings()?.get(store.get('current_path'))?.map (x) ->
+            files_in_dir[x.get('name')] = true
+            return
+        # This loop will keep trying new names until one isn't in the directory
+        while true
+            name = misc.suggest_duplicate_filename(name)
+            if not files_in_dir[name]
+                return name
+
+    set_file_action : (action, get_basename) =>
+        switch action
+            when 'move'
+                @redux.getActions('projects').fetch_directory_tree(@project_id)
+            when 'duplicate'
+                @setState(new_name : @_suggest_duplicate_filename(get_basename()))
+            when 'rename'
+                @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
     ensure_directory_exists: (opts) =>

@@ -2005,7 +2005,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if k[0] != '_':
             salvus.namespace[k] = x
 
-def sh(code):
+def sh(code=None,**kwargs):
     """
     Run a bash script in Salvus. Uses jupyter bash kernel
     which allows keeping state between cells.
@@ -2059,70 +2059,76 @@ def sh(code):
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
         sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
-    return sh.jupyter_kernel(code)
+    return sh.jupyter_kernel(code,**kwargs)
 sh.jupyter_kernel = None
 
 # use jupyter kernel for GNU octave instead of sage interpreter interface
-def octave(code):
+def octave(code=None,**kwargs):
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
-    return octave.jupyter_kernel(code)
+    return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
+# jupyter kernel for %ir mode
+def r(code=None,**kwargs):
+    if r.jupyter_kernel is None:
+        r.jupyter_kernel = jupyter("ir")
+    return r.jupyter_kernel(code,**kwargs)
+r.jupyter_kernel = None
 
-# Monkey patch the R interpreter interface to support graphics, when
-# used as a decorator.
+## Monkey patch the R interpreter interface to support graphics, when
+## used as a decorator.
 
-import sage.interfaces.r
-def r_eval0(*args, **kwds):
-    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
+#import sage.interfaces.r
+#def r_eval0(*args, **kwds):
+#    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
 
-_r_plot_options = ''
-def set_r_plot_options(width=7, height=7):
-    global _r_plot_options
-    _r_plot_options = ", width=%s, height=%s"%(width, height)
+#_r_plot_options = ''
+#def set_r_plot_options(width=7, height=7):
+#    global _r_plot_options
+#    _r_plot_options = ", width=%s, height=%s"%(width, height)
 
-r_dev_on = False
-def r_eval(code, *args, **kwds):
-    """
-    Run a block of R code.
+#r_dev_on = False
+#def r_eval(code, *args, **kwds):
+#    """
+#    Run a block of R code.
 
-    EXAMPLES::
+#    EXAMPLES::
 
-         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
-         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-         1.00    2.00    3.00   12.55    3.50  111.00
+#         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
+#         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#         1.00    2.00    3.00   12.55    3.50  111.00
 
-    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
-    a cell to set the whole worksheet to r mode.
+#    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
+#    a cell to set the whole worksheet to r mode.
 
-    NOTE: Any plots drawn using the plot command should "just work", without having
-    to mess with special devices, etc.
-    """
-    # Only use special graphics support when using r as a cell decorator, since it has
-    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
-    # a lot if one had a loop with r.eval in it.
-    if sage.interfaces.r.r not in salvus.code_decorators:
-        return r_eval0(code, *args, **kwds)
+#    NOTE: Any plots drawn using the plot command should "just work", without having
+#    to mess with special devices, etc.
+#    """
+#    # Only use special graphics support when using r as a cell decorator, since it has
+#    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
+#    # a lot if one had a loop with r.eval in it.
+#    if sage.interfaces.r.r not in salvus.code_decorators:
+#        return r_eval0(code, *args, **kwds)
 
-    global r_dev_on
-    if r_dev_on:
-        return r_eval0(code, *args, **kwds)
-    try:
-        r_dev_on = True
-        tmp = '/tmp/' + uuid() + '.svg'
-        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-        s = r_eval0(code, *args, **kwds)
-        r_eval0('dev.off()')
-        return s
-    finally:
-        r_dev_on = False
-        if os.path.exists(tmp):
-            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-            os.unlink(tmp)
+#    global r_dev_on
+#    if r_dev_on:
+#        return r_eval0(code, *args, **kwds)
+#    try:
+#        r_dev_on = True
+#        tmp = '/tmp/' + uuid() + '.svg'
+#        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
+#        s = r_eval0(code, *args, **kwds)
+#        r_eval0('dev.off()')
+#        return s
+#    finally:
+#        r_dev_on = False
+#        if os.path.exists(tmp):
+#            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
+#            os.unlink(tmp)
 
-sage.interfaces.r.r.eval = r_eval
-sage.interfaces.r.r.set_plot_options = set_r_plot_options
+#sage.interfaces.r.r.eval = r_eval
+#sage.interfaces.r.r.set_plot_options = set_r_plot_options
 
 
 def prun(code):

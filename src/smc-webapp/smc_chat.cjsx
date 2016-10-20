@@ -648,7 +648,7 @@ ChatRoom = rclass ({name}) ->
             padding      : "0"
             paddingRight : "10px"
             paddingBottom: paddingBottom
-
+            background   : 'white'
 
         mobile_chat_log_style =
             overflowY    : "auto"
@@ -657,6 +657,7 @@ ChatRoom = rclass ({name}) ->
             height       : "100%"
             margin       : "0px 0px 0px 13px"
             padding      : "0"
+            background   : 'white'
 
         if not IS_MOBILE
             <Grid>
@@ -797,8 +798,6 @@ ChatEditorGenerator = (path, redux, project_id) ->
         <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
         </div>
-
-    C_ChatRoom.redux_name = name
 
     C_ChatRoom.propTypes =
         redux      : rtypes.object
