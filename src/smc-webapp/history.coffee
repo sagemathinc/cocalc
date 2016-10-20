@@ -85,7 +85,7 @@ exports.set_url = (url) ->
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
     logged_in = redux.getStore('account').is_logged_in()
-    if not target or not logged_in
+    if not target
         return
     segments = target.split('/')
     switch segments[0]
@@ -98,6 +98,8 @@ exports.load_target = load_target = (target) ->
                 else
                     redux.getActions('page').set_active_tab('projects')
         when 'settings'
+            if not logged_in
+                return
             redux.getActions('page').set_active_tab('account')
             if segments[1] == 'account'
                 redux.getActions('account').set_active_tab('account')

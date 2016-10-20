@@ -144,8 +144,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         super()
 
     init_hide_show_gutter: () =>
-        if @readonly
-            return
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
             cm.setOption('gutters', gutters)

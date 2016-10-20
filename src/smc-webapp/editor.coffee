@@ -717,6 +717,10 @@ exports.FileEditor = FileEditor
 
 ###############################################
 # Codemirror-based File Editor
+# Emits:
+#     - 'saved' : when the file is successfully saved by the user
+#     - 'show'  :
+#     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -1085,7 +1089,6 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
-
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
@@ -1355,13 +1358,18 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
+        if @opts.read_only
+            return
         if @_saving
             return
         @_saving = true
         @save_button.icon_spin(start:true, delay:8000)
         @save (err) =>
+            # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
+            else
+                @emit('saved')
             @save_button.icon_spin(false)
             @_saving = false
         return false
@@ -2875,10 +2883,23 @@ class Image extends FileEditor
 
 
 
-class StaticHTML extends FileEditor
+class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".salvus-editor-static-html").clone()
-        @init_buttons()
+        if not @content?
+            @content = 'Loading...'
+            # Now load the content from the backend...
+            salvus_client.public_get_text_file
+                project_id : @project_id
+                path       : @filename
+                timeout    : 60
+                cb         : (err, content) =>
+                    if err
+                        @content = "Error opening file -- #{err}"
+                    else
+                        @content = content
+                    if @iframe?
+                        @set_iframe()
 
     show: () =>
         if not @is_active()
@@ -2889,6 +2910,8 @@ class StaticHTML extends FileEditor
             # See https://github.com/sagemathinc/smc/issues/843
             # -- wstein
             setTimeout(@set_iframe, 1)
+        else
+            @set_iframe()
         @element.show()
         #  redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
@@ -2902,9 +2925,31 @@ class StaticHTML extends FileEditor
         @iframe.contents().find('body').find("a").attr('target','_blank')
         @iframe.maxheight()
 
-    init_buttons: () =>
-        @element.find("a[href=\"#close\"]").click () =>
-            return false
+class PublicCodeMirrorEditor extends CodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts, cb) ->
+        opts.read_only = true
+        opts.public_access = true
+        super(@project_id, @filename, "Loading...", opts)
+        @element.find("a[href=\"#save\"]").hide()       # no need to even put in the button for published
+        @element.find("a[href=\"#readonly\"]").hide()   # ...
+        salvus_client.public_get_text_file
+            project_id : @project_id
+            path       : @filename
+            timeout    : 60
+            cb         : (err, content) =>
+                if err
+                    content = "Error opening file -- #{err}"
+                @_set(content)
+                cb?(err)
+
+class PublicSagews extends PublicCodeMirrorEditor
+    constructor: (@project_id, @filename, content, opts) ->
+        super @project_id, @filename, content, opts, (err) =>
+            @element.find("a[href=\"#split-view\"]").hide()  # disable split view
+            if not err
+                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
+                @syncdoc.process_sage_updates()
+                @syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
     constructor: (@project_id, @filename, @content, @opts) ->
@@ -3011,23 +3056,24 @@ class JupyterNBViewer extends FileEditorWrapper
 class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
-    constructor: (@editor, @filename, @content, opts) ->
+    constructor: (@project_id, @filename, @content, opts) ->
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
+        #window.w = @
 
     init_buttons: () =>
         # code duplication from editor_jupyter/JupyterNBViewer
-        @element.find('a[href=#copy]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href="#copy"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.load_target('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@filename, true)
             actions.set_file_action('copy')
             return false
 
-        @element.find('a[href=#download]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href="#download"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.load_target('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@filename, true)
             actions.set_file_action('download')
@@ -3041,14 +3087,15 @@ class JupyterNBViewerEmbedded extends FileEditor
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
                              window.smc_base_url,
-                             @editor.project_id,
+                             @project_id,
                              'raw',
                              @filename)
-            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files)
-            # ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
+            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files, since it
+            # still requires the user to be logged in with access to the host project)
+            #ipynb_src = 'cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
-        @element.css(top:@editor.editor_top_position())
+        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
         @iframe.maxheight()
 
@@ -3688,13 +3735,16 @@ exports.register_nonreact_editors = () ->
     reg
         ext : ''  # fallback for any type not otherwise explicitly specified
         f   : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        is_public : false
 
+    # Editors for private normal editable files.
     reg0 = (cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
-            ext  : extensions
-            icon : icon
-            f    : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
+            ext       : extensions
+            is_public : false
+            icon      : icon
+            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
 
     reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
     reg0 LatexEditor,      ['tex']
@@ -3706,3 +3756,17 @@ exports.register_nonreact_editors = () ->
     reg0 PDF_PreviewEmbed, ['pdf']
     reg0 TaskList,         ['tasks']
     reg0 JupyterNotebook,  ['ipynb']
+
+    # "Editors" for read-only public files
+    reg1 = (cls, extensions) ->
+        icon = file_icon_class(extensions[0])
+        reg
+            ext       : extensions
+            is_public : true
+            icon      : icon
+            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
+
+    reg1 PublicCodeMirrorEditor,  ['']
+    reg1 PublicHTML,              ['html']
+    reg1 PublicSagews,            ['sagews']
+    reg1 JupyterNBViewerEmbedded, ['ipynb']
