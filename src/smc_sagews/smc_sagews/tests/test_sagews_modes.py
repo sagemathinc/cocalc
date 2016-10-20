@@ -158,6 +158,10 @@ class TestJupyterModes:
     def test_start_a3(self, exec2):
         exec2('a3 = jupyter("anaconda3")')
 
+    def test_a3_error(self, exec2):
+        # want ansi color codes in error message converted to html
+        exec2('%a3\nxy*', html_pattern='span style=.*color:')
+
     def test_issue_862(self, exec2):
         exec2('%a3\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
 
