@@ -84,7 +84,8 @@ def install_webapp(*args):
         raise ValueError("action %s unknown" % action)
 
 def install_primus():
-    cmd("cd smc-hub && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
+    # The rm works around a bug in npm...
+    cmd("cd smc-hub && && rm -rf node_modules/primus  && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
