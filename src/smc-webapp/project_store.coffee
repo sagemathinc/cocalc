@@ -310,14 +310,13 @@ class ProjectActions extends Actions
                         # Initialize the file's store and actions
                         name = project_file.initialize(opts.path, @redux, @project_id, is_public)
 
-                        # Make the editor
-                        editor = project_file.generate(opts.path, @redux, @project_id, is_public)
-                        editor.redux_name = name
-                        editor.is_public  = is_public
+                        # Make the Editor react component
+                        Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
                         # Add it to open files
+                        info = {Editor:Editor, redux_name:name, is_public:is_public}
                         @setState
-                            open_files       : open_files.setIn([opts.path, 'component'], editor)
+                            open_files       : open_files.setIn([opts.path, 'component'], info)
                             open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
@@ -405,21 +404,22 @@ class ProjectActions extends Actions
 
     # closes the file and removes all references
     close_file : (path) =>
-        x = @get_store().get_open_files_order()
+        store = @get_store()
+        x = store.get_open_files_order()
         index = x.indexOf(path)
         if index != -1
+            open_files = store.get('open_files')
+            is_public = open_files.getIn([path, 'component'])?.is_public
             @setState
                 open_files_order : x.delete(index)
-                open_files       : @get_store().get('open_files').delete(path)
-            open_files = @get_store().get('open_files')
-            is_public = open_files.getIn([path, 'component'])?.is_public
+                open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
 
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
                 # TODO!
-                console.log('error putting project in the foreground: ', err, @project_id, path)
+                console.warn('error putting project in the foreground: ', err, @project_id, path)
             else
                 @redux.getActions('projects').foreground_project(@project_id)
 

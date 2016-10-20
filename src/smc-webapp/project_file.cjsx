@@ -78,6 +78,8 @@ exports.initialize = (path, redux, project_id, is_public) ->
     redux_name = file_editors[is_public][ext]?.init(path, redux, project_id)
     if not redux_name?
         redux_name = file_editors[is_public][''].init(path, redux, project_id)
+    if not redux_name?
+        throw Error("editor init must return the redux store name")
     return redux_name
 
 # Returns an editor instance for the path
@@ -100,10 +102,11 @@ exports.generate = (path, redux, project_id, is_public) ->
 exports.remove = (path, redux, project_id, is_public) ->
     is_public = !!is_public
     ext = filename_extension(path)
-    redux_name = file_editors[is_public][ext]?.remove(path, redux, project_id)
-    if not redux_name?
-        redux_name = file_editors[is_public][''].remove(path, redux, project_id)
-    return redux_name
+    remove = file_editors[is_public][ext]?.remove
+    if not remove?
+        # Fallback
+        remove = file_editors[is_public]['']?.remove
+    remove?(path, redux, project_id)
 
 
 # Require each module, which loads a file editor.  These call register_file_editor.
@@ -113,6 +116,7 @@ exports.remove = (path, redux, project_id, is_public) ->
 require('./smc_chat')
 require('./editor_archive')
 require('./course/main')
+require('./public/editor_md')
 # require('./editor_codemirror')
 
 require('./editor').register_nonreact_editors()
