@@ -699,7 +699,6 @@ class TaskList
         @display_undelete(task)
         @display_last_edited(task)
         @display_desc(task)
-
         task.changed = false
 
         if @readonly
@@ -759,6 +758,7 @@ class TaskList
                     where : {task_id : task.task_id}
 
             a = $("<span>").attr('title',d.toISOString()).timeago()
+            a.text($.timeago(d.toISOString()))
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
     click_hashtag_in_desc: (event) =>
@@ -1154,6 +1154,7 @@ class TaskList
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
             e.attr('title',d.toISOString())
+            e.text($.timeago(d.toISOString()))
             if not task.done and d < new Date()
                 e.addClass("salvus-task-overdue")
         else

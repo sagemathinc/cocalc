@@ -91,6 +91,7 @@ from ansi2html import Ansi2HTMLConverter
 import tempfile, sys, re
 import base64
 
+
 def _jkmagic(kernel_name, **kwargs):
     r"""
     Called when user issues `my_kernel = jupyter("kernel_name")` from a cell, not intended to be called directly by user.
@@ -106,6 +107,7 @@ def _jkmagic(kernel_name, **kwargs):
 
     """
     import warnings
+    import sage.misc.latex
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
@@ -119,8 +121,6 @@ def _jkmagic(kernel_name, **kwargs):
     # inline: no header or style tags, useful for full == False
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
-
-    salvus.html(conv.convert(""))
 
     def hout(s, block = True, scroll = False):
         r"""
@@ -146,10 +146,16 @@ def _jkmagic(kernel_name, **kwargs):
             sys.stdout.write(s)
             sys.stdout.flush()
 
-    def run_code(code, get_kernel_name = False):
+    def run_code(code=None, **kwargs):
 
-        if get_kernel_name:
+        if kwargs.get('get_kernel_client',False):
+            return kc
+
+        if kwargs.get('get_kernel_name',False):
             return kernel_name
+
+        if code is None:
+            return
 
         # execute the code
         msg_id = kc.execute(code)
@@ -161,7 +167,7 @@ def _jkmagic(kernel_name, **kwargs):
 
         # buffering for %capture because we don't know whether output is stdout or stderr
         # until shell execute_reply message is received with status 'ok' or 'error'
-        capture_out = ""
+        capture_mode = not hasattr(sys.stdout._f, 'im_func')
 
         # handle iopub messages
         while True:
@@ -189,75 +195,88 @@ def _jkmagic(kernel_name, **kwargs):
                 jupyter server does send data dictionaries, that do contain mime-type:data mappings
                 depending on the type, handle them in the salvus API
                 '''
-                for mime, data in msg_data.iteritems():
-                    p('mime',mime)
-                    # when there is latex, it takes precedence over the text representation
-                    if mime == 'text/html' or mime == 'text/latex':
-                        salvus.html(data)
-                    elif mime == 'text/markdown':
-                        salvus.md(data)
-                    # this test is super cheap, we should be explicit of the mime types here
-                    elif any(_ in mime for _ in ['png', 'jpeg', 'svg']):
-                        # below is handling of images, etc.
-                        attr = mime.split('/')[-1].lower()
-                        # fix svg+html, plain
-                        #attr = attr.replace('+xml', '').replace('plain', 'text')
-                        p("attr",attr)
-                        if len(data) > 200:
-                            p(data[:100]+'...'+data[-100:])
-                        else:
-                            p(data)
-                        # https://en.wikipedia.org/wiki/Data_scheme#Examples
-                        # <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEU
-                        # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
-                        if 'svg' in mime:
-                            fname = tempfile.mkstemp(suffix=".svg")[1]
-                        else:
-                            data = base64.standard_b64decode(data)
-                            fname = tempfile.mkstemp(suffix="." + attr)[1]
+                # sometimes output is sent in several formats
+                # 1. if there is an image format, prefer that
+                # 2. elif default text or image mode is available, prefer that
+                # 3. else choose first matching format in modes list
+                mkeys = msg_data.keys()
+                imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
+                txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
+                if any('image' in k for k in mkeys):
+                    # XXX to get svg format with R ("ir") kernel, will need something like @ws workaround:
+                    # from sage_salvus.py#L2073
+                    #    try:
+                    #        r_dev_on = True
+                    #        tmp = '/tmp/' + uuid() + '.svg'
+                    #        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
+                    #        s = r_eval0(code, *args, **kwds)
+                    #        r_eval0('dev.off()')
+                    #        return s
+                    #    finally:
+                    #        r_dev_on = False
+                    #        if os.path.exists(tmp):
+                    #            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
+                    #            os.unlink(tmp)
+                    #print('image')
+                    dfim = run_code.default_image_fmt
+                    #print('default_image_fmt %s'%dfim)
+                    dispmode = next((m for m in mkeys if dfim in m), None)
+                    if dispmode is None:
+                        dispmode = next(m for m in imgmodes if m in mkeys)
+                    #print('dispmode is %s'%dispmode)
+                    # https://en.wikipedia.org/wiki/Data_scheme#Examples
+                    # <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEU
+                    # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
+                    if dispmode == 'image/svg+xml':
+                        data = msg_data[dispmode]
+                        fname = tempfile.mkstemp(suffix=".svg")[1]
                         with open(fname,'w') as fo:
                             fo.write(data)
-                        p(fname)
                         salvus.file(fname)
                         os.unlink(fname)
-                        # ir kernel sends png then svg+xml; don't display both
-                        break
+                    elif dispmode == 'image/png':
+                        data = base64.standard_b64decode(msg_data[dispmode])
+                        fname = tempfile.mkstemp(suffix=".png")[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    elif dispmode == 'image/jpeg':
+                        data = base64.standard_b64decode(msg_data[dispmode])
+                        fname = tempfile.mkstemp(suffix=".jpg")[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    return
+                elif any('text' in k for k in mkeys):
+                    dftm = run_code.default_text_fmt
+                    if capture_mode:
+                        dftm = 'plain'
+                    #print('default_text_fmt %s'%dftm)
+                    dispmode = next((m for m in mkeys if dftm in m), None)
+                    if dispmode is None:
+                        dispmode = next(m for m in txtmodes if m in mkeys)
+                    #print('dispmode is %s'%dispmode)
+                    if dispmode == 'text/plain':
+                        txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
+                        sys.stdout.write(txt)
+                        sys.stderr.flush()
+                    elif dispmode == 'text/html':
+                        salvus.html(msg_data[dispmode])
+                    elif dispmode == 'text/latex':
+                        sage.misc.latex.latex.eval(msg_data[dispmode])
+                    elif dispmode == 'text/markdown':
+                        salvus.md(msg_data[dispmode])
+                    return
 
-                    elif mime == 'text/plain':
-                        continue
 
             # dispatch control or display calls depending on the message type
             if msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
                 p('execute_result data keys: ',content['data'].keys())
-                out_prefix = ""
-                # don't display output numbers
-                # if 'execution_count' in content:
-                #     out_data = "Out [%d]: "%content['execution_count']
-                #     # don't want line break after this
-                #     sys.stdout.write(out_data)
-                if 'text/latex' in content['data']:
-                    ldata = content['data']['text/latex']
-                    if re.match('\W*begin{tabular}',ldata):
-                        # sagemath R emits latex tabular output, not supported by MathJAX
-                        import sage.misc.latex
-                        sage.misc.latex.latex.eval(ldata)
-                    else:
-                        # convert display to inline for execution output
-                        # this matches jupyter notebook behavior
-                        ldata = re.sub("^\$\$(.*)\$\$$", "$\\1$", ldata)
-                        salvus.html(ldata)
-                elif 'image/png' in content['data']:
-                    display_mime(content['data'])
-                elif 'text/markdown' in content['data']:
-                    display_mime(content['data'])
-                elif 'text/html' in content['data']:
-                    display_mime(content['data'])
-                elif 'text/plain' in content['data']:
-                    # don't show text/plain if there is latex content
-                    # display_mime(content['data'])
-                    sys.stdout.write(content['data']['text/plain'])
+                display_mime(content['data'])
 
             elif msg_type == 'display_data':
                 if 'data' in content:
@@ -275,15 +294,13 @@ def _jkmagic(kernel_name, **kwargs):
 
             elif msg_type == 'stream':
                 if 'text' in content:
-                    if hasattr(sys.stdout._f, 'im_func'):
-                        if 'name' in content and content['name'] == 'stderr':
-                            sys.stderr.write(content['text'])
-                            sys.stderr.flush()
-                        else:
-                            hout(content['text'],block = False)
+                    # bash kernel uses stream messages with output in 'text' field
+                    # might be ANSI color-coded
+                    if 'name' in content and content['name'] == 'stderr':
+                        sys.stderr.write(content['text'])
+                        sys.stderr.flush()
                     else:
-                        # %capture mode
-                        capture_out += content['text'].replace('\r','')
+                        hout(content['text'],block = False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -291,9 +308,10 @@ def _jkmagic(kernel_name, **kwargs):
                     tr = content['traceback']
                     if isinstance(tr, list):
                         for tr in content['traceback']:
-                            hout(tr)
+                            sys.stderr.write(tr+'\n')
                     else:
-                        hout(tr)
+                        sys.stderr.write(tr)
+                    sys.stderr.flush()
 
         # handle shell messages
         while True:
@@ -308,28 +326,25 @@ def _jkmagic(kernel_name, **kwargs):
             if msg['parent_header'].get('msg_id') == msg_id:
                 p('shell', msg_type, len(str(content)), str(content)[:300])
                 if msg_type == 'execute_reply':
-                    if hasattr(sys.stdout._f, 'im_func'):
-                        if content['status'] == 'ok':
-                            if 'payload' in content:
-                                payload = content['payload']
-                                if len(payload) > 0:
-                                    if 'data' in payload[0]:
-                                        data = payload[0]['data']
-                                        if 'text/plain' in data:
-                                            text = data['text/plain']
-                                            hout(text, scroll = True)
-                    else:
-                        # %capture mode
-                        if content['status'] == 'ok':
-                            print(capture_out)
-                        elif content['status'] == 'error':
-                            sys.stderr.write(capture_out)
-                            sys.stderr.flush()
+                    if content['status'] == 'ok':
+                        if 'payload' in content:
+                            payload = content['payload']
+                            if len(payload) > 0:
+                                if 'data' in payload[0]:
+                                    data = payload[0]['data']
+                                    if 'text/plain' in data:
+                                        text = data['text/plain']
+                                        hout(text, scroll = True)
                     break
             else:
                 # not our reply
                 continue
         return
+    # 'html', 'plain', 'latex', 'markdown'
+    run_code.default_text_fmt = 'html'
+
+    # 'svg', 'png', 'jpeg'
+    run_code.default_image_fmt = 'svg'
 
     return run_code
 

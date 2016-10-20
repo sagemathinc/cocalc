@@ -49,9 +49,7 @@ Message = rclass
 
     propTypes:
         message        : rtypes.object.isRequired  # immutable.js message object
-        history        : rtypes.array
-        history_author : rtypes.array
-        history_date   : rtypes.array
+        history        : rtypes.object
         account_id     : rtypes.string.isRequired
         date           : rtypes.string
         sender_name    : rtypes.string
@@ -165,15 +163,15 @@ Message = rclass
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <div className="small" style={color:color}>
+            <span className="small" style={color:color}>
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
-            </div>
+            </span>
         else
-            <div className="small" style={color:color}>
+            <span className="small" style={color:color}>
                 {text}
-            </div>
+            </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
@@ -240,7 +238,7 @@ Message = rclass
                 </ListGroup>
             </Panel>
             {render_history_title(color, font_size) if @state.show_history}
-            {render_history(color, font_size, @props.history, @props.history_author, @props.history_date, @props.user_map) if @state.show_history}
+            {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
             {render_history_footer(color, font_size) if @state.show_history}
         </Col>
 
@@ -332,23 +330,12 @@ ChatLog = rclass
         sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
         v = []
         for date, i in sorted_dates
-            historyList = @props.messages.get(date).get('history').pop().toJS()
-            h = []
-            a = []
-            t = []
-            for j of historyList
-                h.push(historyList[j].content)
-                a.push(historyList[j].author_id)
-                t.push(historyList[j].date)
-
             sender_name = get_user_name(@props.messages.get(date)?.get('sender_id'), @props.user_map)
             last_editor_name = get_user_name(@props.messages.get(date)?.get('history').peek()?.get('author_id'), @props.user_map)
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
-                     history          = {h}
-                     history_author   = {a}
-                     history_date     = {t}
+                     history          = {@props.messages.get(date).get('history')}
                      user_map         = {@props.user_map}
                      message          = {@props.messages.get(date)}
                      date             = {date}
