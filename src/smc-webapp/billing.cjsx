@@ -1734,7 +1734,9 @@ BillingPage = rclass
         return v
 
     get_panel_header : (icon, header) ->
-        <div><Icon name={icon} fixedWidth /> {header}</div>
+        <div style={cursor:'pointer'} >
+            <Icon name={icon} fixedWidth /> {header}
+        </div>
 
     render_page : ->
         cards    = @props.customer?.sources?.total_count ? 0
