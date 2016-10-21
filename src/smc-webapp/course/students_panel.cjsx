@@ -32,8 +32,12 @@ show_hide_deleted_style =
     marginTop  : '20px'
     float      : 'right'
 
-exports.StudentsPanel = rclass
+exports.StudentsPanel = rclass ({name}) ->
     displayName : "CourseEditorStudents"
+
+    reduxProps :
+        "#{name}":
+            expanded_students : rtypes.immutable.Set
 
     propTypes :
         name        : rtypes.string.isRequired
@@ -286,6 +290,7 @@ exports.StudentsPanel = rclass
                      user_map={@props.user_map} redux={@props.redux} name={@props.name}
                      project_map={@props.project_map}
                      assignments={@props.assignments}
+                     is_expanded={@props.expanded_students.has(x.student_id)}
                      />
 
     render_show_deleted : (num_deleted) ->
@@ -333,18 +338,18 @@ Student = rclass
         project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
+        is_expanded  : rtypes.bool
 
     shouldComponentUpdate : (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
     getInitialState : ->
-        more : false
         confirm_delete: false
 
     render_student : ->
-        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('student', @props.student.get('student_id'))}>
             <Icon style={marginRight:'10px'}
-                  name={if @state.more then 'caret-down' else 'caret-right'}/>
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}/>
             {@render_student_name()}
         </a>
 
@@ -442,7 +447,7 @@ Student = rclass
             </div>
 
     render_delete_button : ->
-        if not @state.more
+        if not @props.is_expanded
             return
         if @state.confirm_delete
             return @render_confirm_delete()
@@ -553,7 +558,7 @@ Student = rclass
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
-                {@render_more_panel() if @state.more}
+                {@render_more_panel() if @props.is_expanded}
             </Col>
         </Row>
 

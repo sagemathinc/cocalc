@@ -15,8 +15,12 @@ styles = require('./styles')
     BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
 
-exports.AssignmentsPanel = rclass
+exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
+
+    reduxProps :
+        "#{name}":
+            expanded_assignments : rtypes.immutable.Set
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -56,6 +60,7 @@ exports.AssignmentsPanel = rclass
                     project_id={@props.project_id}  redux={@props.redux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
+                    is_expanded={@props.expanded_assignments.has(x.assignment_id)}
                     />
 
     render_show_deleted : (num_deleted) ->
@@ -128,12 +133,12 @@ Assignment = rclass
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
         background : rtypes.string
+        is_expanded : rtypes.bool
 
     shouldComponentUpdate : (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
     getInitialState : ->
-        more : false
         confirm_delete : false
 
     render_due : ->
@@ -631,9 +636,9 @@ Assignment = rclass
         </span>
 
     render_assignment_title_link : ->
-        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('assignment', @props.assignment.get('assignment_id'))}>
             <Icon style={marginRight:'10px'}
-                  name={if @state.more then 'caret-down' else 'caret-right'} />
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
             {@render_assignment_name()}
         </a>
 
@@ -650,10 +655,10 @@ Assignment = rclass
         </Row>
 
     render : ->
-        <Row style={if @state.more then styles.selected_entry else styles.entry}>
+        <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
             <Col xs=12>
                 {@render_summary_line()}
-                {@render_more() if @state.more}
+                {@render_more() if @props.is_expanded}
             </Col>
         </Row>
 
