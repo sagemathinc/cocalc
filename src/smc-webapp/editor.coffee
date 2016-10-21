@@ -1978,7 +1978,11 @@ class PDFLatexDocument
 
     default_tex_command: () =>
         # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-        return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # since in some cases things will hang (using )
+        #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+        # See https://github.com/sagemathinc/smc/issues/156
+        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
