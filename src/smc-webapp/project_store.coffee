@@ -227,9 +227,24 @@ class ProjectActions extends Actions
             cb : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
-                    console.log('error recording a log entry: ', err)
+                    # (It *should* keep trying and store that in localStore, and try next time, etc...
+                    #  of course done in a systematic way across everything.)
+                    console.warn('error recording a log entry: ', err)
 
+    # Save the given file in this project (if it is open) to disk.
+    save_file: (opts) =>
+        opts = defaults opts,
+            path : required
+        s = @redux.getStore('projects')
+        if not s.is_project_open(@project_id)
+            return # nothing to do regarding save, since project isn't even open
+        group = s.get_my_group(@project_id)
+        if not group?
+            return # no point in saving if not open enough to even know our group
+        is_public = group == 'public'
+        project_file.save(opts.path, @redux, @project_id, is_public)
 
+    # Open the given file in this project.
     open_file: (opts) =>
         opts = defaults opts,
             path               : required

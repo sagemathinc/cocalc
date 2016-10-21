@@ -58,6 +58,9 @@ WrappedEditor = rclass ({project_name}) ->
 # Used for caching
 editors = {}
 
+get_key = (project_id, path) ->
+    return "#{project_id}-#{path}"
+
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
         f         : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor
@@ -70,31 +73,34 @@ exports.register_nonreact_editor = (opts) ->
         is_public : opts.is_public
         icon      : opts.icon
         init      : (path, redux, project_id) ->
-            key = "#{project_id}-#{path}"
+            key = get_key(project_id, path)
 
             if not editors[key]?
-                # Overwrite Editor functions called from the various fileEditors
+                # Overwrite functions called from the various file editors
                 extra_opts = copy(require('./editor').file_options(path)?.opts ? {})
                 e = opts.f(project_id, path, extra_opts)
                 editors[key] = e
             return key
 
         generator : (path, redux, project_id) ->
-            key = "#{project_id}-#{path}"
-
+            key = get_key(project_id, path)
             wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name=project_name />
-
-            wrapper_generator.redux_name = key
             wrapper_generator.get_editor = -> editors[key]
-
             return wrapper_generator
 
-        remove     : (path, redux, project_id) ->
-            key = "#{project_id}-#{path}"
-            if editors["#{key}"]
-                editors["#{key}"].remove()
-                delete editors["#{key}"]
+        remove    : (path, redux, project_id) ->
+            key = get_key(project_id, path)
+            if editors[key]
+                editors[key].remove()
+                delete editors[key]
 
+        save     : (path, redux, project_id) ->
+            if opts.is_public
+                return
+            e = editors[get_key(project_id, path)]
+            # click_save_button if defined, otherwise just the save function.
+            if e?
+                (e.click_save_button ? e.save)?()
 
 
 
