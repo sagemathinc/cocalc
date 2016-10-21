@@ -507,6 +507,11 @@ HideDeletePanel = rclass
     toggle_hide_project : ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
 
+    # account_id : String
+    # project    : immutable.Map
+    user_has_applied_upgrades : (account_id, project) ->
+         project.getIn(['users', account_id, 'upgrades']).some (val) => val > 0
+
     delete_message : ->
         if @props.project.get('deleted')
             <DeletedProjectWarning/>
@@ -543,13 +548,17 @@ HideDeletePanel = rclass
         </Button>
 
     render_expanded_delete_info : ->
-        <Well>
-            <Alert bsStyle="info" style={padding:'8px'} >
+        has_upgrades = @user_has_applied_upgrades(salvus_client.account_id, @props.project)
+        <Well style={textAlign:'center'} >
+            {<Alert bsStyle="info" style={padding:'8px'} >
                 All of your upgrades from this project will be removed automatically.
                 Undeleting the project will not automatically restore them.
                 This will not affect upgrades other people have applied.
-            </Alert>
-            <ButtonToolbar style={textAlign:'center'} >
+            </Alert> if has_upgrades}
+            {<div style={marginBottom:'5px'} >
+                Are you sure you want to delete this project?
+            </div> if not has_upgrades}
+            <ButtonToolbar >
                 <Button bsStyle='danger' onClick={@toggle_delete_project}>
                     Delete Project
                 </Button>
