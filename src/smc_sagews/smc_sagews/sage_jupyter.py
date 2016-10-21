@@ -267,7 +267,7 @@ def _jkmagic(kernel_name, **kwargs):
                     if dispmode == 'text/plain':
                         txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
                         sys.stdout.write(txt)
-                        sys.stderr.flush()
+                        sys.stdout.flush()
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':
@@ -303,8 +303,7 @@ def _jkmagic(kernel_name, **kwargs):
                     # bash kernel uses stream messages with output in 'text' field
                     # might be ANSI color-coded
                     if 'name' in content and content['name'] == 'stderr':
-                        sys.stderr.write(content['text'])
-                        sys.stderr.flush()
+                        hout(content['text'], error = True)
                     else:
                         hout(content['text'],block = False)
 
