@@ -230,8 +230,31 @@ salvus_client.on 'signed_out', ->
 salvus_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
-# Standby timeout
+# Autosave interval
+_autosave_interval = undefined
+init_autosave = (autosave) ->
+    if _autosave_interval
+        # This function can safely be called again to *adjust* the
+        # autosave interval, in case user changes the settings.
+        clearInterval(_autosave_interval)
+        _autosave_interval = undefined
+
+    # Use the most recent autosave value.
+    if autosave
+        save_all_files = () ->
+            redux.getActions('projects').save_all_files()
+        _autosave_interval = setInterval(save_all_files, autosave * 1000)
+
 account_store = redux.getStore('account')
+
+_last_autosave_interval_s = undefined
+account_store.on 'change', ->
+    interval_s = account_store.get('autosave')
+    if interval_s != _last_autosave_interval_s
+        _last_autosave_interval_s = interval_s
+        init_autosave(interval_s)
+
+# Standby timeout
 last_set_standby_timeout_m = undefined
 account_store.on 'change', ->
     # NOTE: we call this on any change to account settings, which is maybe too extreme.
@@ -239,3 +262,6 @@ account_store.on 'change', ->
     if last_set_standby_timeout_m != x
         last_set_standby_timeout_m = x
         salvus_client.set_standby_timeout_m(x)
+
+
+

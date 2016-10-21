@@ -62,6 +62,11 @@ class ProjectsActions extends Actions
             redux.removeProjectReferences(project_id)
             @setState(open_projects : x.delete(index))
 
+    # Save all open files in all projects to disk
+    save_all_files: () =>
+        store.get('open_projects').filter (project_id) =>
+            @redux.getProjectActions(project_id).save_all_files()
+
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
