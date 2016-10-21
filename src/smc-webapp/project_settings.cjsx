@@ -780,8 +780,18 @@ HideDeletePanel = rclass
     propTypes :
         project : rtypes.object.isRequired
 
+    getInitialState : ->
+        show_delete_conf : false
+
+    show_delete_conf : ->
+        @setState(show_delete_conf : true)
+
+    hide_delete_conf : ->
+        @setState(show_delete_conf : false)
+
     toggle_delete_project : ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
+        @hide_delete_conf()
 
     toggle_hide_project : ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
@@ -807,6 +817,37 @@ HideDeletePanel = rclass
                 This only impacts you, not your collaborators, and you can easily unhide it.
             </span>
 
+    render_delete_undelete_button : (is_deleted, is_expanded) ->
+        if is_deleted
+            text = "Undelete Project"
+            onClick = @toggle_delete_project
+            disabled = false
+        else
+            text = "Delete Project..."
+            onClick = @show_delete_conf
+            disabled = is_expanded
+
+        <Button bsStyle='danger' style={float: 'right'} onClick={onClick} disabled={disabled}>
+            <Icon name='trash' /> {text}
+        </Button>
+
+    render_expanded_delete_info : ->
+        <Well>
+            <Alert bsStyle="info" style={padding:'8px', marginTop:'4px'} >
+                All of your upgrades from this project will be removed automatically. Undeleting the project will not automatically restore them.
+                <br/>
+                This will not affect upgrades other people have applied.
+            </Alert>
+            <ButtonToolbar style={textAlign:'center'} >
+                <Button bsStyle='danger' onClick={@toggle_delete_project}>
+                    Delete Project
+                </Button>
+                <Button onClick={@hide_delete_conf}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
+
     render : ->
         user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
@@ -827,16 +868,16 @@ HideDeletePanel = rclass
             <Row>
                 <Col sm=8>
                     {@delete_message()}
-                    {<Alert bsStyle="info" style={padding:'8px', marginTop:'4px'} >
-                        <b>New -- </b>This will also clear all upgrades from this project. Undeleting the project will not automatically restore them.
-                    </Alert> if not @props.project.get('deleted')}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle='danger' onClick={@toggle_delete_project} style={float: 'right'}>
-                        <Icon name='trash' /> {if @props.project.get('deleted') then 'Undelete Project' else 'Delete Project'}
-                    </Button>
+                    {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
                 </Col>
             </Row>
+            {<Row style={marginTop:'10px'} >
+                <Col sm=12>
+                    {@render_expanded_delete_info()}
+                </Col>
+            </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
