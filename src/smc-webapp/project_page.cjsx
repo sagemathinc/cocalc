@@ -137,6 +137,8 @@ FreeProjectWarning = rclass ({name}) ->
 
     reduxProps :
         projects :
+            # get_total_project_quotas relys on this data
+            # Will be removed by #1084
             project_map : rtypes.immutable.Map
             get_total_project_quotas : rtypes.func
         "#{name}" :
@@ -145,6 +147,11 @@ FreeProjectWarning = rclass ({name}) ->
 
     propTypes :
         project_id : rtypes.string
+
+    shouldComponentUpdate : (nextProps) ->
+        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
+            @props.free_warning_closed != nextProps.free_warning_closed or
+            @props.project_map?.get(@props.project_id).get('users') != nextProps.project_map?.get(@props.project_id).get('users')
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
