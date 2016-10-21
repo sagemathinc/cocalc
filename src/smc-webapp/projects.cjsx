@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
@@ -626,14 +626,6 @@ class ProjectsTable extends Table
 
 redux.createTable('projects', ProjectsTable)
 
-# Should not be necessary/here for React/Redux
-exports.open_project = open_project = (opts) ->
-    throw "Fix this! #{arguments}"
-
-# Should not be necessary/here for React/Redux
-exports.load_target = load_target = (target, switch_to) ->
-    throw "Fix this! #{arguments}"
-
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
@@ -648,7 +640,6 @@ NewProjectCreator = rclass
     getDefaultProps : ->
         upgrades_you_can_use                 : {}
         upgrades_you_applied_to_all_projects : {}
-        upgrades_you_applied_to_this_project : {}
 
     getInitialState : ->
         state =
@@ -659,279 +650,11 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
-    componentWillMount : ->
-        @setState(@getInitialUpgraderState())
-
     componentWillReceiveProps : (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
         subs = @props.customer?.subscriptions?.total_count ? 0
         if subs > 0 and not @state["has_subbed"]
             @setState(has_subbed: true)
-
-    get_quota_limits : ->
-        # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-
-        # how much upgrade you currently use on this one project
-        current = @props.upgrades_you_applied_to_this_project
-        # how much upgrade you have used between all projects
-        used_upgrades = @props.upgrades_you_applied_to_all_projects
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-        # maximums you can use, including the upgrades already on this project
-        limits = misc.map_sum(current, remaining)
-        # additionally, the limits are capped by the maximum per project
-        maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-        ret =
-            limits    : misc.map_limit(limits, maximum)
-            remaining : remaining
-            current   : current
-        return ret
-
-    getUpgraderState : (maximize = false) ->
-        ###
-        maximize==true means, that the quotas are set to the highest possible
-                       this is limited by the available quotas AND the maximum per project
-        ###
-        state =
-            upgrading : true
-
-        limits = @get_quota_limits()
-
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            if name == 'network' or name == 'member_host'
-                limit = if limits.limits[name] > 0 then 1 else 0
-                current_value = limits.current[name] ? limit
-            else
-                if maximize
-                    current_value = limits.current[name] ? limits.limits[name]
-                else
-                    current_value = 0
-            state["upgrade_#{name}"] = misc.round2(current_value * factor)
-            upgrades = {}
-
-        return state
-
-    getInitialUpgraderState : ->
-        return @getUpgraderState(false)
-
-    max_upgrades : ->
-        @setState(@getUpgraderState(true))
-
-    reset_upgrades : ->
-        @setState(@getUpgraderState(false))
-
-    show_upgrade_quotas : ->
-        @setState(upgrading : true)
-
-    cancel_upgrading : ->
-        state =
-            upgrading : false
-
-        current = @props.upgrades_you_applied_to_this_project
-
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round2(current_value * factor)
-
-        @setState(state)
-
-    is_upgrade_input_valid : (input, max) ->
-        val = misc.parse_number_input(input, round_number=false)
-        if not val? or val > Math.max(0, max)
-            return false
-        else
-            return true
-
-    # the max button will set the upgrade input box to the number given as max
-    render_max_button : (name, max) ->
-        <Button
-            bsSize  = 'xsmall'
-            onClick = {=>@setState("upgrade_#{name}" : max)}
-            style   = {padding:'0px 5px'}
-        >
-            Max
-        </Button>
-
-    # TODO refactor: remove this code below and merge it with render_addon in project_settings.cjsx
-    render_addon : (misc, name, display_unit, limit) ->
-        <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
-
-    # TODO refactor: remove this code below and merge it with render_upgrade_row in project_settings.cjsx
-    render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
-        if not data?
-            return
-
-        {display, desc, display_factor, display_unit, input_type} = data
-
-        if input_type == 'checkbox'
-
-            # the remaining count should decrease if box is checked
-            val = @state["upgrade_#{name}"]
-            show_remaining = remaining + current - val
-            show_remaining = Math.max(show_remaining, 0)
-
-            if not @is_upgrade_input_valid(val, limit)
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
-            else
-                label = if val == 0 then 'Enable' else 'Enabled'
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>
-                    </Tip>
-                    <br/>
-                    ({1 - val} of {show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
-                </Col>
-                <Col sm=6>
-                    <form>
-                        <Checkbox
-                            ref      = {"upgrade_#{name}"}
-                            checked  = {val > 0}
-                            onChange = {=>@setState("upgrade_#{name}" : if ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).checked then 1 else 0)}
-                        >
-                            {label}
-                        </Checkbox>
-                    </form>
-                </Col>
-            </Row>
-
-
-        else if input_type == 'number'
-            remaining = misc.round2(remaining * display_factor)
-            display_current = current * display_factor # current already applied
-            if current != 0 and misc.round2(display_current) != 0
-                current = misc.round2(display_current)
-            else
-                current = display_current
-
-            limit = misc.round2(limit * display_factor)
-            current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
-
-            # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = misc.round2(remaining + current - current_input)
-
-            val = @state["upgrade_#{name}"]
-            if not @is_upgrade_input_valid(val, limit)
-                bs_style = 'error'
-                if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
-                else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
-            else
-                label = <span></span>
-
-            remaining_all = Math.max(show_remaining, 0)
-            schema_limit = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-            # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
-            remaining_limit = Math.max(0, Math.min(remaining_all, schema_limit["#{name}"]) - current_input)
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>
-                    </Tip>
-                    <br/>
-                    ({remaining_limit} of {remaining_all} {misc.plural(show_remaining, display_unit)} remaining)
-                </Col>
-                <Col sm=6>
-                    <FormGroup>
-                        <InputGroup>
-                            <FormControl
-                                ref        = {"upgrade_#{name}"}
-                                type       = 'text'
-                                value      = {val}
-                                bsStyle    = {bs_style}
-                                onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
-                            />
-                            <InputGroup.Addon>
-                                {@render_addon(misc, name, display_unit, limit)}
-                            </InputGroup.Addon>
-                        </InputGroup>
-                    </FormGroup>
-                    {label}
-                </Col>
-            </Row>
-        else
-            console.warn('Invalid input type in render_upgrade_row: ', input_type)
-            return
-
-    # TODO refactor: remove this code and merge it with project_settings.cjsx
-    # Returns true if the inputs are valid and different:
-    #    - at least one has changed
-    #    - none are negative
-    #    - none are empty
-    #    - none are higher than their limit
-    valid_changed_upgrade_inputs : (current, limits) ->
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            # the highest number the user is allowed to type
-            limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
-            # the current amount applied to the project
-            cur_val = misc.round2((current[name] ? 0) * factor)
-            # the current number the user has typed (undefined if invalid)
-            new_val = misc.parse_number_input(@state["upgrade_#{name}"])
-            if not new_val? or new_val > limit
-                return false
-            if cur_val isnt new_val
-                changed = true
-        return changed
-
-    # TODO refactor: remove this code (after checking diffs) and merge with project_settings.cjsx
-    render_upgrades_adjustor : ->
-        if misc.is_zero_map(@props.upgrades_you_can_use)
-            # user has no upgrades on their account
-            <NoUpgrades cancel={@cancel_upgrading} />
-        else
-            limits = @get_quota_limits()
-            ordered_fields = PROJECT_UPGRADES.field_order
-            ordered_quota_params = {}
-            for name in ordered_fields
-                ordered_quota_params[name] = @props.quota_params[name]
-            <Alert bsStyle='info'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
-
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
-                <hr/>
-                <Row>
-                    <Col md=6>
-                        <b style={fontSize:'12pt'}>Quota</b>
-                    </Col>
-                    <Col md=6>
-                        <b style={fontSize:'12pt'}>Your contribution</b>
-                        <br/>
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {=>@max_upgrades()}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Max all upgrades
-                        </Button>
-                        {' '}
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {=>@reset_upgrades()}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Reset all upgrades
-                        </Button>
-                    </Col>
-                </Row>
-                <hr/>
-
-                {@render_upgrade_row(n, data, limits.remaining[n], limits.current[n], limits.limits[n]) for n, data of ordered_quota_params}
-            </Alert>
-
-    render_upgrades_button : ->
-        <Row>
-            <Col sm=12>
-                <Button bsStyle='primary' onClick={@show_upgrade_quotas} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust your quotas...
-                </Button>
-            </Col>
-        </Row>
 
     start_editing : ->
         redux.getActions('billing')?.update_customer()
@@ -953,7 +676,21 @@ NewProjectCreator = rclass
         else
             @cancel_editing()
 
-    create_project : (with_upgrades = false) ->
+    render_upgrades_adjustor : ->
+        <UpgradeAdjustor
+            upgrades_you_can_use                 = {@props.upgrades_you_can_use}
+            upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
+            upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
+            submit_text              = {"Create project with upgrades"}
+            disable_submit           = {@state.title_text == '' or @state.state == 'saving'}
+            submit_upgrade_quotas    = {@create_project}
+            cancel_upgrading         = {@cancel_editing}
+            quota_params             = {require('smc-util/schema').PROJECT_UPGRADES.params}
+        >
+            {@render_info_alert()}
+        </UpgradeAdjustor>
+
+    create_project : (quotas_to_apply) ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
@@ -966,44 +703,9 @@ NewProjectCreator = rclass
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
-                if with_upgrades
-                    @save_upgrade_quotas(project_id)
-                @cancel_editing()
-                if with_upgrades
-                    @actions('projects').open_project(project_id:project_id)
-
-    save_upgrade_quotas : (project_id) ->
-        # how much upgrade you have used between all projects
-        used_upgrades = redux.getStore('projects').get_total_upgrades_you_have_applied()
-
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(redux.getStore('account').get_total_upgrades(), used_upgrades)
-        new_upgrade_quotas = {}
-        new_upgrade_state  = {}
-        for name, data of require('smc-util/schema').PROJECT_UPGRADES.params
-            factor = data.display_factor
-            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
-            if data.input_type is 'checkbox'
-                input = @state["upgrade_#{name}"] ? 0
-                if input and (remaining_val > 0)
-                    val = 1
-                else
-                    val = 0
-
-            else
-                # parse the current user input, and default to the current value if it is (somehow) invalid
-                input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0
-                input = Math.max(input, 0)
-                limit = remaining_val
-                val = Math.min(input, limit)
-
-            new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
-        actions.apply_upgrades_to_project(project_id, new_upgrade_quotas)
-
-        # set the state so that the numbers are right if you click upgrade again
-        @setState(new_upgrade_state)
-        @setState(upgrading : false)
+                if quotas_to_apply
+                    @props.actions.apply_upgrades_to_project(project_id, quotas_to_apply)
+                @actions('projects').open_project(project_id:project_id)
 
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
@@ -1014,7 +716,6 @@ NewProjectCreator = rclass
         $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
 
     render_upgrade_before_create : (subs) ->
-        return
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>
@@ -1035,24 +736,11 @@ NewProjectCreator = rclass
             </div>
         </Col>
 
-    render_no_title_alert : ->
+    render_info_alert : ->
         if @state.title_text == '' and @state.state != 'saving'
-            <Alert bsStyle='danger' style={marginTop:'15px'}>No project title specified. Please enter title at the top.</Alert>
-
-    render_create_with_upgrades_button : (create_btn_disabled) ->
-        <ButtonToolbar>
-            <Button
-                disabled = {create_btn_disabled}
-                bsStyle  = 'success'
-                onClick  = {@create_project} >
-                Create project with upgrades
-            </Button>
-            <Button
-                disabled = {@state.state is 'saving'}
-                onClick  = {@cancel_editing} >
-                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-            </Button>
-        </ButtonToolbar>
+            <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
+        else if @state.state == 'saving'
+            <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
     render_input_section : (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
@@ -1100,7 +788,7 @@ NewProjectCreator = rclass
                             disabled = {@state.title_text == '' or @state.state == 'saving'}
                             bsStyle  = 'success'
                             onClick  = {=>@create_project(false)} >
-                            Create project{#without upgrades}
+                            Create project without upgrades
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}
@@ -1124,12 +812,10 @@ NewProjectCreator = rclass
                 </Col>
             </Row>
             <Row>
-                {@render_upgrade_before_create(subs)}
+                {@render_upgrade_before_create(subs) if require('./customize').commercial}
             </Row>
             <Row>
                 <Col sm=12>
-                    {@render_no_title_alert()}
-                    {#@render_create_with_upgrades_button(create_btn_disabled) if subs > 0}
                     {@render_error()}
                 </Col>
             </Row>
@@ -1141,26 +827,22 @@ NewProjectCreator = rclass
 
     render : ->
         subs = @props.customer?.subscriptions?.total_count ? 0
-        new_proj_btn =  <Col sm=4>
-                            <Button
-                                bsStyle  = 'success'
-                                active   = {@state.state != 'view'}
-                                disabled = {@state.state != 'view'}
-                                block
-                                type     = 'submit'
-                                onClick  = {@toggle_editing}>
-                                <Icon name='plus-circle' /> Create new project...
-                            </Button>
-                        </Col>
-
-        new_proj_dialog = <Col sm=12>
-                            <Space/>
-                            {@render_input_section(subs)}
-                          </Col>
-
         <Row>
-            {new_proj_btn}
-            {if @state.state != 'view' then new_proj_dialog}
+            <Col sm=4>
+                <Button
+                    bsStyle  = 'success'
+                    active   = {@state.state != 'view'}
+                    disabled = {@state.state != 'view'}
+                    block
+                    type     = 'submit'
+                    onClick  = {@toggle_editing}>
+                    <Icon name='plus-circle' /> Create new project...
+                </Button>
+            </Col>
+            {<Col sm=12>
+                <Space/>
+                {@render_input_section(subs)}
+            </Col> if @state.state != 'view'}
         </Row>
 
 ProjectsFilterButtons = rclass

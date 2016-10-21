@@ -27,7 +27,7 @@ underscore = require('underscore')
 
 ReactDOMServer = require('react-dom/server')
 
-{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
@@ -213,11 +213,16 @@ ProjectNewForm = rclass ({name}) ->
         actions        : rtypes.object.isRequired
 
     getInitialState : ->
-        return filename : @props.default_filename ? @default_filename()
+        filename           : @props.default_filename ? @default_filename()
+        extension_warning  : false
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
+
+    componentDidUpdate: ->
+        if not @state.extension_warning
+            ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
     default_filename : ->
         return require('./account').default_filename()
@@ -238,8 +243,10 @@ ProjectNewForm = rclass ({name}) ->
         e.preventDefault()
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else
+        else if misc.filename_extension(@state.filename)
             @create_file()
+        else
+            @setState(extension_warning : true)
 
     render_header: ->
         if @props.current_path?
@@ -271,6 +278,20 @@ ProjectNewForm = rclass ({name}) ->
             on_error     : on_error
             switch_over  : true
 
+    render_no_extension_alert : ->
+        <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
+            <p>Warning: Are you sure you want to create a file with no extension?</p>
+            <ButtonToolbar style={marginTop:'10px'}>
+                <Button onClick={=>@create_file()} bsStyle='success'>
+                    Create file
+                </Button>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+
     render : ->
         <div>
             {@render_header()}
@@ -287,10 +308,12 @@ ProjectNewForm = rclass ({name}) ->
                                 ref         = 'project_new_filename'
                                 value       = @state.filename
                                 type        = 'text'
+                                disabled    = @state.extension_warning
                                 placeholder = 'Name your file, folder, or paste in a link...'
                                 onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
                         </FormGroup>
                     </form>
+                    {@render_no_extension_alert() if @state.extension_warning}
                     {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>

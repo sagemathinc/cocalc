@@ -162,17 +162,23 @@ class AppRedux
         #@show_state()
 
     createActions: (name, actions_class=Actions) =>
+        if not name?
+            throw Error("name must be a string")
         return @_actions[name] ?= new actions_class(name, @)
 
     getActions: (name) =>
+        if not name?
+            throw Error("name must be a string or an object with a project_id attribute, but is undefined")
         if typeof(name) == 'string'
             return @_actions[name]
         else
             if not name.project_id?
-                throw "Object needs project_id"
+                throw Error("Object must have project_id attribute")
             return project_store?.getActions(name.project_id, @)
 
     createStore: (name, store_class=Store, init=undefined) =>
+        if not name?
+            throw Error("name must be a string")
         if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})
             init = store_class
             store_class = Store
@@ -188,9 +194,13 @@ class AppRedux
         return S
 
     getStore: (name) =>
+        if not name?
+            throw Error("name must be a string")
         return @_stores[name]
 
     createTable: (name, table_class=Table) =>
+        if not name?
+            throw Error("name must be a string")
         tables = @_tables
         if tables[name]?
             throw Error("createTable: table #{name} already exists")
@@ -202,11 +212,15 @@ class AppRedux
         return tables[name] = table
 
     removeTable: (name) =>
+        if not name?
+            throw Error("name must be a string")
         if @_tables[name]?
             @_tables[name]._table.close()
             delete @_tables[name]
 
     removeStore: (name) =>
+        if not name?
+            throw Error("name must be a string")
         if @_stores[name]?
             S = @_stores[name]
             delete @_stores[name]
@@ -214,12 +228,16 @@ class AppRedux
             @_redux_store.dispatch(action_remove_store(name))
 
     removeActions: (name) =>
+        if not name?
+            throw Error("name must be a string")
         if @_actions[name]?
             A = @_actions[name]
             delete @_actions[name]
             A.destroy()
 
     getTable: (name) =>
+        if not name?
+            throw Error("name must be a string")
         if not @_tables[name]?
             throw Error("getTable: table #{name} not registered")
         return @_tables[name]
