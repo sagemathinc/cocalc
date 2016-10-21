@@ -626,14 +626,6 @@ class ProjectsTable extends Table
 
 redux.createTable('projects', ProjectsTable)
 
-# Should not be necessary/here for React/Redux
-exports.open_project = open_project = (opts) ->
-    throw "Fix this! #{arguments}"
-
-# Should not be necessary/here for React/Redux
-exports.load_target = load_target = (target, switch_to) ->
-    throw "Fix this! #{arguments}"
-
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
