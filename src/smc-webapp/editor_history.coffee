@@ -57,10 +57,16 @@ class exports.HistoryEditor extends FileEditor
                     @resize_diff_slider()
                 else
                     @resize_slider()
+
             if @syncstring.has_full_history()
                 @load_all.hide()
             else
                 @load_all.show()
+
+            # only show button for reverting if not read only
+            @syncstring.wait_until_read_only_known (err) =>
+                if not @syncstring.get_read_only()
+                    @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @syncstring?.close()

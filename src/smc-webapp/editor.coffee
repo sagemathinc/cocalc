@@ -670,7 +670,7 @@ class FileEditor extends EventEmitter
         # If some backend session on a remote machine is serving this session, terminate it.
 
     save: (cb) =>
-        content = @val()
+        content = @val?()   # may not be defined in which case save not supported
         if not content?
             # do not overwrite file in case editor isn't initialized
             cb?()
