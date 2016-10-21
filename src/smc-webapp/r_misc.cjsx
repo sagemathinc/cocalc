@@ -1178,10 +1178,16 @@ EditorFileInfoDropdown = rclass
         for name, icon of items
             @render_menu_item(name, icon)
 
-    render : ->
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+    render_dropdown_button : (bsSize, className) ->
+        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bsSize} title={<Icon name='info-circle' />} className={className}>
             {@render_menu_items()}
         </DropdownButton>
+
+    render : ->
+        <div>
+            {@render_dropdown_button('large', 'pull-left visible-xs')}
+            {@render_dropdown_button(null, 'pull-left hidden-xs')}
+        </div>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
