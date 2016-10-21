@@ -570,27 +570,6 @@ class FileEditor extends EventEmitter
     init_font_size: () =>
         @default_font_size = redux.getStore('account').get('font_size')
 
-    init_autosave: () =>
-        if @_autosave_interval?
-            # This function can safely be called again to *adjust* the
-            # autosave interval, in case user changes the settings.
-            clearInterval(@_autosave_interval); delete @_autosave_interval
-
-        # Use the most recent autosave value.
-        autosave = redux.getStore('account').get('autosave')
-        if autosave
-            save_if_changed = () =>
-                if @has_unsaved_changes() and (new Date()  -  (@_when_had_no_unsaved_changes ? 0)) >= @_autosave_interval
-                    # Both has some unsaved changes *and* has had those changes for at least @_autosave_interval ms.
-                    # NOTE: the second condition won't really work for documents that don't yet
-                    # synchronize the "unsaved changes" state with the backend; this is temporary.
-                    if @click_save_button?
-                        # nice gui feedback
-                        @click_save_button()
-                    else
-                        @save()
-            @_autosave_interval = setInterval(save_if_changed, autosave * 1000)
-
     val: (content) =>
         if not content?
             # If content not defined, returns current value.
@@ -1978,7 +1957,11 @@ class PDFLatexDocument
 
     default_tex_command: () =>
         # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-        return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # since in some cases things will hang (using )
+        #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+        # See https://github.com/sagemathinc/smc/issues/156
+        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>

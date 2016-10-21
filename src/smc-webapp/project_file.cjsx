@@ -54,6 +54,7 @@ exports.register_file_editor = (opts) ->
         init      : required  # function
         remove    : required
         icon      : 'file-o'
+        save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
 
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]
@@ -66,6 +67,7 @@ exports.register_file_editor = (opts) ->
             generator : opts.generator
             init      : opts.init
             remove    : opts.remove
+            save      : opts.save
 
 # Performs things that need to happen before render
 # Calls file_editors[ext].init()
@@ -99,14 +101,23 @@ exports.generate = (path, redux, project_id, is_public) ->
     else
         return () -> <div>No editor for {path} or fallback editor yet</div>
 
+# Actually remove the given editor
 exports.remove = (path, redux, project_id, is_public) ->
     is_public = !!is_public
     ext = filename_extension(path)
-    remove = file_editors[is_public][ext]?.remove
-    if not remove?
-        # Fallback
-        remove = file_editors[is_public]['']?.remove
+    # Use specific one for the given extension, or a fallback.
+    remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)
     remove?(path, redux, project_id)
+
+# The save function may be called to request to save contents to disk.
+# It does not take a callback.  It's a non-op if no save function is registered
+# or the file isn't open.
+exports.save = (path, redux, project_id, is_public) ->
+    is_public = !!is_public
+    ext       = filename_extension(path)
+    # either use the one given by ext, or if there isn't one, use the '' fallback.
+    save = (file_editors[is_public][ext]?.save) ? (file_editors[is_public]['']?.save)
+    save?(path, redux, project_id)
 
 
 # Require each module, which loads a file editor.  These call register_file_editor.

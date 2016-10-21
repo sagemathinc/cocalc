@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -227,9 +227,34 @@ class ProjectActions extends Actions
             cb : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
-                    console.log('error recording a log entry: ', err)
+                    # (It *should* keep trying and store that in localStore, and try next time, etc...
+                    #  of course done in a systematic way across everything.)
+                    console.warn('error recording a log entry: ', err)
 
+    # Save the given file in this project (if it is open) to disk.
+    save_file: (opts) =>
+        opts = defaults opts,
+            path : required
+        if not @redux.getStore('projects').is_project_open(@project_id)
+            return # nothing to do regarding save, since project isn't even open
+        # NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
+        is_public = @get_store().get('open_files').getIn([opts.path, 'component'])?.is_public
+        project_file.save(opts.path, @redux, @project_id, is_public)
 
+    # Save all open files in this project
+    save_all_files : () =>
+        s = @redux.getStore('projects')
+        if not s.is_project_open(@project_id)
+            return # nothing to do regarding save, since project isn't even open
+        group = s.get_my_group(@project_id)
+        if not group? or group == 'public'
+            return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
+        @get_store().get('open_files').filter (val, path) =>
+            is_public = val.get('component')?.is_public  # might still in theory someday be true.
+            project_file.save(path, @redux, @project_id, is_public)
+            return false
+
+    # Open the given file in this project.
     open_file: (opts) =>
         opts = defaults opts,
             path               : required
@@ -581,9 +606,31 @@ class ProjectActions extends Actions
             checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
 
-    set_file_action : (action) =>
-        if action == 'move'
-            @redux.getActions('projects').fetch_directory_tree(@project_id)
+    _suggest_duplicate_filename: (name) =>
+        store = @get_store()
+        files_in_dir = {}
+        # This will set files_in_dir to our current view of the files in the current
+        # directory (at least the visible ones) or do nothing in case we don't know
+        # anything about files (highly unlikely).  Unfortunately (for this), our
+        # directory listings are stored as (immutable) lists, so we have to make
+        # a map out of them.
+        store.get_directory_listings()?.get(store.get('current_path'))?.map (x) ->
+            files_in_dir[x.get('name')] = true
+            return
+        # This loop will keep trying new names until one isn't in the directory
+        while true
+            name = misc.suggest_duplicate_filename(name)
+            if not files_in_dir[name]
+                return name
+
+    set_file_action : (action, get_basename) =>
+        switch action
+            when 'move'
+                @redux.getActions('projects').fetch_directory_tree(@project_id)
+            when 'duplicate'
+                @setState(new_name : @_suggest_duplicate_filename(get_basename()))
+            when 'rename'
+                @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
     ensure_directory_exists: (opts) =>

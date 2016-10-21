@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -52,6 +52,9 @@ exports.file_action_buttons = file_action_buttons =
         rename   :
             name : 'Rename'
             icon : 'pencil'
+        duplicate:
+            name : 'Duplicate'
+            icon : 'clone'
         move     :
             name : 'Move'
             icon : 'arrows'
@@ -820,8 +823,10 @@ ProjectFilesActions = rclass
 
     render_action_button : (name) ->
         obj = file_action_buttons[name]
+        get_basename = =>
+            misc.path_split(@props.checked_files?.first()).tail
         <Button
-            onClick={=>@props.actions.set_file_action(name)}
+            onClick={=>@props.actions.set_file_action(name, get_basename)}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
@@ -843,6 +848,7 @@ ProjectFilesActions = rclass
                     'compress'
                     'delete'
                     'rename'
+                    'duplicate'
                     'move'
                     'copy'
                     'share'
@@ -853,6 +859,7 @@ ProjectFilesActions = rclass
                     'download'
                     'delete'
                     'rename'
+                    'duplicate'
                     'move'
                     'copy'
                     'share'
@@ -913,7 +920,7 @@ ProjectFilesActionBox = rclass
         copy_destination_directory  : ''
         copy_destination_project_id : if @props.public_view then '' else @props.project_id
         move_destination            : ''
-        new_name                    : misc.path_split(@props.checked_files?.first()).tail
+        new_name                    : @props.new_name
         show_different_project      : @props.public_view
 
     pre_styles :
@@ -1037,12 +1044,18 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
-    rename_click : ->
+    rename_or_duplicate_click : () ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = ReactDOM.findDOMNode(@refs.new_name).value
-        @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : misc.path_to_file(rename_dir, destination)
+        switch @props.file_action
+            when 'rename'
+                @props.actions.move_files
+                    src  : @props.checked_files.toArray()
+                    dest : misc.path_to_file(rename_dir, destination)
+            when 'duplicate'
+                @props.actions.copy_files
+                    src  : @props.checked_files.toArray()
+                    dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1068,8 +1081,13 @@ ProjectFilesActionBox = rclass
             return false
         return @state.new_name.trim() isnt misc.path_split(single_item).tail
 
-    render_rename : ->
+    render_rename_or_duplicate: () ->
         single_item = @props.checked_files.first()
+        action_title = switch @props.file_action
+                            when 'rename'
+                                'Rename'
+                            when 'duplicate'
+                                'Duplicate'
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1084,7 +1102,7 @@ ProjectFilesActionBox = rclass
                             ref          = 'new_name'
                             key          = 'new_name'
                             type         = 'text'
-                            defaultValue = {misc.path_split(single_item).tail}
+                            defaultValue = {@state.new_name}
                             placeholder  = 'New file name...'
                             onChange     = {=>@setState(new_name : ReactDOM.findDOMNode(@refs.new_name).value)}
                             onKeyDown    = {@action_key}
@@ -1096,8 +1114,8 @@ ProjectFilesActionBox = rclass
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='info' onClick={@rename_click} disabled={not @valid_rename_input(single_item)}>
-                            <Icon name='pencil' /> Rename file
+                        <Button bsStyle='info' onClick={=>@rename_or_duplicate_click()} disabled={not @valid_rename_input(single_item)}>
+                            <Icon name='pencil' /> {action_title} item
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1106,6 +1124,12 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    render_rename: ->
+        @render_rename_or_duplicate()
+
+    render_duplicate: ->
+        @render_rename_or_duplicate()
 
     submit_action_rename: () ->
         single_item = @props.checked_files.first()
@@ -1727,6 +1751,7 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index : rtypes.number
             directory_listings  : rtypes.object
             get_displayed_listing : rtypes.func
+            new_name            : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1736,6 +1761,7 @@ exports.ProjectFiles = rclass ({name}) ->
     getDefaultProps : ->
         page_number : 0
         file_search : ''
+        new_name : ''
         selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
@@ -1805,6 +1831,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 project_id    = {@props.project_id}
                 public_view   = {public_view}
                 file_map      = {file_map}
+                new_name      = {@props.new_name}
                 actions       = {@props.actions} />
         </Col>
 

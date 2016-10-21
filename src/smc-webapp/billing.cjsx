@@ -286,24 +286,24 @@ AddPaymentMethod = rclass
             return validate.invalid
 
     render_input_expiration : ->
-        <div style={marginBottom:'15px'}>
+        <div style={marginBottom:'15px', display:'flex'}>
             <FormGroup>
                 <FormControl
                     readOnly    = {@state.submitting}
                     className   = 'form-control'
-                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
+                    style       = {misc.merge({width:'5em'}, @style('exp_month'))}
                     placeholder = 'MM'
                     type        = 'text'
                     size        = '2'
                     onChange    = {(e)=>@set_input_info('exp_month', undefined, e.target.value)}
                 />
             </FormGroup>
-            <span> / </span>
+            <span style={fontSize:'22px', margin: '1px 5px'}> / </span>
             <FormGroup>
                 <FormControl
                     readOnly    = {@state.submitting}
                     className   = 'form-control'
-                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
+                    style       = {misc.merge({width:'5em'}, @style('exp_year'))}
                     placeholder = 'YY'
                     type        = 'text'
                     size        = '2'
@@ -1734,7 +1734,9 @@ BillingPage = rclass
         return v
 
     get_panel_header : (icon, header) ->
-        <div><Icon name={icon} fixedWidth /> {header}</div>
+        <div style={cursor:'pointer'} >
+            <Icon name={icon} fixedWidth /> {header}
+        </div>
 
     render_page : ->
         cards    = @props.customer?.sources?.total_count ? 0

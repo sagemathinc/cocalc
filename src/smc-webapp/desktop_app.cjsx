@@ -62,9 +62,10 @@ Page = rclass
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
-            first_name   : rtypes.string
-            last_name    : rtypes.string
+            first_name   : rtypes.string # Necessary for get_fullname
+            last_name    : rtypes.string # Necessary for get_fullname
             get_fullname : rtypes.func
+            user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
         support :
             show : rtypes.bool
@@ -81,17 +82,37 @@ Page = rclass
             name = misc.trunc_middle(@props.get_fullname(), 32)
         if not name.trim()
             name = "Account"
+
         return name
 
+    render_account_tab: ->
+        <NavTab
+            name='account'
+            label={@account_name()}
+            icon='cog'
+            actions={@actions('page')}
+            active_top_tab={@props.active_top_tab}
+        />
+
+    sign_in_tab_clicked: ->
+        if @props.active_top_tab == 'account'
+            @actions('page').sign_in()
+
+    render_sign_in_tab: ->
+        <NavTab
+            name='account'
+            label='Sign in'
+            icon='sign-in'
+            on_click={@sign_in_tab_clicked}
+            actions={@actions('page')}
+            active_top_tab={@props.active_top_tab}
+        />
+
     render_right_nav : ->
+        logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
-            <NavTab
-                name='account'
-                label={@account_name()}
-                icon='cog'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-            />
+            {@render_account_tab() if logged_in}
+            {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
             {<NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} /> if require('./customize').commercial}

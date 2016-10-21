@@ -283,6 +283,21 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update(set:{pay:pay}, where:{table:'settings'})
             @set_all_student_project_course_info(pay)
 
+        # Takes an item_name and the id of the time
+        # item_name should be one of
+        # ['student', 'assignment', handout']
+        toggle_item_expansion: (item_name, item_id) =>
+            console.log("Toggling a", item_name, "with id", item_id)
+            store = get_store()
+            return if not store?
+            field_name = "expanded_#{item_name}s"
+            expanded_items = store.get(field_name)
+            if expanded_items.has(item_id)
+                adjusted = expanded_items.delete(item_id)
+            else
+                adjusted = expanded_items.add(item_id)
+            @setState("#{field_name}" : adjusted)
+
         # Students
         add_students: (students) =>
             # students = array of account_id or email_address
@@ -1758,7 +1773,12 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_handout_status[handout_id] = info
             return info
 
-    redux.createStore(the_redux_name, CourseStore)
+    initial_store_state =
+        expanded_students    : immutable.Set() # Set of student id's (string) which should be expanded on render
+        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded on render
+        expanded_handouts    : immutable.Set() # Set of handout id's (string) which should be expanded on render
+
+    redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
     synchronized_db
         project_id : course_project_id
@@ -1899,7 +1919,8 @@ CourseEditor = rclass ({name}) ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
                 project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
-                store={@props.redux.getStore(@props.name)} project_actions={@props.redux.getProjectActions(@props.project_id)}
+                store_object={@props.redux.getStore(@props.name)} project_actions={@props.redux.getProjectActions(@props.project_id)}
+                name={@props.name}
                 />
         else
             return <Loading />

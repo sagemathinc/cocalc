@@ -410,11 +410,11 @@ SupportFooter = rclass
             btn = <span/>
 
         <Modal.Footer>
+            {btn}
             <Button
                 tabIndex  = 5
                 bsStyle   ='default'
-                onClick   = {@props.close}>Close</Button>
-            {btn}
+                onClick   = {@props.close}>Cancel</Button>
         </Modal.Footer>
 
 SupportForm = rclass
