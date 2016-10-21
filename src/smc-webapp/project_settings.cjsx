@@ -344,7 +344,7 @@ UsagePanel = rclass
     render_upgrades_button : ->
         <Row>
             <Col sm=12>
-                <Button bsStyle='primary' onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
+                <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
                     <Icon name='arrow-circle-up' /> Adjust your quotas...
                 </Button>
             </Col>
@@ -354,7 +354,7 @@ UsagePanel = rclass
         if not require('./customize').commercial
             return null
         <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
-            {@render_upgrades_button() if not @state.show_adjustor}
+            {@render_upgrades_button()}
             {<UpgradeAdjustor
                 project_id                           = {@props.project_id}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
