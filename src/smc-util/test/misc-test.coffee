@@ -1220,11 +1220,16 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b", ->
-    it "test 1", ->
+describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+    it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
         e = {'x': 4.4, 'y': -1, 'z': 5}
+        misc.map_limit(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 0, 'y': -1, 'z': 0}
         misc.map_limit(a, b).should.eql e
 
 describe 'is_valid_email_address is', ->
