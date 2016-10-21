@@ -544,9 +544,9 @@ HideDeletePanel = rclass
 
     render_expanded_delete_info : ->
         <Well>
-            <Alert bsStyle="info" style={padding:'8px', marginTop:'4px'} >
-                All of your upgrades from this project will be removed automatically. Undeleting the project will not automatically restore them.
-                <br/>
+            <Alert bsStyle="info" style={padding:'8px'} >
+                All of your upgrades from this project will be removed automatically.
+                Undeleting the project will not automatically restore them.
                 This will not affect upgrades other people have applied.
             </Alert>
             <ButtonToolbar style={textAlign:'center'} >
