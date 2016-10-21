@@ -2504,6 +2504,7 @@ def show(*objs, **kwds):
         show([1, 4/5, pi^2 + e], 1+pi)
         show(x^2, display=False)
         show(e, plot(sin))
+        show(latex(x^2))
 
     Here's an example that illustrates creating a clickable image with events::
 
@@ -2521,14 +2522,14 @@ def show(*objs, **kwds):
                 f0(click=p)
             show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
-    # svg=True, d3=True,
-    svg = kwds.get('svg',True)
-    d3 = kwds.get('d3',True)
+    svg     = kwds.get('svg',True)
+    d3      = kwds.get('d3',True)
     display = kwds.get('display', True)
+
     for t in ['svg', 'd3', 'display']:
         if t in kwds:
             del kwds[t]
-    import graphics
+
     def show0(obj, combine_all=False):
         # Either show the object and return None or
         # return a string of html to represent obj.
@@ -2547,6 +2548,14 @@ def show(*objs, **kwds):
                 show_graph_using_d3(obj, **kwds)
             else:
                 show(obj.plot(), **kwds)
+        elif isinstance(obj, sage.misc.latex.LatexExpr):
+            # IMPORTANT: this *MUST* go before "isinstance(obj, str)" below,
+            # since sage.misc.latex.LatexExpr derives from string.
+            # See https://github.com/sagemathinc/smc/issues/40
+            if display:
+                return "$\\displaystyle %s$"%obj
+            else:
+                return "$%s$"%obj
         elif isinstance(obj, str):
             return obj
         elif isinstance(obj, (list, tuple)):
@@ -2565,6 +2574,7 @@ def show(*objs, **kwds):
         elif is_dataframe(obj):
             html(obj.to_html(), hide=False)
         else:
+
             s = str(sage.misc.latex.latex(obj))
             if r'\text{\texttt' in s and 'tikzpicture' not in s:
                 # In this case the mathjax latex mess is so bad, it is better to just print and give up!

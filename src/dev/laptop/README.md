@@ -56,3 +56,8 @@ Try editing smc-webapp/r_help.cjsx, e.g., changing the heading "Support" to some
 ## Changing the hub server backend
 
 Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./start_hub.py` again.  It's slightly faster if you comment out the `./update_schema.coffee` line in `./start_hub.py`, which is safe unless the schema changes.
+
+## Issue -- server time
+
+Some code in SMC 
+
