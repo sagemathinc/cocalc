@@ -670,7 +670,7 @@ class FileEditor extends EventEmitter
         # If some backend session on a remote machine is serving this session, terminate it.
 
     save: (cb) =>
-        content = @val()
+        content = @val?()   # may not be defined in which case save not supported
         if not content?
             # do not overwrite file in case editor isn't initialized
             cb?()
@@ -1006,6 +1006,7 @@ class CodeMirrorEditor extends FileEditor
 
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: (readonly=true) =>
+        @opts.read_only = readonly
         if readonly
             @element.find(".salvus-editor-write-only").hide()
             @element.find(".salvus-editor-read-only").show()
@@ -3042,7 +3043,6 @@ class JupyterNBViewerEmbedded extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
-        #window.w = @
 
     init_buttons: () =>
         # code duplication from editor_jupyter/JupyterNBViewer
