@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import json, os, sys
+import json, os, sys, re
 
 home = os.environ['HOME']
 
@@ -50,11 +50,8 @@ def main():
         print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
         print "If the named file doesn't exist, it is created."
     else:
-        # exception if any args have ? or * after glob expansion
-        ff = filter(lambda x: any(wc in x for wc in ['?', '*']), sys.argv[1:])
-        if len(ff) > 0:
-            raise ValueError('No matching files for wildcard argument(s)', ff)
-        process(sys.argv[1:])
+        # ignore args that have ? or * after glob expansion
+        process([p for p in sys.argv[1:] if re.search('[\?\*]', p) is None])
 
 if __name__ == "__main__":
     main()
