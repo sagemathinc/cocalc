@@ -45,6 +45,12 @@ step_ready = (step, n) ->
         when 'handout'
             return ''
 
+past_tense = (word) ->
+    if word[word.length-1] == 'e'
+        return word + 'd'
+    else
+        return word + 'ed'
+
 exports.HandoutsPanel = rclass ({name}) ->
 
     displayName : 'Course-editor-HandoutsPanel'
@@ -267,7 +273,7 @@ Handout = rclass
                         disabled={@state["copy_confirm_all_#{step}"]} >
                     {if step=='handout' then 'All' else 'The'} {m} students{step_ready(step, m)}...
                 </Button>
-                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {step_verb(step)}ed {step_direction(step)}</Button> if n}
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {past_tense(step_verb(step))} {step_direction(step)}</Button> if n}
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
