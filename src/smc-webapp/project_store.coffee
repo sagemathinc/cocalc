@@ -156,6 +156,7 @@ class ProjectActions extends Actions
                 show_hidden = store.get('show_hidden') ? false
                 @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
             when 'new'
+                @setState(file_creation_error: undefined)
                 @push_state('new/' + @get_store().get('current_path'))
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
@@ -880,23 +881,15 @@ class ProjectActions extends Actions
     download_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
-    # This is the absolute path to the file with given name but with the
+    # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
-    # that extension.  If the file contains invalid characters this function
-    # will call on_error (if given) and return ''.
-    path : (name, current_path, ext, on_empty, on_error) =>
+    # that extension.  Throws an Error if the path name is invalid.
+    _absolute_path : (name, current_path, ext) =>
         if name.length == 0
-            if on_empty?
-                on_empty()
-                return ''
-            name = require('./account').default_filename()
+            throw Error("Cannot use empty filename")
         for bad_char in BAD_FILENAME_CHARACTERS
             if name.indexOf(bad_char) != -1
-                err = "Cannot use '#{bad_char}' in a filename"
-                on_error?(err)
-                if not on_error?
-                    console.warn(err)
-                return ''
+                throw Error("Cannot use '#{bad_char}' in a filename")
         s = misc.path_to_file(current_path, name)
         if ext? and misc.filename_extension(s) != ext
             s = "#{s}.#{ext}"
@@ -906,20 +899,22 @@ class ProjectActions extends Actions
         opts = defaults opts,
             name         : required
             current_path : undefined
-            on_error     : undefined
             switch_over  : true       # Whether or not to switch to the new folder
-        {name, current_path, on_error, switch_over} = opts
-
+        {name, current_path, switch_over} = opts
+        @setState(file_creation_error: undefined)
         if name[name.length - 1] == '/'
             name = name.slice(0, -1)
-        p = @path(name, current_path, undefined, undefined, on_error)
-        if p.length == 0
+        try
+            p = @_absolute_path(name, current_path)
+        catch e
+            @setState(file_creation_error: e.message)
             return
         @ensure_directory_exists
             path : p
             cb   : (err) =>
-                if not err and switch_over
-                    #TODO reporting of errors...
+                if err
+                    @setState(file_creation_error: "Error creating directory '#{p}' -- #{err}")
+                else if switch_over
                     @set_current_path(p, update_file_listing=true)
                     @set_active_tab('files')
 
@@ -928,42 +923,37 @@ class ProjectActions extends Actions
             name         : undefined
             ext          : undefined
             current_path : undefined
-            on_download  : undefined
-            on_error     : undefined
-            on_empty     : undefined
             switch_over  : true       # Whether or not to switch to the new file
+        @setState(file_creation_error:undefined)  # clear any create file display state
         name = opts.name
         if (name == ".." or name == ".") and not opts.ext?
-            opts.on_error?("Cannot create a file named . or ..")
+            @setState(file_creation_error: "Cannot create a file named . or ..")
             return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
-            opts.on_download?(true)
-            @new_file_from_web name, opts.current_path, () =>
-                opts.on_download?(false)
+            @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
             if not opts.ext?
                 @create_folder
                     name          : name
                     current_path  : opts.current_path
-                    on_error      : opts.on_error
                 return
             else
                 name = name.slice(0, name.length - 1)
-        p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
-        if not p
+        try
+            p = @_absolute_path(name, opts.current_path, opts.ext)
+        catch e
+            @setState(file_creation_error: e.message)
             return
         ext = misc.filename_extension(p)
         if ext in BANNED_FILE_TYPES
-            opts.on_error?("Cannot create a file with the #{ext} extension")
+            @setState(file_creation_error: "Cannot create a file with the #{ext} extension")
             return
         if ext == 'tex'
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
                 if p.indexOf(bad_char) != -1
-                    opts.on_error?("Cannot use '#{bad_char}' in a LaTeX filename")
+                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
                     return
-        if p.length == 0
-            return
         salvus_client.exec
             project_id  : @project_id
             command     : 'smc-new-file'
@@ -972,7 +962,7 @@ class ProjectActions extends Actions
             err_on_exit : true
             cb          : (err, output) =>
                 if err
-                    opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
+                    @setState(file_creation_error: "#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else if opts.switch_over
                     @open_file
                         path : p

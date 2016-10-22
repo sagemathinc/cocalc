@@ -1747,7 +1747,6 @@ exports.ProjectFiles = rclass ({name}) ->
             sort_by_time        : rtypes.bool
             error               : rtypes.string
             checked_files       : rtypes.immutable
-            file_creation_error : rtypes.string
             selected_file_index : rtypes.number
             directory_listings  : rtypes.object
             get_displayed_listing : rtypes.func
@@ -1780,22 +1779,16 @@ exports.ProjectFiles = rclass ({name}) ->
             name         : @props.file_search
             ext          : ext
             current_path : @props.current_path
-            on_download  : ((a) => @setState(download: a))
-            on_error     : @handle_creation_error
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
             @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
-    handle_creation_error : (e) ->
-        @props.actions.setState(file_creation_error : e)
-
     create_folder : (switch_over=true) ->
         @props.actions.create_folder
             name         : @props.file_search
             current_path : @props.current_path
-            on_error     : ((a) => setState(error: a))
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
