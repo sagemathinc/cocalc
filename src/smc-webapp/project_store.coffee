@@ -489,6 +489,9 @@ class ProjectActions extends Actions
     set_directory_files : (path, sort_by_time, show_hidden) =>
         if not path?
             path = @get_store().get('current_path')
+        if not path?
+            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
+            return
 
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
