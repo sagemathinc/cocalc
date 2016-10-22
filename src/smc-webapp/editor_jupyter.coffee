@@ -209,7 +209,8 @@ class JupyterWrapper extends EventEmitter
 
     # save notebook file from DOM to disk
     save: (cb) =>
-        @nb.save_notebook(false).then(cb)
+        # could be called when notebook is being initialized before nb is defined.
+        @nb?.save_notebook(false).then(cb)
 
     disable_autosave: () =>
         # We have our own auto-save system
@@ -1096,7 +1097,9 @@ class JupyterNotebook extends EventEmitter
     # this way too expensive (and any changes there will quickly get saved
     # to the syncstring, or don't matter).
     has_unsaved_changes: () =>
-        return @syncstring._syncstring.has_unsaved_changes()
+        # The question mark is necessary since @syncstring might not be defined when this gets called
+        # (see https://github.com/sagemathinc/smc/issues/918).
+        return @syncstring?._syncstring?.has_unsaved_changes()
 
     update_save_state: () =>
         if not @save_button? or @state != 'ready'
