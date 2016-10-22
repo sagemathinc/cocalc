@@ -348,6 +348,7 @@ class ProjectActions extends Actions
                             @foreground_opened_file(opts.path)
         return
 
+    # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
         if not @_activity_indicator_timers?
             @_activity_indicator_timers = {}
@@ -355,13 +356,13 @@ class ProjectActions extends Actions
         if timer?
             clearTimeout(timer)
 
-        open_files = @get_store().get('open_files')
         set_inactive = () =>
-            new_files_data = open_files.setIn([filename, 'has_activity'], false)
-            @setState(open_files : new_files_data)
+            current_files = @get_store().get('open_files')
+            @setState(open_files : current_files.setIn([filename, 'has_activity'], false))
 
         @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
 
+        open_files = @get_store().get('open_files')
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
 
