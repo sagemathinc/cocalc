@@ -1254,7 +1254,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             # absolute inside of project
                             target = "#{that.project_id}/files#{decodeURI(target)}"
                         else
-                            # realtive to current path
+                            # relative to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
@@ -1264,9 +1264,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y = $(x)
             src = y.attr('src')
-            if src.indexOf('://') != -1
+            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
                 continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
 
     _post_save_success: () =>
