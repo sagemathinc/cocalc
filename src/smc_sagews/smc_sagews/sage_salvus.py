@@ -2852,8 +2852,8 @@ def exercise(code):
         return text_control('<h3 class="lighten">%s</h3>'%t)
 
     the_times = []
-    @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
-    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='fa-refresh', classes="btn-large btn-success"),
+    @interact(layout=[[('go',2), ('title',10,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
+    def h(go    = button('New Problem', label='', icon='fa-refresh', classes="btn-large btn-success"),
           title = title_control(title),
           times = text_control('')):
         c = interact.changed()
