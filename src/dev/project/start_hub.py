@@ -6,6 +6,9 @@ path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.in
 
 os.environ['DEVEL']='yes'
 
+if 'TMUX' in os.environ: # see https://github.com/sagemathinc/smc/issues/563
+    del os.environ['TMUX']
+
 util.chdir()
 
 ports = util.get_ports()
