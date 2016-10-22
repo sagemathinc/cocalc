@@ -177,7 +177,7 @@ salvus_client.on "ping", (ping_time) ->
     else
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    redux.getActions('page').set_ping(ping_time, ping_time_smooth)
+    redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
 
 salvus_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
