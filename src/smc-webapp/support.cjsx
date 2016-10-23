@@ -583,7 +583,7 @@ exports.ShowSupportLink = rclass
 
     show: (evt) ->
         evt.preventDefault()
-        exports.show()
+        redux.getActions('support').show(true)
 
     render : ->
         <a onClick={@show} href='#' style={cursor: 'pointer'}>
