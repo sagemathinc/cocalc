@@ -3854,4 +3854,5 @@ def show_identifiers():
     si =  eval('show_identifiers.fn()',salvus.namespace)
     si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
     return si2
+
 show_identifiers.fn = sage.misc.session.show_identifiers

@@ -934,7 +934,6 @@ class Salvus(object):
         except:
             log("Error - unable to import sage.repl.interpreter")
 
-        import sys
         import sage.misc.session
 
         for start, stop, block in blocks:
@@ -963,7 +962,8 @@ class Salvus(object):
                             # this fixup has to happen after first block has executed (os.chdir etc)
                             # but before user assigns any variable in worksheet
                             # sage.misc.session.init() is not called until first call of show_identifiers
-                            block2 = "_=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
+                            block2 = "sage.misc.session._dummy=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
                             exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
@@ -1300,7 +1300,6 @@ class Salvus(object):
             opts['use_cache'] = True
         import sage.misc.cython
         modname, path = sage.misc.cython.cython(filename, **opts)
-        import sys
         try:
             sys.path.insert(0,path)
             module = __import__(modname)
@@ -1315,7 +1314,6 @@ class Salvus(object):
                 break
         try:
             open(py_file_base+'.py', 'w').write(content)
-            import sys
             try:
                 sys.path.insert(0, os.path.abspath('.'))
                 mod = __import__(py_file_base)
@@ -1496,6 +1494,7 @@ def session(conn):
     import sage.misc.getusage
     sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
+
     cnt = 0
     while True:
         try:
@@ -1518,7 +1517,6 @@ def session(conn):
                 except Exception as err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
-                import sys
                 try:
                     # check for introspect from jupyter cell
                     prefix = Salvus._default_mode
@@ -1846,7 +1844,7 @@ def serve(port, host, extra_imports=False):
         # end while
     except Exception as err:
         log("Error taking connection: ", err)
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc(file=open(LOGFILE, 'a'))
         #log.error("error: %s %s", type(err), str(err))
 
     finally:
