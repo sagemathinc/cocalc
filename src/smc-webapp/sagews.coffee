@@ -1374,6 +1374,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
+        if mesg.error?
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            output.append($("<span class='sagews-output-stderr'>").text(error))
+
         if mesg.code?
             x = $("<div class='sagews-output-code'>")
             output.append(x)
