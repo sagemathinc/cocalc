@@ -1064,15 +1064,25 @@ StripeKeys = rclass
 
     save : ->
         @setState(state:'save')
-        f = (name, cb) =>
-        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        salvus_client.query
-            query : query
-            cb    : (err) =>
-                if err
-                    @setState(state:'edit', error:err)
-                else
-                    @setState(state:'view', error:'', secret_key:'', publishable_key:'')
+        async = require('async')
+        query1 = server_settings : { name:"stripe_secret_key", value:@state.secret_key }
+        query2 = server_settings : { name:"stripe_publishable_key", value:@state.publishable_key }
+
+        async.series([
+            (cb) =>
+                salvus_client.query
+                    query : query1
+                    cb    : cb
+            (cb) =>
+                salvus_client.query
+                    query : query2
+                    cb    : cb
+        ], (err) =>
+            if err
+                @setState(state:'edit', error:err)
+            else
+                @setState(state:'view', error:'', secret_key:'', publishable_key:'')
+        )
 
     cancel : ->
         @setState(state:'view', error:'', secret_key:'', publishable_key:'')
@@ -1093,14 +1103,14 @@ StripeKeys = rclass
                 <Well>
                     <LabeledRow label='Secret key'>
                         <FormGroup>
-                            <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
-                                onChange={=>@setState(secret_key:ReactDOM.findDOMNode(@refs.input_secret_key).value)} />
+                            <FormControl type='text' value={@state.secret_key}
+                                onChange={(e)=>@setState(secret_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
                     <LabeledRow label='Publishable key'>
                         <FormGroup>
-                            <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
-                                onChange={=>@setState(publishable_key:ReactDOM.findDOMNode(@refs.input_publishable_key).value)} />
+                            <FormControl type='text' value={@state.publishable_key}
+                                onChange={(e)=>@setState(publishable_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
