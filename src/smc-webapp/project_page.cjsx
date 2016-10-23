@@ -203,27 +203,34 @@ FreeProjectWarning = rclass ({name}) ->
             {@extra(host, internet)}
         </Alert>
 
+# is_public below -- only show this tab if this is true
+
 fixed_project_pages =
     files :
-        label : 'Files'
-        icon : 'folder-open-o'
-        tooltip : 'Browse files'
+        label     : 'Files'
+        icon      : 'folder-open-o'
+        tooltip   : 'Browse files'
+        is_public : true
     new :
-        label : 'New'
-        icon : 'plus-circle'
-        tooltip : 'Create new file, folder, worksheet or terminal'
+        label     : 'New'
+        icon      : 'plus-circle'
+        tooltip   : 'Create new file, folder, worksheet or terminal'
+        is_public : false
     log:
-        label : 'Log'
-        icon : 'history'
-        tooltip : 'Log of project activity'
+        label     : 'Log'
+        icon      : 'history'
+        tooltip   : 'Log of project activity'
+        is_public : false
     search :
-        label : 'Find'
-        icon : 'search'
-        tooltip : 'Search files in the project'
+        label     : 'Find'
+        icon      : 'search'
+        tooltip   : 'Search files in the project'
+        is_public : false
     settings :
-        label : 'Settings'
-        icon : 'wrench'
-        tooltip : 'Project settings and controls'
+        label     : 'Settings'
+        icon      : 'wrench'
+        tooltip   : 'Project settings and controls'
+        is_public : false
 
 # Children must define their own padding from navbar and screen borders
 ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_files}) ->
@@ -314,16 +321,16 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <SortableFileTab
-            index={index}
-            key={path}
-            name={misc.path_to_tab(path)}
-            label={display_name}
-            icon={icon}
-            tooltip={path}
-            project_id={@props.project_id}
-            file_tab={true}
-            has_activity={@props.open_files.getIn([path, 'has_activity'])}
-            is_active={@props.active_project_tab == misc.path_to_tab(path)}
+            index        = {index}
+            key          = {path}
+            name         = {misc.path_to_tab(path)}
+            label        = {display_name}
+            icon         = {icon}
+            tooltip      = {path}
+            project_id   = {@props.project_id}
+            file_tab     = {true}
+            has_activity = {@props.open_files.getIn([path, 'has_activity'])}
+            is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
     render : ->
@@ -377,39 +384,44 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             }'
         shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
 
+        group     = @props.get_my_group(@props.project_id)
+        is_public = (group == 'public')
+
         <div className='container-content'>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px", overflowY:'hidden'}>
                 <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
                     {[<FileTab
-                        name={k}
-                        label={v.label}
-                        icon={v.icon}
-                        tooltip={v.tooltip}
-                        project_id={@props.project_id}
-                        is_active={@props.active_project_tab == k}
-                        shrink={shrink_fixed_tabs}
-                    /> for k, v of fixed_project_pages]}
+                        name       = {k}
+                        label      = {v.label}
+                        icon       = {v.icon}
+                        tooltip    = {v.tooltip}
+                        project_id = {@props.project_id}
+                        is_active  = {@props.active_project_tab == k}
+                        shrink     = {shrink_fixed_tabs}
+                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
                 </Nav>
                 <SortableNav
-                    helperClass={'smc-file-tab-floating'}
-                    onSortEnd={@on_sort_end}
-                    axis={'x'}
-                    lockAxis={'x'}
+                    helperClass = {'smc-file-tab-floating'}
+                    onSortEnd   = {@on_sort_end}
+                    axis        = {'x'}
+                    lockAxis    = {'x'}
                     lockToContainerEdges={true}
-                    distance={3 if not IS_MOBILE}
-                    bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
+                    distance    = {3 if not IS_MOBILE}
+                    bsStyle     = "pills"
+                    id          = "smc-file-tabs-files"
+                    style       = {display:'flex'}
                 >
                     {@file_tabs()}
                 </SortableNav>
             </div> if not @props.fullscreen}
             <ProjectMainContent
-                project_id={@props.project_id}
-                project_name={@props.name}
-                active_tab_name={@props.active_project_tab}
-                group={@props.get_my_group(@props.project_id)}
-                open_files={@props.open_files}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {@props.active_project_tab}
+                group           = {group}
+                open_files      = {@props.open_files}
             />
         </div>
 
