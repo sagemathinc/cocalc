@@ -111,6 +111,11 @@ def _jkmagic(kernel_name, **kwargs):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
+        import sage.interfaces.cleaner
+        sage.interfaces.cleaner.cleaner(km.kernel.pid,"km.kernel.pid")
+        import atexit
+        atexit.register(km.shutdown_kernel)
+        atexit.register(kc.hb_channel.close)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
@@ -122,7 +127,7 @@ def _jkmagic(kernel_name, **kwargs):
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
-    def hout(s, block = True, scroll = False):
+    def hout(s, block = True, scroll = False, error = False):
         r"""
         wrapper for ansi conversion before displaying output
 
@@ -131,9 +136,11 @@ def _jkmagic(kernel_name, **kwargs):
         -  ``block`` - set false to prevent newlines between output segments
 
         -  ``scroll`` - set true to put output into scrolling div
+
+        -  ``error`` - set true to send text output to stderr
         """
         # `full = False` or else cell output is huge
-        if "\x1b" in s:
+        if "\x1b[" in s:
             h = conv.convert(s, full = False)
             if block:
                 h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
@@ -143,13 +150,20 @@ def _jkmagic(kernel_name, **kwargs):
                 h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
             salvus.html(h2)
         else:
-            sys.stdout.write(s)
-            sys.stdout.flush()
+            if error:
+                sys.stderr.write(s)
+                sys.stderr.flush()
+            else:
+                sys.stdout.write(s)
+                sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
 
         if kwargs.get('get_kernel_client',False):
             return kc
+
+        if kwargs.get('get_kernel_manager',False):
+            return km
 
         if kwargs.get('get_kernel_name',False):
             return kernel_name
@@ -261,7 +275,7 @@ def _jkmagic(kernel_name, **kwargs):
                     if dispmode == 'text/plain':
                         txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
                         sys.stdout.write(txt)
-                        sys.stderr.flush()
+                        sys.stdout.flush()
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':
@@ -297,8 +311,7 @@ def _jkmagic(kernel_name, **kwargs):
                     # bash kernel uses stream messages with output in 'text' field
                     # might be ANSI color-coded
                     if 'name' in content and content['name'] == 'stderr':
-                        sys.stderr.write(content['text'])
-                        sys.stderr.flush()
+                        hout(content['text'], error = True)
                     else:
                         hout(content['text'],block = False)
 
@@ -308,10 +321,9 @@ def _jkmagic(kernel_name, **kwargs):
                     tr = content['traceback']
                     if isinstance(tr, list):
                         for tr in content['traceback']:
-                            sys.stderr.write(tr+'\n')
+                            hout(tr+'\n', error = True)
                     else:
-                        sys.stderr.write(tr)
-                    sys.stderr.flush()
+                        hout(tr, error = True)
 
         # handle shell messages
         while True:
