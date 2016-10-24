@@ -467,12 +467,13 @@ class ProjectActions extends Actions
         path ?= ''
         if typeof path != 'string'
             window.cpath_args = arguments
-            throw "Current path should be a string. Revieved arguments are available in window.cpath_args"
+            throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
         @setState
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
+        @set_url_to_path(path)
         if update_file_listing
             @set_directory_files(path)
             @set_all_files_unchecked()
