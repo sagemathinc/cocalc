@@ -207,16 +207,31 @@ class ProjectsActions extends Actions
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
-    # (at least what it is right now).
+    # (at least what it is right now).  For convenience this works
+    # even if the project isn't public if the user is an admin, and also
+    # works on projects the user owns or collaborats on.
     fetch_public_project_title: (project_id) =>
-        salvus_client.query
-            query :
-                public_projects : {project_id : project_id, title : null}
-            cb    : (err, resp) =>
-                if not err
-                    title = resp?.query?.public_projects?.title
-                title ?= "PRIVATE -- Admin req"
-                @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
+        @redux.getStore('projects').wait
+            until   : (s) => s.get_my_group(@project_id)
+            timeout : 60
+            cb      : (err, group) =>
+                if err
+                    group = 'public'
+                switch group
+                    when 'admin'
+                        table = 'projects_admin'
+                    when 'owner', 'collaborator'
+                        table = 'projects'
+                    else
+                        table = 'public_projects'
+                salvus_client.query
+                    query :
+                        "#{table}" : {project_id : project_id, title : null}
+                    cb    : (err, resp) =>
+                        if not err
+                            title = resp?.query?[table]?.title
+                        title ?= "PRIVATE -- Admin req"
+                        @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
     #    directory_tree.project_id = {updated:time, error:err, tree:list},
@@ -620,7 +635,7 @@ class ProjectsStore extends Store
                     break
         return v
 
-# WARNING: A lot of code relys on the assumption project_map is undefined until it is loaded from the server.
+# WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects
