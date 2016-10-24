@@ -142,30 +142,6 @@ Page = rclass
         </Nav>
 
     render : ->
-        # Use this pattern very sparingly.
-        # Right now only used to access library generated elements
-        # Very fragile.
-        page_style ='
-            #smc-top-bar>.container>ul>li>a {
-                padding:0px;
-                -webkit-touch-callout: none; /* iOS Safari */
-                -webkit-user-select: none;   /* Chrome/Safari/Opera */
-                -khtml-user-select: none;    /* Konqueror */
-                -moz-user-select: none;      /* Firefox */
-                -ms-user-select: none;       /* Internet Explorer/Edge */
-                user-select: none;           /* Non-prefixed version, currently
-                                                not supported by any browser */
-            }
-            #smc-top-bar>.container {
-                position:absolute;
-                display:flex;
-                padding:0px;
-                width:100%;
-            }
-            .input-group {
-                z-index:0;
-            }'
-
         style =
             display:'flex'
             flexDirection:'column'
@@ -175,20 +151,13 @@ Page = rclass
 
         use_dropdown_menu = $(window).width() - 550 < @props.open_projects.size * 120
 
-        if use_dropdown_menu
-            proj_nav_styles = ProjectsNav.dropdown_nav_page_styles
-        else
-            proj_nav_styles = ProjectsNav.full_nav_page_styles
-
         <div ref="page" style={style}>
-            <style>{page_style}</style>
-            <style>{proj_nav_styles}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar id="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
+            {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={use_dropdown_menu} />
                 {@render_right_nav()}
