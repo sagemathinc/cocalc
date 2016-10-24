@@ -3543,6 +3543,9 @@ def typeset_mode(on=True, display=True, **args):
             if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
                 displayhook(obj)
             else:
+                # replicate what _system_sys_displayhook does regarding '_'
+                import __builtin__
+                __builtin__._ = obj
                 show(obj, display=display)
         sys.displayhook = f
     else:
