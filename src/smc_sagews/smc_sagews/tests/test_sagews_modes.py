@@ -15,7 +15,7 @@ class TestShMode:
     # examples from sh mode docstring in sage_salvus.py
     # note jupyter kernel text ouput is displayed as html
     def test_single_line(self, exec2):
-        exec2("%sh pwd\n", pattern="^/projects")
+        exec2("%sh uptime\n", pattern="\d\.\d")
 
     def test_multiline(self, exec2):
         exec2("%sh\nFOO=hello\necho $FOO", pattern="hello")
@@ -56,7 +56,7 @@ class TestShDefaultMode:
     def test_start_sh(self, exec2):
         exec2("%default_mode sh")
     def test_start_sh2(self, exec2):
-        exec2("pwd", pattern="^/project")
+        exec2("who -b", pattern="system boot")
 
     def test_multiline(self, exec2):
         exec2("FOO=hello\necho $FOO", pattern="^hello")
