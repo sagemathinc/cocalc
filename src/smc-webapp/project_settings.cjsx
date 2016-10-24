@@ -807,10 +807,14 @@ CollaboratorsSearch = rclass
     invite_collaborator : (account_id) ->
         @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
-    add_selected : ->
+    add_selected : (select) ->
         @reset()
-        for option in @state.selected_entries
-            @invite_collaborator(option.getAttribute('value'))
+        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
+        if (not @state.selected_entries? or @state.selected_entries?.length == 0) and select?.length == 1
+            @invite_collaborator(select[0].account_id)
+        else
+            for option in @state.selected_entries
+                @invite_collaborator(option.getAttribute('value'))
 
     select_list_clicked : ->
         selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
@@ -914,7 +918,7 @@ CollaboratorsSearch = rclass
                 when 1 then "Invite selected user"
                 else "Invite #{nb_selected} users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
-        <Button onClick={@add_selected} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
 
     render : ->
