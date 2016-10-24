@@ -182,20 +182,21 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
         styles =
-            padding : 2
-            paddingLeft : 7
+            padding      : 2
+            paddingLeft  : 7
             paddingRight : 7
-            cursor : 'pointer'
+            cursor       : 'pointer'
             marginBottom : 0
-            fontSize : 12
+            fontSize     : 12
         dismiss_styles =
-            display : 'inline-block'
-            float : 'right'
+            display    : 'inline-block'
+            float      : 'right'
             fontWeight : 700
-            top : -5
-            fontSize : 18
-            color : 'gray'
-            position : 'relative'
+            top        : -5
+            fontSize   : 18
+            color      : 'gray'
+            position   : 'relative'
+            height     : 0
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
