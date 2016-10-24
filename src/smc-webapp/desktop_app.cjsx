@@ -149,7 +149,7 @@ Page = rclass
             width:'100vw'
             overflow:'auto'
 
-        use_dropdown_menu = $(window).width() - 550 < @props.open_projects.size * 120
+        use_dropdown_menu = $(window).width() - 550
 
         <div ref="page" style={style}>
             {<FileUsePageWrapper /> if @props.show_file_use}
