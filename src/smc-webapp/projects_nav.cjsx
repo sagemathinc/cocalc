@@ -260,8 +260,8 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav id='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title id="smc-projects-tabs" style={flex:'1'}>
+        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
+            <NavDropdown title=title className="smc-projects-tabs" style={flex:'1'}>
                 {@project_menu_items()}
             </NavDropdown>
         </Nav>
@@ -305,44 +305,3 @@ exports.ProjectsNav = ({dropdown}) ->
         <DropdownProjectsNav />
     else
         <FullProjectsNav />
-
-# Use this pattern very sparingly.
-# Right now only used to access library generated elements
-# Very fragile.
-exports.ProjectsNav.full_nav_page_styles ='
-    .smc-project-tab-floating {
-        background-color: rgb(255, 255, 255);
-        border: dotted 1px #9a9a9a;
-        display:block;
-        line-height:normal;
-        list-style-image:none;
-        list-style-position:outside;
-        list-style-type:none;
-        z-index:100;
-    }
-    .smc-project-tab-floating>a {
-        color:rgb(85, 85, 85);
-        display:block;
-        height:51px;
-        line-height:20px;
-        list-style-image:none;
-        list-style-position:outside;
-        list-style-type:none;
-        outline-color:rgb(85, 85, 85);
-        outline-style:none;
-        outline-width:0px;
-        padding:0px;
-    }
-    '
-
-exports.ProjectsNav.dropdown_nav_page_styles ='
-    #smc-projects-tabs {
-        padding:10px;
-    }
-    #smc-dropdown-projects>li>ul {
-        width:100%;
-    }
-    #smc-dropdown-projects>li>ul>li>a {
-        height: 39px;
-        padding: 2px 10px;
-    }'
