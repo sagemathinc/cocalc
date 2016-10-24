@@ -467,7 +467,7 @@ class ProjectActions extends Actions
         path ?= ''
         if typeof path != 'string'
             window.cpath_args = arguments
-            throw "Current path should be a string. Revieved arguments are available in window.cpath_args"
+            throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
         @setState
             current_path           : path
