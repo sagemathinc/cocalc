@@ -620,6 +620,7 @@ class ProjectsStore extends Store
                     break
         return v
 
+# WARNING: A lot of code relys on the assumption project_map is undefined until it is loaded from the server.
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects

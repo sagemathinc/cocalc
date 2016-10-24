@@ -90,7 +90,9 @@ class PageActions extends Actions
             else
                 redux.getProjectActions(key)?.push_state()
                 project_map = redux.getStore('projects').get('project_map')
-                set_window_title(project_map?.getIn([key, 'title']))
+                redux.getStore('projects').wait
+                    until : (store) => store.get('project_map')
+                    cb    : (err, project_map) => set_window_title(project_map.getIn([key, 'title']))
 
     show_connection : (shown) =>
         @setState(show_connection : shown)
