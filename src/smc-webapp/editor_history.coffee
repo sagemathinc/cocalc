@@ -185,10 +185,19 @@ class exports.HistoryEditor extends FileEditor
             @diff_slider.show()
             @slider.hide()
             @set_doc_diff(@goto_diff()...)
+            # Switch to default theme for diff viewer, until we implement
+            # red/green colors that are selected to match the user's theme
+            # See https://github.com/sagemathinc/smc/issues/884
+            for cm in @view_doc.codemirrors()
+                @_non_diff_theme ?= cm.getOption('theme')
+                cm.setOption('theme', '')
         else
             for cm in @view_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
                 cm.setOption('gutters', [])
+                if @_non_diff_theme?
+                    # Set theme back to default
+                    cm.setOption('theme', @_non_diff_theme)
                 cm.setValue('')
                 cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
             @element.find("a[href=\"#hide-diff\"]").hide()
