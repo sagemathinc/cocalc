@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import json, os, sys, re
+import json, os, sys
 
 home = os.environ['HOME']
 
