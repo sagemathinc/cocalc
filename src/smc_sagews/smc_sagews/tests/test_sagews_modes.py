@@ -153,15 +153,18 @@ class TestOctaveDefaultMode:
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
 
-class TestJupyterModes:
-    # 'bash', 'ir', and 'octave' kernel tests above
+class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
         exec2('a3 = jupyter("anaconda3")')
 
     def test_issue_862(self, exec2):
         exec2('%a3\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
 
-    def test_sagamath(self, exec2):
+    def test_a3_errror(self, exec2):
+        exec2('%a3\nxyz*', html_pattern = 'span style.*color')
+
+class TestJupyterModes:
+    def test_sagemath(self, exec2):
         exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
 
     def test_julia1(self, exec2):
