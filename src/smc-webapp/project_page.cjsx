@@ -151,14 +151,14 @@ FreeProjectWarning = rclass ({name}) ->
     shouldComponentUpdate : (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id).get('users') != nextProps.project_map?.get(@props.project_id).get('users')
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
@@ -182,22 +182,23 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
         styles =
-            padding : 2
-            paddingLeft : 7
+            padding      : 2
+            paddingLeft  : 7
             paddingRight : 7
-            cursor : 'pointer'
+            cursor       : 'pointer'
             marginBottom : 0
-            fontSize : 12
+            fontSize     : 12
         dismiss_styles =
-            display : 'inline-block'
-            float : 'right'
+            display    : 'inline-block'
+            float      : 'right'
             fontWeight : 700
-            top : -5
-            fontSize : 18
-            color : 'gray'
-            position : 'relative'
+            top        : -5
+            fontSize   : 18
+            color      : 'gray'
+            position   : 'relative'
+            height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
@@ -247,10 +248,10 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             return <ProjectSettings project_id={project_id} name={project_name} group={group} />
         else
             active_path = misc.tab_to_path(active_tab_name)
-            if open_files?.has(active_path)
-                {Editor, redux_name} = open_files.getIn([active_path, 'component'])
-                if not Editor?
-                    throw Error("Editor must be defined")
+            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
+            if not Editor?
+                return <Loading />
+            else
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
                     path         = {active_path}
@@ -261,8 +262,6 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                     project_name = {project_name}
                     path         = {active_path}
                 />
-            else
-                <div>You should not be here! {active_tab_name}</div>
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'

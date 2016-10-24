@@ -1735,6 +1735,8 @@ exports.ProjectFiles = rclass ({name}) ->
             project_map   : rtypes.immutable
             date_when_course_payment_required : rtypes.func
             get_my_group : rtypes.func
+            get_total_project_quotas : rtypes.func
+
         account :
             other_settings : rtypes.immutable
         "#{name}" :
@@ -1891,21 +1893,21 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
+            quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
                 when 'no_dir'
-                    if @props.current_path == '.trash'
-                        e = <Alert bsStyle='success'>The trash is empty!</Alert>
-                    else
-                        e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
+                    e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
                 when 'not_a_dir'
                     e = <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
                 when 'not_running'
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.
                     e = <ErrorDisplay title="Project still not running" error={"The project was not running when this directory listing was requested.  Please try again in a moment."} />
-                when 'no_instance'
-                    e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on Google Pre-empt instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server."} />
                 else
-                    e = <ErrorDisplay title="Directory listing error" error={error} />
+                    if 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
+                        # the second part of the or is to blame it on the free servers...
+                        e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                    else
+                        e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
                 {e}
                 <br />
