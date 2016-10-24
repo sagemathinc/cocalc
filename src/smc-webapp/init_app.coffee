@@ -89,10 +89,14 @@ class PageActions extends Actions
                 return
             else
                 redux.getProjectActions(key)?.push_state()
-                project_map = redux.getStore('projects').get('project_map')
                 redux.getStore('projects').wait
-                    until : (store) => store.get('project_map')
-                    cb    : (err, project_map) => set_window_title(project_map.getIn([key, 'title']))
+                    until : (store) =>
+                        title = store.getIn(['project_map', key, 'title'])
+                        title ?= store.getIn(['public_project_titles', key])
+                        if not title?
+                            redux.getActions('projects').fetch_public_project_title(key)
+                        return title
+                    cb    : (err, title) => set_window_title(title)
 
     show_connection : (shown) =>
         @setState(show_connection : shown)
