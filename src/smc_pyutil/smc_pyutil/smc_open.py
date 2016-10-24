@@ -16,6 +16,8 @@ def process(paths):
     for path in paths:
         if not path:
             continue
+        if not os.path.exists(path) and any(c in path for c in '{?*'):
+            continue
         if not os.path.exists(path):
             if '/' in path:
                 dir = os.path.dirname(path)
