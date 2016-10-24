@@ -89,7 +89,7 @@ class PageActions extends Actions
                 return
             else
                 redux.getProjectActions(key)?.push_state()
-                set_window_title("Loading")
+                set_window_title("Loading Project")
                 redux.getStore('projects').wait
                     until   : (store) =>
                         title = store.getIn(['project_map', key, 'title'])
