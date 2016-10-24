@@ -143,13 +143,11 @@ Page = rclass
 
     render : ->
         style =
-            display:'flex'
-            flexDirection:'column'
-            height:'100vh'
-            width:'100vw'
-            overflow:'auto'
-
-        use_dropdown_menu = $(window).width() - 550
+            display       : 'flex'
+            flexDirection : 'column'
+            height        : '100vh'
+            width         : '100vw'
+            overflow      : 'auto'
 
         <div ref="page" style={style}>
             {<FileUsePageWrapper /> if @props.show_file_use}
@@ -159,7 +157,7 @@ Page = rclass
             {<CookieWarning /> if @props.cookie_warning}
             {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 {@render_project_nav_button() if @props.is_logged_in()}
-                <ProjectsNav dropdown={use_dropdown_menu} />
+                <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}

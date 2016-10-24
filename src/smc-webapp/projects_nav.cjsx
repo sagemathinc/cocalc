@@ -19,7 +19,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style={flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
+        style = {flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
