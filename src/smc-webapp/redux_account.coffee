@@ -242,7 +242,8 @@ init_autosave = (autosave) ->
     # Use the most recent autosave value.
     if autosave
         save_all_files = () ->
-            redux.getActions('projects').save_all_files()
+            if salvus_client.is_connected()
+                redux.getActions('projects').save_all_files()
         _autosave_interval = setInterval(save_all_files, autosave * 1000)
 
 account_store = redux.getStore('account')

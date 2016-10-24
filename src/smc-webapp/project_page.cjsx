@@ -331,64 +331,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         />
 
     render : ->
-        page_styles ='
-            #smc-file-tabs-fixed>li>a {
-                height:36px;
-                padding: 8px 10px;
-                border-radius: 5px 5px 0px 0px;
-            }
-            #smc-file-tabs-files>li>a {
-                padding: 13px 15px 7px;
-                border-radius: 5px 5px 0px 0px;
-                -webkit-touch-callout: none; /* iOS Safari */
-                -webkit-user-select: none;   /* Chrome/Safari/Opera */
-                -khtml-user-select: none;    /* Konqueror */
-                -moz-user-select: none;      /* Firefox */
-                -ms-user-select: none;       /* Internet Explorer/Edge */
-                user-select: none;           /* Non-prefixed version, currently
-                                                not supported by any browser */
-            }
-            .smc-file-tab-floating {
-                background-color: rgb(237, 237, 237);
-                border-radius: 5px 5px 0px 0px;
-                box-sizing:border-box;
-                color:rgb(51, 51, 51);
-                display:block;
-                flex-shrink:1;
-                height:36px;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                overflow-x:hidden;
-                overflow-y:hidden;
-                position:relative;
-                text-align:left;
-                width:250px;
-            }
-            .smc-file-tab-floating>a {
-                background-color:rgba(0, 0, 0, 0);
-                border-radius: 5px 5px 0px 0px;
-                box-sizing:border-box;
-                display:block;
-                height:36px;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                padding: 13px 15px 7px;
-                position:relative;
-            }'
         shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
 
         group     = @props.get_my_group(@props.project_id)
         is_public = (group == 'public')
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px"}>
-                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+            {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px"}>
+                <Nav bsStyle="pills" className="smc-file-tabs-fixed-desktop" style={float:'left'}>
                     {[<FileTab
                         name       = {k}
                         label      = {v.label}
@@ -407,7 +358,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     lockToContainerEdges={true}
                     distance    = {3 if not IS_MOBILE}
                     bsStyle     = "pills"
-                    id          = "smc-file-tabs-files"
+                    id          = "smc-file-tabs-files-desktop"
                     style       = {display:'flex'}
                 >
                     {@file_tabs()}
@@ -524,19 +475,11 @@ exports.MobileProjectPage = rclass ({name}) ->
         />
 
     render : ->
-        page_styles ='
-            #smc-file-tabs-fixed>li>a {
-                padding: 8px 10px;
-            }
-            #smc-file-tabs-files>li>a {
-                padding: 13px 15px 7px;
-            }'
 
         <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
-            <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
-                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+            {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+                <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
                         name={k}
                         label={v.label}
@@ -547,7 +490,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                         shrink={@props.open_files_order.size != 0 or $(window).width() < 370}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
-                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}>
+                <Nav bsStyle="pills" className="smc-file-tabs-files-mobile" style={display:'flex'}>
                     {@render_files_dropdown() if @props.open_files_order.size > 1}
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
