@@ -351,6 +351,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
                 </Nav>
                 <SortableNav
+                    className   = "smc-file-tabs-files-desktop"
                     helperClass = {'smc-file-tab-floating'}
                     onSortEnd   = {@on_sort_end}
                     axis        = {'x'}
@@ -358,7 +359,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     lockToContainerEdges={true}
                     distance    = {3 if not IS_MOBILE}
                     bsStyle     = "pills"
-                    id          = "smc-file-tabs-files-desktop"
                     style       = {display:'flex'}
                 >
                     {@file_tabs()}
