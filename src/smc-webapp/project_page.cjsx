@@ -385,10 +385,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         group     = @props.get_my_group(@props.project_id)
         is_public = (group == 'public')
 
-        <div className='container-content'>
+        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px", overflowY:'hidden'}>
+            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px"}>
                 <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
                     {[<FileTab
                         name       = {k}
@@ -533,7 +533,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                 padding: 13px 15px 7px;
             }'
 
-        <div className='container-content'>
+        <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
             <style>{page_styles}</style>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>

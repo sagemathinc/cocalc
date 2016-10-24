@@ -128,6 +128,7 @@ require('./course/main')
 # Public editors
 require('./public/editor_md')
 require('./public/editor_image')
+require('./public/editor_pdf')
 
 # require('./editor_codemirror')
 

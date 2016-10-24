@@ -705,7 +705,7 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
-            mode                      : required
+            mode                      : undefined
             geometry                  : undefined  # (default=full screen);
             read_only                 : false
             delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
