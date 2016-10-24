@@ -87,7 +87,7 @@ class ArchiveActions extends Actions
         async.waterfall([
             # Get the file type data. Error if no file found.
             (waterfall_cb) =>
-                ext = filename_extension(path)
+                ext = filename_extension(path).toLowerCase()
                 {command, args} = COMMANDS[ext].list
 
                 salvus_client.exec

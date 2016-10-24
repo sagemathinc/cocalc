@@ -1185,7 +1185,7 @@ class ProjectStore extends Store
                 continue
 
             # mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
-            ext = misc.filename_extension(filename)
+            ext = misc.filename_extension(filename).toLowerCase()
             basename = filename[0...filename.length - ext.length]
             for mask_ext in masked_file_exts[ext] ? [] # check each possible compiled extension
                 filename_map["#{basename}#{mask_ext}"]?.mask = true

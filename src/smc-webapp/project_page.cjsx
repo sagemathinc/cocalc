@@ -251,14 +251,12 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                 {Editor, redux_name} = open_files.getIn([active_path, 'component'])
                 if not Editor?
                     throw Error("Editor must be defined")
-                if not redux_name?
-                    throw Error("redux_name must be defined")
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
                     path         = {active_path}
                     project_id   = {project_id}
                     redux        = {redux}
-                    actions      = {redux.getActions(redux_name)}
+                    actions      = {if redux_name? then redux.getActions(redux_name)}
                     name         = {redux_name}
                     project_name = {project_name}
                     path         = {active_path}
@@ -317,7 +315,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         return tabs
 
     file_tab: (path, index) ->
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <SortableFileTab
@@ -478,7 +476,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         @actions(project_id:@props.project_id).close_tab(path)
 
     file_menu_item: (path, index) ->
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
 
@@ -512,7 +510,7 @@ exports.MobileProjectPage = rclass ({name}) ->
 
     render_one_file_item : ->
         path = @props.open_files_order.get(0)
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <FileTab

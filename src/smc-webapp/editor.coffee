@@ -1754,7 +1754,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = exports.codemirror_session_editor = (project_id, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
-    ext = filename_extension_notilde(filename)
+    ext = filename_extension_notilde(filename).toLowerCase()
 
     E = new CodeMirrorEditor(project_id, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
@@ -3091,7 +3091,7 @@ class HTML_MD_Editor extends FileEditor
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = filename_extension_notilde(@filename)   #'html' or 'md'
+        @ext = filename_extension_notilde(@filename).toLowerCase()   #'html' or 'md'
         # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
