@@ -158,7 +158,7 @@ FreeProjectWarning = rclass ({name}) ->
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
@@ -198,7 +198,7 @@ FreeProjectWarning = rclass ({name}) ->
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
