@@ -5,6 +5,7 @@
 # SMC Libraries
 misc = require('smc-util/misc')
 {isMobile} = require('./feature')
+{set_window_title} = require('./browser')
 
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
@@ -30,10 +31,10 @@ ProjectTab = rclass
             public_project_titles : rtypes.immutable.Map
 
     propTypes:
-        project_map           : rtypes.immutable.Map
-        index                 : rtypes.number
-        project_id            : rtypes.string
-        active_top_tab        : rtypes.string
+        project        : rtypes.immutable.Map
+        index          : rtypes.number
+        project_id     : rtypes.string
+        active_top_tab : rtypes.string
 
     getInitialState : ->
         x_hovered : false
@@ -54,13 +55,17 @@ ProjectTab = rclass
 
     render : ->
         title = @props.get_title(@props.project_id)
+        title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                return <Loading key={@props.project_id} />
+            if @props.active_top_tab == @props.project_id
+                set_window_title("Loading")
+            return <Loading key={@props.project_id} />
 
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        if @props.active_top_tab == @props.project_id
+            set_window_title(title)
+
+        desc = misc.trunc(@props.project?.get('description') ? '', 128)
+        project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
         project_name_styles =
@@ -136,7 +141,7 @@ FullProjectsNav = rclass
             key            = {project_id}
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
+            project        = {@props.project_map?.get(project_id)}
             public_project_titles = {@props.public_project_titles}
         />
 
@@ -163,7 +168,7 @@ FullProjectsNav = rclass
 
 OpenProjectMenuItem = rclass
     propTypes:
-        project_map           : rtypes.immutable.Map
+        project               : rtypes.immutable.Map
         open_projects         : rtypes.immutable.List
         public_project_titles : rtypes.immutable.Map
         index                 : rtypes.number
@@ -184,15 +189,15 @@ OpenProjectMenuItem = rclass
         @actions('page').set_active_tab(@props.project_id)
 
     render : ->
-        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        title = @props.project?.get('title')
         title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
             # Ensure that at some point we'll have the title if possible (e.g., if public)
             @actions('projects').fetch_public_project_title(@props.project_id)
             return <Loading key={@props.project_id} />
 
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        desc = misc.trunc(@props.project?.get('description') ? '', 128)
+        project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
         project_name_styles =
@@ -244,7 +249,7 @@ DropdownProjectsNav = rclass
             key            = {project_id}
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
+            project        = {@props.project_map?.get(project_id)}
             open_projects  = {@props.open_projects}
             public_project_titles = {@props.public_project_titles}
         />
