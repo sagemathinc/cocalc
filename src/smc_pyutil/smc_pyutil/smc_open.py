@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+# Maximum number of files that user can open at once using the open command.
+# This is here to avoid the user opening 100 files at once (say)
+# via "open *" and killing their frontend.
+MAX_FILES = 15
+
 import json, os, sys
 
 home = os.environ['HOME']
@@ -13,8 +18,16 @@ else:
 
 def process(paths):
     v = []
+    if len(paths) > MAX_FILES:
+        sys.stderr.write("You may open at most %s at once using the open command; truncating list\n"%MAX_FILES)
+        paths = paths[:MAX_FILES]
     for path in paths:
         if not path:
+            continue
+        if not os.path.exists(path) and any(c in path for c in '{?*'):
+            # If the path doesn't exist and does contain a shell glob character which didn't get expanded,
+            # then don't try to just create that file.  See https://github.com/sagemathinc/smc/issues/1019
+            sys.stderr.write("no match for '%s', so not creating\n"%path)
             continue
         if not os.path.exists(path):
             if '/' in path:
