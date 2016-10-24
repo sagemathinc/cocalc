@@ -16,6 +16,8 @@ def process(paths):
     for path in paths:
         if not path:
             continue
+        if not os.path.exists(path) and any(c in path for c in '{?*'):
+            continue
         if not os.path.exists(path):
             if '/' in path:
                 dir = os.path.dirname(path)
@@ -50,8 +52,7 @@ def main():
         print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
         print "If the named file doesn't exist, it is created."
     else:
-        # ignore args that have ? or * after glob expansion
-        process([p for p in sys.argv[1:] if re.search('[\?\*]', p) is None])
+        process(sys.argv[1:])
 
 if __name__ == "__main__":
     main()
