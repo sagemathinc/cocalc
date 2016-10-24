@@ -248,10 +248,10 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             return <ProjectSettings project_id={project_id} name={project_name} group={group} />
         else
             active_path = misc.tab_to_path(active_tab_name)
-            if open_files?.has(active_path)
-                {Editor, redux_name} = open_files.getIn([active_path, 'component'])
-                if not Editor?
-                    throw Error("Editor must be defined")
+            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
+            if not Editor?
+                return <Loading />
+            else
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
                     path         = {active_path}
@@ -262,8 +262,6 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                     project_name = {project_name}
                     path         = {active_path}
                 />
-            else
-                <div>You should not be here! {active_tab_name}</div>
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'
