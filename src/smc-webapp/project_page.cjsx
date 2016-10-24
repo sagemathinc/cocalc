@@ -151,7 +151,7 @@ FreeProjectWarning = rclass ({name}) ->
     shouldComponentUpdate : (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id).get('users') != nextProps.project_map?.get(@props.project_id).get('users')
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
