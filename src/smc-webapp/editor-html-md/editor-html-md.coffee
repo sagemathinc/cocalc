@@ -61,6 +61,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @preview = @element.find(".salvus-editor-html-md-preview")
         @preview_content = @preview.find(".salvus-editor-html-md-preview-content")
+        @preview.on 'scroll', =>
+            @preview_scroll_position = @preview.scrollTop()
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
@@ -641,6 +643,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
             top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
+
+        @preview.scrollTop(@preview_scroll_position)
 
     focus: () =>
         @source_editor?.focus()
