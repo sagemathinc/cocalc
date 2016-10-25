@@ -270,7 +270,10 @@ class exports.Connection extends EventEmitter
                     # See the function server_time below; subtract @_clock_skew from local time to get a better
                     # estimate for server time.
                     @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    localStorage.clock_skew = @_clock_skew
+                    try
+                        localStorage.clock_skew = @_clock_skew
+                    catch
+                        console.warn("localStorage not available")
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -283,8 +286,11 @@ class exports.Connection extends EventEmitter
         # of ping times is fine for our application.
         if not @_clock_skew?
             # try localStorage
-            if localStorage.clock_skew?
-                @_clock_skew = parseFloat(localStorage.clock_skew)
+            try
+                if localStorage.clock_skew?
+                    @_clock_skew = parseFloat(localStorage.clock_skew)
+            catch
+                console.warn("localStorage not available")
         return new Date(new Date() - (@_clock_skew ? 0))
 
     ping_test: (opts) =>

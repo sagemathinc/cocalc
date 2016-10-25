@@ -18,7 +18,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -57,6 +57,7 @@ Page = rclass
             new_version       : rtypes.object
             fullscreen        : rtypes.bool
             cookie_warning    : rtypes.bool
+            local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
         file_use :
             file_use         : rtypes.immutable.Map
@@ -155,6 +156,7 @@ Page = rclass
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
+            {<LocalStorageWarning /> if @props.local_storage_warning}
             {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={false} />
