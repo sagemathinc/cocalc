@@ -1024,7 +1024,7 @@ AccountCreationToken = rclass
                                 ref      = 'input'
                                 type     = 'text'
                                 value    = {@state.token}
-                                onChange = {=>@setState(token:ReactDOM.findDOMNode(@refs.input).value)}}
+                                onChange = {(e)=>@setState(token:e.target.value)}}
                             />
                         </FormGroup>
                     </form>
@@ -1054,7 +1054,7 @@ StripeKeys = rclass
     displayName : 'Account-StripeKeys'
 
     getInitialState : ->
-        state           : 'view'   # view --> edit --> save --> view
+        state           : 'view'   # view --> edit --> save --> saved
         secret_key      : ''
         publishable_key : ''
         error           : undefined
@@ -1072,7 +1072,7 @@ StripeKeys = rclass
                 if err
                     @setState(state:'edit', error:err)
                 else
-                    @setState(state:'view', error:'', secret_key:'', publishable_key:'')
+                    @setState(state:'saved', error:'', secret_key:'', publishable_key:'')
 
     cancel : ->
         @setState(state:'view', error:'', secret_key:'', publishable_key:'')
@@ -1085,8 +1085,11 @@ StripeKeys = rclass
 
     render_main :->
         switch @state.state
-            when 'view'
-                <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+            when 'view', 'saved'
+                <div>
+                    {"stripe keys saved!" if @state.state == 'saved'}
+                    <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+                </div>
             when 'save'
                 <div>Saving stripe keys...</div>
             when 'edit'
@@ -1094,13 +1097,13 @@ StripeKeys = rclass
                     <LabeledRow label='Secret key'>
                         <FormGroup>
                             <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
-                                onChange={=>@setState(secret_key:ReactDOM.findDOMNode(@refs.input_secret_key).value)} />
+                                onChange={(e)=>@setState(secret_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
                     <LabeledRow label='Publishable key'>
                         <FormGroup>
                             <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
-                                onChange={=>@setState(publishable_key:ReactDOM.findDOMNode(@refs.input_publishable_key).value)} />
+                                onChange={(e)=>@setState(publishable_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
