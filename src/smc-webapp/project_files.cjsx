@@ -1903,7 +1903,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.
                     e = <ErrorDisplay title="Project still not running" error={"The project was not running when this directory listing was requested.  Please try again in a moment."} />
                 else
-                    if 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
+                    if error == 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
                         e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
