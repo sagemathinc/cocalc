@@ -114,6 +114,7 @@ class AccountActions extends Actions
                         # TODO: can we automatically log them in?
                         window.history.pushState("", document.title, window.location.pathname)
                         @setState(reset_key : '', reset_password_error : '')
+
     sign_out : (everywhere) ->
         delete localStorage[remember_me]
         evt = 'sign_out'
