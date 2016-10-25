@@ -124,14 +124,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             n = cm.lineCount() - 1
                             while stop < n and x != MARKERS.output and x != MARKERS.cell
                                 stop += 1
-                                x = cm.getLine(stop)[0]
+                                x = cm.getLine(stop)?[0]
 
                         # Similar for start
                         x = cm.getLine(start)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             while start > 0 and x != MARKERS.cell and x != MARKERS.output
                                 start -= 1
-                                x = cm.getLine(start)[0]
+                                x = cm.getLine(start)?[0]
 
                     if not @_update_queue_start? or start < @_update_queue_start
                         @_update_queue_start = start
