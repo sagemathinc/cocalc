@@ -846,8 +846,7 @@ describe "parse_bup_timestamp", ->
         input = "2014-01-02-031508"
         act = misc.parse_bup_timestamp("2014-01-02-031508")
         act.should.be.instanceOf Date
-        # month starts at 0, but not the day?
-        exp = new Date(2014, 0, 2, 3, 15, 8, 0)
+        exp = new Date('2014-01-02T03:15:08.000Z')
         act.should.be.eql exp
 
 describe "hash_string", ->
