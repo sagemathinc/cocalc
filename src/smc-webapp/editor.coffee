@@ -1673,7 +1673,8 @@ class CodeMirrorEditor extends FileEditor
 
         # activite the buttons in the bar
         that = @
-        edit_button_click = () ->
+        edit_button_click = (e) ->
+            e.preventDefault()
             args = $(this).data('args')
             cmd  = $(this).attr('href').slice(1)
             if cmd == 'todo'
