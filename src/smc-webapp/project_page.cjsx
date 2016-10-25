@@ -20,6 +20,8 @@ project_file = require('./project_file')
 {Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
 misc = require('misc')
 
+FILE_NAV_HEIGHT = '36px'
+
 default_file_tab_styles =
     width : 250
     borderRadius : "5px 5px 0px 0px"
@@ -338,8 +340,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px"}>
-                <Nav bsStyle="pills" className="smc-file-tabs-fixed-desktop" style={float:'left'}>
+            {<div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
+                <Nav bsStyle="pills" className="smc-file-tabs-fixed-desktop" style={overflowY:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
                     {[<FileTab
                         name       = {k}
                         label      = {v.label}
@@ -359,7 +361,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     lockToContainerEdges={true}
                     distance    = {3 if not IS_MOBILE}
                     bsStyle     = "pills"
-                    style       = {display:'flex'}
+                    style       = {display:'flex', height:FILE_NAV_HEIGHT, overflowY:'hidden'}
                 >
                     {@file_tabs()}
                 </SortableNav>
