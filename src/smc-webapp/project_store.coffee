@@ -473,7 +473,6 @@ class ProjectActions extends Actions
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
-        @set_url_to_path(path)
         if update_file_listing
             @set_directory_files(path)
             @set_all_files_unchecked()
