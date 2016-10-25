@@ -955,8 +955,11 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         removing : undefined  # id's of account that we are currently confirming to remove
 
     remove_collaborator : (account_id) ->
-        @actions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
+        project_id = @props.project.get('project_id')
+        @actions('projects').remove_collaborator(project_id, account_id)
         @setState(removing:undefined)
+        if account_id == @props.get_account_id()
+            @actions('page').close_project_tab(project_id)
 
     render_user_remove_confirm : (account_id) ->
         if account_id == @props.get_account_id()

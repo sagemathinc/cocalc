@@ -333,6 +333,9 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         />
 
     render : ->
+        if not @props.open_files_order?
+            return <Loading />
+
         shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
 
         group     = @props.get_my_group(@props.project_id)
@@ -477,6 +480,8 @@ exports.MobileProjectPage = rclass ({name}) ->
         />
 
     render : ->
+        if not @props.open_files_order?
+            return <Loading />
 
         <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
