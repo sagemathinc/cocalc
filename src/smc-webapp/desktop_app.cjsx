@@ -62,9 +62,10 @@ Page = rclass
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
-            first_name   : rtypes.string
-            last_name    : rtypes.string
+            first_name   : rtypes.string # Necessary for get_fullname
+            last_name    : rtypes.string # Necessary for get_fullname
             get_fullname : rtypes.func
+            user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
         support :
             show : rtypes.bool
@@ -81,17 +82,37 @@ Page = rclass
             name = misc.trunc_middle(@props.get_fullname(), 32)
         if not name.trim()
             name = "Account"
+
         return name
 
+    render_account_tab: ->
+        <NavTab
+            name='account'
+            label={@account_name()}
+            icon='cog'
+            actions={@actions('page')}
+            active_top_tab={@props.active_top_tab}
+        />
+
+    sign_in_tab_clicked: ->
+        if @props.active_top_tab == 'account'
+            @actions('page').sign_in()
+
+    render_sign_in_tab: ->
+        <NavTab
+            name='account'
+            label='Sign in'
+            icon='sign-in'
+            on_click={@sign_in_tab_clicked}
+            actions={@actions('page')}
+            active_top_tab={@props.active_top_tab}
+        />
+
     render_right_nav : ->
+        logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
-            <NavTab
-                name='account'
-                label={@account_name()}
-                icon='cog'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-            />
+            {@render_account_tab() if logged_in}
+            {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
             {<NavTab label='Help' icon='medkit' actions={@actions('page')} active_top_tab={@props.active_top_tab} on_click={=>redux.getActions('support').show(true)} /> if require('./customize').commercial}
@@ -121,55 +142,22 @@ Page = rclass
         </Nav>
 
     render : ->
-        # Use this pattern very sparingly.
-        # Right now only used to access library generated elements
-        # Very fragile.
-        page_style ='
-            #smc-top-bar>.container>ul>li>a {
-                padding:0px;
-                -webkit-touch-callout: none; /* iOS Safari */
-                -webkit-user-select: none;   /* Chrome/Safari/Opera */
-                -khtml-user-select: none;    /* Konqueror */
-                -moz-user-select: none;      /* Firefox */
-                -ms-user-select: none;       /* Internet Explorer/Edge */
-                user-select: none;           /* Non-prefixed version, currently
-                                                not supported by any browser */
-            }
-            #smc-top-bar>.container {
-                position:absolute;
-                display:flex;
-                padding:0px;
-                width:100%;
-            }
-            .input-group {
-                z-index:0;
-            }'
-
         style =
-            display:'flex'
-            flexDirection:'column'
-            height:'100vh'
-            width:'100vw'
-            overflow:'auto'
-
-        use_dropdown_menu = $(window).width() - 550 < @props.open_projects.size * 120
-
-        if use_dropdown_menu
-            proj_nav_styles = ProjectsNav.dropdown_nav_page_styles
-        else
-            proj_nav_styles = ProjectsNav.full_nav_page_styles
+            display       : 'flex'
+            flexDirection : 'column'
+            height        : '100vh'
+            width         : '100vw'
+            overflow      : 'auto'
 
         <div ref="page" style={style}>
-            <style>{page_style}</style>
-            <style>{proj_nav_styles}</style>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
-            {<Navbar id="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
+            {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 {@render_project_nav_button() if @props.is_logged_in()}
-                <ProjectsNav dropdown={use_dropdown_menu} />
+                <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:'42px'}> </div>if not @props.fullscreen}

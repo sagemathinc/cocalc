@@ -570,27 +570,6 @@ class FileEditor extends EventEmitter
     init_font_size: () =>
         @default_font_size = redux.getStore('account').get('font_size')
 
-    init_autosave: () =>
-        if @_autosave_interval?
-            # This function can safely be called again to *adjust* the
-            # autosave interval, in case user changes the settings.
-            clearInterval(@_autosave_interval); delete @_autosave_interval
-
-        # Use the most recent autosave value.
-        autosave = redux.getStore('account').get('autosave')
-        if autosave
-            save_if_changed = () =>
-                if @has_unsaved_changes() and (new Date()  -  (@_when_had_no_unsaved_changes ? 0)) >= @_autosave_interval
-                    # Both has some unsaved changes *and* has had those changes for at least @_autosave_interval ms.
-                    # NOTE: the second condition won't really work for documents that don't yet
-                    # synchronize the "unsaved changes" state with the backend; this is temporary.
-                    if @click_save_button?
-                        # nice gui feedback
-                        @click_save_button()
-                    else
-                        @save()
-            @_autosave_interval = setInterval(save_if_changed, autosave * 1000)
-
     val: (content) =>
         if not content?
             # If content not defined, returns current value.
@@ -691,7 +670,7 @@ class FileEditor extends EventEmitter
         # If some backend session on a remote machine is serving this session, terminate it.
 
     save: (cb) =>
-        content = @val()
+        content = @val?()   # may not be defined in which case save not supported
         if not content?
             # do not overwrite file in case editor isn't initialized
             cb?()
@@ -726,7 +705,7 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
-            mode                      : required
+            mode                      : undefined
             geometry                  : undefined  # (default=full screen);
             read_only                 : false
             delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
@@ -1027,6 +1006,7 @@ class CodeMirrorEditor extends FileEditor
 
     # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: (readonly=true) =>
+        @opts.read_only = readonly
         if readonly
             @element.find(".salvus-editor-write-only").hide()
             @element.find(".salvus-editor-read-only").show()
@@ -1089,7 +1069,6 @@ class CodeMirrorEditor extends FileEditor
             CodeMirror.commands.defaultTab(editor)
 
     init_edit_buttons: () =>
-
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
@@ -1359,6 +1338,8 @@ class CodeMirrorEditor extends FileEditor
                 display: 'inline-block'   # this is needed due to subtleties of jQuery show().
 
     click_save_button: () =>
+        if @opts.read_only
+            return
         if @_saving
             return
         @_saving = true
@@ -1692,7 +1673,8 @@ class CodeMirrorEditor extends FileEditor
 
         # activite the buttons in the bar
         that = @
-        edit_button_click = () ->
+        edit_button_click = (e) ->
+            e.preventDefault()
             args = $(this).data('args')
             cmd  = $(this).attr('href').slice(1)
             if cmd == 'todo'
@@ -1773,7 +1755,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = exports.codemirror_session_editor = (project_id, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
-    ext = filename_extension_notilde(filename)
+    ext = filename_extension_notilde(filename).toLowerCase()
 
     E = new CodeMirrorEditor(project_id, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
@@ -1977,7 +1959,11 @@ class PDFLatexDocument
 
     default_tex_command: () =>
         # errorstopmode recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-        return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # since in some cases things will hang (using )
+        #return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+        # However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+        # See https://github.com/sagemathinc/smc/issues/156
+        return "pdflatex -synctex=1 -interact=nonstopmode '#{@filename_tex}'"
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
@@ -3058,7 +3044,6 @@ class JupyterNBViewerEmbedded extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
-        #window.w = @
 
     init_buttons: () =>
         # code duplication from editor_jupyter/JupyterNBViewer
@@ -3107,7 +3092,7 @@ class HTML_MD_Editor extends FileEditor
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = filename_extension_notilde(@filename)   #'html' or 'md'
+        @ext = filename_extension_notilde(@filename).toLowerCase()   #'html' or 'md'
         # console.log("HTML_MD_editor", @)
 
         if @ext == 'html'
@@ -3244,14 +3229,16 @@ class HTML_MD_Editor extends FileEditor
                 @sync()
 
     init_preview_buttons: () =>
-        disable = @element.find("a[href=\"#disable-preview\"]").click () =>
+        disable = @element.find("a[href=\"#disable-preview\"]").click (evt) =>
+            evt.preventDefault()
             disable.hide()
             enable.show()
             @disable_preview = true
             @local_storage("disable_preview", true)
             @preview_content.html('')
 
-        enable = @element.find("a[href=\"#enable-preview\"]").click () =>
+        enable = @element.find("a[href=\"#enable-preview\"]").click (evt) =>
+            evt.preventDefault()
             disable.show()
             enable.hide()
             @disable_preview = false

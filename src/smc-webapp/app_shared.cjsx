@@ -138,13 +138,13 @@ exports.ConnectionIndicator = rclass
 
     reduxProps :
         page :
-            avgping : rtypes.number
+            avgping           : rtypes.number
             connection_status : rtypes.string
 
     propTypes :
-        ping : rtypes.number
-        status : rtypes.string
-        actions : rtypes.object
+        ping     : rtypes.number
+        status   : rtypes.string
+        actions  : rtypes.object
         on_click : rtypes.func
 
     connection_status : ->
@@ -170,12 +170,12 @@ exports.ConnectionIndicator = rclass
 
     render : ->
         outer_styles =
-            width : '8.5em'
-            color : '#666'
-            fontSize : '10pt'
+            width      : '8.5em'
+            color      : '#666'
+            fontSize   : '10pt'
             lineHeight : '10pt'
-            cursor : 'pointer'
-            float : 'left'
+            cursor     : 'pointer'
+            float      : 'left'
         inner_styles =
             padding : '13.5px'
 
@@ -190,10 +190,10 @@ exports.ConnectionInfo = rclass
 
     propTypes :
         actions : rtypes.object
-        hub : rtypes.string
-        ping : rtypes.number
+        hub     : rtypes.string
+        ping    : rtypes.number
         avgping : rtypes.number
-        status : rtypes.string
+        status  : rtypes.string
 
     reduxProps :
         account :
@@ -203,34 +203,29 @@ exports.ConnectionInfo = rclass
         @actions('page').show_connection(false)
 
     connection_body : ->
-        if @props.hub?
-            <div>
-                {<Row>
-                    <Col sm=3>
-                        <h4>Ping Time</h4>
-                    </Col>
-                    <Col sm=5>
-                        <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
-                    </Col>
-                </Row> if @props.ping}
-                <Row>
-                    <Col sm=3>
-                        <h4>Hub Server</h4>
-                    </Col>
-                    <Col sm=5>
-                        <pre>{@props.hub}</pre>
-                    </Col>
-                    <Col sm=3 smOffset=1>
-                        <Button bsStyle='warning' onClick={=>salvus_client._fix_connection(true)}>
-                            <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
-                        </Button>
-                    </Col>
-                </Row>
-            </div>
-        else
-            <div>
-                Not connected to a hub.
-            </div>
+        <div>
+            {<Row>
+                <Col sm=3>
+                    <h4>Ping Time</h4>
+                </Col>
+                <Col sm=5>
+                    <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
+                </Col>
+            </Row> if @props.ping}
+            <Row>
+                <Col sm=3>
+                    <h4>Hub Server</h4>
+                </Col>
+                <Col sm=5>
+                    <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
+                </Col>
+                <Col sm=3 smOffset=1>
+                    <Button bsStyle='warning' onClick={=>salvus_client._fix_connection(true)}>
+                        <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
+                    </Button>
+                </Col>
+            </Row>
+        </div>
 
     render : ->
         <Modal show={true} onHide={@close} animation={false}>

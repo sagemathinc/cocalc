@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -52,6 +52,9 @@ exports.file_action_buttons = file_action_buttons =
         rename   :
             name : 'Rename'
             icon : 'pencil'
+        duplicate:
+            name : 'Duplicate'
+            icon : 'clone'
         move     :
             name : 'Move'
             icon : 'arrows'
@@ -820,8 +823,10 @@ ProjectFilesActions = rclass
 
     render_action_button : (name) ->
         obj = file_action_buttons[name]
+        get_basename = =>
+            misc.path_split(@props.checked_files?.first()).tail
         <Button
-            onClick={=>@props.actions.set_file_action(name)}
+            onClick={=>@props.actions.set_file_action(name, get_basename)}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
@@ -843,6 +848,7 @@ ProjectFilesActions = rclass
                     'compress'
                     'delete'
                     'rename'
+                    'duplicate'
                     'move'
                     'copy'
                     'share'
@@ -853,6 +859,7 @@ ProjectFilesActions = rclass
                     'download'
                     'delete'
                     'rename'
+                    'duplicate'
                     'move'
                     'copy'
                     'share'
@@ -913,7 +920,7 @@ ProjectFilesActionBox = rclass
         copy_destination_directory  : ''
         copy_destination_project_id : if @props.public_view then '' else @props.project_id
         move_destination            : ''
-        new_name                    : misc.path_split(@props.checked_files?.first()).tail
+        new_name                    : @props.new_name
         show_different_project      : @props.public_view
 
     pre_styles :
@@ -1037,12 +1044,18 @@ ProjectFilesActionBox = rclass
             </Row>
         </div>
 
-    rename_click : ->
+    rename_or_duplicate_click : () ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = ReactDOM.findDOMNode(@refs.new_name).value
-        @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : misc.path_to_file(rename_dir, destination)
+        switch @props.file_action
+            when 'rename'
+                @props.actions.move_files
+                    src  : @props.checked_files.toArray()
+                    dest : misc.path_to_file(rename_dir, destination)
+            when 'duplicate'
+                @props.actions.copy_files
+                    src  : @props.checked_files.toArray()
+                    dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1068,8 +1081,13 @@ ProjectFilesActionBox = rclass
             return false
         return @state.new_name.trim() isnt misc.path_split(single_item).tail
 
-    render_rename : ->
+    render_rename_or_duplicate: () ->
         single_item = @props.checked_files.first()
+        action_title = switch @props.file_action
+                            when 'rename'
+                                'Rename'
+                            when 'duplicate'
+                                'Duplicate'
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1084,7 +1102,7 @@ ProjectFilesActionBox = rclass
                             ref          = 'new_name'
                             key          = 'new_name'
                             type         = 'text'
-                            defaultValue = {misc.path_split(single_item).tail}
+                            defaultValue = {@state.new_name}
                             placeholder  = 'New file name...'
                             onChange     = {=>@setState(new_name : ReactDOM.findDOMNode(@refs.new_name).value)}
                             onKeyDown    = {@action_key}
@@ -1096,8 +1114,8 @@ ProjectFilesActionBox = rclass
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='info' onClick={@rename_click} disabled={not @valid_rename_input(single_item)}>
-                            <Icon name='pencil' /> Rename file
+                        <Button bsStyle='info' onClick={=>@rename_or_duplicate_click()} disabled={not @valid_rename_input(single_item)}>
+                            <Icon name='pencil' /> {action_title} item
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1106,6 +1124,12 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
         </div>
+
+    render_rename: ->
+        @render_rename_or_duplicate()
+
+    render_duplicate: ->
+        @render_rename_or_duplicate()
 
     submit_action_rename: () ->
         single_item = @props.checked_files.first()
@@ -1325,9 +1349,7 @@ ProjectFilesActionBox = rclass
     render_public_share_url : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        # display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
-        # TODO: undo this hotfix for #1064
-        display_url = "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
         if @props.file_map[misc.path_split(single_item).tail]?.isdir
             display_url += '/'
         <pre style={@pre_styles}>
@@ -1713,6 +1735,8 @@ exports.ProjectFiles = rclass ({name}) ->
             project_map   : rtypes.immutable
             date_when_course_payment_required : rtypes.func
             get_my_group : rtypes.func
+            get_total_project_quotas : rtypes.func
+
         account :
             other_settings : rtypes.immutable
         "#{name}" :
@@ -1725,10 +1749,10 @@ exports.ProjectFiles = rclass ({name}) ->
             sort_by_time        : rtypes.bool
             error               : rtypes.string
             checked_files       : rtypes.immutable
-            file_creation_error : rtypes.string
             selected_file_index : rtypes.number
             directory_listings  : rtypes.object
             get_displayed_listing : rtypes.func
+            new_name            : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1738,6 +1762,7 @@ exports.ProjectFiles = rclass ({name}) ->
     getDefaultProps : ->
         page_number : 0
         file_search : ''
+        new_name : ''
         selected_file_index : 0
         actions : redux.getActions(name) # TODO: Do best practices way
         redux   : redux
@@ -1756,22 +1781,16 @@ exports.ProjectFiles = rclass ({name}) ->
             name         : @props.file_search
             ext          : ext
             current_path : @props.current_path
-            on_download  : ((a) => @setState(download: a))
-            on_error     : @handle_creation_error
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
             # WARNING: Uses old way of refreshing file listing
             @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)
 
-    handle_creation_error : (e) ->
-        @props.actions.setState(file_creation_error : e)
-
     create_folder : (switch_over=true) ->
         @props.actions.create_folder
             name         : @props.file_search
             current_path : @props.current_path
-            on_error     : ((a) => setState(error: a))
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
         if not switch_over
@@ -1807,6 +1826,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 project_id    = {@props.project_id}
                 public_view   = {public_view}
                 file_map      = {file_map}
+                new_name      = {@props.new_name}
                 actions       = {@props.actions} />
         </Col>
 
@@ -1873,21 +1893,21 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
+            quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
                 when 'no_dir'
-                    if @props.current_path == '.trash'
-                        e = <Alert bsStyle='success'>The trash is empty!</Alert>
-                    else
-                        e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
+                    e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
                 when 'not_a_dir'
                     e = <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
                 when 'not_running'
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.
                     e = <ErrorDisplay title="Project still not running" error={"The project was not running when this directory listing was requested.  Please try again in a moment."} />
-                when 'no_instance'
-                    e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on Google Pre-empt instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server."} />
                 else
-                    e = <ErrorDisplay title="Directory listing error" error={error} />
+                    if 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
+                        # the second part of the or is to blame it on the free servers...
+                        e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                    else
+                        e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
                 {e}
                 <br />

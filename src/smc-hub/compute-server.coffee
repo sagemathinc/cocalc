@@ -1135,7 +1135,7 @@ update_states = (cb) ->
                                 cb(err)
                             else
                                 project.state(update:true, cb:cb)
-            async.map(projects, f, cb)
+            async.mapLimit(projects, 20, f, cb)
         ], (err) ->
             setTimeout(update_states, 2*60*1000)
             cb?(err)

@@ -20,6 +20,8 @@ project_file = require('./project_file')
 {Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
 misc = require('misc')
 
+FILE_NAV_HEIGHT = '36px'
+
 default_file_tab_styles =
     width : 250
     borderRadius : "5px 5px 0px 0px"
@@ -137,6 +139,9 @@ FreeProjectWarning = rclass ({name}) ->
 
     reduxProps :
         projects :
+            # get_total_project_quotas relys on this data
+            # Will be removed by #1084
+            project_map : rtypes.immutable.Map
             get_total_project_quotas : rtypes.func
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
@@ -145,12 +150,17 @@ FreeProjectWarning = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
+    shouldComponentUpdate : (nextProps) ->
+        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
+            @props.free_warning_closed != nextProps.free_warning_closed or
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
+
     extra : (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
             {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
             <ul>
@@ -174,48 +184,56 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
         styles =
-            padding : 2
-            paddingLeft : 7
+            padding      : 2
+            paddingLeft  : 7
             paddingRight : 7
-            cursor : 'pointer'
+            cursor       : 'pointer'
             marginBottom : 0
-            fontSize : 12
+            fontSize     : 12
         dismiss_styles =
-            display : 'inline-block'
-            float : 'right'
+            display    : 'inline-block'
+            float      : 'right'
             fontWeight : 700
-            top : -5
-            fontSize : 18
-            color : 'gray'
-            position : 'relative'
+            top        : -5
+            fontSize   : 18
+            color      : 'gray'
+            position   : 'relative'
+            height     : 0
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
         </Alert>
 
+# is_public below -- only show this tab if this is true
+
 fixed_project_pages =
     files :
-        label : 'Files'
-        icon : 'folder-open-o'
-        tooltip : 'Browse files'
+        label     : 'Files'
+        icon      : 'folder-open-o'
+        tooltip   : 'Browse files'
+        is_public : true
     new :
-        label : 'New'
-        icon : 'plus-circle'
-        tooltip : 'Create new file, folder, worksheet or terminal'
+        label     : 'New'
+        icon      : 'plus-circle'
+        tooltip   : 'Create new file, folder, worksheet or terminal'
+        is_public : false
     log:
-        label : 'Log'
-        icon : 'history'
-        tooltip : 'Log of project activity'
+        label     : 'Log'
+        icon      : 'history'
+        tooltip   : 'Log of project activity'
+        is_public : false
     search :
-        label : 'Find'
-        icon : 'search'
-        tooltip : 'Search files in the project'
+        label     : 'Find'
+        icon      : 'search'
+        tooltip   : 'Search files in the project'
+        is_public : false
     settings :
-        label : 'Settings'
-        icon : 'wrench'
-        tooltip : 'Project settings and controls'
+        label     : 'Settings'
+        icon      : 'wrench'
+        tooltip   : 'Project settings and controls'
+        is_public : false
 
 # Children must define their own padding from navbar and screen borders
 ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_files}) ->
@@ -232,20 +250,20 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             return <ProjectSettings project_id={project_id} name={project_name} group={group} />
         else
             active_path = misc.tab_to_path(active_tab_name)
-            if open_files?.has(active_path)
-                Editor = open_files.getIn([active_path, 'component'])
+            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
+            if not Editor?
+                return <Loading />
+            else
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
-                    path={active_path}
-                    project_id={project_id}
-                    redux={redux}
-                    actions={redux.getActions(Editor.redux_name)}
-                    name={Editor.redux_name}
-                    project_name={project_name}
-                    path={active_path}
+                    path         = {active_path}
+                    project_id   = {project_id}
+                    redux        = {redux}
+                    actions      = {if redux_name? then redux.getActions(redux_name)}
+                    name         = {redux_name}
+                    project_name = {project_name}
+                    path         = {active_path}
                 />
-            else
-                <div>You should not be here! {active_tab_name}</div>
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'
@@ -298,106 +316,65 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         return tabs
 
     file_tab: (path, index) ->
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <SortableFileTab
-            index={index}
-            key={path}
-            name={misc.path_to_tab(path)}
-            label={display_name}
-            icon={icon}
-            tooltip={path}
-            project_id={@props.project_id}
-            file_tab={true}
-            has_activity={@props.open_files.getIn([path, 'has_activity'])}
-            is_active={@props.active_project_tab == misc.path_to_tab(path)}
+            index        = {index}
+            key          = {path}
+            name         = {misc.path_to_tab(path)}
+            label        = {display_name}
+            icon         = {icon}
+            tooltip      = {path}
+            project_id   = {@props.project_id}
+            file_tab     = {true}
+            has_activity = {@props.open_files.getIn([path, 'has_activity'])}
+            is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
     render : ->
-        page_styles ='
-            #smc-file-tabs-fixed>li>a {
-                height:36px;
-                padding: 8px 10px;
-                border-radius: 5px 5px 0px 0px;
-            }
-            #smc-file-tabs-files>li>a {
-                padding: 13px 15px 7px;
-                border-radius: 5px 5px 0px 0px;
-                -webkit-touch-callout: none; /* iOS Safari */
-                -webkit-user-select: none;   /* Chrome/Safari/Opera */
-                -khtml-user-select: none;    /* Konqueror */
-                -moz-user-select: none;      /* Firefox */
-                -ms-user-select: none;       /* Internet Explorer/Edge */
-                user-select: none;           /* Non-prefixed version, currently
-                                                not supported by any browser */
-            }
-            .smc-file-tab-floating {
-                background-color: rgb(237, 237, 237);
-                border-radius: 5px 5px 0px 0px;
-                box-sizing:border-box;
-                color:rgb(51, 51, 51);
-                display:block;
-                flex-shrink:1;
-                height:36px;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                overflow-x:hidden;
-                overflow-y:hidden;
-                position:relative;
-                text-align:left;
-                width:250px;
-            }
-            .smc-file-tab-floating>a {
-                background-color:rgba(0, 0, 0, 0);
-                border-radius: 5px 5px 0px 0px;
-                box-sizing:border-box;
-                display:block;
-                height:36px;
-                line-height:normal;
-                list-style-image:none;
-                list-style-position:outside;
-                list-style-type:none;
-                padding: 13px 15px 7px;
-                position:relative;
-            }'
+        if not @props.open_files_order?
+            return <Loading />
+
         shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
 
-        <div className='container-content'>
-            <style>{page_styles}</style>
+        group     = @props.get_my_group(@props.project_id)
+        is_public = (group == 'public')
+
+        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"36px", overflowY:'hidden'}>
-                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+            {<div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
+                <Nav bsStyle="pills" className="smc-file-tabs-fixed-desktop" style={overflowY:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
                     {[<FileTab
-                        name={k}
-                        label={v.label}
-                        icon={v.icon}
-                        tooltip={v.tooltip}
-                        project_id={@props.project_id}
-                        is_active={@props.active_project_tab == k}
-                        shrink={shrink_fixed_tabs}
-                    /> for k, v of fixed_project_pages]}
+                        name       = {k}
+                        label      = {v.label}
+                        icon       = {v.icon}
+                        tooltip    = {v.tooltip}
+                        project_id = {@props.project_id}
+                        is_active  = {@props.active_project_tab == k}
+                        shrink     = {shrink_fixed_tabs}
+                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
                 </Nav>
                 <SortableNav
-                    helperClass={'smc-file-tab-floating'}
-                    onSortEnd={@on_sort_end}
-                    axis={'x'}
-                    lockAxis={'x'}
+                    className   = "smc-file-tabs-files-desktop"
+                    helperClass = {'smc-file-tab-floating'}
+                    onSortEnd   = {@on_sort_end}
+                    axis        = {'x'}
+                    lockAxis    = {'x'}
                     lockToContainerEdges={true}
-                    distance={3 if not IS_MOBILE}
-                    bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}
+                    distance    = {3 if not IS_MOBILE}
+                    bsStyle     = "pills"
+                    style       = {display:'flex', height:FILE_NAV_HEIGHT, overflowY:'hidden'}
                 >
                     {@file_tabs()}
                 </SortableNav>
             </div> if not @props.fullscreen}
             <ProjectMainContent
-                project_id={@props.project_id}
-                project_name={@props.name}
-                active_tab_name={@props.active_project_tab}
-                group={@props.get_my_group(@props.project_id)}
-                open_files={@props.open_files}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {@props.active_project_tab}
+                group           = {group}
+                open_files      = {@props.open_files}
             />
         </div>
 
@@ -454,7 +431,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         @actions(project_id:@props.project_id).close_tab(path)
 
     file_menu_item: (path, index) ->
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
 
@@ -488,7 +465,7 @@ exports.MobileProjectPage = rclass ({name}) ->
 
     render_one_file_item : ->
         path = @props.open_files_order.get(0)
-        ext = misc.filename_extension(path)
+        ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <FileTab
@@ -503,19 +480,13 @@ exports.MobileProjectPage = rclass ({name}) ->
         />
 
     render : ->
-        page_styles ='
-            #smc-file-tabs-fixed>li>a {
-                padding: 8px 10px;
-            }
-            #smc-file-tabs-files>li>a {
-                padding: 13px 15px 7px;
-            }'
+        if not @props.open_files_order?
+            return <Loading />
 
-        <div className='container-content'>
-            <style>{page_styles}</style>
+        <div className='container-content'  style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div id="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
-                <Nav bsStyle="pills" id="smc-file-tabs-fixed" style={float:'left'}>
+            {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
+                <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
                         name={k}
                         label={v.label}
@@ -526,7 +497,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                         shrink={@props.open_files_order.size != 0 or $(window).width() < 370}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
-                <Nav bsStyle="pills" id="smc-file-tabs-files" style={display:'flex'}>
+                <Nav bsStyle="pills" className="smc-file-tabs-files-mobile" style={display:'flex'}>
                     {@render_files_dropdown() if @props.open_files_order.size > 1}
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>

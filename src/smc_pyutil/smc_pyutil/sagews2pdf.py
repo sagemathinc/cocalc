@@ -518,7 +518,9 @@ class Cell(object):
                             self._commands.append(c)
                             filename = base+'.pdf'
                         img = filename
-                    s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
+                    # omitting [width=\\textwidth] allows figsize to set displayed size
+                    # see https://github.com/sagemathinc/smc/issues/114
+                    s += '{\\centering\n\\includegraphics{%s}\n\\par\n}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']

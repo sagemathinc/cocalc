@@ -32,6 +32,12 @@ _             = require('underscore')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+load_stripe = (cb) ->
+    if Stripe?
+        cb()
+    else
+        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+
 actions = store = undefined
 # Create the billing actions
 class BillingActions extends Actions
@@ -39,10 +45,9 @@ class BillingActions extends Actions
         @setState(error:'')
 
     update_customer: (cb) =>
-        if not Stripe?
-            cb?("stripe not available")
+        if @_update_customer_lock
             return
-        if @_update_customer_lock then return else @_update_customer_lock=true
+        @_update_customer_lock=true
         @setState(action:"Updating billing information")
         customer_is_defined = false
         {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
@@ -53,9 +58,12 @@ class BillingActions extends Actions
                         @_update_customer_lock = false
                         if not err and not resp?.stripe_publishable_key?
                             err = "WARNING: Stripe is not configured -- billing not available"
+                            @setState(no_stripe:true)
                         if not err
-                            Stripe.setPublishableKey(resp.stripe_publishable_key)
-                            @setState(customer: resp.customer, loaded:true)
+                            @setState
+                                customer               : resp.customer
+                                loaded                 : true
+                                stripe_publishable_key : resp.stripe_publishable_key
                             customer_is_defined = resp.customer?
                         cb(err)
             (cb) =>
@@ -100,8 +108,16 @@ class BillingActions extends Actions
     submit_payment_method: (info, cb) =>
         response = undefined
         async.series([
+            (cb) =>
+                if not store.get("stripe_publishable_key")?
+                    @update_customer(cb)  # this defines stripe_publishable_key, or fails
+                else
+                    cb()
+            (cb) =>
+                load_stripe(cb)
             (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
                 @setState(action:"Creating a new payment method -- get token from Stripe")
+                Stripe.setPublishableKey(store.get("stripe_publishable_key"))
                 Stripe.card.createToken info, (status, _response) =>
                     if status != 200
                         cb(_response.error.message)
@@ -270,24 +286,24 @@ AddPaymentMethod = rclass
             return validate.invalid
 
     render_input_expiration : ->
-        <div style={marginBottom:'15px'}>
+        <div style={marginBottom:'15px', display:'flex'}>
             <FormGroup>
                 <FormControl
                     readOnly    = {@state.submitting}
                     className   = 'form-control'
-                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
+                    style       = {misc.merge({width:'5em'}, @style('exp_month'))}
                     placeholder = 'MM'
                     type        = 'text'
                     size        = '2'
                     onChange    = {(e)=>@set_input_info('exp_month', undefined, e.target.value)}
                 />
             </FormGroup>
-            <span> / </span>
+            <span style={fontSize:'22px', margin: '1px 5px'}> / </span>
             <FormGroup>
                 <FormControl
                     readOnly    = {@state.submitting}
                     className   = 'form-control'
-                    style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
+                    style       = {misc.merge({width:'5em'}, @style('exp_year'))}
                     placeholder = 'YY'
                     type        = 'text'
                     size        = '2'
@@ -1589,6 +1605,7 @@ BillingPage = rclass
             error         : rtypes.string
             action        : rtypes.string
             loaded        : rtypes.bool
+            no_stripe     : rtypes.bool     # if true, stripe definitely isn't configured on the server
             selected_plan : rtypes.string
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
@@ -1717,7 +1734,9 @@ BillingPage = rclass
         return v
 
     get_panel_header : (icon, header) ->
-        <div><Icon name={icon} fixedWidth /> {header}</div>
+        <div style={cursor:'pointer'} >
+            <Icon name={icon} fixedWidth /> {header}
+        </div>
 
     render_page : ->
         cards    = @props.customer?.sources?.total_count ? 0
@@ -1768,15 +1787,13 @@ BillingPage = rclass
                 </div>
 
     render : ->
-        if not Stripe?
-            return <div>Stripe is not available...</div>
         <div>
             <div>
                 {@render_info_link()}
-                {@render_action()}
+                {@render_action() if not @props.no_stripe}
                 {@render_error()}
-                {@render_course_payment_instructions()}
-                {@render_page()}
+                {@render_course_payment_instructions() if not @props.no_stripe}
+                {@render_page() if not @props.no_stripe}
             </div>
             {<Footer/> if not @props.is_simplified}
         </div>

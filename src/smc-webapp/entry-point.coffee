@@ -31,6 +31,9 @@ desktop = require('./desktop_app')
 render = () =>
     if not isMobile.tablet() and IS_MOBILE or $(window).width() < 770
         mobile.render()
+        # This is a hack for now until we figure out how to get the flex box model
+        # to work on mobile. The problem is setting the flex styles on Sidebar in mobile_app.cjsx.
+        setTimeout((()->$(".container-content").maxheight()), 1)
     else
         desktop.render()
 

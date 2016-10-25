@@ -467,6 +467,9 @@
     - plotly
     - AER
     - QuantPsych
+    - coda
+    - mvtnorm
+    - loo
 
   - name: "RSTAN from CRAN"
     # https://cran.r-project.org/web/packages/rstan/index.html
@@ -477,6 +480,10 @@
     shell: "echo \"install.packages('{{ item }}', repos='{{ repo }}', clean = TRUE, dependencies = TRUE)\" | R --no-save"
     with_items:
     - rstan
+
+  - name: "Richard McElreath's statistical rethinking package" # needs devtools, rstan, coda, mtvnorm, loo
+    tags: [install, update]
+    shell: "echo \"library(devtools); install_github('rmcelreath/rethinking')\" | R --no-save"
 
   - name: "IPython Kernel" # needs devtools, etc.
     tags: [ir, install, update]

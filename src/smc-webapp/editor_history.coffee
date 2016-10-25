@@ -57,10 +57,16 @@ class exports.HistoryEditor extends FileEditor
                     @resize_diff_slider()
                 else
                     @resize_slider()
+
             if @syncstring.has_full_history()
                 @load_all.hide()
             else
                 @load_all.show()
+
+            # only show button for reverting if not read only
+            @syncstring.wait_until_read_only_known (err) =>
+                if not @syncstring.get_read_only()
+                    @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @syncstring?.close()
@@ -179,10 +185,19 @@ class exports.HistoryEditor extends FileEditor
             @diff_slider.show()
             @slider.hide()
             @set_doc_diff(@goto_diff()...)
+            # Switch to default theme for diff viewer, until we implement
+            # red/green colors that are selected to match the user's theme
+            # See https://github.com/sagemathinc/smc/issues/884
+            for cm in @view_doc.codemirrors()
+                @_non_diff_theme ?= cm.getOption('theme')
+                cm.setOption('theme', '')
         else
             for cm in @view_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
                 cm.setOption('gutters', [])
+                if @_non_diff_theme?
+                    # Set theme back to default
+                    cm.setOption('theme', @_non_diff_theme)
                 cm.setValue('')
                 cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
             @element.find("a[href=\"#hide-diff\"]").hide()
