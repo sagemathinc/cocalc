@@ -16,3 +16,11 @@ ALERT LOW_DB_DISK
     description = "Only {{ $value }} MiB left!"
   }
 
+ALERT COMPUTE_NODE_DOWN
+  IF up{job="compute"} < 1
+  FOR 5m
+  LABELS { severity = "high" }
+  ANNOTATIONS {
+    summary = "Compute node {{ $labels.instance }} is down",
+    description = "up-value < 1"
+  }

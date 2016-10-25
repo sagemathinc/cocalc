@@ -142,9 +142,9 @@ NewFileDropdown = rclass
 # Could be changed to auto adjust to a list of pre-defined button names.
 exports.FileTypeSelector = FileTypeSelector = rclass
     proptypes :
-        create_file : rtypes.func.required
+        create_file   : rtypes.func.required
         create_folder : rtypes.func.required
-        styles : rtypes.object
+        styles        : rtypes.object
 
     render : ->
         row_style =
@@ -203,14 +203,15 @@ ProjectNewForm = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            current_path     : rtypes.string
-            default_filename : rtypes.string
+            current_path        : rtypes.string
+            default_filename    : rtypes.string
+            file_creation_error : rtypes.string
         projects :
-            project_map      : rtypes.immutable
+            project_map              : rtypes.immutable
             get_total_project_quotas : rtypes.func
 
     propTypes :
-        actions        : rtypes.object.isRequired
+        actions : rtypes.object.isRequired
 
     getInitialState : ->
         filename           : @props.default_filename ? @default_filename()
@@ -231,16 +232,18 @@ ProjectNewForm = rclass ({name}) ->
         ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
     create_file : (ext) ->
+        if not @state.filename
+            @focus_input()
+            return
         @props.actions.create_file
             name         : @state.filename
             ext          : ext
             current_path : @props.current_path
-            on_download  : ((a) => @setState(download: a))
-            on_error     : ((a) => @setState(error: a))
-            on_empty     : @focus_input
 
     submit : (e) ->
         e.preventDefault()
+        if not @state.filename  # empty filename
+            return
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
         else if misc.filename_extension(@state.filename)
@@ -255,12 +258,12 @@ ProjectNewForm = rclass ({name}) ->
                 actions      = {@props.actions} />
 
     render_error : ->
-        error = @state.error
+        error = @props.file_creation_error
         if error is 'not running'
             message = 'The project is not running. Please try again in a moment'
         else
             message = error
-        <ErrorDisplay error={message} onClose={=>@setState(error:'')} />
+        <ErrorDisplay error={message} onClose={=>@props.actions.setState(file_creation_error:'')} />
 
     blocked: ->
         if not @props.project_map?
@@ -271,26 +274,23 @@ ProjectNewForm = rclass ({name}) ->
             return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
-        on_error = (a) => @setState(error: a)
         @props.actions.create_folder
             name         : @state.filename
             current_path : @props.current_path
-            on_error     : on_error
             switch_over  : true
 
     render_no_extension_alert : ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
-            <p>Warning: Are you sure you want to create a file with no extension?</p>
+            <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
                 <Button onClick={=>@create_file()} bsStyle='success'>
-                    Create file
+                    Create file with no extension
                 </Button>
                 <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
                     Cancel
                 </Button>
             </ButtonToolbar>
         </Alert>
-
 
     render : ->
         <div>
@@ -313,8 +313,8 @@ ProjectNewForm = rclass ({name}) ->
                                 onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
                         </FormGroup>
                     </form>
-                    {@render_no_extension_alert() if @state.extension_warning}
-                    {if @state.error then @render_error()}
+                    {if @state.extension_warning then @render_no_extension_alert()}
+                    {if @props.file_creation_error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
                         <Row>

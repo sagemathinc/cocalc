@@ -344,7 +344,7 @@ UsagePanel = rclass
     render_upgrades_button : ->
         <Row>
             <Col sm=12>
-                <Button bsStyle='primary' onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
+                <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
                     <Icon name='arrow-circle-up' /> Adjust your quotas...
                 </Button>
             </Col>
@@ -354,7 +354,7 @@ UsagePanel = rclass
         if not require('./customize').commercial
             return null
         <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
-            {@render_upgrades_button() if not @state.show_adjustor}
+            {@render_upgrades_button()}
             {<UpgradeAdjustor
                 project_id                           = {@props.project_id}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
@@ -491,11 +491,26 @@ HideDeletePanel = rclass
     propTypes :
         project : rtypes.object.isRequired
 
+    getInitialState : ->
+        show_delete_conf : false
+
+    show_delete_conf : ->
+        @setState(show_delete_conf : true)
+
+    hide_delete_conf : ->
+        @setState(show_delete_conf : false)
+
     toggle_delete_project : ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
+        @hide_delete_conf()
 
     toggle_hide_project : ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
+
+    # account_id : String
+    # project    : immutable.Map
+    user_has_applied_upgrades : (account_id, project) ->
+         project.getIn(['users', account_id, 'upgrades']).some (val) => val > 0
 
     delete_message : ->
         if @props.project.get('deleted')
@@ -517,6 +532,41 @@ HideDeletePanel = rclass
                 Hide this project, so it does not show up in your default project listing.
                 This only impacts you, not your collaborators, and you can easily unhide it.
             </span>
+
+    render_delete_undelete_button : (is_deleted, is_expanded) ->
+        if is_deleted
+            text = "Undelete Project"
+            onClick = @toggle_delete_project
+            disabled = false
+        else
+            text = "Delete Project..."
+            onClick = @show_delete_conf
+            disabled = is_expanded
+
+        <Button bsStyle='danger' style={float: 'right'} onClick={onClick} disabled={disabled}>
+            <Icon name='trash' /> {text}
+        </Button>
+
+    render_expanded_delete_info : ->
+        has_upgrades = @user_has_applied_upgrades(salvus_client.account_id, @props.project)
+        <Well style={textAlign:'center'} >
+            {<Alert bsStyle="info" style={padding:'8px'} >
+                All of your upgrades from this project will be removed automatically.
+                Undeleting the project will not automatically restore them.
+                This will not affect upgrades other people have applied.
+            </Alert> if has_upgrades}
+            {<div style={marginBottom:'5px'} >
+                Are you sure you want to delete this project?
+            </div> if not has_upgrades}
+            <ButtonToolbar >
+                <Button bsStyle='danger' onClick={@toggle_delete_project}>
+                    Delete Project
+                </Button>
+                <Button onClick={@hide_delete_conf}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
 
     render : ->
         user = @props.project.getIn(['users', salvus_client.account_id])
@@ -540,11 +590,14 @@ HideDeletePanel = rclass
                     {@delete_message()}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle='danger' onClick={@toggle_delete_project} style={float: 'right'}>
-                        <Icon name='trash' /> {if @props.project.get('deleted') then 'Undelete Project' else 'Delete Project'}
-                    </Button>
+                    {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
                 </Col>
             </Row>
+            {<Row style={marginTop:'10px'} >
+                <Col sm=12>
+                    {@render_expanded_delete_info()}
+                </Col>
+            </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
@@ -754,10 +807,14 @@ CollaboratorsSearch = rclass
     invite_collaborator : (account_id) ->
         @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
-    add_selected : ->
+    add_selected : (select) ->
         @reset()
-        for option in @state.selected_entries
-            @invite_collaborator(option.getAttribute('value'))
+        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
+        if (not @state.selected_entries? or @state.selected_entries?.length == 0) and select?.length == 1
+            @invite_collaborator(select[0].account_id)
+        else
+            for option in @state.selected_entries
+                @invite_collaborator(option.getAttribute('value'))
 
     select_list_clicked : ->
         selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
@@ -861,7 +918,7 @@ CollaboratorsSearch = rclass
                 when 1 then "Invite selected user"
                 else "Invite #{nb_selected} users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
-        <Button onClick={@add_selected} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
 
     render : ->

@@ -62,6 +62,11 @@ class ProjectsActions extends Actions
             redux.removeProjectReferences(project_id)
             @setState(open_projects : x.delete(index))
 
+    # Save all open files in all projects to disk
+    save_all_files: () =>
+        store.get('open_projects').filter (project_id) =>
+            @redux.getProjectActions(project_id).save_all_files()
+
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
@@ -202,16 +207,31 @@ class ProjectsActions extends Actions
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
-    # (at least what it is right now).
+    # (at least what it is right now).  For convenience this works
+    # even if the project isn't public if the user is an admin, and also
+    # works on projects the user owns or collaborats on.
     fetch_public_project_title: (project_id) =>
-        salvus_client.query
-            query :
-                public_projects : {project_id : project_id, title : null}
-            cb    : (err, resp) =>
-                if not err
-                    title = resp?.query?.public_projects?.title
-                title ?= "PRIVATE -- Admin req"
-                @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
+        @redux.getStore('projects').wait
+            until   : (s) => s.get_my_group(@project_id)
+            timeout : 60
+            cb      : (err, group) =>
+                if err
+                    group = 'public'
+                switch group
+                    when 'admin'
+                        table = 'projects_admin'
+                    when 'owner', 'collaborator'
+                        table = 'projects'
+                    else
+                        table = 'public_projects'
+                salvus_client.query
+                    query :
+                        "#{table}" : {project_id : project_id, title : null}
+                    cb    : (err, resp) =>
+                        if not err
+                            title = resp?.query?[table]?.title
+                        title ?= "PRIVATE -- Admin req"
+                        @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
     #    directory_tree.project_id = {updated:time, error:err, tree:list},
@@ -304,6 +324,9 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
+    clear_project_upgrades : (project_id) =>
+        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+
     save_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
@@ -353,9 +376,13 @@ class ProjectsActions extends Actions
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
+        is_deleted = @redux.getStore('projects').is_deleted(project_id)
+        if not is_deleted
+            @clear_project_upgrades(project_id)
+
         @redux.getTable('projects').set
             project_id : project_id
-            deleted    : not @redux.getStore('projects').is_deleted(project_id)
+            deleted    : not is_deleted
 
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
@@ -608,6 +635,7 @@ class ProjectsStore extends Store
                     break
         return v
 
+# WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
     open_projects : immutable.List()  # ordered list of open projects

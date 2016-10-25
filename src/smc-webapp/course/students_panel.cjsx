@@ -118,7 +118,7 @@ exports.StudentsPanel = rclass ({name}) ->
     add_selector_clicked : ->
         @setState(selected_option_nodes: ReactDOM.findDOMNode(@refs.add_select).selectedOptions)
 
-    add_selected_students : ->
+    add_selected_students : (options) ->
         emails = {}
         for x in @state.add_select
             if x.account_id?
@@ -126,8 +126,12 @@ exports.StudentsPanel = rclass ({name}) ->
         students = []
         selections = []
 
-        for option in @state.selected_option_nodes
-            selections.push(option.getAttribute('value'))
+        # first check, if no student is selected and there is just one in the list
+        if (not @state.selected_option_nodes? or @state.selected_option_nodes?.length == 0) and options?.length == 1
+            selections.push(options[0].key)
+        else
+            for option in @state.selected_option_nodes
+                selections.push(option.getAttribute('value'))
 
         for y in selections
             if misc.is_valid_uuid_string(y)
@@ -179,7 +183,7 @@ exports.StudentsPanel = rclass ({name}) ->
                 when 1 then "Add selected student"
                 else "Add #{nb_selected} students"
         disabled = options.length == 0 or (options.length >= 2 and nb_selected == 0)
-        <Button onClick={@add_selected_students} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        <Button onClick={=>@add_selected_students(options)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
     render_error : ->
         ed = null

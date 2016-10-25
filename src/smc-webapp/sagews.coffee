@@ -124,14 +124,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             n = cm.lineCount() - 1
                             while stop < n and x != MARKERS.output and x != MARKERS.cell
                                 stop += 1
-                                x = cm.getLine(stop)[0]
+                                x = cm.getLine(stop)?[0]
 
                         # Similar for start
                         x = cm.getLine(start)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             while start > 0 and x != MARKERS.cell and x != MARKERS.output
                                 start -= 1
-                                x = cm.getLine(start)[0]
+                                x = cm.getLine(start)?[0]
 
                     if not @_update_queue_start? or start < @_update_queue_start
                         @_update_queue_start = start
@@ -1254,7 +1254,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             # absolute inside of project
                             target = "#{that.project_id}/files#{decodeURI(target)}"
                         else
-                            # realtive to current path
+                            # relative to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
                         redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
@@ -1264,9 +1264,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y = $(x)
             src = y.attr('src')
-            if src.indexOf('://') != -1
+            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
                 continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1373,6 +1373,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
+
+        if mesg.error?
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
             x = $("<div class='sagews-output-code'>")
