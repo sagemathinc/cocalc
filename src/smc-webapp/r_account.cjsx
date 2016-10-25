@@ -1024,7 +1024,7 @@ AccountCreationToken = rclass
                                 ref      = 'input'
                                 type     = 'text'
                                 value    = {@state.token}
-                                onChange = {=>@setState(token:ReactDOM.findDOMNode(@refs.input).value)}}
+                                onChange = {(e)=>@setState(token:e.target.value)}}
                             />
                         </FormGroup>
                     </form>
@@ -1054,7 +1054,7 @@ StripeKeys = rclass
     displayName : 'Account-StripeKeys'
 
     getInitialState : ->
-        state           : 'view'   # view --> edit --> save --> view
+        state           : 'view'   # view --> edit --> save --> saved
         secret_key      : ''
         publishable_key : ''
         error           : undefined
@@ -1064,25 +1064,15 @@ StripeKeys = rclass
 
     save : ->
         @setState(state:'save')
-        async = require('async')
-        query1 = server_settings : { name:"stripe_secret_key", value:@state.secret_key }
-        query2 = server_settings : { name:"stripe_publishable_key", value:@state.publishable_key }
-
-        async.series([
-            (cb) =>
-                salvus_client.query
-                    query : query1
-                    cb    : cb
-            (cb) =>
-                salvus_client.query
-                    query : query2
-                    cb    : cb
-        ], (err) =>
-            if err
-                @setState(state:'edit', error:err)
-            else
-                @setState(state:'view', error:'', secret_key:'', publishable_key:'')
-        )
+        f = (name, cb) =>
+        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
+        salvus_client.query
+            query : query
+            cb    : (err) =>
+                if err
+                    @setState(state:'edit', error:err)
+                else
+                    @setState(state:'saved', error:'', secret_key:'', publishable_key:'')
 
     cancel : ->
         @setState(state:'view', error:'', secret_key:'', publishable_key:'')
@@ -1095,21 +1085,24 @@ StripeKeys = rclass
 
     render_main :->
         switch @state.state
-            when 'view'
-                <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+            when 'view', 'saved'
+                <div>
+                    {"stripe keys saved!" if @state.state == 'saved'}
+                    <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+                </div>
             when 'save'
                 <div>Saving stripe keys...</div>
             when 'edit'
                 <Well>
                     <LabeledRow label='Secret key'>
                         <FormGroup>
-                            <FormControl type='text' value={@state.secret_key}
+                            <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
                                 onChange={(e)=>@setState(secret_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
                     <LabeledRow label='Publishable key'>
                         <FormGroup>
-                            <FormControl type='text' value={@state.publishable_key}
+                            <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
                                 onChange={(e)=>@setState(publishable_key:e.target.value)} />
                         </FormGroup>
                     </LabeledRow>
