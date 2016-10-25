@@ -92,8 +92,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                         if full_path.slice(0,i) == s.slice(0,i)
                             # only change if in project
                             path = s.slice(2*i+2)
-                            @props.actions.set_current_path(path, update_file_listing=true)
-                            @props.actions.set_url_to_path(path)
+                            @props.actions.open_directory(path)
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
