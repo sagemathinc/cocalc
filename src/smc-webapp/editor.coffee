@@ -1184,8 +1184,16 @@ class CodeMirrorEditor extends FileEditor
         @local_storage("split_view", @_split_view)  # store state so can restore same on next open
         @local_storage("layout", @_layout)
         @show()
-        @focus()
-        cm.focus()
+        if cm?
+            if @_split_view
+                cm.focus()
+            else
+                # focus first editor since it is only one that is visible.
+                @codemirror.focus()
+        f = () =>
+            for x in @codemirrors()
+                x.scrollIntoView()  # scroll the cursors back into view -- see https://github.com/sagemathinc/smc/issues/1044
+        setTimeout(f, 1)   # wait until next loop after codemirror has laid itself out.
         @emit 'toggle-split-view'
 
     goto_line: (cm) =>
