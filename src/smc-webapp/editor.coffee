@@ -3229,14 +3229,16 @@ class HTML_MD_Editor extends FileEditor
                 @sync()
 
     init_preview_buttons: () =>
-        disable = @element.find("a[href=\"#disable-preview\"]").click () =>
+        disable = @element.find("a[href=\"#disable-preview\"]").click (evt) =>
+            evt.preventDefault()
             disable.hide()
             enable.show()
             @disable_preview = true
             @local_storage("disable_preview", true)
             @preview_content.html('')
 
-        enable = @element.find("a[href=\"#enable-preview\"]").click () =>
+        enable = @element.find("a[href=\"#enable-preview\"]").click (evt) =>
+            evt.preventDefault()
             disable.show()
             enable.hide()
             @disable_preview = false
