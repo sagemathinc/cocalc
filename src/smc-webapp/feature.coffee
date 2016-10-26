@@ -23,19 +23,17 @@
 if not navigator.cookieEnabled
     require('./smc-react').redux.getActions('page').show_cookie_warning()
 
-# Check for local storage -- see https://github.com/sagemathinc/smc/issues/237
-try
-    localStorage['__test__'] = 'yes'
-catch
+# Check for local storage
+if not require('smc-util/misc').has_local_storage()
     require('./smc-react').redux.getActions('page').show_local_storage_warning()
-
-$ = window.$
 
 ####################################################
 #
 # Client device features and capabilities.
 #
 ####################################################
+
+$ = window.$
 
 isMobile = exports.isMobile =
     Android    : () -> !! navigator.userAgent.match(/Android/i)

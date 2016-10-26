@@ -4,16 +4,14 @@ misc = require('smc-util/misc')
 require('./redux_account')
 
 {React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
-{Tab, Tabs, Grid, Col, Row} = require('react-bootstrap')
-{LandingPage} = require('./landing_page')
-{AccountSettingsTop} = require('./r_account')
-{BillingPageRedux} = require('./billing')
-{UpgradesPage} = require('./r_upgrades')
-{SupportPage}  = require('./support')
-{Icon} = require('./r_misc')
-{set_url} = require('./history')
-
-browser = require('./browser')
+{Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
+{LandingPage}                            = require('./landing_page')
+{AccountSettingsTop}                     = require('./r_account')
+{BillingPageRedux}                       = require('./billing')
+{UpgradesPage}                           = require('./r_upgrades')
+{SupportPage}                            = require('./support')
+{Icon}                                   = require('./r_misc')
+{set_url}                                = require('./history')
 
 exports.AccountPage = rclass
     displayName : 'AccountPage'
@@ -113,7 +111,7 @@ exports.AccountPage = rclass
             reset_key               = {@props.reset_key}
             reset_password_error    = {@props.reset_password_error}
             remember_me             = {@props.remember_me}
-            has_account             = {localStorage.length > 0} />
+            has_account             = {misc.local_storage_length() > 0} />
 
     render_commercial_tabs: ->
         if not require('./customize').commercial

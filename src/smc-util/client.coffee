@@ -270,10 +270,7 @@ class exports.Connection extends EventEmitter
                     # See the function server_time below; subtract @_clock_skew from local time to get a better
                     # estimate for server time.
                     @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    try
-                        localStorage.clock_skew = @_clock_skew
-                    catch
-                        console.warn("localStorage not available")
+                    misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -285,12 +282,9 @@ class exports.Connection extends EventEmitter
         # some algorithms including sync which uses time.  Getting the clock right up to a small multiple
         # of ping times is fine for our application.
         if not @_clock_skew?
-            # try localStorage
-            try
-                if localStorage.clock_skew?
-                    @_clock_skew = parseFloat(localStorage.clock_skew)
-            catch
-                console.warn("localStorage not available")
+            x = misc.get_local_storage('clock_skew')
+            if x?
+                @_clock_skew = parseFloat(x)
         return new Date(new Date() - (@_clock_skew ? 0))
 
     ping_test: (opts) =>
@@ -411,14 +405,12 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
-                if localStorage?
-                    localStorage[@remember_me_key()] = true
+                misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 @emit("signed_in", mesg)
 
             when "remember_me_failed"
-                if localStorage?
-                    delete localStorage[@remember_me_key()]
+                misc.delete_local_storage(@remember_me_key())
                 @emit(mesg.event, mesg)
 
             when "project_list_updated", 'project_data_changed'
