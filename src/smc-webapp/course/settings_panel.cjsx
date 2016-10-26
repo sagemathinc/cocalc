@@ -22,9 +22,9 @@ exports.SettingsPanel = rclass
         redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         path        : rtypes.string.isRequired
-        settings    : rtypes.object.isRequired  # immutable js
         project_id  : rtypes.string.isRequired
-        project_map : rtypes.object.isRequired  # immutable js
+        settings    : rtypes.immutable.Map.isRequired
+        project_map : rtypes.immutable.Map.isRequired
 
     getInitialState : ->
         delete_student_projects_confirm : false
@@ -50,7 +50,7 @@ exports.SettingsPanel = rclass
             <LabeledRow label="Title">
                 <TextInput
                     text={@props.settings.get('title')}
-                    on_change={(title)=>@props.redux.getActions(@props.name).set_title(title)}
+                    on_change={(title)=>@actions(@props.name).set_title(title)}
                 />
             </LabeledRow>
             <LabeledRow label="Description">
@@ -58,7 +58,7 @@ exports.SettingsPanel = rclass
                     rows    = 6
                     type    = "textarea"
                     default_value = {@props.settings.get('description')}
-                    on_save ={(desc)=>@props.redux.getActions(@props.name).set_description(desc)}
+                    on_save ={(desc)=>@actions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
             <hr/>
@@ -87,10 +87,10 @@ exports.SettingsPanel = rclass
         return p.slice(0,i) + '.' + ext
 
     open_file : (path) ->
-        @props.redux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
+        @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
 
     write_file : (path, content) ->
-        actions = @props.redux.getActions(@props.name)
+        actions = @actions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
             project_id : @props.project_id
@@ -207,7 +207,7 @@ exports.SettingsPanel = rclass
                     rows    = 6
                     type    = "textarea"
                     default_value = {@props.redux.getStore(@props.name).get_email_invite()}
-                    on_save ={(body)=>@props.redux.getActions(@props.name).set_email_invite(body)}
+                    on_save ={(body)=>@actions(@props.name).set_email_invite(body)}
                 />
             </div>
             <hr/>
@@ -222,7 +222,7 @@ exports.SettingsPanel = rclass
     ###
 
     delete_all_student_projects: ->
-        @props.redux.getActions(@props.name).delete_all_student_projects()
+        @actions(@props.name).delete_all_student_projects()
 
     render_confirm_delete_student_projects: ->
         <Well style={marginTop:'10px'}>
@@ -320,7 +320,7 @@ exports.SettingsPanel = rclass
                 upgrades[quota] = val / display_factor
         @setState(upgrade_quotas: false)
         if misc.len(upgrades) > 0
-            @props.redux.getActions(@props.name).upgrade_all_student_projects(upgrades)
+            @actions(@props.name).upgrade_all_student_projects(upgrades)
 
     upgrade_quotas_submittable: ->
         if @_upgrade_is_invalid
@@ -333,7 +333,7 @@ exports.SettingsPanel = rclass
         return changed
 
     action_all_student_projects: (action) ->
-        @props.redux.getActions(@props.name).action_all_student_projects(action)
+        @actions(@props.name).action_all_student_projects(action)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -518,7 +518,7 @@ exports.SettingsPanel = rclass
         s = ReactDOM.findDOMNode(@refs.admin_input).value
         quotas = JSON.parse(s)
         console.log("admin upgrade '#{s}' -->", quotas)
-        @props.redux.getActions(@props.name).admin_upgrade_all_student_projects(quotas)
+        @actions(@props.name).admin_upgrade_all_student_projects(quotas)
         return false
 
     render_admin_upgrade: ->
@@ -614,7 +614,7 @@ exports.SettingsPanel = rclass
         </div>
 
     save_student_pay_settings: ->
-        @props.redux.getActions(@props.name).set_course_info(@state.students_pay_when)
+        @actions(@props.name).set_course_info(@state.students_pay_when)
         @setState
             show_students_pay_dialog : false
 
@@ -663,8 +663,9 @@ exports.SettingsPanel = rclass
                    key      = 'students_pay'
                    ref      = 'student_pay'
                    onChange = {@handle_students_pay_checkbox}
-            />
-            {@render_students_pay_checkbox_label()}
+            >
+                {@render_students_pay_checkbox_label()}
+            </Checkbox>
         </span>
 
     render_students_pay_dialog: ->
