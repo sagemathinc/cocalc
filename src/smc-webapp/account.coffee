@@ -76,7 +76,7 @@ salvus_client.on("signed_in", signed_in)
 # Automatically log in
 ################################################
 remember_me = salvus_client.remember_me_key()
-if localStorage[remember_me]
+if misc.get_local_storage(remember_me)
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
@@ -86,7 +86,7 @@ salvus_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
     if redux.getStore('account').is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
-            if not localStorage[remember_me]
+            if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
 

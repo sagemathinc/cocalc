@@ -137,6 +137,9 @@ class PageActions extends Actions
     show_cookie_warning : =>
         @setState(cookie_warning : true)
 
+    show_local_storage_warning : =>
+        @setState(local_storage_warning : true)
+
     check_unload : (e) =>
         if redux.getStore('account')?.get_confirm_close()
             return "Changes you make may not have been saved."

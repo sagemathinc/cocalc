@@ -1,42 +1,43 @@
 {isMobile} = require('./feature')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{Loading, Icon, Tip} = require('./r_misc')
+{Loading, Icon, Tip}   = require('./r_misc')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{HelpPage} = require('./r_help')
+{HelpPage}     = require('./r_help')
 {ProjectsPage} = require('./projects')
-{ProjectPage} = require('./project_page')
-{AccountPage} = require('./account_page') # SMELL: Not used but gets around a webpack error..
-{FileUsePage} = require('./file_use')
-{Support} = require('./support')
+{ProjectPage}  = require('./project_page')
+{AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
+{FileUsePage}  = require('./file_use')
+{Support}      = require('./support')
 
 # SMC Libraries
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
-        zIndex: '10'
-        marginLeft: '0'
-        position: 'fixed'
-        boxShadow: '0 0 15px #aaa'
-        border: '2px solid #ccc'
-        top: '43px'
-        background: '#fff'
-        right: '2em'
-        overflowY: 'auto'
-        overflowX: 'hidden'
-        fontSize: '10pt'
-        padding: '4px'
-        borderRadius: '5px'
-        width: '50%'
-        height: '90%'
+        zIndex       : '10'
+        marginLeft   : '0'
+        position     : 'fixed'
+        boxShadow    : '0 0 15px #aaa'
+        border       : '2px solid #ccc'
+        top          : '43px'
+        background   : '#fff'
+        right        : '2em'
+        overflowY    : 'auto'
+        overflowX    : 'hidden'
+        fontSize     : '10pt'
+        padding      : '4px'
+        borderRadius : '5px'
+        width        : '50%'
+        height       : '90%'
 
     <div style={styles}>
         {<FileUsePage redux={redux} />}
@@ -57,6 +58,7 @@ Page = rclass
             new_version       : rtypes.object
             fullscreen        : rtypes.bool
             cookie_warning    : rtypes.bool
+            local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
         file_use :
             file_use         : rtypes.immutable.Map
@@ -87,11 +89,11 @@ Page = rclass
 
     render_account_tab: ->
         <NavTab
-            name='account'
-            label={@account_name()}
-            icon='cog'
-            actions={@actions('page')}
-            active_top_tab={@props.active_top_tab}
+            name           = 'account'
+            label          = {@account_name()}
+            icon           = 'cog'
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
         />
 
     sign_in_tab_clicked: ->
@@ -100,12 +102,12 @@ Page = rclass
 
     render_sign_in_tab: ->
         <NavTab
-            name='account'
-            label='Sign in'
-            icon='sign-in'
-            on_click={@sign_in_tab_clicked}
-            actions={@actions('page')}
-            active_top_tab={@props.active_top_tab}
+            name           = 'account'
+            label          = 'Sign in'
+            icon           = 'sign-in'
+            on_click       = {@sign_in_tab_clicked}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
         />
 
     render_right_nav : ->
@@ -122,16 +124,16 @@ Page = rclass
 
     render_project_nav_button : ->
         projects_styles =
-            whiteSpace: 'nowrap'
-            float:'right'
-            padding: '11px 7px'
+            whiteSpace : 'nowrap'
+            float      : 'right'
+            padding    : '11px 7px'
 
         <Nav style={height:'41px', margin:'0', overflow:'hidden'}>
             <NavTab
-                name='projects'
-                inner_style={padding:'0px'}
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
+                name           = 'projects'
+                inner_style    = {padding:'0px'}
+                actions        = {@actions('page')}
+                active_top_tab = {@props.active_top_tab}
 
             >
                 <div style={projects_styles}>
@@ -155,6 +157,7 @@ Page = rclass
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
+            {<LocalStorageWarning /> if @props.local_storage_warning}
             {<Navbar className="smc-top-bar" style={display:'flex', marginBottom: 0, width:'100%', minHeight:'42px', position:'fixed', right:'0', zIndex:'100', opacity:'0.8'}>
                 {@render_project_nav_button() if @props.is_logged_in()}
                 <ProjectsNav dropdown={false} />

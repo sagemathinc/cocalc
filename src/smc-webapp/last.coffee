@@ -26,9 +26,11 @@
 #
 ###########################################################
 
-$ = window.$
+$               = window.$
 {salvus_client} = require('./salvus_client')
-{redux} = require('./smc-react')
+{redux}         = require('./smc-react')
+misc            = require('smc-util/misc')
+
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
 $(document).on "click", (e) ->
@@ -37,7 +39,7 @@ $(document).on "click", (e) ->
         e.stopPropagation() # ?
 
 remember_me = salvus_client.remember_me_key()
-if window.smc_target and not localStorage[remember_me] and window.smc_target != 'login'
+if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
     redux.getActions('page').set_active_tab('account')

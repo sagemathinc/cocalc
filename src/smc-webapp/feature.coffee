@@ -19,13 +19,21 @@
 #
 ###############################################################################
 
-$ = window.$
+# Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
+if not navigator.cookieEnabled
+    require('./smc-react').redux.getActions('page').show_cookie_warning()
+
+# Check for local storage
+if not require('smc-util/misc').has_local_storage()
+    require('./smc-react').redux.getActions('page').show_local_storage_warning()
 
 ####################################################
 #
 # Client device features and capabilities.
 #
 ####################################################
+
+$ = window.$
 
 isMobile = exports.isMobile =
     Android    : () -> !! navigator.userAgent.match(/Android/i)
@@ -68,11 +76,6 @@ exports.get_mobile = () ->
         if v()
             return k
     return null
-
-# Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
-if not navigator.cookieEnabled
-    {redux} = require('./smc-react')
-    redux.getActions('page').show_cookie_warning()
 
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)

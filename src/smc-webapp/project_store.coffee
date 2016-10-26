@@ -124,6 +124,8 @@ class ProjectActions extends Actions
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
 
+    # Closes a file tab
+    # Also closes file references.
     close_tab : (path) =>
         open_files_order = @get_store().get('open_files_order')
         active_project_tab = @get_store().get('active_project_tab')
@@ -146,6 +148,8 @@ class ProjectActions extends Actions
 
     # Expects one of ['files', 'new', 'log', 'search', 'settings']
     #            or a file_redux_name
+    # Pushes to browser history
+    # Updates the URL
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
         switch key
@@ -326,27 +330,25 @@ class ProjectActions extends Actions
                             return
                         open_files = store.get_open_files()
 
-                        if open_files.has(opts.path) # Already opened
-                            if opts.foreground
-                                @foreground_opened_file(opts.path)
-                            return
+                        # Only generate the editor component if we don't have it already
+                        if not open_files.has(opts.path)
+                            open_files_order = store.get_open_files_order()
 
-                        open_files_order = store.get_open_files_order()
+                            # Initialize the file's store and actions
+                            name = project_file.initialize(opts.path, @redux, @project_id, is_public)
 
-                        # Initialize the file's store and actions
-                        name = project_file.initialize(opts.path, @redux, @project_id, is_public)
+                            # Make the Editor react component
+                            Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
-                        # Make the Editor react component
-                        Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
-
-                        # Add it to open files
-                        info = {Editor:Editor, redux_name:name, is_public:is_public}
-                        @setState
-                            open_files       : open_files.setIn([opts.path, 'component'], info)
-                            open_files_order : open_files_order.push(opts.path)
+                            # Add it to open files
+                            info = {Editor:Editor, redux_name:name, is_public:is_public}
+                            @setState
+                                open_files       : open_files.setIn([opts.path, 'component'], info)
+                                open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
-                            @foreground_opened_file(opts.path)
+                            @foreground_project()
+                            @set_active_tab(misc.path_to_tab(opts.path))
         return
 
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
@@ -366,10 +368,6 @@ class ProjectActions extends Actions
         open_files = @get_store().get('open_files')
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
-
-    foreground_opened_file : (path) =>
-        @foreground_project(@project_id)
-        @set_active_tab(misc.path_to_tab(path))
 
     convert_sagenb_worksheet: (filename, cb) =>
         async.series([
@@ -430,6 +428,7 @@ class ProjectActions extends Actions
         @setState(open_files_order : empty, open_files : {})
 
     # closes the file and removes all references
+    # Does not update tabs
     close_file : (path) =>
         store = @get_store()
         x = store.get_open_files_order()
@@ -442,6 +441,7 @@ class ProjectActions extends Actions
                 open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
 
+    # Makes this project the active project tab
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
@@ -457,10 +457,14 @@ class ProjectActions extends Actions
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
                 @foreground_project()
-                @set_current_path(path, update_file_listing=true)
+                @set_current_path(path)
                 @set_active_tab('files')
+                @set_all_files_unchecked()
 
-    set_current_path : (path, update_file_listing=false) =>
+    # ONLY updates current path
+    # Does not push to URL, browser history, or add to analytics
+    # Use internally or for updating current path in background
+    set_current_path : (path) =>
         # SMELL: Track from history.coffee
         if path is NaN
             path = ''
@@ -473,9 +477,6 @@ class ProjectActions extends Actions
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
-        if update_file_listing
-            @set_directory_files(path)
-            @set_all_files_unchecked()
 
     set_file_search : (search) =>
         @setState
@@ -915,8 +916,7 @@ class ProjectActions extends Actions
                 if err
                     @setState(file_creation_error: "Error creating directory '#{p}' -- #{err}")
                 else if switch_over
-                    @set_current_path(p, update_file_listing=true)
-                    @set_active_tab('files')
+                    @open_directory(p)
 
     create_file : (opts) =>
         opts = defaults opts,
@@ -1111,11 +1111,8 @@ class ProjectActions extends Actions
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
-                    # open a directory
-                    @set_current_path(parent_path)
-                    @set_active_tab('files')
+                    @open_directory(parent_path)
                 else
-                    # open a file -- foreground option is relevant here.
                     @open_file
                         path       : full_path
                         foreground : foreground

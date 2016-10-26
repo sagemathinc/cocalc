@@ -788,13 +788,17 @@ exports.Tip = Tip = rclass
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
+        delayHide : rtypes.number
+        rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
         style     : rtypes.object
 
     getDefaultProps : ->
         placement : 'right'
-        delayShow : 600
+        delayShow : 500
+        delayHide : 100
+        rootClose : false
 
     render_title: ->
         <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
@@ -824,7 +828,9 @@ exports.Tip = Tip = rclass
         <OverlayTrigger
             placement = {@props.placement}
             overlay   = {@render_popover()}
-            delayShow = 600
+            delayShow = {@props.delayShow}
+            delayHide = {@props.delayHide}
+            rootClose = {@props.rootClose}
             >
             <span style={@props.style}>{@props.children}</span>
         </OverlayTrigger>
@@ -862,8 +868,7 @@ exports.FileLink = rclass
     handle_click : (e) ->
         e.preventDefault()
         if misc.endswith(@props.path, '/')
-            @props.actions.set_current_path(@props.path)
-            @props.actions.set_active_tab('files')
+            @props.actions.open_directory(@props.path)
         else
             @props.actions.open_file
                 path       : @props.path
@@ -1149,8 +1154,7 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click : (name) ->
-        @props.actions.set_current_path(misc.path_split(@props.filename).head)
-        @props.actions.set_active_tab('files')
+        @props.actions.open_directory(misc.path_split(@props.filename).head)
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)
         @props.actions.set_file_action(name)

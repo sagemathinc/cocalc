@@ -1,17 +1,17 @@
 @font-face
-  font-family: droid-sans-mono
-  font-style: normal
-  font-weight: normal
-  src: local("Droid Sans Mono"), local("DroidSansMono"), url('../webapp-lib/fonts/droid/DroidSansMono.ttf') format("truetype")
+  font-family : droid-sans-mono
+  font-style  : normal
+  font-weight : normal
+  src         : local("Droid Sans Mono"), local("DroidSansMono"), url('../webapp-lib/fonts/droid/DroidSansMono.ttf') format("truetype")
 
 /* I'm opposted to this; it won't work offline, and leads to a noticeable glitch when used on the landing page.  -- William*/
 /* @import url(https://fonts.googleapis.com/css?family=Roboto+Mono); */
 
 =user-select($val:"none")
-  -webkit-user-select: #{$val};
-  -moz-user-select: #{$val};
-  -ms-user-select: #{$val};
-  user-select: #{$val};
+  -webkit-user-select : #{$val}
+  -moz-user-select    : #{$val}
+  -ms-user-select     : #{$val}
+  user-select         : #{$val}
 
 =disable-user-select
   +user-select(none)
@@ -35,76 +35,76 @@
 @import d3
 
 .hide
-  display: none
+  display : none
 
 .tt
-  font-family: monospace
+  font-family : monospace
 
 .lighten
-  color: #666
+  color : #666
 
 .lighten-2
-  color: #999
+  color : #999
 
 .small
-  font-size: 9pt
+  font-size : 9pt
 
 .smallish
-  font-size: 10pt
+  font-size : 10pt
 
 .large
-  font-size: 16pt
+  font-size : 16pt
 
 .Large
-  font-size: 18pt
+  font-size : 18pt
 
 .huge
-  font-size: 22pt
+  font-size : 22pt
 
 .bold
-  font-weight: bold
+  font-weight : bold
 
 .close
-  font-size: 20pt
+  font-size : 20pt
 
 .center
-  text-align: center
+  text-align : center
 
 body
-  width: 100vw
-  overflow-x: hidden
+  width      : 100vw
+  overflow-x : hidden
 
 /* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
 
 .btn-ms
-  padding-bottom: 2px
-  padding-left: 10px
-  padding-right: 10px
-  padding-top: 2px
-  letter-spacing: normal
-  line-height: 20px
-  margin-bottom: 0px
-  margin-left: -1px
-  margin-right: 0px
-  margin-top: 0px
-  font-size: 11.9px
+  padding-bottom : 2px
+  padding-left   : 10px
+  padding-right  : 10px
+  padding-top    : 2px
+  letter-spacing : normal
+  line-height    : 20px
+  margin-bottom  : 0px
+  margin-left    : -1px
+  margin-right   : 0px
+  margin-top     : 0px
+  font-size      : 11.9px
 
 @media (max-width: 767px)
   .salvus-project
-    position: relative !important
-    top: 0px !important
+    position : relative !important
+    top      : 0px !important
 
 .help-smc-logo
-  width:  100px
-  height: 100px
+  width  : 100px
+  height : 100px
   @media (max-width: 767px)
-    width:  40px
-    height: 40px
+    width  : 40px
+    height : 40px
 
 /* so on iOS scroll-into-view modals work */
 @media (max-width: 480px)
   .modal.fade.in
-    top: 10px
+    top : 10px
 
 /* This is a hack to accurately determine if the screen is displaying in responsive mode.
  * When responsive mode, .salvus-responsive-mode-test will have a width of 767px and in full size the
@@ -112,118 +112,117 @@ body
  */
 @media (max-width: 767px)
   .salvus-responsive-mode-test
-    width: 767px
+    width : 767px
 
 @media (min-width: 768px)
   .salvus-responsive-mode-test
-    width: 10000px
+    width : 10000px
 
 
 @media (max-width: 767px)
   .smc-big-only
-    display: none
+    display : none
 
 @media (min-width: 768px)
   .smc-small-only
-    display: none
+    display : none
 
 .ui-pnotify-history-container
-  position: fixed
+  position : fixed
 
 .CodeMirror, .CodeMirror-wrap
-  line-height: normal
+  line-height : normal
 
 /* see http://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present  */
 
 .boxsizingBorder
-  -webkit-box-sizing: border-box
-  -moz-box-sizing: border-box
-  box-sizing: border-box
+  -webkit-box-sizing : border-box
+  -moz-box-sizing    : border-box
+  box-sizing         : border-box
 
 .highlight
-  background-color: orange
-  padding: 3px
-  margin: -3px
-  border-radius: 3px
+  background-color : orange
+  padding          : 3px
+  margin           : -3px
+  border-radius    : 3px
 
 /* fix bootstrap ugliness  */
 
 blockquote p
-  font-size: 15px
+  font-size : 15px
 
 .constrained
-  max-width: 1170px
+  max-width : 1170px
 
 .modal h3
-  margin: 0
+  margin : 0
 
 .modal-footer
-  padding: 5px
+  padding : 5px
 
 input[type="text"], select, input[type="email"], select, input[type="password"], select
-  margin-bottom: 1px
+  margin-bottom : 1px
 
 .btn
-  white-space: normal
+  white-space : normal
 
 .btn-black
-  color: #fff
-  background-color: #000000
-  border-color: #000000
+  color            : #fff
+  background-color : #000000
+  border-color     : #000000
 
 a[role="button"]
   +disable-user-select
-  cursor: pointer
+  cursor : pointer
 
 .tooltip
-  font-size: 11px
+  font-size : 11px
 
 .navbar-default
   .navbar-collapse, .navbar-form
-    position: relative
-    top: 1px
+    position : relative
+    top      : 1px
 
 /* Add a scrollbar to menus when the screen is too small
  * A manu cannot be taller than 60% of the screen, a scrollbar is added if it's the case
  */
 .dropdown-menu
-  max-height: 60vh
-  overflow-y: auto
+  max-height : 60vh
+  overflow-y : auto
 
 /* Make math visible even when there is a dark background.  Since mathjax is always black, this
  * helps a lot.  Obviously, it isn't perfect, but it is better than USELESS. '
  */
 
 .MathJax_SVG_Display
-  background: white
+  background : white
 
 /* From http://stackoverflow.com/questions/13955163/imitating-a-blink-tag-with-css3-animations  */
 
 .blink
-  animation: blink 1s steps(5, start) infinite
-  -webkit-animation: blink 1s steps(5, start) infinite
+  animation         : blink 1s steps(5, start) infinite
+  -webkit-animation : blink 1s steps(5, start) infinite
 
 @keyframes blink
   to
-    visibility: hidden
-
+    visibility : hidden
 
 @-webkit-keyframes blink
   to
-    visibility: hidden
+    visibility : hidden
 
 
 .cm-spell-error
-  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==)
-  background-position: bottom left
-  background-repeat: repeat-x
+  background-image    : url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==)
+  background-position : bottom left
+  background-repeat   : repeat-x
 
 *[data-toggle*="collapse"]
   cursor: pointer
 
 /* Fix menubar height at the top of the screen, mainly on Firefox. */
 ul.nav.pull-right.navbar-nav li
-  height: 42px
+  height : 42px
 
 /* Prevent text from selecting when holding shift to select a range in the project files */
 .noselect
@@ -263,9 +262,9 @@ ul.nav.pull-right.navbar-nav li
     transform         : scale(1.4)
 
 .input-group
-    z-index: 0
+    z-index : 0
 
 footer
-  color: gray
+  color : gray
   a
-    color: gray
+    color : gray

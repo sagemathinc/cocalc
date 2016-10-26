@@ -31,20 +31,20 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label : rtypes.string
-        icon : rtypes.oneOfType([rtypes.string, rtypes.object])
-        close : rtypes.bool
-        on_click : rtypes.func
+        label          : rtypes.string
+        icon           : rtypes.oneOfType([rtypes.string, rtypes.object])
+        close          : rtypes.bool
+        on_click       : rtypes.func
         active_top_tab : rtypes.string
-        actions : rtypes.object
-        style : rtypes.object
-        inner_style : rtypes.object
+        actions        : rtypes.object
+        style          : rtypes.object
+        inner_style    : rtypes.object
 
     make_icon : ->
         if typeof(@props.icon) == 'string'
             <Icon
-                name={@props.icon}
-                style={fontSize: 20, paddingRight: 2} />
+                name  = {@props.icon}
+                style = {fontSize: 20, paddingRight: 2} />
         else if @props.icon?
             @props.icon
 
@@ -99,10 +99,10 @@ exports.NotificationBell = rclass
 
     notification_count : ->
         count_styles =
-            fontSize : '8pt'
-            color : 'red'
-            position : 'absolute'
-            left : '18.2px'
+            fontSize   : '8pt'
+            color      : 'red'
+            position   : 'absolute'
+            left       : '18.2px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9
@@ -113,15 +113,15 @@ exports.NotificationBell = rclass
 
     render : ->
         outer_styles =
-            position : 'relative'
+            position    : 'relative'
             marginRight : '-10px'
-            float : 'left'
+            float       : 'left'
 
         inner_styles =
-            padding : '10px'
+            padding  : '10px'
             fontSize : '17pt'
-            color : '#666'
-            cursor : 'pointer'
+            color    : '#666'
+            cursor   : 'pointer'
 
         <NavItem
             style={outer_styles}
@@ -255,13 +255,13 @@ exports.FullscreenButton = rclass
     render : ->
         icon = if @props.fullscreen then 'expand' else 'compress'
         styles =
-            position : 'fixed'
-            zIndex : 100
-            right : 0
-            top : 0
-            fontSize : '12pt'
-            padding : 4
-            color : '#999'
+            position   : 'fixed'
+            zIndex     : 100
+            right      : 0
+            top        : 0
+            fontSize   : '12pt'
+            padding    : 4
+            color      : '#999'
             fontWeight : 700
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
@@ -271,13 +271,13 @@ exports.SMCLogo = rclass
     render : ->
         smc_icon_url = require('salvus-icon.svg')
         styles =
-            display : 'inline-block'
+            display         : 'inline-block'
             backgroundImage : "url('#{smc_icon_url}')"
-            backgroundSize : 'contain'
+            backgroundSize  : 'contain'
             backgroundColor : require('./r_misc').SAGE_LOGO_COLOR
-            height : 40
-            width : 42
-            position: 'relative'
+            height          : 40
+            width           : 42
+            position        : 'relative'
         <div className='img-rounded' style={styles}></div>
 
 exports.VersionWarning = rclass
@@ -307,18 +307,18 @@ exports.VersionWarning = rclass
 
     render : ->
         styles =
-            position : 'fixed'
-            left : 12
+            position        : 'fixed'
+            left            : 12
             backgroundColor : 'red'
-            color : '#fff'
-            top : 20
-            opacity : .75
-            borderRadius : 4
-            padding : 5
-            zIndex : 1
-            boxShadow : '8px 8px 4px #888'
-            width : '70%'
-            marginTop : '1em'
+            color           : '#fff'
+            top             : 20
+            opacity         : .75
+            borderRadius    : 4
+            padding         : 5
+            zIndex          : 1
+            boxShadow       : '8px 8px 4px #888'
+            width           : '70%'
+            marginTop       : '1em'
         <div style={styles}>
             <Icon name='refresh' /> New Version Available: upgrade by clicking on&nbsp;
             <a onClick={=>window.location.reload()} style={color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
@@ -328,23 +328,36 @@ exports.VersionWarning = rclass
             {@render_critical()}
         </div>
 
+warning_styles =
+    position        : 'fixed'
+    left            : 12
+    backgroundColor : 'red'
+    color           : '#fff'
+    top             : 20
+    opacity         : .9
+    borderRadius    : 4
+    padding         : 5
+    marginTop       : '1em'
+    zIndex          : 100000
+    boxShadow       : '8px 8px 4px #888'
+    width           : '70%'
+
 exports.CookieWarning = rclass
     displayName : 'CookieWarning'
 
     render : ->
-        styles =
-            position : 'fixed'
-            left : 12
-            backgroundColor : 'red'
-            color : '#fff'
-            top : 20
-            opacity : .6
-            borderRadius : 4
-            padding : 5
-            marginTop : '1em'
-            zIndex : 1
-            boxShadow : '8px 8px 4px #888'
-            width : '70%'
-        <div style={styles}>
+        <div style={warning_styles}>
             <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
+        </div>
+
+misc = require('smc-util/misc')
+storage_warning_style = misc.copy(warning_styles)
+storage_warning_style.top = 55
+
+exports.LocalStorageWarning = rclass
+    displayName : 'LocalStorageWarning'
+
+    render : ->
+        <div style={storage_warning_style}>
+            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud.  On some browsers you must also disable private browsing mode.
         </div>

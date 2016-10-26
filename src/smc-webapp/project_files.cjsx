@@ -83,8 +83,7 @@ PathSegmentLink = rclass
         fontSize : '18px'
 
     handle_click : ->
-        @props.actions.set_current_path(@props.path, update_file_listing=true)
-        @props.actions.set_url_to_path(@props.path)
+        @props.actions.open_directory(@props.path)
 
     render_link : ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -284,9 +283,8 @@ DirectoryRow = rclass
 
     handle_click : ->
         path = misc.path_to_file(@props.current_path, @props.name)
-        @props.actions.set_current_path(path, update_file_listing=true)
+        @props.actions.open_directory(path)
         @props.actions.set_file_search('')
-        @props.actions.set_url_to_path(path)
 
     render_public_directory_info_popover : ->
         <Popover id={@props.name} title='This folder is being shared publicly' style={wordWrap:'break-word'}>
@@ -576,8 +574,7 @@ FileListing = rclass
     handle_parent : (e) ->
         e.preventDefault()
         path = misc.path_split(@props.current_path).head
-        @props.actions.set_current_path(path, update_file_listing=true)
-        @props.actions.set_url_to_path(path)
+        @props.actions.open_directory(path)
 
     parent_directory : ->
         styles =
@@ -1563,8 +1560,7 @@ ProjectFilesSearch = rclass
                         if full_path.slice(0,i) == s.slice(0,i)
                             # only change if in project
                             path = s.slice(2*i+2)
-                            @props.actions.set_current_path(path, update_file_listing=true)
-                            @props.actions.set_url_to_path(path)
+                            @props.actions.open_directory(path)
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'termInSearch', input:input})
@@ -1614,7 +1610,7 @@ ProjectFilesSearch = rclass
         else if @props.selected_file
             new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
             if @props.selected_file.isdir
-                @props.actions.set_current_path(new_path, update_file_listing=true)
+                @props.actions.open_directory(new_path)
                 @props.actions.setState(page_number: 0)
             else
                 @props.actions.open_file
@@ -1903,7 +1899,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.
                     e = <ErrorDisplay title="Project still not running" error={"The project was not running when this directory listing was requested.  Please try again in a moment."} />
                 else
-                    if 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
+                    if error == 'no_instance' or (require('./customize').commercial and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
                         e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
