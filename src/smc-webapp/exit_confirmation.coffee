@@ -28,8 +28,6 @@
 # Also, this does not work on iOS.
 #
 ###
-
-{top_navbar} = require('./top_navbar')
 #{unsynced_docs} = require('./syncdoc')
 
 {redux} = require('./smc-react')

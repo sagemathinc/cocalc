@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 ###
 Code related to the history and URL in the browser bar.
@@ -26,10 +27,22 @@ Code related to the history and URL in the browser bar.
 The URI schema is as follows:
 
     Overall help:
-       https://cloud.sagemath.com/projects/help
+       https://cloud.sagemath.com/help
 
     Overall settings:
-       https://cloud.sagemath.com/projects/settings
+       https://cloud.sagemath.com/settings
+
+    Account settings (default):
+       https://cloud.sagemath.com/settings/account
+
+    Billing:
+       https://cloud.sagemath.com/settings/billing
+
+    Upgrades:
+       https://cloud.sagemath.com/settings/upgrades
+
+    Support:
+       https://cloud.sagemath.com/settings/support
 
     Projects page:
        https://cloud.sagemath.com/projects/
@@ -63,34 +76,41 @@ The URI schema is as follows:
 
 ###
 
-{top_navbar} = require('./top_navbar')
 {redux} = require('./smc-react')
 exports.set_url = (url) ->
     window.history.pushState("", "", window.smc_base_url + url)
+    {analytics_pageview} = require('./misc_page')
+    analytics_pageview(window.location.pathname)
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
-    $('body').scrollTop(0) #temporary hack
-    # console.log("load_target('#{target}')")
+    logged_in = redux.getStore('account').is_logged_in()
     if not target
         return
     segments = target.split('/')
     switch segments[0]
         when 'help'
-            top_navbar.switch_to_page("salvus-help")
+            redux.getActions('page').set_active_tab('about')
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
-                    require('./projects').load_target(segments.slice(1).join('/'), true)
+                    redux.getActions('projects').load_target(segments.slice(1).join('/'), true)
                 else
-                    top_navbar.switch_to_page("projects")
+                    redux.getActions('page').set_active_tab('projects')
         when 'settings'
-            top_navbar.switch_to_page("account")
+            if not logged_in
+                return
+            redux.getActions('page').set_active_tab('account')
+            if segments[1] == 'account'
+                redux.getActions('account').set_active_tab('account')
             if segments[1] == 'billing'
                 redux.getActions('billing').update_customer()
-                redux.getActions('account').setState(active_page : 'billing')
+                redux.getActions('account').set_active_tab('billing')
             if segments[1] == 'upgrades'
-                redux.getActions('account').setState(active_page : 'upgrades')
+                redux.getActions('account').set_active_tab('upgrades')
+            if segments[1] == 'support'
+                redux.getActions('account').set_active_tab('support')
+
 
 
 window.onpopstate = (event) ->

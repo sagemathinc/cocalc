@@ -28,6 +28,8 @@ Task List
 SAVE_SPINNER_DELAY_MS = 5000  # TODO -- make this consistent across editors
 
 # tasks makes use of future timestamps (for due date)
+jQuery = $ = window.$
+require('timeago')
 jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
@@ -54,9 +56,9 @@ hashtag_button_template = templates.find(".salvus-tasks-hashtag-button")
 
 currently_focused_editor = undefined
 
-exports.task_list = (editor, filename, opts) ->
+exports.task_list = (project_id, filename, opts) ->
     element = templates.find(".salvus-tasks-editor").clone()
-    new TaskList(editor, filename, element, opts)
+    new TaskList(project_id, filename, element, opts)
     return element
 
 HEADINGS    = ['custom', 'description', 'due', 'last-edited']
@@ -79,13 +81,12 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@editor, @filename, @element, @opts) ->
-        @project_id = @editor?.editor.project_id
+    constructor : (@project_id, @filename, @element, @opts) ->
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @elt_task_list = @element.find(".salvus-tasks-listing")
-        @save_button = @element.find("a[href=#save]")
+        @save_button = @element.find("a[href=\"#save\"]")
         @sort_order = {heading:'custom', dir:'desc'}  # asc or desc
         @readonly = true # at least until loaded
         @init_history_button()
@@ -110,8 +111,8 @@ class TaskList
 
     init_history_button: =>
         if not @opts.viewer
-            @element.find("a[href=#history]").show().click () =>
-                @editor?.editor.project_page.open_file
+            @element.find("a[href=\"#history\"]").show().click () =>
+                redux.getProjectActions(@project_id).open_file
                     path       : misc.history_path(@filename)
                     foreground : true
 
@@ -154,7 +155,7 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync happening...
-                    @db.on('sync', => @editor?.activity_indicator())
+                    @db.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                     # Handle any changes, merging in with current state.
                     @db.on('change', @handle_changes)
@@ -567,7 +568,7 @@ class TaskList
             # First highlight hashtags --
             # Add the highlight-tag CSS class to every hashtag in the task list.
             # select searched-for hashtags by their special class:
-            selector = ("."+tags.substring(1) for tags in search when tags[0] == "#").join(',')
+            selector = (".smc-tasks-hashtag-"+tags.substring(1) for tags in search when tags[0] == "#").join(',')
             e.find(selector).addClass("highlight-tag")
 
             # Highlight all the search terms for
@@ -698,7 +699,6 @@ class TaskList
         @display_undelete(task)
         @display_last_edited(task)
         @display_desc(task)
-
         task.changed = false
 
         if @readonly
@@ -758,6 +758,7 @@ class TaskList
                     where : {task_id : task.task_id}
 
             a = $("<span>").attr('title',d.toISOString()).timeago()
+            a.text($.timeago(d.toISOString()))
             task.element.find(".salvus-task-last-edited").empty().append(a)
 
     click_hashtag_in_desc: (event) =>
@@ -803,7 +804,7 @@ class TaskList
                 x0 = [0,0]
                 desc0 = ''
                 for x in v
-                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
+                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash smc-tasks-hashtag-#{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
@@ -880,7 +881,7 @@ class TaskList
                 # clicking when something in the task is selected -- e.g., don't scroll into view
                 scroll_into_view = false
             if scroll_into_view
-                task.element.scrollintoview()
+                task.element.scrollIntoView()
 
     get_task_visible_index: (task) =>
         if not task?
@@ -1038,7 +1039,7 @@ class TaskList
         $(cm.getScrollerElement()).addClass('salvus-new-task-cm-scroll')
 
 
-        elt.find("a[href=#close]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
+        elt.find("a[href=\"#close\"]").tooltip(delay:{ show: 500, hide: 100 }).click (event) =>
             stop_editing()
             event.preventDefault()
         elt.find(".CodeMirror-hscrollbar").remove()
@@ -1153,6 +1154,7 @@ class TaskList
             d.setUTCMilliseconds(task.due_date)
             e.attr('title',d.toISOString()).timeago()
             e.attr('title',d.toISOString())
+            e.text($.timeago(d.toISOString()))
             if not task.done and d < new Date()
                 e.addClass("salvus-task-overdue")
         else
@@ -1281,7 +1283,7 @@ class TaskList
         @current_task = @get_task_by_id(task_id)
 
     init_create_task: () =>
-        @element.find("a[href=#create-task]").click (event) =>
+        @element.find("a[href=\"#create-task\"]").click (event) =>
             @create_task()
             event.preventDefault()
 
@@ -1290,18 +1292,18 @@ class TaskList
             event.preventDefault()
 
     init_delete_task: () =>
-        @element.find("a[href=#delete-task]").click (event) =>
+        @element.find("a[href=\"#delete-task\"]").click (event) =>
             @delete_current_task()
             event.preventDefault()
 
     init_move_task_to_top: () =>
-        b = @element.find("a[href=#move-task-to-top]").click (event) =>
+        b = @element.find("a[href=\"#move-task-to-top\"]").click (event) =>
             if not b.hasClass('disabled')
                 @move_current_task_to_top()
             event.preventDefault()
 
     init_move_task_to_bottom: () =>
-        b = @element.find("a[href=#move-task-to-bottom]").click (event) =>
+        b = @element.find("a[href=\"#move-task-to-bottom\"]").click (event) =>
             if not b.hasClass('disabled')
                 @move_current_task_to_bottom()
             event.preventDefault()
@@ -1494,25 +1496,19 @@ class TaskList
         if not IS_MOBILE
             @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
+        redux.getActions('page').set_active_key_handler(tasks_key_handler)
 
     hide: () =>
         @element.hide()
-        set_key_handler()
+        redux.getActions('page').erase_active_key_handler(tasks_key_handler)
 
 current_task_list = undefined
-set_key_handler = (task_list) ->
-    current_task_list = task_list
 
-exports.unset_key_handler = unset_key_handler = () ->
-    current_task_list = undefined
+set_key_handler = (task) ->
+    current_task_list = task
 
-require('./file_use.cjsx').add_unset_key_handler(unset_key_handler)
-
-$(window).keydown (evt) =>
+tasks_key_handler = (evt) =>
     if not current_task_list?
-        return
-    if not  current_task_list.element.is(":visible")
-        unset_key_handler()
         return
 
     if help_dialog_open

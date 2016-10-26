@@ -2,6 +2,7 @@
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
+{filename_extension} = require('smc-util/misc')
 async = require('async')
 misc = require('smc-util/misc')
 
@@ -52,6 +53,20 @@ COMMANDS =
 redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
+init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    if redux.getActions(name)?
+        return  # already initialized
+    actions = redux.createActions(name, ArchiveActions)
+    store   = redux.createStore(name)
+    return name
+
+remove_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    redux.removeActions(name)
+    redux.removeStore(name)
+    return name
+
 class ArchiveActions extends Actions
     parse_file_type : (file_info) ->
         if file_info.indexOf('Zip archive data') != -1
@@ -72,27 +87,8 @@ class ArchiveActions extends Actions
         async.waterfall([
             # Get the file type data. Error if no file found.
             (waterfall_cb) =>
-                salvus_client.exec
-                    project_id : project_id
-                    command    : "file"
-                    args       : ["-z", "-b", path]
-                    err_on_exit: true
-                    cb         : (err, info) =>
-                        if err
-                            if err.indexOf('No such file or directory') != -1
-                                err = "No such file or directory"
-                        waterfall_cb(err, info)
-            # Get the file type. Error if file type not supported.
-            (info, waterfall_cb) =>
-                if not info?.stdout?
-                    cb("Unsupported archive type.\n\nYou might try using a terminal.")
-                type = @parse_file_type(info.stdout)
-                if not type?
-                    cb("Unsupported archive type -- #{info.stdout} \n\nYou might try using a terminal.", info)
-                waterfall_cb(undefined, info, type)
-            # Get archive contents. Error if unable to read archive.
-            (info, type, waterfall_cb) =>
-                {command, args} = COMMANDS[type].list
+                ext = filename_extension(path).toLowerCase()
+                {command, args} = COMMANDS[ext].list
 
                 salvus_client.exec
                     project_id : project_id
@@ -100,15 +96,14 @@ class ArchiveActions extends Actions
                     args       : args.concat([path])
                     err_on_exit: false
                     cb         : (client_err, client_output) =>
-                        waterfall_cb(client_err, info, type, client_output)
+                        waterfall_cb(client_err, ext, client_output)
 
-        ], (err, info, type, contents) =>
+        ], (err, ext, contents) =>
             if not err
                 @setState
                     error    : err
-                    info     : info.stdout
                     contents : contents.stdout
-                    type     : type
+                    type     : ext
         )
 
     extract_archive_files : (project_id, path, type, contents) ->
@@ -160,13 +155,6 @@ class ArchiveActions extends Actions
             @setState(error: err, extract_output: output.stdout)
         )
 
-exports.init_redux = init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
-    if redux.getActions(name)?
-        return  # already initialized
-    actions = redux.createActions(name, ArchiveActions)
-    store   = redux.createStore(name)
-
 ArchiveContents = rclass
     render : ->
         if not @props.contents?
@@ -174,7 +162,7 @@ ArchiveContents = rclass
         <pre>{@props.contents}</pre>
 
 
-Archive = (name) -> rclass
+Archive = rclass ({name}) ->
     reduxProps:
         "#{name}" :
             contents       : rtypes.string
@@ -209,23 +197,9 @@ Archive = (name) -> rclass
             <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    actions = redux.getActions(name)
-    Archive_connected = Archive(name)
-    <Redux redux={redux}>
-        <Archive_connected path={path} actions={actions} project_id={project_id} />
-    </Redux>
-
-exports.free = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.render = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.hide = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (project_id, path, dom_node, redux) ->
-    ReactDOM.render(render(redux, project_id, path), dom_node)
+require('project_file').register_file_editor
+    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
+    icon   : 'file-archive-o'
+    init      : init_redux
+    component : Archive
+    remove    : remove_redux

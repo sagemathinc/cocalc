@@ -1,20 +1,22 @@
-async = require('async')
+$         = window.$
+async     = require('async')
 stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
-misc     = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-message  = require('smc-util/message')
-markdown = require('./markdown')
-{salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
+misc_page         = require('./misc_page')
+message           = require('smc-util/message')
+markdown          = require('./markdown')
+{salvus_client}   = require('./salvus_client')
+{redux}           = require('./smc-react')
+{alert_message}   = require('./alerts')
 
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE}       = require('./feature')
 
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
@@ -122,14 +124,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             n = cm.lineCount() - 1
                             while stop < n and x != MARKERS.output and x != MARKERS.cell
                                 stop += 1
-                                x = cm.getLine(stop)[0]
+                                x = cm.getLine(stop)?[0]
 
                         # Similar for start
                         x = cm.getLine(start)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             while start > 0 and x != MARKERS.cell and x != MARKERS.output
                                 start -= 1
-                                x = cm.getLine(start)[0]
+                                x = cm.getLine(start)?[0]
 
                     if not @_update_queue_start? or start < @_update_queue_start
                         @_update_queue_start = start
@@ -143,8 +145,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         super()
 
     init_hide_show_gutter: () =>
-        if @readonly
-            return
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
             cm.setOption('gutters', gutters)
@@ -231,34 +231,34 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        buttons.find("a[href=#execute]").click () =>
+        buttons.find("a[href=\"#execute\"]").click () =>
             @action(execute:true, advance:false)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-input]").click () =>
+        buttons.find("a[href=\"#toggle-input\"]").click () =>
             @action(execute:false, toggle_input:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-output]").click () =>
+        buttons.find("a[href=\"#toggle-output\"]").click () =>
             @action(execute:false, toggle_output:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#delete-output]").click () =>
+        buttons.find("a[href=\"#delete-output\"]").click () =>
             @action(execute:false, delete_output:true)
             @focused_codemirror().focus()
             return false
 
         if IS_MOBILE
-            buttons.find("a[href=#tab]").click () =>
+            buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 @focused_codemirror().focus()
                 return false
         else
-            @element.find("a[href=#tab]").hide()
-            @element.find("a[href=#undo]").hide()
-            @element.find("a[href=#redo]").hide()
+            @element.find("a[href=\"#tab\"]").hide()
+            @element.find("a[href=\"#undo\"]").hide()
+            @element.find("a[href=\"#redo\"]").hide()
 
-        buttons.find("a[href=#new-html]").click () =>
+        buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
             line = cm.lineCount()-1
             while line >= 0 and cm.getLine(line) == ""
@@ -277,7 +277,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 advance : true
             @focused_codemirror().focus()
 
-        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+        interrupt_button = buttons.find("a[href=\"#interrupt\"]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt
                 maxtime : 15
@@ -288,7 +288,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @focused_codemirror().focus()
             return false
 
-        kill_button = buttons.find("a[href=#kill]").click () =>
+        kill_button = buttons.find("a[href=\"#kill\"]").click () =>
             kill_button.find("i").addClass('fa-spin')
             @_restarting = true
             @kill
@@ -1238,7 +1238,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     y.click (e) ->
                         n = (document.location.origin + '/projects/').length
                         target = $(@).attr('href').slice(n)
-                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
                     # internal link
@@ -1254,9 +1254,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             # absolute inside of project
                             target = "#{that.project_id}/files#{decodeURI(target)}"
                         else
-                            # realtive to current path
+                            # relative to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
-                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server
@@ -1264,9 +1264,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y = $(x)
             src = y.attr('src')
-            if src.indexOf('://') != -1
+            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
                 continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1373,6 +1373,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
+
+        if mesg.error?
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?
             x = $("<div class='sagews-output-code'>")
@@ -2595,7 +2599,6 @@ class Cell
 
 class Worksheet
     constructor : (@worksheet) ->
-        @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -410,6 +410,14 @@ exports.filename_extension_notilde = (filename) ->
     while ext and ext[ext.length-1] == '~'  # strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
         ext = ext.slice(0, ext.length-1)
     return ext
+
+# If input name foo.bar, returns object {name:'foo', ext:'bar'}.
+# If there is no . in input name, returns {name:name, ext:''}
+exports.separate_file_extension = (name) ->
+    ext  = exports.filename_extension(name)
+    if ext isnt ''
+        name = name[0...name.length - ext.length - 1] # remove the ext and the .
+    return {name: name, ext: ext}
 
 # shallow copy of a map
 exports.copy = (obj) ->
@@ -1450,10 +1458,15 @@ exports.map_diff = (a, b) ->
     return c
 
 # limit the values in a by the values of b
+# or just by b if b is a number
 exports.map_limit = (a, b) ->
     c = {}
-    for k, v of a
-        c[k] = Math.min(v, (b[k] ? Number.MAX_VALUE))
+    if typeof b == 'number'
+        for k, v of a
+            c[k] = Math.min(v, b)
+    else
+        for k, v of a
+            c[k] = Math.min(v, (b[k] ? Number.MAX_VALUE))
     return c
 
 # arithmetic sum of an array
@@ -1669,3 +1682,57 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 # converts ticket number to support ticket url (currently zendesk)
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
+
+# Apply various transformations to url's before downloading a file using the "+ New" from web thing:
+# This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
+# content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
+
+exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
+    URL_TRANSFORMS =
+        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.ipython.org/urls/':'https://'
+    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
+        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+
+    if exports.startswith(url, 'git@github.com:')
+        command = 'git'  # kind of useless due to host keys...
+        args = ['clone', url]
+    else if url.slice(url.length-4) == ".git"
+        command = 'git'
+        args = ['clone', url]
+    else
+        # fall back
+        for a,b of URL_TRANSFORMS
+            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        command = 'wget'
+        args = [url]
+
+    return {command:command, args:args}
+
+# convert a file path to the "name" of the underlying editor tab.
+# needed because otherwise filenames like 'log' would cause problems
+exports.path_to_tab = (name) ->
+    "editor-#{name}"
+
+# assumes a valid editor tab name...
+exports.tab_to_path = (name) ->
+    name.substring(7)
+
+# suggest a new filename when duplicating it
+# 1. strip extension, split at '_' or '-' if it exists
+# try to parse a number, if it works, increment it, etc.
+exports.suggest_duplicate_filename = (name) ->
+    {name, ext} = exports.separate_file_extension(name)
+    idx_dash = name.lastIndexOf('-')
+    idx_under = name.lastIndexOf('_')
+    idx = exports.max([idx_dash, idx_under])
+    new_name = null
+    if idx > 0
+        [prfx, ending] = [name[...idx+1], name[idx+1...]]
+        num = parseInt(ending)
+        if not Number.isNaN(num)
+            new_name = "#{prfx}#{num+1}"
+    new_name ?= "#{name}-1"
+    if ext?.length > 0
+        new_name += ".#{ext}"
+    return new_name
