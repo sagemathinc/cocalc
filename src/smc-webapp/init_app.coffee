@@ -89,8 +89,18 @@ class PageActions extends Actions
                 return
             else
                 redux.getProjectActions(key)?.push_state()
-                project_map = redux.getStore('projects').get('project_map')
-                set_window_title(project_map?.getIn([key, 'title']))
+                set_window_title("Loading Project")
+                redux.getStore('projects').wait
+                    until   : (store) =>
+                        title = store.getIn(['project_map', key, 'title'])
+                        title ?= store.getIn(['public_project_titles', key])
+                        if title == ""
+                            return "Untitled Project"
+                        if not title?
+                            redux.getActions('projects').fetch_public_project_title(key)
+                        return title
+                    timeout : 15
+                    cb      : (err, title) => set_window_title(title ? "")
 
     show_connection : (shown) =>
         @setState(show_connection : shown)
@@ -133,6 +143,17 @@ class PageActions extends Actions
         else
             return
 
+    set_sign_in_func : (func) =>
+        @sign_in = func
+
+    remove_sign_in_func : =>
+        @sign_in = => false
+
+    # Expected to be overridden by functions above
+    sign_in : =>
+        false
+
+
 redux.createActions('page', PageActions)
 
 # FUTURE: Save entire state to database for #450, saved workspaces
@@ -166,7 +187,7 @@ salvus_client.on "ping", (ping_time) ->
     else
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    redux.getActions('page').set_ping(ping_time, ping_time_smooth)
+    redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
 
 salvus_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())

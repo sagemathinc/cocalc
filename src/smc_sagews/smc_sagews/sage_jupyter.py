@@ -111,6 +111,11 @@ def _jkmagic(kernel_name, **kwargs):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
+        import sage.interfaces.cleaner
+        sage.interfaces.cleaner.cleaner(km.kernel.pid,"km.kernel.pid")
+        import atexit
+        atexit.register(km.shutdown_kernel)
+        atexit.register(kc.hb_channel.close)
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
@@ -156,6 +161,9 @@ def _jkmagic(kernel_name, **kwargs):
 
         if kwargs.get('get_kernel_client',False):
             return kc
+
+        if kwargs.get('get_kernel_manager',False):
+            return km
 
         if kwargs.get('get_kernel_name',False):
             return kernel_name

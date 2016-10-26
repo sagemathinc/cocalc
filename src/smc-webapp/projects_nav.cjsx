@@ -5,6 +5,7 @@
 # SMC Libraries
 misc = require('smc-util/misc')
 {isMobile} = require('./feature')
+{set_window_title} = require('./browser')
 
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
@@ -19,7 +20,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style={flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
+        style = {flexShrink:'1', width:'200px', height:'41px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -30,10 +31,10 @@ ProjectTab = rclass
             public_project_titles : rtypes.immutable.Map
 
     propTypes:
-        project_map           : rtypes.immutable.Map
-        index                 : rtypes.number
-        project_id            : rtypes.string
-        active_top_tab        : rtypes.string
+        project        : rtypes.immutable.Map
+        index          : rtypes.number
+        project_id     : rtypes.string
+        active_top_tab : rtypes.string
 
     getInitialState : ->
         x_hovered : false
@@ -54,13 +55,17 @@ ProjectTab = rclass
 
     render : ->
         title = @props.get_title(@props.project_id)
+        title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                return <Loading key={@props.project_id} />
+            if @props.active_top_tab == @props.project_id
+                set_window_title("Loading")
+            return <Loading key={@props.project_id} />
 
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        if @props.active_top_tab == @props.project_id
+            set_window_title(title)
+
+        desc = misc.trunc(@props.project?.get('description') ? '', 128)
+        project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
         project_name_styles =
@@ -136,7 +141,7 @@ FullProjectsNav = rclass
             key            = {project_id}
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
+            project        = {@props.project_map?.get(project_id)}
             public_project_titles = {@props.public_project_titles}
         />
 
@@ -163,7 +168,7 @@ FullProjectsNav = rclass
 
 OpenProjectMenuItem = rclass
     propTypes:
-        project_map           : rtypes.immutable.Map
+        project               : rtypes.immutable.Map
         open_projects         : rtypes.immutable.List
         public_project_titles : rtypes.immutable.Map
         index                 : rtypes.number
@@ -184,15 +189,15 @@ OpenProjectMenuItem = rclass
         @actions('page').set_active_tab(@props.project_id)
 
     render : ->
-        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        title = @props.project?.get('title')
+        title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
-            title = @props.public_project_titles?.get(@props.project_id)
-            if not title?
-                # Ensure that at some point we'll have the title if possible (e.g., if public)
-                @actions('projects').fetch_public_project_title(@props.project_id)
-                return <Loading key={@props.project_id} />
-        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
-        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+            # Ensure that at some point we'll have the title if possible (e.g., if public)
+            @actions('projects').fetch_public_project_title(@props.project_id)
+            return <Loading key={@props.project_id} />
+
+        desc = misc.trunc(@props.project?.get('description') ? '', 128)
+        project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
         project_name_styles =
@@ -244,7 +249,7 @@ DropdownProjectsNav = rclass
             key            = {project_id}
             project_id     = {project_id}
             active_top_tab = {@props.active_top_tab}
-            project_map    = {@props.project_map}
+            project        = {@props.project_map?.get(project_id)}
             open_projects  = {@props.open_projects}
             public_project_titles = {@props.public_project_titles}
         />
@@ -260,8 +265,8 @@ DropdownProjectsNav = rclass
         else
             title = "Open projects"
 
-        <Nav id='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
-            <NavDropdown title=title id="smc-projects-tabs" style={flex:'1'}>
+        <Nav className='smc-dropdown-projects' style={display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'15px'}>
+            <NavDropdown title=title className="smc-projects-tabs" style={flex:'1'}>
                 {@project_menu_items()}
             </NavDropdown>
         </Nav>
@@ -305,44 +310,3 @@ exports.ProjectsNav = ({dropdown}) ->
         <DropdownProjectsNav />
     else
         <FullProjectsNav />
-
-# Use this pattern very sparingly.
-# Right now only used to access library generated elements
-# Very fragile.
-exports.ProjectsNav.full_nav_page_styles ='
-    .smc-project-tab-floating {
-        background-color: rgb(255, 255, 255);
-        border: dotted 1px #9a9a9a;
-        display:block;
-        line-height:normal;
-        list-style-image:none;
-        list-style-position:outside;
-        list-style-type:none;
-        z-index:100;
-    }
-    .smc-project-tab-floating>a {
-        color:rgb(85, 85, 85);
-        display:block;
-        height:51px;
-        line-height:20px;
-        list-style-image:none;
-        list-style-position:outside;
-        list-style-type:none;
-        outline-color:rgb(85, 85, 85);
-        outline-style:none;
-        outline-width:0px;
-        padding:0px;
-    }
-    '
-
-exports.ProjectsNav.dropdown_nav_page_styles ='
-    #smc-projects-tabs {
-        padding:10px;
-    }
-    #smc-dropdown-projects>li>ul {
-        width:100%;
-    }
-    #smc-dropdown-projects>li>ul>li>a {
-        height: 39px;
-        padding: 2px 10px;
-    }'

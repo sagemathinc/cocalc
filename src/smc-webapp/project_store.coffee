@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -124,6 +124,8 @@ class ProjectActions extends Actions
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
 
+    # Closes a file tab
+    # Also closes file references.
     close_tab : (path) =>
         open_files_order = @get_store().get('open_files_order')
         active_project_tab = @get_store().get('active_project_tab')
@@ -146,6 +148,8 @@ class ProjectActions extends Actions
 
     # Expects one of ['files', 'new', 'log', 'search', 'settings']
     #            or a file_redux_name
+    # Pushes to browser history
+    # Updates the URL
     set_active_tab : (key) =>
         @setState(active_project_tab : key)
         switch key
@@ -156,6 +160,7 @@ class ProjectActions extends Actions
                 show_hidden = store.get('show_hidden') ? false
                 @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
             when 'new'
+                @setState(file_creation_error: undefined)
                 @push_state('new/' + @get_store().get('current_path'))
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
@@ -227,9 +232,34 @@ class ProjectActions extends Actions
             cb : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
-                    console.log('error recording a log entry: ', err)
+                    # (It *should* keep trying and store that in localStore, and try next time, etc...
+                    #  of course done in a systematic way across everything.)
+                    console.warn('error recording a log entry: ', err)
 
+    # Save the given file in this project (if it is open) to disk.
+    save_file: (opts) =>
+        opts = defaults opts,
+            path : required
+        if not @redux.getStore('projects').is_project_open(@project_id)
+            return # nothing to do regarding save, since project isn't even open
+        # NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
+        is_public = @get_store().get('open_files').getIn([opts.path, 'component'])?.is_public
+        project_file.save(opts.path, @redux, @project_id, is_public)
 
+    # Save all open files in this project
+    save_all_files : () =>
+        s = @redux.getStore('projects')
+        if not s.is_project_open(@project_id)
+            return # nothing to do regarding save, since project isn't even open
+        group = s.get_my_group(@project_id)
+        if not group? or group == 'public'
+            return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
+        @get_store().get('open_files').filter (val, path) =>
+            is_public = val.get('component')?.is_public  # might still in theory someday be true.
+            project_file.save(path, @redux, @project_id, is_public)
+            return false
+
+    # Open the given file in this project.
     open_file: (opts) =>
         opts = defaults opts,
             path               : required
@@ -300,29 +330,28 @@ class ProjectActions extends Actions
                             return
                         open_files = store.get_open_files()
 
-                        if open_files.has(opts.path) # Already opened
-                            if opts.foreground
-                                @foreground_opened_file(opts.path)
-                            return
+                        # Only generate the editor component if we don't have it already
+                        if not open_files.has(opts.path)
+                            open_files_order = store.get_open_files_order()
 
-                        open_files_order = store.get_open_files_order()
+                            # Initialize the file's store and actions
+                            name = project_file.initialize(opts.path, @redux, @project_id, is_public)
 
-                        # Initialize the file's store and actions
-                        name = project_file.initialize(opts.path, @redux, @project_id, is_public)
+                            # Make the Editor react component
+                            Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
-                        # Make the Editor react component
-                        Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
-
-                        # Add it to open files
-                        info = {Editor:Editor, redux_name:name, is_public:is_public}
-                        @setState
-                            open_files       : open_files.setIn([opts.path, 'component'], info)
-                            open_files_order : open_files_order.push(opts.path)
+                            # Add it to open files
+                            info = {Editor:Editor, redux_name:name, is_public:is_public}
+                            @setState
+                                open_files       : open_files.setIn([opts.path, 'component'], info)
+                                open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
-                            @foreground_opened_file(opts.path)
+                            @foreground_project()
+                            @set_active_tab(misc.path_to_tab(opts.path))
         return
 
+    # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
         if not @_activity_indicator_timers?
             @_activity_indicator_timers = {}
@@ -330,19 +359,15 @@ class ProjectActions extends Actions
         if timer?
             clearTimeout(timer)
 
-        open_files = @get_store().get('open_files')
         set_inactive = () =>
-            new_files_data = open_files.setIn([filename, 'has_activity'], false)
-            @setState(open_files : new_files_data)
+            current_files = @get_store().get('open_files')
+            @setState(open_files : current_files.setIn([filename, 'has_activity'], false))
 
         @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
 
+        open_files = @get_store().get('open_files')
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
-
-    foreground_opened_file : (path) =>
-        @foreground_project(@project_id)
-        @set_active_tab(misc.path_to_tab(path))
 
     convert_sagenb_worksheet: (filename, cb) =>
         async.series([
@@ -403,6 +428,7 @@ class ProjectActions extends Actions
         @setState(open_files_order : empty, open_files : {})
 
     # closes the file and removes all references
+    # Does not update tabs
     close_file : (path) =>
         store = @get_store()
         x = store.get_open_files_order()
@@ -415,6 +441,7 @@ class ProjectActions extends Actions
                 open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
 
+    # Makes this project the active project tab
     foreground_project : =>
         @_ensure_project_is_open (err) =>
             if err
@@ -430,25 +457,26 @@ class ProjectActions extends Actions
                 console.log('error opening directory in project: ', err, @project_id, path)
             else
                 @foreground_project()
-                @set_current_path(path, update_file_listing=true)
+                @set_current_path(path)
                 @set_active_tab('files')
+                @set_all_files_unchecked()
 
-    set_current_path : (path, update_file_listing=false) =>
+    # ONLY updates current path
+    # Does not push to URL, browser history, or add to analytics
+    # Use internally or for updating current path in background
+    set_current_path : (path) =>
         # SMELL: Track from history.coffee
         if path is NaN
             path = ''
         path ?= ''
         if typeof path != 'string'
             window.cpath_args = arguments
-            throw "Current path should be a string. Revieved arguments are available in window.cpath_args"
+            throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
         @setState
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
-        if update_file_listing
-            @set_directory_files(path)
-            @set_all_files_unchecked()
 
     set_file_search : (search) =>
         @setState
@@ -463,6 +491,9 @@ class ProjectActions extends Actions
     set_directory_files : (path, sort_by_time, show_hidden) =>
         if not path?
             path = @get_store().get('current_path')
+        if not path?
+            # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/smc/issues/818
+            return
 
         if not @_set_directory_files_lock?
             @_set_directory_files_lock = {}
@@ -581,9 +612,31 @@ class ProjectActions extends Actions
             checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
 
-    set_file_action : (action) =>
-        if action == 'move'
-            @redux.getActions('projects').fetch_directory_tree(@project_id)
+    _suggest_duplicate_filename: (name) =>
+        store = @get_store()
+        files_in_dir = {}
+        # This will set files_in_dir to our current view of the files in the current
+        # directory (at least the visible ones) or do nothing in case we don't know
+        # anything about files (highly unlikely).  Unfortunately (for this), our
+        # directory listings are stored as (immutable) lists, so we have to make
+        # a map out of them.
+        store.get_directory_listings()?.get(store.get('current_path'))?.map (x) ->
+            files_in_dir[x.get('name')] = true
+            return
+        # This loop will keep trying new names until one isn't in the directory
+        while true
+            name = misc.suggest_duplicate_filename(name)
+            if not files_in_dir[name]
+                return name
+
+    set_file_action : (action, get_basename) =>
+        switch action
+            when 'move'
+                @redux.getActions('projects').fetch_directory_tree(@project_id)
+            when 'duplicate'
+                @setState(new_name : @_suggest_duplicate_filename(get_basename()))
+            when 'rename'
+                @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
     ensure_directory_exists: (opts) =>
@@ -829,23 +882,15 @@ class ProjectActions extends Actions
     download_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
-    # This is the absolute path to the file with given name but with the
+    # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
-    # that extension.  If the file contains invalid characters this function
-    # will call on_error (if given) and return ''.
-    path : (name, current_path, ext, on_empty, on_error) =>
+    # that extension.  Throws an Error if the path name is invalid.
+    _absolute_path : (name, current_path, ext) =>
         if name.length == 0
-            if on_empty?
-                on_empty()
-                return ''
-            name = require('./account').default_filename()
+            throw Error("Cannot use empty filename")
         for bad_char in BAD_FILENAME_CHARACTERS
             if name.indexOf(bad_char) != -1
-                err = "Cannot use '#{bad_char}' in a filename"
-                on_error?(err)
-                if not on_error?
-                    console.warn(err)
-                return ''
+                throw Error("Cannot use '#{bad_char}' in a filename")
         s = misc.path_to_file(current_path, name)
         if ext? and misc.filename_extension(s) != ext
             s = "#{s}.#{ext}"
@@ -855,64 +900,60 @@ class ProjectActions extends Actions
         opts = defaults opts,
             name         : required
             current_path : undefined
-            on_error     : undefined
             switch_over  : true       # Whether or not to switch to the new folder
-        {name, current_path, on_error, switch_over} = opts
-
+        {name, current_path, switch_over} = opts
+        @setState(file_creation_error: undefined)
         if name[name.length - 1] == '/'
             name = name.slice(0, -1)
-        p = @path(name, current_path, undefined, undefined, on_error)
-        if p.length == 0
+        try
+            p = @_absolute_path(name, current_path)
+        catch e
+            @setState(file_creation_error: e.message)
             return
         @ensure_directory_exists
             path : p
             cb   : (err) =>
-                if not err and switch_over
-                    #TODO reporting of errors...
-                    @set_current_path(p, update_file_listing=true)
-                    @set_active_tab('files')
+                if err
+                    @setState(file_creation_error: "Error creating directory '#{p}' -- #{err}")
+                else if switch_over
+                    @open_directory(p)
 
     create_file : (opts) =>
         opts = defaults opts,
             name         : undefined
             ext          : undefined
             current_path : undefined
-            on_download  : undefined
-            on_error     : undefined
-            on_empty     : undefined
             switch_over  : true       # Whether or not to switch to the new file
+        @setState(file_creation_error:undefined)  # clear any create file display state
         name = opts.name
         if (name == ".." or name == ".") and not opts.ext?
-            opts.on_error?("Cannot create a file named . or ..")
+            @setState(file_creation_error: "Cannot create a file named . or ..")
             return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
-            opts.on_download?(true)
-            @new_file_from_web name, opts.current_path, () =>
-                opts.on_download?(false)
+            @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
             if not opts.ext?
                 @create_folder
                     name          : name
                     current_path  : opts.current_path
-                    on_error      : opts.on_error
                 return
             else
                 name = name.slice(0, name.length - 1)
-        p = @path(name, opts.current_path, opts.ext, opts.on_empty, opts.on_error)
-        if not p
+        try
+            p = @_absolute_path(name, opts.current_path, opts.ext)
+        catch e
+            @setState(file_creation_error: e.message)
             return
         ext = misc.filename_extension(p)
         if ext in BANNED_FILE_TYPES
-            opts.on_error?("Cannot create a file with the #{ext} extension")
+            @setState(file_creation_error: "Cannot create a file with the #{ext} extension")
             return
         if ext == 'tex'
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
                 if p.indexOf(bad_char) != -1
-                    opts.on_error?("Cannot use '#{bad_char}' in a LaTeX filename")
+                    @setState(file_creation_error: "Cannot use '#{bad_char}' in a LaTeX filename")
                     return
-        if p.length == 0
-            return
         salvus_client.exec
             project_id  : @project_id
             command     : 'smc-new-file'
@@ -921,7 +962,7 @@ class ProjectActions extends Actions
             err_on_exit : true
             cb          : (err, output) =>
                 if err
-                    opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
+                    @setState(file_creation_error: "#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else if opts.switch_over
                     @open_file
                         path : p
@@ -1070,11 +1111,8 @@ class ProjectActions extends Actions
         switch segments[0]
             when 'files'
                 if target[target.length-1] == '/' or full_path == ''
-                    # open a directory
-                    @set_current_path(parent_path)
-                    @set_active_tab('files')
+                    @open_directory(parent_path)
                 else
-                    # open a file -- foreground option is relevant here.
                     @open_file
                         path       : full_path
                         foreground : foreground
@@ -1144,7 +1182,7 @@ class ProjectStore extends Store
                 continue
 
             # mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
-            ext = misc.filename_extension(filename)
+            ext = misc.filename_extension(filename).toLowerCase()
             basename = filename[0...filename.length - ext.length]
             for mask_ext in masked_file_exts[ext] ? [] # check each possible compiled extension
                 filename_map["#{basename}#{mask_ext}"]?.mask = true

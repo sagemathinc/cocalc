@@ -134,7 +134,7 @@ LogEntry = rclass
 
     render_miniterm_command : (cmd) ->
         if cmd.length > 50
-            <Tip title='Full command' tip={cmd}>
+            <Tip title='Full command' tip={cmd} delayHide={10000} rootClose={true} >
                 <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
             </Tip>
         else

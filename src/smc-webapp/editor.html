@@ -192,79 +192,80 @@ Editor for files in a project
 
                 </div>
 
-                <div class="salvus-editor-latex-buttonbar hide">
+                <div class="salvus-editor-buttonbars salvus-editor-write-only">
+                    <div class="salvus-editor-latex-buttonbar hide"></div>
+                    <div class="salvus-editor-codemirror-textedit-buttons hide">
+                        <code class="salvus-editor-codeedit-buttonbar-mode pull-right"></code>
+                        <span class="react-target"></span>
+                    </div>
+                    <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
+                        <span class="btn-group">
+                            <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Bold"><i class="fa fa-bold"></i></a>
+                            <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Italic"><i class="fa fa-italic"></i></a>
+                            <a href="#underline" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Underline"><i class="fa fa-underline"></i></a>
+                            <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Strike through"><i class="fa fa-strikethrough"></i></a>
+                            <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
+                            <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Superscript"><i class="fa fa-superscript"></i></a>
+                        </span>
+                        <span class="btn-group">
+                            <a href="#equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Inline equation..."> $  </a>
+                            <a href="#display_equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Displayed equation..."> $$  </a>
+                            <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert unordered list"><i class="fa fa-list"></i></a>
+                            <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
+                            <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert link..."><i class="fa fa-link"></i></a>
+                            <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert image..."><i class="fa fa-image"></i></a>
+                           <!-- <a href="#insertHorizontalRule" class="btn btn-default">&lt;hr&gt;</a> -->
+                        </span>
+                        <span class="btn-group">
+                            <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Left justify"><i class="fa fa-align-left"></i></a>
+                            <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Justify center"><i class="fa fa-align-center"></i></a>
+                            <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Right justify"><i class="fa fa-align-right"></i></a>
+                            <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Justify full"><i class="fa fa-align-justify"></i></a>
+                            <a href="#outdent" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Outdent"><i class="fa fa-outdent"></i></a>
+                            <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Indent"><i class="fa fa-indent"></i></a>
+                        </span>
+                        <span class="btn-group">
+                            <a href="#undo" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Undo"><i class="fa fa-undo"></i></a>
+                            <a href="#redo" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Redo"><i class="fa fa-repeat"></i></a>
+                        </span>
+                        <span class="btn-group">
+                            <span class="btn-group sagews-output-editor-font smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Fonts">
+                                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Font">
+                                    <i class="fa fa-font"></i> <b class="caret"></b>
+                                </span>
+                                <ul class="dropdown-menu">
+                                </ul>
+                            </span>
+                            <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Font size">
+                                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text height">
+                                    <i class="fa fa-text-height"></i> <b class="caret"></b>
+                                </span>
+                                <ul class="dropdown-menu">
+                                </ul>
+                            </span>
+                            <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Format type">
+                                <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Header">
+                                    <i class="fa fa-header"></i> <b class="caret"></b>
+                                </span>
+                                <ul class="dropdown-menu">
+                                </ul>
+                            </span>
+                        </span>
+                        <span class="btn-group"> <!-- not implemented yet -->
+                            <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="top" title="Text color">
+                                <input type="text" style="cursor:pointer" class="form-control">
+                                <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+                            </span>
+                        </span>
+                        <span class="btn-group"> <!-- not implemented yet -->
+                            <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="top" title="Text background highlight color">
+                                <input type="text" style="cursor:pointer" class="form-control">
+                                <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
+                            </span>
+                        </span>
+                    </div>
                 </div>
 
-                <div class="salvus-editor-codemirror-textedit-buttons hide">
-                    <code class="salvus-editor-codeedit-buttonbar-mode pull-right"></code>
-                    <span class="react-target"></span>
-                </div>
-                <div class="salvus-editor-codemirror-worksheet-editable-buttons hide">
-                    <span class="btn-group">
-                        <a href="#bold" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Bold"><i class="fa fa-bold"></i></a>
-                        <a href="#italic" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Italic"><i class="fa fa-italic"></i></a>
-                        <a href="#underline" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Underline"><i class="fa fa-underline"></i></a>
-                        <a href="#strikethrough" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Strike through"><i class="fa fa-strikethrough"></i></a>
-                        <a href="#subscript" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Subscript (use LaTeX for serious equations)"><i class="fa fa-subscript"></i></a>
-                        <a href="#superscript" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Superscript"><i class="fa fa-superscript"></i></a>
-                    </span>
-                    <span class="btn-group">
-                        <a href="#equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Inline equation..."> $  </a>
-                        <a href="#display_equation" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Displayed equation..."> $$  </a>
-                        <a href="#insertunorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert unordered list"><i class="fa fa-list"></i></a>
-                        <a href="#insertorderedlist" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert ordered list"><i class="fa fa-list-ol"></i></a>
-                        <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert link..."><i class="fa fa-link"></i></a>
-                        <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Insert image..."><i class="fa fa-image"></i></a>
-                       <!-- <a href="#insertHorizontalRule" class="btn btn-default">&lt;hr&gt;</a> -->
-                    </span>
-                    <span class="btn-group">
-                        <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Left justify"><i class="fa fa-align-left"></i></a>
-                        <a href="#justifycenter" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Justify center"><i class="fa fa-align-center"></i></a>
-                        <a href="#justifyright" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Right justify"><i class="fa fa-align-right"></i></a>
-                        <a href="#justifyfull" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Justify full"><i class="fa fa-align-justify"></i></a>
-                        <a href="#outdent" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Outdent"><i class="fa fa-outdent"></i></a>
-                        <a href="#indent" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Indent"><i class="fa fa-indent"></i></a>
-                    </span>
-                    <span class="btn-group">
-                        <a href="#undo" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Undo"><i class="fa fa-undo"></i></a>
-                        <a href="#redo" class="btn btn-default"  data-toggle="tooltip" data-placement="top" title="Redo"><i class="fa fa-repeat"></i></a>
-                    </span>
-                    <span class="btn-group">
-                        <span class="btn-group sagews-output-editor-font smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Fonts">
-                            <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Font">
-                                <i class="fa fa-font"></i> <b class="caret"></b>
-                            </span>
-                            <ul class="dropdown-menu">
-                            </ul>
-                        </span>
-                        <span class="btn-group sagews-output-editor-font-size smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Font size">
-                            <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text height">
-                                <i class="fa fa-text-height"></i> <b class="caret"></b>
-                            </span>
-                            <ul class="dropdown-menu">
-                            </ul>
-                        </span>
-                        <span class="btn-group sagews-output-editor-block-type smc-tooltip"  data-toggle="tooltip" data-placement="top" title="Format type">
-                            <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Header">
-                                <i class="fa fa-header"></i> <b class="caret"></b>
-                            </span>
-                            <ul class="dropdown-menu">
-                            </ul>
-                        </span>
-                    </span>
-                    <span class="btn-group"> <!-- not implemented yet -->
-                        <span class="sagews-output-editor-foreground-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="top" title="Text color">
-                            <input type="text" style="cursor:pointer" class="form-control">
-                            <span class="input-group-addon" style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
-                        </span>
-                    </span>
-                    <span class="btn-group"> <!-- not implemented yet -->
-                        <span class="sagews-output-editor-background-color-selector input-group color smc-tooltip" data-color-format="rgb" data-toggle="tooltip" data-placement="top" title="Text background highlight color">
-                            <input type="text" style="cursor:pointer" class="form-control">
-                            <span class="input-group-addon"  style="padding: 3px;"><i class="fa fa-font" style="height: 16px; width: 16px"></i><b class="caret"></b></span>
-                        </span>
-                    </span>
-                </div>
             </div>
             <div class="salvus-editor-codemirror-chat-column hide">
                 <div class="salvus-editor-codemirror-chat">
@@ -483,7 +484,7 @@ Editor for files in a project
             <span class="btn-group pull-right">
                 <a href="#file" class="btn btn-info " style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Show full file"><i class="fa fa-file-code-o"></i> Open File</a>
                 <a href="#all" class="btn btn-default hide" data-toggle="tooltip" data-placement="bottom" title="Load complete history"><i class="fa fa-floppy-o"></i> Load All History </a>
-                <a href="#revert" class="btn btn-warning " style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
+                <a href="#revert" class="btn btn-warning hide" style="margin-left:1ex" data-toggle="tooltip" data-placement="bottom" title="Revert the live file to the displayed revision"><i class="fa fa-undo"></i> Revert live version to this</a>
             </span>
             <span style="margin-left:1em">
                 <a href="#show-diff" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Show changes"><i class="fa fa-square-o"></i> Changes</a>

@@ -15,7 +15,7 @@ class TestShMode:
     # examples from sh mode docstring in sage_salvus.py
     # note jupyter kernel text ouput is displayed as html
     def test_single_line(self, exec2):
-        exec2("%sh pwd\n", pattern="^/projects")
+        exec2("%sh uptime\n", pattern="\d\.\d")
 
     def test_multiline(self, exec2):
         exec2("%sh\nFOO=hello\necho $FOO", pattern="hello")
@@ -56,7 +56,7 @@ class TestShDefaultMode:
     def test_start_sh(self, exec2):
         exec2("%default_mode sh")
     def test_start_sh2(self, exec2):
-        exec2("pwd", pattern="^/project")
+        exec2("who -b", pattern="system boot")
 
     def test_multiline(self, exec2):
         exec2("FOO=hello\necho $FOO", pattern="^hello")
@@ -153,8 +153,7 @@ class TestOctaveDefaultMode:
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
 
-class TestJupyterModes:
-    # 'bash', 'ir', and 'octave' kernel tests above
+class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
         exec2('a3 = jupyter("anaconda3")')
 
@@ -165,7 +164,11 @@ class TestJupyterModes:
     def test_issue_862(self, exec2):
         exec2('%a3\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
 
-    def test_sagamath(self, exec2):
+    def test_a3_errror(self, exec2):
+        exec2('%a3\nxyz*', html_pattern = 'span style.*color')
+
+class TestJupyterModes:
+    def test_sagemath(self, exec2):
         exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
 
     def test_julia1(self, exec2):

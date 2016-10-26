@@ -27,8 +27,9 @@ $.get window.smc_base_url + "/registration", (obj, status) ->
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
-    if url_args.length == 2 and url_args[1].slice(0, 6) == 'forgot'
-        return url_args[1].slice(7, 7+36)
+    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/smc/issues/294
+    if url_args.length == 2 and url_args[1].slice(0, 6).toLowerCase() == 'forgot'
+        return url_args[1].slice(7, 7+36).toLowerCase()
     return undefined
 
 Passports = rclass
@@ -152,8 +153,15 @@ SignIn = rclass
         has_account : rtypes.bool
         xs          : rtypes.bool
 
+    componentDidMount : ->
+        @actions('page').set_sign_in_func(@sign_in)
+
+    componentWillUnmount : ->
+        @actions('page').remove_sign_in_func()
+
     sign_in : (e) ->
-        e.preventDefault()
+        if e?
+            e.preventDefault()
         @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password : ->
@@ -178,7 +186,7 @@ SignIn = rclass
                     </Row>
                     <Row>
                         <FormGroup>
-                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Row>
                     <Row>
@@ -216,7 +224,7 @@ SignIn = rclass
                                 disabled={@props.signing_in}
                                 bsStyle="default"
                                 style={height:34}
-                                className='pull-right'>Sign&nbsp;In</Button>
+                                className='pull-right'>Sign&nbsp;in</Button>
                     </Col>
                 </Row>
                 <Row>
@@ -391,7 +399,7 @@ LANDING_PAGE_CONTENT =
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/oqCVNue0uL0" frameBorder="0" allowFullScreen></iframe>
+    <iframe width="504" height="284" src="https://www.youtube.com/embed/oqCVNue0uL0" frameBorder="0" allowFullScreen></iframe>
     #<iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
     #</iframe>
 
@@ -522,7 +530,7 @@ exports.LandingPage = rclass
                                 backgroundColor: SAGE_LOGO_COLOR,\
                                 padding: 5, margin: 0, borderRadius:4, whiteSpace:'nowrap'}
                      className="hidden-xs">
-                      <div style={width:440,zIndex:10,\
+                      <div style={width:490,zIndex:10,\
                                   position:"relative",\
                                   top:12,right:12,float:"right"}
                            className="smc-sign-in-form">
@@ -542,6 +550,7 @@ exports.LandingPage = rclass
                       <div className="hidden-sm"
                           style={display:'inline-block',\
                                   fontFamily: DESC_FONT,\
+                                  fontSize:"28px",\
                                   top: -1 * UNIT,\
                                   position: 'relative',\
                                   color: 'white',\

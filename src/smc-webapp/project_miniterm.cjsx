@@ -37,6 +37,14 @@ IDEAS FOR LATER:
 
 {salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
 
+output_style =
+    position  : 'absolute'
+    zIndex    : 1
+    width     : '93%'
+    boxShadow : '0px 0px 7px #aaa'
+    maxHeight : '450px'
+    overflow  : 'auto'
+
 exports.MiniTerminal = MiniTerminal = rclass
     displayName : 'MiniTerminal'
 
@@ -92,8 +100,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                         if full_path.slice(0,i) == s.slice(0,i)
                             # only change if in project
                             path = s.slice(2*i+2)
-                            @props.actions.set_current_path(path, update_file_listing=true)
-                            @props.actions.set_url_to_path(path)
+                            @props.actions.open_directory(path)
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
@@ -117,7 +124,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             <pre style=style>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
                    href=''
-                   style={right:'5px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
+                   style={right:'10px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
                        <Icon name='times' />
                 </a>
                 {x}
@@ -152,7 +159,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     </InputGroup>
                 </FormGroup>
             </form>
-            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={output_style}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
