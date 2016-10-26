@@ -660,3 +660,13 @@ h3 { font-size: 170% }
 h4 { font-size: 150% }
 h5 { font-size: 130% }
 h6 { font-size: 110% }
+
+/* Important: for display math in Sage Worksheets.
+   See https://github.com/sagemathinc/smc/issues/136
+   NOTE: I did try putting
+         styles: {'background-color':'inherit !important'}
+   in the mathjax config section of last.coffee, but
+   that did nothing.  So we're just going with this below. */
+
+.MathJax_SVG_Display
+  background-color : inherit !important
