@@ -11,6 +11,7 @@ cd `dirname "$0"`
 prometheus -config.file=prometheus.yml             \
            -storage.local.path=$DATA               \
            -storage.local.memory-chunks=500000     \
-           -storage.local.max-chunks-to-persist=1000000 \
+           -storage.local.max-chunks-to-persist=500000 \
            -storage.local.chunk-encoding-version=2 \
+           -storage.local.retention=1000h0m0s       \
            -alertmanager.url=http://localhost:9093/

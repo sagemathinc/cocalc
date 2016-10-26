@@ -11,7 +11,7 @@ misc = require('smc-util/misc')
 course_funcs = require('./course_funcs')
 styles = require('./styles')
 {BigTime, FoldersToolbar} = require('./common')
-{Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
+{ErrorDisplay, Icon, Tip, SearchInput, MarkdownInput} = require('../r_misc')
 
 # Could be merged with steps system of assignments.
 # Probably not a good idea mixing the two.
@@ -45,16 +45,27 @@ step_ready = (step, n) ->
         when 'handout'
             return ''
 
-exports.HandoutsPanel = rclass
+past_tense = (word) ->
+    if word[word.length-1] == 'e'
+        return word + 'd'
+    else
+        return word + 'ed'
+
+exports.HandoutsPanel = rclass ({name}) ->
+
     displayName : 'Course-editor-HandoutsPanel'
+
+    reduxProps :
+        "#{name}":
+            expanded_handouts : rtypes.immutable.Set
 
     propTypes :
         project_id   : rtypes.string.isRequired
-        all_handouts : rtypes.object.isRequired # Immutable map handout_id -> handout
-        students     : rtypes.object.isRequired # Immutable map student_id -> student
+        all_handouts : rtypes.immutable.Map.isRequired # handout_id -> handout
+        students     : rtypes.immutable.Map.isRequired # student_id -> student
         user_map     : rtypes.object.isRequired
         actions      : rtypes.object.isRequired
-        store        : rtypes.object.isRequired
+        store_object : rtypes.object
         project_actions : rtypes.object.isRequired
 
     getInitialState : ->
@@ -63,7 +74,7 @@ exports.HandoutsPanel = rclass
 
     # Update on different students, handouts, or filter parameters
     shouldComponentUpdate : (nextProps, nextState) ->
-        if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students
+        if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students or @props.expanded_handouts != nextProps.expanded_handouts
             return true
         if nextState.search != @state.search or nextState.show_deleted != @state.show_deleted
             return true
@@ -132,7 +143,9 @@ exports.HandoutsPanel = rclass
                 <Handout backgroundColor={if i%2==0 then "#eee"}  key={handout.handout_id}
                         handout={@props.all_handouts.get(handout.handout_id)} project_id={@props.project_id}
                         students={@props.students} user_map={@props.user_map} actions={@props.actions}
-                        store={@props.store} open_directory={@props.project_actions.open_directory}
+                        store_object={@props.store_object} open_directory={@props.project_actions.open_directory}
+                        is_expanded={@props.expanded_handouts.has(handout.handout_id)}
+                        name={@props.name}
                 />}
             {@render_show_deleted_button(num_deleted) if num_deleted > 0}
         </Panel>
@@ -152,14 +165,15 @@ exports.HandoutsPanel.Header = rclass
 
 Handout = rclass
     propTypes :
+        name                : rtypes.string
         handout             : rtypes.object
         backgroundColor     : rtypes.string
-        store               : rtypes.object
+        store_object        : rtypes.object
         actions             : rtypes.object
         open_directory      : rtypes.func     # open_directory(path)
+        is_expanded         : rtypes.bool
 
     getInitialState : ->
-        more : false
         confirm_delete : false
 
     open_handout_path : (e)->
@@ -259,7 +273,7 @@ Handout = rclass
                         disabled={@state["copy_confirm_all_#{step}"]} >
                     {if step=='handout' then 'All' else 'The'} {m} students{step_ready(step, m)}...
                 </Button>
-                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {step_verb(step)}ed {step_direction(step)}</Button> if n}
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_handout(step, true)}>The {n} student{if n>1 then 's' else ''} not already {past_tense(step_verb(step))} {step_direction(step)}</Button> if n}
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
@@ -318,7 +332,7 @@ Handout = rclass
             <Col sm=12>
                 <Panel header={@render_more_header()}>
                     <StudentListForHandout handout={@props.handout} students={@props.students}
-                        user_map={@props.user_map} store={@props.store}, actions={@props.actions}/>
+                        user_map={@props.user_map} store_object={@props.store_object} actions={@props.actions}/>
                     {@render_handout_notes()}
                 </Panel>
             </Col>
@@ -330,15 +344,15 @@ Handout = rclass
         paddingBottom : '4px'
 
     render : ->
-        status = @props.store.get_handout_status(@props.handout)
-        <Row style={if @state.more then styles.selected_entry else styles.entry}>
+        status = @props.store_object.get_handout_status(@props.handout)
+        <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
             <Col xs=12>
                 <Row key='summary' style={backgroundColor:@props.backgroundColor}>
                     <Col md=2 style={paddingRight:'0px'}>
                         <h5>
-                            <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+                            <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('handout', @props.handout.get('handout_id'))}>
                                 <Icon style={marginRight:'10px'}
-                                      name={if @state.more then 'caret-down' else 'caret-right'} />
+                                      name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
                                 <span>
                                     {misc.trunc_middle(@props.handout.get('path'), 80)}
                                     {<b> (deleted)</b> if @props.handout.get('deleted')}
@@ -368,17 +382,17 @@ Handout = rclass
                         </Row>
                     </Col>
                 </Row>
-                {@render_more() if @state.more}
+                {@render_more() if @props.is_expanded}
             </Col>
         </Row>
 
 StudentListForHandout = rclass
     propTypes :
-        user_map : rtypes.object
-        students : rtypes.object
-        handout : rtypes.object
-        store    : rtypes.object
-        actions  : rtypes.object
+        user_map     : rtypes.object
+        students     : rtypes.object
+        handout      : rtypes.object
+        store_object : rtypes.object
+        actions      : rtypes.object
 
     render_students : ->
         v = course_funcs.immutable_to_list(@props.students, 'student_id')
@@ -404,8 +418,8 @@ StudentListForHandout = rclass
         <StudentHandoutInfo
             key = {id}
             actions = {@props.actions}
-            info = {@props.store.student_handout_info(id, @props.handout)}
-            title = {misc.trunc_middle(@props.store.get_student_name(id), 40)}
+            info = {@props.store_object.student_handout_info(id, @props.handout)}
+            title = {misc.trunc_middle(@props.store_object.get_student_name(id), 40)}
             student = {id}
             handout = {@props.handout}
         />

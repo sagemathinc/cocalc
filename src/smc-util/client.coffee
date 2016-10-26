@@ -51,9 +51,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 DEFAULT_TIMEOUT = 30  # in seconds
 
 
-# change these soon
-smcls = 'smc-ls'
-
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -83,7 +80,12 @@ class Session extends EventEmitter
         # I'm going to leave this in for now -- it's only used for console sessions,
         # and they aren't properly reconnecting in all cases.
         if @reconnect?
-            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+            @conn.on("connected", @reconnect)
+
+    close: () =>
+        @removeAllListeners()
+        if @reconnect?
+            @conn.removeListener("connected", @reconnect)
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
@@ -836,15 +838,17 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
     # Like "read_text_file_from_project" above, except the callback
-    # message gives a temporary url from which the file can be
+    # message gives a url from which the file can be
     # downloaded using standard AJAX.
+    # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
+    # It also just returns the url.
     read_file_from_project: (opts) ->
         opts = defaults opts,
             project_id : required
             path       : required
             timeout    : DEFAULT_TIMEOUT
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
-            cb         : required
+            cb         : undefined
 
         base = window?.smc_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
@@ -853,7 +857,8 @@ class exports.Connection extends EventEmitter
 
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
-        opts.cb(false, {url:url})
+        opts.cb?(false, {url:url})
+        return url
 
     project_branch_op: (opts) ->
         opts = defaults opts,
@@ -1110,7 +1115,7 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : "find"
             timeout    : 15
-            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
             bash       : false
             cb         : (err, result) =>
                 if err
@@ -1248,11 +1253,12 @@ class exports.Connection extends EventEmitter
         args.push(opts.start)
         if opts.path == ""
             opts.path = "."
+        args.push('--')
         args.push(opts.path)
 
         @exec
             project_id : opts.project_id
-            command    : smcls
+            command    : 'smc-ls'
             args       : args
             timeout    : opts.timeout
             cb         : (err, output) ->
@@ -1279,14 +1285,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(false, resp.state)
-
-    #################################################
-    # Some UI state
-    #################################################
-    in_fullscreen_mode: (state) =>
-        if state?
-            @_fullscreen_mode = state
-        return $(window).width() <= 767 or @_fullscreen_mode
 
     #################################################
     # Print file to pdf

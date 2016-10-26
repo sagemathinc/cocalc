@@ -2,6 +2,8 @@
 Viewer for history of changes to a document
 ###
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
@@ -17,7 +19,7 @@ templates = $("#salvus-editor-templates")
 underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
-    constructor: (@editor, @filename, content, opts) ->
+    constructor: (@project_id, @filename, content, opts) ->
         window.h = @  # DEBUGGING
         @init_paths()
         @init_view_doc opts, (err) =>
@@ -25,7 +27,7 @@ class exports.HistoryEditor extends FileEditor
                 @init_syncstring()
                 @init_slider()
             else
-                # TODO -- better way to report this
+                # FUTURE: need a better way to report this
                 console.warn("FAILED to configure view_doc")
 
     init_paths: =>
@@ -45,7 +47,7 @@ class exports.HistoryEditor extends FileEditor
 
     init_syncstring: =>
         @syncstring = salvus_client.sync_string
-            project_id : @editor.project_id
+            project_id : @project_id
             path       : @_path
         @syncstring.once 'connected', =>
             @render_slider()
@@ -55,10 +57,16 @@ class exports.HistoryEditor extends FileEditor
                     @resize_diff_slider()
                 else
                     @resize_slider()
+
             if @syncstring.has_full_history()
                 @load_all.hide()
             else
                 @load_all.show()
+
+            # only show button for reverting if not read only
+            @syncstring.wait_until_read_only_known (err) =>
+                if not @syncstring.get_read_only()
+                    @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @syncstring?.close()
@@ -73,12 +81,12 @@ class exports.HistoryEditor extends FileEditor
         switch @ext
             when 'ipynb'
                 @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
-                @element.find("a[href=#show-diff]").hide()
+                @element.find("a[href=\"#show-diff\"]").hide()
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
-                @element.find("a[href=#show-diff]").hide()
+                @element.find("a[href=\"#show-diff\"]").hide()
             else
-                @view_doc = codemirror_session_editor(@editor, @filename, opts)
+                @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
         if @ext in ['course', 'sage-chat']
             @element.find(".salvus-editor-history-no-viewer").show()
@@ -106,9 +114,9 @@ class exports.HistoryEditor extends FileEditor
 
     init_slider: =>
         @slider         = @element.find(".salvus-editor-history-slider")
-        @forward_button = @element.find("a[href=#forward]")
-        @back_button    = @element.find("a[href=#back]")
-        @load_all       = @element.find("a[href=#all]")
+        @forward_button = @element.find("a[href=\"#forward\"]")
+        @back_button    = @element.find("a[href=\"#back\"]")
+        @load_all       = @element.find("a[href=\"#all\"]")
 
         ##element.children().not(".btn-history").hide()
         @element.find(".salvus-editor-save-group").hide()
@@ -141,13 +149,13 @@ class exports.HistoryEditor extends FileEditor
             return false
 
         open_file = () =>
-            @editor.project_page.open_file
+            smc.redux.getProjectActions(@project_id).open_file
                 path       : @_open_file_path
                 foreground : true
 
-        @element.find("a[href=#file]").click(open_file)
+        @element.find("a[href=\"#file\"]").click(open_file)
 
-        @element.find("a[href=#revert]").click () =>
+        @element.find("a[href=\"#revert\"]").click () =>
             if not @revision_num?
                 return
             time  = @syncstring?.all_versions()?[@revision_num]
@@ -160,31 +168,40 @@ class exports.HistoryEditor extends FileEditor
 
         @diff_slider    = @element.find(".salvus-editor-history-diff-slider")
 
-        @element.find("a[href=#show-diff]").click () =>
+        @element.find("a[href=\"#show-diff\"]").click () =>
             @diff_mode(true)
             return false
 
-        @element.find("a[href=#hide-diff]").click () =>
+        @element.find("a[href=\"#hide-diff\"]").click () =>
             @diff_mode(false)
             return false
 
     diff_mode: (enabled) =>
         @_diff_mode = enabled
         if enabled
-            @element.find("a[href=#hide-diff]").show()
-            @element.find("a[href=#show-diff]").hide()
+            @element.find("a[href=\"#hide-diff\"]").show()
+            @element.find("a[href=\"#show-diff\"]").hide()
             @element.find(".salvus-editor-history-diff-mode").show()
             @diff_slider.show()
             @slider.hide()
             @set_doc_diff(@goto_diff()...)
+            # Switch to default theme for diff viewer, until we implement
+            # red/green colors that are selected to match the user's theme
+            # See https://github.com/sagemathinc/smc/issues/884
+            for cm in @view_doc.codemirrors()
+                @_non_diff_theme ?= cm.getOption('theme')
+                cm.setOption('theme', '')
         else
             for cm in @view_doc.codemirrors()
                 cm.setOption('lineNumbers', true)
                 cm.setOption('gutters', [])
+                if @_non_diff_theme?
+                    # Set theme back to default
+                    cm.setOption('theme', @_non_diff_theme)
                 cm.setValue('')
                 cm.setValue(@syncstring.version(@goto_revision(@revision_num)))
-            @element.find("a[href=#hide-diff]").hide()
-            @element.find("a[href=#show-diff]").show()
+            @element.find("a[href=\"#hide-diff\"]").hide()
+            @element.find("a[href=\"#show-diff\"]").show()
             @element.find(".salvus-editor-history-diff-mode").hide()
             @diff_slider.hide()
             @slider.show()
@@ -277,7 +294,7 @@ class exports.HistoryEditor extends FileEditor
 
         usernames = []
         for account_id,_ of account_ids
-            if account_id == @editor.project_id
+            if account_id == @project_id
                 name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
             else
                 name = smc.redux.getStore('users')?.get_name(account_id)
@@ -315,7 +332,7 @@ class exports.HistoryEditor extends FileEditor
         @element.find(".salvus-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
-        if account_id == @editor.project_id
+        if account_id == @project_id
             name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
         else
             name = smc.redux.getStore('users')?.get_name(account_id)
@@ -406,7 +423,7 @@ class exports.HistoryEditor extends FileEditor
             step    : 1
             values  : [Math.max(Math.floor(@revision_num/2), 0), @revision_num]
             range   : true
-            slide  : (event, ui) => # TODO: debounce this
+            slide  : (event, ui) => # OPTIMIZATION: debounce this
                 if ui.values[0] >= ui.values[1]
                     ui.values[0] = Math.max(0, ui.values[1] - 1)
                     setTimeout((()=>@diff_slider.slider(values : ui.values)), 200)
@@ -426,10 +443,16 @@ class exports.HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
+    mount : () =>
+        if not @mounted
+            $(document.body).append(@element)
+            @mounted = true
+        return @mounted
+
     show: () =>
         if not @is_active() or not @element? or not @view_doc?
             return
-        top = @editor.editor_top_position()
+        top = smc.redux.getProjectStore(@project_id).get('editor_top_position')
         @element.css('top', top)
         if top == 0
             @element.css('position':'fixed', 'width':'100%')

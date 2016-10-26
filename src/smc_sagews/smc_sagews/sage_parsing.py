@@ -73,12 +73,11 @@ def strip_string_literals(code, state=None):
             # it's a comment
             newline = code.find('\n', hash_q)
             if newline == -1: newline = len(code)
-            # skip string substitution for comments from # to eol
-            # counter += 1
-            # label = "L%s" % counter
-            # literals[label] = code[hash_q:newline]   # changed from sage
+            counter += 1
+            label = "L%s" % counter
+            literals[label] = code[hash_q:newline]
             new_code.append(code[start:hash_q].replace('%','%%'))
-            # new_code.append("%%(%s)s" % label)
+            new_code.append("%%(%s)s" % label)
             start = q = newline
         elif q == -1:
             if in_quote:
@@ -144,7 +143,7 @@ def end_of_expr(s):
         i += 1
     return i
 
-# NOTE: The dec_args dict will leak memory over time.  However, it only
+# NOTE/TODO: The dec_args dict will leak memory over time.  However, it only
 # contains code that was entered, so it should never get big.  It
 # seems impossible to know for sure whether a bit of code will be
 # eventually needed later, so this leakiness seems necessary.
@@ -205,8 +204,16 @@ def divide_into_blocks(code):
     ## so "2+2" breaks.
     ## return [[0,len(code)-1,('\n'.join(code))%literals]]
 
+    # Remove comment lines -- otherwise could get empty blocks that can't be exec'd.
+    # For example, exec compile('#', '', 'single') is a syntax error.
+    # Also, comments will confuse the code to break into blocks before.
+    comment_lines = {}
+    for label, v in literals.iteritems():
+        if v.startswith('#'):
+            comment_lines[u"%%(%s)s" % label] = True
+    code = [x for x in code if not comment_lines.get(x.strip(), False)]
 
-    # take only non-empty lines now for Python code.
+    # take only non-whitespace lines now for Python code (string literals have already been removed).
     code = [x for x in code if x.strip()]
 
     # Compute the blocks
@@ -223,11 +230,6 @@ def divide_into_blocks(code):
                 paren_depth += code[i].count('(') - code[i].count(')')
                 brack_depth += code[i].count('[') - code[i].count(']')
                 curly_depth += code[i].count('{') - code[i].count('}')
-        # remove comments
-        # comments now removed in strip_string_literals() but leaving this in place
-        for k, v in literals.iteritems():
-            if v.startswith('#'):
-                literals[k] = ''
         block = ('\n'.join(code[i:]))%literals
         bs = block.strip()
         if bs: # has to not be only whitespace

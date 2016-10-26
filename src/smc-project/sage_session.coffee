@@ -47,7 +47,7 @@ restart_sage_server = (cb) ->
     misc_node.execute_code
         command        : "smc-sage-server stop; smc-sage-server start"
         timeout        : 45
-        ulimit_timeout : false   # very important -- so doesn't kill consoles after 30 seconds of cpu!
+        ulimit_timeout : false   # very important -- so doesn't kill after 30 seconds of cpu!
         err_on_exit    : true
         bash           : true
         cb             : (err) ->
@@ -57,7 +57,7 @@ restart_sage_server = (cb) ->
 
 # Get a new connection to the Sage server.  If the server
 # isn't running, e.g., it was killed due to running out of memory,
-# then attempt to restart it and try to connect.
+# so attempt to restart it and try to connect.
 exports.get_sage_socket = (cb) ->   # cb(err, socket)
     socket = undefined
     try_to_connect = (cb) ->

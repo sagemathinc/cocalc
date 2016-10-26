@@ -2,55 +2,51 @@ $selector-height: 175px
 
 .smc-wizard
   +disable-user-select
-  //> div.modal-dialog
-  //  // min-width: 75vw
-  //  width: 900px
 
   .modal-header
-    white-space: nowrap;
+    white-space : nowrap;
     h2,
     .nav-pills,
     .smc-wizard-search
-      margin-top: 10px
+      margin-top : 10px
     .btn-close,
     button.close
-      margin-top: 10px
+      margin-top : 10px
       > span
-        font-size: 30px
+        font-size : 30px
 
   .modal-body
     > div.row:first-child
-      // margin-bottom: 1em
       ul
-        height: $selector-height
-        overflow: auto
-        padding: 1px
+        height   : $selector-height
+        overflow : auto
+        padding  : 1px
         > li
-          cursor: pointer
+          cursor : pointer
           &:not(.active):hover
-            background-color: #eee
+            background-color : #eee
 
     div.smc-wizard-descr,
     pre.code
-      height: 200px
-      overflow: auto
+      height : 200px
+      overflow : auto
       +enable-user-select
       .attr,
       .attr a
-        font-size: 9px
-        color: grey
-        margin-top: 30px
-        text-align: right
+        font-size  : 9px
+        color      : grey
+        margin-top : 30px
+        text-align : right
 
   div.modal-footer
-    padding: 10px
+    padding : 10px
 
   span.badge
-    background-color: #eee
-    color: #428bca
+    background-color : #eee
+    color            : #428bca
 
   span.hl
-    background-color: yellow
+    background-color : yellow
   .active
     span.hl
-      color: #333
+      color : #333

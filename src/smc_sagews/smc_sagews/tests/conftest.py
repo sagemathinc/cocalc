@@ -366,16 +366,21 @@ def image_file(tmpdir_factory):
     make_img().savefig(str(fn))
     return fn
 
+@pytest.fixture(scope='session')
+def data_path(tmpdir_factory):
+    path = tmpdir_factory.mktemp("data")
+    path.ensure_dir()
+    return path
+
 @pytest.fixture()
 def exec2(request, sagews, test_id):
     r"""
     Fixture for worksheet cell test. Depends on two other fixtures,
     sagews and test_id.
-
-    OUTPUT:
+    - `` code `` -- string of code block to run
 
     Fixture function exec2. If output & patterns are omitted, the cell is not
-    expected to produce a stdout result.
+    expected to produce a stdout result. Arguments after 'code' are optional.
 
     - `` code `` -- string of code block to run
 
@@ -411,6 +416,7 @@ def exec2(request, sagews, test_id):
         m['preparse'] = True
         # send block of code to be executed
         sagews.send_json(m)
+
         # check stdout
         if output or pattern:
             typ, mesg = sagews.recv()
@@ -455,25 +461,21 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code):
+    def execblobfn(code, want_name=True, want_html=True):
 
         SHA_LEN = 36
 
         # format and send the plot command
         m = message.execute_code(code = code, id = test_id)
-        m['preparse'] = True
         sagews.send_json(m)
 
         # expect 3 responses before "done", but order may vary
-        got_blob = False
-        got_name = False
-        got_html = False
-
-        while not (got_blob and got_name and got_html):
+        want_blob = True
+        while want_blob or want_name or want_html:
             typ, mesg = sagews.recv()
             if typ == 'blob':
-                assert not got_blob
-                got_blob = True
+                assert want_blob
+                want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
                 print("blob len %s"%len(mesg))
                 file_uuid = mesg[:SHA_LEN]
@@ -485,12 +487,12 @@ def execblob(request, sagews, test_id):
             else:
                 assert typ == 'json'
                 if 'html' in mesg:
-                    assert not got_html
-                    got_html = True
+                    assert want_html
+                    want_html = False
                     print('got html')
                 else:
-                    assert not got_name
-                    got_name = True
+                    assert want_name
+                    want_name = False
                     assert 'file' in mesg
                     print('got file name')
 
@@ -512,7 +514,8 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
-    sock.settimeout(3)
+    # jupyter kernels can take over 10 seconds to start
+    sock.settimeout(15)
     print("connected to socket")
 
     # unlock

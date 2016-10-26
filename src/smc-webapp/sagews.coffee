@@ -1,20 +1,22 @@
-async = require('async')
+$         = window.$
+async     = require('async')
 stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
 {SynchronizedDocument2} = require('./syncdoc')
 
-misc     = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-message  = require('smc-util/message')
-markdown = require('./markdown')
-{salvus_client} = require('./salvus_client')
-{alert_message} = require('./alerts')
+misc_page         = require('./misc_page')
+message           = require('smc-util/message')
+markdown          = require('./markdown')
+{salvus_client}   = require('./salvus_client')
+{redux}           = require('./smc-react')
+{alert_message}   = require('./alerts')
 
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE}       = require('./feature')
 
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
@@ -38,14 +40,14 @@ is_marked = (c) ->
         return false
     return c.indexOf(MARKERS.cell) != -1 or c.indexOf(MARKERS.output) != -1
 
-
+# Create gutter elements
 open_gutter_elt   = $('<div class="CodeMirror-foldgutter-open CodeMirror-guttermarker-subtle"></div>')
 folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-guttermarker-subtle"></div>')
 line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
-        #window.w = @
+        # window.w = @
 
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
@@ -76,8 +78,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @process_sage_update_queue()
 
             @editor.on 'show', (height) =>
-                @process_sage_updates(caller:"show")
                 @set_all_output_line_classes()
+
+            @editor.on 'toggle-split-view', =>
+                @process_sage_updates(caller:"toggle-split-view")
 
             @init_worksheet_buttons()
 
@@ -114,20 +118,20 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                     if @editor.opts.line_numbers
                         # If stop isn't at a marker, extend stop to include the rest of the input,
-                        # so relatively line numbers for this cell get updated.
+                        # so relative line numbers for this cell get updated.
                         x = cm.getLine(stop)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             n = cm.lineCount() - 1
                             while stop < n and x != MARKERS.output and x != MARKERS.cell
                                 stop += 1
-                                x = cm.getLine(stop)[0]
+                                x = cm.getLine(stop)?[0]
 
                         # Similar for start
                         x = cm.getLine(start)?[0]
                         if x != MARKERS.cell and x != MARKERS.output
                             while start > 0 and x != MARKERS.cell and x != MARKERS.output
                                 start -= 1
-                                x = cm.getLine(start)[0]
+                                x = cm.getLine(start)?[0]
 
                     if not @_update_queue_start? or start < @_update_queue_start
                         @_update_queue_start = start
@@ -141,8 +145,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         super()
 
     init_hide_show_gutter: () =>
-        if @readonly
-            return
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
             cm.setOption('gutters', gutters)
@@ -229,34 +231,34 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        buttons.find("a[href=#execute]").click () =>
+        buttons.find("a[href=\"#execute\"]").click () =>
             @action(execute:true, advance:false)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-input]").click () =>
+        buttons.find("a[href=\"#toggle-input\"]").click () =>
             @action(execute:false, toggle_input:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#toggle-output]").click () =>
+        buttons.find("a[href=\"#toggle-output\"]").click () =>
             @action(execute:false, toggle_output:true)
             @focused_codemirror().focus()
             return false
-        buttons.find("a[href=#delete-output]").click () =>
+        buttons.find("a[href=\"#delete-output\"]").click () =>
             @action(execute:false, delete_output:true)
             @focused_codemirror().focus()
             return false
 
         if IS_MOBILE
-            buttons.find("a[href=#tab]").click () =>
+            buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 @focused_codemirror().focus()
                 return false
         else
-            @element.find("a[href=#tab]").hide()
-            @element.find("a[href=#undo]").hide()
-            @element.find("a[href=#redo]").hide()
+            @element.find("a[href=\"#tab\"]").hide()
+            @element.find("a[href=\"#undo\"]").hide()
+            @element.find("a[href=\"#redo\"]").hide()
 
-        buttons.find("a[href=#new-html]").click () =>
+        buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
             line = cm.lineCount()-1
             while line >= 0 and cm.getLine(line) == ""
@@ -275,7 +277,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 advance : true
             @focused_codemirror().focus()
 
-        interrupt_button = buttons.find("a[href=#interrupt]").click () =>
+        interrupt_button = buttons.find("a[href=\"#interrupt\"]").click () =>
             interrupt_button.find("i").addClass('fa-spin')
             @interrupt
                 maxtime : 15
@@ -286,7 +288,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @focused_codemirror().focus()
             return false
 
-        kill_button = buttons.find("a[href=#kill]").click () =>
+        kill_button = buttons.find("a[href=\"#kill\"]").click () =>
             kill_button.find("i").addClass('fa-spin')
             @_restarting = true
             @kill
@@ -757,7 +759,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately, and possibly process any
         # changes to that line.
-        ##tm = misc.mswalltime()
+        #tm = misc.mswalltime()
         before = @editor.codemirror.getValue()
         if opts.pad_bottom
             @pad_bottom_with_newlines(opts.pad_bottom)
@@ -770,7 +772,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
         catch e
             console.log("Error rendering worksheet", e)
-        ##console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
+
+        #console.log("process_sage_updates(opts=#{misc.to_json({caller:opts.caller, start:opts.start, stop:opts.stop})}): time=#{misc.mswalltime(tm)}ms")
+
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
             @_syncstring.set(after)
@@ -798,23 +802,45 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if result
                     @_handle_input_cell_click0(e, mark)
                 else # what the user really wants...
+                    cm = @focused_codemirror()
                     cm.focus()
                     cm.setCursor({line:mark.find().from.line+1, ch:0})
         else
             @_handle_input_cell_click0(e, mark)
         return false
 
+    # Process the codemirror gutter local SMC line number and input/output toggles
+    #   cm = codemirror editor
+    #   line = the line number (0 based)
+    #   mode = the mode for the line: 'show', 'hide', 'number'
+    #   relative_line = the relative line number
     _process_line_gutter: (cm, line, mode, relative_line) =>
+        # nb: I did implement a non-jQuery version of this function; the speed was *identical*.
+        want = mode + relative_line  # we want the HTML node to have these params.
+        elt  = cm.lineInfo(line).gutterMarkers?['smc-sagews-gutter-hide-show']
+        if elt?.smc_cur == want  # gutter is already defined and set as desired.
+            return
         switch mode
             when 'show'
-                elt = open_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
+                # A show toggle triangle
+                elt = open_gutter_elt.clone()[0]
             when 'hide'
-                elt = folded_gutter_elt.clone().click(@_toggle_hide_show_gutter)[0]
-            else
-                if @editor.opts.line_numbers
-                    elt = line_number_elt.clone().text(relative_line)[0]
-                else
-                    elt = undefined
+                # A hide triangle
+                elt = folded_gutter_elt.clone()[0]
+            when 'number'
+                # A line number
+                if not @editor.opts.line_numbers
+                    # Ignore because line numbers are disabled
+                    return
+                if elt?.className == ''
+                    # Gutter elt is already a plain div, so just chnage innerHTML
+                    elt.smc_cur = want
+                    elt.innerHTML = relative_line
+                    return
+                # New gutter element
+                elt = line_number_elt.clone().text(relative_line)[0]
+        elt.smc_cur = want  # elt will have this mode/line
+        # Now set it.
         cm.setGutterMarker(line, 'smc-sagews-gutter-hide-show', elt)
 
     _process_line: (cm, line, context) =>
@@ -973,7 +999,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     input_line = context.input_line
                     if not input_line?
                         input_line = line - 1
-                        while input_line >= 1 and cm.getLine(input_line)[0] != MARKERS.cell
+                        while input_line >= 0 and cm.getLine(input_line)[0] != MARKERS.cell
                             input_line -= 1
                     @_process_line_gutter(cm, line, 'number', line - input_line) # relative line number
                 else
@@ -1212,7 +1238,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     y.click (e) ->
                         n = (document.location.origin + '/projects/').length
                         target = $(@).attr('href').slice(n)
-                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
                     # internal link
@@ -1228,9 +1254,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             # absolute inside of project
                             target = "#{that.project_id}/files#{decodeURI(target)}"
                         else
-                            # realtive to current path
+                            # relative to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
-                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server
@@ -1238,29 +1264,32 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y = $(x)
             src = y.attr('src')
-            if src.indexOf('://') != -1
+            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
                 continue
-            new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
+            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
 
     _post_save_success: () =>
         @remove_output_blob_ttls()
 
     # Return array of uuid's of blobs that might possibly be in the worksheet
-    # and have a ttl.  Once a blob is returned from this function, it won't be
-    # returned ever again.
+    # and have a ttl.
     _output_blobs_with_possible_ttl: () =>
         v = []
-        x = @_output_blobs_with_possible_ttl_past ?= {}
+        x = @_output_blobs_with_possible_ttl_done ?= {}
         for c in @get_all_cells()
             for output in c.output()
                 if output.file?
                     uuid = output.file.uuid
                     if uuid?
                         if not x[uuid]
-                            x[uuid] = true
                             v.push(uuid)
         return v
+
+    # mark these as having been successfully marked to never expire.
+    _output_blobs_ttls_removed: (uuids) =>
+        for uuid in uuids
+            @_output_blobs_with_possible_ttl_done[uuid] = true
 
     remove_output_blob_ttls: (cb) =>
         # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
@@ -1269,7 +1298,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if uuids?
             salvus_client.remove_blob_ttls
                 uuids : uuids
-                cb    : cb
+                cb    : (err) =>
+                    if not err
+                        # don't try again to remove ttls for these blobs -- since did so successfully
+                        @_output_blobs_ttls_removed(uuids)
+                    cb?(err)
 
     raw_input: (raw_input) =>
         prompt = raw_input.prompt
@@ -1341,6 +1374,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
+        if mesg.error?
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            output.append($("<span class='sagews-output-stderr'>").text(error))
+
         if mesg.code?
             x = $("<div class='sagews-output-code'>")
             output.append(x)
@@ -1379,6 +1416,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 t.html(x.s)
             else
                 t.html_noscript(x.s)
+            #console.log 'sagews:mesg.md, t:', t
             t.mathjax(hide_when_rendering:true)
             output.append(t)
             @process_html_output(t)
@@ -1804,15 +1842,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cm   : required
         # DISABLED!
         return
-
-    enter_key: (cm) =>
-        marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
-        if marks.length > 0
-            @edit_cell
-                line : marks[0].find().from.line
-                cm   : cm
-        else
-            return CodeMirror.Pass
 
     action: (opts={}) =>
         opts = defaults opts,
@@ -2389,7 +2418,17 @@ class SynchronizedWorksheetCell
         return @cm.getLine(x.loc.from.line)
 
     output: =>
-        return (misc.from_json(x) for x in @raw_output().slice(38).split(MARKERS.output) when x)
+        v = []
+        raw = @raw_output()
+        if not raw?  # might return undefined, see above
+            return v
+        for x in raw.slice(38).split(MARKERS.output)
+            if x?.length > 0 # empty strings cause json deserialization problems (i.e. that warning below)
+                try
+                    v.push(misc.from_json(x))
+                catch
+                    console.warn("unable to read json message in worksheet: #{x}")
+        return v
 
     _get_output: () =>
         n = @end_line()
@@ -2560,7 +2599,6 @@ class Cell
 
 class Worksheet
     constructor : (@worksheet) ->
-        @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>

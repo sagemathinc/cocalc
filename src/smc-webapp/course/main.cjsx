@@ -81,7 +81,7 @@ primary_key =
     handouts    : 'handout_id'
 
 syncdbs = {}
-exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
+init_redux = (course_filename, redux, course_project_id) ->
     the_redux_name = redux_name(course_project_id, course_filename)
     get_actions = ->redux.getActions(the_redux_name)
     get_store = -> redux.getStore(the_redux_name)
@@ -282,6 +282,21 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         set_course_info: (pay='') =>
             @_update(set:{pay:pay}, where:{table:'settings'})
             @set_all_student_project_course_info(pay)
+
+        # Takes an item_name and the id of the time
+        # item_name should be one of
+        # ['student', 'assignment', handout']
+        toggle_item_expansion: (item_name, item_id) =>
+            console.log("Toggling a", item_name, "with id", item_id)
+            store = get_store()
+            return if not store?
+            field_name = "expanded_#{item_name}s"
+            expanded_items = store.get(field_name)
+            if expanded_items.has(item_id)
+                adjusted = expanded_items.delete(item_id)
+            else
+                adjusted = expanded_items.add(item_id)
+            @setState("#{field_name}" : adjusted)
 
         # Students
         add_students: (students) =>
@@ -1758,7 +1773,12 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             @_handout_status[handout_id] = info
             return info
 
-    redux.createStore(the_redux_name, CourseStore)
+    initial_store_state =
+        expanded_students    : immutable.Set() # Set of student id's (string) which should be expanded on render
+        expanded_assignments : immutable.Set() # Set of assignment id's (string) which should be expanded on render
+        expanded_handouts    : immutable.Set() # Set of handout id's (string) which should be expanded on render
+
+    redux.createStore(the_redux_name, CourseStore, initial_store_state)
 
     synchronized_db
         project_id : course_project_id
@@ -1783,6 +1803,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     t[k] = immutable.fromJS(v)
                 get_actions().setState(t)
                 syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
                 redux.getStore('projects').wait
@@ -1793,9 +1814,16 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                         actions.lookup_nonregistered_students()
                         actions.configure_all_projects()
 
-    return # don't return syncdb above
+    return the_redux_name
 
-CourseEditor = (name) -> rclass
+remove_redux = (course_filename, redux, course_project_id) ->
+    the_redux_name = redux_name(course_project_id, course_filename)
+    redux.removeStore(the_redux_name)
+    redux.removeActions(the_redux_name)
+    delete syncdbs[the_redux_name]
+    return the_redux_name
+
+CourseEditor = rclass ({name}) ->
     displayName : "CourseEditor-Main"
 
     reduxProps :
@@ -1891,7 +1919,8 @@ CourseEditor = (name) -> rclass
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
                 project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
-                store={@props.redux.getStore(@props.name)} project_actions={@props.redux.getProjectActions(@props.project_id)}
+                store_object={@props.redux.getStore(@props.name)} project_actions={@props.redux.getProjectActions(@props.project_id)}
+                name={@props.name}
                 />
         else
             return <Loading />
@@ -1913,14 +1942,14 @@ CourseEditor = (name) -> rclass
             return <Loading />
 
     render : ->
-        <div>
+        <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
             {@render_files_button()}
             {@render_title()}
             {@render_save_timetravel()}
-            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
+            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}
@@ -1944,37 +1973,9 @@ CourseEditor = (name) -> rclass
             </Tabs>
         </div>
 
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    # dependence on account below is for adjusting quotas
-    CourseEditor_connected = CourseEditor(name)
-    <Redux redux={redux}>
-        <CourseEditor_connected redux={redux} name={name} project_id={project_id} path={path} />
-    </Redux>
-
-exports.render_course = (project_id, path, dom_node, redux) ->
-    init_redux(redux, project_id, path)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.hide_course = (project_id, path, dom_node, redux) ->
-    #console.log("hide_course")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show_course = (project_id, path, dom_node, redux) ->
-    #console.log("show_course")
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.free_course = (project_id, path, dom_node, redux) ->
-    fname = redux_name(project_id, path)
-    db = syncdbs[fname]
-    if not db?
-        return
-    db.destroy()
-    delete syncdbs[fname]
-    ReactDOM.unmountComponentAtNode(dom_node)
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    store = redux.getStore(fname)
-    delete store.state
-    redux.removeStore(fname)
-    redux.removeActions(fname)
+require('project_file').register_file_editor
+    ext       : 'course'
+    icon      : 'graduation-cap'
+    init      : init_redux
+    component : CourseEditor
+    remove    : remove_redux

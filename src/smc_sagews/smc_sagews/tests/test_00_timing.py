@@ -14,7 +14,7 @@ import signal
 class TestSageTiming:
     r"""
     These tests are to validate the test framework. They do not
-    use sage_server at all.
+    run sage_server.
     """
     def test_basic_timing(self):
         start = time.time()
@@ -46,7 +46,7 @@ class TestSageTiming:
         print("elapsed %s"%elapsed)
         assert elapsed < 10.0
 
-class TestSagewsNoSession:
+class TestStartSageServer:
     def test_2plus2_timing(self, test_id):
         import sys
 

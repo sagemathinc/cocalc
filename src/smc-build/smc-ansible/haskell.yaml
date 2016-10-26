@@ -1,0 +1,18 @@
+---
+# https://docs.haskellstack.org/en/stable/install_and_upgrade/#ubuntu
+- hosts: compute
+  become: yes
+  gather_facts: yes
+
+  tasks:
+  - name: "haskell / apt key"
+    tags: [haskell, install]
+    apt_key: 'keyserver=keyserver.ubuntu.com id=575159689BEFB442'
+
+  - name: "haskell / apt repo"
+    tags: [haskell, install]
+    apt_repository: "mode=644 repo='deb http://download.fpcomplete.com/ubuntu {{ ansible_distribution_release }} main'"
+
+  - name: "haskell / apt install"
+    tags: [haskell, install, update]
+    apt: "name=stack state=latest install_recommends=yes"

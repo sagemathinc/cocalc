@@ -4,6 +4,7 @@ html
     meta(charset="utf-8")
     meta(name="viewport"    content="width=device-width, initial-scale=1.0, user-scalable=no")
     meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="google"      content="notranslate")
     meta(name="description" content="#{ htmlWebpackPlugin.options.title }")
     meta(name="author"      content="#{ htmlWebpackPlugin.options.title } Authors")
     meta(name="date"        content="#{ htmlWebpackPlugin.options.date }")
@@ -69,9 +70,6 @@ html
     script(type="text/javascript").
         function smcLoadStatus(msg) {
         try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
-
-    //- Billing related functionality
-    script(type="text/javascript" src="https://js.stripe.com/v2/")
 
     //- if we have a GA token, insert the google analytics async script
     - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS

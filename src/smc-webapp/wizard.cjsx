@@ -46,7 +46,7 @@ DATA = null
 
 # react wizard
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
-{Col, Row, Panel, Button, Input, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Loading, Icon, Markdown} = require('./r_misc')
 
 redux_name = (project_id, path) ->
@@ -306,6 +306,9 @@ WizardHeader = rclass
         search_str  : rtypes.string
         lang        : rtypes.string.isRequired
 
+    getDefaultProps : ->
+        search_str : ''
+
     langSelect: (key) ->
         @props.actions.select_lang(key)
 
@@ -352,13 +355,15 @@ WizardHeader = rclass
                 {@render_nav()}
             </Col>
             <Col sm={3}>
-                <Input ref='search'
+                <FormGroup>
+                    <FormControl ref='search'
                        type='text'
                        className='smc-wizard-search'
                        placeholder='Search'
-                       value={@props.search_str}
+                       value={@props.search_str ? ''}
                        onKeyUp={@handle_search_keyup}
                        onChange={@search}  />
+                </FormGroup>
             </Col>
         </Row>
 
@@ -381,11 +386,15 @@ WizardBody = rclass
         search_sel : rtypes.number
         hits       : rtypes.arrayOf(rtypes.array)
 
-    componentWillMount: ->
-        @scrollTo0 = _.debounce (() -> $(@refs.list_0).find('.active').scrollintoview()), 50
-        @scrollTo1 = _.debounce (() -> $(@refs.list_1).find('.active').scrollintoview()), 50
-        @scrollTo2 = _.debounce (() -> $(@refs.list_2).find('.active').scrollintoview()), 50
-        @scrollToS = _.debounce (() -> $(@refs.search_results_list).find('.active').scrollintoview()), 50
+    getDefaultProps : ->
+        descr      : ''
+        search_str : ''
+
+    componentDidMount: ->
+        @scrollTo0 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollIntoView()), 50
+        @scrollTo1 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollIntoView()), 50
+        @scrollTo2 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_2)).find('.active').scrollIntoView()), 50
+        @scrollToS = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollIntoView()), 50
 
     componentDidUpdate: (props, state) ->
         @scrollTo0()
@@ -568,9 +577,9 @@ RWizard = (name) -> rclass
                         data       = {@props.data} />
 
             <Modal.Footer>
-                <Button onClick={@props.actions.hide}>Cancel</Button>
                 <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
                 <Button onClick={@insert_all} disabled={not @props.submittable} bsStyle='success'>Insert</Button>
+                <Button onClick={@props.actions.hide}>Close</Button>
             </Modal.Footer>
         </Modal>
 

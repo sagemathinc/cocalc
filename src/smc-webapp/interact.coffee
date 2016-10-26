@@ -27,6 +27,8 @@ This file defines a jQuery plugin ".sage_interact(...)" that replaces a DOM elem
 by one with interactive controls and output.
 ###
 
+$ = window.$
+
 misc = require('smc-util/misc')
 
 {defaults, required} = misc
@@ -135,7 +137,7 @@ class Interact
         # Define the update function, which communicates with the server.
         done = true
         update = (vals) =>
-            # TODO: flicker?
+            # FUTURE: flicker?
             #for output_cell in output_cells
             #    if not desc.flicker
             #        height = output_cell._output.height()
@@ -203,7 +205,7 @@ interact_control = (desc, update) ->
     control = templates.find(".salvus-interact-control-#{desc.control_type}").clone()
     if control.length == 0
         # nothing to do -- the control no longer exists (deprecated?)
-        # TODO: we should probably send a message somewhere saying this no longer exists.
+        # WARNING: we should probably send a message somewhere saying this no longer exists.
         return
     if desc.label?
         control.find(".salvus-interact-label").html(desc.label).mathjax()

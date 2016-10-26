@@ -19,5 +19,6 @@
 - include: compute-extra.yaml
 - include: r.yaml # R depends on compute-extra
 - include: julia.yaml
+- include: haskell.yaml
 - include: latex.yaml
 - include: cleanup.yaml

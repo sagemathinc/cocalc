@@ -33,7 +33,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -68,7 +68,7 @@ class AccountActions extends Actions
                     when "signed_in"
                         {analytics_event} = require('./misc_page')
                         analytics_event('account', 'create_account') # user created an account
-                        require('./top_navbar').top_navbar.switch_to_page('projects')
+                        redux.getActions('page').set_active_tab('projects')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -112,8 +112,9 @@ class AccountActions extends Actions
                     else
                         # success
                         # TODO: can we automatically log them in?
-                        history.pushState("", document.title, window.location.pathname)
+                        window.history.pushState("", document.title, window.location.pathname)
                         @setState(reset_key : '', reset_password_error : '')
+
     sign_out : (everywhere) ->
         delete localStorage[remember_me]
         evt = 'sign_out'
@@ -136,6 +137,18 @@ class AccountActions extends Actions
                     # or blead into the next login somehow.
                     window.location.reload(false)
 
+    push_state: (url) =>
+        {set_url} = require('./history')
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = ''
+        @_last_history_state = url
+        set_url('/settings' + misc.encode_path(url))
+
+    set_active_tab : (tab) =>
+        @setState(active_page : tab)
+
 # Register account actions
 actions = redux.createActions('account', AccountActions)
 
@@ -152,7 +165,7 @@ class AccountStore extends Store
         return @get('account_id')
 
     is_logged_in : =>
-        return @get('account_id')?
+        return @get_user_type() == 'signed_in'
 
     is_admin: =>
         return @get('groups').includes('admin')
@@ -218,8 +231,32 @@ salvus_client.on 'signed_out', ->
 salvus_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
-# Standby timeout
+# Autosave interval
+_autosave_interval = undefined
+init_autosave = (autosave) ->
+    if _autosave_interval
+        # This function can safely be called again to *adjust* the
+        # autosave interval, in case user changes the settings.
+        clearInterval(_autosave_interval)
+        _autosave_interval = undefined
+
+    # Use the most recent autosave value.
+    if autosave
+        save_all_files = () ->
+            if salvus_client.is_connected()
+                redux.getActions('projects').save_all_files()
+        _autosave_interval = setInterval(save_all_files, autosave * 1000)
+
 account_store = redux.getStore('account')
+
+_last_autosave_interval_s = undefined
+account_store.on 'change', ->
+    interval_s = account_store.get('autosave')
+    if interval_s != _last_autosave_interval_s
+        _last_autosave_interval_s = interval_s
+        init_autosave(interval_s)
+
+# Standby timeout
 last_set_standby_timeout_m = undefined
 account_store.on 'change', ->
     # NOTE: we call this on any change to account settings, which is maybe too extreme.
@@ -227,3 +264,6 @@ account_store.on 'change', ->
     if last_set_standby_timeout_m != x
         last_set_standby_timeout_m = x
         salvus_client.set_standby_timeout_m(x)
+
+
+

@@ -5,7 +5,7 @@ misc = require('smc-util/misc')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
 # SMC and course components
 course_funcs = require('./course_funcs')
@@ -15,8 +15,12 @@ styles = require('./styles')
     BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
 
-exports.AssignmentsPanel = rclass
+exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
+
+    reduxProps :
+        "#{name}":
+            expanded_assignments : rtypes.immutable.Set
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -56,6 +60,7 @@ exports.AssignmentsPanel = rclass
                     project_id={@props.project_id}  redux={@props.redux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
+                    is_expanded={@props.expanded_assignments.has(x.assignment_id)}
                     />
 
     render_show_deleted : (num_deleted) ->
@@ -128,12 +133,12 @@ Assignment = rclass
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
         background : rtypes.string
+        is_expanded : rtypes.bool
 
     shouldComponentUpdate : (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
     getInitialState : ->
-        more : false
         confirm_delete : false
 
     render_due : ->
@@ -536,13 +541,14 @@ Assignment = rclass
         @props.redux.getActions(@props.name).set_peer_grade(@props.assignment, config)
 
     render_configure_peer_checkbox: (config) ->
-        <Input checked  = {config.enabled}
-               key      = 'peer_grade_checkbox'
-               type     = 'checkbox'
-               label    = {"Enable Peer Grading"}
-               ref      = 'peer_grade_checkbox'
-               onChange = {=>@set_peer_grade(enabled:@refs.peer_grade_checkbox.getChecked())}
-        />
+        <span>
+            <Checkbox checked  = {config.enabled}
+                   key      = 'peer_grade_checkbox'
+                   ref      = 'peer_grade_checkbox'
+                   onChange = {(e)=>@set_peer_grade(enabled:e.target.checked)}
+            />
+            Enable Peer Grading
+        </span>
 
     peer_due_change : (date) ->
         if not date
@@ -568,7 +574,8 @@ Assignment = rclass
                 on_change = {(n) => @set_peer_grade(number : n)}
                 min       = 1
                 max       = {(store?.num_students() ? 2) - 1}
-                number    = {config.number ? 1} />
+                number    = {config.number ? 1}
+            />
         </LabeledRow>
 
     render_configure_grading_guidelines: (config) ->
@@ -629,9 +636,9 @@ Assignment = rclass
         </span>
 
     render_assignment_title_link : ->
-        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('assignment', @props.assignment.get('assignment_id'))}>
             <Icon style={marginRight:'10px'}
-                  name={if @state.more then 'caret-down' else 'caret-right'} />
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
             {@render_assignment_name()}
         </a>
 
@@ -648,10 +655,10 @@ Assignment = rclass
         </Row>
 
     render : ->
-        <Row style={if @state.more then styles.selected_entry else styles.entry}>
+        <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
             <Col xs=12>
                 {@render_summary_line()}
-                {@render_more() if @state.more}
+                {@render_more() if @props.is_expanded}
             </Col>
         </Row>
 
