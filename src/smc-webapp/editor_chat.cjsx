@@ -149,6 +149,9 @@ class ChatActions extends Actions
 
     _syncdb_change: (changes) =>
         messages_before = messages = @store.get('messages')
+        if not messages?
+            # Messages need not be defined when changes appear in case of problems or race.
+            return
         for x in changes
             if x.insert
                 # Assumes all fields to be provided in x.insert
