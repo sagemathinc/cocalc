@@ -1305,7 +1305,7 @@ class CodeMirrorEditor extends FileEditor
                                             else
                                                 tempdir_link = $('<a>').text('Click to open temporary file')
                                                 tempdir_link.click =>
-                                                    @editor.project_page.open_file
+                                                    redux.getProjectActions(@project_id).open_file
                                                         path       : subdir_texfile
                                                         foreground : true
                                                     dialog.modal('hide')
