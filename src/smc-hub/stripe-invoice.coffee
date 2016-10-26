@@ -1,11 +1,12 @@
-path = require('path')
+path       = require('path')
+fs         = require('fs')
+async      = require('async')
 
-async = require('async')
+misc       = require('smc-util/misc')
 
-misc    = require('smc-util/misc')
+misc_node  = require('smc-util-node/misc_node')
 
-misc_node = require('smc-util-node/misc_node')
-WEBAPP_LIB      = misc_node.WEBAPP_LIB
+WEBAPP_LIB = misc_node.WEBAPP_LIB
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
@@ -43,6 +44,14 @@ exports.stripe_render_invoice = (stripe, invoice_id, download, res) ->
 render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     PDFDocument = require('pdfkit')
     doc = new PDFDocument
+
+    # Use a unicode friendly font: see http://stackoverflow.com/questions/18718559/how-to-output-euro-symbol-in-pdfkit-for-nodejs
+    # This should just be in our git repo, so should work.
+    font = "#{__dirname}/fonts/Cardo-Regular.ttf"
+    if fs.existsSync(font)
+        doc.registerFont('Cardo', font)
+        doc.font('Cardo')
+
     if download
         res.setHeader('Content-disposition', 'attachment')
 
@@ -62,7 +71,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     doc.fillColor('#555')
     doc.text("Date", c1, y)
     doc.text("ID")
-    doc.text("Account")
+    doc.text("Name")
     doc.text("Email")
     if invoice.paid
         doc.text("Card charged")
