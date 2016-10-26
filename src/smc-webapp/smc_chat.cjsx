@@ -472,7 +472,7 @@ ChatRoom = rclass ({name}) ->
 
     componentDidMount: ->
         @update_video_users()
-        intervalState = setInterval(@props.actions.remove_users, 120000)
+        intervalState = setInterval(@props.actions.remove_users, 180000)
         @setState(intervalState:intervalState)
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
         if @props.is_preview

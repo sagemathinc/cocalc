@@ -313,8 +313,8 @@ class ChatActions extends Actions
             # all users that are actually using chat (e.g., have chat window open) to instead periodically (once very few minutes)
             # update the video.users with their account id and the server timestamp.
             # Then the display of the number of users with chat open has to just discard users that haven't updated that state recently. (See remove_users method)
-            # This interval updates the user's server time every 2 minutes
-            update_user_time_interval = setInterval(@update_video_user_time, 120000)
+            # This interval updates the user's server time every 3 minutes
+            update_user_time_interval = setInterval(@update_video_user_time, 180000)
 
     # Updates the user's server time
     update_video_user_time: =>
@@ -324,14 +324,12 @@ class ChatActions extends Actions
         # gets the timestamp for the state update
         time_stamp = salvus_client.server_time()
         users = video.users
-        if users?
-            for key, value of users
-                # update the video.user with the user's account id and server time
-                if key == account_id
-                    users[key] = time_stamp
-                    @save_shared_video_info(video)
+        # update the video.user with the user's account id and server time
+        users[account_id] = time_stamp
+        @save_shared_video_info(video)
 
-    # Discards users that haven't updated state recently (if the user has not updated in 3 minutes).
+    # Discards users that haven't updated state recently (if the user has not updated in 5 minutes).
+    # This gets called when you first open a chat room, and then every 3 minutes it gets called again.
     remove_users: =>
         video = (@store?.get('video')?.toJS()) ? {}
         # gets the timestamp for the state update
@@ -340,7 +338,7 @@ class ChatActions extends Actions
         if users?
             for key, value of users
                 # checks all user timestamps, if the timestamp has not been updated for a while, remove it from the user list
-                if Math.abs(time_stamp.getMinutes() - users[key].getMinutes()) > 3
+                if (time_stamp.getTime() - users[key].getTime()) / (1000 * 60) > 5
                     delete users[key]
                     @save_shared_video_info(video)
 
