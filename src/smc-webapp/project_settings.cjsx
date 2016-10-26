@@ -510,7 +510,7 @@ HideDeletePanel = rclass
     # account_id : String
     # project    : immutable.Map
     user_has_applied_upgrades : (account_id, project) ->
-         project.getIn(['users', account_id, 'upgrades']).some (val) => val > 0
+         project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
 
     delete_message : ->
         if @props.project.get('deleted')

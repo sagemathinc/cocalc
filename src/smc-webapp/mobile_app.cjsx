@@ -6,12 +6,13 @@ Sidebar = require('react-sidebar').default
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{HelpPage} = require('./r_help')
+{HelpPage}     = require('./r_help')
 {ProjectsPage} = require('./projects')
-{ProjectPage} = require('./project_page')
-{AccountPage} = require('./account_page') # SMELL: Not used but gets around a webpack error..
-{FileUsePage} = require('./file_use')
-{Support} = require('./support')
+{ProjectPage}  = require('./project_page')
+{AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
+{FileUsePage}  = require('./file_use')
+{Support}      = require('./support')
+
 # SMC Libraries
 misc = require('smc-util/misc')
 
@@ -20,21 +21,21 @@ misc = require('smc-util/misc')
 
 FileUsePageWrapper = (props) ->
     styles =
-        zIndex: '10'
-        marginLeft: '0'
-        position: 'fixed'
-        boxShadow: '0 0 15px #aaa'
-        border: '2px solid #ccc'
-        top: '43px'
-        background: '#fff'
-        right: '2em'
-        overflowY: 'auto'
-        overflowX: 'hidden'
-        fontSize: '10pt'
-        padding: '4px'
-        borderRadius: '5px'
-        width: '50%'
-        height: '90%'
+        zIndex       : '10'
+        marginLeft   : '0'
+        position     : 'fixed'
+        boxShadow    : '0 0 15px #aaa'
+        border       : '2px solid #ccc'
+        top          : '43px'
+        background   : '#fff'
+        right        : '2em'
+        overflowY    : 'auto'
+        overflowX    : 'hidden'
+        fontSize     : '10pt'
+        padding      : '4px'
+        borderRadius : '5px'
+        width        : '50%'
+        height       : '90%'
 
     <div style={styles}>
         {<FileUsePage redux={redux} />}
@@ -109,38 +110,38 @@ Page = rclass
         <div style={width:'40vw', height:'100vw', backgroundColor:'white'}>
             <Nav stacked>
                 <NavTab
-                    name='account'
-                    label={@account_name()}
-                    icon='cog'
-                    actions={@actions('page')}
-                    active_top_tab={@props.active_top_tab}
-                    on_click={@close_right_menu}
-                    style={width:'100%'}
+                    name           = 'account'
+                    label          = {@account_name()}
+                    icon           = 'cog'
+                    actions        = {@actions('page')}
+                    active_top_tab = {@props.active_top_tab}
+                    on_click       = {@close_right_menu}
+                    style          = {width:'100%'}
                 />
                 <NavTab
-                    on_click={@close_right_menu}
-                    name='about'
-                    label='About'
-                    icon='question-circle'
-                    actions={@actions('page')}
-                    active_top_tab={@props.active_top_tab}
-                    style={width:'100%'}
+                    on_click       = {@close_right_menu}
+                    name           = 'about'
+                    label          = 'About'
+                    icon           = 'question-circle'
+                    actions        = {@actions('page')}
+                    active_top_tab = {@props.active_top_tab}
+                    style          = {width:'100%'}
                 />
                 <NavTab
-                    label='Help'
-                    icon='medkit'
-                    actions={@actions('page')}
-                    active_top_tab={@props.active_top_tab}
-                    on_click={=>@close_right_menu();redux.getActions('support').show(true)}
-                    style={width:'100%'}
+                    label          = 'Help'
+                    icon           = 'medkit'
+                    actions        = {@actions('page')}
+                    active_top_tab = {@props.active_top_tab}
+                    on_click       = {=>@close_right_menu();redux.getActions('support').show(true)}
+                    style          = {width:'100%'}
                 />
                 {<NotificationBell
-                    on_click={@close_right_menu}
-                    count={@props.get_notify_count()}
+                    on_click = {@close_right_menu}
+                    count    = {@props.get_notify_count()}
                 /> if @props.is_logged_in()}
                 <ConnectionIndicator
-                    on_click={@close_right_menu}
-                    actions={@actions('page')}
+                    on_click = {@close_right_menu}
+                    actions  = {@actions('page')}
                 />
             </Nav>
         </div>
@@ -173,12 +174,13 @@ Page = rclass
             overflow:'auto'
 
         <div ref="page" style={style}>
-            <Sidebar sidebar={@render_right_menu()}
-                open={@state.show_right_menu}
-                onSetOpen={(open)=>@setState(show_right_menu:open)}
-                pullRight={true}
-                shadow={false}
-                touch={false}
+            <Sidebar
+                sidebar   = {@render_right_menu()}
+                open      = {@state.show_right_menu}
+                onSetOpen = {(open)=>@setState(show_right_menu:open)}
+                pullRight = {true}
+                shadow    = {false}
+                touch     = {false}
             >
                 <style>{page_style}</style>
                 <style>{ProjectsNav.dropdown_nav_page_styles}</style>

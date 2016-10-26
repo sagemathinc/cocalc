@@ -788,13 +788,17 @@ exports.Tip = Tip = rclass
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
+        delayHide : rtypes.number
+        rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
         style     : rtypes.object
 
     getDefaultProps : ->
         placement : 'right'
-        delayShow : 600
+        delayShow : 500
+        delayHide : 100
+        rootClose : false
 
     render_title: ->
         <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
@@ -824,7 +828,9 @@ exports.Tip = Tip = rclass
         <OverlayTrigger
             placement = {@props.placement}
             overlay   = {@render_popover()}
-            delayShow = 600
+            delayShow = {@props.delayShow}
+            delayHide = {@props.delayHide}
+            rootClose = {@props.rootClose}
             >
             <span style={@props.style}>{@props.children}</span>
         </OverlayTrigger>

@@ -568,7 +568,7 @@ class TaskList
             # First highlight hashtags --
             # Add the highlight-tag CSS class to every hashtag in the task list.
             # select searched-for hashtags by their special class:
-            selector = ("."+tags.substring(1) for tags in search when tags[0] == "#").join(',')
+            selector = (".smc-tasks-hashtag-"+tags.substring(1) for tags in search when tags[0] == "#").join(',')
             e.find(selector).addClass("highlight-tag")
 
             # Highlight all the search terms for
@@ -804,7 +804,7 @@ class TaskList
                 x0 = [0,0]
                 desc0 = ''
                 for x in v
-                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash #{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
+                    desc0 += desc.slice(x0[1], x[0]) + "<span class='salvus-tasks-hash smc-tasks-hashtag-#{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 

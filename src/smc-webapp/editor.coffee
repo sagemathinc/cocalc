@@ -696,7 +696,7 @@ exports.FileEditor = FileEditor
 
 ###############################################
 # Codemirror-based File Editor
-# Emits:
+
 #     - 'saved' : when the file is successfully saved by the user
 #     - 'show'  :
 #     - 'toggle-split-view' :
@@ -802,6 +802,9 @@ class CodeMirrorEditor extends FileEditor
 
             "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
             "Cmd-I"        : (editor)   => @toggle_split_view(editor)
+
+            "Shift-Cmd-L"  : (editor)   => editor.align_assignments()
+            "Shift-Ctrl-L" : (editor)   => editor.align_assignments()
 
             "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
             "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
@@ -1302,7 +1305,7 @@ class CodeMirrorEditor extends FileEditor
                                             else
                                                 tempdir_link = $('<a>').text('Click to open temporary file')
                                                 tempdir_link.click =>
-                                                    @editor.project_page.open_file
+                                                    redux.getProjectActions(@project_id).open_file
                                                         path       : subdir_texfile
                                                         foreground : true
                                                     dialog.modal('hide')
