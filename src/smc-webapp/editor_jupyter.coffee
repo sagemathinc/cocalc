@@ -660,6 +660,8 @@ class JupyterWrapper extends EventEmitter
         return stringify(obj)
 
     save_blob: (blob, to_db) =>
+        if not @blobs?
+            return
         id = misc.uuidsha1(blob)
         if @blobs[id]
             return id
@@ -680,6 +682,8 @@ class JupyterWrapper extends EventEmitter
         return id
 
     load_blob: (id) =>
+        if not @blobs?
+            return
         blob = @blobs[id]
         if blob?
             return blob
@@ -692,7 +696,7 @@ class JupyterWrapper extends EventEmitter
                         id   : id
                         blob : null
                 cb: (err, resp) =>
-                    if @state == 'closed'
+                    if @state == 'closed' or not @blobs?
                         return
                     delete @blobs_pending[id]
                     if err
