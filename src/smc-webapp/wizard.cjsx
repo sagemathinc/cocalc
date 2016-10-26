@@ -577,9 +577,9 @@ RWizard = (name) -> rclass
                         data       = {@props.data} />
 
             <Modal.Footer>
-                <Button onClick={@props.actions.hide}>Cancel</Button>
                 <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
                 <Button onClick={@insert_all} disabled={not @props.submittable} bsStyle='success'>Insert</Button>
+                <Button onClick={@props.actions.hide}>Close</Button>
             </Modal.Footer>
         </Modal>
 
