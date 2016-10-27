@@ -636,7 +636,7 @@ class ProjectsStore extends Store
 
     wait_until_projects_are_running : (opts) =>
         opts = defaults opts,
-            project_ids   : required  # Must have a .includes()
+            project_ids   : required # [Strings..]
             timeout       : 30
             cb            : undefined
         opts.desired_states = ["running"]
@@ -644,7 +644,7 @@ class ProjectsStore extends Store
 
     wait_until_projects_are_stopped : (opts) =>
         opts = defaults opts,
-            project_ids   : required  # Must have a .includes()
+            project_ids   : required # [Strings..]
             timeout       : 30
             cb            : undefined
         opts.desired_states = ["closed", "closing", "opened", "stopping"]
@@ -657,14 +657,19 @@ class ProjectsStore extends Store
             cb            : undefined
             desired_states : required
 
+        id_map = {}
+        for id in opts.project_ids
+            id_map[id] = true
+
         checker = (store) =>
             return store.get('project_map')
-                .filter (project, id) => opts.project_ids.includes(id)
+                .filter (project, id) => id_map[id]
                 .every (project) => project.getIn(['state', 'state']) in opts.desired_states
         @wait
-            until   : underscore.throttle(checker, 500)
-            timeout : opts.timeout
-            cb      : opts.cb
+            until    : checker
+            throttle : 500
+            timeout  : opts.timeout
+            cb       : opts.cb
 
 
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.

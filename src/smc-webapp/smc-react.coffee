@@ -6,6 +6,7 @@ Question: can we use redux to implement the same API as r.cjsx exports (which wa
 
 async = require('async')
 immutable = require('immutable')
+underscore = require('underscore')
 
 React = require('react')
 
@@ -81,9 +82,12 @@ class Store extends EventEmitter
     # happens call the given callback.
     wait: (opts) =>
         opts = defaults opts,
-            until   : required     # waits until "until(store)" evaluates to something truthy
-            timeout : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
-            cb      : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+            until    : required     # waits until "until(store)" evaluates to something truthy
+            throttle : undefined    # in ms -- throttles the call to until(store)
+            timeout  : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+            cb       : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+        if throttle?
+            opts.until = underscore.throttle(opts.until, throttle)
         # Do a first check to see if until is already true
         x = opts.until(@)
         if x

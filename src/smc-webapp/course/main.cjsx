@@ -503,7 +503,7 @@ init_redux = (course_filename, redux, course_project_id) ->
 
                 set_all_action_status("running")
                 opts =
-                    project_ids : student_project_ids
+                    project_ids : student_project_ids.toJS()
                     cb          : (err, res) => set_all_action_status(err ? "success")
                     timeout     : 6 * student_project_ids.size
 
