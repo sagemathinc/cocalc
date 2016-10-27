@@ -192,7 +192,11 @@ class exports.Connection extends EventEmitter
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
     constructor: (@url) ->
-        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
+        # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
+        # The issue is https://github.com/sagemathinc/smc/issues/1098 and the errors we got are
+        # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
+        @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
+
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
