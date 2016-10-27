@@ -116,7 +116,7 @@ class AccountActions extends Actions
                         @setState(reset_key : '', reset_password_error : '')
 
     sign_out : (everywhere) ->
-        delete localStorage[remember_me]
+        misc.delete_local_storage(remember_me)
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
@@ -209,7 +209,7 @@ class AccountStore extends Store
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-init.user_type = if localStorage[remember_me]? then 'signing_in' else 'public'  # default
+init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 
 # Create and register account table, which gets automatically

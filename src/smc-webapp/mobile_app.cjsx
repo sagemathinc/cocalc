@@ -17,7 +17,7 @@ Sidebar = require('react-sidebar').default
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, SMCLogo, VersionWarning} = require('./app_shared')
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -55,6 +55,7 @@ Page = rclass
             new_version       : rtypes.object
             fullscreen        : rtypes.bool
             cookie_warning    : rtypes.bool
+            local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
         file_use :
             get_notify_count : rtypes.func
@@ -188,6 +189,7 @@ Page = rclass
                 {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
                 {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
                 {<CookieWarning /> if @props.cookie_warning}
+                {<LocalStorageWarning /> if @props.local_storage_warning}
                 {<Navbar id="smc-top-bar" style={margin:'0px'}>
                     {@render_projects_button()}
                     <ProjectsNav dropdown={true} />

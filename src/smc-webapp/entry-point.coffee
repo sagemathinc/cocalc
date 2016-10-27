@@ -23,9 +23,12 @@ require('./jquery_plugins')
 # Initializes app stores, actions, etc.
 require('./init_app')
 
-{IS_MOBILE, isMobile} = require('./feature')
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
+
+# Feature must be loaded before account and anything that might use cookies or localStorage,
+# but after smc-react and the basic app definition.
+{IS_MOBILE, isMobile} = require('./feature')
 
 # Is this terrible for performance? I don't know.
 render = () =>

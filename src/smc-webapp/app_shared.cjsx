@@ -328,23 +328,36 @@ exports.VersionWarning = rclass
             {@render_critical()}
         </div>
 
+warning_styles =
+    position        : 'fixed'
+    left            : 12
+    backgroundColor : 'red'
+    color           : '#fff'
+    top             : 20
+    opacity         : .9
+    borderRadius    : 4
+    padding         : 5
+    marginTop       : '1em'
+    zIndex          : 100000
+    boxShadow       : '8px 8px 4px #888'
+    width           : '70%'
+
 exports.CookieWarning = rclass
     displayName : 'CookieWarning'
 
     render : ->
-        styles =
-            position        : 'fixed'
-            left            : 12
-            backgroundColor : 'red'
-            color           : '#fff'
-            top             : 20
-            opacity         : .6
-            borderRadius    : 4
-            padding         : 5
-            marginTop       : '1em'
-            zIndex          : 1
-            boxShadow       : '8px 8px 4px #888'
-            width           : '70%'
-        <div style={styles}>
+        <div style={warning_styles}>
             <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
+        </div>
+
+misc = require('smc-util/misc')
+storage_warning_style = misc.copy(warning_styles)
+storage_warning_style.top = 55
+
+exports.LocalStorageWarning = rclass
+    displayName : 'LocalStorageWarning'
+
+    render : ->
+        <div style={storage_warning_style}>
+            <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud.  On some browsers you must also disable private browsing mode.
         </div>

@@ -831,6 +831,35 @@ class SyncDoc extends EventEmitter
                     cb()
             )
 
+    # Delete the synchronized string and **all** patches from the database -- basically
+    # delete the complete history of editing this file.
+    # WARNINGS:
+    #   (1) If a project has this string open, then things may be messed up, unless that project is restarted.
+    #   (2) Only available for the admin user right now.
+    # To use: from a javascript console in the browser as admin, you can do:
+    #
+    #   smc.client.sync_string({project_id:'9f2e5869-54b8-4890-8828-9aeba9a64af4', path:'a.txt'}).delete_from_database(console.log)
+    #
+    # Then make sure project and clients refresh.
+    #
+    delete_from_database: (cb) =>
+        async.parallel([
+            (cb) =>
+                @_client.query
+                    query :
+                        patches_delete :
+                            id    : [@_string_id]
+                            dummy : null  # required to force a get query.
+                    cb : cb
+            (cb) =>
+                @_client.query
+                    query :
+                        syncstrings_delete :
+                            project_id : @_project_id
+                            path       : @_path
+                    cb : cb
+        ], (err)=>cb?(err))
+
     _update_if_file_is_read_only: (cb) =>
         @_client.path_access
             path : @_path

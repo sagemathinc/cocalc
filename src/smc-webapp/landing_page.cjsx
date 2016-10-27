@@ -147,11 +147,11 @@ SignIn = rclass
     displayName : "SignIn"
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions       : rtypes.object.isRequired
         sign_in_error : rtypes.string
-        signing_in : rtypes.bool
-        has_account : rtypes.bool
-        xs          : rtypes.bool
+        signing_in    : rtypes.bool
+        has_account   : rtypes.bool
+        xs            : rtypes.bool
 
     componentDidMount : ->
         @actions('page').set_sign_in_func(@sign_in)
@@ -490,20 +490,20 @@ RememberMe = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        actions : rtypes.object.isRequired
-        strategies : rtypes.array
-        sign_up_error : rtypes.object
-        sign_in_error : rtypes.string
-        signing_in : rtypes.bool
-        signing_up : rtypes.bool
-        forgot_password_error : rtypes.string
+        actions                 : rtypes.object.isRequired
+        strategies              : rtypes.array
+        sign_up_error           : rtypes.object
+        sign_in_error           : rtypes.string
+        signing_in              : rtypes.bool
+        signing_up              : rtypes.bool
+        forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string #is this needed?
-        show_forgot_password : rtypes.bool
-        token : rtypes.bool
-        reset_key : rtypes.string
-        reset_password_error : rtypes.string
-        remember_me : rtypes.bool
-        has_account : rtypes.bool
+        show_forgot_password    : rtypes.bool
+        token                   : rtypes.bool
+        reset_key               : rtypes.string
+        reset_password_error    : rtypes.string
+        remember_me             : rtypes.bool
+        has_account             : rtypes.bool
 
     render : ->
         if not @props.remember_me
@@ -519,11 +519,12 @@ exports.LandingPage = rclass
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
-                        <SignIn actions={@props.actions}
-                                     signing_in={@props.signing_in}
-                                     sign_in_error={@props.sign_in_error}
-                                     has_account={@props.has_account}
-                                     xs={true} />
+                        <SignIn
+                            actions       = {@props.actions}
+                            signing_in    = {@props.signing_in}
+                            sign_in_error = {@props.sign_in_error}
+                            has_account   = {@props.has_account}
+                            xs            = {true} />
                         <div style={clear:'both'}></div>
                 </Row>
                 <Row style={fontSize: 3*UNIT,\
@@ -534,11 +535,12 @@ exports.LandingPage = rclass
                                   position:"relative",\
                                   top:12,right:12,float:"right"}
                            className="smc-sign-in-form">
-                          <SignIn actions={@props.actions}
-                                 signing_in={@props.signing_in}
-                                 sign_in_error={@props.sign_in_error}
-                                 has_account={@props.has_account}
-                                 xs={false} />
+                          <SignIn
+                              actions       = {@props.actions}
+                              signing_in    = {@props.signing_in}
+                              sign_in_error = {@props.sign_in_error}
+                              has_account   = {@props.has_account}
+                              xs            = {false} />
                       </div>
                       <span style={display: 'inline-block', \
                                    backgroundImage: "url('#{SMC_ICON_URL}')", \
@@ -576,12 +578,13 @@ exports.LandingPage = rclass
                         <SMC_Commercial />
                     </Col>
                     <Col sm=5>
-                        <SignUp actions={@props.actions}
-                                 sign_up_error={@props.sign_up_error}
-                                 strategies={@props.strategies}
-                                 token={@props.token}
-                                 signing_up={@props.signing_up}
-                                 has_account={@props.has_account} />
+                        <SignUp
+                            actions       = {@props.actions}
+                            sign_up_error = {@props.sign_up_error}
+                            strategies    = {@props.strategies}
+                            token         = {@props.token}
+                            signing_up    = {@props.signing_up}
+                            has_account   = {@props.has_account} />
                     </Col>
                 </Row>
                 <Row>
