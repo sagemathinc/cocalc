@@ -54,6 +54,7 @@ misc_page = require('./misc_page')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
+require('./codemirror/multiplex')
 
 # Ensure the console jquery plugin is available
 require('./console')
@@ -417,11 +418,12 @@ define_codemirror_sagews_mode = () ->
             # be *enormous*, and could take a very very long time, but is
             # a complete waste, since we never see that markup.
             options.push
-                open  : "%"+x[0]
+                open  : "%" + x[0]
+                start : true    # must be at beginning of line
                 close : close
                 mode  : CodeMirror.getMode(config, x[1])
 
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
+        return CodeMirror.smc_multiplexing_mode(CodeMirror.getMode(config, "python"), options...)
 
     ###
     # ATTN: if that's ever going to be re-activated again,

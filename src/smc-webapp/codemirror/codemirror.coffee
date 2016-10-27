@@ -166,6 +166,3 @@ require('codemirror/theme/the-matrix.css')
 require('codemirror/theme/paraiso-dark.css')
 require('codemirror/theme/paraiso-light.css')
 require('codemirror/theme/tomorrow-night-eighties.css')
-
-
-
