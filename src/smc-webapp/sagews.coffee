@@ -139,7 +139,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         @_update_queue_stop = stop
                     @process_sage_update_queue()
 
-
     close: =>
         @execution_queue?.close()
         super()
@@ -165,8 +164,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
 
-    cell: (line) ->
-        return new SynchronizedWorksheetCell(@, line)
+    # Get cell at current line or return undefined if create=false
+    # and there is no complete cell with input and output.
+    cell: (line, create=true) =>
+        {start, end} = @current_input_block(line)
+        if not create
+            cm = @focused_codemirror()
+            if cm.getLine(start)?[0] != MARKERS.cell or cm.getLine(end)?[0] != MARKERS.output
+                return
+        return new SynchronizedWorksheetCell(@, start, end)
         # CRITICAL: We do **NOT** cache cells.  The reason is that client code should create
         # a cell for a specific purpose then forget about it as soon as that is done!!!
         # The reason is that at any time new input cell lines can be added in the
@@ -177,16 +183,18 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     # Return list of all cells that are touched by the current selection
     # or contain any cursors.
-    get_current_cells: =>
+    get_current_cells: (create=true) =>
         cm = @focused_codemirror()
         cells = []
         top = undefined
         process_line = (n) =>
             if not top? or n < top
-                cell = @cell(n)
-                cells.push(cell)
-                top = cell.start_line()
-        for sel in cm.listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
+                cell = @cell(n, create)
+                if cell?
+                    cells.push(cell)
+                    top = cell.start_line()
+        # "These [selections] will always be sorted, and never overlap (overlapping selections are merged)."
+        for sel in cm.listSelections().reverse()
             n = sel.anchor.line; m = sel.head.line
             if n == m
                 process_line(n)
@@ -1869,7 +1877,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if opts.pos?
                 cells = [@cell(opts.pos.line)]
             else
-                cells = @get_current_cells()
+                create = opts.execute
+                cells = @get_current_cells(create)
             for cell in cells
                 cell.action
                     execute       : opts.execute
@@ -2320,10 +2329,9 @@ class ExecutionQueue
         @_exec(x)
 
 class SynchronizedWorksheetCell
-    constructor: (@doc, line) ->
+    constructor: (@doc, start, end) ->
         # Determine input and end lines of the cell that contains the given line, and
         # the corresponding uuid's.
-        {start, end} = @doc.current_input_block(line)
         @cm = @doc.focused_codemirror()
 
         # Input
