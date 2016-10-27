@@ -1,3 +1,5 @@
+# Library file for SMC webapp
+
 # These old-school JS files need to be on top, otherwise dependency issues arise
 # (e.g. minified jquery isn't properly being detected, etc.)
 

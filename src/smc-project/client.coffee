@@ -457,11 +457,12 @@ class exports.Client extends EventEmitter
         @_file_io_lock ?= {}
         dbg = @dbg("write_file(path='#{opts.path}')")
         dbg()
-        if @_file_io_lock[path]?
+        now = new Date()
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
             dbg("LOCK")
-            opts.cb("file is currently being read or written")
+            opts.cb("write_file -- file is currently being read or written")
             return
-        @_file_io_lock[path] = true
+        @_file_io_lock[path] = now
         dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>
@@ -489,11 +490,14 @@ class exports.Client extends EventEmitter
         dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
         dbg()
         @_file_io_lock ?= {}
-        if @_file_io_lock[path]?
+
+        now = new Date()
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
             dbg("LOCK")
-            opts.cb("file is currently being read or written")
+            opts.cb("path_read -- file is currently being read or written")
             return
-        @_file_io_lock[path] = true
+        @_file_io_lock[path] = now
+
         dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>

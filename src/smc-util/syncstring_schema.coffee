@@ -99,6 +99,25 @@ schema.syncstrings =
 
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)
 
+schema.syncstrings_delete  =
+    primary_key : schema.syncstrings.primary_key
+    virtual     : 'syncstrings'
+    fields      : schema.syncstrings.fields
+    user_query:
+        set :  # use set query since selecting only one record by its primary key
+            admin   : true   # only admins can do get queries on this virtual table
+            delete  : true   # allow deletes
+            options : [{delete:true}]   # always delete when doing set on this table, even if not explicitly requested
+            fields  :
+                string_id  : (obj, db) -> db.sha1(obj.project_id, obj.path)
+                project_id : true
+                path       : true
+            required_fields :
+                project_id : true
+                path       : true
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                db._syncstrings_check(obj, account_id, project_id, cb)
+
 schema.recent_syncstrings_in_project =
     primary_key : schema.syncstrings.primary_key
     virtual     : 'syncstrings'
@@ -129,9 +148,9 @@ schema.recent_syncstrings_in_project =
 schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
 schema.patches =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time]
-    unique_writes: true   # there is no reason for a user to write exactly the same record twice
-    fields:
+    primary_key   : 'id'  # this is a compound primary key as an array -- [string_id, time]
+    unique_writes : true   # there is no reason for a user to write exactly the same record twice
+    fields :
         id       :
             type : 'compound key [string_id, time]'
             desc : 'Primary key'
@@ -150,7 +169,7 @@ schema.patches =
         prev :
             type : 'timestamp'
             desc : "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied."
-    user_query:
+    user_query :
         get :
             all :
                 cmd : 'between'
@@ -194,6 +213,28 @@ schema.patches =
                 cb()
 
 schema.patches.project_query = schema.patches.user_query
+
+# Table to be used for deleting the patches associated to a syncstring.
+# Currently only allowed by admin.
+schema.patches_delete  =
+    primary_key : schema.patches.primary_key
+    virtual     : 'patches'
+    fields      : schema.patches.fields
+    user_query:
+        get :  # use get query since selecting a range of records for deletion
+            all :
+                cmd     : 'between'
+                args    : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval], [obj.id[0], db.r.maxval]]
+                options : [{delete:true}]   # always delete
+            admin  : true
+            delete : true
+            fields :
+                id   : 'null'
+                dummy : null
+            check_hook : (db, obj, account_id, project_id, cb) ->
+                # this verifies that user has read access to these patches -- redundant with admin requirement above.
+                db._user_get_query_patches_check(obj, account_id, project_id, cb)
+
 
 schema.cursors =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]

@@ -137,11 +137,12 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
             .attr('src', "#{@server_url}#{@filename}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
         @element.html('').append(@iframe)
+        @iframe.maxheight()
         # wait until connected -- it is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
@@ -163,6 +164,8 @@ class JupyterWrapper extends EventEmitter
                 # to that event until events loads, and by then we may have missed the one event.
                 # Also, I've observed that @frame.IPython.notebook._fully_loaded does not imply the
                 # kernels are connected.
+                if @frame?.IPython?.notebook?
+                    @monkey_patch_frame()
                 if @frame?.IPython?.notebook?.kernel?.is_connected() and @frame.IPython.notebook._fully_loaded
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
@@ -182,14 +185,14 @@ class JupyterWrapper extends EventEmitter
                         @dirty_interval = setInterval(@check_dirty, 250)
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
-                    @monkey_patch_frame()
                     @disable_autosave()
                     @state = 'ready'
                     @emit('ready')
                     cb()
                 else
                     console.log 'Jupyter -- not yet fully connected'
-                    setTimeout(f, 1000)
+                    if @state != 'closed'
+                        setTimeout(f, 1000)
         f()
 
     dbg: (f) =>
@@ -217,6 +220,9 @@ class JupyterWrapper extends EventEmitter
         @nb.set_autosave_interval(0)
 
     monkey_patch_frame: () =>
+        if @_already_monkey_patched
+            return
+        @_already_monkey_patched = true
         misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
         misc_page.cm_define_testbot(@frame.CodeMirror)
         @monkey_patch_logo()
@@ -660,6 +666,8 @@ class JupyterWrapper extends EventEmitter
         return stringify(obj)
 
     save_blob: (blob, to_db) =>
+        if not @blobs?
+            return
         id = misc.uuidsha1(blob)
         if @blobs[id]
             return id
@@ -680,6 +688,8 @@ class JupyterWrapper extends EventEmitter
         return id
 
     load_blob: (id) =>
+        if not @blobs?
+            return
         blob = @blobs[id]
         if blob?
             return blob
@@ -692,7 +702,7 @@ class JupyterWrapper extends EventEmitter
                         id   : id
                         blob : null
                 cb: (err, resp) =>
-                    if @state == 'closed'
+                    if @state == 'closed' or not @blobs?
                         return
                     delete @blobs_pending[id]
                     if err
@@ -869,7 +879,7 @@ class JupyterNotebook extends EventEmitter
                     cb       : cb
             (cb) =>
                 console.log 'Jupyter: loading iframe'
-                @notebook.css('opacity',0.5)
+                @notebook.css('opacity',0.75)
                 done = (err) =>
                     @notebook.css('opacity',1)
                     if err

@@ -82,7 +82,16 @@ def command():
         ipython = "sage -ipython"
     else:
         ipython = "ipython"
-    cmd = ipython+ " notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
+
+    # --NotebookApp.iopub_data_rate_limit=<Float>
+    #     Default: 0
+    #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
+    #     are limited.
+    # --NotebookApp.iopub_msg_rate_limit=<Float>
+    #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
+    #     are limited.
+
+    cmd = ipython+ " notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=1000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 

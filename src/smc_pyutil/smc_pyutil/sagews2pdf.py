@@ -317,7 +317,7 @@ class Parser(HTMLParser.HTMLParser):
                     filename = base+'.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
-                self.result += '\\includegraphics[resolution=120]{%s}\n'%filename
+                self.result += '\\includegraphics[resolution=120]{%s}'%filename
             else:
                 # fallback, because there is no src='...'
                 self.result += '\\verbatim{image: %s}' % str(attrs)
