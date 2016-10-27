@@ -59,7 +59,7 @@ class exports.LatexEditor extends editor.FileEditor
         n = @filename.length
 
         # The pdf preview.
-        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:200})
+        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:@get_resolution()})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
@@ -259,8 +259,8 @@ class exports.LatexEditor extends editor.FileEditor
             return false
 
         @element.find("a[href=\"#zoom-preview-out\"]").click () =>
-            @preview.zoom(delta:-5)
-            @set_conf(zoom_width:@preview.zoom_width)
+            @preview.zoom(delta: -5)
+            @set_conf(zoom_width: @preview.zoom_width)
             return false
 
         @element.find("a[href=\"#zoom-preview-in\"]").click () =>
@@ -356,16 +356,19 @@ class exports.LatexEditor extends editor.FileEditor
         else
             try
                 res = parseInt(res)
-                if res < 150
-                    res = 150
+                if res < 75
+                    res = 75
                 else if res > 600
                     res = 600
                 @preview.opts.resolution = res
+                @set_conf(resolution : res)
                 @preview.update()
             catch e
                 alert_message(type:"error", message:"Invalid resolution #{res}")
 
     get_resolution: () =>
+        if not @preview?
+            return @load_conf()['resolution'] ? 150
         return @preview.opts.resolution
 
     # This function isn't called on save button click since
@@ -593,12 +596,12 @@ class exports.LatexEditor extends editor.FileEditor
         if not mesg.line
             if mesg.page
                 @_inverse_search
-                    n : mesg.page
-                    active : false
-                    x : 50
-                    y : 50
-                    resolution:200
-                    cb: cb
+                    n          : mesg.page
+                    active     : false
+                    x          : 50
+                    y          : 50
+                    resolution : @get_resolution()
+                    cb         : cb
             else
                 alert_message(type:"error", "Unknown location in '#{file}'.")
                 cb?()
@@ -620,7 +623,6 @@ class exports.LatexEditor extends editor.FileEditor
                 @forward_search(active:true)
 
     render_error_message: (mesg) =>
-
         if not mesg.line
             r = mesg.raw
             i = r.lastIndexOf('[')
@@ -629,7 +631,7 @@ class exports.LatexEditor extends editor.FileEditor
                 j += 1
             mesg.page = r.slice(i+1,j)
 
-        if mesg.file.slice(0,2) == './'
+        if mesg.file?.slice(0,2) == './'
             mesg.file = mesg.file.slice(2)
 
         elt = @_error_message_template.clone().show()
