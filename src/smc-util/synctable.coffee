@@ -210,6 +210,7 @@ class SyncTable extends EventEmitter
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
+        # console.log "synctable.SyncTable EventListeners.listenerCount('disconnected')", @_client.listenerCount('disconnected')
 
         return
 
