@@ -1,3 +1,5 @@
+# standard non-SMC libraries
+immutable = require('immutable')
 
 # SMC libraries
 misc = require('smc-util/misc')
@@ -11,9 +13,118 @@ schema = require('smc-util/schema')
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
 # SMC Components
-{Calendar, Icon, LabeledRow, Loading, MarkdownInput,
+{Calendar, Icon, LabeledRow, Loading, MarkdownInput, NoUpgrades
      Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
-{NoUpgrades} = require('../project_settings')
+
+StudentProjectsStartStopPanel = rclass ({name}) ->
+    displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
+
+    reduxProps :
+        "#{name}" :
+            action_all_projects_status : rtypes.immutable.Map
+
+    propTypes :
+        num_running_projects : rtypes.number
+        num_students         : rtypes.number
+
+    getDefaultProps : ->
+        action_all_projects_status : immutable.Map({})
+
+    getInitialState : ->
+        confirm_stop_all_projects       : false
+        confirm_start_all_projects      : false
+
+    render_in_progress_action : ->
+        action_name = @props.action_all_projects_status.get('action')
+        switch action_name
+            when "stop"
+                bsStyle = 'warning'
+            else
+                bsStyle = 'info'
+
+        <Alert bsStyle=bsStyle>
+            {misc.capitalize(action_name)} all projects in progress... <Icon name='circle-o-notch' spin />
+        </Alert>
+
+    render_error_occurred : ->
+        <Alert bsStyle='warning'>
+            {misc.capitalize(@props.action_all_projects_status.get('action'))} all projects timed out.
+            Please report error this if the problem persists.
+        </Alert>
+
+    render_confirm_stop_all_projects: ->
+        <Alert bsStyle='warning'>
+            Are you sure you want to stop all student projects (this might be disruptive)?
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@actions(@props.name).action_all_student_projects('stop')}>
+                    <Icon name='hand-stop-o'/> Stop all
+                </Button>
+                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render_confirm_start_all_projects: ->
+        <Alert bsStyle='info'>
+            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
+            open them.
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@actions(@props.name).action_all_student_projects('start')}>
+                    <Icon name='flash'/> Start all
+                </Button>
+                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    disable_both_buttons : (r, n) ->
+        return n == 0 or @props.action_all_projects_status.get('status') == "running"
+
+    render : ->
+        r = @props.num_running_projects
+        n = @props.num_students
+        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
+            <Row>
+                <Col md=9>
+                    {r} of {n} student projects currently running.
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_start_all_projects:true)}
+                            disabled={@disable_both_buttons(r, n) or n==r or @state.confirm_start_all_projects}
+                        >
+                            <Icon name="flash"/> Start all...
+                        </Button>
+                        <Button onClick={=>@setState(confirm_stop_all_projects:true)}
+                            disabled={@disable_both_buttons(r, n) or r==0 or @state.confirm_stop_all_projects}
+                        >
+                            <Icon name="hand-stop-o"/> Stop all...
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
+                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
+                    {@render_in_progress_action() if @props.action_all_projects_status.get('status') == "running"}
+                    {@render_error_occurred() if @props.action_all_projects_status.get('status') == "timeout"}
+                </Col>
+            </Row>
+            <hr/>
+            <span style={color:'#666'}>
+                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
+            </span>
+        </Panel>
+
 
 exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
@@ -32,8 +143,6 @@ exports.SettingsPanel = rclass
         show_students_pay_dialog        : false
         students_pay_when               : @props.settings.get('pay')
         students_pay                    : !!@props.settings.get('pay')
-        confirm_stop_all_projects       : false
-        confirm_start_all_projects      : false
 
     ###
     # Editing title/description
@@ -236,63 +345,11 @@ exports.SettingsPanel = rclass
     render_start_all_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
-        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
-            <Row>
-                <Col md=9>
-                    {r} of {n} student projects currently running.
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_start_all_projects:true)} disabled={n==r or n==0 or @state.confirm_start_all_projects}><Icon name="flash"/> Start all...</Button>
-                        <Button onClick={=>@setState(confirm_stop_all_projects:true)} disabled={r==0 or n==0 or @state.confirm_stop_all_projects}><Icon name="hand-stop-o"/> Stop all...</Button>
-                    </ButtonToolbar>
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
-                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
-                </Col>
-            </Row>
-            <hr/>
-            <span style={color:'#666'}>
-                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
-            </span>
-        </Panel>
-
-    render_confirm_stop_all_projects: ->
-        <Alert bsStyle='warning'>
-            Are you sure you want to stop all student projects (this might be disruptive)?
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@action_all_student_projects('stop')}>
-                    <Icon name='hand-stop-o'/> Stop all
-                </Button>
-                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
-    render_confirm_start_all_projects: ->
-        <Alert bsStyle='info'>
-            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
-            open them.
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@action_all_student_projects('start')}>
-                    <Icon name='flash'/> Start all
-                </Button>
-                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
+        <StudentProjectsStartStopPanel
+            name                 = {@props.name}
+            num_running_projects = {r}
+            num_students         = {n}
+        />
 
     render_delete_all_projects: ->
         <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
@@ -331,9 +388,6 @@ exports.SettingsPanel = rclass
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
-
-    action_all_student_projects: (action) ->
-        @actions(@props.name).action_all_student_projects(action)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">

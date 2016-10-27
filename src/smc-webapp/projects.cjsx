@@ -38,7 +38,6 @@ markdown = require('./markdown')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
-{UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 {UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {redux_name} = require('project_store')
@@ -634,6 +633,39 @@ class ProjectsStore extends Store
                     v[project_id] = upgrades
                     break
         return v
+
+    wait_until_projects_are_running : (opts) =>
+        opts = defaults opts,
+            project_ids   : required  # Must have a .includes()
+            timeout       : 30
+            cb            : undefined
+        opts.desired_states = ["running"]
+        @_wait_until_projects_are_one_of_states(opts)
+
+    wait_until_projects_are_stopped : (opts) =>
+        opts = defaults opts,
+            project_ids   : required  # Must have a .includes()
+            timeout       : 30
+            cb            : undefined
+        opts.desired_states = ["closed", "closing", "opened", "stopping"]
+        @_wait_until_projects_are_one_of_states(opts)
+
+    _wait_until_projects_are_one_of_states : (opts) =>
+        opts = defaults opts,
+            project_ids   : required
+            timeout       : 30
+            cb            : undefined
+            desired_states : required
+
+        checker = (store) =>
+            return store.get('project_map')
+                .filter (project, id) => opts.project_ids.includes(id)
+                .every (project) => project.getIn(['state', 'state']) in opts.desired_states
+        @wait
+            until   : underscore.throttle(checker, 500)
+            timeout : opts.timeout
+            cb      : opts.cb
+
 
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =

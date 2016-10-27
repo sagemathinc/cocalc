@@ -287,7 +287,6 @@ init_redux = (course_filename, redux, course_project_id) ->
         # item_name should be one of
         # ['student', 'assignment', handout']
         toggle_item_expansion: (item_name, item_id) =>
-            console.log("Toggling a", item_name, "with id", item_id)
             store = get_store()
             return if not store?
             field_name = "expanded_#{item_name}s"
@@ -485,12 +484,34 @@ init_redux = (course_filename, redux, course_project_id) ->
         action_all_student_projects: (action) =>
             if action not in ['start', 'stop', 'restart']
                 throw Error("action must be start, stop or restart")
-            get_store()?.get_students().map (student, student_id) =>
-                if not student.get('deleted')
-                    # really only start non-deleted students' projects
-                    student_project_id = student.get('project_id')
-                    if student_project_id?
-                        redux.getActions('projects')[action+"_project"](student_project_id)
+            student_project_ids = get_store()?.get_students()
+                .filter (student) =>
+                    not student.get('deleted') and student.get('project_id')?
+                .map (student) =>
+                    student.get('project_id')
+                .toList()
+
+            if student_project_ids?
+                student_project_ids.map (project_id) =>
+                    redux.getActions('projects')[action+"_project"](project_id)
+
+                set_all_action_status = (status) =>
+                    @setState
+                        action_all_projects_status :
+                            action : action
+                            status : status
+
+                set_all_action_status("running")
+                opts =
+                    project_ids : student_project_ids
+                    cb          : (err, res) => set_all_action_status(err ? "success")
+                    timeout     : 6 * student_project_ids.size
+
+                if action in ['start', 'restart']
+                    redux.getStore('projects').wait_until_projects_are_running(opts)
+                else if action == 'stop'
+                    redux.getStore('projects').wait_until_projects_are_stopped(opts)
+
             @action_shared_project(action)
 
         set_all_student_project_titles: (title) =>

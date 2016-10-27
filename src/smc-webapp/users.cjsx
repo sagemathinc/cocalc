@@ -32,20 +32,21 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
-        salvus_client.get_usernames
-            account_ids : [account_id]
-            use_cache   : false
-            cb          : (err, x) =>
-                if err
-                    console.warn("ERROR getting username for account with id '#{account_id}'")
-                else
-                    obj = x[account_id]
-                    if obj?
-                        obj.account_id = account_id
-                        user_map = store.get('user_map')
-                        if user_map? and not user_map.get(account_id)?
-                            user_map = user_map.set(account_id, immutable.fromJS(obj))
-                            @setState(user_map : user_map)
+        if account_id?
+            salvus_client.get_usernames
+                account_ids : [account_id]
+                use_cache   : false
+                cb          : (err, x) =>
+                    if err
+                        console.warn("ERROR getting username for account with id '#{account_id}'")
+                    else
+                        obj = x[account_id]
+                        if obj?
+                            obj.account_id = account_id
+                            user_map = store.get('user_map')
+                            if user_map? and not user_map.get(account_id)?
+                                user_map = user_map.set(account_id, immutable.fromJS(obj))
+                                @setState(user_map : user_map)
 
 actions = redux.createActions('users', UsersActions)
 
