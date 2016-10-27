@@ -130,15 +130,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         # if you want to try to make this resizable
         @editor.show()  # updates editor width
         @editor.emit 'show-chat'
-        #@render_chat_log()
-        chat_height = @element.height() + 2 - @element.find(".salvus-editor-codemirror-button-row").height() - 70
+
+        # The height of the chat log should be the difference between the window height and the nav bar, file tabs, button row, and chat input box.
+        chat_height = $(document).height() - $(".navbar").height() - $(".smc-file-tabs").height() - @element.find(".salvus-editor-codemirror-button-row").height() - 63
 
         @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
 
         height_resize = () =>
-            chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
-            side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-        $(window).on("resize", height_resize)
+            chat_height = $(document).height() - $(".navbar").height() - $(".smc-file-tabs").height() - @element.find(".salvus-editor-codemirror-button-row").height() - 63
+            @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
+        $(window).resize(height_resize)
 
     hide_chat_window: () =>
         # HIDE the chat window

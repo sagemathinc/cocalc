@@ -1545,6 +1545,12 @@ class CodeMirrorEditor extends FileEditor
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
 
+        # changes the width on resize change
+        width_resize = () =>
+            width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
+            @_show_codemirror_editors(cm_height, width)
+        $(window).resize(width_resize)
+
         @chat_elt = @element.find(".salvus-editor-codemirror-chat")
 
 #         if chat
