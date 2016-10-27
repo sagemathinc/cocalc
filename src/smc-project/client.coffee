@@ -459,7 +459,7 @@ class exports.Client extends EventEmitter
         dbg()
         if @_file_io_lock[path]?
             dbg("LOCK")
-            opts.cb("file is currently being read or written")
+            opts.cb("write_file -- file is currently being read or written")
             return
         @_file_io_lock[path] = true
         dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
@@ -491,7 +491,7 @@ class exports.Client extends EventEmitter
         @_file_io_lock ?= {}
         if @_file_io_lock[path]?
             dbg("LOCK")
-            opts.cb("file is currently being read or written")
+            opts.cb("path_read -- file is currently being read or written")
             return
         @_file_io_lock[path] = true
         dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
