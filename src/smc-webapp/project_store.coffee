@@ -1150,6 +1150,9 @@ class ProjectStore extends Store
     get_open_files: =>
         return @get('open_files')
 
+    is_file_open: (path) =>
+        return @getIn(['open_files', path])?
+
     get_open_files_order: =>
         return @get('open_files_order')
 
