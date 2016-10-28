@@ -656,6 +656,7 @@ class FileEditor extends EventEmitter
 
         @element.show()
         # if above line reveals it, give it a bit time to do the layout first
+        @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
         window?.smc?.doc = @  # useful for debugging...
 
