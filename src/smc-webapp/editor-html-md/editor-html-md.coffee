@@ -1,6 +1,25 @@
-#############################################
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014--2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
 # Editor for HTML/Markdown/ReST documents
-#############################################
+##############################################################################
 
 _               = require('underscore')
 async           = require('async')
@@ -18,9 +37,7 @@ editor          = require('../editor')
 
 {redux}         = require('../smc-react')
 
-
 templates       = $("#salvus-editor-templates")
-
 
 class exports.HTML_MD_Editor extends editor.FileEditor
     constructor: (@project_id, @filename, content, @opts) ->
@@ -617,9 +634,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             width = chat_pos.left
 
         {top, left} = @element.offset()
-        editor_width = (width - left)*@_split_pos
+        editor_width = (width - left) * @_split_pos
 
-        @_dragbar.css('left',editor_width+left)
+        @_dragbar.css('left', editor_width + left)
 
         # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
 
@@ -627,13 +644,16 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             width : editor_width
             top   : top + @edit_buttons.height()
 
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         @element.maxheight(offset:button_bar_height)
         @preview.maxheight(offset:button_bar_height)
 
+        # offset from the top of the container for the preview on the right and the dragbar
+        top_offset = @edit_buttons.height() + button_bar_height + 2
+
         @_dragbar.height(@source_editor.element.height())
         @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
-        @_dragbar.css('top', "#{@edit_buttons.height() + button_bar_height + 9}px") # +9 is not good
+        @_dragbar.css(top: "#{top_offset}px")
 
         # position the preview
         @preview.offset
@@ -642,7 +662,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @preview.css
             left  : editor_width + left + 7
             width : width - (editor_width + left + 7)
-            top   : "#{@edit_buttons.height() + button_bar_height + 15}px"
+            top   : "#{top_offset}px"
 
         @preview.scrollTop(@preview_scroll_position)
 
