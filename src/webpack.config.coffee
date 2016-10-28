@@ -90,6 +90,7 @@ glob          = require('glob')
 child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
+program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
 
@@ -105,6 +106,7 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 date          = new Date()
@@ -307,6 +309,7 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'SMC_GIT_REV' : JSON.stringify(GIT_REV)
                                 'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'    : JSON.stringify(BUILD_TS)
+                                'DEBUG'       : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.

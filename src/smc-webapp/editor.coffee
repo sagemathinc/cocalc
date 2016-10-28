@@ -1845,7 +1845,7 @@ remove_tmp_dir = (opts) ->
             cb?(err)
 
 
-# Class that wraps "a remote latex doc with PDF preview":
+# Class that wraps "a remote latex doc with PDF preview"
 class PDFLatexDocument
     constructor: (opts) ->
         opts = defaults opts,
@@ -1866,7 +1866,7 @@ class PDFLatexDocument
             @path = './'
         @filename_tex  = s.tail
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
-        @filename_pdf  =  @base_filename + '.pdf'
+        @filename_pdf  = @base_filename + '.pdf'
 
     dbg: (mesg) =>
         #console.log("PDFLatexDocument: #{mesg}")
@@ -2319,7 +2319,8 @@ class PDFLatexDocument
         )
 
 # FOR debugging only
-exports.PDFLatexDocument = PDFLatexDocument
+if require('feature').DEBUG
+    exports.PDFLatexDocument = PDFLatexDocument
 
 class PDF_Preview extends FileEditor
     constructor: (@project_id, @filename, contents, opts) ->

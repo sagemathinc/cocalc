@@ -83,3 +83,7 @@ exports.get_mobile = () ->
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
+# usually injected by webpack based on '--debug' cmd line parameter, except for static renderings
+exports.DEBUG = DEBUG ? false
+if exports.DEBUG
+    console.log "DEBUG MODE:", exports.DEBUG
