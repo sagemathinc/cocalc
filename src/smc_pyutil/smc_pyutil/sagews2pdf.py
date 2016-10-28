@@ -357,6 +357,8 @@ def sanitize_math_input(s):
     return tmp
 
 def reconstruct_math(s, tmp):
+    print "s ='%r'"%s
+    print "tmp = '%r'"%tmp
     from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
