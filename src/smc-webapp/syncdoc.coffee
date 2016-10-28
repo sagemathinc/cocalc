@@ -304,6 +304,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+
+        if @filename[0] == '/'
+            # uses symlink to '/', which is created by start_smc
+            @filename = '.smc/root' + @filename
+
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = salvus_client.sync_string
             id         : id

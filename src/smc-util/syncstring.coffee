@@ -501,8 +501,10 @@ class SyncDoc extends EventEmitter
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
+
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
+
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
