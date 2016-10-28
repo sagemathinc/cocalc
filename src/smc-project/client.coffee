@@ -35,7 +35,6 @@ fs     = require('fs')
 {EventEmitter} = require('events')
 
 async   = require('async')
-{Gaze}  = require('gaze')
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -577,47 +576,35 @@ class exports.Client extends EventEmitter
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
 
-    # Watch for changes to the given file.
-    # We can only watch if the file exists when this function is called, though subsequent
-    # delete and recreate does work.
-    # See https://github.com/shama/gaze.
-    #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
-    #    - 'error' (err)             - When error occurs
-    # and a method .close()
+    # Watch for changes to the given file.  Returns obj, which
+    # is an event emitter with events:
+    #
+    #    - 'change' - when file changes or is created
+    #    - 'delete' - when file is deleted
+    #
+    # and a method .close().
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
-            debounce : 500
-            cb       : required
+            interval : 3000       # polling interval in ms
         path = require('path').join(process.env.HOME, opts.path)
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
-        gaze_obj = undefined
-        async.series([
-            (cb) =>
-                @path_exists
-                    path : path
-                    cb   : (err, exists) =>
-                        if err
-                            cb(err)
-                        else if not exists
-                            cb("path '#{path}' must exist in order to watch it")
-                        else
-                            cb()
-            (cb) =>
-                #gaze_obj = new Gaze(path, {debounceDelay:opts.debounce, interval:2500, mode:'poll'})
-                gaze_obj = new Gaze(path, {debounceDelay:opts.debounce})
-                gaze_obj.on 'error', (err) =>
-                    dbg("error #{err}")
-                    cb?(err)
-                    cb = undefined  # gave may even error more than once, maybe (?)
-                gaze_obj.on 'ready', () =>
-                    dbg("ready")
-                    cb?()
-                    cb = undefined  # gaze may emit ready more than once -- I've seen this (seems stupid but happened.)
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, gaze_obj)
-        )
+        return new Watcher(path, opts.interval)
+
+class Watcher extends EventEmitter
+    constructor: (@path, @debounce, @interval) ->
+        fs.watchFile(@path, {interval: @interval}, @listen)
+
+    close : () =>
+        @removeAllListeners()
+        fs.unwatchFile(@path, @listener)
+
+    listen: (curr, prev) =>
+        if curr.dev == 0
+            @emit 'delete'
+        else
+            @emit 'change'
+
+
+
