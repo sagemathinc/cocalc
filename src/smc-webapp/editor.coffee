@@ -40,7 +40,7 @@ message = require('smc-util/message')
 
 profile = require('./profile')
 
-_ = require('underscore')
+_ = underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
@@ -565,6 +565,7 @@ templates = $("#salvus-editor-templates")
 
 class FileEditor extends EventEmitter
     constructor: (@project_id, @filename, content, opts) ->
+        @_show = underscore.debounce(@_show, 50)
         @val(content)
 
     show_chat_window: () =>
@@ -647,20 +648,15 @@ class FileEditor extends EventEmitter
                 opts = {}
         @_last_show_opts = opts
 
-        # OPTIMIZATION: fix this performance update for active shows
-        #if not @is_active?()
-        #    return
-
-        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
-        # the last call before doing the show.
-        now = misc.mswalltime()
-        if @_last_call? and now - @_last_call < 500
-            if not @_show_timer?
-                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
+        # only re-render the editor if it is active. that's crucial, because e.g. the autosave
+        # of latex triggers a build, which in turn calls @show to update itself. that would cause
+        # the latex editor to be visible despite not being the active editor.
+        if not @is_active?()
             return
-        @_last_call = now
+
         @element.show()
-        @_show(opts)
+        # if above line reveals it, give it a bit time to do the layout first
+        setTimeout((=> @_show(opts)), 10)
         window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
@@ -2544,7 +2540,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;min-height:3em;border:1px solid grey;' class='salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->

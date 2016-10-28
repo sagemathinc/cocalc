@@ -422,12 +422,12 @@ class exports.LatexEditor extends editor.FileEditor
             width = chat_pos.left
 
         {top, left} = @element.offset()
-        editor_width = (width - left)*@_split_pos
+        editor_width = (width - left) * @_split_pos
 
-        @_dragbar.css('left',editor_width+left)
+        @_dragbar.css('left', editor_width + left)
         @latex_editor.show(width:editor_width)
 
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
 
         @_right_pane_position =
             start : editor_width + left + 7
@@ -440,7 +440,8 @@ class exports.LatexEditor extends editor.FileEditor
         else
             @show_page()
 
-        @_dragbar.height(@latex_editor.element.height()).css('top', button_bar_height+2)
+        @_dragbar.height(@latex_editor.element.height())
+        @_dragbar.css('top', button_bar_height + 2)
 
     focus: () =>
         @latex_editor?.focus()
@@ -500,6 +501,7 @@ class exports.LatexEditor extends editor.FileEditor
             cb      : undefined
         button = @element.find("a[href=\"#log\"]")
         button.icon_spin(true)
+        @_show() # update layout, since showing spinner might cause a linebreak in the button bar
         log_output = @log.find("textarea")
         log_output.text("")
         if not opts.command?
@@ -524,6 +526,7 @@ class exports.LatexEditor extends editor.FileEditor
             latex_command : opts.command
             cb            : (err, log) =>
                 button.icon_spin(false)
+                @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
     render_error_page: () =>
