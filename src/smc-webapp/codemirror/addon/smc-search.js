@@ -162,6 +162,21 @@ function doSearch(cm, rev, persistent, immediate) {
   }
 }
 
+/* Return true if the given position is part of a collapsed mark.
+   See https://github.com/sagemathinc/smc/issues/522
+   We need this since codemirror's own search doesn't ignore
+   collapsed ranges, e.g., the output in sage worksheets.
+*/
+function isCollapsedPos(cm, pos) {
+  var marks = cm.findMarksAt(pos);
+  for(var i=0; i<marks.length; i++) {
+    if(marks[i].collapsed) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function findNext(cm, rev, callback) {cm.operation(function() {
   var state = getSearchState(cm);
   var cursor = getSearchCursor(cm, state.query, rev ? state.posFrom : state.posTo);
@@ -172,6 +187,12 @@ function findNext(cm, rev, callback) {cm.operation(function() {
   cm.setSelection(cursor.from(), cursor.to());
   cm.scrollIntoView({from: cursor.from(), to: cursor.to()}, 20);
   state.posFrom = cursor.from(); state.posTo = cursor.to();
+  if (isCollapsedPos(cm, state.posFrom)) {
+      /* In a collapsed range -- just try again.  This won't lead to an infinite loop in case
+         of no patches, since that's handled by the "if (!cursor.find(rev))" above. */
+      findNext(cm, rev, callback);
+      return
+  }
   if (callback) callback(cursor.from(), cursor.to())
 });}
 
