@@ -50,12 +50,6 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
             {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
         </Alert>
 
-    render_error_occurred : ->
-        <Alert bsStyle='warning'>
-            {misc.capitalize(@props.action_all_projects_state)}
-            Please report error this if the problem persists.
-        </Alert>
-
     render_confirm_stop_all_projects: ->
         <Alert bsStyle='warning'>
             Are you sure you want to stop all student projects (this might be disruptive)?

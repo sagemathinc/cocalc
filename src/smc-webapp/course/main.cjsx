@@ -513,7 +513,6 @@ init_redux = (course_filename, redux, course_project_id) ->
             else if action == 'stop'
                 @setState(action_all_projects_state : "stopping")
 
-
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')
             get_store()?.get_students().map (student, student_id) =>
