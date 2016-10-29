@@ -82,12 +82,12 @@ class Store extends EventEmitter
     # happens call the given callback.
     wait: (opts) =>
         opts = defaults opts,
-            until    : required     # waits until "until(store)" evaluates to something truthy
-            throttle : undefined    # in ms -- throttles the call to until(store)
-            timeout  : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
-            cb       : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
-        if throttle?
-            opts.until = underscore.throttle(opts.until, throttle)
+            until       : required     # waits until "until(store)" evaluates to something truthy
+            throttle_ms : undefined    # in ms -- throttles the call to until(store)
+            timeout     : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+            cb          : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+        if opts.throttle_ms?
+            opts.until = underscore.throttle(opts.until, opts.throttle_ms)
         # Do a first check to see if until is already true
         x = opts.until(@)
         if x
