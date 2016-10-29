@@ -1085,8 +1085,11 @@ class CodeMirrorEditor extends FileEditor
                 that.click_edit_button($(@).data('name'))
                 return false
 
+        # FIXME: removing the button here is pointless, since it will be added later again (somewhere)
         # FUTURE: implement printing for other file types
-        if @filename.slice(@filename.length-7) != '.sagews'
+        is_sagews = @filename.slice(@filename.length-7) != '.sagews'
+        is_tex    = @filename.slice(@filename.length-4) != '.tex'
+        if not (is_sagews or is_tex)
             @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>

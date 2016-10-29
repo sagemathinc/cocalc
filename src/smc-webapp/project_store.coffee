@@ -862,6 +862,7 @@ class ProjectActions extends Actions
             path    : required
             log     : false
             auto    : true
+            print   : false
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
         if opts.log
@@ -874,10 +875,12 @@ class ProjectActions extends Actions
             opts.auto = false
 
         url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
-        if opts.auto
+        if opts.auto and not opts.print
             download_file(url)
         else
-            window.open(url)
+            tab = window.open(url)
+            if opts.print
+                tab.print()
 
     download_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"

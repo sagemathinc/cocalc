@@ -51,6 +51,10 @@ class exports.LatexEditor extends editor.FileEditor
             @update_preview()
             @spell_check()
 
+        @latex_editor.print = () =>
+            @download_pdf(print = true)
+            return false
+
         v = misc.path_split(@filename)
         @_path = v.head
         @_target = v.tail
@@ -659,9 +663,10 @@ class exports.LatexEditor extends editor.FileEditor
         return elt
 
 
-    download_pdf: () =>
+    download_pdf: (print = false) =>
         redux.getProjectActions(@project_id).download_file
-            path : @filename.slice(0,@filename.length-3) + "pdf"
+            path : @filename.slice(0, @filename.length - 3) + "pdf"
+            print: print
 
     _inverse_search: (opts) =>
         active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.
