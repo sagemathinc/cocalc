@@ -1593,15 +1593,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # (or something similar) it is basically impossible.  When sage worksheets are rewritten
         # using react, this will change.
         if mesg.clear
-            line = opts.mark.find()?.from.line
-            if line?
-                @cell(line)?.set_output()
+            output.empty()
 
         if mesg.delete_last
-            line = opts.mark.find()?.from.line
-            if line?
-                # we pass in 2 to delete the delete_last message itself.
-                @cell(line)?.delete_last_output(2)
+            output.find(":last").remove()
 
         if mesg.done
             output.removeClass('sagews-output-running')
