@@ -182,19 +182,30 @@ function findNext(cm, rev, callback) {cm.operation(function() {
   var cursor = getSearchCursor(cm, state.query, rev ? state.posFrom : state.posTo);
   if (!cursor.find(rev)) {
     cursor = getSearchCursor(cm, state.query, rev ? CodeMirror.Pos(cm.lastLine()) : CodeMirror.Pos(cm.firstLine(), 0));
-    if (!cursor.find(rev)) return;
+    if (!cursor.find(rev)) {
+        state.init = false;
+        return;
+    }
   }
   cm.setSelection(cursor.from(), cursor.to());
   cm.scrollIntoView({from: cursor.from(), to: cursor.to()}, 20);
   state.posFrom = cursor.from(); state.posTo = cursor.to();
-  if (isCollapsedPos(cm, state.posFrom)) {
-      /* In a collapsed range -- just try again.  This won't lead to an infinite loop in case
-         of no patches, since that's handled by the "if (!cursor.find(rev))" above. */
-      findNext(cm, rev, callback);
-      return
+
+  if (isCollapsedPos(cm, state.posFrom) &&
+      (!state.init || (state.init.ch != state.posFrom.ch || state.init.line != state.posFrom.line))) {
+    /* In a collapsed range -- try again.  This won't lead to an infinite loop in case
+       of no , since that's handled by the "if (!cursor.find(rev))" above and only_one below. */
+    if (!state.init) {
+      state.init = {line:state.posFrom.line, ch:state.posFrom.ch};
+    }
+    findNext(cm, rev, callback);
+    return
   }
+  state.init = false;
   if (callback) callback(cursor.from(), cursor.to())
 });}
+
+
 
 function clearSearch(cm) {cm.operation(function() {
   var state = getSearchState(cm);
@@ -213,6 +224,10 @@ var doReplaceConfirm = "Replace? <button>Yes</button> <button>No</button> <butto
 function replaceAll(cm, query, text) {
   cm.operation(function() {
     for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
+      if (isCollapsedPos(cm, cursor.from())) {
+          /* ignore when cursor starts in a collapsed range. */
+          continue;
+      }
       if (typeof query != "string") {
         var match = cm.getRange(cursor.from(), cursor.to()).match(query);
         cursor.replace(text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
@@ -235,15 +250,31 @@ function replace(cm, all) {
       } else {
         clearSearch(cm);
         var cursor = getSearchCursor(cm, query, cm.getCursor("from"));
+        var init = false;
         var advance = function() {
           var start = cursor.from(), match;
           if (!(match = cursor.findNext())) {
             cursor = getSearchCursor(cm, query);
             if (!(match = cursor.findNext()) ||
-                (start && cursor.from().line == start.line && cursor.from().ch == start.ch)) return;
+                (start && cursor.from().line == start.line && cursor.from().ch == start.ch))
+            { init = false;
+              return; }
           }
           cm.setSelection(cursor.from(), cursor.to());
           cm.scrollIntoView({from: cursor.from(), to: cursor.to()});
+
+          /* search again when cursor is in a collapsed range. */
+          var pos = cursor.from();
+          if (isCollapsedPos(cm, pos) &&
+              (!init || (init.ch != pos.ch || init.line != pos.line))) {
+              if (!init) {
+                init = {line:pos.line, ch:pos.ch};
+              }
+              advance();
+              return;
+          }
+
+          init = false;
           confirmDialog(cm, doReplaceConfirm, "Replace?",
                         [function() {doReplace(match);}, advance,
                          function() {replaceAll(cm, query, text)}]);
