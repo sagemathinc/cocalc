@@ -21,34 +21,38 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            action_all_projects_status : rtypes.immutable.Map
+            action_all_projects_state : rtypes.string
 
     propTypes :
         num_running_projects : rtypes.number
         num_students         : rtypes.number
 
     getDefaultProps : ->
-        action_all_projects_status : immutable.Map({})
+        action_all_projects_state : "any"
 
     getInitialState : ->
-        confirm_stop_all_projects       : false
-        confirm_start_all_projects      : false
+        confirm_stop_all_projects   : false
+        confirm_start_all_projects  : false
 
     render_in_progress_action : ->
-        action_name = @props.action_all_projects_status.get('action')
-        switch action_name
-            when "stop"
+        state_name = @props.action_all_projects_state
+        switch state_name
+            when "stopping"
+                if @props.num_running_projects == 0
+                    return
                 bsStyle = 'warning'
             else
+                if @props.num_running_projects == @props.num_students
+                    return
                 bsStyle = 'info'
 
         <Alert bsStyle=bsStyle>
-            {misc.capitalize(action_name)} all projects in progress... <Icon name='circle-o-notch' spin />
+            {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
         </Alert>
 
     render_error_occurred : ->
         <Alert bsStyle='warning'>
-            {misc.capitalize(@props.action_all_projects_status.get('action'))} all projects timed out.
+            {misc.capitalize(@props.action_all_projects_state)}
             Please report error this if the problem persists.
         </Alert>
 
@@ -83,9 +87,6 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
-    disable_both_buttons : (r, n) ->
-        return n == 0 or @props.action_all_projects_status.get('status') == "running"
-
     render : ->
         r = @props.num_running_projects
         n = @props.num_students
@@ -99,12 +100,12 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 <Col md=12>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_start_all_projects:true)}
-                            disabled={@disable_both_buttons(r, n) or n==r or @state.confirm_start_all_projects}
+                            disabled={n==0 or n==r or @state.confirm_start_all_projects or @props.action_all_projects_state == "starting"}
                         >
                             <Icon name="flash"/> Start all...
                         </Button>
                         <Button onClick={=>@setState(confirm_stop_all_projects:true)}
-                            disabled={@disable_both_buttons(r, n) or r==0 or @state.confirm_stop_all_projects}
+                            disabled={n==0 or r==0 or @state.confirm_stop_all_projects or @props.action_all_projects_state == "stopping"}
                         >
                             <Icon name="hand-stop-o"/> Stop all...
                         </Button>
@@ -115,8 +116,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 <Col md=12>
                     {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
                     {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
-                    {@render_in_progress_action() if @props.action_all_projects_status.get('status') == "running"}
-                    {@render_error_occurred() if @props.action_all_projects_status.get('status') == "timeout"}
+                    {@render_in_progress_action() if @props.action_all_projects_state != "any"}
                 </Col>
             </Row>
             <hr/>

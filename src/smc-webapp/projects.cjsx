@@ -634,44 +634,6 @@ class ProjectsStore extends Store
                     break
         return v
 
-    wait_until_projects_are_running : (opts) =>
-        opts = defaults opts,
-            project_ids   : required # [Strings..]
-            timeout       : 30
-            cb            : undefined
-        opts.desired_states = ["running"]
-        @_wait_until_projects_are_one_of_states(opts)
-
-    wait_until_projects_are_stopped : (opts) =>
-        opts = defaults opts,
-            project_ids   : required # [Strings..]
-            timeout       : 30
-            cb            : undefined
-        opts.desired_states = ["closed", "closing", "opened", "stopping"]
-        @_wait_until_projects_are_one_of_states(opts)
-
-    _wait_until_projects_are_one_of_states : (opts) =>
-        opts = defaults opts,
-            project_ids   : required
-            timeout       : 30
-            cb            : undefined
-            desired_states : required
-
-        id_map = {}
-        for id in opts.project_ids
-            id_map[id] = true
-
-        checker = (store) =>
-            return store.get('project_map')
-                .filter (project, id) => id_map[id]
-                .every (project) => project.getIn(['state', 'state']) in opts.desired_states
-        @wait
-            until    : checker
-            throttle : 500
-            timeout  : opts.timeout
-            cb       : opts.cb
-
-
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
