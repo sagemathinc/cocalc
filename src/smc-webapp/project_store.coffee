@@ -880,7 +880,8 @@ class ProjectActions extends Actions
         else
             tab = window.open(url)
             if opts.print
-                tab.print()
+                # "?" since there might be no print method -- could depend on browser API
+                tab.print?()
 
     download_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"

@@ -1086,10 +1086,9 @@ class CodeMirrorEditor extends FileEditor
                 return false
 
         # FIXME: removing the button here is pointless, since it will be added later again (somewhere)
-        # FUTURE: implement printing for other file types
-        is_sagews = @filename.slice(@filename.length-7) != '.sagews'
-        is_tex    = @filename.slice(@filename.length-4) != '.tex'
-        if not (is_sagews or is_tex)
+        # FUTURE: implement printing for other file types besides tex and sagews
+        ext = misc.filename_extension(@filename)?.toLowerCase()
+        if not ext in ['sagews', 'tex']
             @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
