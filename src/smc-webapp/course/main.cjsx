@@ -287,7 +287,6 @@ init_redux = (course_filename, redux, course_project_id) ->
         # item_name should be one of
         # ['student', 'assignment', handout']
         toggle_item_expansion: (item_name, item_id) =>
-            console.log("Toggling a", item_name, "with id", item_id)
             store = get_store()
             return if not store?
             field_name = "expanded_#{item_name}s"
@@ -485,13 +484,34 @@ init_redux = (course_filename, redux, course_project_id) ->
         action_all_student_projects: (action) =>
             if action not in ['start', 'stop', 'restart']
                 throw Error("action must be start, stop or restart")
-            get_store()?.get_students().map (student, student_id) =>
-                if not student.get('deleted')
-                    # really only start non-deleted students' projects
-                    student_project_id = student.get('project_id')
-                    if student_project_id?
-                        redux.getActions('projects')[action+"_project"](student_project_id)
             @action_shared_project(action)
+
+            # Returns undefined if no store.
+            act_on_student_projects = () =>
+                return get_store()?.get_students()
+                    .filter (student) =>
+                        not student.get('deleted') and student.get('project_id')?
+                    .map (student) =>
+                        redux.getActions('projects')[action+"_project"](student.get('project_id'))
+            if not act_on_student_projects()
+                return
+
+            if @prev_interval_id?
+                window.clearInterval(@prev_interval_id)
+            if @prev_timeout_id?
+                window.clearTimeout(@prev_timeout_id)
+
+            clear_state = () =>
+                window.clearInterval(@prev_interval_id)
+                @setState(action_all_projects_state : "any")
+
+            @prev_interval_id = window.setInterval(act_on_student_projects, 30000)
+            @prev_timeout_id = window.setTimeout(clear_state, 300000) # 5 minutes
+
+            if action in ['start', 'restart']
+                @setState(action_all_projects_state : "starting")
+            else if action == 'stop'
+                @setState(action_all_projects_state : "stopping")
 
         set_all_student_project_titles: (title) =>
             actions = redux.getActions('projects')

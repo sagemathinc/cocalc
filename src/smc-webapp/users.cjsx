@@ -32,6 +32,8 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
+        if not account_id?
+            return
         salvus_client.get_usernames
             account_ids : [account_id]
             use_cache   : false
