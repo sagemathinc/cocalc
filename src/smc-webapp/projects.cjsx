@@ -54,6 +54,9 @@ class ProjectsActions extends Actions
         if index == -1
             @setState(open_projects : x.push(project_id))
 
+    # Do not call this directly to close a project.  Instead call
+    #   redux.getActions('page').close_project_tab(project_id),
+    # which calls this.
     set_project_closed : (project_id) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)

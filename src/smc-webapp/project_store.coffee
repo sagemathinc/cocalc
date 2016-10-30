@@ -1144,8 +1144,15 @@ class ProjectStore extends Store
                 delete @_public_paths_cache
                 @_last_public_paths = @get('public_paths')
 
+        @redux.getStore('projects').on('change', @_projects_store_change)
+
     destroy: =>
-        @_account_store?.removeListener('change', @_account_store_change)
+        @redux.getStore('projects').removeListener('change', @_projects_store_change)
+
+    _projects_store_change: (state) =>
+        if not state.getIn(['project_map', @project_id])?
+            # User has been removed from the project!
+            @redux.getActions('page').close_project_tab(@project_id)
 
     get_open_files: =>
         return @get('open_files')
