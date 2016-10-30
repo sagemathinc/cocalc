@@ -19,11 +19,11 @@
 #
 ###############################################################################
 
+$          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
-{top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
@@ -33,14 +33,14 @@ misc = require('smc-util/misc')
 
 markdown = require('./markdown')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, Footer, r_join} = require('./r_misc')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox} = require('react-bootstrap')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
-{UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 {UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+{redux_name} = require('project_store')
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -48,21 +48,23 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    # Local state events
-    set_project_state : (project_id, name, value) =>
-        x = store.getIn(['project_state', project_id]) ? immutable.Map()
-        @setState(project_state: store.get('project_state').set(project_id, x.set(name, immutable.fromJS(value))))
+    set_project_open : (project_id, err) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index == -1
+            @setState(open_projects : x.push(project_id))
 
-    delete_project_state : (project_id, name) =>
-        x = store.getIn(['project_state', project_id])
-        if x?
-            @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
+    set_project_closed : (project_id) =>
+        x = store.get('open_projects')
+        index = x.indexOf(project_id)
+        if index != -1
+            redux.removeProjectReferences(project_id)
+            @setState(open_projects : x.delete(index))
 
-    set_project_state_open : (project_id, err) =>
-        @set_project_state(project_id, 'open', {time:salvus_client.server_time(), err:err})
-
-    set_project_state_close : (project_id) =>
-        @delete_project_state(project_id, 'open')
+    # Save all open files in all projects to disk
+    save_all_files: () =>
+        store.get('open_projects').filter (project_id) =>
+            @redux.getProjectActions(project_id).save_all_files()
 
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
@@ -142,45 +144,92 @@ class ProjectsActions extends Actions
         salvus_client.create_project(opts)
 
     # Open the given project
+    #TODOJ: should not be in projects...
+    # J3: Maybe should be in Page actions? I don't see the upside.
     open_project : (opts) =>
         opts = defaults opts,
-            project_id : required
-            target     : undefined
-            switch_to  : undefined
-        if window.FULLY_REACT
-            @set_project_state_open(opts.project_id)
-        else
-            opts.cb = (err) =>
-                @set_project_state_open(opts.project_id, err)
-            open_project(opts)
-            if opts.switch_to
-                @foreground_project(opts.project_id)
+            project_id : required  # string  id of the project to open
+            target     : undefined # string  The file path to open
+            switch_to  : true      # bool    Whether or not to foreground it
+        require('./project_store') # registers the project store with redux...
+        store = redux.getProjectStore(opts.project_id)
+        actions = redux.getProjectActions(opts.project_id)
+        sort_by_time = store.get('sort_by_time') ? true
+        show_hidden = store.get('show_hidden') ? false
 
-    close_project : (project_id) ->
-        top_navbar.remove_page(project_id)
+        relation = redux.getStore('projects').get_my_group(opts.project_id)
+        if not relation? or relation in ['public', 'admin']
+            @fetch_public_project_title(opts.project_id)
+        actions.set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
+        redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
+        @set_project_open(opts.project_id)
+        if opts.target?
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+
+    # Clearly should be in top.cjsx
+    # tab at old_index taken out and then inserted into the resulting array's new index
+    move_project_tab : (opts) =>
+        {old_index, new_index, open_projects} = defaults opts,
+            old_index : required
+            new_index : required
+            open_projects: required # immutable
+
+        x = open_projects
+        item = x.get(old_index)
+        temp_list = x.delete(old_index)
+        new_list = temp_list.splice(new_index, 0, item)
+        @setState(open_projects:new_list)
+
+    # should not be in projects...?
+    load_target : (target, switch_to) =>
+        if not target or target.length == 0
+            redux.getActions('page').set_active_tab('projects')
+            return
+        segments = target.split('/')
+        if misc.is_valid_uuid_string(segments[0])
+            t = segments.slice(1).join('/')
+            project_id = segments[0]
+            @open_project
+                project_id: project_id
+                target    : t
+                switch_to : switch_to
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        top_navbar.switch_to_page(project_id)  # TODO: temporary
-        @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+        redux.getActions('page').set_active_tab(project_id)
+
+        redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
                     require('./browser').set_window_title(title)  # change title bar
-        @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
-    # (at least what it is right now).
+    # (at least what it is right now).  For convenience this works
+    # even if the project isn't public if the user is an admin, and also
+    # works on projects the user owns or collaborats on.
     fetch_public_project_title: (project_id) =>
-        salvus_client.query
-            query :
-                public_projects : {project_id : project_id, title : null}
-            cb    : (err, resp) =>
-                if not err
-                    # TODO: use the store somehow to report error?
-                    title = resp?.query?.public_projects?.title
-                    if title?
+        @redux.getStore('projects').wait
+            until   : (s) => s.get_my_group(@project_id)
+            timeout : 60
+            cb      : (err, group) =>
+                if err
+                    group = 'public'
+                switch group
+                    when 'admin'
+                        table = 'projects_admin'
+                    when 'owner', 'collaborator'
+                        table = 'projects'
+                    else
+                        table = 'public_projects'
+                salvus_client.query
+                    query :
+                        "#{table}" : {project_id : project_id, title : null}
+                    cb    : (err, resp) =>
+                        if not err
+                            title = resp?.query?[table]?.title
+                        title ?= "PRIVATE -- Admin req"
                         @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
@@ -206,7 +255,7 @@ class ProjectsActions extends Actions
                 @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.
-    # See the users field of schema.coffee for documentaiton of the structure of this.
+    # See the users field of schema.coffee for documentation of the structure of this.
 
     ###
     # Collaborators
@@ -216,7 +265,7 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
+                if err # SMELL: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
     invite_collaborator : (project_id, account_id) =>
@@ -227,7 +276,7 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
+                if err # SMELL: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
@@ -274,10 +323,18 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
+    clear_project_upgrades : (project_id) =>
+        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+
     save_project: (project_id) =>
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'save', time:salvus_client.server_time()}
+
+    start_project : (project_id) ->
+        @redux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'start', time:salvus_client.server_time()}
 
     stop_project: (project_id) =>
         @redux.getTable('projects').set
@@ -293,11 +350,6 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:salvus_client.server_time()}
-
-    start_project : (project_id) ->
-        @redux.getTable('projects').set
-            project_id     : project_id
-            action_request : {action:'start', time:salvus_client.server_time()}
 
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>
@@ -323,9 +375,13 @@ class ProjectsActions extends Actions
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
+        is_deleted = @redux.getStore('projects').is_deleted(project_id)
+        if not is_deleted
+            @clear_project_upgrades(project_id)
+
         @redux.getTable('projects').set
             project_id : project_id
-            deleted    : not @redux.getStore('projects').is_deleted(project_id)
+            deleted    : not is_deleted
 
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
@@ -366,6 +422,9 @@ class ProjectsStore extends Store
 
     get_title : (project_id) =>
         return @getIn(['project_map', project_id, 'title'])
+
+    get_state : (project_id) =>
+        return @getIn(['project_map', project_id, 'state', 'state'])
 
     get_description : (project_id) =>
         return @getIn(['project_map', project_id, 'description'])
@@ -430,12 +489,6 @@ class ProjectsStore extends Store
         list = list.concat others
         return list
 
-    get_project_state : (project_id, name) =>
-        return @getIn(['project_state', project_id, name])
-
-    get_project_open_state : (project_id) =>
-        return @get_project_state(project_id, 'open')
-
     # Return the group that the current user has on this project, which can be one of:
     #    'owner', 'collaborator', 'public', 'admin' or undefined, where
     # undefined -- means the information needed to determine group hasn't been loaded yet
@@ -451,16 +504,18 @@ class ProjectsStore extends Store
         if user_type == 'public'
             # Not logged in -- so not in group.
             return 'public'
-        if not @get('project_map')?  # signed in but waiting for projects store to load
+        if not @get('project_map')? # or @get('project_map').size == 0
+        # signed in but waiting for projects store to load
+        # If user is part of no projects, doesn't matter anyways
             return
-        p = @getIn(['project_map', project_id])
-        if not p?
+        project = @getIn(['project_map', project_id])
+        if not project?
             if account_store.is_admin()
                 return 'admin'
             else
                 return 'public'
-        u = p.get('users')
-        me = u?.get(account_store.get_account_id())
+        users = project.get('users')
+        me = users?.get(account_store.get_account_id())
         if not me?
             if account_store.is_admin()
                 return 'admin'
@@ -469,14 +524,11 @@ class ProjectsStore extends Store
         return me.get('group')
 
     is_project_open : (project_id) =>
-        x = @get_project_state(project_id, 'open')
-        if not x?
-            return false
-        return not x.get('err')
+        @get('open_projects').includes(project_id)
 
     wait_until_project_is_open : (project_id, timeout, cb) =>  # timeout in seconds
         @wait
-            until   : => @get_project_open_state(project_id)
+            until   : => @is_project_open(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
@@ -576,13 +628,16 @@ class ProjectsStore extends Store
         v = {}
         @get('project_map').map (project, project_id) =>
             upgrades = @getIn(['project_map', project_id, 'users', account_id, 'upgrades'])?.toJS()
-            if misc.len(upgrades)
-                v[project_id] = upgrades
+            for upgrade,val of upgrades
+                if val > 0
+                    v[project_id] = upgrades
+                    break
         return v
 
+# WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
-    project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
-    project_state : immutable.Map()  # information about state of projects in the browser
+    project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
+    open_projects : immutable.List()  # ordered list of open projects
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
@@ -598,37 +653,6 @@ class ProjectsTable extends Table
 
 redux.createTable('projects', ProjectsTable)
 
-exports.open_project = open_project = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        item       : undefined
-        target     : undefined
-        switch_to  : true
-        cb         : undefined   # cb(err, project)
-
-    require.ensure [], ->
-        {project_page}  = require('./project')
-        proj = project_page(opts.project_id)
-        top_navbar.resize_open_project_tabs()
-        if opts.switch_to
-            top_navbar.switch_to_page(opts.project_id)
-        if opts.target?
-            proj.load_target(opts.target, opts.switch_to)
-        opts.cb?(undefined, proj)
-
-exports.load_target = load_target = (target, switch_to) ->
-    if not target or target.length == 0
-        top_navbar.switch_to_page('projects')
-        return
-    segments = target.split('/')
-    if misc.is_valid_uuid_string(segments[0])
-        t = segments.slice(1).join('/')
-        project_id = segments[0]
-        redux.getActions('projects').open_project
-            project_id: project_id
-            target    : t
-            switch_to : switch_to
-
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
@@ -643,7 +667,6 @@ NewProjectCreator = rclass
     getDefaultProps : ->
         upgrades_you_can_use                 : {}
         upgrades_you_applied_to_all_projects : {}
-        upgrades_you_applied_to_this_project : {}
 
     getInitialState : ->
         state =
@@ -654,273 +677,11 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
-    componentWillMount : ->
-        @setState(@getInitialUpgraderState())
-
     componentWillReceiveProps : (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
         subs = @props.customer?.subscriptions?.total_count ? 0
         if subs > 0 and not @state["has_subbed"]
             @setState(has_subbed: true)
-
-    get_quota_limits : ->
-        # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-
-        # how much upgrade you currently use on this one project
-        current = @props.upgrades_you_applied_to_this_project
-        # how much upgrade you have used between all projects
-        used_upgrades = @props.upgrades_you_applied_to_all_projects
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-        # maximums you can use, including the upgrades already on this project
-        limits = misc.map_sum(current, remaining)
-        # additionally, the limits are capped by the maximum per project
-        maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-        ret =
-            limits    : misc.map_limit(limits, maximum)
-            remaining : remaining
-            current   : current
-        return ret
-
-    getUpgraderState : (maximize = false) ->
-        ###
-        maximize==true means, that the quotas are set to the highest possible
-                       this is limited by the available quotas AND the maximum per project
-        ###
-        state =
-            upgrading : true
-
-        limits = @get_quota_limits()
-
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            if name == 'network' or name == 'member_host'
-                limit = if limits.limits[name] > 0 then 1 else 0
-                current_value = limits.current[name] ? limit
-            else
-                if maximize
-                    current_value = limits.current[name] ? limits.limits[name]
-                else
-                    current_value = 0
-            state["upgrade_#{name}"] = misc.round2(current_value * factor)
-            upgrades = {}
-
-        return state
-
-    getInitialUpgraderState : ->
-        return @getUpgraderState(false)
-
-    max_upgrades : ->
-        @setState(@getUpgraderState(true))
-
-    reset_upgrades : ->
-        @setState(@getUpgraderState(false))
-
-    show_upgrade_quotas : ->
-        @setState(upgrading : true)
-
-    cancel_upgrading : ->
-        state =
-            upgrading : false
-
-        current = @props.upgrades_you_applied_to_this_project
-
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round2(current_value * factor)
-
-        @setState(state)
-
-    is_upgrade_input_valid : (input, max) ->
-        val = misc.parse_number_input(input, round_number=false)
-        if not val? or val > Math.max(0, max)
-            return false
-        else
-            return true
-
-    # the max button will set the upgrade input box to the number given as max
-    render_max_button : (name, max) ->
-        <Button
-            bsSize  = 'xsmall'
-            onClick = {=>@setState("upgrade_#{name}" : max)}
-            style   = {padding:'0px 5px'}
-        >
-            Max
-        </Button>
-
-    # TODO refactor: remove this code below and merge it with render_addon in project_settings.cjsx
-    render_addon : (misc, name, display_unit, limit) ->
-        <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
-
-    # TODO refactor: remove this code below and merge it with render_upgrade_row in project_settings.cjsx
-    render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
-        if not data?
-            return
-
-        {display, desc, display_factor, display_unit, input_type} = data
-
-        if input_type == 'checkbox'
-
-            # the remaining count should decrease if box is checked
-            val = @state["upgrade_#{name}"]
-            show_remaining = remaining + current - val
-            show_remaining = Math.max(show_remaining, 0)
-
-            if not @is_upgrade_input_valid(val, limit)
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
-            else
-                label = if val == 0 then 'Enable' else 'Enabled'
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>
-                    </Tip>
-                    <br/>
-                    ({1 - val} of {show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
-                </Col>
-                <Col sm=6>
-                    <form>
-                        <Input
-                            ref      = {"upgrade_#{name}"}
-                            type     = 'checkbox'
-                            checked  = {val > 0}
-                            label    = {label}
-                            onChange = {=>@setState("upgrade_#{name}" : if @refs["upgrade_#{name}"].getChecked() then 1 else 0)}
-                        />
-                    </form>
-                </Col>
-            </Row>
-
-
-        else if input_type == 'number'
-            remaining = misc.round2(remaining * display_factor)
-            display_current = current * display_factor # current already applied
-            if current != 0 and misc.round2(display_current) != 0
-                current = misc.round2(display_current)
-            else
-                current = display_current
-
-            limit = misc.round2(limit * display_factor)
-            current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
-
-            # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = misc.round2(remaining + current - current_input)
-
-            val = @state["upgrade_#{name}"]
-            if not @is_upgrade_input_valid(val, limit)
-                bs_style = 'error'
-                if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
-                else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
-            else
-                label = <span></span>
-
-            remaining_all = Math.max(show_remaining, 0)
-            schema_limit = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-            # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
-            remaining_limit = Math.max(0, Math.min(remaining_all, schema_limit["#{name}"]) - current_input)
-
-            <Row key={name}>
-                <Col sm=6>
-                    <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>
-                    </Tip>
-                    <br/>
-                    ({remaining_limit} of {remaining_all} {misc.plural(show_remaining, display_unit)} remaining)
-                </Col>
-                <Col sm=6>
-                    <Input
-                        ref        = {"upgrade_#{name}"}
-                        type       = 'text'
-                        value      = {val}
-                        bsStyle    = {bs_style}
-                        onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {@render_addon(misc, name, display_unit, limit)}
-                    />
-                    {label}
-                </Col>
-            </Row>
-        else
-            console.warn('Invalid input type in render_upgrade_row: ', input_type)
-            return
-
-    # TODO refactor: remove this code and merge it with project_settings.cjsx
-    # Returns true if the inputs are valid and different:
-    #    - at least one has changed
-    #    - none are negative
-    #    - none are empty
-    #    - none are higher than their limit
-    valid_changed_upgrade_inputs : (current, limits) ->
-        for name, data of @props.quota_params
-            factor = data.display_factor
-            # the highest number the user is allowed to type
-            limit = Math.max(0, misc.round2((limits[name] ? 0) * factor))  # max since 0 is always allowed
-            # the current amount applied to the project
-            cur_val = misc.round2((current[name] ? 0) * factor)
-            # the current number the user has typed (undefined if invalid)
-            new_val = misc.parse_number_input(@state["upgrade_#{name}"])
-            if not new_val? or new_val > limit
-                return false
-            if cur_val isnt new_val
-                changed = true
-        return changed
-
-    # TODO refactor: remove this code (after checking diffs) and merge with project_settings.cjsx
-    render_upgrades_adjustor : ->
-        if misc.is_zero_map(@props.upgrades_you_can_use)
-            # user has no upgrades on their account
-            <NoUpgrades cancel={@cancel_upgrading} />
-        else
-            limits = @get_quota_limits()
-            ordered_fields = PROJECT_UPGRADES.field_order
-            ordered_quota_params = {}
-            for name in ordered_fields
-                ordered_quota_params[name] = @props.quota_params[name]
-            <Alert bsStyle='info'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
-
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
-                <hr/>
-                <Row>
-                    <Col md=6>
-                        <b style={fontSize:'12pt'}>Quota</b>
-                    </Col>
-                    <Col md=6>
-                        <b style={fontSize:'12pt'}>Your contribution</b>
-                        <br/>
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {=>@max_upgrades()}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Max all upgrades
-                        </Button>
-                        {' '}
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {=>@reset_upgrades()}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Reset all upgrades
-                        </Button>
-                    </Col>
-                </Row>
-                <hr/>
-
-                {@render_upgrade_row(n, data, limits.remaining[n], limits.current[n], limits.limits[n]) for n, data of ordered_quota_params}
-            </Alert>
-
-    render_upgrades_button : ->
-        <Row>
-            <Col sm=12>
-                <Button bsStyle='primary' onClick={@show_upgrade_quotas} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust your quotas...
-                </Button>
-            </Col>
-        </Row>
 
     start_editing : ->
         redux.getActions('billing')?.update_customer()
@@ -942,7 +703,21 @@ NewProjectCreator = rclass
         else
             @cancel_editing()
 
-    create_project : (with_upgrades = false) ->
+    render_upgrades_adjustor : ->
+        <UpgradeAdjustor
+            upgrades_you_can_use                 = {@props.upgrades_you_can_use}
+            upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
+            upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
+            submit_text              = {"Create project with upgrades"}
+            disable_submit           = {@state.title_text == '' or @state.state == 'saving'}
+            submit_upgrade_quotas    = {@create_project}
+            cancel_upgrading         = {@cancel_editing}
+            quota_params             = {require('smc-util/schema').PROJECT_UPGRADES.params}
+        >
+            {@render_info_alert()}
+        </UpgradeAdjustor>
+
+    create_project : (quotas_to_apply) ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
@@ -955,44 +730,9 @@ NewProjectCreator = rclass
                     state : 'edit'
                     error : "Error creating project -- #{err}"
             else
-                if with_upgrades
-                    @save_upgrade_quotas(project_id)
-                @cancel_editing()
-                if with_upgrades
-                    open_project(project_id:project_id)
-
-    save_upgrade_quotas : (project_id) ->
-        # how much upgrade you have used between all projects
-        used_upgrades = redux.getStore('projects').get_total_upgrades_you_have_applied()
-
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(redux.getStore('account').get_total_upgrades(), used_upgrades)
-        new_upgrade_quotas = {}
-        new_upgrade_state  = {}
-        for name, data of require('smc-util/schema').PROJECT_UPGRADES.params
-            factor = data.display_factor
-            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
-            if data.input_type is 'checkbox'
-                input = @state["upgrade_#{name}"] ? 0
-                if input and (remaining_val > 0)
-                    val = 1
-                else
-                    val = 0
-
-            else
-                # parse the current user input, and default to the current value if it is (somehow) invalid
-                input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0
-                input = Math.max(input, 0)
-                limit = remaining_val
-                val = Math.min(input, limit)
-
-            new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
-        actions.apply_upgrades_to_project(project_id, new_upgrade_quotas)
-
-        # set the state so that the numbers are right if you click upgrade again
-        @setState(new_upgrade_state)
-        @setState(upgrading : false)
+                if quotas_to_apply
+                    @props.actions.apply_upgrades_to_project(project_id, quotas_to_apply)
+                @actions('projects').open_project(project_id:project_id)
 
     handle_keypress : (e) ->
         if e.keyCode == 13 and @state.title_text != ''
@@ -1023,24 +763,11 @@ NewProjectCreator = rclass
             </div>
         </Col>
 
-    render_no_title_alert : ->
+    render_info_alert : ->
         if @state.title_text == '' and @state.state != 'saving'
             <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
-
-    render_create_with_upgrades_button : (create_btn_disabled) ->
-        <ButtonToolbar>
-            <Button
-                disabled = {create_btn_disabled}
-                bsStyle  = 'success'
-                onClick  = {@create_project} >
-                Create project with upgrades
-            </Button>
-            <Button
-                disabled = {@state.state is 'saving'}
-                onClick  = {@cancel_editing} >
-                {if @state.state is 'saving' then <Saving /> else 'Cancel'}
-            </Button>
-        </ButtonToolbar>
+        else if @state.state == 'saving'
+            <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
     render_input_section : (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
@@ -1049,27 +776,31 @@ NewProjectCreator = rclass
             <Row>
                 <Col sm=5>
                     <h4>Title</h4>
-                    <Input
-                        ref         = 'new_project_title'
-                        type        = 'text'
-                        placeholder = 'Title'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.title_text}
-                        onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
-                        onKeyDown   = {@handle_keypress}
-                        autoFocus   />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_title'
+                            type        = 'text'
+                            placeholder = 'Title'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.title_text}
+                            onChange    = {=>@setState(title_text:ReactDOM.findDOMNode(@refs.new_project_title).value)}
+                            onKeyDown   = {@handle_keypress}
+                            autoFocus   />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=7>
                     <h4>Description</h4>
-                    <Input
-                        ref         = 'new_project_description'
-                        type        = 'text'
-                        placeholder = 'Project description'
-                        disabled    = {@state.state == 'saving'}
-                        value       = {@state.description_text}
-                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())}
-                        onKeyDown   = {@handle_keypress} />
+                    <FormGroup>
+                        <FormControl
+                            ref         = 'new_project_description'
+                            type        = 'text'
+                            placeholder = 'Project description'
+                            disabled    = {@state.state == 'saving'}
+                            value       = {@state.description_text}
+                            onChange    = {=>@setState(description_text:ReactDOM.findDOMNode(@refs.new_project_description).value)}
+                            onKeyDown   = {@handle_keypress} />
+                    </FormGroup>
                 </Col>
 
                 <Col sm=2>
@@ -1103,17 +834,15 @@ NewProjectCreator = rclass
                 <Col sm=12 style={color:'#555'}>
                     <div>
                         A <b>project</b> is your own private computational workspace that you can
-                        share with others and <a href="" onClick={@go_to_upgrade}>upgrade</a>.
+                        share with others and upgrade. {#<a href="" onClick={@go_to_upgrade}>upgrade</a>.}
                     </div>
                 </Col>
             </Row>
             <Row>
-                {@render_upgrade_before_create(subs)}
+                {@render_upgrade_before_create(subs) if require('./customize').commercial}
             </Row>
             <Row>
                 <Col sm=12>
-                    {@render_no_title_alert() if subs > 0}
-                    {@render_create_with_upgrades_button(create_btn_disabled) if subs > 0}
                     {@render_error()}
                 </Col>
             </Row>
@@ -1125,26 +854,22 @@ NewProjectCreator = rclass
 
     render : ->
         subs = @props.customer?.subscriptions?.total_count ? 0
-        new_proj_btn =  <Col sm=4>
-                            <Button
-                                bsStyle  = 'success'
-                                active   = {@state.state != 'view'}
-                                disabled = {@state.state != 'view'}
-                                block
-                                type     = 'submit'
-                                onClick  = {@toggle_editing}>
-                                <Icon name='plus-circle' /> Create new project...
-                            </Button>
-                        </Col>
-
-        new_proj_dialog = <Col sm=12>
-                            <Space/>
-                            {@render_input_section(subs)}
-                          </Col>
-
         <Row>
-            {new_proj_btn}
-            {if @state.state != 'view' then new_proj_dialog}
+            <Col sm=4>
+                <Button
+                    bsStyle  = 'success'
+                    active   = {@state.state != 'view'}
+                    disabled = {@state.state != 'view'}
+                    block
+                    type     = 'submit'
+                    onClick  = {@toggle_editing}>
+                    <Icon name='plus-circle' /> Create new project...
+                </Button>
+            </Col>
+            {<Col sm=12>
+                <Space/>
+                {@render_input_section(subs)}
+            </Col> if @state.state != 'view'}
         </Row>
 
 ProjectsFilterButtons = rclass
@@ -1196,7 +921,7 @@ ProjectsSearch = rclass
 
     clear_and_focus_input : ->
         redux.getActions('projects').setState(search: '')
-        @refs.projects_search.getInputDOMNode().focus()
+        @refs.projects_search.clear_and_focus_search_input()
 
     delete_search_button : ->
         s = if @props.search?.length > 0 then 'warning' else "default"
@@ -1204,21 +929,18 @@ ProjectsSearch = rclass
             <Icon name='times-circle' />
         </Button>
 
-    open_first_project : (e) ->
-        e.preventDefault()
-        @props.open_first_project?()
-
     render : ->
-        <form onSubmit={@open_first_project}>
-            <Input
-                ref         = 'projects_search'
-                autoFocus
-                type        = 'search'
-                value       =  @props.search
-                placeholder = 'Search for projects...'
-                onChange    = {=>redux.getActions('projects').setState(search: @refs.projects_search.getValue())}
-                buttonAfter = {@delete_search_button()} />
-        </form>
+        <SearchInput
+            ref         = 'projects_search'
+            autoFocus   = {true}
+            type        = 'search'
+            value       =  @props.search
+            default_value = @props.search
+            placeholder = 'Search for projects...'
+            on_change    = {(value)=>redux.getActions('projects').setState(search: value)}
+            on_submit   = {@props.open_first_project}
+            button_after = {@delete_search_button()}
+        />
 
 HashtagGroup = rclass
     displayName : 'Projects-HashtagGroup'
@@ -1254,6 +976,7 @@ ProjectsListingDescription = rclass
         search              : rtypes.string
         nb_projects         : rtypes.number.isRequired
         nb_projects_visible : rtypes.number.isRequired
+        on_cancel           : rtypes.func
 
     getDefaultProps : ->
         deleted           : false
@@ -1270,14 +993,10 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
-    clear_and_focus_input : ->
-        redux.getActions('projects').setState(search: '')
-        redux.getActions('projects').setState(selected_hashtags: {})
-
     render_span : (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
-        <Button onClick={@clear_and_focus_input}>
+        <Button onClick={@props.on_cancel}>
             Cancel
         </Button></span>
 
@@ -1328,7 +1047,7 @@ ProjectRow = rclass
 
     render_user_list : ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
-        @props.redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
+        redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
         users = []
         for i in [0...other.length]
             users.push <User
@@ -1339,13 +1058,13 @@ ProjectRow = rclass
         return r_join(users)
 
     open_project_from_list : (e) ->
-        @props.redux.getActions('projects').open_project
+        @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
-        @props.redux.getActions('projects').open_project
+        @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             target     : 'settings'
@@ -1418,7 +1137,7 @@ ProjectList = rclass
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
-                             redux    = {@props.redux} />
+                             redux    = {redux} />
             i += 1
 
         return listing
@@ -1460,8 +1179,8 @@ project_is_in_filter = (project, hidden, deleted) ->
         throw Error('project page should not get rendered until after user sign-in and account info is set')
     return !!project.deleted == deleted and !!project.users?[account_id]?.hide == hidden
 
-ProjectSelector = rclass
-    displayName : 'Projects-ProjectSelector'
+exports.ProjectsPage = ProjectsPage = rclass
+    displayName : 'Projects-ProjectsPage'
 
     reduxProps :
         users :
@@ -1596,7 +1315,7 @@ ProjectSelector = rclass
         else
             # enable the hashtag
             selected_hashtags[filter][tag] = true
-        @props.redux.getActions('projects').setState(selected_hashtags: selected_hashtags)
+        @actions('projects').setState(selected_hashtags: selected_hashtags)
 
     filter : ->
         "#{@props.hidden}-#{@props.deleted}"
@@ -1612,7 +1331,7 @@ ProjectSelector = rclass
     open_first_project : ->
         project = @visible_projects()[0]
         if project?
-            open_project(project_id: project.project_id)
+            @actions('projects').open_project(project_id: project.project_id, switch_to: true)
     ###
     # Consolidate the next two functions.
     ###
@@ -1632,93 +1351,91 @@ ProjectSelector = rclass
                 return true
         return false
 
+    clear_filters_and_focus_search_input : ->
+        @actions('projects').setState(selected_hashtags:{})
+        @refs.search.clear_and_focus_input()
+
     render : ->
         if not @props.project_map?
-            if @props.redux.getStore('account')?.get_user_type() == 'public'
+            if redux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
 
         visible_projects = @visible_projects()
-        <div>
-        <Grid fluid className='constrained' style={minHeight:"75vh"}>
-            <Well style={marginTop:'1em',overflow:'hidden'}>
-                <Row>
-                    <Col sm=4>
-                        {@render_projects_title()}
-                    </Col>
-                    <Col sm=4>
-                        <ProjectsFilterButtons
-                            hidden  = {@props.hidden}
-                            deleted = {@props.deleted}
-                            show_hidden_button = {@has_hidden_projects() or @props.hidden}
-                            show_deleted_button = {@has_deleted_projects() or @props.deleted} />
-                    </Col>
-                    <Col sm=4>
-                        <UsersViewing redux={@props.redux} viewing_what='projects' />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=4>
-                        <ProjectsSearch search={@props.search} open_first_project={@open_first_project} />
-                    </Col>
-                    <Col sm=8>
-                        <HashtagGroup
-                            hashtags          = {@hashtags()}
-                            selected_hashtags = {@props.selected_hashtags[@filter()]}
-                            toggle_hashtag    = {@toggle_hashtag} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12 style={marginTop:'1ex'}>
-                        <NewProjectCreator
-                            nb_projects = {@project_list().length}
-                            customer    = {@props.customer}
-                            upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
-                            upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                            quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                            actions                              = {redux.getActions('projects')} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12>
-                        <ProjectsListingDescription
-                            nb_projects         = {@project_list().length}
-                            nb_projects_visible = {visible_projects.length}
-                            hidden              = {@props.hidden}
-                            deleted             = {@props.deleted}
-                            search              = {@props.search}
-                            selected_hashtags   = {@props.selected_hashtags[@filter()]} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col sm=12>
-                        <ProjectList
-                            projects    = {visible_projects}
-                            show_all    = {@props.show_all}
-                            user_map    = {@props.user_map}
-                            redux       = {@props.redux} />
-                    </Col>
-                </Row>
-            </Well>
-        </Grid>
-        <Footer/>
+        <div className='container-content'>
+            <Grid fluid className='constrained' style={minHeight:"75vh"}>
+                <Well style={marginTop:'1em',overflow:'hidden'}>
+                    <Row>
+                        <Col sm=4>
+                            {@render_projects_title()}
+                        </Col>
+                        <Col sm=4>
+                            <ProjectsFilterButtons
+                                hidden  = {@props.hidden}
+                                deleted = {@props.deleted}
+                                show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                                show_deleted_button = {@has_deleted_projects() or @props.deleted} />
+                        </Col>
+                        <Col sm=4>
+                            <UsersViewing redux={redux} viewing_what='projects' />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=4>
+                            <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                        </Col>
+                        <Col sm=8>
+                            <HashtagGroup
+                                hashtags          = {@hashtags()}
+                                selected_hashtags = {@props.selected_hashtags[@filter()]}
+                                toggle_hashtag    = {@toggle_hashtag} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12 style={marginTop:'1ex'}>
+                            <NewProjectCreator
+                                nb_projects = {@project_list().length}
+                                customer    = {@props.customer}
+                                upgrades_you_can_use                 = {redux.getStore('account').get_total_upgrades()}
+                                upgrades_you_applied_to_all_projects = {redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
+                                actions                              = {redux.getActions('projects')} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12>
+                            <ProjectsListingDescription
+                                nb_projects           = {@project_list().length}
+                                nb_projects_visible   = {visible_projects.length}
+                                hidden                = {@props.hidden}
+                                deleted               = {@props.deleted}
+                                search                = {@props.search}
+                                selected_hashtags     = {@props.selected_hashtags[@filter()]}
+                                on_cancel             = {@clear_filters_and_focus_search_input}
+                            />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12>
+                            <ProjectList
+                                projects    = {visible_projects}
+                                show_all    = {@props.show_all}
+                                user_map    = {@props.user_map}
+                                redux       = {redux} />
+                        </Col>
+                    </Row>
+                </Well>
+            </Grid>
+            <Footer/>
         </div>
-
-exports.ProjectsPage = ProjectsPage = rclass
-    displayName : 'Projects-ProjectsPage'
-
-    render : ->
-        <Redux redux={redux}>
-            <ProjectSelector redux={redux} />
-        </Redux>
 
 exports.ProjectTitle = ProjectTitle = rclass
     displayName : 'Projects-ProjectTitle'
 
     reduxProps :
         projects :
-            project_map  : rtypes.immutable
+            project_map : rtypes.immutable
 
     propTypes :
         project_id   : rtypes.string.isRequired
@@ -1746,23 +1463,3 @@ exports.ProjectTitleAuto = rclass
         <Redux redux={redux}>
             <ProjectTitle project_id={@props.project_id} />
         </Redux>
-
-is_mounted = false
-mount = ->
-    if not is_mounted
-        #console.log('mount projects')
-        ReactDOM.render(<ProjectsPage />, document.getElementById('projects'))
-        is_mounted = true
-
-unmount = ->
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById('projects'))
-        is_mounted = false
-
-top_navbar.on 'switch_to_page-projects', () ->
-    window.history.pushState('', '', window.smc_base_url + '/projects')
-    mount()
-
-top_navbar.on 'switch_from_page-projects', () ->
-    setTimeout(unmount,50)
-

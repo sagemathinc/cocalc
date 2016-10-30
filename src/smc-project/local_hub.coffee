@@ -83,10 +83,15 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-if not fs.existsSync(SMC)
-    fs.mkdirSync(SMC)
-if not fs.existsSync(DATA)
-    fs.mkdirSync(DATA)
+# See https://github.com/sagemathinc/smc/issues/174 -- some stupid (?)
+# code sometimes assumes this exists, and it's not so hard to just ensure
+# it does, rather than fixing any such code.
+SAGE = path.join(process.env.HOME, '.sage')
+
+for directory in [SMC, DATA, SAGE]
+    if not fs.existsSync(directory)
+        fs.mkdirSync(directory)
+
 
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 

@@ -4,11 +4,13 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries
-{React, rclass, rtypes, Actions}  = require('../smc-react')
+{React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
 
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
+
+immutable = require('immutable')
 
 # Move these to funcs file
 exports.STEPS = (peer) ->
@@ -77,21 +79,6 @@ exports.step_ready = (step, n) ->
             return ' for peer grading'
         when 'peer_collect'
             return ' who should have peer graded it'
-
-# I don't think this is used anywhere...
-exports.DirectoryLink = rclass
-    displayName : "DirectoryLink"
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-        path       : rtypes.string.isRequired
-        redux      : rtypes.object.isRequired
-
-    open_path : ->
-        @props.redux.getProjectActions(@props.project_id).open_directory(@props.path)
-
-    render : ->
-        <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
@@ -208,17 +195,23 @@ exports.StudentAssignmentInfo = rclass
     render_grade_score : ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
-                <Input
-                    autoFocus
-                    value       = {@state.grade}
-                    ref         = 'grade_input'
-                    type        = 'text'
-                    placeholder = 'Grade (any text)...'
-                    onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
-                    onBlur      = {@save_grade}
-                    onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
-                    buttonAfter = {<Button bsStyle='success'>Save</Button>}
-                />
+                <FormGroup>
+                    <InputGroup>
+                        <FormControl
+                            autoFocus
+                            value       = {@state.grade}
+                            ref         = 'grade_input'
+                            type        = 'text'
+                            placeholder = 'Grade (any text)...'
+                            onChange    = {=>@setState(grade:ReactDOM.findDOMNode(@refs.grade_input).value)}
+                            onBlur      = {@save_grade}
+                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                        />
+                        <InputGroup.Button>
+                            <Button bsStyle='success'>Save</Button>
+                        </InputGroup.Button>
+                    </InputGroup>
+                </FormGroup>
             </form>
         else
             if @props.grade
@@ -374,31 +367,35 @@ exports.StudentAssignmentInfo = rclass
 # Coupled with Assignments Panel and Handouts Panel
 exports.MultipleAddSearch = MultipleAddSearch = rclass
     propTypes :
-        add_selected     : rtypes.func.isRequired   # Submit user selected results
+        add_selected     : rtypes.func.isRequired   # Submit user selected results add_selected(['paths', 'of', 'folders'])
         do_search        : rtypes.func.isRequired   # Submit search query
+        clear_search     : rtypes.func.isRequired
         is_searching     : rtypes.bool.isRequired   # whether or not it is asking the backend for the result of a search
-        err              : rtypes.object            # Search error
-        search_results   : rtypes.array             # contents to put in the selection box after getting search result back
-        real_time        : rtypes.bool              # Controls whether add_selected is called on submit or on change
+        search_results   : rtypes.immutable.List    # contents to put in the selection box after getting search result back
         item_name        : rtypes.string
 
     getDefaultProps : ->
-        real_time        : false
         item_name        : 'result'
 
     getInitialState : ->
         selected_items : '' # currently selected options
         show_selector : false
 
+    shouldComponentUpdate : (newProps, newState) ->
+        return newProps.search_results != @props.search_results or
+            newProps.item_name != @props.item_name or
+            newProps.is_searching != @props.is_searching or
+            newState.selected_items != @state.selected_items
+
     componentWillReceiveProps : (newProps) ->
         @setState
-            show_selector : newProps.search_results? and newProps.search_results != @props.search_results
+            show_selector : newProps.search_results? and newProps.search_results.size > 0
 
     clear_and_focus_search_input : ->
-        @setState(show_selector : false)
+        @props.clear_search()
+        @setState(selected_items:'')
         @refs.search_input.clear_and_focus_search_input()
 
-    # TODO: Check if this works
     search_button : ->
         if @props.is_searching
             # Currently doing a search, so show a spinner
@@ -421,33 +418,41 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
         @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
+    change_selection : (e) ->
+        v = []
+        for option in e.target.selectedOptions
+            v.push(option.label)
+        @setState(selected_items : v)
+
     render_results_list : ->
-        for item in @props.search_results
-            <option key={item} value={item} label={item}>{item}</option>
+        v = []
+        @props.search_results.map (item) =>
+            v.push(<option key={item} value={item} label={item}>{item}</option>)
+        return v
 
     render_add_selector : ->
-        <div>
-            <Input type='select' multiple ref="selector" size=5 rows=10 onChange={=>@setState(selected_items : @refs.selector.getValue())}>
+        <FormGroup>
+            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={@change_selection}>
                 {@render_results_list()}
-            </Input>
+            </FormControl>
             <ButtonToolbar>
                 {@render_add_selector_button()}
                 <Button onClick={@clear_and_focus_search_input}>
                     Cancel
                 </Button>
             </ButtonToolbar>
-        </div>
+        </FormGroup>
 
     render_add_selector_button : ->
-        num_items_selected = @state.selected_items?.length ? 0
-        btn_text = switch @props.search_results.length
+        num_items_selected = @state.selected_items.length ? 0
+        btn_text = switch @props.search_results.size
             when 0 then "No #{@props.item_name} found"
             when 1 then "Add #{@props.item_name}"
             else switch num_items_selected
                 when 0 then "Select #{@props.item_name} above"
                 when 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        disabled = @props.search_results.length == 0 or (@props.search_results.length >= 2 and num_items_selected == 0)
+        disabled = @props.search_results.size == 0 or (@props.search_results.size >= 2 and num_items_selected == 0)
         <Button disabled={disabled} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
     render : ->
@@ -484,6 +489,7 @@ exports.FoldersToolbar = rclass
 
     getInitialState : ->
         add_is_searching : false
+        add_search_results : immutable.List([])
 
     do_add_search : (search) ->
         if @state.add_is_searching
@@ -497,7 +503,11 @@ exports.FoldersToolbar = rclass
                     @setState(add_is_searching:false, err:err, add_search_results:undefined)
                 else
                     filtered_results = @filter_results(resp.directories, search, @props.items)
-                    @setState(add_is_searching:false, add_search_results:filtered_results)
+                    if filtered_results.length == @state.add_search_results.size
+                        merged = @state.add_search_results.merge(filtered_results)
+                    else
+                        merged = immutable.List(filtered_results)
+                    @setState(add_is_searching:false, add_search_results:merged)
 
     # Filter directories based on contents of all_items
     filter_results : (directories, search, all_items) ->
@@ -522,6 +532,13 @@ exports.FoldersToolbar = rclass
             directories.sort()
         return directories
 
+    submit_selected : (path_list) ->
+        @props.add_folders(path_list)
+        @clear_add_search()
+
+    clear_add_search : ->
+        @setState(add_search_results:immutable.List([]))
+
     render : ->
         <Row>
             <Col md=3>
@@ -536,8 +553,9 @@ exports.FoldersToolbar = rclass
             </Col>
             <Col md=5>
                 <MultipleAddSearch
-                    add_selected   = {@props.add_folders}
+                    add_selected   = {@submit_selected}
                     do_search      = {@do_add_search}
+                    clear_search   = {@clear_add_search}
                     is_searching   = {@state.add_is_searching}
                     item_name      = {@props.item_name}
                     err            = {undefined}

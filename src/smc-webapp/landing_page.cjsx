@@ -1,5 +1,8 @@
+###
+The Landing Page
+###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, Input, Well, ClearFix} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -24,8 +27,9 @@ $.get window.smc_base_url + "/registration", (obj, status) ->
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
-    if url_args.length == 2 and url_args[1].slice(0, 6) == 'forgot'
-        return url_args[1].slice(7, 7+36)
+    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/smc/issues/294
+    if url_args.length == 2 and url_args[1].slice(0, 6).toLowerCase() == 'forgot'
+        return url_args[1].slice(7, 7+36).toLowerCase()
     return undefined
 
 Passports = rclass
@@ -83,10 +87,10 @@ SignUp = rclass
 
     make_account : (e) ->
         e.preventDefault()
-        name     = @refs.name.getValue()
-        email    = @refs.email.getValue()
-        password = @refs.password.getValue()
-        token    = @refs.token?.getValue()
+        name     = ReactDOM.findDOMNode(@refs.name).value
+        email    = ReactDOM.findDOMNode(@refs.email).value
+        password = ReactDOM.findDOMNode(@refs.password).value
+        token    = ReactDOM.findDOMNode(@refs.token)?.value
         @props.actions.create_account(name, email, password, token)
 
     display_error : (field)->
@@ -101,7 +105,9 @@ SignUp = rclass
 
     display_token_input : ->
         if @props.token
-            <Input ref='token' type='text' placeholder='Enter the secret token' />
+            <FormGroup>
+                <FormControl ref='token' type='text' placeholder='Enter the secret token' />
+            </FormGroup>
 
     render : ->
         <Well style={marginTop:'10px'}>
@@ -110,12 +116,18 @@ SignUp = rclass
             {@display_passports()}
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                {@display_error("first_name")}
-                <Input ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
-                {@display_error("email_address")}
-                <Input ref='email' type='email' placeholder='Email address' />
-                {@display_error("password")}
-                <Input ref='password' type='password' placeholder='Choose a password' />
+                <FormGroup>
+                    {@display_error("first_name")}
+                    <FormControl ref='name' type='text' autoFocus={false} placeholder='First and last Name' />
+                </FormGroup>
+                <FormGroup>
+                    {@display_error("email_address")}
+                    <FormControl ref='email' type='email' placeholder='Email address' />
+                </FormGroup>
+                <FormGroup>
+                    {@display_error("password")}
+                    <FormControl ref='password' type='password' placeholder='Choose a password' />
+                </FormGroup>
                 <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
                     disabled={@props.signing_up}
@@ -135,15 +147,22 @@ SignIn = rclass
     displayName : "SignIn"
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions       : rtypes.object.isRequired
         sign_in_error : rtypes.string
-        signing_in : rtypes.bool
-        has_account : rtypes.bool
-        xs          : rtypes.bool
+        signing_in    : rtypes.bool
+        has_account   : rtypes.bool
+        xs            : rtypes.bool
+
+    componentDidMount : ->
+        @actions('page').set_sign_in_func(@sign_in)
+
+    componentWillUnmount : ->
+        @actions('page').remove_sign_in_func()
 
     sign_in : (e) ->
-        e.preventDefault()
-        @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
+        if e?
+            e.preventDefault()
+        @props.actions.sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
 
     display_forgot_password : ->
         @props.actions.setState(show_forgot_password : true)
@@ -161,10 +180,14 @@ SignIn = rclass
             <Col xs=12>
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
-                        <Input ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        </FormGroup>
                     </Row>
                     <Row>
-                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        </FormGroup>
                     </Row>
                     <Row>
                         <div style={marginTop: '1ex'}>
@@ -174,7 +197,7 @@ SignIn = rclass
                     <Row>
                         <Button type="submit"
                                 disabled={@props.signing_in}
-                                xsStyle="default" style={height:34}
+                                bsStyle="default" style={height:34}
                                 className='pull-right'>Sign&nbsp;In</Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
@@ -187,17 +210,21 @@ SignIn = rclass
                 <Grid fluid=true style={padding:0}>
                 <Row>
                     <Col xs=5>
-                        <Input ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                        </FormGroup>
                     </Col>
                     <Col xs=4>
-                        <Input ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        <FormGroup>
+                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                        </FormGroup>
                     </Col>
                     <Col xs=3>
                         <Button type="submit"
                                 disabled={@props.signing_in}
-                                xsStyle="default"
+                                bsStyle="default"
                                 style={height:34}
-                                className='pull-right'>Sign&nbsp;In</Button>
+                                className='pull-right'>Sign&nbsp;in</Button>
                     </Col>
                 </Row>
                 <Row>
@@ -224,16 +251,20 @@ ForgotPassword = rclass
         forgot_password_success : rtypes.string
 
     getInitialState : ->
-        email : ''
+        email_address  : ''
+        is_email_valid : false
 
     forgot_password : (e) ->
         e.preventDefault()
-        if @is_valid_email()
-            @props.actions.forgot_password(@state.email)
-            @setState(email:'')
+        value = @state.email_address
+        if misc.is_valid_email_address(value)
+            @props.actions.forgot_password(value)
 
-    is_valid_email: () ->
-        return misc.is_valid_email_address(@state.email)
+    set_email : (evt) ->
+        email = evt.target.value
+        @setState
+            email_address  : email
+            is_email_valid : misc.is_valid_email_address(email)
 
     display_error : ->
         if @props.forgot_password_error?
@@ -241,14 +272,13 @@ ForgotPassword = rclass
 
     display_success : ->
         if @props.forgot_password_success?
-            success_part_1 = @props.forgot_password_success.split("check your spam folder")[0]
-            success_part_2 = @props.forgot_password_success.split("check your spam folder")[1]
+            s = @props.forgot_password_success.split("check your spam folder")
             <span>
-                {success_part_1}
+                {s[0]}
                 <span style={color: "red", fontWeight: "bold"}>
                     check your spam folder
                 </span>
-                {success_part_2}
+                {s[1]}
             </span>
 
     hide_forgot_password : ->
@@ -264,15 +294,16 @@ ForgotPassword = rclass
                     Enter your email address to reset your password
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
-                    <Input onChange={=>@setState(email:@refs.email.getValue())} type='email' ref='email' placeholder='Email address' autoFocus={true} value={@state.email} />
-                    {@display_error()}
-                    {@display_success()}
+                    <FormGroup>
+                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
+                    </FormGroup>
+                    {if @props.forgot_password_error then @display_error() else @display_success()}
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button disabled={not @is_valid_email()} type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset Password</Button>
-                            <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
+                            <Button disabled={not @state.is_email_valid} type="submit" bsStyle="primary" style={marginRight : 10}>Reset Password</Button>
+                            <Button onClick={@hide_forgot_password}>Close</Button>
                         </div>
                     </Row>
                 </form>
@@ -289,7 +320,7 @@ ResetPassword = rclass
 
     reset_password : (e) ->
         e.preventDefault()
-        @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
+        @props.actions.reset_password(@props.reset_key, ReactDOM.findDOMNode(@refs.password).value)
 
     hide_reset_password : (e) ->
         e.preventDefault()
@@ -308,14 +339,16 @@ ResetPassword = rclass
                     Enter your new password
                 </div>
                 <form onSubmit={@reset_password}>
-                    <Input ref='password' type='password' placeholder='New Password' />
+                    <FormGroup>
+                        <FormControl ref='password' type='password' placeholder='New Password' />
+                    </FormGroup>
                     {@display_error()}
                     <hr />
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset password</Button>
-                            <Button onClick={@hide_reset_password} bsSize="medium">Cancel</Button>
+                            <Button type="submit" bsStyle="primary" style={marginRight : 10}>Reset password</Button>
+                            <Button onClick={@hide_reset_password}>Cancel</Button>
                         </div>
                     </Row>
                 </form>
@@ -366,7 +399,7 @@ LANDING_PAGE_CONTENT =
         text : 'Write beautiful documents using LaTeX.'
 
 SMC_Commercial = () ->
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/oqCVNue0uL0" frameBorder="0" allowFullScreen></iframe>
+    <iframe width="504" height="284" src="https://www.youtube.com/embed/oqCVNue0uL0" frameBorder="0" allowFullScreen></iframe>
     #<iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameBorder="0" allowFullScreen>
     #</iframe>
 
@@ -457,20 +490,20 @@ RememberMe = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        actions : rtypes.object.isRequired
-        strategies : rtypes.array
-        sign_up_error : rtypes.object
-        sign_in_error : rtypes.string
-        signing_in : rtypes.bool
-        signing_up : rtypes.bool
-        forgot_password_error : rtypes.string
+        actions                 : rtypes.object.isRequired
+        strategies              : rtypes.array
+        sign_up_error           : rtypes.object
+        sign_in_error           : rtypes.string
+        signing_in              : rtypes.bool
+        signing_up              : rtypes.bool
+        forgot_password_error   : rtypes.string
         forgot_password_success : rtypes.string #is this needed?
-        show_forgot_password : rtypes.bool
-        token : rtypes.bool
-        reset_key : rtypes.string
-        reset_password_error : rtypes.string
-        remember_me : rtypes.bool
-        has_account : rtypes.bool
+        show_forgot_password    : rtypes.bool
+        token                   : rtypes.bool
+        reset_key               : rtypes.string
+        reset_password_error    : rtypes.string
+        remember_me             : rtypes.bool
+        has_account             : rtypes.bool
 
     render : ->
         if not @props.remember_me
@@ -486,26 +519,28 @@ exports.LandingPage = rclass
                             backgroundColor: SAGE_LOGO_COLOR,\
                             padding: 5, margin: 0, borderRadius:4}
                      className="visible-xs">
-                        <SignIn actions={@props.actions}
-                                     signing_in={@props.signing_in}
-                                     sign_in_error={@props.sign_in_error}
-                                     has_account={@props.has_account}
-                                     xs={true} />
+                        <SignIn
+                            actions       = {@props.actions}
+                            signing_in    = {@props.signing_in}
+                            sign_in_error = {@props.sign_in_error}
+                            has_account   = {@props.has_account}
+                            xs            = {true} />
                         <div style={clear:'both'}></div>
                 </Row>
                 <Row style={fontSize: 3*UNIT,\
                                 backgroundColor: SAGE_LOGO_COLOR,\
                                 padding: 5, margin: 0, borderRadius:4, whiteSpace:'nowrap'}
                      className="hidden-xs">
-                      <div style={width:440,zIndex:10,\
+                      <div style={width:490,zIndex:10,\
                                   position:"relative",\
                                   top:12,right:12,float:"right"}
                            className="smc-sign-in-form">
-                          <SignIn actions={@props.actions}
-                                 signing_in={@props.signing_in}
-                                 sign_in_error={@props.sign_in_error}
-                                 has_account={@props.has_account}
-                                 xs={false} />
+                          <SignIn
+                              actions       = {@props.actions}
+                              signing_in    = {@props.signing_in}
+                              sign_in_error = {@props.sign_in_error}
+                              has_account   = {@props.has_account}
+                              xs            = {false} />
                       </div>
                       <span style={display: 'inline-block', \
                                    backgroundImage: "url('#{SMC_ICON_URL}')", \
@@ -517,6 +552,7 @@ exports.LandingPage = rclass
                       <div className="hidden-sm"
                           style={display:'inline-block',\
                                   fontFamily: DESC_FONT,\
+                                  fontSize:"28px",\
                                   top: -1 * UNIT,\
                                   position: 'relative',\
                                   color: 'white',\
@@ -542,12 +578,13 @@ exports.LandingPage = rclass
                         <SMC_Commercial />
                     </Col>
                     <Col sm=5>
-                        <SignUp actions={@props.actions}
-                                 sign_up_error={@props.sign_up_error}
-                                 strategies={@props.strategies}
-                                 token={@props.token}
-                                 signing_up={@props.signing_up}
-                                 has_account={@props.has_account} />
+                        <SignUp
+                            actions       = {@props.actions}
+                            sign_up_error = {@props.sign_up_error}
+                            strategies    = {@props.strategies}
+                            token         = {@props.token}
+                            signing_up    = {@props.signing_up}
+                            has_account   = {@props.has_account} />
                     </Col>
                 </Row>
                 <Row>

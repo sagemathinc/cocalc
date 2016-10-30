@@ -90,6 +90,7 @@ glob          = require('glob')
 child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
+program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
 
@@ -105,6 +106,7 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 date          = new Date()
@@ -307,11 +309,22 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'SMC_GIT_REV' : JSON.stringify(GIT_REV)
                                 'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'    : JSON.stringify(BUILD_TS)
+                                'DEBUG'       : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
+
+# https://webpack.github.io/docs/shimming-modules.html
+# do *not* require('jquery') but $ = window.$
+# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
+# rather, webapp-lib.coffee defines the one and only global jquery instance!
+#provideGlobals      = new webpack.ProvidePlugin
+#                                        '$'             : 'jquery'
+#                                        'jQuery'        : 'jquery'
+#                                        "window.jQuery" : "jquery"
+#                                        "window.$"      : "jquery"
 
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.
@@ -418,6 +431,7 @@ module.exports =
 
     module:
         loaders: [
+            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
@@ -448,6 +462,9 @@ module.exports =
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
+        #alias:
+        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
+        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
 

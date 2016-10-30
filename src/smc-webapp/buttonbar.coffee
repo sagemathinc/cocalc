@@ -27,7 +27,7 @@ This is motivated by editing text, where various markups have different realizat
 
 There are less/none overlaps for programming languages.
 
-TODO:
+FUTURE:
     * initial examples for Sage, LaTeX, R
     * think about creating a dedicated dialog for more elaborate examples,
       which should also have a client/server communication to avoid bloat
@@ -39,6 +39,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 ###
 
+$ = window.$
 {defaults} = require('smc-util/misc')
 
 exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
@@ -46,9 +47,11 @@ exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier 
 exports.commands =
     shell :
         comment :
-            wrap :      # TODO: multi-line
-                left  : '# '
+            wrap :
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         set_name_and_email :
                 insert:
                         """
@@ -292,9 +295,11 @@ exports.commands =
                 left  : '^{'
                 right : '}'
         comment :
-            wrap :      # TODO: multi-line
-                left  : '% '
+            wrap :
+                left  : '%'
                 right : ''
+                multi : true
+                space : true
         horizontalRule:
             wrap:
                 left  : "\\hrulefill"
@@ -326,7 +331,7 @@ exports.commands =
             wrap :
                 left  : "\n 1. "
                 right : "\n"
-        format_heading_1 :  # todo -- define via for loop below
+        format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
                 left  : "\n# "
@@ -346,7 +351,7 @@ exports.commands =
             wrap :
                 left  : "\n#### "
                 right : ""
-        format_code :  # TODO: I think indentation is probably nicer?  on single line ` is nicer.
+        format_code :  # FUTURE: I think indentation is probably nicer?  on single line ` is nicer.
             wrap :
                 left  : '\n```'
                 right : '\n```\n'
@@ -396,8 +401,9 @@ exports.commands =
                 right : '</sup>'
         comment :
             wrap :
-                left  : '<!-- '
+                left  : '<!--'
                 right : ' -->'
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n<ul>\n    <li> "
@@ -406,7 +412,7 @@ exports.commands =
             wrap :
                 left  : "\n<ol>\n    <li> "
                 right : "</li>\n</ol>\n"
-        justifyleft :    # todo -- define via for loop below
+        justifyleft :    # FUTURE -- define via for loop below
             strip : ['justifycenter','justifyright','justifyfull']
             wrap :
                 left  : ""
@@ -430,7 +436,7 @@ exports.commands =
             wrap :
                 left  : "<blockquote>"
                 right : "</blockquote>"
-        format_heading_1 :  # todo -- define via for loop below
+        format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
                 left  : "<h1>"
@@ -506,8 +512,10 @@ exports.commands =
                 right : '` '
         comment :
             wrap :
-                left  : '\n.. '
+                left  : '\n..'
                 right : ''
+                multi : true
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n  - "
@@ -516,7 +524,7 @@ exports.commands =
             wrap :
                 left  : "\n  1. "
                 right : ""
-        justifyleft :    # todo -- define via for loop below
+        justifyleft :    # FUTURE -- define via for loop below
             strip : ['justifycenter','justifyright','justifyfull']
             wrap :
                 left  : ""
@@ -540,7 +548,7 @@ exports.commands =
             wrap :
                 left  : "\n  "
                 right : ""
-        format_heading_1 :  # todo -- define via for loop below
+        format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
                 left  : "\n===============\n"
@@ -637,13 +645,14 @@ exports.commands =
                 right : "\n"
         comment :
             wrap :
-                left  : '\n<!-- '
+                left  : '\n<!--'
                 right : ' -->\n'
+                space : true
         indent: # pre tag is more for code, but makes more sense than a dysfunctional ":"
             wrap:
                 left  : "\n<pre>"
                 right : "</pre>\n"
-        format_heading_1 :  # todo -- define via for loop below
+        format_heading_1 :  # FUTURE -- define via for loop below
             strip : ['format_heading_2','format_heading_3','format_heading_4']
             wrap :
                 left  : "\n== "
@@ -692,8 +701,10 @@ exports.commands =
     python:
         comment :
             wrap :
-                left  : '# '
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         len :
             insert : "len([1, 2, 5, 6, 10])"
         list :
@@ -1075,8 +1086,10 @@ exports.commands =
                 right : ""
         comment:
             wrap:
-                left : "# "
-                right: ""
+                left  : "# "
+                right : ""
+                multi : true
+                space : true
         assign:
             insert : "a = 5"
         forloop:
@@ -1110,7 +1123,10 @@ exports.commands =
     r:                 # http://cran.r-project.org/doc/manuals/r-release/R-intro.html
         comment:
             wrap:
-                left  : "# "
+                left  : "#"
+                right : ''
+                multi : true
+                space : true
         vector:
             insert : "v <- c(1,1,2,3,5,8,13)"
         forloop:
@@ -1308,8 +1324,10 @@ exports.commands =
             insert : "Polynomial Integer"
         comment:
             wrap:
-                left : "-- "
+                left : "--"
                 right: ""
+                multi : true
+                space : true
         assign:
             insert : "a: = 5"
         forloop:
@@ -1456,9 +1474,9 @@ initialize_md_html_editor = () ->
 initialize_md_html_editor()
 
 # adding Python & Sage menu entries programmatically (editing HTML directly is too painful)
-# TODO make a general class for menu entries and hence use these functions for all menu entries?
+# FUTURE: make a general class for menu entries and hence use these functions for all menu entries?
 initialize_sage_python_r_toolbar = () ->
-    # reference example, TODO delete it
+    # reference example, FUTURE: delete it
     """
             <span class="btn-group">
                 <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Control Structures">
@@ -1872,7 +1890,7 @@ initialize_latex_buttonbar = () ->
                       ]]
     add_menu(latexbar, templates)
 
-    # TODO merge this with the usual text formatting toolbar, such that its list of actions is inserted here
+    # FUTURE: merge this with the usual text formatting toolbar, such that its list of actions is inserted here
     # IDEA: maybe, clicking on the "Format" dropdown shows the cloned formatting toolbar?
     #text = ["Format", "Text formatting",[]]
     #add_menu(latexbar, text)

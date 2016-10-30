@@ -31,7 +31,6 @@ y|Y)
   echo canceled
   ;;
 esac
-exit
 
 cd ~/smc
 # echo "checking that 'upstream' remote is main SMC github repo"
@@ -68,8 +67,7 @@ pip install --user --upgrade ./
 echo "running tests"
 cd ~/smc/src/smc_sagews/smc_sagews/tests
 
-# first test run only starts sage_server
-python -m pytest test_sagews_timing.py::TestSagewsNoSession
+# baseline run of all tests before we start making changes
 python -m pytest
 
 echo "setup for branch $BNAME done"

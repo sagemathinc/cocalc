@@ -934,6 +934,8 @@ class Salvus(object):
         except:
             log("Error - unable to import sage.repl.interpreter")
 
+        import sage.misc.session
+
         for start, stop, block in blocks:
             # if import sage.repl.interpreter fails, sag_repl_interpreter is unreferenced
             try:
@@ -954,6 +956,15 @@ class Salvus(object):
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()
+                    if execute.count < 2:
+                        execute.count += 1
+                        if execute.count == 2:
+                            # this fixup has to happen after first block has executed (os.chdir etc)
+                            # but before user assigns any variable in worksheet
+                            # sage.misc.session.init() is not called until first call of show_identifiers
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
+                            block2 = "sage.misc.session._dummy=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -1289,7 +1300,6 @@ class Salvus(object):
             opts['use_cache'] = True
         import sage.misc.cython
         modname, path = sage.misc.cython.cython(filename, **opts)
-        import sys
         try:
             sys.path.insert(0,path)
             module = __import__(modname)
@@ -1304,7 +1314,6 @@ class Salvus(object):
                 break
         try:
             open(py_file_base+'.py', 'w').write(content)
-            import sys
             try:
                 sys.path.insert(0, os.path.abspath('.'))
                 mod = __import__(py_file_base)
@@ -1398,6 +1407,9 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         else:
             sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
+# execute.count goes from 0 to 2
+# used for show_identifiers()
+execute.count = 0
 
 
 def drop_privileges(id, home, transient, username):
@@ -1482,6 +1494,7 @@ def session(conn):
     import sage.misc.getusage
     sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
+
     cnt = 0
     while True:
         try:
@@ -1504,7 +1517,6 @@ def session(conn):
                 except Exception as err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
-                import sys
                 try:
                     # check for introspect from jupyter cell
                     prefix = Salvus._default_mode
@@ -1515,22 +1527,19 @@ def session(conn):
                             prefix = top[1:]
                     try:
                         # see if prefix is the name of a jupyter kernel function
-                        jkfn = namespace[prefix]
-                        if hasattr(jkfn, 'jupyter_kernel'):
-                            # pre-defined jupyter modes like %sh have mode function in attribute
-                            jkfn = jkfn.jupyter_kernel
-                        jkname = jkfn(None, get_kernel_name = True)
-                        log("jupyter introspect %s: %s"%(prefix, jkname)) # e.g. "p2", "python2"
+                        kc = eval(prefix+"(get_kernel_client=True)",namespace,locals())
+                        kn = eval(prefix+"(get_kernel_name=True)",namespace,locals())
+                        log("jupyter introspect prefix %s kernel %s"%(prefix, kn)) # e.g. "p2", "python2"
                         jupyter_introspect(conn=conn,
                                            id=mesg['id'],
                                            line=mesg['line'],
                                            preparse=mesg.get('preparse', True),
-                                           jkfn=jkfn)
+                                           kc=kc)
                     except:
-                        #import traceback
-                        #exc_type, exc_value, exc_traceback = sys.exc_info()
-                        #lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                        #log(lines)
+                        import traceback
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                        log(lines)
                         introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
@@ -1548,14 +1557,12 @@ def session(conn):
             else:
                 pass
 
-def jupyter_introspect(conn, id, line, preparse, jkfn):
+def jupyter_introspect(conn, id, line, preparse, kc):
     import jupyter_client
     from Queue import Empty
 
     try:
         salvus = Salvus(conn=conn, id=id)
-        kcix = jkfn.func_code.co_freevars.index("kc")
-        kc = jkfn.func_closure[kcix].cell_contents
         msg_id = kc.complete(line)
         shell = kc.shell_channel
         iopub = kc.iopub_channel
@@ -1766,13 +1773,14 @@ def serve(port, host, extra_imports=False):
 
         namespace['_salvus_parsing'] = sage_parsing
 
-        for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
-                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var','jupyter',
-                     'reset', 'restore', 'md', 'load', 'attach', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'modes', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval',
-                     'search_doc','search_src', 'octave', 'license']:
+        for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
+                     'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
+                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
@@ -1836,7 +1844,7 @@ def serve(port, host, extra_imports=False):
         # end while
     except Exception as err:
         log("Error taking connection: ", err)
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc(file=open(LOGFILE, 'a'))
         #log.error("error: %s %s", type(err), str(err))
 
     finally:

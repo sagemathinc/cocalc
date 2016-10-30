@@ -22,7 +22,7 @@
 ###############################################################################
 
 """
-Copyright (c) 2014 -- 2015   The SageMathCloud Authors.
+Copyright (c) 2014 -- 2016   SageMath, Inc..
 
 All rights reserved.
 
@@ -165,7 +165,16 @@ sensitive=true}
 }
 """
 
+# this is part of the preamble above, although this time full of utf8 chars
 COMMON += ur"""
+% mathjax has \lt and \gt
+\newcommand{\lt}{<}
+\newcommand{\gt}{>}
+% also support HTML's &le; and &ge;
+\newcommand{\lequal}{≤}
+\newcommand{\gequal}{≥}
+\newcommand{\notequal}{≠}
+
 % defining utf8 characters for listings
 \lstset{literate=
   {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
@@ -198,17 +207,30 @@ def escape_path(s):
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
 
+# used in texifyHTML and then again, in tex_escape
+# they're mapped to macros, defined in the latex preamble
+relational_signs = [
+    ('gt', 'gt'),
+    ('lt', 'lt'),
+    ('ge', 'gequal'),
+    ('le', 'lequal'),
+    ('ne', 'notequal')
+]
+
 def tex_escape(s):
     replacements = [
         ('\\',                 '{\\textbackslash}'),
-        ('_',                  '\\_'),
-        ('{\\textbackslash}$', '\\$' ),
-        ('%',                  '\\%'),
-        ('#',                  '\\#'),
-        ('&',                  '\\&'),
+        ('_',                  r'\_'),
+        (r'{\textbackslash}$', r'\$' ),
+        ('%',                  r'\%'),
+        ('#',                  r'\#'),
+        ('&',                  r'\&'),
     ]
     for rep in replacements:
         s = s.replace(*rep)
+    for rel in relational_signs:
+        a, b = r'{\textbackslash}%s' % rel[1], r'\%s ' % rel[1]
+        s = s.replace(a, b)
     return s
 
 
@@ -295,7 +317,7 @@ class Parser(HTMLParser.HTMLParser):
                     filename = base+'.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
-                self.result += '\\includegraphics[resolution=120]{%s}\n'%filename
+                self.result += '\\includegraphics[resolution=120]{%s}'%filename
             else:
                 # fallback, because there is no src='...'
                 self.result += '\\verbatim{image: %s}' % str(attrs)
@@ -335,6 +357,8 @@ def sanitize_math_input(s):
     return tmp
 
 def reconstruct_math(s, tmp):
+    print "s ='%r'"%s
+    print "tmp = '%r'"%tmp
     from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
@@ -350,6 +374,9 @@ def texifyHTML(s):
     ]
     for rep in replacements:
         s = s.replace(*rep)
+    for rel in relational_signs:
+        a, b = '&%s;' % rel[0], r'\%s' % rel[1]
+        s = s.replace(a, b)
     return s
 
 def html2tex(doc, cmds):
@@ -493,17 +520,19 @@ class Cell(object):
                             self._commands.append(c)
                             filename = base+'.pdf'
                         img = filename
-                    s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
+                    # omitting [width=\\textwidth] allows figsize to set displayed size
+                    # see https://github.com/sagemathinc/smc/issues/114
+                    s += '{\\centering\n\\includegraphics{%s}\n\\par\n}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
-                    print "KEYS", v.keys()
+                    #print "KEYS", v.keys()
                     uuid = val['uuid']
                     if uuid in v:
-                        print "TARGET acquired!"
+                        #print "TARGET acquired!"
                         data = v[uuid].pop()
                         width = min(1, 1.2*data.get('width',0.5))
-                        print "width = ", width
+                        #print "width = ", width
                         if 'data-url' in data:
                             data_url = data['data-url']  # 'data:image/png;base64,iVBOR...'
                             i = data_url.find('/')
@@ -658,7 +687,10 @@ def main():
     remove_tmpdir=args.remove_tmpdir
 
     if args.subdir:
-        work_dir = '%s-sagews2pdf' % os.path.splitext(os.path.basename(args.filename))[0]
+        from os.path import dirname, basename, splitext, join
+        dir = dirname(args.filename)
+        subdir = '%s-sagews2pdf' % splitext(basename(args.filename))[0]
+        work_dir = join(dir, subdir)
         remove_tmpdir = False
     elif args.work_dir is not None:
         work_dir = os.path.abspath(os.path.expanduser(args.work_dir))

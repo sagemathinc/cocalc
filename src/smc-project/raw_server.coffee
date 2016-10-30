@@ -56,6 +56,12 @@ exports.start_raw_server = (opts) ->
             base = "#{base_url}/#{project_id}/raw/"
             winston.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
+            raw_server.use base, (req, res, next) ->
+                # this middleware function has to come before the express.static server!
+                # it sets the content type to octet-stream (aka "download me") if URL query ?download exists
+                if req.query.download?
+                    res.setHeader('Content-Type', 'application/octet-stream')
+                return next()
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 

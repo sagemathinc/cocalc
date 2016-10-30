@@ -10,4 +10,4 @@
     this.addClass("hidden hide");
     return hide.apply(this, arguments);
   };
-})(jQuery);
+})(window.jQuery);

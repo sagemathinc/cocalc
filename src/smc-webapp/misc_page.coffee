@@ -19,11 +19,15 @@
 #
 ###############################################################################
 
+$ = window.$
+
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/syncstring')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
+
+{redux} = require('./smc-react')
 
 templates = $("#salvus-misc-templates")
 
@@ -112,13 +116,13 @@ $.fn.process_smc_links = (opts={}) ->
                 if href.indexOf(document.location.origin) == 0 and href.indexOf('/projects/') != -1
                     # target starts with cloud URL or is absolute, and has /projects/ in it, so we open the
                     # link directly inside this browser tab.
-                    # TODO: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
+                    # WARNING: there are cases that could be wrong via this heuristic, e.g., a raw link that happens
                     # to have /projects/ in it -- deal with them someday...
                     y.click (e) ->
                         url = $(@).attr('href')
                         i = url.indexOf('/projects/')
                         target = url.slice(i + '/projects/'.length)
-                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0  # does not start with http
                     # internal link
@@ -136,7 +140,7 @@ $.fn.process_smc_links = (opts={}) ->
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
                             target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
-                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        redux.getActions('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server
@@ -349,7 +353,7 @@ $.fn.extend
 
             if opts.cancel
                 t.data('cancel_editor')?()
-                # TODO: clear state -- get rid of function data...
+                # FUTURE: clear state -- get rid of function data...
                 return
 
             if not opts.value?
@@ -471,6 +475,7 @@ $.fn.extend
 # We factor out this extension so it can be applied to CodeMirror's in iframes, e.g., Jupyter's.
 
 exports.cm_define_diffApply_extension = (cm) ->
+    # applies a diff and returns last pos modified
     cm.defineExtension 'diffApply', (diff) ->
         editor = @
         next_pos = (val, pos) ->
@@ -485,11 +490,13 @@ exports.cm_define_diffApply_extension = (cm) ->
                 return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
         pos = {line:0, ch:0}  # start at the beginning
+        last_pos = undefined
         for chunk in diff
             #console.log(chunk)
             op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
             val = chunk[1]  # the actual text to leave same, delete, or add
             pos1 = next_pos(val, pos)
+
             switch op
                 when 0 # stay the same
                     # Move our pos pointer to the next position
@@ -498,6 +505,7 @@ exports.cm_define_diffApply_extension = (cm) ->
                 when -1 # delete
                     # Delete until where val ends; don't change pos pointer.
                     editor.replaceRange("", pos, pos1)
+                    last_pos = pos
                     #console.log("deleting from ", pos, " to ", pos1)
                 when +1 # insert
                     # Insert the new text right here.
@@ -505,6 +513,8 @@ exports.cm_define_diffApply_extension = (cm) ->
                     #console.log("inserted new text at ", pos)
                     # Move our pointer to just beyond the text we just inserted.
                     pos = pos1
+                    last_pos = pos1
+        return last_pos
 
 exports.cm_define_testbot = (cm) ->
     cm.defineExtension 'testbot', (opts) ->
@@ -702,7 +712,7 @@ exports.define_codemirror_extensions = () ->
 
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
-    CodeMirror.defineExtension 'setValueNoJump', (value) ->
+    CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         r = @getOption('readOnly')
         if not r
             @setOption('readOnly', true)
@@ -715,7 +725,7 @@ exports.define_codemirror_extensions = () ->
 
         # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
         # which would cause total chaos.
-        @diffApply(dmp.diff_main(@getValue(), value))
+        last_pos = @diffApply(dmp.diff_main(@getValue(), value))
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -725,10 +735,14 @@ exports.define_codemirror_extensions = () ->
 
         if not r
             @setOption('readOnly', false)
+            if scroll_last and last_pos?
+                @scrollIntoView(last_pos)
+                @setCursor(last_pos)
+
         delete @_setValueNoJump
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
-        ## TODO: this is a very stupid/inefficient way to turn
+        ## OPTIMIZATION: this is a very stupid/inefficient way to turn
         ## a patch into a diff.  We should just directly rewrite
         ## the code below to work with patch.
         cur_value = @getValue()
@@ -832,7 +846,7 @@ exports.define_codemirror_extensions = () ->
         opts = defaults opts,
             from      : required
             content   : required
-            type      : required   # 'docstring', 'source-code' -- TODO
+            type      : required   # 'docstring', 'source-code' -- FUTURE:
             target    : required
         element = templates.find(".salvus-codemirror-introspect")
         element.find(".salvus-codemirror-introspect-title").text(opts.target)
@@ -925,13 +939,13 @@ exports.define_codemirror_extensions = () ->
                 return 'mediawiki'
             when 'stex'
                 return 'tex'
-            when 'python' # TODO how to tell it to return sage when in a sagews file?
+            when 'python' # FUTURE how to tell it to return sage when in a sagews file?
                 return 'python'
             when 'r'
                 return 'r'
             when 'julia'
                 return 'julia'
-            when 'sagews'    # this doesn't work
+            when 'sagews'    # WARNING: this doesn't work
                 return 'sage'
             else
                 mode = cm.getOption('mode').name
@@ -984,13 +998,13 @@ exports.define_codemirror_extensions = () ->
 
         #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
-        # TODO: will have to make this more sophisticated, so it can
+        # FUTURE: will have to make this more sophisticated, so it can
         # deal with nesting.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
-            left  = left.trim().toLowerCase()
-            right = right.trim().toLowerCase()
-            src0   = src.toLowerCase()
+            left  = left.toLowerCase()
+            right = right.toLowerCase()
+            src0  = src.toLowerCase()
             i = src0.indexOf(left)
             if i != -1
                 j = src0.lastIndexOf(right)
@@ -1030,7 +1044,7 @@ exports.define_codemirror_extensions = () ->
                     # html fallback for markdown
                     mode1 = 'html'
                 else if mode1 == "python"
-                    # Sage fallback in python mode. TODO There should be a Sage mode.
+                    # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
 
@@ -1043,29 +1057,41 @@ exports.define_codemirror_extensions = () ->
                 done = true
 
             if how?.wrap?
-                if how.strip?
-                    # Strip out any tags/wrapping from conflicting modes.
-                    for c in how.strip
-                        wrap = EDIT_COMMANDS[mode1][c].wrap
-                        if wrap?
-                            {left, right} = wrap
-                            src1 = strip(src, left, right)
-                            if src1?
-                                src = src1
+                space = how.wrap.space
+                left  = how.wrap.left  ? ""
+                right = how.wrap.right ? ""
+                process = (src) ->
+                    if how.strip?
+                        # Strip out any tags/wrapping from conflicting modes.
+                        for c in how.strip
+                            wrap = EDIT_COMMANDS[mode1][c].wrap
+                            if wrap?
+                                {left, right} = wrap
+                                src1 = strip(src, left, right)
+                                if src1?
+                                    src = src1
+                                    if space and src[0] == ' '
+                                        src = src.slice(1)
 
-                left  = if how.wrap.left?  then how.wrap.left else ""
-                right = if how.wrap.right? then how.wrap.right else ""
-                src1 = strip(src, left, right)
-                if src1
-                    # strip the wrapping
-                    src = src1
+                    src1  = strip(src, left, right)
+                    if src1
+                        # strip the wrapping
+                        src = src1
+                        if space and src[0] == ' '
+                            src = src.slice(1)
+                    else
+                        # do the wrapping
+                        src = "#{left}#{if space then ' ' else ''}#{src}#{right}"
+                    return src
+
+                if how.wrap.multi
+                    src = (process(x) for x in src.split('\n')).join('\n')
                 else
-                    # do the wrapping
-                    src = "#{left}#{src}#{right}"
+                    src = process(src)
                 done = true
 
             if how?.insert? # to insert the code snippet right below, next line
-                # TODO no idea what the strip(...) above is actually doing
+                # SMELL: no idea what the strip(...) above is actually doing
                 # if text is selected (is that src?) then there is only some new stuff below it. that's it.
                 src = "#{src}\n#{how.insert}"
                 done = true
@@ -1251,7 +1277,7 @@ exports.define_codemirror_extensions = () ->
     CodeMirror.defineExtension 'tex_ensure_preamble', (code) ->
         cm = @
         # ensures that the given line is the pre-amble of the latex document.
-        # TODO: actually implement this!
+        # FUTURE: actually implement this!
 
         # in latex document do one thing
 
@@ -1385,7 +1411,7 @@ exports.define_codemirror_extensions = () ->
             dialog.modal('hide')
             code = target.attr("title")
             s = "&#{code};"
-            # TODO HTML-based formats will work, but not LaTeX.
+            # FUTURE: HTML-based formats will work, but not LaTeX.
             # As long as the input encoding in LaTeX is utf8, just insert the actual utf8 character (target.text())
 
             selections = cm.listSelections()
@@ -1420,6 +1446,70 @@ exports.define_codemirror_extensions = () ->
             return false
         if line?
             return {line:line, ch:ch}
+
+    # Format the selected block (or blocks) of text, so it looks like this:
+    #    stuff  : 'abc'
+    #    foo    : 1
+    #    more_0 : 'blah'
+    # Or
+    #    stuff  = 'abc'
+    #    foo    = 1
+    #    more_0 = 'blah'
+    # The column separate is the first occurence in the first line of
+    # one of '=' or ':'.  Selected lines that don't contain either symbol
+    # are ignored.
+    CodeMirror.defineExtension 'align_assignments', () ->
+        for sel in @listSelections()
+            {start_line, end_line} = cm_start_end(sel)
+            symbol = undefined
+            column = 0
+            # first pass -- figure out what the symbol is and what column we will move it to.
+            for n in [start_line .. end_line]
+                x = @getLine(n)
+                if not symbol?
+                    # we still don't know what the separate symbol is.
+                    if ':' in x
+                        symbol = ':'
+                    else if '=' in x
+                        symbol = '='
+                i = x.indexOf(symbol)
+                if i == -1
+                    continue   # no symbol in this line, so skip
+                # reduce i until x[i-1] is NOT whitespace.
+                while i > 0 and x[i-1].trim() == ''
+                    i -= 1
+                i += 1
+                column = Math.max(i, column)
+            if not symbol? or not column
+                continue  # no symbol in this selection, or no need to move it.  Done.
+            # second pass -- move symbol over by inserting space
+            for n in [start_line .. end_line]
+                x = @getLine(n)
+                i = x.indexOf(symbol)
+                if i != -1
+                    # There is a symbol in this line -- put it in the spot where we want it.
+                    if i < column
+                        # symbol is too early -- add space
+                        spaces = (' ' for j in [0...(column-i)]).join('')  # column - i spaces
+                        # insert spaces in front of the symbol
+                        @replaceRange(spaces, {line:n, ch:i}, {line:n, ch:i})
+                    else if i > column
+                        # symbol is too late -- remove spaces
+                        @replaceRange('', {line:n, ch:column}, {line:n, ch:i})
+                    # Ensure the right amount of whitespace after the symbol -- exactly one space
+                    j = i + 1  # this will be the next position after x[i] that is not whitespace
+                    while j < x.length and x[j].trim() == ''
+                        j += 1
+                    if j - i >= 2
+                        # remove some spaces
+                        @replaceRange('', {line:n, ch:column+1}, {line:n, ch:column+(j-i-1)})
+                    else if j - i == 1
+                        # insert a space
+                        @replaceRange(' ', {line:n, ch:column+1}, {line:n, ch:column+1})
+
+
+
+
 
     # Natural analogue of getLine, which codemirror doesn't have for some reason
     #CodeMirror.defineExtension 'setLine', (n, value) ->
@@ -1529,7 +1619,7 @@ exports.load_coffeescript_compiler = (cb) ->
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
-    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
 
 # get the currently selected html
@@ -1568,7 +1658,7 @@ exports.restore_selection = (selected_range) ->
 #
 # in any case, almost all tags should be allowed here, no need to be too strict.
 #
-# Note/TODO: the ones based on google-caja-sanitizer seem to have a smaller footprint,
+# FUTURE: the ones based on google-caja-sanitizer seem to have a smaller footprint,
 # but I (hsy) wasn't able to configure them in such a way that all tags/attributes are allowed.
 # It seems like there is some bug in the library, because the definitions to allow e.g. src in img are there.
 

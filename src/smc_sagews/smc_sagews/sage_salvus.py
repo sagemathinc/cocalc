@@ -1214,8 +1214,52 @@ class HTML:
             salvus.hide('input')
         salvus.html(s)
 
-    def table(self):
-        raise NotImplementedError("html.table not implemented in SageMathCloud yet")
+    def table(self, rows = None, header=False):
+        """
+        Renders a given matrix or nested list as an HTML table.
+
+        Arguments::
+
+        * **rows**: the rows of the table as a list of lists
+        * **header**: if True, the first row is formatted as a header (default: False)
+        """
+        # TODO: support columns as in http://doc.sagemath.org/html/en/reference/misc/sage/misc/table.html
+        assert rows is not None, '"rows" is a mandatory argument, should be a list of lists'
+
+        from sage.matrix.matrix import is_Matrix
+        import numpy as np
+
+        if is_Matrix(rows):
+            table = list(rows) # list of Sage Vectors
+        elif isinstance(rows, np.ndarray):
+            table = rows.tolist()
+        else:
+            table = rows
+
+        assert isinstance(table, (tuple, list)), '"rows" must be a list of lists'
+
+        def as_unicode(s):
+            '''
+            This not only deals with unicode strings, but also converts e.g. `Integer` objects to a str
+            '''
+            if not isinstance(s, unicode):
+                try:
+                    return unicode(s, 'utf8')
+                except:
+                    return unicode(str(s), 'utf8')
+            return s
+
+        def mk_row(row, header=False):
+            is_vector = hasattr(row, 'is_vector') and row.is_vector()
+            assert isinstance(row, (tuple, list)) or is_vector, '"rows" must contain lists or vectors for each row'
+            tag = 'th' if header else 'td'
+            row = [u'<{tag}>{}</{tag}>'.format(as_unicode(_), tag = tag) for _ in row]
+            return u'<tr>{}</tr>'.format(u''.join(row))
+
+        thead = u'<thead>{}</thead>'.format(mk_row(table.pop(0), header=True)) if header else ''
+        h_rows = [mk_row(row) for row in table]
+        html_table = u'<table style="width: auto;" class="table table-bordered">{}<tbody>{}</tbody></table>'
+        self(html_table.format(thead, ''.join(h_rows)))
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
@@ -1961,7 +2005,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if k[0] != '_':
             salvus.namespace[k] = x
 
-def sh(code):
+def sh(code=None,**kwargs):
     """
     Run a bash script in Salvus. Uses jupyter bash kernel
     which allows keeping state between cells.
@@ -2015,70 +2059,76 @@ def sh(code):
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
         sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
-    return sh.jupyter_kernel(code)
+    return sh.jupyter_kernel(code,**kwargs)
 sh.jupyter_kernel = None
 
 # use jupyter kernel for GNU octave instead of sage interpreter interface
-def octave(code):
+def octave(code=None,**kwargs):
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
-    return octave.jupyter_kernel(code)
+    return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
+# jupyter kernel for %ir mode
+def r(code=None,**kwargs):
+    if r.jupyter_kernel is None:
+        r.jupyter_kernel = jupyter("ir")
+    return r.jupyter_kernel(code,**kwargs)
+r.jupyter_kernel = None
 
-# Monkey patch the R interpreter interface to support graphics, when
-# used as a decorator.
+## Monkey patch the R interpreter interface to support graphics, when
+## used as a decorator.
 
-import sage.interfaces.r
-def r_eval0(*args, **kwds):
-    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
+#import sage.interfaces.r
+#def r_eval0(*args, **kwds):
+#    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
 
-_r_plot_options = ''
-def set_r_plot_options(width=7, height=7):
-    global _r_plot_options
-    _r_plot_options = ", width=%s, height=%s"%(width, height)
+#_r_plot_options = ''
+#def set_r_plot_options(width=7, height=7):
+#    global _r_plot_options
+#    _r_plot_options = ", width=%s, height=%s"%(width, height)
 
-r_dev_on = False
-def r_eval(code, *args, **kwds):
-    """
-    Run a block of R code.
+#r_dev_on = False
+#def r_eval(code, *args, **kwds):
+#    """
+#    Run a block of R code.
 
-    EXAMPLES::
+#    EXAMPLES::
 
-         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
-         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-         1.00    2.00    3.00   12.55    3.50  111.00
+#         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
+#         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#         1.00    2.00    3.00   12.55    3.50  111.00
 
-    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
-    a cell to set the whole worksheet to r mode.
+#    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
+#    a cell to set the whole worksheet to r mode.
 
-    NOTE: Any plots drawn using the plot command should "just work", without having
-    to mess with special devices, etc.
-    """
-    # Only use special graphics support when using r as a cell decorator, since it has
-    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
-    # a lot if one had a loop with r.eval in it.
-    if sage.interfaces.r.r not in salvus.code_decorators:
-        return r_eval0(code, *args, **kwds)
+#    NOTE: Any plots drawn using the plot command should "just work", without having
+#    to mess with special devices, etc.
+#    """
+#    # Only use special graphics support when using r as a cell decorator, since it has
+#    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
+#    # a lot if one had a loop with r.eval in it.
+#    if sage.interfaces.r.r not in salvus.code_decorators:
+#        return r_eval0(code, *args, **kwds)
 
-    global r_dev_on
-    if r_dev_on:
-        return r_eval0(code, *args, **kwds)
-    try:
-        r_dev_on = True
-        tmp = '/tmp/' + uuid() + '.svg'
-        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-        s = r_eval0(code, *args, **kwds)
-        r_eval0('dev.off()')
-        return s
-    finally:
-        r_dev_on = False
-        if os.path.exists(tmp):
-            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-            os.unlink(tmp)
+#    global r_dev_on
+#    if r_dev_on:
+#        return r_eval0(code, *args, **kwds)
+#    try:
+#        r_dev_on = True
+#        tmp = '/tmp/' + uuid() + '.svg'
+#        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
+#        s = r_eval0(code, *args, **kwds)
+#        r_eval0('dev.off()')
+#        return s
+#    finally:
+#        r_dev_on = False
+#        if os.path.exists(tmp):
+#            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
+#            os.unlink(tmp)
 
-sage.interfaces.r.r.eval = r_eval
-sage.interfaces.r.r.set_plot_options = set_r_plot_options
+#sage.interfaces.r.r.eval = r_eval
+#sage.interfaces.r.r.set_plot_options = set_r_plot_options
 
 
 def prun(code):
@@ -2529,6 +2579,12 @@ def show(*objs, **kwds):
                 # better than nothing.
                 sage.misc.latex.latex.eval(s)
                 return ''
+            elif r'\begin{tabular}' in s:
+                # tabular is an environment for text, not formular.
+                # Sage's `tabular` should actually use \array!
+                sage.misc.latex.latex.eval(s)
+                return ''
+            # default
             elif display:
                 return "$\\displaystyle %s$"%s
             else:
@@ -2537,10 +2593,11 @@ def show(*objs, **kwds):
     sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
-        if display:
-            salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
-        else:
-            salvus.html("<div>%s</div>"%cgi.escape(s))
+        if len(s) > 0:
+            if display:
+                salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
+            else:
+                salvus.html("<div>%s</div>"%cgi.escape(s))
         sys.stdout.flush()
         sys.stderr.flush()
 
@@ -2969,6 +3026,10 @@ def reset(vars=None, attached=False):
     sage.misc.reset.reset_interfaces()
     if attached:
         sage.misc.reset.reset_attached()
+    # reset() adds 'pretty_print' and 'view' to show_identifiers()
+    # user can shadow these and they will appear in show_identifiers()
+    # 'sage_salvus' is added when the following line runs; user may not shadow it
+    exec('sage.misc.session.state_at_init = dict(globals())',salvus.namespace)
 
 reset.__doc__ += sage.misc.reset.reset.__doc__
 
@@ -3118,6 +3179,9 @@ md = Marked()
 
 #####
 ## Raw Input
+# - this is the Python 2.x interpretation.  In Python 3.x there is no raw_input,
+# and raw_input is renamed input (to cause more confusion).
+#####
 def raw_input(prompt='', default='', placeholder='', input_width=None, label_width=None, type=None):
     """
     Read a string from the user in the worksheet interface to Sage.
@@ -3139,11 +3203,26 @@ def raw_input(prompt='', default='', placeholder='', input_width=None, label_wid
     - By default, returns a **unicode** string (not a normal Python str). However, can be customized
       by changing the type.
 
-    EXAMPLE:
+    EXAMPLE::
 
-        print(salvus.raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="15ex"))
+         print(raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="25ex"))
+
     """
     return salvus.raw_input(prompt=prompt, default=default, placeholder=placeholder, input_width=input_width, label_width=label_width, type=type)
+
+def input(*args, **kwds):
+    """
+    Read a string from the user in the worksheet interface to Sage and return evaluated object.
+
+    Type raw_input? for more help; this function is the same as raw_input, except with type='sage'.
+
+    EXAMPLE::
+
+         print(type(input("What is your age", default=18, input_width="20ex", label_width="25ex")))
+
+    """
+    kwds['type'] = 'sage'
+    return raw_input(*args, **kwds)
 
 #####
 ## Clear
@@ -3762,3 +3841,18 @@ def search_doc(str):
     '<a href="https://www.google.com/search?q=site%3Adoc.sagemath.org+' + \
     str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
     salvus.html(txt)
+
+import sage.misc.session
+def show_identifiers():
+    """
+    Returns a list of all variable names that have been defined during this session.
+
+    SMC introduces worksheet variables, including 'smc','salvus', 'require', and after reset(), 'sage_salvus'.
+    These identifiers are removed from the output of sage.misc.session.show_identifiers() on return.
+    User should not assign to these variables when running code in a worksheet.
+    """
+    si =  eval('show_identifiers.fn()',salvus.namespace)
+    si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
+    return si2
+
+show_identifiers.fn = sage.misc.session.show_identifiers

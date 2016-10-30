@@ -2128,8 +2128,12 @@ class Client extends EventEmitter
             (cb) =>
                 if customer_id?
                     new_customer = false
-                    dbg("already signed up for stripe")
-                    cb()
+                    dbg("already signed up for stripe -- sync local user account with stripe")
+                    database.stripe_update_customer
+                        account_id  : mesg.account_id
+                        stripe      : stripe
+                        customer_id : customer_id
+                        cb          : cb
                 else
                     dbg("create stripe entry for this customer")
                     x =

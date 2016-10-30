@@ -501,8 +501,10 @@ class SyncDoc extends EventEmitter
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
+
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
+
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
@@ -830,6 +832,35 @@ class SyncDoc extends EventEmitter
                     @emit('connected')
                     cb()
             )
+
+    # Delete the synchronized string and **all** patches from the database -- basically
+    # delete the complete history of editing this file.
+    # WARNINGS:
+    #   (1) If a project has this string open, then things may be messed up, unless that project is restarted.
+    #   (2) Only available for the admin user right now.
+    # To use: from a javascript console in the browser as admin, you can do:
+    #
+    #   smc.client.sync_string({project_id:'9f2e5869-54b8-4890-8828-9aeba9a64af4', path:'a.txt'}).delete_from_database(console.log)
+    #
+    # Then make sure project and clients refresh.
+    #
+    delete_from_database: (cb) =>
+        async.parallel([
+            (cb) =>
+                @_client.query
+                    query :
+                        patches_delete :
+                            id    : [@_string_id]
+                            dummy : null  # required to force a get query.
+                    cb : cb
+            (cb) =>
+                @_client.query
+                    query :
+                        syncstrings_delete :
+                            project_id : @_project_id
+                            path       : @_path
+                    cb : cb
+        ], (err)=>cb?(err))
 
     _update_if_file_is_read_only: (cb) =>
         @_client.path_access
@@ -1238,11 +1269,13 @@ class SyncDoc extends EventEmitter
                     #console.log("recomputing snapshot #{snapshot_time}")
                     @snapshot(snapshot_time, true)
 
-    _handle_syncstring_update: =>
+    _handle_syncstring_update: () =>
+        #dbg = @dbg("_handle_syncstring_update")
+        #dbg()
         if not @_syncstring_table? # nothing more to do
+            #dbg("nothing to do")
             return
         x = @_syncstring_table.get_one()?.toJS()
-        #dbg = @dbg("_handle_syncstring_update")
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
@@ -1263,6 +1296,7 @@ class SyncDoc extends EventEmitter
                 users         : @_users
                 deleted       : @_deleted
             @_syncstring_table.set(obj)
+            @emit('metadata-change')
         else
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval
@@ -1280,37 +1314,53 @@ class SyncDoc extends EventEmitter
                 @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, project_id:@_project_id, path:@_path, users:@_users})
 
-            if @_client.is_project()
-                async.series([
-                    (cb) =>
-                        # wait for patch list to load
-                        if @_patch_list?
-                            cb()
-                        else
-                            @once 'connected', => cb()
-                    (cb) =>
-                        # NOTE: very important to completely do @_update_watch_path
-                        # before @_save_to_disk below.
-                        # If client is a project and path isn't being properly watched, make it so.
-                        if x.project_id? and @_watch_path != x.path
-                            @_update_watch_path(x.path, cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if x.save?.state == 'requested'
-                            @_save_to_disk(cb)
-                        else
-                            cb()
-                ])
 
-        @emit('metadata-change')
+            if not @_client.is_project()
+                @emit('metadata-change')
+                return
+
+            #dbg = @dbg("_handle_syncstring_update('#{@_path}')")
+            #dbg("project only handling")
+            # Only done for project:
+            async.series([
+                (cb) =>
+                    if @_patch_list?
+                        #dbg("patch list already loaded")
+                        cb()
+                    else
+                        #dbg("wait for patch list to load...")
+                        @once 'connected', =>
+                            #dbg("patch list loaded")
+                            cb()
+                (cb) =>
+                    # NOTE: very important to completely do @_update_watch_path
+                    # before @_save_to_disk below.
+                    # If client is a project and path isn't being properly watched, make it so.
+                    if x.project_id? and @_watch_path != x.path
+                        #dbg("watch path")
+                        @_update_watch_path(x.path, cb)
+                    else
+                        cb()
+                (cb) =>
+                    if x.save?.state == 'requested'
+                        #dbg("save to disk")
+                        @_save_to_disk(cb)
+                    else
+                        cb()
+            ], (err) =>
+                if err
+                    @dbg("_handle_syncstring_update")("POSSIBLY UNHANDLED ERROR -- #{err}")
+                @emit('metadata-change')
+            )
+
 
     _update_watch_path: (path, cb) =>
-        dbg = @_client.dbg("watch('#{path}')")
-        if @_gaze_file_watcher?
+        dbg = @_client.dbg("_update_watch_path('#{path}')")
+        if @_file_watcher?
+            # clean up
             dbg("close")
-            @_gaze_file_watcher.close()
-            delete @_gaze_file_watcher
+            @_file_watcher.close()
+            delete @_file_watcher
             delete @_watch_path
         if not path?
             dbg("not opening another watcher")
@@ -1340,40 +1390,35 @@ class SyncDoc extends EventEmitter
                         else
                             cb()
             (cb) =>
-                dbg("now watching file")
-                @_client.watch_file
-                    path     : path
-                    debounce : 1
-                    cb       : (err, watcher) =>
-                        if err
-                            dbg("error -- #{err}")
-                            delete @_watch_path
-                            delete @_gaze_file_watcher
-                            cb(err)
-                        else
-                            dbg("success")
-                            @_gaze_file_watcher = watcher
-                            watcher.on 'all', (event) =>
-                                if @_closed
-                                    return
-                                dbg("event #{event}")
-                                if event == 'deleted'
-                                    dbg("delete: setting deleted=true and closing")
-                                    @set('')
-                                    @save () =>
-                                        # NOTE: setting deleted=true must be done **after** setting document to blank above,
-                                        # since otherwise the set would set deleted=false.
-                                        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
-                                        @_syncstring_table.save () =>  # make sure deleted:true is saved.
-                                            @close()
-                                        return
-                                if @_save_to_disk_just_happened
-                                    dbg("@_save_to_disk_just_happened")
-                                    @_save_to_disk_just_happened = false
-                                else
-                                    dbg("_load_from_disk")
-                                    @_load_from_disk()
-                            cb()
+                dbg("now requesting to watch file")
+                @_file_watcher = @_client.watch_file(path:path)
+                @_file_watcher.on 'change', =>
+                    dbg("event change")
+                    if @_closed
+                        @_file_watcher.close()
+                        return
+                    if @_save_to_disk_just_happened
+                        dbg("@_save_to_disk_just_happened")
+                        @_save_to_disk_just_happened = false
+                    else
+                        dbg("_load_from_disk")
+                        @_load_from_disk()
+                    return
+                @_file_watcher.on 'delete', =>
+                    dbg("event delete")
+                    if @_closed
+                        @_file_watcher.close()
+                        return
+                    dbg("delete: setting deleted=true and closing")
+                    @set('')
+                    @save () =>
+                        # NOTE: setting deleted=true must be done **after** setting document to blank above,
+                        # since otherwise the set would set deleted=false.
+                        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
+                        @_syncstring_table.save () =>  # make sure deleted:true is saved.
+                            @close()
+                    return
+                cb()
         ], (err) => cb?(err))
 
     _load_from_disk: (cb) =>

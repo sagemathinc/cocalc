@@ -843,6 +843,10 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
+    if program.single
+        winston.debug("init_mintime: running in single-machine mode; not initializing idle timeout")
+        cb()
+        return
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
@@ -1004,6 +1008,10 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
+    if program.single
+        dbg("running in single machine mode; not creating firewall")
+        cb()
+        return
     hostname = require("os").hostname()
     if not misc.startswith(hostname, 'compute')
         dbg("not starting firewall since hostname does not start with 'compute'")
@@ -1127,7 +1135,7 @@ update_states = (cb) ->
                                 cb(err)
                             else
                                 project.state(update:true, cb:cb)
-            async.map(projects, f, cb)
+            async.mapLimit(projects, 20, f, cb)
         ], (err) ->
             setTimeout(update_states, 2*60*1000)
             cb?(err)

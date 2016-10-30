@@ -115,7 +115,7 @@ def reconstructMath(processedString,codeblocks,inline_delims=["$","$"],equation_
     """This is usually the output of sanitizeInput, after having passed the output string through markdown.  The delimiters given to this function should match those used to construct the string to begin with.
 
      This will output a string containing html suitable to use with mathjax.
-     
+
      "<" and ">" "&" symbols in math can confuse the html interpreter because they mark the begining and end of definition blocks.  To avoid issues, if htmlSafe is set to True these symbols will be replaced by ascii codes in the math blocks. The downside to this is that if anyone is already doing this, there already niced text might be mangled (I think I've taken steps to make sure it won't but not extensively tested...)"""
     delims=[['',''],inline_delims,equation_delims]
     placeholder_re = re.compile("(?<!\\\\)"+re.escape(placeholder))
@@ -124,7 +124,7 @@ def reconstructMath(processedString,codeblocks,inline_delims=["$","$"],equation_
     if htmlSafe:
         safeAmp=re.compile("&(?!(?:amp;|lt;|gt;))")
         for i in xrange(len(codeblocks)):
-	    codeblocks[i]=safeAmp.sub("&amp;",codeblock[i])
+	    codeblocks[i]=safeAmp.sub("&amp;",codeblocks[i])
 	    codeblocks[i]=codeblocks[i].replace("<","&lt;")
 	    codeblocks[i]=codeblocks[i].replace(">","&gt;")
     #Step through the codeblocks one at a time and replace the next occurance of the placeholder.  Extra placeholders are invalid math blocks and ignored...
@@ -135,7 +135,9 @@ def reconstructMath(processedString,codeblocks,inline_delims=["$","$"],equation_
         inBlock=int(codeblocks[i][0])
         match=scan.search()
 	if not match:
-	    raise ValueError("More codeblocks given than valid placeholders in text.")
+	    #raise ValueError("More codeblocks given than valid placeholders in text.")
+            print("WARNING: More codeblocks given than valid placeholders in text.") 
+            continue  # we make this error non-fatal: see https://github.com/sagemathinc/smc/issues/506
 	outString=outString+processedString[post:match.start()]+delims[inBlock][0]+codeblocks[i][1:]+delims[inBlock][1]
 	post = match.end()
     #Add the rest of the string (if we need to)

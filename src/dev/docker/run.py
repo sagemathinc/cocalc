@@ -74,6 +74,7 @@ def start_services():
         run(['service', name, 'start'])
 
 def root_ssh_keys():
+    run("rm -rf /root/.ssh/")
     run("ssh-keygen -b 2048 -N '' -f /root/.ssh/id_rsa")
     run("cp -v /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys")
 
