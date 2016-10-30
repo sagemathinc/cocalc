@@ -138,7 +138,7 @@ class JupyterWrapper extends EventEmitter
         @state = 'loading'
         @iframe_uuid = misc.uuid()
         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
-            .attr('src', misc.encode_path("#{@server_url}#{@filename}"))
+            .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
         @element.html('').append(@iframe)
