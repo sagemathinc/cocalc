@@ -879,7 +879,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
     'Split view in any editor'     : 'control+I'
-    'Autoindent selection'         : 'control+'
+    'Autoindent selection'         : "control+'"
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
