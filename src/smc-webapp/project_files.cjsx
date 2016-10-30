@@ -379,7 +379,6 @@ TerminalModeDisplay = rclass
 
 NoFiles = rclass
     propTypes :
-        redux         : rtypes.object
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
@@ -510,7 +509,6 @@ FileListing = rclass
     displayName : 'ProjectFiles-FileListing'
 
     propTypes :
-        redux               : rtypes.object
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -604,7 +602,6 @@ FileListing = rclass
     render_no_files : ->
         if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             <NoFiles
-                redux         = {@props.redux}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 public_view   = {@props.public_view}
@@ -1923,9 +1920,8 @@ exports.ProjectFiles = rclass ({name}) ->
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
-        else if listing? or @props.public_view
+        else if listing?
             <FileListing
-                redux               = {@props.redux}
                 listing             = {listing}
                 page_size           = {@file_listing_page_size()}
                 page_number         = {@props.page_number}
