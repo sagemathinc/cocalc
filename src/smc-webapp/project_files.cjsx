@@ -34,12 +34,9 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
+{AccountPage} = require('./account_page')
 {UsersViewing}        = require('./profile')
-
-{salvus_client} = require('./salvus_client')
-
-Combobox = require('react-widgets/lib/Combobox') # FUTURE: delete this when the combobox is in r_misc
-
+Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
@@ -382,6 +379,7 @@ TerminalModeDisplay = rclass
 
 NoFiles = rclass
     propTypes :
+        redux         : rtypes.object
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
@@ -487,13 +485,22 @@ NoFiles = rclass
             </FileTypeSelector>
         </div>
 
+    render_not_public_error : ->
+        if @props.redux.getStore('account').is_logged_in()
+            <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+        else
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />
+                <AccountPage />
+            </div>
+
     render : ->
         <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
             <Col sm=2>
             </Col>
             <Col sm=8>
                 <span style={fontSize:'20px'}>
-                    No Files Found
+                    {if @props.public_view then @render_not_public_error() else "No Files Found"}
                 </span>
                 <hr/>
                 {@render_create_button() if not @props.public_view}
@@ -512,6 +519,7 @@ FileListing = rclass
     displayName : 'ProjectFiles-FileListing'
 
     propTypes :
+        redux               : rtypes.object
         listing             : rtypes.array.isRequired
         file_map            : rtypes.object.isRequired
         file_search         : rtypes.string
@@ -605,6 +613,7 @@ FileListing = rclass
     render_no_files : ->
         if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
             <NoFiles
+                redux         = {@props.redux}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions}
                 public_view   = {@props.public_view}
@@ -1889,6 +1898,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
+            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
                 when 'no_dir'
@@ -1913,6 +1923,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </div>
         else if listing?
             <FileListing
+                redux               = {@props.redux}
                 listing             = {listing}
                 page_size           = {@file_listing_page_size()}
                 page_number         = {@props.page_number}
