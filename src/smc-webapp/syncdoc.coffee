@@ -206,6 +206,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring.once 'init', =>
             @emit('connect')   # successful connection
             @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
+                @_fully_loaded = true
                 opts.cb(err, @)
 
         @_syncstring.on 'change', => # only when change is external
@@ -233,6 +234,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         cb?()
 
     _save: (cb) =>
+        if not @_fully_loaded
+            cb?()
+            return
         async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     save: (cb) =>
@@ -331,7 +335,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         @_syncstring.once 'init', (err) =>
             if err
-                window.err = err
                 if err.code == 'EACCES'
                     err = "You do not have permission to read '#{@filename}'."
                 @editor.show_startup_message(err, 'danger')
@@ -340,6 +343,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_syncstring.wait_until_read_only_known (err) =>
                 @editor.show_content()
                 @editor._set(@_syncstring.get())
+                @_fully_loaded = true
                 @codemirror.setOption('readOnly', false)
                 @codemirror1.setOption('readOnly', false)
                 @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
@@ -456,8 +460,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
 
     _save: (cb) =>
-        if not @codemirror?
-            cb() # nothing to do -- not initialized yet...
+        if not @codemirror? or not @_fully_loaded
+            cb() # nothing to do -- not initialized/loaded yet...
             return
         @_syncstring.set(@codemirror.getValue())
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>

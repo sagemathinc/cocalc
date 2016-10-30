@@ -53,6 +53,27 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
 
+        # We set a custom rangeFinder that is output cell marker aware.
+        # See https://github.com/sagemathinc/smc/issues/966
+        foldOptions =
+            rangeFinder : (cm, start) ->
+                helpers = cm.getHelpers(start, "fold")
+                for h in helpers
+                    cur = h(cm, start)
+                    if cur
+                        i = start.line
+                        while i < cur.to.line and cm.getLine(i+1)?[0] != MARKERS.output
+                            i += 1
+                        if cm.getLine(i+1)?[0] == MARKERS.output
+                            cur.to.line = i
+                            cur.to.ch = cm.getLine(i).length
+                        return cur
+
+        for cm in @codemirrors()
+            cm.setOption('foldOptions', foldOptions)
+
+
+
         if @opts.static_viewer
             @readonly   = true
             @project_id = @editor.project_id
@@ -1593,15 +1614,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # (or something similar) it is basically impossible.  When sage worksheets are rewritten
         # using react, this will change.
         if mesg.clear
-            line = opts.mark.find()?.from.line
-            if line?
-                @cell(line)?.set_output()
+            output.empty()
 
         if mesg.delete_last
-            line = opts.mark.find()?.from.line
-            if line?
-                # we pass in 2 to delete the delete_last message itself.
-                @cell(line)?.delete_last_output(2)
+            output.find(":last").remove()
 
         if mesg.done
             output.removeClass('sagews-output-running')

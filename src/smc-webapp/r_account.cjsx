@@ -1042,7 +1042,14 @@ AccountCreationToken = rclass
         if @state.state == 'save'
             <Saving />
 
+    render_unsupported: ->  # see https://github.com/sagemathinc/smc/issues/333
+        <div style={color:"#666"}>
+            Not supported since some passport strategies are enabled.
+        </div>
+
     render : ->
+        if STRATEGIES.length > 1
+            return @render_unsupported()
         <div>
              {@render_control()}
              {@render_save()}

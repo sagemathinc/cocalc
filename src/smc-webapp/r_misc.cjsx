@@ -681,7 +681,7 @@ exports.MarkdownInput = rclass
                             rows        = {@props.rows ? 4}
                             placeholder = {@props.placeholder}
                             value       = {@state.value}
-                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value;@setState(value:x); @props.on_change?(x)}
+                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value; @setState(value:x); @props.on_change?(x)}
                             onKeyDown   = {@keydown}
                         />
                     </FormGroup>
@@ -730,6 +730,7 @@ exports.Markdown = rclass
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             @_x = markdown.markdown_to_html(v)
+            v = require('./misc_page').sanitize_html(v)
             {__html: @_x.s}
         else
             {__html: ''}

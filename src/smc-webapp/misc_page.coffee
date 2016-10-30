@@ -1619,7 +1619,7 @@ exports.load_coffeescript_compiler = (cb) ->
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
-    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
 
 # get the currently selected html
