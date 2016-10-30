@@ -696,6 +696,9 @@ exports.retry_until_success = (opts) ->
                 opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if err == "not_public"
+                    opts.cb?("not_public")
+                    return
                 if err and opts.warn?
                     opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.log?
