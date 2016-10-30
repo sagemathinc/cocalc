@@ -198,6 +198,7 @@ Message = rclass
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
 
+
         font_size = "#{@props.font_size}px"
 
         if not @props.is_prev_sender and sender_is_viewer(@props.account_id, @props.message)

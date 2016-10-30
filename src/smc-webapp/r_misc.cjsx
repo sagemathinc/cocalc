@@ -37,8 +37,6 @@ underscore  = require('underscore')
 
 markdown    = require('./markdown')
 
-misc_page   = require('./misc_page')
-
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
 
@@ -732,7 +730,7 @@ exports.Markdown = rclass
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             @_x = markdown.markdown_to_html(v)
-            v = misc_page.sanitize_html(v)
+            v = require('./misc_page').sanitize_html(v)
             {__html: @_x.s}
         else
             {__html: ''}
