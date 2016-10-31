@@ -16,6 +16,8 @@ markdown          = require('./markdown')
 {redux}           = require('./smc-react')
 {alert_message}   = require('./alerts')
 
+{sagews_eval}     = require('./sagews-eval')
+
 {IS_MOBILE}       = require('./feature')
 
 templates           = $("#salvus-editor-templates")
@@ -1560,10 +1562,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{text}</a> "))
 
         if mesg.javascript? and @allow_javascript_eval()
-            cell      = new Cell(output : opts.element)
-            worksheet = new Worksheet(@)
-            print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
-
             code = mesg.javascript.code
             if mesg.obj?
                 obj  = JSON.parse(mesg.obj)
@@ -1573,15 +1571,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        eval(CoffeeScript?.compile(code))
+                        sagews_eval(CoffeeScript?.compile(code), @, opts.element)
                 else
-                    eval(CoffeeScript?.compile(code))
+                    # DANGER: this is the only async code in process_output_mesg
+                    sagews_eval(CoffeeScript?.compile(code), @, opts.element)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.
                 # Note that there is an allow_javascript document option, which (at some point) users
                 # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-                eval(code)
+                sagews_eval(code, @, opts.element, undefined, obj)
 
         if mesg.show?
             if opts.mark?
@@ -1647,9 +1646,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
                     (() =>
-                         worksheet = new Worksheet(@)
-                         cell      = new Cell(cell_id : mesg.cell_id)
-                         print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
                          code = mesg.code
                          async.series([
                              (cb) =>
@@ -1661,7 +1657,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                  if mesg.coffeescript
                                      code = CoffeeScript.compile(code)
                                  obj = JSON.parse(mesg.obj)
-                                 eval(code)
+                                 sagews_eval(code, @, undefined, mesg.cell_id, obj)
                                  cb()
                          ])
                     )()
@@ -2609,53 +2605,5 @@ class SynchronizedWorksheetCell
                 return x
         return false
 
-###
-Cell and Worksheet below are used when eval'ing %javascript blocks.
-###
-
-class Cell
-    constructor : (opts) ->
-        @opts = defaults opts,
-            output  : undefined # jquery wrapped output area
-            cell_id : undefined
-        @output = opts.output
-        @cell_id = opts.cell_id
-
-class Worksheet
-    constructor : (@worksheet) ->
-        @editor = @worksheet.editor.editor
-
-    execute_code: (opts) =>
-        if typeof opts == "string"
-            opts = {code:opts}
-        @worksheet.execute_code(opts)
-
-    interrupt: () =>
-        @worksheet.interrupt()
-
-    kill: () =>
-        @worksheet.kill()
-
-    set_interact_var : (opts) =>
-        elt = @worksheet.element.find("#" + opts.id)
-        if elt.length == 0
-            log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
-        else
-            i = elt.data('interact')
-            if not i?
-                log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
-            else
-                i.set_interact_var(opts)
-
-    del_interact_var : (opts) =>
-        elt = @worksheet.element.find("#" + opts.id)
-        if elt.length == 0
-            log("BUG: Attempt to del var of interact with id #{opts.id} failed since no such interact known.")
-        else
-            i = elt.data('interact')
-            if not i?
-                log("BUG: interact with id #{opts.id} doesn't have corresponding data object del.", elt)
-            else
-                i.del_interact_var(opts.name)
 
 exports.SynchronizedWorksheet = SynchronizedWorksheet

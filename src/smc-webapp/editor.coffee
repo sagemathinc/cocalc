@@ -2948,6 +2948,7 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (@project_id, @filename, content, opts) ->
+        opts.allow_javascript_eval = false
         super @project_id, @filename, content, opts, (err) =>
             @element.find("a[href=\"#split-view\"]").hide()  # disable split view
             if not err

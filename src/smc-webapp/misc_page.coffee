@@ -1604,12 +1604,12 @@ $("body").on "show.bs.tooltip", (e) ->
 
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
-        cb()
+        cb?()
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via reqire.ensure")
-            cb()
+            cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
             #    cb()
