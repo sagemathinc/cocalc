@@ -494,14 +494,14 @@ exports.TimeAgo = rclass
         placement   : rtypes.string
 
     getDefaultProps: ->
-        popover   : false
+        popover   : true
         minPeriod : 45000
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
 
     render_timeago: (d) ->
-        <TimeAgo date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
+        <TimeAgo title='' date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
