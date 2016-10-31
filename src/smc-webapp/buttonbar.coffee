@@ -1410,7 +1410,7 @@ add_icon = (bar, inner, href, comment) ->
 
 #
 # initializing and creating the menus
-# this works in conjuntion with editor.html
+# this works in conjunction with editor.html
 #
 
 # Initialize fonts for the editor

@@ -1406,7 +1406,9 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else if not is_public
-                            cb("project with id '#{mesg.project_id}' is not public")
+                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public. 
+                            # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
+                            # to provide user with helpful context based error about why they can't access a given directory
                         else
                             cb()
             (cb) =>

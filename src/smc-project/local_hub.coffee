@@ -298,8 +298,8 @@ process.addListener "uncaughtException", (err) ->
         console.trace()
 
 program.usage('[?] [options]')
-    .option('--tcp_port <n>', 'TCP server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
-    .option('--raw_port <n>', 'RAW server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
+    .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .parse(process.argv)
 
 start_server program.tcp_port, program.raw_port, (err) ->

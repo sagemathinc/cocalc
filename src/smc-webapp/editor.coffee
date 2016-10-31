@@ -819,6 +819,7 @@ class CodeMirrorEditor extends FileEditor
             "Shift-Tab"    : (editor)   => editor.unindent_selection()
 
             "Ctrl-'"       : "indentAuto"
+            "Cmd-'"        : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
