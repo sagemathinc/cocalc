@@ -20,6 +20,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         window.h = @  # DEBUGGING
         @init_paths()
         @init_view_doc opts, (err) =>

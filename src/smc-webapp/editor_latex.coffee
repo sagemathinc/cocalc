@@ -10,8 +10,9 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 {alert_message} = require('./alerts')
-{redux} = require('./smc-react')
-editor = require('./editor')
+{redux}         = require('./smc-react')
+editor          = require('./editor')
+printing        = require('./printing')
 
 templates = $("#salvus-editor-templates")
 
@@ -20,6 +21,7 @@ MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -52,7 +54,8 @@ class exports.LatexEditor extends editor.FileEditor
             @spell_check()
 
         @latex_editor.print = () =>
-            @download_pdf(print = true)
+            outfn = @filename.slice(0, @filename.length - 3) + "pdf"
+            printing.Printer(@, outfn).print()
             return false
 
         v = misc.path_split(@filename)

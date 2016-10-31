@@ -30,9 +30,6 @@ exports.SHOW_BUTTON_LABELS = 4
 exports.MIN_SPLIT = MIN_SPLIT = 0.02
 exports.MAX_SPLIT = MAX_SPLIT = 0.98  # maximum pane split proportion for editing
 
-# this is the list of file extensions where we support printing
-exports.FILE_EXTS_SUPPORT_PRINTING = FILE_EXTS_SUPPORT_PRINTING = ['sagews', 'tex']
-
 TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
@@ -66,8 +63,9 @@ require('./console')
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('smc-util/misc')
 
-syncdoc = require('./syncdoc')
-sagews  = require('./sagews')
+syncdoc  = require('./syncdoc')
+sagews   = require('./sagews')
+printing = require('./printing')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -564,9 +562,10 @@ templates = $("#salvus-editor-templates")
 #
 
 class FileEditor extends EventEmitter
-    constructor: (@project_id, @filename, content, opts) ->
+    # ATTN it is crucial to call this constructor in subclasses via super(@project_id, @filename)
+    constructor: (@project_id, @filename) ->
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
-        @val(content)
 
     show_chat_window: () =>
         @syncdoc?.show_chat_window()
@@ -707,6 +706,7 @@ exports.FileEditor = FileEditor
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         window.w = @
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
@@ -747,7 +747,6 @@ class CodeMirrorEditor extends FileEditor
 
         #console.log("mode =", opts.mode)
 
-        @project_id = @project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
@@ -832,7 +831,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # FUTURE: We will replace this by a general framework...
-        if misc.filename_extension_notilde(filename) == "sagews"
+        if misc.filename_extension_notilde(filename).toLowerCase() == "sagews"
             evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
@@ -1083,10 +1082,10 @@ class CodeMirrorEditor extends FileEditor
                         'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
 
         # if the file extension indicates that we know how to print it, show and enable the print button
-        ext = misc.filename_extension(@filename)?.toLowerCase()
-        if ext in FILE_EXTS_SUPPORT_PRINTING
-            @element.find("a[href=\"#print\"]").show()
+        if printing.can_print(@ext)
             button_names.push('print')
+        else
+            @element.find("a[href=\"#print\"]").remove()
 
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
@@ -1143,7 +1142,6 @@ class CodeMirrorEditor extends FileEditor
                 @goto_line(cm)
             when 'print'
                 @print()
-
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1249,8 +1247,24 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
+    print : () =>
+        switch @ext
+            when 'sagews'
+                @print_sagews()
+            when 'txt', 'csv'
+                print_button = @element.find("a[href=\"#print\"]")
+                print_button.icon_spin(start:true, delay:0).addClass("disabled")
+                printing.Printer(@, @filename + '.pdf').print (err) ->
+                    print_button.removeClass('disabled')
+                    print_button.icon_spin(false)
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Printing error -- #{err}"
+
+
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
-    print: () =>
+    print_sagews: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
@@ -1278,16 +1292,18 @@ class CodeMirrorEditor extends FileEditor
                 (cb) =>
                     @save(cb)
                 (cb) =>
-                    salvus_client.print_to_pdf
+                    options =
+                        title      : dialog.find(".salvus-file-print-title").text()
+                        author     : dialog.find(".salvus-file-print-author").text()
+                        date       : dialog.find(".salvus-file-print-date").text()
+                        contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                        subdir     : is_subdir
+                        extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
+
+                    printing.Printer(@).print
                         project_id  : @project_id
                         path        : @filename
-                        options     :
-                            title      : dialog.find(".salvus-file-print-title").text()
-                            author     : dialog.find(".salvus-file-print-author").text()
-                            date       : dialog.find(".salvus-file-print-date").text()
-                            contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            subdir     : is_subdir
-                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
+                        options     : options
                         cb          : (err, _pdf) =>
                             if err
                                 cb(err)
@@ -1512,7 +1528,6 @@ class CodeMirrorEditor extends FileEditor
     _show: (opts={}) =>
         # show the element that contains this editor
         @element.show()
-        @element.find("a[href=\"#print\"]").hide()
 
         # do size computations: determine height and width of the codemirror editor(s)
         if not opts.top?
@@ -2330,6 +2345,7 @@ if require('feature').DEBUG
 
 class PDF_Preview extends FileEditor
     constructor: (@project_id, @filename, contents, opts) ->
+        super(@project_id, @filename)
         @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
@@ -2657,6 +2673,7 @@ exports.PDF_Preview = PDF_Preview
 
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@project_id, @filename, contents, @opts) ->
+        super(@project_id, @filename)
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @pdf_title = @element.find(".salvus-editor-pdf-title")
         @pdf_title.find("span").text("loading ...")
@@ -2752,6 +2769,7 @@ exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
 class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
@@ -2847,6 +2865,7 @@ class Terminal extends FileEditor
 
 class Image extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
+        super(@project_id, @filename)
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
@@ -2896,6 +2915,7 @@ class Image extends FileEditor
 
 class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
+        super(@project_id, @filename)
         @element = templates.find(".salvus-editor-static-html").clone()
         if not @content?
             @content = 'Loading...'
@@ -2964,6 +2984,7 @@ class PublicSagews extends PublicCodeMirrorEditor
 
 class FileEditorWrapper extends FileEditor
     constructor: (@project_id, @filename, @content, @opts) ->
+        super(@project_id, @filename)
         @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
@@ -3068,6 +3089,7 @@ class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
     constructor: (@project_id, @filename, @content, opts) ->
+        super(@project_id, @filename)
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 
