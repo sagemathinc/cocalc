@@ -813,7 +813,6 @@ AddSubscription = rclass
         </div>
 
     render_renewal_info: ->
-        console.log("render_renewal_info", @props.selected_plan)
         if @props.selected_plan
             renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
