@@ -1066,8 +1066,7 @@ exports.define_codemirror_extensions = () ->
                         for c in how.strip
                             wrap = EDIT_COMMANDS[mode1][c].wrap
                             if wrap?
-                                {left, right} = wrap
-                                src1 = strip(src, left, right)
+                                src1 = strip(src, wrap.left ? '', wrap.right ? '')
                                 if src1?
                                     src = src1
                                     if space and src[0] == ' '
