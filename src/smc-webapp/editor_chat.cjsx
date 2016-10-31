@@ -457,7 +457,7 @@ exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
     if log_container?
         node = ReactDOM.findDOMNode(log_container)
         node.scrollTop = node.scrollHeight
-        actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
         actions.set_use_saved_position(false)
 
 exports.scroll_to_position = scroll_to_position = (log_container, saved_position, offset, height, use_saved_position, actions) ->

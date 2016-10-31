@@ -499,7 +499,7 @@ ChatRoom = rclass ({name}) ->
         @props.actions.set_use_saved_position(true)
         #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
         e.preventDefault()
 
     button_send_chat: (e) ->
@@ -522,7 +522,7 @@ ChatRoom = rclass ({name}) ->
     set_chat_log_state: ->
         if @refs.log_container?
             node = ReactDOM.findDOMNode(@refs.log_container)
-            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.clientHeight, node.offsetHeight)
 
     set_preview_state: ->
         if @refs.log_container?
