@@ -1563,25 +1563,30 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cell      = new Cell(output : opts.element)
             worksheet = new Worksheet(@)
             print     = (s...) -> cell.output.append($("<div></div>").text("#{s.join(' ')}"))
+            checked_eval = (code) ->
+                try
+                    eval(code)
+                catch js_error
+                    cell.output.append($("<div class='sagews-output-stderr'></div>").text("#{js_error}"))
 
             code = mesg.javascript.code
             if mesg.obj?
-                obj  = JSON.parse(mesg.obj)
+                obj = JSON.parse(mesg.obj)
             else
                 obj = undefined
             if mesg.javascript.coffeescript
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        eval(CoffeeScript?.compile(code))
+                        checked_eval(CoffeeScript?.compile(code))
                 else
-                    eval(CoffeeScript?.compile(code))
+                    checked_eval(CoffeeScript?.compile(code))
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.
                 # Note that there is an allow_javascript document option, which (at some point) users
                 # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-                eval(code)
+                checked_eval(code)
 
         if mesg.show?
             if opts.mark?
@@ -1646,25 +1651,27 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             when 'execute_javascript'
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
-                    (() =>
-                         worksheet = new Worksheet(@)
-                         cell      = new Cell(cell_id : mesg.cell_id)
-                         print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
-                         code = mesg.code
-                         async.series([
-                             (cb) =>
-                                 if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
+                    do () =>
+                        worksheet = new Worksheet(@)
+                        cell      = new Cell(cell_id : mesg.cell_id)
+                        print     = (s...) -> console.log("#{s.join(' ')}") # doesn't make sense, but better than printing to printer...
+                        code = mesg.code
+                        async.series([
+                            (cb) =>
+                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
                                      misc_page.load_coffeescript_compiler(cb)
-                                 else
+                                else
                                      cb()
-                             (cb) =>
-                                 if mesg.coffeescript
+                            (cb) =>
+                                if mesg.coffeescript
                                      code = CoffeeScript.compile(code)
-                                 obj = JSON.parse(mesg.obj)
-                                 eval(code)
-                                 cb()
-                         ])
-                    )()
+                                obj = JSON.parse(mesg.obj)
+                                try
+                                     eval(code)
+                                catch js_error
+                                     console.error("error sagews._recieve_broadcast:", js_error)
+                                cb()
+                        ])
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
