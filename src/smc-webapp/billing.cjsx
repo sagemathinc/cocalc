@@ -149,11 +149,11 @@ class BillingActions extends Actions
                 async.parallel([
                     (cb) =>
                         # delete payment methods
-                        ids = (x.id for x in smc.redux.getStore('billing').getIn(['customer', 'sources', 'data'])?.toJS() ? [])
+                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'sources', 'data'])?.toJS() ? [])
                         async.map(ids, @delete_payment_method, cb)
                     (cb) =>
                         # cancel subscriptions
-                        ids = (x.id for x in smc.redux.getStore('billing').getIn(['customer', 'subscriptions', 'data'])?.toJS() ? []   when not x.canceled_at)
+                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'subscriptions', 'data'])?.toJS() ? []   when not x.canceled_at)
                         async.map(ids, @cancel_subscription, cb)
                 ], cb)
         ], cb)

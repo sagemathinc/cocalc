@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -30,4 +30,5 @@ if not window.smc_base_url?
 if window.location.hash.length > 1
     window.smc_target = decodeURIComponent(window.location.hash.slice(1))
 
-exports.salvus_client = window.smc.client
+client_browser = require('client_browser')
+exports.salvus_client = client_browser.connect()

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2015, 2016 William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Gener@al Public License as published by
@@ -301,7 +301,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm.undo = @undo
             cm.redo = @redo
 
-        @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users = redux.getStore('users')  # TODO -- obviously not like this...
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 

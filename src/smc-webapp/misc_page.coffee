@@ -205,9 +205,10 @@ mathjax_enqueue = (x) ->
         mathjax_queue.push(x)
 
 exports.mathjax_finish_startup = ->
-    console.log 'finishing mathjax startup'
     for x in mathjax_queue
         mathjax_enqueue(x)
+    if DEBUG ? false
+        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!

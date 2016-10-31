@@ -116,10 +116,13 @@ GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
+
+# output build environment variables of webpack
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
+console.log "DEBUG            = #{DEBUG}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
@@ -128,10 +131,11 @@ console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
 MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
-console.log "MATHJAX_URL  = #{MATHJAX_URL}"
-console.log "MATHJAX_ROOT = #{MATHJAX_ROOT}"
-console.log "MATHJAX_LIB  = #{MATHJAX_LIB}"
+console.log "MATHJAX_URL      = #{MATHJAX_URL}"
+console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
+console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
+# adds a banner to each compiled and minified source .js file
 banner = new webpack.BannerPlugin(
                         """\
                         This file is part of #{TITLE}.
