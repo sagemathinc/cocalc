@@ -39,7 +39,12 @@ editor          = require('../editor')
 
 templates       = $("#salvus-editor-templates")
 
+
+PRINTING_SUPPORTED = ['md', 'html', 'htm', 'rst', 'wiki', 'mediawiki']
+exports.HTML_MD_PRINTING_SUPPORTED = PRINTING_SUPPORTED
+
 class exports.HTML_MD_Editor extends editor.FileEditor
+
     constructor: (@project_id, @filename, content, @opts) ->
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
@@ -57,8 +62,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             # canonicalize .wiki and .mediawiki (as used on github!) to "mediawiki"
             @ext = "mediawiki"
             @opts.mode = 'mediawiki'
-        else if @ext == 'tex'  # for testing/experimentation
-            @opts.mode = 'stex2'
         else
             throw Error('file must have extension md or html or rst or wiki or tex')
 
@@ -163,7 +166,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_buttons: () =>
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
         @element.find("a[href=\"#save\"]").click(@click_save_button)
-        @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
+        if @ext in PRINTING_SUPPORTED
+            @print_button = @element.find("a[href=\"#print\"]").show().click(@print)
         @init_edit_buttons()
         @init_preview_buttons()
 
@@ -297,21 +301,20 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                         if err
                             cb(err)
                         else
-                            url = mesg.url + "?nocache=#{Math.random()}"
-                            window.open(url,'_blank')
+                            redux.getProjectActions(@project_id).download_file
+                                path : output.filename
+                                print: true
 
     convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?, filename:?})
         s = misc.path_split(@filename)
         target = s.tail + '.pdf'
-        if @ext in ['md', 'html', 'rst', 'mediawiki']
+        if @ext in PRINTING_SUPPORTED
             # pandoc --latex-engine=xelatex a.wiki -o a.pdf
             command = 'pandoc'
             args    = ['--latex-engine=xelatex', s.tail, '-o', target]
             bash = false
-        else if @ext == 'tex'
-            t = "." + misc.uuid()
-            command = "mkdir -p #{t}; xelatex -output-directory=#{t} '#{s.tail}'; mv '#{t}/*.pdf' '#{target}'; rm -rf #{t}"
-            bash = true
+        else
+            cb("'*.#{@ext}' files are currently not supported.")
 
         target = @filename + ".pdf"
         output = undefined

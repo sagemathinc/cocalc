@@ -30,6 +30,9 @@ exports.SHOW_BUTTON_LABELS = 4
 exports.MIN_SPLIT = MIN_SPLIT = 0.02
 exports.MAX_SPLIT = MAX_SPLIT = 0.98  # maximum pane split proportion for editing
 
+# this is the list of file extensions where we support printing
+exports.FILE_EXTS_SUPPORT_PRINTING = FILE_EXTS_SUPPORT_PRINTING = ['sagews', 'tex']
+
 TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
@@ -332,10 +335,7 @@ PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course', 'cha
 exports.public_access_supported = (filename) ->
     ext = filename_extension_notilde(filename)
     x = file_associations[ext]
-    if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
-        return false
-    else
-        return true
+    return x?.editor in PUBLIC_ACCESS_UNSUPPORTED
 
 # Multiplex'd worksheet mode
 
@@ -922,7 +922,7 @@ class CodeMirrorEditor extends FileEditor
         if opts.read_only
             @set_readonly_ui()
 
-        if @filename.slice(@filename.length-7) == '.sagews'
+        if misc.filename_extension(@filename)?.toLowerCase() == 'sagews'
             @init_sagews_edit_buttons()
 
         @wizard = null
@@ -1078,18 +1078,20 @@ class CodeMirrorEditor extends FileEditor
 
     init_edit_buttons: () =>
         that = @
-        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
+        button_names = ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
+                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+
+        # if the file extension indicates that we know how to print it, show and enable the print button
+        ext = misc.filename_extension(@filename)?.toLowerCase()
+        if ext in FILE_EXTS_SUPPORT_PRINTING
+            @element.find("a[href=\"#print\"]").show()
+            button_names.push('print')
+
+        for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
-
-        # FIXME: removing the button here is pointless, since it will be added later again (somewhere)
-        # FUTURE: implement printing for other file types besides tex and sagews
-        ext = misc.filename_extension(@filename)?.toLowerCase()
-        if not ext in ['sagews', 'tex']
-            @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -1257,8 +1259,10 @@ class CodeMirrorEditor extends FileEditor
         else
             ext = v[v.length-1]
             base = v.slice(0,v.length-1).join('.')
+
+        ext = ext.toLowerCase()
         if ext != 'sagews'
-            alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
+            console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
 
         submit = () =>
@@ -1507,6 +1511,7 @@ class CodeMirrorEditor extends FileEditor
     _show: (opts={}) =>
         # show the element that contains this editor
         @element.show()
+        @element.find("a[href=\"#print\"]").hide()
 
         # do size computations: determine height and width of the codemirror editor(s)
         if not opts.top?
@@ -3104,6 +3109,10 @@ class JupyterNBViewerEmbedded extends FileEditor
         @iframe.maxheight()
 
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
+html_md_exts = []
+for ext, opts of file_associations
+    if opts.editor == 'html-md'
+        html_md_exts.push(ext)
 
 {LatexEditor} = require('./editor_latex')
 
@@ -3126,7 +3135,7 @@ exports.register_nonreact_editors = () ->
             icon      : icon
             f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
 
-    reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
+    reg0 HTML_MD_Editor,   html_md_exts
     reg0 LatexEditor,      ['tex']
     reg0 Terminal,         ['term', 'sage-term']
     reg0 Image,            ['png', 'jpg', 'gif', 'svg']

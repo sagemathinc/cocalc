@@ -662,7 +662,6 @@ class exports.LatexEditor extends editor.FileEditor
             elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
         return elt
 
-
     download_pdf: (print = false) =>
         redux.getProjectActions(@project_id).download_file
             path : @filename.slice(0, @filename.length - 3) + "pdf"

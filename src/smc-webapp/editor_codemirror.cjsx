@@ -188,6 +188,6 @@ CodemirrorEditor = rclass ({name}) ->
 require('project_file').register_file_editor
     ext         : ['txt', '']
     icon        : 'file-code-o'
-    init      : init_redux
-    component : CodemirrorEditor
-    remove    : remove_redux
+    init        : init_redux
+    component   : CodemirrorEditor
+    remove      : remove_redux
