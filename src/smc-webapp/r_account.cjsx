@@ -542,7 +542,7 @@ DeleteAccountConfirmation = rclass
     render : ->
         <Well style={marginTop: '26px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To proceed, enter your first and last name below.
             <FormGroup>
