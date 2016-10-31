@@ -258,7 +258,7 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
-    save_scroll_state: (position, height, offset) =>
+    save_scroll_state: (position, height, inner_height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, inner_height:inner_height, offset:offset)
