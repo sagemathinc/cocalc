@@ -178,6 +178,11 @@ class ChatActions extends Actions
 
         if messages_before != messages
             @setState(messages: messages)
+            store = @redux.getStore(@name)
+            if store.get('saved_position') + store.get('offset') + 20 > store.get('height') or store.get('height') == store.get('client_height')
+                project_id = @name.slice(7,43)
+                path = @name.slice(44)
+                @redux.getActions('file_use').mark_file(project_id, path, 'seen', 0, false)
 
     send_chat: (mesg) =>
         if not @syncdb?
@@ -256,7 +261,7 @@ class ChatActions extends Actions
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
-            @setState(saved_position:position, height:height, offset:offset)
+            @setState(saved_position:position, height:height, inner_height:inner_height, offset:offset)
 
     save_shared_video_info: (video) =>
         @setState(video: video)
