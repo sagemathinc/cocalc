@@ -180,10 +180,14 @@ AddPaymentMethod = rclass
         on_close : rtypes.func.isRequired  # called when this should be closed
 
     getInitialState : ->
-        new_payment_info : {name : @props.redux.getStore('account').get_fullname()}
-        submitting       : false
-        error            : ''
-        cvc_help         : false
+        new_payment_info :
+            name            : @props.redux.getStore('account').get_fullname()
+            number          : ""
+            address_state   : ""
+            address_country : ""
+        submitting : false
+        error      : ''
+        cvc_help   : false
 
     submit_payment_method : ->
         @setState(error: false, submitting:true)
@@ -272,7 +276,7 @@ AddPaymentMethod = rclass
             return true
 
         x = info[name]
-        if not x?
+        if not x? or x == ""
             return
         switch name
             when 'number'
