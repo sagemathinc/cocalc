@@ -85,7 +85,6 @@ exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
 # DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
-# For react-static renderings, it isn't set and hence a reference error.
-# Therefore safeguard it with `? false` whereever you use it.
-if DEBUG ? false
+# You can use DEBUG anywhere in the webapp code!
+if DEBUG
     console.log "DEBUG MODE:", DEBUG

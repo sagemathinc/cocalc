@@ -86,7 +86,7 @@ class Connection extends client.Connection
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
-        if not (DEBUG ? false)
+        if not DEBUG
             return
         window.smc = {}
         window.smc.client = @

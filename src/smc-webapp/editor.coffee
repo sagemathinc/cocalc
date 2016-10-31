@@ -658,7 +658,7 @@ class FileEditor extends EventEmitter
         # if above line reveals it, give it a bit time to do the layout first
         @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
-        if DEBUG ? false
+        if DEBUG
             window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
@@ -2319,7 +2319,7 @@ class PDFLatexDocument
         )
 
 # FOR debugging only
-if DEBUG ? false
+if DEBUG
     exports.PDFLatexDocument = PDFLatexDocument
 
 class PDF_Preview extends FileEditor

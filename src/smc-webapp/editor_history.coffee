@@ -39,7 +39,8 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        window.h = @  # DEBUGGING
+        if DEBUG
+            window.h = @
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err

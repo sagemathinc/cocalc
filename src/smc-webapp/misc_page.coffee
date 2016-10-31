@@ -207,7 +207,7 @@ mathjax_enqueue = (x) ->
 exports.mathjax_finish_startup = ->
     for x in mathjax_queue
         mathjax_enqueue(x)
-    if DEBUG ? false
+    if DEBUG
         console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
