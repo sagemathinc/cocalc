@@ -73,7 +73,6 @@ default_store_state =
 
 init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
-    console.log("store=smc.redux.getStore('#{name}');actions=smc.redux.getActions('#{name}');")
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, CodemirrorActions)

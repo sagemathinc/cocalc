@@ -286,9 +286,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
 
-        if DEBUG
-            window.cm = @
-
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
