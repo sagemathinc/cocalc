@@ -283,11 +283,11 @@ Message = rclass
 
     # All the render methods
 
-    # TODO: Make this a codemirror input
     render_input: ->
         <div>
             <FormGroup>
                 <FormControl
+                    style     = {fontSize:@props.font_size}
                     autoFocus = {true}
                     rows      = 4
                     componentClass = 'textarea'
@@ -446,7 +446,7 @@ ChatRoom = rclass ({name}) ->
         input          : ''
         preview        : ''
 
-    chat_input_style:
+    chat_input_style :
         margin       : "0"
         padding      : "4px 7px 4px 7px"
         marginTop    : "5px"
@@ -659,6 +659,7 @@ ChatRoom = rclass ({name}) ->
             background   : 'white'
 
         if not IS_MOBILE
+            @chat_input_style.fontSize = @props.font_size
             <Grid>
                 <Row style={marginBottom:'5px'}>
                     <Col xs={2} mdHidden>
