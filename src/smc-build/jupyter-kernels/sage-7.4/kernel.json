@@ -1,6 +1,6 @@
 {
  "display_name": "SageMath 7.4",
- "argv": ["/projects/sage/sage-7.4/local/bin/sage", "--python", "-m", "sage.repl.ipython_kernel", "-f", "{connection_file}"],
+ "argv": ["/projects/sage/sage-7.4/local/bin/sage", "--python", "-m", "sage.repl.ipython_kernel", "--matplotlib=inline", "-f", "{connection_file}"],
  "env":{
     "CPATH": "/projects/sage/sage-7.4/local/include:/usr/include/x86_64-linux-gnu",
     "ECLDIR": "/projects/sage/sage-7.4/local/lib/ecl/",

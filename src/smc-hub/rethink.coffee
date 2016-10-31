@@ -3135,7 +3135,11 @@ class RethinkDB
             account_id : undefined
             project_id : undefined
             query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!; can use [{set:true}] or [{set:false}] to force get or set query
+            options    : []         # used for initial query; **IGNORED** by changefeed!;
+                                    #  - Use [{set:true}] or [{set:false}] to force get or set query
+                                    #  - For a set query, use {delete:true} to delete instead of set.  This is the only way
+                                    #    to deleete a record, and won't work unless delete:true is set in the schema
+                                    #    for the table to explicitly allow deleting.
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         dbg = @dbg("user_query(...)")
@@ -3232,6 +3236,7 @@ class RethinkDB
                     project_id : opts.project_id
                     table      : table
                     query      : query
+                    options    : opts.options
                     cb         : (err, x) =>
                         if not err
                             on_success?()
@@ -3412,6 +3417,8 @@ class RethinkDB
                         x = parseInt(value)
                         if x > 0
                             heartbeat = x
+                    when 'delete'
+                        # ignore here - is parsed elsewhere
                     else
                         err:"unknown option '#{name}'"
         return {db_query:db_query, err:err, limit:limit, heartbeat:heartbeat}
@@ -3440,6 +3447,7 @@ class RethinkDB
             project_id : undefined
             table      : required
             query      : required
+            options    : undefined     # {delete:true} is the only supported option
             cb         : required   # cb(err)
         if opts.project_id?
             dbg = @dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
@@ -3449,15 +3457,17 @@ class RethinkDB
             opts.cb("account_id or project_id must be specified")
             return
         dbg(to_json(opts.query))
+        if opts.options
+            dbg("options=#{misc.to_json(opts.options)}")
 
         @_user_query_stats.set_query
             account_id : opts.account_id
             project_id : opts.project_id
             table      : opts.table
 
-        query = misc.copy(opts.query)
-        table = opts.table
-        db_table = SCHEMA[opts.table].virtual ? table
+        query      = misc.copy(opts.query)
+        table      = opts.table
+        db_table   = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
         project_id = opts.project_id
 
@@ -3574,6 +3584,25 @@ class RethinkDB
         old_val = undefined
         #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
 
+        # set the query options -- order doesn't matter for set queries (unlike for get), so we
+        # just merge the options into a single dictionary.
+        # NOTE: As I write this, there is just one supported option: {delete:true}.
+        options = {}
+        if client_query.set.options?
+            for x in client_query.set.options
+                for y, z of x
+                    options[y] = z
+        if opts.options?
+            for x in opts.options
+                for y, z of x
+                    options[y] = z
+        dbg("options = #{misc.to_json(options)}")
+
+        if options.delete and not client_query.set.delete
+            # delete option is set, but deletes aren't explicitly allowed on this table.  ERROR.
+            opts.cb("delete from #{table} not allowed")
+            return
+
         async.series([
             (cb) =>
                 async.parallel([
@@ -3626,6 +3655,12 @@ class RethinkDB
             (cb) =>
                 if instead_of_change_hook?
                     instead_of_change_hook(@, old_val, query, account_id, cb)
+                else if options.delete
+                    if query[primary_key]
+                        dbg("delete based on primary key")
+                        @table(db_table).get(query[primary_key]).delete().run(cb)
+                    else
+                        cb("delete query must set primary key")
                 else
                     @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
@@ -3827,7 +3862,11 @@ class RethinkDB
             table      : required
             query      : required
             multi      : required
-            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n}, which ensures that *something* is sent every n minutes, in case no changes are coming out of the changefeed. This is an additional measure in case the client somehow doesn't get a "this changefeed died" message.
+            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n},
+                                    # which ensures that *something* is sent every n minutes, in case no
+                                    # changes are coming out of the changefeed. This is an additional
+                                    # measure in case the client somehow doesn't get a "this changefeed died" message.
+                                    # Use [{delete:true}] to instead delete the selected records (must have delete:true in schema).
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
@@ -3907,16 +3946,28 @@ class RethinkDB
         # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
+        delete_option = false  # will be true if an option is delete
+        user_options = {}
+        for x in opts.options
+            for y, z of x
+                if y == 'delete'
+                    delete_option = z
+                else
+                    user_options[y] = true
         if client_query.get.all?.options?
             # complicated since options is a list of {opt:val} !
-            user_options = {}
-            for x in opts.options
-                for y, z of x
-                    user_options[y] = true
             for x in client_query.get.all.options
                 for y, z of x
-                    if not user_options[y]
-                        opts.options.push(x)
+                    if y == 'delete'
+                        delete_option = z
+                    else
+                        if not user_options[y]
+                            opts.options.push(x)
+                            break
+
+        if opts.changes? and delete_option
+            opts.cb("user_get_query -- if opts.changes is specified, then delete option must not be specified")
+            return
 
         result = undefined
         table_name = SCHEMA[opts.table].virtual ? opts.table
@@ -4142,13 +4193,14 @@ class RethinkDB
                 if filter?
                     db_query = db_query.filter(filter)
 
-                # Parse the pluck part of the query
-                pluck   = @_query_to_field_selector(query)
-                db_query = db_query.pluck(pluck)
+                if not delete_option
+                    # Parse the pluck part of the query
+                    pluck   = @_query_to_field_selector(query)
+                    db_query = db_query.pluck(pluck)
 
-                # If not multi, limit to one result
-                if not opts.multi
-                    db_query = db_query.limit(1)
+                    # If not multi, limit to one result
+                    if not opts.multi
+                        db_query = db_query.limit(1)
 
                 # Parse option part of the query
                 db_query_no_opts = db_query
@@ -4156,6 +4208,10 @@ class RethinkDB
                 dbg("heartbeat = #{heartbeat}")
                 if err
                     cb(err); return
+
+                if delete_option
+                    dbg("doing a delete query")
+                    db_query = db_query.delete()
 
                 dbg("run the query -- #{to_json(opts.query)}")
                 time_start = misc.walltime()

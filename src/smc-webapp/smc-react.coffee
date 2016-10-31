@@ -1,18 +1,37 @@
-###
-Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
-###
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+# SMC specific wrapper around the redux library
+#
+# Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
+###############################################################################
 
 {EventEmitter} = require('events')
+async          = require('async')
+immutable      = require('immutable')
+underscore     = require('underscore')
+React          = require('react')
+redux_lib      = require('redux')
 
-async = require('async')
-immutable = require('immutable')
-
-React = require('react')
-
-redux_lib = require('redux')
-{Provider, connect} = require('react-redux')
-
-misc = require('smc-util/misc')
+{Provider, connect}  = require('react-redux')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.COLOR =
@@ -81,9 +100,12 @@ class Store extends EventEmitter
     # happens call the given callback.
     wait: (opts) =>
         opts = defaults opts,
-            until   : required     # waits until "until(store)" evaluates to something truthy
-            timeout : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
-            cb      : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+            until       : required     # waits until "until(store)" evaluates to something truthy
+            throttle_ms : undefined    # in ms -- throttles the call to until(store)
+            timeout     : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+            cb          : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+        if opts.throttle_ms?
+            opts.until = underscore.throttle(opts.until, opts.throttle_ms)
         # Do a first check to see if until is already true
         x = opts.until(@)
         if x
@@ -493,5 +515,6 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-smc?.redux       = redux  # for convenience in the browser (mainly for debugging)
+if DEBUG
+    smc?.redux = redux  # for convenience in the browser (mainly for debugging)
 

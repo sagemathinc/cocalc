@@ -47,9 +47,11 @@ exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier 
 exports.commands =
     shell :
         comment :
-            wrap :      # FUTURE: multi-line
-                left  : '# '
+            wrap :
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         set_name_and_email :
                 insert:
                         """
@@ -293,9 +295,11 @@ exports.commands =
                 left  : '^{'
                 right : '}'
         comment :
-            wrap :      # FUTURE: multi-line
-                left  : '% '
+            wrap :
+                left  : '%'
                 right : ''
+                multi : true
+                space : true
         horizontalRule:
             wrap:
                 left  : "\\hrulefill"
@@ -397,8 +401,9 @@ exports.commands =
                 right : '</sup>'
         comment :
             wrap :
-                left  : '<!-- '
+                left  : '<!--'
                 right : ' -->'
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n<ul>\n    <li> "
@@ -507,8 +512,10 @@ exports.commands =
                 right : '` '
         comment :
             wrap :
-                left  : '\n.. '
+                left  : '\n..'
                 right : ''
+                multi : true
+                space : true
         insertunorderedlist :
             wrap :
                 left  : "\n  - "
@@ -638,8 +645,9 @@ exports.commands =
                 right : "\n"
         comment :
             wrap :
-                left  : '\n<!-- '
+                left  : '\n<!--'
                 right : ' -->\n'
+                space : true
         indent: # pre tag is more for code, but makes more sense than a dysfunctional ":"
             wrap:
                 left  : "\n<pre>"
@@ -693,8 +701,10 @@ exports.commands =
     python:
         comment :
             wrap :
-                left  : '# '
+                left  : '#'
                 right : ''
+                multi : true
+                space : true
         len :
             insert : "len([1, 2, 5, 6, 10])"
         list :
@@ -1076,8 +1086,10 @@ exports.commands =
                 right : ""
         comment:
             wrap:
-                left : "# "
-                right: ""
+                left  : "# "
+                right : ""
+                multi : true
+                space : true
         assign:
             insert : "a = 5"
         forloop:
@@ -1111,7 +1123,10 @@ exports.commands =
     r:                 # http://cran.r-project.org/doc/manuals/r-release/R-intro.html
         comment:
             wrap:
-                left  : "# "
+                left  : "#"
+                right : ''
+                multi : true
+                space : true
         vector:
             insert : "v <- c(1,1,2,3,5,8,13)"
         forloop:
@@ -1309,8 +1324,10 @@ exports.commands =
             insert : "Polynomial Integer"
         comment:
             wrap:
-                left : "-- "
+                left : "--"
                 right: ""
+                multi : true
+                space : true
         assign:
             insert : "a: = 5"
         forloop:
@@ -1393,7 +1410,7 @@ add_icon = (bar, inner, href, comment) ->
 
 #
 # initializing and creating the menus
-# this works in conjuntion with editor.html
+# this works in conjunction with editor.html
 #
 
 # Initialize fonts for the editor

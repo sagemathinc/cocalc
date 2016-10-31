@@ -17,7 +17,7 @@ project page react component
 project_file = require('./project_file')
 {file_associations} = require('./editor')
 {ProjectStore} = require('./project_store')
-{Icon, Tip, SAGE_LOGO_COLOR} = require('./r_misc')
+{Icon, Tip, SAGE_LOGO_COLOR, Loading} = require('./r_misc')
 misc = require('misc')
 
 FILE_NAV_HEIGHT = '36px'

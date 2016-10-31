@@ -38,7 +38,6 @@ markdown = require('./markdown')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
-{UpgradeAdjustorForUncreatedProject} = require('./project_settings')
 {UsersViewing} = require('./profile')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {redux_name} = require('project_store')
@@ -55,6 +54,9 @@ class ProjectsActions extends Actions
         if index == -1
             @setState(open_projects : x.push(project_id))
 
+    # Do not call this directly to close a project.  Instead call
+    #   redux.getActions('page').close_project_tab(project_id),
+    # which calls this.
     set_project_closed : (project_id) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)

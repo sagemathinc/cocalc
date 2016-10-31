@@ -34,12 +34,9 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
+{AccountPage} = require('./account_page')
 {UsersViewing}        = require('./profile')
-
-{salvus_client} = require('./salvus_client')
-
-Combobox = require('react-widgets/lib/Combobox') # FUTURE: delete this when the combobox is in r_misc
-
+Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
 exports.file_action_buttons = file_action_buttons =
@@ -1884,13 +1881,25 @@ exports.ProjectFiles = rclass ({name}) ->
                 style   = {error_style}
                 onClose = {=>@props.actions.setState(error:'')} />
 
+    render_not_public_error : ->
+        if @props.redux.getStore('account').is_logged_in()
+            <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
+        else
+            <div>
+                <ErrorDisplay title="Directory is not public" error={"You are not logged in. If you are collaborator on this project you need to log in first. This project is not public."} />
+                <AccountPage />
+            </div>
+
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
+            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
+                when '"not_public"'
+                    e = @render_not_public_error()
                 when 'no_dir'
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
                 when 'not_a_dir'
@@ -1958,7 +1967,6 @@ exports.ProjectFiles = rclass ({name}) ->
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
-        window.fprops = @props
 
         pay = @props.date_when_course_payment_required(@props.project_id)
         if pay? and pay <= salvus_client.server_time()

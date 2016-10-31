@@ -2,6 +2,8 @@
 # Account Redux store
 ###
 
+async = require('async')
+
 {Actions, Store, Table, redux}  = require('./smc-react')
 
 misc = require('smc-util/misc')
@@ -74,15 +76,24 @@ class AccountActions extends Actions
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
     # deletes the account and then signs out everywhere
-    delete_account : ->
-        salvus_client.delete_account
-            account_id : @redux.getStore('account').get_account_id()
-            timeout       : 40
-            cb            : (err) =>
-                if err?
-                    @setState('account_deletion_error' : "Error trying to delete the account: #{err}")
-                else
-                    @sign_out(true)
+    delete_account : =>
+        async.series([
+            (cb) =>
+                # cancel any subscriptions
+                redux.getActions('billing').cancel_everything(cb)
+            (cb) =>
+                # actually request to delete the account
+                salvus_client.delete_account
+                    account_id : @redux.getStore('account').get_account_id()
+                    timeout       : 40
+                    cb            : cb
+
+        ], (err) =>
+            if err?
+                @setState('account_deletion_error' : "Error trying to delete the account: #{err}")
+            else
+                @sign_out(true)
+        )
 
     forgot_password : (email) ->
         salvus_client.forgot_password
@@ -116,7 +127,7 @@ class AccountActions extends Actions
                         @setState(reset_key : '', reset_password_error : '')
 
     sign_out : (everywhere) ->
-        delete localStorage[remember_me]
+        misc.delete_local_storage(remember_me)
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
@@ -209,7 +220,7 @@ class AccountStore extends Store
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-init.user_type = if localStorage[remember_me]? then 'signing_in' else 'public'  # default
+init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 
 # Create and register account table, which gets automatically

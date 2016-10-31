@@ -205,9 +205,10 @@ mathjax_enqueue = (x) ->
         mathjax_queue.push(x)
 
 exports.mathjax_finish_startup = ->
-    console.log 'finishing mathjax startup'
     for x in mathjax_queue
         mathjax_enqueue(x)
+    if DEBUG
+        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
@@ -1002,9 +1003,9 @@ exports.define_codemirror_extensions = () ->
         # deal with nesting.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
-            left  = left.trim().toLowerCase()
-            right = right.trim().toLowerCase()
-            src0   = src.toLowerCase()
+            left  = left.toLowerCase()
+            right = right.toLowerCase()
+            src0  = src.toLowerCase()
             i = src0.indexOf(left)
             if i != -1
                 j = src0.lastIndexOf(right)
@@ -1057,25 +1058,36 @@ exports.define_codemirror_extensions = () ->
                 done = true
 
             if how?.wrap?
-                if how.strip?
-                    # Strip out any tags/wrapping from conflicting modes.
-                    for c in how.strip
-                        wrap = EDIT_COMMANDS[mode1][c].wrap
-                        if wrap?
-                            {left, right} = wrap
-                            src1 = strip(src, left, right)
-                            if src1?
-                                src = src1
+                space = how.wrap.space
+                left  = how.wrap.left  ? ""
+                right = how.wrap.right ? ""
+                process = (src) ->
+                    if how.strip?
+                        # Strip out any tags/wrapping from conflicting modes.
+                        for c in how.strip
+                            wrap = EDIT_COMMANDS[mode1][c].wrap
+                            if wrap?
+                                src1 = strip(src, wrap.left ? '', wrap.right ? '')
+                                if src1?
+                                    src = src1
+                                    if space and src[0] == ' '
+                                        src = src.slice(1)
 
-                left  = if how.wrap.left?  then how.wrap.left else ""
-                right = if how.wrap.right? then how.wrap.right else ""
-                src1 = strip(src, left, right)
-                if src1
-                    # strip the wrapping
-                    src = src1
+                    src1  = strip(src, left, right)
+                    if src1
+                        # strip the wrapping
+                        src = src1
+                        if space and src[0] == ' '
+                            src = src.slice(1)
+                    else
+                        # do the wrapping
+                        src = "#{left}#{if space then ' ' else ''}#{src}#{right}"
+                    return src
+
+                if how.wrap.multi
+                    src = (process(x) for x in src.split('\n')).join('\n')
                 else
-                    # do the wrapping
-                    src = "#{left}#{src}#{right}"
+                    src = process(src)
                 done = true
 
             if how?.insert? # to insert the code snippet right below, next line
@@ -1592,12 +1604,12 @@ $("body").on "show.bs.tooltip", (e) ->
 
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
-        cb()
+        cb?()
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via reqire.ensure")
-            cb()
+            cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
             #    cb()
@@ -1607,7 +1619,7 @@ exports.load_coffeescript_compiler = (cb) ->
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
-    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
 
 # get the currently selected html

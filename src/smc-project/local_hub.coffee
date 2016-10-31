@@ -83,10 +83,15 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-if not fs.existsSync(SMC)
-    fs.mkdirSync(SMC)
-if not fs.existsSync(DATA)
-    fs.mkdirSync(DATA)
+# See https://github.com/sagemathinc/smc/issues/174 -- some stupid (?)
+# code sometimes assumes this exists, and it's not so hard to just ensure
+# it does, rather than fixing any such code.
+SAGE = path.join(process.env.HOME, '.sage')
+
+for directory in [SMC, DATA, SAGE]
+    if not fs.existsSync(directory)
+        fs.mkdirSync(directory)
+
 
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 
@@ -293,8 +298,8 @@ process.addListener "uncaughtException", (err) ->
         console.trace()
 
 program.usage('[?] [options]')
-    .option('--tcp_port <n>', 'TCP server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
-    .option('--raw_port <n>', 'RAW server port to listen on (default: undefined)', ((n)->parseInt(n)), undefined)
+    .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .parse(process.argv)
 
 start_server program.tcp_port, program.raw_port, (err) ->

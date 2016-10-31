@@ -696,6 +696,9 @@ exports.retry_until_success = (opts) ->
                 opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if err == "not_public"
+                    opts.cb?("not_public")
+                    return
                 if err and opts.warn?
                     opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.log?
@@ -1340,11 +1343,11 @@ exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 exports.weeks_ago        = (w)  -> exports.days_ago(7*w)
 exports.months_ago       = (m)  -> exports.days_ago(30.5*m)
 
-if localStorage?
-    # Versions of the above, but give the relevant point in time but
+if window?
+    # BROWSER Versions of the above, but give the relevant point in time but
     # on the *server*.  These are only available in the web browser.
-    exports.server_time             = ()   -> new Date(new Date() - (parseFloat(localStorage.clock_skew) ? 0))
-    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - (parseFloat(localStorage.clock_skew) ? 0))
+    exports.server_time             = ()   -> new Date(new Date() - parseFloat(exports.get_local_storage('clock_skew') ? 0))
+    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - parseFloat(exports.get_local_storage('clock_skew') ? 0))
     exports.server_seconds_ago      = (s)  -> exports.server_milliseconds_ago(1000*s)
     exports.server_minutes_ago      = (m)  -> exports.server_seconds_ago(60*m)
     exports.server_hours_ago        = (h)  -> exports.server_minutes_ago(60*h)
@@ -1736,3 +1739,43 @@ exports.suggest_duplicate_filename = (name) ->
     if ext?.length > 0
         new_name += ".#{ext}"
     return new_name
+
+
+# Wrapper around localStorage, so we can safely touch it without raising an
+# exception if it is banned (like in some browser modes) or doesn't exist.
+# See https://github.com/sagemathinc/smc/issues/237
+
+exports.set_local_storage = (key, val) ->
+    try
+        localStorage[key] = val
+    catch e
+        console.warn("localStorage set error -- #{e}")
+
+exports.get_local_storage = (key) ->
+    try
+        return localStorage[key]
+    catch e
+        console.warn("localStorage get error -- #{e}")
+
+
+exports.delete_local_storage = (key) ->
+    try
+        delete localStorage[key]
+    catch e
+        console.warn("localStorage delete error -- #{e}")
+
+
+exports.has_local_storage = () ->
+    try
+        TEST = '__smc_test__'
+        localStorage[TEST] = 'x'
+        delete localStorage[TEST]
+        return true
+    catch e
+        return false
+
+exports.local_storage_length = () ->
+    try
+        return localStorage.length
+    catch e
+        return 0

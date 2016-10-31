@@ -40,7 +40,7 @@ message = require('smc-util/message')
 
 profile = require('./profile')
 
-_ = require('underscore')
+_ = underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
@@ -54,6 +54,7 @@ misc_page = require('./misc_page')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
+require('./codemirror/multiplex')
 
 # Ensure the console jquery plugin is available
 require('./console')
@@ -417,11 +418,12 @@ define_codemirror_sagews_mode = () ->
             # be *enormous*, and could take a very very long time, but is
             # a complete waste, since we never see that markup.
             options.push
-                open  : "%"+x[0]
+                open  : "%" + x[0]
+                start : true    # must be at beginning of line
                 close : close
                 mode  : CodeMirror.getMode(config, x[1])
 
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
+        return CodeMirror.smc_multiplexing_mode(CodeMirror.getMode(config, "python"), options...)
 
     ###
     # ATTN: if that's ever going to be re-activated again,
@@ -498,50 +500,55 @@ _local_storage_prefix = (project_id, filename, key) ->
 # In all cases, returns undefined if localStorage is not supported in this browser.
 #
 
-local_storage_delete = exports.local_storage_delete = (project_id, filename, key) ->
-    storage = window.localStorage
-    if storage?
-        prefix = _local_storage_prefix(project_id, filename, key)
-        n = prefix.length
-        for k, v of storage
-            if k.slice(0,n) == prefix
-                delete storage[k]
+if misc.has_local_storage()
+    local_storage_delete = exports.local_storage_delete = (project_id, filename, key) ->
+        storage = window.localStorage
+        if storage?
+            prefix = _local_storage_prefix(project_id, filename, key)
+            n = prefix.length
+            for k, v of storage
+                if k.slice(0,n) == prefix
+                    delete storage[k]
 
-local_storage = exports.local_storage = (project_id, filename, key, value) ->
-    storage = window.localStorage
-    if storage?
-        prefix = _local_storage_prefix(project_id, filename, key)
-        n = prefix.length
-        if filename?
-            if key?
-                if value?
-                    storage[prefix] = misc.to_json(value)
-                else
-                    x = storage[prefix]
-                    if not x?
-                        return x
+    local_storage = exports.local_storage = (project_id, filename, key, value) ->
+        storage = window.localStorage
+        if storage?
+            prefix = _local_storage_prefix(project_id, filename, key)
+            n = prefix.length
+            if filename?
+                if key?
+                    if value?
+                        storage[prefix] = misc.to_json(value)
                     else
-                        return misc.from_json(x)
+                        x = storage[prefix]
+                        if not x?
+                            return x
+                        else
+                            return misc.from_json(x)
+                else
+                    # Everything about a given filename
+                    obj = {}
+                    for k, v of storage
+                        if k.slice(0,n) == prefix
+                            obj[k.split(SEP)[1]] = v
+                    return obj
             else
-                # Everything about a given filename
+                # Everything about project
                 obj = {}
                 for k, v of storage
                     if k.slice(0,n) == prefix
-                        obj[k.split(SEP)[1]] = v
+                        x = k.slice(n)
+                        z = x.split(SEP)
+                        filename = z[0]
+                        key = z[1]
+                        if not obj[filename]?
+                            obj[filename] = {}
+                        obj[filename][key] = v
                 return obj
-        else
-            # Everything about project
-            obj = {}
-            for k, v of storage
-                if k.slice(0,n) == prefix
-                    x = k.slice(n)
-                    z = x.split(SEP)
-                    filename = z[0]
-                    key = z[1]
-                    if not obj[filename]?
-                        obj[filename] = {}
-                    obj[filename][key] = v
-            return obj
+else
+    # no-op fallback
+    console.warn("cursor saving won't work due to lack of localStorage")
+    local_storage_delete = local_storage = () ->
 
 templates = $("#salvus-editor-templates")
 
@@ -558,6 +565,7 @@ templates = $("#salvus-editor-templates")
 
 class FileEditor extends EventEmitter
     constructor: (@project_id, @filename, content, opts) ->
+        @_show = underscore.debounce(@_show, 50)
         @val(content)
 
     show_chat_window: () =>
@@ -640,21 +648,18 @@ class FileEditor extends EventEmitter
                 opts = {}
         @_last_show_opts = opts
 
-        # OPTIMIZATION: fix this performance update for active shows
-        #if not @is_active?()
-        #    return
-
-        # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
-        # the last call before doing the show.
-        now = misc.mswalltime()
-        if @_last_call? and now - @_last_call < 500
-            if not @_show_timer?
-                @_show_timer = setTimeout((()=>delete @_show_timer; @show(opts)), now - @_last_call)
+        # only re-render the editor if it is active. that's crucial, because e.g. the autosave
+        # of latex triggers a build, which in turn calls @show to update itself. that would cause
+        # the latex editor to be visible despite not being the active editor.
+        if not @is_active?()
             return
-        @_last_call = now
+
         @element.show()
-        @_show(opts)
-        window?.smc?.doc = @  # useful for debugging...
+        # if above line reveals it, give it a bit time to do the layout first
+        @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
+        setTimeout((=> @_show(opts)), 10)
+        if DEBUG
+            window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
         # define in derived class
@@ -814,6 +819,7 @@ class CodeMirrorEditor extends FileEditor
             "Shift-Tab"    : (editor)   => editor.unindent_selection()
 
             "Ctrl-'"       : "indentAuto"
+            "Cmd-'"        : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
@@ -1358,7 +1364,8 @@ class CodeMirrorEditor extends FileEditor
         @save (err) =>
             # WARNING: As far as I can tell, this doesn't call FileEditor.save
             if err
-                alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
+                if redux.getProjectStore(@project_id).is_file_open(@filename)  # only show error if file actually opened
+                    alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             else
                 @emit('saved')
             @save_button.icon_spin(false)
@@ -1837,7 +1844,7 @@ remove_tmp_dir = (opts) ->
             cb?(err)
 
 
-# Class that wraps "a remote latex doc with PDF preview":
+# Class that wraps "a remote latex doc with PDF preview"
 class PDFLatexDocument
     constructor: (opts) ->
         opts = defaults opts,
@@ -1858,7 +1865,7 @@ class PDFLatexDocument
             @path = './'
         @filename_tex  = s.tail
         @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
-        @filename_pdf  =  @base_filename + '.pdf'
+        @filename_pdf  = @base_filename + '.pdf'
 
     dbg: (mesg) =>
         #console.log("PDFLatexDocument: #{mesg}")
@@ -2311,7 +2318,8 @@ class PDFLatexDocument
         )
 
 # FOR debugging only
-exports.PDFLatexDocument = PDFLatexDocument
+if DEBUG
+    exports.PDFLatexDocument = PDFLatexDocument
 
 class PDF_Preview extends FileEditor
     constructor: (@project_id, @filename, contents, opts) ->
@@ -2535,7 +2543,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;min-height:3em;border:1px solid grey;' class='salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2940,6 +2948,7 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (@project_id, @filename, content, opts) ->
+        opts.allow_javascript_eval = false
         super @project_id, @filename, content, opts, (err) =>
             @element.find("a[href=\"#split-view\"]").hide()  # disable split view
             if not err

@@ -1,9 +1,12 @@
 {Actions, Store, redux} = require('./smc-react')
-{salvus_client} = require('./salvus_client')
-misc = require('smc-util/misc')
+{salvus_client}         = require('./salvus_client')
+misc                    = require('smc-util/misc')
 
-{set_url} = require('./history')
-{set_window_title} = require('./browser')
+{set_url}               = require('./history')
+{set_window_title}      = require('./browser')
+
+{alert_message}         = require('./alerts')
+
 ###
 # Page Redux
 ###
@@ -136,6 +139,9 @@ class PageActions extends Actions
 
     show_cookie_warning : =>
         @setState(cookie_warning : true)
+
+    show_local_storage_warning : =>
+        @setState(local_storage_warning : true)
 
     check_unload : (e) =>
         if redux.getStore('account')?.get_confirm_close()

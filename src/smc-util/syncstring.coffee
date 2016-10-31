@@ -501,8 +501,10 @@ class SyncDoc extends EventEmitter
             doc               : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
+
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
+
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
@@ -830,6 +832,35 @@ class SyncDoc extends EventEmitter
                     @emit('connected')
                     cb()
             )
+
+    # Delete the synchronized string and **all** patches from the database -- basically
+    # delete the complete history of editing this file.
+    # WARNINGS:
+    #   (1) If a project has this string open, then things may be messed up, unless that project is restarted.
+    #   (2) Only available for the admin user right now.
+    # To use: from a javascript console in the browser as admin, you can do:
+    #
+    #   smc.client.sync_string({project_id:'9f2e5869-54b8-4890-8828-9aeba9a64af4', path:'a.txt'}).delete_from_database(console.log)
+    #
+    # Then make sure project and clients refresh.
+    #
+    delete_from_database: (cb) =>
+        async.parallel([
+            (cb) =>
+                @_client.query
+                    query :
+                        patches_delete :
+                            id    : [@_string_id]
+                            dummy : null  # required to force a get query.
+                    cb : cb
+            (cb) =>
+                @_client.query
+                    query :
+                        syncstrings_delete :
+                            project_id : @_project_id
+                            path       : @_path
+                    cb : cb
+        ], (err)=>cb?(err))
 
     _update_if_file_is_read_only: (cb) =>
         @_client.path_access
@@ -1325,10 +1356,11 @@ class SyncDoc extends EventEmitter
 
     _update_watch_path: (path, cb) =>
         dbg = @_client.dbg("_update_watch_path('#{path}')")
-        if @_gaze_file_watcher?
+        if @_file_watcher?
+            # clean up
             dbg("close")
-            @_gaze_file_watcher.close()
-            delete @_gaze_file_watcher
+            @_file_watcher.close()
+            delete @_file_watcher
             delete @_watch_path
         if not path?
             dbg("not opening another watcher")
@@ -1359,45 +1391,34 @@ class SyncDoc extends EventEmitter
                             cb()
             (cb) =>
                 dbg("now requesting to watch file")
-                @_client.watch_file
-                    path     : path
-                    debounce : 1
-                    cb       : (err, watcher) =>
-                        if err
-                            dbg("error -- #{err}")
-                            delete @_watch_path
-                            delete @_gaze_file_watcher
-                            cb(err)
-                        else
-                            dbg("success")
-                            @_gaze_file_watcher = watcher
-                            watcher.on 'all', (event) =>
-                                if @_closed
-                                    return
-                                dbg("event #{event}")
-                                if event == 'deleted'
-                                    dbg("delete: setting deleted=true and closing")
-                                    @set('')
-                                    @save () =>
-                                        # NOTE: setting deleted=true must be done **after** setting document to blank above,
-                                        # since otherwise the set would set deleted=false.
-                                        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
-                                        @_syncstring_table.save () =>  # make sure deleted:true is saved.
-                                            @close()
-                                    return
-                                if event == 'changed'
-                                    if @_save_to_disk_just_happened
-                                        dbg("@_save_to_disk_just_happened")
-                                        @_save_to_disk_just_happened = false
-                                    else
-                                        dbg("_load_from_disk")
-                                        @_load_from_disk()
-                                    return
-                                # NOTE: We do ignore other events, e.g., 'added'
-                                # (since we create the file already); not ignoring
-                                # 'added' was the root cause of this horrible bug:
-                                #   https://github.com/sagemathinc/smc/issues/979
-                            cb()
+                @_file_watcher = @_client.watch_file(path:path)
+                @_file_watcher.on 'change', =>
+                    dbg("event change")
+                    if @_closed
+                        @_file_watcher.close()
+                        return
+                    if @_save_to_disk_just_happened
+                        dbg("@_save_to_disk_just_happened")
+                        @_save_to_disk_just_happened = false
+                    else
+                        dbg("_load_from_disk")
+                        @_load_from_disk()
+                    return
+                @_file_watcher.on 'delete', =>
+                    dbg("event delete")
+                    if @_closed
+                        @_file_watcher.close()
+                        return
+                    dbg("delete: setting deleted=true and closing")
+                    @set('')
+                    @save () =>
+                        # NOTE: setting deleted=true must be done **after** setting document to blank above,
+                        # since otherwise the set would set deleted=false.
+                        @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', true))
+                        @_syncstring_table.save () =>  # make sure deleted:true is saved.
+                            @close()
+                    return
+                cb()
         ], (err) => cb?(err))
 
     _load_from_disk: (cb) =>

@@ -40,6 +40,29 @@ scrape_configs:
       port: 9100
       refresh_interval: 60s
       filter: "name eq compute.*"
+    relabel_configs:
+      - source_labels: [__meta_gce_instance_name]
+        action: replace
+        target_label: instance
+      - source_labels: [__meta_gce_instance_tags]
+        action: replace
+        target_label: tags
+      - source_labels: [__meta_gce_instance_name]
+        action: replace
+        target_label: group
+        regex: "compute[0-3].*"
+        replacement: free
+      - source_labels: [__meta_gce_instance_name]
+        action: replace
+        target_label: group
+        regex: "compute[4-9].*"
+        replacement: member
+      - action: replace
+        target_label: task
+        replacement: node
+
+  - job_name: 'compute-custom'
+    gce_sd_configs:
     - project: 'sage-math-inc'
       zone: 'us-central1-c'
       port: 9090
@@ -62,6 +85,13 @@ scrape_configs:
         target_label: group
         regex: "compute[4-9].*"
         replacement: member
+      - source_labels: [job]
+        target_label: job
+        action: replace
+        replacement: compute
+      - action: replace
+        target_label: task
+        replacement: custom
 
   # storage
   - job_name: 'storage'

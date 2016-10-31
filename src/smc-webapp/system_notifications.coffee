@@ -30,13 +30,11 @@ class NotificationsTable extends Table
 
     _change: (table, keys) =>
         actions.setState(loading:false, notifications:table.get())
-        # TODO: below is to display a notification old-fashioned way -- will be replaced by react thing later
-        s = {}
-        if localStorage?
-            try
-                s = misc.from_json(localStorage.system_notifications)
-            catch e
-                # pass
+        t = misc.get_local_storage('system_notifications')
+        if t?
+            s = misc.from_json(t)
+        else
+            s = {}
         # show any message from the last hour that we haven't seen already
         recent = misc.minutes_ago(60)
         table.get().map (m, id) =>
@@ -49,6 +47,6 @@ class NotificationsTable extends Table
         for id, x of s
             if x.time < recent
                 delete s[id]
-        localStorage.system_notifications = misc.to_json(s)
+        misc.set_local_storage('system_notifications', misc.to_json(s))
 
 table = redux.createTable(name, NotificationsTable)

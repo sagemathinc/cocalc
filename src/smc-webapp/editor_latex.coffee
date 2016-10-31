@@ -59,16 +59,15 @@ class exports.LatexEditor extends editor.FileEditor
         n = @filename.length
 
         # The pdf preview.
-        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:200})
+        @preview = new editor.PDF_Preview(@project_id, @filename, undefined, {resolution:@get_resolution()})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
         @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
-        @preview_embed.element.find(".salvus-editor-pdf-title").hide()
-        @preview_embed.element.find("a[href=\"#refresh\"]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log
@@ -259,8 +258,8 @@ class exports.LatexEditor extends editor.FileEditor
             return false
 
         @element.find("a[href=\"#zoom-preview-out\"]").click () =>
-            @preview.zoom(delta:-5)
-            @set_conf(zoom_width:@preview.zoom_width)
+            @preview.zoom(delta: -5)
+            @set_conf(zoom_width: @preview.zoom_width)
             return false
 
         @element.find("a[href=\"#zoom-preview-in\"]").click () =>
@@ -356,16 +355,19 @@ class exports.LatexEditor extends editor.FileEditor
         else
             try
                 res = parseInt(res)
-                if res < 150
-                    res = 150
+                if res < 75
+                    res = 75
                 else if res > 600
                     res = 600
                 @preview.opts.resolution = res
+                @set_conf(resolution : res)
                 @preview.update()
             catch e
                 alert_message(type:"error", message:"Invalid resolution #{res}")
 
     get_resolution: () =>
+        if not @preview?
+            return @load_conf()['resolution'] ? 150
         return @preview.opts.resolution
 
     # This function isn't called on save button click since
@@ -419,12 +421,12 @@ class exports.LatexEditor extends editor.FileEditor
             width = chat_pos.left
 
         {top, left} = @element.offset()
-        editor_width = (width - left)*@_split_pos
+        editor_width = (width - left) * @_split_pos
 
-        @_dragbar.css('left',editor_width+left)
+        @_dragbar.css('left', editor_width + left)
         @latex_editor.show(width:editor_width)
 
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-container").height()
+        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
 
         @_right_pane_position =
             start : editor_width + left + 7
@@ -437,7 +439,8 @@ class exports.LatexEditor extends editor.FileEditor
         else
             @show_page()
 
-        @_dragbar.height(@latex_editor.element.height()).css('top', button_bar_height+2)
+        @_dragbar.height(@latex_editor.element.height())
+        @_dragbar.css('top', button_bar_height + 2)
 
     focus: () =>
         @latex_editor?.focus()
@@ -497,6 +500,7 @@ class exports.LatexEditor extends editor.FileEditor
             cb      : undefined
         button = @element.find("a[href=\"#log\"]")
         button.icon_spin(true)
+        @_show() # update layout, since showing spinner might cause a linebreak in the button bar
         log_output = @log.find("textarea")
         log_output.text("")
         if not opts.command?
@@ -521,6 +525,7 @@ class exports.LatexEditor extends editor.FileEditor
             latex_command : opts.command
             cb            : (err, log) =>
                 button.icon_spin(false)
+                @_show() # update layout, since hiding spinner might cause a linebreak in the button bar to go away
                 opts.cb?()
 
     render_error_page: () =>
@@ -593,12 +598,12 @@ class exports.LatexEditor extends editor.FileEditor
         if not mesg.line
             if mesg.page
                 @_inverse_search
-                    n : mesg.page
-                    active : false
-                    x : 50
-                    y : 50
-                    resolution:200
-                    cb: cb
+                    n          : mesg.page
+                    active     : false
+                    x          : 50
+                    y          : 50
+                    resolution : @get_resolution()
+                    cb         : cb
             else
                 alert_message(type:"error", "Unknown location in '#{file}'.")
                 cb?()
@@ -620,7 +625,6 @@ class exports.LatexEditor extends editor.FileEditor
                 @forward_search(active:true)
 
     render_error_message: (mesg) =>
-
         if not mesg.line
             r = mesg.raw
             i = r.lastIndexOf('[')
@@ -629,7 +633,7 @@ class exports.LatexEditor extends editor.FileEditor
                 j += 1
             mesg.page = r.slice(i+1,j)
 
-        if mesg.file.slice(0,2) == './'
+        if mesg.file?.slice(0,2) == './'
             mesg.file = mesg.file.slice(2)
 
         elt = @_error_message_template.clone().show()

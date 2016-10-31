@@ -19,7 +19,14 @@
 #
 ###############################################################################
 
-$ = window.$
+if navigator?
+    # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
+    if not navigator.cookieEnabled
+        require('./smc-react').redux.getActions('page').show_cookie_warning()
+
+    # Check for local storage
+    if not require('smc-util/misc').has_local_storage()
+        require('./smc-react').redux.getActions('page').show_local_storage_warning()
 
 ####################################################
 #
@@ -27,12 +34,14 @@ $ = window.$
 #
 ####################################################
 
+$ = window.$
+
 isMobile = exports.isMobile =
-    Android    : () -> !! navigator.userAgent.match(/Android/i)
-    BlackBerry : () -> !! navigator.userAgent.match(/BlackBerry/i)
-    iOS        : () -> !! navigator.userAgent.match(/iPhone|iPad|iPod/i)
-    Windows    : () -> !! navigator.userAgent.match(/IEMobile/i)
-    tablet     : () -> !! navigator.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
+    Android    : () -> !! navigator?.userAgent.match(/Android/i)
+    BlackBerry : () -> !! navigator?.userAgent.match(/BlackBerry/i)
+    iOS        : () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
+    Windows    : () -> !! navigator?.userAgent.match(/IEMobile/i)
+    tablet     : () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
     any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
 if not $?
@@ -42,7 +51,7 @@ if not $?
 if not $.browser?
     $.browser = {}
 
-user_agent = navigator.userAgent.toLowerCase()
+user_agent = navigator?.userAgent.toLowerCase()
 
 $.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
@@ -51,7 +60,7 @@ exports.IS_MOBILE = exports.isMobile.any()
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
-$.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0
+$.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator?.userAgent.indexOf(' OPR/') >= 0
 $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
 $.browser.safari  = not $.browser.chrome and user_agent.indexOf('safari') > 0
 $.browser.ie      = not $.browser.chrome and user_agent.indexOf('windows') > 0
@@ -69,14 +78,13 @@ exports.get_mobile = () ->
             return k
     return null
 
-# Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
-if not navigator.cookieEnabled
-    {redux} = require('./smc-react')
-    redux.getActions('page').show_cookie_warning()
-
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
+# DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
+# You can use DEBUG anywhere in the webapp code!
+if DEBUG
+    console.log "DEBUG MODE:", DEBUG
