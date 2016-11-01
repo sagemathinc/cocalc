@@ -430,29 +430,24 @@ ChatRoom = (name) -> rclass
         side_chat_log_style =
             overflowY    : "auto"
             overflowX    : "hidden"
-            width        : "380%"
             height       : "#{@props.max_height}px"
-            margin       : "0px 0px 0px 15px"
+            margin       : "0px"
             padding      : "0"
             background   : "white"
 
         <div>
-            <Row>
-                <Col md={3} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog
-                            messages     = {@props.messages}
-                            account_id   = {@props.account_id}
-                            user_map     = {@props.user_map}
-                            project_id   = {@props.project_id}
-                            font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                            actions      = {@props.actions}
-                            focus_end    = {focus_endpoint}
-                            show_heads   = {false} />
-                    </Well>
-                </Col>
-            </Row>
+            <Well style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
+                <ChatLog
+                    messages     = {@props.messages}
+                    account_id   = {@props.account_id}
+                    user_map     = {@props.user_map}
+                    project_id   = {@props.project_id}
+                    font_size    = {@props.font_size}
+                    file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                    actions      = {@props.actions}
+                    focus_end    = {focus_endpoint}
+                    show_heads   = {false} />
+            </Well>
             <Row>
                 <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "15px", width:"60%"}>
                     <form>

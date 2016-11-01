@@ -1547,6 +1547,15 @@ class CodeMirrorEditor extends FileEditor
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
 
+        if chat
+            # changes the width on resize change
+            width_resize = () =>
+                width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
+                @_show_codemirror_editors(cm_height, width)
+            $(window).on("resize", width_resize)
+        else
+            $(window).off()
+
         @chat_elt = @element.find(".salvus-editor-codemirror-chat")
 
 #         if chat
@@ -1580,6 +1589,13 @@ class CodeMirrorEditor extends FileEditor
         @show()
         if not IS_MOBILE
             @codemirror_with_last_focus?.focus()
+
+    # Removes the resize event handler when the user closes sagews
+    # For future if sagews gets rewritten in react, move this to componentWillUnmount
+    # so that when user moves away from the sagews tab, it removes the event handlers
+    # right now it does not remove them when user moves away from tab. Only when they close the tab.
+    remove: () =>
+        $(window).off()
 
     ############
     # Editor button bar support code
@@ -2416,6 +2432,7 @@ class PDF_Preview extends FileEditor
 
     remove: () =>
         if @_f?
+            $(window).off()
             clearInterval(@_f)
         super()
 
