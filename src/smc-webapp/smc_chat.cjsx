@@ -467,14 +467,21 @@ ChatRoom = rclass ({name}) ->
         @set_preview_state = underscore.debounce(@set_preview_state, 500)
         @set_chat_log_state = underscore.debounce(@set_chat_log_state, 10)
         @debounce_bottom = underscore.debounce(@debounce_bottom, 10)
+        @update_video_users = underscore.debounce(@update_video_users, 1000)
 
     componentDidMount: ->
+        @update_video_users()
+        intervalState = setInterval(@props.actions.remove_users, 180000)
+        @setState(intervalState:intervalState)
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
         if @props.is_preview
             if is_at_bottom(@props.saved_position, @props.offset, @props.height)
                 @debounce_bottom()
         else
             @props.actions.set_is_preview(false)
+
+    componentWillUnmount: ->
+        clearInterval(@state.intervalState)
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -483,6 +490,10 @@ ChatRoom = rclass ({name}) ->
     componentDidUpdate: ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
+
+    update_video_users: ->
+        # on opening, check the video chat user list and remove ones that have not updated recently
+        @props.actions.remove_users()
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -619,16 +630,27 @@ ChatRoom = rclass ({name}) ->
     render_video_chat_button: ->
         if @props.video_window
             <Button onClick={@close_video_chat}>
-                <Tip title='Video Chat' tip='Closes up the video chat window'  placement='left'>
-                    <Icon name='video-camera' style={color: "red"}/> Video Chat
+                <Tip title='Video Chat' tip={@render_video_chat_tip('Closes')}  placement='left'>
+                    <Icon name='video-camera' style={color: "red"}/> Video Chat ({@props.video?.get('users')?.size ? 0})
                 </Tip>
             </Button>
         else
             <Button onClick={@open_video_chat}>
-                <Tip title='Video Chat' tip='Opens up the video chat window'  placement='left'>
-                    <Icon name='video-camera'/> Video Chat
+                <Tip title='Video Chat' tip={@render_video_chat_tip('Opens')}  placement='left'>
+                    <Icon name='video-camera'/> Video Chat ({@props.video?.get('users')?.size ? 0})
                 </Tip>
             </Button>
+
+    render_video_chat_tip: (status) ->
+        users = @props.video?.get('users').toJS()
+        user_string = "Current Users: "
+        for key of users
+            name = @props.user_map?.get(key)?.get('first_name') + @props.user_map?.get(key)?.get('last_name')
+            new_user_string = user_string.concat(name)
+
+        tip =  <span>
+            {status} up the video chat window {new_user_string if @props.video?.get('users')?.size > 0}
+        </span>
 
     render : ->
         if not @props.messages? or not @props.redux?

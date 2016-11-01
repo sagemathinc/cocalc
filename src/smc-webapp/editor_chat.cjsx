@@ -273,14 +273,27 @@ class ChatActions extends Actions
             # video chat window already opened
             return
 
+        # get account id of user opening video chat
+        account_id = @redux.getStore('account').get_account_id()
+        # get the server timestamp
+        time_stamp = salvus_client.server_time()
+
         # get shared video chat state
         video = (@store.get('video')?.toJS()) ? {}
         room_id = video.room_id
+        users = video.users
         if not room_id?
             # the chatroom id hasn't been set yet, so set it
             room_id = misc.uuid()
             video.room_id = room_id
-            @save_shared_video_info(video)
+            # no chatroom id means no users, so set the first user
+            users = {}
+            users[account_id] = time_stamp
+        else if Object.keys(users).length < 8 # max number of users is 8 for appear.in
+            # add subsequent users
+            users[account_id] = time_stamp
+        video.users = users
+        @save_shared_video_info(video)
 
         # Create the pop-up window for the chat
         url = "https://appear.in/" + room_id
@@ -292,11 +305,45 @@ class ChatActions extends Actions
         w.addEventListener "unload", () =>
             # The user closes the window, so we unset our pointer to the window
             @setState(video_window: undefined, video_window_room_id: undefined)
+            clearInterval(update_user_time_interval)
 
         @_video_window = w   # slight cheat, since we can't store a window in REDUX (contains only immutable js objects)
         @setState
             video_window         : true
             video_window_room_id : room_id  # use to re-open window in case another user changes the room id
+
+        if w?
+            # all users that are actually using chat (e.g., have chat window open) to instead periodically (once very few minutes)
+            # update the video.users with their account id and the server timestamp.
+            # Then the display of the number of users with chat open has to just discard users that haven't updated that state recently. (See remove_users method)
+            # This interval updates the user's server time every 3 minutes
+            update_user_time_interval = setInterval(@update_video_user_time, 180000)
+
+    # Updates the user's server time
+    update_video_user_time: =>
+        video = (@store.get('video')?.toJS()) ? {}
+        # gets the account id for the state update
+        account_id = @redux.getStore('account').get_account_id()
+        # gets the timestamp for the state update
+        time_stamp = salvus_client.server_time()
+        users = video.users
+        # update the video.user with the user's account id and server time
+        users[account_id] = time_stamp
+        @save_shared_video_info(video)
+
+    # Discards users that haven't updated state recently (if the user has not updated in 5 minutes).
+    # This gets called when you first open a chat room, and then every 3 minutes it gets called again.
+    remove_users: =>
+        video = (@store?.get('video')?.toJS()) ? {}
+        # gets the timestamp for the state update
+        time_stamp = salvus_client.server_time()
+        users = video.users
+        if users?
+            for key, value of users
+                # checks all user timestamps, if the timestamp has not been updated for a while, remove it from the user list
+                if (time_stamp.getTime() - users[key].getTime()) / (1000 * 60) > 5
+                    delete users[key]
+                    @save_shared_video_info(video)
 
     # user wants to close the video chat window, but not via just clicking the close button on the popup window
     close_video_chat_window: =>
