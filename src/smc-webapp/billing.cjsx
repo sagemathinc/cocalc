@@ -914,7 +914,6 @@ ConfirmPaymentMethod = rclass
             <p>The initial payment will be processed with the card below</p>
             Future payments will be made with your default card found<Space/>
             <b>at time of renewal</b>.
-
             <p> ie. Changing your default card right before renewal will cause the new default to be charged instead of the previous one.</p>
         </span>
 
