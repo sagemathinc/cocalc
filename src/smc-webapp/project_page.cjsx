@@ -250,19 +250,32 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             return <ProjectSettings project_id={project_id} name={project_name} group={group} />
         else
             active_path = misc.tab_to_path(active_tab_name)
-            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
+            {Editor, redux_name, chat_is_open} = open_files.getIn([active_path, 'component']) ? {}
             if not Editor?
                 return <Loading />
             else
-                # TODO: ideally name, path, project_id is all we pass down here to any editor
-                <Editor
-                    name         = {redux_name}
-                    path         = {active_path}
-                    project_id   = {project_id}
-                    redux        = {redux}
-                    actions      = {if redux_name? then redux.getActions(redux_name)}
-                    project_name = {project_name}
-                />
+                console.log active_path, "chat_is_open =", chat_is_open
+                editor = <Editor
+                        name         = {redux_name}
+                        path         = {active_path}
+                        project_id   = {project_id}
+                        redux        = {redux}
+                        actions      = {if redux_name? then redux.getActions(redux_name)}
+                        project_name = {project_name}
+                    />
+                if chat_is_open
+                    # 2 column layout
+                    <div style={display:'flex'}>
+                        <div style={width:'70%'}>
+                            {editor}
+                        </div>
+                        <div style={width:'30%'}>
+                            SIDE CHAT
+                        </div>
+                    </div>
+                else
+                    # all editor
+                    return editor
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'

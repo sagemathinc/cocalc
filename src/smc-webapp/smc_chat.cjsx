@@ -660,7 +660,7 @@ ChatRoom = rclass ({name}) ->
 
         if not IS_MOBILE
             @chat_input_style.fontSize = @props.font_size
-            <Grid>
+            <Grid fluid={true}>
                 <Row style={marginBottom:'5px'}>
                     <Col xs={2} mdHidden>
                         <Button className='smc-small-only'
@@ -733,7 +733,7 @@ ChatRoom = rclass ({name}) ->
             ##########################################
             # MOBILE HACK
             ##########################################
-            <Grid>
+            <Grid fluid={true}>
                 <Row style={marginBottom:'5px'}>
                     <ButtonGroup>
                         <Button className='smc-small-only'

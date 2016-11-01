@@ -295,10 +295,10 @@ class ProjectActions extends Actions
                             @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
-                                        path : sagews_filename
-                                        forgeound : opts.foreground
+                                        path               : sagews_filename
+                                        forgeound          : opts.foreground
                                         foreground_project : opts.foreground_project
-                                        chat : opts.chat
+                                        chat               : opts.chat
                                 else
                                     require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
                             return
@@ -308,10 +308,10 @@ class ProjectActions extends Actions
                             @convert_docx_file opts.path, (err, new_filename) =>
                                 if not err
                                     @open_file
-                                        path : new_filename
-                                        forgeound : opts.foreground
+                                        path               : new_filename
+                                        forgeound          : opts.foreground
                                         foreground_project : opts.foreground_project
-                                        chat : opts.chat
+                                        chat               : opts.chat
                                 else
                                     require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
                             return
@@ -341,7 +341,13 @@ class ProjectActions extends Actions
                             Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
                             # Add it to open files
-                            info = {Editor:Editor, redux_name:name, is_public:is_public}
+                            # IMPORTANT: info can't be a full immutable.js object, since Editor can't be converted to immutable,
+                            # so dont' try to do that.  Of course info could be an immutable map.
+                            info =
+                                Editor       : Editor
+                                redux_name   : name
+                                is_public    : is_public
+                                chat_is_open : opts.chat
                             @setState
                                 open_files       : open_files.setIn([opts.path, 'component'], info)
                                 open_files_order : open_files_order.push(opts.path)
@@ -350,6 +356,27 @@ class ProjectActions extends Actions
                             @foreground_project()
                             @set_active_tab(misc.path_to_tab(opts.path))
         return
+
+    # Used by open/close chat below.
+    _set_chat_state: (path, state) =>
+        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        info = open_files?.getIn([path, 'component'])
+        if info?
+            info.chat_is_open = state
+            @setState
+                open_files : open_files.setIn([path, 'component'], info)
+
+    # Open side chat for the given file, assuming the file is open, store is initialized, etc.
+    open_chat: (opts) =>
+        opts = defaults opts,
+            path : required
+        @_set_chat_state(opts.path, true)
+
+    # Close side chat for the given file, assuming the file itself is open
+    close_chat: (opts) =>
+        opts = defaults opts,
+            path : required
+        @_set_chat_state(opts.path, false)
 
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
