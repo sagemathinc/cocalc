@@ -268,7 +268,8 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # SMELL: -- set error in store for this project...
+                if err # TODO: -- set error in store for this project...
+                    err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
     invite_collaborator : (project_id, account_id) =>
@@ -279,7 +280,8 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # SMELL: -- set error in store for this project...
+                if err # TODO: -- set error in store for this project...
+                    err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>

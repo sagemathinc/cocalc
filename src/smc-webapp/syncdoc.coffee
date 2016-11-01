@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2015, 2016 William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Gener@al Public License as published by
@@ -286,8 +286,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
 
-        ## window.cm = @  ## DEBUGGING
-
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -301,7 +299,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm.undo = @undo
             cm.redo = @redo
 
-        @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users = redux.getStore('users')  # TODO -- obviously not like this...
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 

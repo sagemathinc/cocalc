@@ -657,7 +657,8 @@ class FileEditor extends EventEmitter
         # if above line reveals it, give it a bit time to do the layout first
         @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
-        window?.smc?.doc = @  # useful for debugging...
+        if DEBUG
+            window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
         # define in derived class
@@ -707,7 +708,6 @@ exports.FileEditor = FileEditor
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         super(@project_id, @filename)
-        window.w = @
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -2340,7 +2340,7 @@ class PDFLatexDocument
         )
 
 # FOR debugging only
-if require('feature').DEBUG
+if DEBUG
     exports.PDFLatexDocument = PDFLatexDocument
 
 class PDF_Preview extends FileEditor
@@ -2975,6 +2975,7 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (@project_id, @filename, content, opts) ->
+        opts.allow_javascript_eval = false
         super @project_id, @filename, content, opts, (err) =>
             @element.find("a[href=\"#split-view\"]").hide()  # disable split view
             if not err

@@ -14,7 +14,7 @@ but rather hubs initiate TCP connections to projects:
    whether or not to trust what is on the other end of those connections.
 
 That said, this architecture could change, and very little code would change
-as a resut.
+as a result.
 ###
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
@@ -593,7 +593,7 @@ class exports.Client extends EventEmitter
         return new Watcher(path, opts.interval)
 
 class Watcher extends EventEmitter
-    constructor: (@path, @debounce, @interval) ->
+    constructor: (@path, @interval) ->
         fs.watchFile(@path, {interval: @interval}, @listen)
 
     close : () =>

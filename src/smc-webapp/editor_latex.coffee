@@ -73,9 +73,8 @@ class exports.LatexEditor extends editor.FileEditor
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
         @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
-        @preview_embed.element.find(".salvus-editor-pdf-title").hide()
-        @preview_embed.element.find("a[href=\"#refresh\"]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
         # Initalize the log

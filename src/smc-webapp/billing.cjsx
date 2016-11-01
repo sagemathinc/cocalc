@@ -149,11 +149,11 @@ class BillingActions extends Actions
                 async.parallel([
                     (cb) =>
                         # delete payment methods
-                        ids = (x.id for x in smc.redux.getStore('billing').getIn(['customer', 'sources', 'data'])?.toJS() ? [])
+                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'sources', 'data'])?.toJS() ? [])
                         async.map(ids, @delete_payment_method, cb)
                     (cb) =>
                         # cancel subscriptions
-                        ids = (x.id for x in smc.redux.getStore('billing').getIn(['customer', 'subscriptions', 'data'])?.toJS() ? []   when not x.canceled_at)
+                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'subscriptions', 'data'])?.toJS() ? []   when not x.canceled_at)
                         async.map(ids, @cancel_subscription, cb)
                 ], cb)
         ], cb)
@@ -180,10 +180,14 @@ AddPaymentMethod = rclass
         on_close : rtypes.func.isRequired  # called when this should be closed
 
     getInitialState : ->
-        new_payment_info : {name : @props.redux.getStore('account').get_fullname()}
-        submitting       : false
-        error            : ''
-        cvc_help         : false
+        new_payment_info :
+            name            : @props.redux.getStore('account').get_fullname()
+            number          : ""
+            address_state   : ""
+            address_country : ""
+        submitting : false
+        error      : ''
+        cvc_help   : false
 
     submit_payment_method : ->
         @setState(error: false, submitting:true)
@@ -272,7 +276,7 @@ AddPaymentMethod = rclass
             return true
 
         x = info[name]
-        if not x?
+        if not x
             return
         switch name
             when 'number'
