@@ -239,7 +239,7 @@ class ChatActions extends Actions
         @syncdb.save()
 
     set_to_last_input: =>
-        @setState(input:store.get('last_sent'))
+        @setState(input:@store.get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)
