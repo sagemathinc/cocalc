@@ -136,10 +136,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
 
+        # Resizes the height of the chat when the window is resized
         height_resize = () =>
             chat_height = $(document).height() - $(".navbar").height() - $(".smc-file-tabs").height() - @element.find(".salvus-editor-codemirror-button-row").height() - 63
             @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-        $(window).resize(height_resize)
+        $(window).on('resize', height_resize)
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -151,6 +152,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-codemirror-chat-column").hide()
         @editor.show()  # update size/display of editor (especially the width)
         @editor.emit('hide-chat')
+
+        # Removes the resize event handler
+        $(window).off()
 
     init_video_toggle: () =>
         video_on_button  = @element.find(".salvus-editor-chat-video-is-off")
@@ -170,21 +174,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             actions.close_video_chat_window()
             @element.find(".salvus-editor-chat-video-is-off").show()
             @element.find(".salvus-editor-chat-video-is-on").hide()
-
-    search_message_log: =>
-        messages = @chat_session.live()
-        messages = messages.split('\n')
-        all_messages = []
-        for m in messages
-            if $.trim(m) == ""
-                continue
-            try
-                new_message = JSON.parse(m)
-            catch e
-                continue # skip
-
-            all_messages.push(new_message)
-        return all_messages
 
 underscore = require('underscore')
 
