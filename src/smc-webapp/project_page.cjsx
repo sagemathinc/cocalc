@@ -32,15 +32,15 @@ FileTab = rclass
     displayName : 'FileTab'
 
     propTypes :
-        name               : rtypes.string
-        label              : rtypes.string    # rendered tab title
-        icon               : rtypes.string    # Affiliated icon
-        project_id         : rtypes.string
-        tooltip            : rtypes.string
-        is_active          : rtypes.bool
-        file_tab           : rtypes.bool      # Whether or not this tab holds a file
-        shrink             : rtypes.bool      # Whether or not to shrink to just the icon
-        has_activity       : rtypes.bool      # Whether or not some activity is happening with the file
+        name         : rtypes.string
+        label        : rtypes.string    # rendered tab title
+        icon         : rtypes.string    # Affiliated icon
+        project_id   : rtypes.string
+        tooltip      : rtypes.string
+        is_active    : rtypes.bool
+        file_tab     : rtypes.bool      # Whether or not this tab holds a file
+        shrink       : rtypes.bool      # Whether or not to shrink to just the icon
+        has_activity : rtypes.bool      # Whether or not some activity is happening with the file
 
     getInitialState : () ->
         x_hovered : false
@@ -86,15 +86,15 @@ FileTab = rclass
             icon_style.color = 'orange'
 
         label_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
 
         x_button_styles =
-            float:'right'
-            whiteSpace:'nowrap'
-            fontSize:'12pt'
-            marginTop: '-3px'
+            float      : 'right'
+            whiteSpace : 'nowrap'
+            fontSize   : '12pt'
+            marginTop  : '-3px'
 
         if @state.x_hovered
             x_button_styles.color = 'red'
@@ -102,17 +102,17 @@ FileTab = rclass
         text_color = "white" if @props.is_active
 
         <NavItem
-            ref='tab'
-            style={styles}
-            active={@props.is_active}
-            onClick={=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
+            ref     = 'tab'
+            style   = {styles}
+            active  = {@props.is_active}
+            onClick = {=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
         >
             <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_styles}>
                     {<Icon
-                        onMouseOver={@mouse_over_x} onMouseOut={@mouse_out_x}
-                        name = 'times'
-                        onClick = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
+                        onMouseOver = {@mouse_over_x} onMouseOut={@mouse_out_x}
+                        name        = 'times'
+                        onClick     = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
                 </div>
                 <div style={label_styles}>
@@ -141,11 +141,11 @@ FreeProjectWarning = rclass ({name}) ->
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
-            project_map : rtypes.immutable.Map
+            project_map              : rtypes.immutable.Map
             get_total_project_quotas : rtypes.func
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
-            free_warning_closed : rtypes.bool
+            free_warning_closed      : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
@@ -256,13 +256,12 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             else
                 # TODO: ideally name, path, project_id is all we pass down here to any editor
                 <Editor
+                    name         = {redux_name}
                     path         = {active_path}
                     project_id   = {project_id}
                     redux        = {redux}
                     actions      = {if redux_name? then redux.getActions(redux_name)}
-                    name         = {redux_name}
                     project_name = {project_name}
-                    path         = {active_path}
                 />
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
@@ -436,14 +435,14 @@ exports.MobileProjectPage = rclass ({name}) ->
         display_name = misc.trunc(misc.path_split(path).tail, 64)
 
         label_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
 
         x_button_styles =
-            float:'right'
-            whiteSpace:'nowrap'
-            fontSize:'12pt'
+            float      : 'right'
+            whiteSpace : 'nowrap'
+            fontSize   : '12pt'
 
         <MenuItem
             key={path}
@@ -464,19 +463,19 @@ exports.MobileProjectPage = rclass ({name}) ->
         </MenuItem>
 
     render_one_file_item : ->
-        path = @props.open_files_order.get(0)
-        ext = misc.filename_extension(path).toLowerCase()
-        icon = file_associations[ext]?.icon ? 'code-o'
+        path         = @props.open_files_order.get(0)
+        ext          = misc.filename_extension(path).toLowerCase()
+        icon         = file_associations[ext]?.icon ? 'code-o'
         display_name = misc.trunc(misc.path_split(path).tail, 64)
         <FileTab
-            key={path}
-            name={misc.path_to_tab(path)}
-            label={display_name}
-            icon={icon}
-            tooltip={path}
-            project_id={@props.project_id}
-            file_tab={true}
-            is_active={@props.active_project_tab == misc.path_to_tab(path)}
+            key        = {path}
+            name       = {misc.path_to_tab(path)}
+            label      = {display_name}
+            icon       = {icon}
+            tooltip    = {path}
+            project_id = {@props.project_id}
+            file_tab   = {true}
+            is_active  = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
     render : ->
@@ -488,13 +487,13 @@ exports.MobileProjectPage = rclass ({name}) ->
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
-                        name={k}
-                        label={v.label}
-                        icon={v.icon}
-                        tooltip={v.tooltip}
-                        project_id={@props.project_id}
-                        is_active={@props.active_project_tab == k}
-                        shrink={@props.open_files_order.size != 0 or $(window).width() < 370}
+                        name       = {k}
+                        label      = {v.label}
+                        icon       = {v.icon}
+                        tooltip    = {v.tooltip}
+                        project_id = {@props.project_id}
+                        is_active  = {@props.active_project_tab == k}
+                        shrink     = {@props.open_files_order.size != 0 or $(window).width() < 370}
                     /> for k, v of fixed_project_pages]}
                 </Nav>
                 <Nav bsStyle="pills" className="smc-file-tabs-files-mobile" style={display:'flex'}>
@@ -503,10 +502,10 @@ exports.MobileProjectPage = rclass ({name}) ->
                 </Nav>
             </div> if not @props.fullscreen}
             <ProjectMainContent
-                project_id={@props.project_id}
-                project_name={@props.name}
-                active_tab_name={@props.active_project_tab}
-                group={@props.get_my_group(@props.project_id)}
-                open_files={@props.open_files}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {@props.active_project_tab}
+                group           = {@props.get_my_group(@props.project_id)}
+                open_files      = {@props.open_files}
             />
         </div>
