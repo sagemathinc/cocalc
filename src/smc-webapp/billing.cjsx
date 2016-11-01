@@ -472,34 +472,41 @@ PaymentMethod = rclass
         return brand_to_icon(@props.source.brand.toLowerCase())
 
     render_confirm_default : ->
-        <Row>
-            <Col md=5 mdOffset=2>
-                Are you sure you want to set this payment method to be the default for invoices?
-            </Col>
-            <Col md=5>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
-                    <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
-                        <Icon name='trash'/> Set to Default
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <Alert bsStyle='warning'>
+            <Row>
+                <Col md=5 mdOffset=2>
+                    <p>Are you sure you want to set this payment card to be the default?</p>
+                    <p>All future payments will be made with the card that is the default <b>at the time of renewal</b>.
+                    Changing your default card right before a subscription renewal will cause the <Space/>
+                    new default to be charged instead of the previous one.</p>
+                </Col>
+                <Col md=5>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
+                        <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
+                            <Icon name='trash'/> Set to Default
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </Alert>
 
     render_confirm_delete : ->
-        <Row>
-            <Col md=5 mdOffset=2>
-                Are you sure you want to delete this payment method?
-            </Col>
-            <Col md=5>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
-                        <Icon name='trash'/> Delete Payment Method
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <Alert bsStyle='danger'>
+            <Row>
+                <Col md=5 mdOffset=2>
+                    Are you sure you want to delete this payment method?
+                </Col>
+                <Col md=5>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
+                            <Icon name='trash'/> Delete Payment Method
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </Alert>
 
     render_card : ->
         <Row>
@@ -534,7 +541,7 @@ PaymentMethod = rclass
                     disabled = {@props.default}
                     bsStyle  = {if @props.default then 'primary' else 'default'}
                 >
-                    Default
+                    Default{<span>... </span> if not @props.default}
                 </Button> if @props.set_as_default? }
 
                 {<Button onClick={=>@setState(confirm_delete:true)}>
@@ -911,10 +918,11 @@ ConfirmPaymentMethod = rclass
 
     render_recurring_payment_confirmation : ->
         <span>
-            <p>The initial payment will be processed with the card below</p>
-            Future payments will be made with your default card found<Space/>
-            <b>at time of renewal</b>.
-            <p> ie. Changing your default card right before renewal will cause the new default to be charged instead of the previous one.</p>
+            <p>The initial payment will be processed with the card below.</p>
+            <p>Future payments will be made with your default card
+            <b>at the time of renewal</b>.
+            Changing your default card right before renewal will cause the <Space/>
+            new default to be charged instead of the previous one.</p>
         </span>
 
     render : ->
@@ -1369,17 +1377,19 @@ Subscription = rclass
     render_confirm : ->
         if not @state.confirm_cancel
             return
-        <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-            <Col md=6>
-                Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
-            </Col>
-            <Col md=6>
-                <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
-                <div style={float:'right'}>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
-                </div>
-            </Col>
-        </Row>
+        <Alert bsStyle='warning'>
+            <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
+                <Col md=6>
+                    Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
+                </Col>
+                <Col md=6>
+                    <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                    <div style={float:'right'}>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                    </div>
+                </Col>
+            </Row>
+        </Alert>
 
 
     render : ->
