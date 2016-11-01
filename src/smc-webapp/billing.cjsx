@@ -523,12 +523,10 @@ PaymentMethod = rclass
                 <Space/><Space/>
                 {@props.source.address_zip}
             </Col>
-            {@render_action_buttons()}
+            {@render_action_buttons() if @props.set_as_default? or @props.delete_method?}
         </Row>
 
     render_action_buttons : ->
-        if not @props.set_as_default? and not @props.delete_method?
-            return
         <Col md=3>
             <ButtonToolbar style={float: "right"}>
                 {<Button
