@@ -9,12 +9,16 @@ SHA_LEN = 36
 
 class TestGraphics:
     def test_plot(self, execblob):
-        execblob("plot(cos(x),x,0,pi)", want_html=False)
+        execblob("plot(cos(x),x,0,pi)", want_html = False, file_type = 'svg')
 
 class TestOctavePlot:
     def test_plot(self,execblob):
         # assume octave kernel not running at start of test
-        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", want_html=False)
+        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", want_html = False, file_type = 'svg')
+
+class TestRPlot:
+    def test_r_svg(self,execblob):
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", want_html=False, file_type = 'svg')
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):
