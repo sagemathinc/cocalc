@@ -2107,6 +2107,7 @@ def r(code=None,**kwargs):
     """
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
+        r.jupyter_kernel('options(jupyter.plot_mimetypes = "image/svg+xml")')
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 
