@@ -217,21 +217,6 @@ def _jkmagic(kernel_name, **kwargs):
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
                 if any('image' in k for k in mkeys):
-                    # XXX to get svg format with R ("ir") kernel, will need something like @ws workaround:
-                    # from sage_salvus.py#L2073
-                    #    try:
-                    #        r_dev_on = True
-                    #        tmp = '/tmp/' + uuid() + '.svg'
-                    #        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-                    #        s = r_eval0(code, *args, **kwds)
-                    #        r_eval0('dev.off()')
-                    #        return s
-                    #    finally:
-                    #        r_dev_on = False
-                    #        if os.path.exists(tmp):
-                    #            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-                    #            os.unlink(tmp)
-                    #print('image')
                     dfim = run_code.default_image_fmt
                     #print('default_image_fmt %s'%dfim)
                     dispmode = next((m for m in mkeys if dfim in m), None)
