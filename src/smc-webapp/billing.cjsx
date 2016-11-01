@@ -276,7 +276,7 @@ AddPaymentMethod = rclass
             return true
 
         x = info[name]
-        if not x? or x == ""
+        if not x
             return
         switch name
             when 'number'
