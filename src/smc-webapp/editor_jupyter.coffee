@@ -964,6 +964,8 @@ class JupyterNotebook extends EventEmitter
 
     _handle_dom_change: () =>
         #dbg()
+        if not @dom?
+            return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
         @syncstring.live(new_ver)
@@ -974,6 +976,8 @@ class JupyterNotebook extends EventEmitter
     init_dom_change: () =>
         if @read_only
             # read-only mode: ignore any DOM changes
+            return
+        if not @dom?
             return
         #dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
