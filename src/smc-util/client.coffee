@@ -206,6 +206,7 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
+        @_redux = undefined # set this if you want to be able to use mark_file
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -1592,8 +1593,8 @@ class exports.Connection extends EventEmitter
             path       : required
             action     : required
             ttl        : 120
-        # TODO: this is bad. Really client should have a reference to redux...
-        window?.smc?.redux.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        # Will only do something if @_redux has been set.
+        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     query: (opts) =>
         opts = defaults opts,

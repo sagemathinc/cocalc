@@ -84,6 +84,9 @@ class Connection extends client.Connection
         super(opts)
         @_setup_window_smc()
 
+        # This is used by the base class for marking file use notifications.
+        @_redux = require('./smc-react').redux
+
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
         if not DEBUG
