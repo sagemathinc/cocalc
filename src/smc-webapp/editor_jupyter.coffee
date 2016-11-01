@@ -910,6 +910,10 @@ class JupyterNotebook extends EventEmitter
         ], cb)
 
     init_buttons: () =>
+        if @_init_buttons_already_done
+            return
+        @_init_buttons_already_done = true
+        
         # info button
         @element.find("a[href=\"#info\"]").click(@info)
 
