@@ -1587,6 +1587,8 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncObject(opts)
 
+    # If called on the fronted, will make the given file with the given action.
+    # Does nothing on the backend.
     mark_file: (opts) =>
         opts = defaults opts,
             project_id : required
