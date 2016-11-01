@@ -460,9 +460,9 @@ PaymentMethod = rclass
 
     propTypes :
         source         : rtypes.object.isRequired
-        default        : rtypes.bool.isRequired
-        set_as_default : rtypes.func.isRequired   # called when this card should be set to default
-        delete_method  : rtypes.func.isRequired   # called when this card should be deleted
+        default        : rtypes.bool  # required for set_as_default
+        set_as_default : rtypes.func  # called when this card should be set to default
+        delete_method  : rtypes.func  # called when this card should be deleted
 
     getInitialState : ->
         confirm_default : false
@@ -523,21 +523,27 @@ PaymentMethod = rclass
                 <Space/><Space/>
                 {@props.source.address_zip}
             </Col>
-            <Col md=3>
-                <ButtonToolbar style={float: "right"}>
-                    <Button
-                        onClick  = {=>@setState(confirm_default:true)}
-                        disabled = {@props.default}
-                        bsStyle  = {if @props.default then 'primary' else 'default'}
-                    >
-                        Default
-                    </Button>
-                    <Button onClick={=>@setState(confirm_delete:true)}>
-                        <Icon name="trash" /> Delete
-                    </Button>
-                </ButtonToolbar>
-            </Col>
+            {@render_action_buttons()}
         </Row>
+
+    render_action_buttons : ->
+        if not @props.set_as_default? and not @props.delete_method?
+            return
+        <Col md=3>
+            <ButtonToolbar style={float: "right"}>
+                {<Button
+                    onClick  = {=>@setState(confirm_default:true)}
+                    disabled = {@props.default}
+                    bsStyle  = {if @props.default then 'primary' else 'default'}
+                >
+                    Default
+                </Button> if @props.set_as_default? }
+
+                {<Button onClick={=>@setState(confirm_delete:true)}>
+                    <Icon name="trash" /> Delete
+                </Button> if @props.delete_method? }
+            </ButtonToolbar>
+        </Col>
 
     render : ->
         <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
@@ -591,7 +597,7 @@ PaymentMethods = rclass
             key            = {source.id}
             source         = {source}
             default        = {source.id==@props.default}
-            set_as_default = {=>@set_as_default(source.id)}   # closure -- must be in separate function from below
+            set_as_default = {=>@set_as_default(source.id)}
             delete_method  = {=>@delete_method(source.id)}
         />
 
@@ -773,6 +779,9 @@ AddSubscription = rclass
     getInitialState : ->
         selected_button : 'month'
 
+    is_recurring : ->
+        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+
     submit_create_subscription : ->
         plan = @props.selected_plan
         @props.actions.create_subscription(plan)
@@ -843,7 +852,7 @@ AddSubscription = rclass
         ###
 
     render_create_subscription_confirm : ->
-        if not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
@@ -878,11 +887,54 @@ AddSubscription = rclass
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {<ConfirmPaymentMethod
+                        is_recurring = {@is_recurring()}
+                    /> if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
             </Col>
         </Row>
+
+ConfirmPaymentMethod = rclass
+    reduxProps :
+        billing :
+            customer : rtypes.object
+
+    propTypes :
+        is_recurring : rtypes.bool
+
+    render_single_payment_confirmation : ->
+        <span>
+            <p>Payment will be processed with the card below.</p>
+            <p>To change payment methods, please change your default card above.</p>
+        </span>
+
+
+    render_recurring_payment_confirmation : ->
+        <span>
+            <p>The initial payment will be processed with the card below</p>
+            Future payments will be made with your default card found<Space/>
+            <b>at time of renewal</b>.
+
+            <p> ie. Changing your default card right before renewal will cause the new default to be charged instead of the previous one.</p>
+        </span>
+
+    render : ->
+        for card_data in @props.customer.sources.data
+            if card_data.id == @props.customer.default_source
+                default_card = card_data
+
+        <Alert>
+            <h4><Icon name='check' /> Confirm your payment card</h4>
+            {@render_single_payment_confirmation() if not @props.is_recurring}
+            {@render_recurring_payment_confirmation() if @props.is_recurring}
+            <Well>
+                <PaymentMethod
+                    source = {default_card}
+                />
+            </Well>
+        </Alert>
 
 
 exports.SubscriptionGrid = SubscriptionGrid = rclass
