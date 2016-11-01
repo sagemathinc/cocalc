@@ -494,14 +494,14 @@ exports.TimeAgo = rclass
         placement   : rtypes.string
 
     getDefaultProps: ->
-        popover   : false
+        popover   : true
         minPeriod : 45000
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
 
     render_timeago: (d) ->
-        <TimeAgo date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
+        <TimeAgo title='' date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -681,7 +681,7 @@ exports.MarkdownInput = rclass
                             rows        = {@props.rows ? 4}
                             placeholder = {@props.placeholder}
                             value       = {@state.value}
-                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value;@setState(value:x); @props.on_change?(x)}
+                            onChange    = {=>x=ReactDOM.findDOMNode(@refs.input).value; @setState(value:x); @props.on_change?(x)}
                             onKeyDown   = {@keydown}
                         />
                     </FormGroup>
@@ -730,6 +730,7 @@ exports.Markdown = rclass
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
             @_x = markdown.markdown_to_html(v)
+            v = require('./misc_page').sanitize_html(v)
             {__html: @_x.s}
         else
             {__html: ''}

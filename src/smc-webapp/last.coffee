@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,11 +20,11 @@
 ###############################################################################
 
 
-###########################################################
+###############################################################################
 #
 # This should be the last code run on client application startup.
 #
-###########################################################
+###############################################################################
 
 $               = window.$
 {salvus_client} = require('./salvus_client')
@@ -45,9 +45,9 @@ else
     redux.getActions('page').set_active_tab('account')
 
 
-client = window.smc.client
+client = salvus_client
 if client._connected
-    # These events below currently (do to not having finished the react rewrite)
+    # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.
     client.emit('connected')
     if client._signed_in

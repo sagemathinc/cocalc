@@ -300,7 +300,6 @@ class GitActions extends Actions
 
     add_or_removed_checked_files : (name, listing_type) =>
         store = @redux.getStore(@name)
-        window.actions = @; window.store = store
         if not store.get('checked_files')
             @setState(checked_files: {"tracked": [], "untracked": []})
         # I was unable to modify the object as is Only worked once I did -> JSON -> object

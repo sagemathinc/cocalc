@@ -158,7 +158,7 @@ exports.init_express_http_server = (opts) ->
     router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
+            expires = new Date(new Date().getTime() + 1000*24*3600*30*36) # 3 years -- this is fine now since we support "sign out everywhere"
             cookies = new Cookies(req, res)
             cookies.set(req.query.set, req.query.value, {expires:expires})
         res.end()

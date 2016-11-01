@@ -155,8 +155,8 @@ PY_SAGE = PY_COMMON + [
 PY3_ANACONDA = PY_COMMON + [
     # 'cvxopt', # no version
     'tensorflow', 'mahotas', 'patsy', 'statsmodels', 'blaze', 'bokeh', 'cvxpy', 'numba', 'dask', 'nltk',
-    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype',
-    'plotly', 'geopandas', 'altair', 'simpy', 'keras',
+    'ggplot', 'skimage', 'numba', 'xarray', 'symengine', 'pymc', 'gensim', 'jinja2', 'nipype', 'astropy',
+    'plotly', 'geopandas', 'altair', 'simpy', 'keras', 'ccdproc',
 ]
 
 # Tests for R setups and libraries

@@ -1,28 +1,43 @@
-###
-SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
-
-    Copyright (C) 2014, 2015, 2016, William Stein
-
-Jupyter Notebook Synchronization
-
-There are multiple representations of the notebook.
-
-   - @doc      = syncstring version of the notebook (uses SMC sync functionality)
-   - @nb       = the visible view stored in the browser DOM
-   - @filename = the .ipynb file on disk
-
-In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
-there is a single upstream copy of @doc in the local_hub daemon.
-
-The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
-if so, we copy the state of @nb to @doc's live.
-
-When @doc changes do to some other user changing something, we compute a diff that tranforms
-the live notebook from its current state to the state that matches the new version of @doc.
-See the function set_nb below.  Incidentally, I came up with this approach from scratch after
-trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
-I didn't know about React.js at the time).
-###
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+# Jupyter Notebook Synchronization
+#
+# There are multiple representations of the notebook.
+#
+#    - @doc      = syncstring version of the notebook (uses SMC sync functionality)
+#    - @nb       = the visible view stored in the browser DOM
+#    - @filename = the .ipynb file on disk
+#
+# In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
+# there is a single upstream copy of @doc in the local_hub daemon.
+#
+# The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
+# if so, we copy the state of @nb to @doc's live.
+#
+# When @doc changes do to some other user changing something, we compute a diff that tranforms
+# the live notebook from its current state to the state that matches the new version of @doc.
+# See the function set_nb below.  Incidentally, I came up with this approach from scratch after
+# trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
+# I didn't know about React.js at the time).
+###############################################################################
 
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
 # a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
@@ -138,7 +153,7 @@ class JupyterWrapper extends EventEmitter
         @state = 'loading'
         @iframe_uuid = misc.uuid()
         @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
-            .attr('src', "#{@server_url}#{@filename}")
+            .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
         @element.html('').append(@iframe)
@@ -236,9 +251,9 @@ class JupyterWrapper extends EventEmitter
         # all always seems to cause a dialog to pop up, even if the user doesn't want one according to smc's
         # own prefs.
         @frame.window.onbeforeunload = null
-        # when active, periodically reset the idle timeout time in client_browser
+        # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
-        @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
+        @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
 
     install_custom_undo_redo: (undo, redo) =>
         @frame.CodeMirror.prototype.undo = undo
@@ -513,7 +528,7 @@ class JupyterWrapper extends EventEmitter
         # ensure @_cursors is defined; this is map from key to ...?
         #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
-        @_users   ?= smc.redux.getStore('users')  # SMELL -- obviously not like this...
+        @_users   ?= redux.getStore('users')  # TODO -- obviously not like this...
         x = @_cursors[account_id]
         if not x?
             x = @_cursors[account_id] = []
@@ -895,6 +910,10 @@ class JupyterNotebook extends EventEmitter
         ], cb)
 
     init_buttons: () =>
+        if @_init_buttons_already_done
+            return
+        @_init_buttons_already_done = true
+        
         # info button
         @element.find("a[href=\"#info\"]").click(@info)
 
@@ -949,6 +968,8 @@ class JupyterNotebook extends EventEmitter
 
     _handle_dom_change: () =>
         #dbg()
+        if not @dom?
+            return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
         @syncstring.live(new_ver)
@@ -959,6 +980,8 @@ class JupyterNotebook extends EventEmitter
     init_dom_change: () =>
         if @read_only
             # read-only mode: ignore any DOM changes
+            return
+        if not @dom?
             return
         #dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
@@ -1314,7 +1337,7 @@ class JupyterNBViewer
             # callback, run after "load" event below this line
             @iframe.load ->
                 # could become undefined due to other things happening...
-                @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
+                @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
         @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))

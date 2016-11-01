@@ -197,7 +197,7 @@ Message = rclass
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-        value = misc_page.sanitize_html(value)
+
 
         font_size = "#{@props.font_size}px"
 
@@ -401,7 +401,6 @@ ChatRoom = (name) -> rclass
             @props.actions.set_to_last_input()
         else if e.keyCode == 13
             e.preventDefault()
-            console.log("REFRESH?? WHY?")
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)

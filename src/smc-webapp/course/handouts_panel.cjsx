@@ -185,6 +185,9 @@ Handout = rclass
 
     render_more_header : ->
         <div>
+            <div style={fontSize:'15pt', marginBottom:'5px'} >
+                {@props.handout.get('path')}
+            </div>
             <Button onClick={@open_handout_path}>
                 <Icon name="folder-open-o" /> Edit Handout
             </Button>
@@ -351,12 +354,12 @@ Handout = rclass
                     <Col md=2 style={paddingRight:'0px'}>
                         <h5>
                             <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('handout', @props.handout.get('handout_id'))}>
-                                <Icon style={marginRight:'10px'}
+                                <Icon style={marginRight:'10px', float:'left'}
                                       name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
-                                <span>
-                                    {misc.trunc_middle(@props.handout.get('path'), 80)}
+                                <div>
+                                    {misc.trunc_middle(@props.handout.get('path'), 24)}
                                     {<b> (deleted)</b> if @props.handout.get('deleted')}
-                                </span>
+                                </div>
                             </a>
                         </h5>
                     </Col>

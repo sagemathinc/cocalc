@@ -276,6 +276,7 @@
     - fish
     - flex
     - fonts-ocr-a
+    - frobby
     - gawk
     - gcc-multilib
     - gdb

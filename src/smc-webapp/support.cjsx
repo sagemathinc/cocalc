@@ -187,7 +187,7 @@ class SupportActions extends Actions
         info =  # additional data dict, like browser/OS
             project_id : project_id
             browser    : feature.get_browser()
-            user_agent : navigator.userAgent
+            user_agent : navigator?.userAgent
             mobile     : feature.get_mobile() ? false
             internet   : (quotas?.network ? 0) > 0
             hostname   : project?.host?.host ? 'unknown'

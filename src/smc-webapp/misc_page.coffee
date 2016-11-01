@@ -205,9 +205,10 @@ mathjax_enqueue = (x) ->
         mathjax_queue.push(x)
 
 exports.mathjax_finish_startup = ->
-    console.log 'finishing mathjax startup'
     for x in mathjax_queue
         mathjax_enqueue(x)
+    if DEBUG
+        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
@@ -1066,8 +1067,7 @@ exports.define_codemirror_extensions = () ->
                         for c in how.strip
                             wrap = EDIT_COMMANDS[mode1][c].wrap
                             if wrap?
-                                {left, right} = wrap
-                                src1 = strip(src, left, right)
+                                src1 = strip(src, wrap.left ? '', wrap.right ? '')
                                 if src1?
                                     src = src1
                                     if space and src[0] == ' '
@@ -1604,12 +1604,12 @@ $("body").on "show.bs.tooltip", (e) ->
 
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
-        cb()
+        cb?()
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
             console.log("loaded CoffeeScript via reqire.ensure")
-            cb()
+            cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
             #    cb()
@@ -1619,7 +1619,7 @@ exports.load_coffeescript_compiler = (cb) ->
 exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 
 exports.language = () ->
-    (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
+    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
 
 # get the currently selected html
