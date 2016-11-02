@@ -103,7 +103,7 @@ from_json = misc.from_json
 # third-party libraries: add any new nodejs dependencies to the NODEJS_PACKAGES list in build.py
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
+
 uuid    = require('node-uuid')
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
@@ -1406,7 +1406,7 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else if not is_public
-                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public. 
+                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
@@ -3565,4 +3565,5 @@ if program._name.slice(0,3) == 'hub'
                 if err and program.dev
                     process.exit(1)
         else
+            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
             daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
