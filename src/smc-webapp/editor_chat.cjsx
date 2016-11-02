@@ -179,10 +179,10 @@ class ChatActions extends Actions
         if messages_before != messages
             @setState(messages: messages)
             store = @redux.getStore(@name)
-            if store.get('saved_position') + store.get('offset') + 20 > store.get('height') or store.get('height') == store.get('client_height')
-                project_id = @name.slice(7,43)
-                path = @name.slice(44)
-                @redux.getActions('file_use').mark_file(project_id, path, 'seen', 0, false)
+            is_at_bottom_result = is_at_bottom(store.get('saved_position'), store.get('offset'), store.get('height'))
+            is_not_scrollable = store.get('height') == store.get('client_height')
+            if is_at_bottom_result or is_not_scrollable
+                @redux.getActions('file_use').mark_file(store.get('project_id'), store.get('path'), 'seen', 0, false)
 
     send_chat: (mesg) =>
         if not @syncdb?
@@ -324,7 +324,8 @@ exports.init_redux = (path, redux, project_id) ->
     store   = redux.createStore(name)
 
     actions._init()
-
+    actions.setState(project_id: project_id)
+    actions.setState(path: path)
     require('./syncdb').synchronized_db
         project_id    : project_id
         filename      : path
