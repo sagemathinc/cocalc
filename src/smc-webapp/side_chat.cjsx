@@ -401,7 +401,6 @@ ChatRoom = (name) -> rclass
             @props.actions.set_to_last_input()
         else if e.keyCode == 13
             e.preventDefault()
-            console.log("REFRESH?? WHY?")
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
