@@ -41,7 +41,7 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, remove_redux, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -239,14 +239,14 @@ Message = rclass
         <form>
             <FormGroup>
                 <FormControl
-                    autoFocus = {true}
-                    rows      = 4
+                    autoFocus      = {true}
+                    rows           = 4
                     componentClass = 'textarea'
-                    ref       = 'editedMessage'
-                    onKeyDown = {@on_keydown}
-                    value     = {@state.edited_message}
-                    onChange  = {(e)=>@setState(edited_message: e.target.value)}
-                    onFocus   = {@props.focus_end}
+                    ref            = 'editedMessage'
+                    onKeyDown      = {@on_keydown}
+                    value          = {@state.edited_message}
+                    onChange       = {(e)=>@setState(edited_message: e.target.value)}
+                    onFocus        = {@props.focus_end}
                 />
             </FormGroup>
         </form>
@@ -352,7 +352,7 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = (name) -> rclass
+ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
     reduxProps :
@@ -373,21 +373,15 @@ ChatRoom = (name) -> rclass
             file_use : rtypes.immutable
 
     propTypes :
-        redux       : rtypes.object
-        actions     : rtypes.object
+        redux       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
-        max_height  : rtypes.number
 
     getInitialState: ->
         input          : ''
-
-    mobile_chat_input_style:
-        margin       : "0"
-        padding      : "4px 7px 4px 7px"
-        marginTop    : "5px"
 
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
@@ -422,80 +416,85 @@ ChatRoom = (name) -> rclass
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
+    componentWillUnmount: ->
+        remove_redux(@props.path, @props.redux, @props.project_id)
+
     # All render methods
     render : ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        side_chat_log_style =
-            overflowY    : "auto"
-            overflowX    : "hidden"
-            width        : "380%"
-            height       : "#{@props.max_height}px"
-            margin       : "0px 0px 0px 15px"
-            padding      : "0"
-            background   : "white"
-
-        <div>
-            <Row>
-                <Col md={3} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={side_chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog
-                            messages     = {@props.messages}
-                            account_id   = {@props.account_id}
-                            user_map     = {@props.user_map}
-                            project_id   = {@props.project_id}
-                            font_size    = {@props.font_size}
-                            file_path    = {if @props.path? then misc.path_split(@props.path).head}
-                            actions      = {@props.actions}
-                            focus_end    = {focus_endpoint}
-                            show_heads   = {false} />
-                    </Well>
-                </Col>
-            </Row>
-            <Row>
-                <Col xs={2} style={padding:'0px 2px 0px 2px', marginLeft: "15px", width:"60%"}>
-                    <form>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus   = {true}
-                                rows        = {2}
-                                componentClass = 'textarea'
-                                ref         = 'input'
-                                onKeyDown   = {@on_keydown}
-                                value       = {@props.input}
-                                placeholder = {'Type a message...'}
-                                onClick     = {@mark_as_read}
-                                onChange    = {(e)=>@props.actions.set_input(e.target.value)}
-                                onFocus     = {focus_endpoint}
-                                style       = {@mobile_chat_input_style}
-                            />
-                        </FormGroup>
-                    </form>
-                </Col>
-                <Col xs={1} style={height:'57px', padding:'0px 2px 0px 2px', width:"31%"}>
-                    <Button onClick={@button_send_chat} disabled={@props.input==''} bsStyle='primary' style={height:'90%', width:'100%', marginTop:'5px'}>
-                        <Icon name='chevron-circle-right'/>
-                    </Button>
-                </Col>
-            </Row>
+        <div style={height:'100%', display:'flex', flexDirection:'column'}>
+            <div style={overflowY:'auto'} ref='log_container' onScroll={@on_scroll} >
+                <ChatLog
+                    messages     = {@props.messages}
+                    account_id   = {@props.account_id}
+                    user_map     = {@props.user_map}
+                    project_id   = {@props.project_id}
+                    font_size    = {@props.font_size}
+                    file_path    = {if @props.path? then misc.path_split(@props.path).head}
+                    actions      = {@props.actions}
+                    focus_end    = {focus_endpoint}
+                    show_heads   = {false} />
+            </div>
+            <div style={marginTop:'auto', display:'flex'}>
+                <FormControl
+                    style          = {width:'70%', height:'5em'}
+                    autoFocus      = {true}
+                    componentClass = 'textarea'
+                    rows           = {2}
+                    ref            = 'input'
+                    onKeyDown      = {@on_keydown}
+                    value          = {@props.input}
+                    placeholder    = {'Type a message, then shift+enter...'}
+                    onClick        = {@mark_as_read}
+                    onChange       = {(e)=>@props.actions.set_input(e.target.value)}
+                    onFocus        = {focus_endpoint}
+                />
+                <Button
+                    style    = {width:'30%', height:'5em'}
+                    onClick  = {@button_send_chat}
+                    disabled = {@props.input==''}
+                    bsStyle  = 'primary' >
+                    <Icon name='chevron-circle-right'/>
+                </Button>
+            </div>
         </div>
 
 
+# Component for use via React
+exports.SideChat = ({path, redux, project_id}) ->
+    console.log "SideChat ", path, project_id
+    name        = redux_name(project_id, path)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+    actions     = redux.getActions(name)
+    if not actions?
+        init_redux(path, redux, project_id)
+        actions = redux.getActions(name)
+    <ChatRoom
+        redux       = {redux}
+        actions     = {redux.getActions(name)}
+        name        = {name}
+        project_id  = {project_id}
+        path        = {path}
+        file_use_id = {file_use_id}
+        />
+
 # Fitting the side chat into non-react parts of SMC:
 
-render = (redux, project_id, path, max_height) ->
+render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    C = ChatRoom(name)
-    <Redux redux={redux}>
-        <C redux={redux} actions={redux.getActions(name)} name={name} project_id={project_id} path={path} file_use_id={file_use_id} max_height={max_height} />
-    </Redux>
+    actions = redux.getActions(name)
+    if not actions?
+        init_redux(@props.path, @props.redux, @props.project_id)
+        actions = redux.getActions(name)
+    <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
 
 # Render the given chatroom, and return the name of the redux actions/store
-exports.render = (project_id, path, dom_node, redux, max_height) ->
+exports.render = (project_id, path, dom_node, redux) ->
     name = init_redux(path, redux, project_id)
-    ReactDOM.render(render(redux, project_id, path, max_height), dom_node)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
     return name
 
 exports.hide = (project_id, path, dom_node, redux) ->

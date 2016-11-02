@@ -355,8 +355,6 @@ exports.remove_redux = (path, redux, project_id) ->
     redux.removeActions(name)
     return name
 
-    return name
-
 ### Message Methods ###
 exports.newest_content = newest_content = (message) ->
     message.get('history').peek()?.get('content') ? ''

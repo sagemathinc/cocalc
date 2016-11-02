@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
 {Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
@@ -660,7 +660,7 @@ ChatRoom = rclass ({name}) ->
 
         if not IS_MOBILE
             @chat_input_style.fontSize = @props.font_size
-            <Grid fluid={true}>
+            <Grid fluid={true} style={maxWidth: '1200px'}>
                 <Row style={marginBottom:'5px'}>
                     <Col xs={2} mdHidden>
                         <Button className='smc-small-only'
@@ -771,7 +771,7 @@ ChatRoom = rclass ({name}) ->
                         <FormGroup>
                             <FormControl
                                 autoFocus   = {isMobile.Android()}
-                                rows        = 2
+                                rows        = {2}
                                 type        = 'textarea'
                                 ref         = 'input'
                                 onKeyDown   = {@keydown}

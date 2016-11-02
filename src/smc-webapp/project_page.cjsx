@@ -7,17 +7,22 @@ project page react component
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
+{SideChat} = require('./side_chat')
+
 # SMC Libraries
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {ProjectFiles}    = require('./project_files')
 {ProjectNew}      = require('./project_new')
 {ProjectLog}      = require('./project_log')
 {ProjectSearch}   = require('./project_search')
 {ProjectSettings} = require('./project_settings')
+{ProjectStore}    = require('./project_store')
+
 project_file = require('./project_file')
 {file_associations} = require('./editor')
-{ProjectStore} = require('./project_store')
+
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SAGE_LOGO_COLOR, Loading} = require('./r_misc')
+
 misc = require('misc')
 
 FILE_NAV_HEIGHT = '36px'
@@ -250,11 +255,12 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
             return <ProjectSettings project_id={project_id} name={project_name} group={group} />
         else
             active_path = misc.tab_to_path(active_tab_name)
-            {Editor, redux_name, chat_is_open} = open_files.getIn([active_path, 'component']) ? {}
+            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
             if not Editor?
                 return <Loading />
             else
-                console.log active_path, "chat_is_open =", chat_is_open
+                is_chat_open = open_files.getIn([active_path, 'is_chat_open'])
+                console.log active_path, "is_chat_open =", is_chat_open
                 editor = <Editor
                         name         = {redux_name}
                         path         = {active_path}
@@ -263,19 +269,25 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                         actions      = {if redux_name? then redux.getActions(redux_name)}
                         project_name = {project_name}
                     />
-                if chat_is_open
-                    # 2 column layout
-                    <div style={display:'flex'}>
-                        <div style={width:'70%'}>
+                if is_chat_open
+                    # 2 column layout with chat
+                    <div style={display:'flex', height:'100%'}>
+                        <div style={width:'75%'}>
                             {editor}
                         </div>
-                        <div style={width:'30%'}>
-                            SIDE CHAT
+                        <div style={width:'25%'}>
+                            <SideChat
+                                path       = {misc.meta_file(active_path, 'chat')}
+                                redux      = {redux}
+                                project_id = {project_id}
+                                />
                         </div>
                     </div>
                 else
-                    # all editor
-                    return editor
+                    # just the editor
+                    <div style={height:'100%'}>
+                        {editor}
+                    </div>
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'

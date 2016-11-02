@@ -341,15 +341,17 @@ class ProjectActions extends Actions
                             Editor = project_file.generate(opts.path, @redux, @project_id, is_public)
 
                             # Add it to open files
-                            # IMPORTANT: info can't be a full immutable.js object, since Editor can't be converted to immutable,
-                            # so dont' try to do that.  Of course info could be an immutable map.
+                            # IMPORTANT: info can't be a full immutable.js object, since Editor can't
+                            # be converted to immutable,
+                            # so don't try to do that.  Of course info could be an immutable map.
                             info =
-                                Editor       : Editor
                                 redux_name   : name
                                 is_public    : is_public
-                                chat_is_open : opts.chat
+                                Editor       : Editor
+                            open_files = open_files.setIn([opts.path, 'component'], info)
+                            open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
                             @setState
-                                open_files       : open_files.setIn([opts.path, 'component'], info)
+                                open_files       : open_files
                                 open_files_order : open_files_order.push(opts.path)
 
                         if opts.foreground
@@ -358,13 +360,11 @@ class ProjectActions extends Actions
         return
 
     # Used by open/close chat below.
-    _set_chat_state: (path, state) =>
+    _set_chat_state: (path, is_chat_open) =>
         open_files = @get_store()?.get_open_files()  # store might not be initialized
-        info = open_files?.getIn([path, 'component'])
-        if info?
-            info.chat_is_open = state
+        if open_files?
             @setState
-                open_files : open_files.setIn([path, 'component'], info)
+                open_files : open_files.setIn([path, 'is_chat_open'], is_chat_open)
 
     # Open side chat for the given file, assuming the file is open, store is initialized, etc.
     open_chat: (opts) =>
