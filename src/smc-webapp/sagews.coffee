@@ -1295,7 +1295,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for x in a
             y = $(x)
             src = y.attr('src')
-            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
+            blob_prefix = "#{window.smc_base_url}/blobs/"
+            # see https://github.com/sagemathinc/smc/issues/651
+            if src.indexOf('://') != -1 or misc.startswith(src, 'data:') or misc.startswith(src, blob_prefix)
                 continue
             new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)

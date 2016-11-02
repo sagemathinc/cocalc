@@ -2107,6 +2107,7 @@ def r(code=None,**kwargs):
     """
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
+        #r.jupyter_kernel('options(jupyter.plot_mimetypes = "image/svg+xml")')
         r.jupyter_kernel('options(repr.plot.res = 240)')
         r.jupyter_kernel.sage_img_style = "width: 50%; height: 50%;"
     return r.jupyter_kernel(code,**kwargs)
