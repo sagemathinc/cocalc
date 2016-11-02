@@ -36,6 +36,7 @@
     "passport-twitter": "^1.0.3",
     "password-hash": "^1.2.2",
     "pdfkit": "^0.7.1",
+    "pg": "^6.1.0",
     "primus": "^4.0.1",
     "read": "^1.0.5",
     "require-reload": "^0.2.2",
