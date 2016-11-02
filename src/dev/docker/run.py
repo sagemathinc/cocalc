@@ -63,6 +63,8 @@ def init_projects_path():
     if not os.path.exists('/projects'):
         log("WARNING: container data will be EPHEMERAL -- in /projects")
         os.makedirs('/projects')
+    # Ensure that users can see their own home directories:
+    os.system("chmod a+rx /projects")
     for path in ['conf', 'rethinkdb']:
         full_path = join('/projects', path)
         if not os.path.exists(full_path):
