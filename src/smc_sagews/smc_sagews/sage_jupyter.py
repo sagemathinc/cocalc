@@ -349,7 +349,7 @@ def _jkmagic(kernel_name, **kwargs):
     run_code.default_text_fmt = 'html'
 
     # 'svg', 'png', 'jpeg'
-    run_code.default_image_fmt = 'svg'
+    run_code.default_image_fmt = 'png'
 
     run_code.sage_img_style = None
 
