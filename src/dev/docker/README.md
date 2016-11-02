@@ -47,11 +47,6 @@ then open your web browser to http://localhost:8080
 
 Refresh your browser, and then you should see an "Admin edit..." button in any project's settings.
 
-## Issues
-
-  - gp doesn't work at all, due to the Ubuntu ppa being broken
-
-
 ## Build
 
 Build the image
