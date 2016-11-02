@@ -17,8 +17,16 @@ class TestOctavePlot:
         execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", want_html = False, file_type = 'svg')
 
 class TestRPlot:
-    def test_r_svg(self,execblob):
-        execblob("%r\nwith(mtcars,plot(wt,mpg))", want_html=False, file_type = 'svg')
+    def test_r_smallplot(self,exec2):
+        exec2("%r\nwith(mtcars,plot(wt,mpg))", html_pattern = '<img src=.*\.png')
+    def test_r_bigplot(self,exec2):
+        "lots of points, do not overrun blob size limit"
+        code = """%r
+N <- 100000
+xx <- rnorm(N, 5) + 3
+yy <- rnorm(N, 3) - 1
+plot(xx, yy, cex=.1)"""
+        exec2("%r\nwith(mtcars,plot(wt,mpg))", html_pattern = '<img src=.*\.png')
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):

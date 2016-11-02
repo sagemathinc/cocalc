@@ -213,6 +213,30 @@ def _jkmagic(kernel_name, **kwargs):
                 # 1. if there is an image format, prefer that
                 # 2. elif default text or image mode is available, prefer that
                 # 3. else choose first matching format in modes list
+
+                def show_plot(data, suffix):
+                    r"""
+                    If an html style is defined for this kernel, use it.
+                    Otherwise use salvus.file().
+                    """
+                    suffix = '.'+suffix
+                    if run_code.sage_img_style is None:
+                        fname = tempfile.mkstemp(suffix=suffix)[1]
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        salvus.file(fname)
+                        os.unlink(fname)
+                    else:
+                        # FIXME salvus.html does not display files with absolute path #1184
+                        fname = tempfile.mkstemp(suffix=suffix, dir=".")[1]
+                        fname = os.path.basename(fname)
+                        with open(fname,'w') as fo:
+                            fo.write(data)
+                        htms = '<img src="{0}" style="{1}" />'.format(fname, run_code.sage_img_style)
+                        #print(htms)
+                        salvus.html(htms)
+                        # FIXME unlike salvus.file(), image disappears if we unlink immediately
+                        #os.unlink(fname)
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
@@ -228,25 +252,13 @@ def _jkmagic(kernel_name, **kwargs):
                     # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
                     if dispmode == 'image/svg+xml':
                         data = msg_data[dispmode]
-                        fname = tempfile.mkstemp(suffix=".svg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'svg')
                     elif dispmode == 'image/png':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".png")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'png')
                     elif dispmode == 'image/jpeg':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".jpg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'jpg')
                     return
                 elif any('text' in k for k in mkeys):
                     dftm = run_code.default_text_fmt
@@ -342,6 +354,8 @@ def _jkmagic(kernel_name, **kwargs):
 
     # 'svg', 'png', 'jpeg'
     run_code.default_image_fmt = 'svg'
+
+    run_code.sage_img_style = None
 
     return run_code
 
