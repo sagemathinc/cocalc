@@ -3,7 +3,8 @@
 This is a self-contained single-image multi-user SageMathCloud server.
 
 **STATUS:**
-  - Actually should be reasonably secure -- the database has a long random password, user accounts are separate, etc.
+  - This isn't blatantly insecure: the database has a long random password, user accounts are separate, ssl communication is supported by default, etc. 
+  - That said, **a determined user with an account can very likely access or change files of other users in the same container!** Use this for personal use or with a sign in token.  Don't make one of these publicly available with important data in it and no sign in token!
   - No quotas are implemented except idle timeout.
   - Sagetex not setup yet.
 
