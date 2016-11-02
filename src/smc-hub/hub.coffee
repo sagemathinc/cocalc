@@ -48,6 +48,8 @@ underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
 
+program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
+
 # smc path configurations (shared with webpack)
 misc_node      = require('smc-util-node/misc_node')
 SMC_ROOT       = misc_node.SMC_ROOT
