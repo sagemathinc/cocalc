@@ -14,15 +14,15 @@ This is a self-contained single-image multi-user SageMathCloud server.
 
 To download the latest docker image (about 7GB):
 
-    docker pull  williamstein/sagemathcloud
+    docker pull  sagemathinc/sagemathcloud
 
 To store your local SMC data in the directory ~/smc, and run SageMathCloud (via docker), make sure you have about 7GB disk space free, then type:
 
-    docker run --name=smc -v ~/smc:/projects -p 80:80 -p 443:443 williamstein/sagemathcloud
+    docker run --name=smc -v ~/smc:/projects -p 80:80 -p 443:443 sagemathinc/sagemathcloud
 
 Then connect to localhost.   You can also do this to run it in the backeground:
 
-    docker run --name=smc -d -v ~/smc:/projects -p 80:80 -p 443:443 williamstein/sagemathcloud
+    docker run --name=smc -d -v ~/smc:/projects -p 80:80 -p 443:443 sagemathinc/sagemathcloud
 
 The name smc makes it so you can refer to the container and use commands like:
 
@@ -59,6 +59,6 @@ Run the image (to test)
 
 How I pushed this
 
-    docker tag smc:latest williamstein/sagemathcloud
-    docker login --username=williamstein
-    docker push  williamstein/sagemathcloud
+    docker tag smc:latest sagemathinc/sagemathcloud
+    docker login --username=sagemathinc
+    docker push  sagemathinc/sagemathcloud
