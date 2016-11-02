@@ -262,6 +262,7 @@ class ComputeServerClient
         dbg = @dbg("_add_server_single")
         dbg("adding the compute server to the database by grabbing conf files, etc.")
         port = secret = undefined
+        process.argv.push('')  # stupid horrible hack so can import compute-server (which imports commander) with node.js v6
         {program} = require('smc-hub/compute-server')
         async.series([
             (cb) =>
