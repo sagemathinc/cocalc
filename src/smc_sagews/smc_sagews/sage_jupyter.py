@@ -225,18 +225,14 @@ def _jkmagic(kernel_name, **kwargs):
                         with open(fname,'w') as fo:
                             fo.write(data)
                         salvus.file(fname)
-                        os.unlink(fname)
                     else:
-                        # FIXME salvus.html does not display files with absolute path #1184
-                        fname = tempfile.mkstemp(suffix=suffix, dir=".")[1]
-                        fname = os.path.basename(fname)
+                        fname = tempfile.mkstemp(suffix=suffix)[1]
                         with open(fname,'w') as fo:
                             fo.write(data)
-                        htms = '<img src="{0}" style="{1}" />'.format(fname, run_code.sage_img_style)
-                        #print(htms)
+                        fblob = salvus.file(fname, show = False)
+                        htms = '<img src="{0}" style="{1}" />'.format(fblob, run_code.sage_img_style)
                         salvus.html(htms)
-                        # FIXME unlike salvus.file(), image disappears if we unlink immediately
-                        #os.unlink(fname)
+                    os.unlink(fname)
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
