@@ -219,25 +219,18 @@ def _jkmagic(kernel_name, **kwargs):
                     Otherwise use salvus.file().
                     """
                     suffix = '.'+suffix
-                    if run_code.sage_img_style is None:
-                        fname = tempfile.mkstemp(suffix=suffix)[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
+                    fname = tempfile.mkstemp(suffix=suffix)[1]
+                    with open(fname,'w') as fo:
+                        fo.write(data)
+
+                    if run_code.smc_image_scaling is None:
                         salvus.file(fname)
-                        os.unlink(fname)
                     else:
-                        # FIXME salvus.html does not display files with absolute path #1184
-                        fname = tempfile.mkstemp(suffix=suffix, dir=".")[1]
-                        fname = os.path.basename(fname)
-                        with open(fname,'w') as fo:
-                            fo.write(data)
                         img_src = salvus.file(fname, show=False)
-                        os.unlink(fname)
-                        htms = '<img src="{0}" style="{1}" />'.format(img_src, run_code.sage_img_style)
-                        #print(htms)
+                        htms = '<img src="{0}" onload="this.width*={1}" />'.format(img_src, run_code.smc_image_scaling)
                         salvus.html(htms)
-                        # FIXME unlike salvus.file(), image disappears if we unlink immediately
-                        #os.unlink(fname)
+                    os.unlink(fname)
+
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
@@ -356,7 +349,7 @@ def _jkmagic(kernel_name, **kwargs):
     # 'svg', 'png', 'jpeg'
     run_code.default_image_fmt = 'png'
 
-    run_code.sage_img_style = "width: 50%; height: 50%;"
+    run_code.smc_image_scaling = .5
 
     return run_code
 
