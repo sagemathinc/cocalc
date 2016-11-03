@@ -461,7 +461,7 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code, want_name=True, want_html=True):
+    def execblobfn(code, want_html=True, file_type = 'png'):
 
         SHA_LEN = 36
 
@@ -471,6 +471,7 @@ def execblob(request, sagews, test_id):
 
         # expect 3 responses before "done", but order may vary
         want_blob = True
+        want_name = True
         while want_blob or want_name or want_html:
             typ, mesg = sagews.recv()
             if typ == 'blob':
@@ -495,6 +496,7 @@ def execblob(request, sagews, test_id):
                     want_name = False
                     assert 'file' in mesg
                     print('got file name')
+                    assert file_type in mesg['file']['filename']
 
         # final response is json "done" message
         typ, mesg = sagews.recv()
