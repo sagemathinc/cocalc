@@ -321,11 +321,9 @@ exports.init_redux = (path, redux, project_id) ->
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name)
+    store   = redux.createStore(name, init={project_id: project_id, path: path})
 
     actions._init()
-    actions.setState(project_id: project_id)
-    actions.setState(path: path)
     require('./syncdb').synchronized_db
         project_id    : project_id
         filename      : path
