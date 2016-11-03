@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -262,6 +262,7 @@ class ComputeServerClient
         dbg = @dbg("_add_server_single")
         dbg("adding the compute server to the database by grabbing conf files, etc.")
         port = secret = undefined
+        process.argv.push('')  # stupid horrible hack so can import compute-server (which imports commander) with node.js v6
         {program} = require('smc-hub/compute-server')
         async.series([
             (cb) =>

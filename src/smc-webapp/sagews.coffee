@@ -1,3 +1,24 @@
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
@@ -1293,11 +1314,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # make relative links to images use the raw server
         a = e.find("img")
         for x in a
-            y = $(x)
-            src = y.attr('src')
-            if src.indexOf('://') != -1 or misc.startswith(src, 'data:')   # see https://github.com/sagemathinc/smc/issues/651
+            y           = $(x)
+            src         = y.attr('src')
+            is_fullurl  = src.indexOf('://') != -1
+            is_blob     = misc.startswith(src, "#{window.smc_base_url}/blobs/")
+            # see https://github.com/sagemathinc/smc/issues/651
+            is_data     = misc.startswith(src, 'data:')
+            if is_fullurl or is_data or is_blob
                 continue
-            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@file_path()}/#{src}"
+            # see https://github.com/sagemathinc/smc/issues/1184
+            file_path = @file_path()
+            if misc.startswith(src, '/')
+                file_path = ".smc/root/#{file_path}"
+            new_src = "#{window.smc_base_url}/#{@project_id}/raw/#{file_path}/#{src}"
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1406,7 +1435,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try running this cell again,  restarting your project, or refreshing your browser."
+            error = "ERROR: '#{mesg.error}'\nCommunication with the Sage server is failing.\nPlease try: (1) running this cell again,   (2) restarting your project,\n(3) refreshing your browser, or (4) deleting the contents of ~/.local"
             output.append($("<span class='sagews-output-stderr'>").text(error))
 
         if mesg.code?

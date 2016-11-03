@@ -358,6 +358,30 @@ exports.SettingsPanel = rclass
         </Panel>
 
     ###
+    # Allow arbitrary collaborators
+    ###
+
+    render_allow_any_collaborators: ->
+        <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
+            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
+                <Checkbox
+                    checked  = {@props.settings.get('allow_collabs')}
+                    onChange = {(e)=>@actions(@props.name).set_allow_collabs(e.target.checked)}>
+                    Allow arbitrary collaborators
+                </Checkbox>
+            </div>
+            <hr/>
+            <span style={color:'#666'}>
+                Every collaborator on the project that contains this course is automatically added
+                to every student project (and the shared project).   In addition, each student is
+                a collaborator on their project.   If students add additional collaborators, by default
+                they will be automatically removed.  If you check the above box, then collaborators
+                will never be automatically removed from projects; in particular, students may
+                add arbitrary collaborators to their projects.
+            </span>
+        </Panel>
+
+    ###
     # Upgrading quotas for all student projects
     ###
 
@@ -760,6 +784,7 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
+                    {@render_allow_any_collaborators()}
                 </Col>
             </Row>
         </div>
