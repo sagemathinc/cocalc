@@ -1180,7 +1180,7 @@ class Salvus(object):
             m['placeholder'] = unicode8(placeholder)
         self._send_output(raw_input=m, id=self._id)
         typ, mesg = self.message_queue.next_mesg()
-        #log("raw_input got message typ='%s', mesg='%s'"%(typ, mesg))
+        log("handling raw input message ", truncate_text(unicode8(mesg), 400))
         if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
