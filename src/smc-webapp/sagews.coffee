@@ -1319,12 +1319,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # see https://github.com/sagemathinc/smc/issues/1192
             img_scaling = y.attr('smc-image-scaling')
             if img_scaling?
-                y.get(0).onload = ->
-                    width     = this.naturalWidth
-                    factor    = parseFloat(img_scaling)
+                img = y.get(0)
+                scale_img = ->
+                    width  = img.naturalWidth
+                    factor = parseFloat(img_scaling)
                     if not isNaN(factor)
                         new_width = width * factor
-                        $(this).css('width', "#{new_width}px")
+                        y.css('width', "#{new_width}px")
+                scale_img()
+                img.onload = scale_img
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
             is_blob     = misc.startswith(src, "#{window.smc_base_url}/blobs/")
