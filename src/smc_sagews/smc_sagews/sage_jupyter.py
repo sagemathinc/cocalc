@@ -213,25 +213,30 @@ def _jkmagic(kernel_name, **kwargs):
                 # 1. if there is an image format, prefer that
                 # 2. elif default text or image mode is available, prefer that
                 # 3. else choose first matching format in modes list
+                def show_plot(data, suffix):
+                    r"""
+                    If an html style is defined for this kernel, use it.
+                    Otherwise use salvus.file().
+                    """
+                    suffix = '.'+suffix
+                    fname = tempfile.mkstemp(suffix=suffix)[1]
+                    with open(fname,'w') as fo:
+                        fo.write(data)
+
+                    #if run_code.smc_image_scaling is None:
+                    if run_code.sage_img_style is None:
+                        salvus.file(fname)
+                    else:
+                        img_src = salvus.file(fname, show=False)
+                        htms = '<img src="{0}" style="{1}" />'.format(img_src, run_code.sage_img_style)
+                        #htms = '<img src="{0}" onload="this.width*={1}" />'.format(img_src, run_code.smc_image_scaling)
+                        salvus.html(htms)
+                    os.unlink(fname)
+
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
                 if any('image' in k for k in mkeys):
-                    # XXX to get svg format with R ("ir") kernel, will need something like @ws workaround:
-                    # from sage_salvus.py#L2073
-                    #    try:
-                    #        r_dev_on = True
-                    #        tmp = '/tmp/' + uuid() + '.svg'
-                    #        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
-                    #        s = r_eval0(code, *args, **kwds)
-                    #        r_eval0('dev.off()')
-                    #        return s
-                    #    finally:
-                    #        r_dev_on = False
-                    #        if os.path.exists(tmp):
-                    #            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
-                    #            os.unlink(tmp)
-                    #print('image')
                     dfim = run_code.default_image_fmt
                     #print('default_image_fmt %s'%dfim)
                     dispmode = next((m for m in mkeys if dfim in m), None)
@@ -243,25 +248,13 @@ def _jkmagic(kernel_name, **kwargs):
                     # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
                     if dispmode == 'image/svg+xml':
                         data = msg_data[dispmode]
-                        fname = tempfile.mkstemp(suffix=".svg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'svg')
                     elif dispmode == 'image/png':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".png")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'png')
                     elif dispmode == 'image/jpeg':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        fname = tempfile.mkstemp(suffix=".jpg")[1]
-                        with open(fname,'w') as fo:
-                            fo.write(data)
-                        salvus.file(fname)
-                        os.unlink(fname)
+                        show_plot(data,'jpg')
                     return
                 elif any('text' in k for k in mkeys):
                     dftm = run_code.default_text_fmt
@@ -356,7 +349,10 @@ def _jkmagic(kernel_name, **kwargs):
     run_code.default_text_fmt = 'html'
 
     # 'svg', 'png', 'jpeg'
-    run_code.default_image_fmt = 'svg'
+    run_code.default_image_fmt = 'png'
+
+    #run_code.smc_image_scaling = None
+    run_code.sage_img_style = None
 
     return run_code
 

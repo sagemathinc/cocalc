@@ -11,7 +11,7 @@ AUTHORS:
 
 ##########################################################################
 #
-#       Copyright (C) 2014 William Stein <wstein@gmail.com>
+#       Copyright (C) 2016, Sagemath Inc.
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #

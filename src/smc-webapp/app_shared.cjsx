@@ -315,7 +315,7 @@ exports.VersionWarning = rclass
             opacity         : .75
             borderRadius    : 4
             padding         : 5
-            zIndex          : 1
+            zIndex          : 900
             boxShadow       : '8px 8px 4px #888'
             width           : '70%'
             marginTop       : '1em'

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -460,9 +460,9 @@ PaymentMethod = rclass
 
     propTypes :
         source         : rtypes.object.isRequired
-        default        : rtypes.bool.isRequired
-        set_as_default : rtypes.func.isRequired   # called when this card should be set to default
-        delete_method  : rtypes.func.isRequired   # called when this card should be deleted
+        default        : rtypes.bool  # required for set_as_default
+        set_as_default : rtypes.func  # called when this card should be set to default
+        delete_method  : rtypes.func  # called when this card should be deleted
 
     getInitialState : ->
         confirm_default : false
@@ -472,34 +472,41 @@ PaymentMethod = rclass
         return brand_to_icon(@props.source.brand.toLowerCase())
 
     render_confirm_default : ->
-        <Row>
-            <Col md=5 mdOffset=2>
-                Are you sure you want to set this payment method to be the default for invoices?
-            </Col>
-            <Col md=5>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
-                    <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
-                        <Icon name='trash'/> Set to Default
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <Alert bsStyle='warning'>
+            <Row>
+                <Col md=5 mdOffset=2>
+                    <p>Are you sure you want to set this payment card to be the default?</p>
+                    <p>All future payments will be made with the card that is the default <b>at the time of renewal</b>.
+                    Changing your default card right before a subscription renewal will cause the <Space/>
+                    new default to be charged instead of the previous one.</p>
+                </Col>
+                <Col md=5>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
+                        <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
+                            <Icon name='trash'/> Set to Default
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </Alert>
 
     render_confirm_delete : ->
-        <Row>
-            <Col md=5 mdOffset=2>
-                Are you sure you want to delete this payment method?
-            </Col>
-            <Col md=5>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
-                        <Icon name='trash'/> Delete Payment Method
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <Alert bsStyle='danger'>
+            <Row>
+                <Col md=5 mdOffset=2>
+                    Are you sure you want to delete this payment method?
+                </Col>
+                <Col md=5>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
+                            <Icon name='trash'/> Delete Payment Method
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </Alert>
 
     render_card : ->
         <Row>
@@ -523,21 +530,25 @@ PaymentMethod = rclass
                 <Space/><Space/>
                 {@props.source.address_zip}
             </Col>
-            <Col md=3>
-                <ButtonToolbar style={float: "right"}>
-                    <Button
-                        onClick  = {=>@setState(confirm_default:true)}
-                        disabled = {@props.default}
-                        bsStyle  = {if @props.default then 'primary' else 'default'}
-                    >
-                        Default
-                    </Button>
-                    <Button onClick={=>@setState(confirm_delete:true)}>
-                        <Icon name="trash" /> Delete
-                    </Button>
-                </ButtonToolbar>
-            </Col>
+            {@render_action_buttons() if @props.set_as_default? or @props.delete_method?}
         </Row>
+
+    render_action_buttons : ->
+        <Col md=3>
+            <ButtonToolbar style={float: "right"}>
+                {<Button
+                    onClick  = {=>@setState(confirm_default:true)}
+                    disabled = {@props.default}
+                    bsStyle  = {if @props.default then 'primary' else 'default'}
+                >
+                    Default{<span>... </span> if not @props.default}
+                </Button> if @props.set_as_default? }
+
+                {<Button onClick={=>@setState(confirm_delete:true)}>
+                    <Icon name="trash" /> Delete
+                </Button> if @props.delete_method? }
+            </ButtonToolbar>
+        </Col>
 
     render : ->
         <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
@@ -591,7 +602,7 @@ PaymentMethods = rclass
             key            = {source.id}
             source         = {source}
             default        = {source.id==@props.default}
-            set_as_default = {=>@set_as_default(source.id)}   # closure -- must be in separate function from below
+            set_as_default = {=>@set_as_default(source.id)}
             delete_method  = {=>@delete_method(source.id)}
         />
 
@@ -773,6 +784,9 @@ AddSubscription = rclass
     getInitialState : ->
         selected_button : 'month'
 
+    is_recurring : ->
+        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+
     submit_create_subscription : ->
         plan = @props.selected_plan
         @props.actions.create_subscription(plan)
@@ -813,7 +827,6 @@ AddSubscription = rclass
         </div>
 
     render_renewal_info: ->
-        console.log("render_renewal_info", @props.selected_plan)
         if @props.selected_plan
             renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
@@ -844,7 +857,7 @@ AddSubscription = rclass
         ###
 
     render_create_subscription_confirm : ->
-        if not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
@@ -879,11 +892,54 @@ AddSubscription = rclass
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {<ConfirmPaymentMethod
+                        is_recurring = {@is_recurring()}
+                    /> if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
             </Col>
         </Row>
+
+ConfirmPaymentMethod = rclass
+    reduxProps :
+        billing :
+            customer : rtypes.object
+
+    propTypes :
+        is_recurring : rtypes.bool
+
+    render_single_payment_confirmation : ->
+        <span>
+            <p>Payment will be processed with the card below.</p>
+            <p>To change payment methods, please change your default card above.</p>
+        </span>
+
+
+    render_recurring_payment_confirmation : ->
+        <span>
+            <p>The initial payment will be processed with the card below.</p>
+            <p>Future payments will be made with your default card
+            <b>at the time of renewal</b>.
+            Changing your default card right before renewal will cause the <Space/>
+            new default to be charged instead of the previous one.</p>
+        </span>
+
+    render : ->
+        for card_data in @props.customer.sources.data
+            if card_data.id == @props.customer.default_source
+                default_card = card_data
+
+        <Alert>
+            <h4><Icon name='check' /> Confirm your payment card</h4>
+            {@render_single_payment_confirmation() if not @props.is_recurring}
+            {@render_recurring_payment_confirmation() if @props.is_recurring}
+            <Well>
+                <PaymentMethod
+                    source = {default_card}
+                />
+            </Well>
+        </Alert>
 
 
 exports.SubscriptionGrid = SubscriptionGrid = rclass
@@ -1321,17 +1377,19 @@ Subscription = rclass
     render_confirm : ->
         if not @state.confirm_cancel
             return
-        <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-            <Col md=6>
-                Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
-            </Col>
-            <Col md=6>
-                <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
-                <div style={float:'right'}>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
-                </div>
-            </Col>
-        </Row>
+        <Alert bsStyle='warning'>
+            <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
+                <Col md=6>
+                    Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
+                </Col>
+                <Col md=6>
+                    <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                    <div style={float:'right'}>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                    </div>
+                </Col>
+            </Row>
+        </Alert>
 
 
     render : ->

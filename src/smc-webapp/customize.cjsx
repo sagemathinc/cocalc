@@ -1,6 +1,6 @@
 ###
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-Copyright (C) 2015, William Stein, GPL v3.
+Copyright (C) 2016, Sagemath Inc.
 ---
 
 Site Customize -- dynamically customize the look of SMC for the client.

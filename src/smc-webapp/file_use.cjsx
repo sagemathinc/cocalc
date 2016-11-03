@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ class FileUseActions extends Actions
             @mark_file(x.project_id, x.path, action, 0, false)
 
     mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
-        #console.log(project_id, path, action)
+        # console.log('mark_file', project_id, path, action)
         if fix_path
             path = misc.original_path(path)
         account_id = @redux.getStore('account').get_account_id()

@@ -5,7 +5,7 @@ templated by jQuery and sticks it at the bottom of the body of the document on l
 ###
 
 $ = window.$
-html = require('./account.html') + require('./misc_page.html') + require('./alerts.html') + require('./help.html') + require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
+html = require('./account.html') + require('./misc_page.html') + require('./alerts.html') + require('./help.html') + require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html') + require('./misc_page.html')
 
 # Page container is for https://github.com/jschr/bootstrap-modal, which of course will go away...
 html = '<div class="page-container">' + html + '</div>'
