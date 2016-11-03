@@ -217,6 +217,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update(set:{description:description}, where:{table:'settings'})
             @set_all_student_project_descriptions(description)
 
+        set_allow_collabs: (allow_collabs) =>
+            @_update(set:{allow_collabs:allow_collabs}, where:{table:'settings'})
+
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
 
@@ -269,10 +272,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             #   {shared_project_users} = {course_project_users} union {students}.
 
             actions = redux.getActions('projects')
-            # Ensure the shared project users are all either course or students
-            shared_project_users.map (_, account_id) =>
-                if not course_project_users.get(account_id) and not student_account_ids[account_id]
-                    actions.remove_collaborator(shared_project_id, account_id)
+            if not store.get_allow_collabs()
+                # Ensure the shared project users are all either course or students
+                shared_project_users.map (_, account_id) =>
+                    if not course_project_users.get(account_id) and not student_account_ids[account_id]
+                        actions.remove_collaborator(shared_project_id, account_id)
             # Ensure every course project user is on the shared project
             course_project_users.map (_, account_id) =>
                 if not shared_project_users.get(account_id)
@@ -496,10 +500,11 @@ init_redux = (course_filename, redux, course_project_id) ->
             target_users.map (_, account_id) =>
                 if not users.get(account_id)?
                     invite(account_id)
-            # Remove anybody extra on the student project
-            users.map (_, account_id) =>
-                if not target_users.get(account_id)? and account_id != student_account_id
-                    redux.getActions('projects').remove_collaborator(student_project_id, account_id)
+            if not s.get_allow_collabs()
+                # Remove anybody extra on the student project
+                users.map (_, account_id) =>
+                    if not target_users.get(account_id)? and account_id != student_account_id
+                        redux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = redux.getStore('projects').get_users(student_project_id)
@@ -1516,6 +1521,9 @@ init_redux = (course_filename, redux, course_project_id) ->
 
         get_pay: =>
             return @getIn(['settings', 'pay']) ? ''
+
+        get_allow_collabs: =>
+            return @getIn(['settings', 'allow_collabs']) ? false
 
         get_email_invite: =>
             host = window.location.hostname
