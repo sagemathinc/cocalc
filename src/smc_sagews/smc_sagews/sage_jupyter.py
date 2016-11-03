@@ -223,11 +223,13 @@ def _jkmagic(kernel_name, **kwargs):
                     with open(fname,'w') as fo:
                         fo.write(data)
 
-                    if run_code.smc_image_scaling is None:
+                    #if run_code.smc_image_scaling is None:
+                    if run_code.sage_img_style is None:
                         salvus.file(fname)
                     else:
                         img_src = salvus.file(fname, show=False)
-                        htms = '<img src="{0}" onload="this.width*={1}" />'.format(img_src, run_code.smc_image_scaling)
+                        htms = '<img src="{0}" style="{1}" />'.format(img_src, run_code.sage_img_style)
+                        #htms = '<img src="{0}" onload="this.width*={1}" />'.format(img_src, run_code.smc_image_scaling)
                         salvus.html(htms)
                     os.unlink(fname)
 
@@ -349,7 +351,8 @@ def _jkmagic(kernel_name, **kwargs):
     # 'svg', 'png', 'jpeg'
     run_code.default_image_fmt = 'png'
 
-    run_code.smc_image_scaling = .5
+    #run_code.smc_image_scaling = None
+    run_code.sage_img_style = None
 
     return run_code
 
