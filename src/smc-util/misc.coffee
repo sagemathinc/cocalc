@@ -26,7 +26,7 @@
 ##########################################################################
 #
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (C) 2016, Sagemath Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
