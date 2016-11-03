@@ -109,7 +109,7 @@ Message = rclass
             if not @state.show_history
                 <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
                     <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
-                        <Icon name='history'/>
+                        <Icon name='history'/> Edited
                     </Tip>
                 </span>
             else
@@ -348,9 +348,9 @@ ChatLog = rclass
         return v
 
     render: ->
-        <div>
+        <Grid fluid>
             {@list_messages()}
-        </div>
+        </Grid>
 
 ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
@@ -424,7 +424,7 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        <div style={height:'100%', display:'flex', flexDirection:'column'}>
+        <div style={height:'100%', display:'flex', flexDirection:'column', backgroundColor:'#fafafa'}>
             <div style={overflowY:'auto'} ref='log_container' onScroll={@on_scroll} >
                 <ChatLog
                     messages     = {@props.messages}
@@ -437,9 +437,9 @@ ChatRoom = rclass ({name}) ->
                     focus_end    = {focus_endpoint}
                     show_heads   = {false} />
             </div>
-            <div style={marginTop:'auto', display:'flex'}>
+            <div style={marginTop:'auto', height:'5em', display:'flex'}>
                 <FormControl
-                    style          = {width:'70%', height:'5em'}
+                    style          = {width:'70%', height:'100%'}
                     autoFocus      = {true}
                     componentClass = 'textarea'
                     rows           = {2}
@@ -452,7 +452,7 @@ ChatRoom = rclass ({name}) ->
                     onFocus        = {focus_endpoint}
                 />
                 <Button
-                    style    = {width:'30%', height:'5em'}
+                    style    = {width:'30%', height:'100%'}
                     onClick  = {@button_send_chat}
                     disabled = {@props.input==''}
                     bsStyle  = 'primary' >

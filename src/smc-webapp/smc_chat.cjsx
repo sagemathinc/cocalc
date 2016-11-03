@@ -110,7 +110,7 @@ Message = rclass
             if not @state.show_history
                 <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_chat(true)}>
                     <Tip title='Message History' tip='Show history of editing of this message.'>
-                        <Icon name='history'/>
+                        <Icon name='history'/> Edited
                     </Tip>
                 </span>
             else
@@ -404,9 +404,9 @@ ChatLog = rclass
         return v
 
     render: ->
-        <div>
+        <Grid fluid>
             {@list_messages()}
-        </div>
+        </Grid>
 
 ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
@@ -631,7 +631,7 @@ ChatRoom = rclass ({name}) ->
             </Button>
 
     render : ->
-        if not @props.messages? or not @props.redux?
+        if not @props.messages? or not @props.redux? or not @props.input.length?
             return <Loading/>
 
         if @props.input.length > 0 and @props.is_preview and @refs.preview

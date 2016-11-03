@@ -272,10 +272,10 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                 if is_chat_open
                     # 2 column layout with chat
                     <div style={display:'flex', height:'100%'}>
-                        <div style={width:'75%'}>
+                        <div style={width:'75%', border:'1px solid lightgrey'}>
                             {editor}
                         </div>
-                        <div style={width:'25%'}>
+                        <div style={width:'25%', border:'1px solid lightgrey'}>
                             <SideChat
                                 path       = {misc.meta_file(active_path, 'chat')}
                                 redux      = {redux}
@@ -285,7 +285,7 @@ ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_fi
                     </div>
                 else
                     # just the editor
-                    <div style={height:'100%'}>
+                    <div style={height:'100%', border:'1px solid lightgrey'}>
                         {editor}
                     </div>
 
