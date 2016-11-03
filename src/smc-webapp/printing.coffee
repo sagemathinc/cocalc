@@ -39,26 +39,35 @@ class Printer
         console.error('printing: Printer.print method needs to be subclassed')
 
     show_print_new_tab : (cb) ->
-        redux.getProjectActions(@editor.project_id).download_file
-            path : @output_file
-            print: true
-        cb?()
+        # if the output file exists and has nonzero size, we open it in a new tab and print it
+        outfile = misc.path_split(@output_file)
+        salvus_client.exec
+            project_id  : @editor.project_id
+            command     : 'test'
+            args        : ['-s', outfile.tail]
+            path        : outfile.head
+            err_on_exit : true
+            cb          : (err, mesg) =>
+                if err
+                    cb?('Unable to convert file to PDF')
+                else
+                    redux.getProjectActions(@editor.project_id).download_file
+                        path : @output_file
+                        print: true
+                    cb?()
 
 class PandocPrinter extends Printer
     @supported : ['md', 'html', 'htm', 'rst', 'wiki', 'mediawiki', 'txt'] # , 'csv']
 
     print: (cb) =>
-        @convert_to_pdf (err, output) =>
-            salvus_client.read_file_from_project
-                project_id : @editor.project_id
-                path       : @output_file
-                cb         : (err, mesg) =>
-                    if err
-                        cb?(err)
-                    else
-                        @show_print_new_tab(cb)
+        @convert_to_pdf (err) =>
+            if err
+                cb?(err)
+            else
+                @show_print_new_tab(cb)
 
     convert_to_pdf: (cb) =>  # cb(err, {stdout:?, stderr:?})
+        # this assumes that the outputfile is in the same directory
         infile  = misc.path_split(@editor.filename)
         outfile = misc.path_split(@output_file)
 
@@ -66,9 +75,10 @@ class PandocPrinter extends Printer
             # pandoc --latex-engine=xelatex a.wiki -o a.pdf
             command = 'pandoc'
             args    = ['--latex-engine=xelatex']
-            #if @editor.ext in ['txt', 'csv']  # preserve doesn't exist in our pandoc version
+            # --wrap=preserve doesn't exist in our old pandoc version
+            #if @editor.ext in ['txt', 'csv']
             #    args.push('--wrap=preserve')
-            args.concat([infile.tail, '-o', outfile.tail])
+            args = args.concat([infile.tail, '-o', outfile.tail])
             bash = false
         else
             cb("'*.#{@editor.ext}' files are currently not supported.")
@@ -103,15 +113,7 @@ class LatexPrinter extends Printer
     @supported : ['tex']
 
     print : () ->
-        # if the pdf file exists, we open it in a new tab and print it
-        salvus_client.read_file_from_project
-            project_id : @editor.project_id
-            path       : @output_file
-            cb         : (err, mesg) =>
-                if err
-                    cb?(err)
-                else
-                    @show_print_new_tab()
+        @show_print_new_tab()
 
 class SagewsPrinter extends Printer
     @supported : ['sagews']

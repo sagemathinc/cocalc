@@ -1311,14 +1311,16 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    salvus_client.read_file_from_project
-                        project_id : @project_id
-                        path       : pdf
+                    salvus_client.exec
+                        project_id  : @project_id
+                        command     : 'test'
+                        args        : ['-s', pdf]
+                        err_on_exit : true
                         cb         : (err, mesg) =>
                             if err
-                                cb(err)
+                                cb('Unable to convert file to PDF')
                             else
-                                url = mesg.url + "?nocache=#{Math.random()}"
+                                url = pdf + "?nocache=#{Math.random()}"
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 if is_subdir
                                     {join} = require('path')
