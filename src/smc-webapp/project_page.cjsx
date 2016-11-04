@@ -252,6 +252,15 @@ CHAT_TOGGLE_STYLE =
     paddingLeft  : '5px'
     paddingRight : '5px'
 
+CHAT_TOGGLE_TIP = <span>
+Hide or show the chat for this file.
+<hr/>
+You may type math in dollar signs, and markdown
+and HTML in chat.  Any collaborators on this
+project will be notified of your chat.
+
+</span>
+
 # Children must define their own padding from navbar and screen borders
 ProjectMainContent = rclass
     propTypes :
@@ -271,7 +280,7 @@ ProjectMainContent = rclass
     render_chat_toggle : (is_chat_open, path) ->
         action = if is_chat_open then 'Hide' else 'Show'
         <div style={CHAT_TOGGLE_STYLE}>
-            <Tip title="#{action} chat" tip="#{action} the chat column for this file." placement='left' delayShow=1500>
+            <Tip title="#{action} chat" tip={CHAT_TOGGLE_TIP} placement='left' delayShow=1500>
                 <div style={cursor:'pointer'} onClick={=>@toggle_chat(not is_chat_open, path)} >
                     <Icon name="caret-#{if is_chat_open then 'down' else 'left'}"/>
                     <Space />

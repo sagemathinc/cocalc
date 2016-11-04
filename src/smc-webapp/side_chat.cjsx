@@ -393,8 +393,6 @@ ChatRoom = rclass ({name}) ->
         else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
-        else if e.keyCode == 13
-            e.preventDefault()
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -437,12 +435,11 @@ ChatRoom = rclass ({name}) ->
                     focus_end    = {focus_endpoint}
                     show_heads   = {false} />
             </div>
-            <div style={marginTop:'auto', height:'5em', display:'flex'}>
+            <div style={marginTop:'auto', height:'6em', display:'flex'}>
                 <FormControl
-                    style          = {width:'70%', height:'100%'}
+                    style          = {width:'85%', height:'100%'}
                     autoFocus      = {true}
                     componentClass = 'textarea'
-                    rows           = {2}
                     ref            = 'input'
                     onKeyDown      = {@on_keydown}
                     value          = {@props.input}
@@ -452,7 +449,7 @@ ChatRoom = rclass ({name}) ->
                     onFocus        = {focus_endpoint}
                 />
                 <Button
-                    style    = {width:'30%', height:'100%'}
+                    style    = {width:'15%', height:'100%'}
                     onClick  = {@button_send_chat}
                     disabled = {@props.input==''}
                     bsStyle  = 'primary' >
