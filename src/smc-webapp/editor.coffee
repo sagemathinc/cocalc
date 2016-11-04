@@ -2808,29 +2808,29 @@ class Terminal extends FileEditor
             salvus_client.new_session(mesg)
 
 
-    _get: () =>  # FUTURE ??
+    _get: =>  # FUTURE ??
         return @opts.session_uuid ? ''
 
     _set: (content) =>  # FUTURE ??
 
-    save: (cb) =>
+    save: =>
         # DO nothing -- a no-op for now
         # FUTURE: Add notion of history
         cb?()
 
-    focus: () =>
+    focus: =>
         @console?.focus()
 
-    blur: () =>
+    blur: =>
         @console?.blur()
 
     terminate_session: () =>
 
-    remove: () =>
+    remove: =>
         @element.salvus_console(false)
         super()
 
-    hide : () =>
+    hide: =>
         if @console?
             @element?.hide()
             @console.blur()
@@ -2845,7 +2845,7 @@ class Terminal extends FileEditor
             if feature.isMobile.iOS()
                 ht = Math.floor(ht/2)
             e.height(ht)
-            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # HACK: this is hack-ish; needs to be redone!
+            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'))
             @console.focus(true)
 
 class Media extends FileEditor
