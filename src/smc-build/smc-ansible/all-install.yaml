@@ -256,6 +256,7 @@
     - cvs
     - cython
     - cython3
+    - dialog
     - dieharder
     - doxygen
     - dstat
@@ -452,6 +453,7 @@
     - ncompress
     - netcdf-bin
     - netcdf-doc
+    - net-tools
     - nim
     - noweb
     - ocaml
@@ -477,6 +479,7 @@
     - proofgeneral-doc
     - protobuf-compiler
     - pv
+    - pyqt4-dev-tools
     - pyro
 
   - name: 'Additional packages (mainly for users, not building) - batch #5'
