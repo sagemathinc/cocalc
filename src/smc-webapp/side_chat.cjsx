@@ -425,7 +425,7 @@ ChatRoom = rclass ({name}) ->
             return <Loading/>
 
         <div style={height:'100%', display:'flex', flexDirection:'column', backgroundColor:'#fafafa'}>
-            <div style={overflowY:'auto'} ref='log_container' onScroll={@on_scroll} >
+            <div style={overflowY:'auto', flex:1} ref='log_container' onScroll={@on_scroll} >  {# flex:1 so this expands to fit available space}
                 <ChatLog
                     messages     = {@props.messages}
                     account_id   = {@props.account_id}
