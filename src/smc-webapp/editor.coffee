@@ -3027,8 +3027,8 @@ class FileEditorWrapper extends FileEditor
 
         if IS_MOBILE
             @element.css(position:'relative')
-        else
-            @element.css(position:'fixed')
+        #else
+        #    @element.css(position:'fixed')
         @wrapped?.show?()
 
     hide: () =>

@@ -1493,11 +1493,12 @@ class TaskList
                     alert_message(type:"error", message:"unable to save #{@filename} -- #{to_json(err)}")
 
     show: () =>
-        if not IS_MOBILE
-            @element.find(".salvus-tasks-list").maxheight(offset:50)
         set_key_handler(@)
         redux.getActions('page').set_active_key_handler(tasks_key_handler)
-
+        if not IS_MOBILE
+            # still horrible - will fix with react rewrite...
+            @element.find(".salvus-tasks-content").maxheight(offset:15)
+            
     hide: () =>
         @element.hide()
         redux.getActions('page').erase_active_key_handler(tasks_key_handler)
