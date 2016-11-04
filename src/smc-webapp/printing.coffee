@@ -44,7 +44,7 @@ class Printer
             path        : @output_file
             cb          : (err) =>
                 if err
-                    cb?('Unable to convert file to PDF')
+                    cb?('Generated file for printing does not exist.')
                 else
                     redux.getProjectActions(@editor.project_id).download_file
                         path : @output_file
