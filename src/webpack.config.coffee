@@ -369,7 +369,8 @@ if PRODMODE
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     plugins.push new webpack.optimize.DedupePlugin()
     plugins.push new webpack.optimize.OccurenceOrderPlugin()
-    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
+    # TODO change this back to a number at about 10, once we know how to keep old chunks around
+    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 1)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
     # to get source maps working in production mode, one has to figure out how
     # to get inSourceMap/outSourceMap working here.
