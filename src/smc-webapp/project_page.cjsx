@@ -255,9 +255,9 @@ CHAT_TOGGLE_STYLE =
 CHAT_TOGGLE_TIP = <span>
 Hide or show the chat for this file.
 <hr/>
-You may type math in dollar signs, and markdown
-and HTML in chat.  Any collaborators on this
-project will be notified of your chat.
+Use HTML, Markdown, and LaTeX in your chats,
+and press shift+enter to send them.
+Your collaborators will be notified.
 
 </span>
 
@@ -279,8 +279,14 @@ ProjectMainContent = rclass
 
     render_chat_toggle : (is_chat_open, path) ->
         action = if is_chat_open then 'Hide' else 'Show'
+        title  = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         <div style={CHAT_TOGGLE_STYLE}>
-            <Tip title="#{action} chat" tip={CHAT_TOGGLE_TIP} placement='left' delayShow=1500>
+            <Tip
+                title     = {title}
+                tip       = {CHAT_TOGGLE_TIP}
+                placement = 'left'
+                delayShow = 1200
+                >
                 <div style={cursor:'pointer'} onClick={=>@toggle_chat(not is_chat_open, path)} >
                     <Icon name="caret-#{if is_chat_open then 'down' else 'left'}"/>
                     <Space />
