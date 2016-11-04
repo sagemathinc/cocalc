@@ -460,9 +460,9 @@ class ProjectActions extends Actions
 
         @setState(open_files_order : empty, open_files : {})
 
-    # closes the file and removes all references
+    # Closes the file and removes all references.
     # Does not update tabs
-    close_file : (path) =>
+    close_file: (path) =>
         store = @get_store()
         x = store.get_open_files_order()
         index = x.indexOf(path)

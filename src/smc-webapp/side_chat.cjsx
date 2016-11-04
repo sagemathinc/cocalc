@@ -41,7 +41,7 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, remove_redux, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -380,9 +380,6 @@ ChatRoom = rclass ({name}) ->
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
 
-    getInitialState: ->
-        input          : ''
-
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
@@ -413,9 +410,6 @@ ChatRoom = rclass ({name}) ->
     componentDidUpdate: ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
-
-    componentWillUnmount: ->
-        remove_redux(@props.path, @props.redux, @props.project_id)
 
     # All render methods
     render : ->
@@ -461,7 +455,6 @@ ChatRoom = rclass ({name}) ->
 
 # Component for use via React
 exports.SideChat = ({path, redux, project_id}) ->
-    console.log "SideChat ", path, project_id
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions     = redux.getActions(name)
