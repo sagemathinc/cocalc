@@ -12,7 +12,6 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 async     = require('async')
 misc_node = require('smc-util-node/misc_node')
 program   = require('commander')
-daemon    = require('start-stop-daemon')
 
 LOGS = join(process.env.HOME, 'logs')
 program.usage('[start/stop/restart/status] [options]')
@@ -47,6 +46,7 @@ main = () ->
         (cb) ->
             misc_node.ensure_containing_directory_exists(program.logfile, cb)
         (cb) ->
+            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+ 
             daemon({max:9999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
     ])
 

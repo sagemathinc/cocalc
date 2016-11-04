@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -239,7 +239,7 @@ class ChatActions extends Actions
         @syncdb.save()
 
     set_to_last_input: =>
-        @setState(input:store.get('last_sent'))
+        @setState(input:@store.get('last_sent'))
 
     set_input: (input) =>
         @setState(input:input)

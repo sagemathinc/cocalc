@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -1410,7 +1410,7 @@ add_icon = (bar, inner, href, comment) ->
 
 #
 # initializing and creating the menus
-# this works in conjuntion with editor.html
+# this works in conjunction with editor.html
 #
 
 # Initialize fonts for the editor

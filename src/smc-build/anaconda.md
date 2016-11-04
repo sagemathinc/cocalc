@@ -62,14 +62,16 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
       - obspy
       - bokeh
       - r
-      - mro
-      - bioconda
+      - astropy
       - pypi
       - plotly
       - conda-forge
       - mutirri
+      - activisiongamescience
       - defaults
     show_channel_urls: True
+    #  - bioconda
+    #  - mro
 
 ## installing additional packages
 
@@ -83,9 +85,11 @@ at 2016-07-12 for setting up the env in the external volume for the smc-project 
 
        conda install -y ecdsa ephem execnet  feedparser flake8 flask-wtf flask-login future gensim geos gunicorn heapdict html5lib  lancet libnetcdf line_profiler llvm locket lockfile logilab-common mako markdown2 mdp mock markdown descartes pysal wordcloud vpython
 
-       conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra plotly geopandas
+       conda install -y mpi4py mpich2 mpmath msgpack-python natsort ncurses netcdf4 numpydoc paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath python-libsbml cobra plotly geopandas ccdproc
 
-       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras altair cufflinks
+       conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader pandas pandasql geopandas mahotas blaze cvxopt bqplot tabulate pycrypto rpy2 r-recommended biopython gensim r-plotly r-essentials simpy keras altair cufflinks tweepy
+
+       conda install -y xarray dask netcdf4 rasterio cython shapely lxml geopandas geojson folium mplleaflet cartopy rasterstats psycopg2 ipyleaflet pykml
 
 not possible to install (conflict with python 3.5):
 

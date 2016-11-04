@@ -8,6 +8,8 @@ require('node-cjsx').transform()
 
 # there is a global window object, which is undefined in node.js' world -- we mock it and hope for the best.
 global['window'] = {}
+# webpack's injected DEBUG flag, we set it to false
+global['DEBUG']  = false
 
 # Code for static server-side rendering of the subscription options.
 # note, that we use renderToStaticMarkup, not renderToString

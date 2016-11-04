@@ -4,7 +4,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -317,7 +317,7 @@ class Parser(HTMLParser.HTMLParser):
                     filename = base+'.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
-                self.result += '\\includegraphics[resolution=120]{%s}\n'%filename
+                self.result += '\\includegraphics[resolution=120]{%s}'%filename
             else:
                 # fallback, because there is no src='...'
                 self.result += '\\verbatim{image: %s}' % str(attrs)
@@ -357,6 +357,8 @@ def sanitize_math_input(s):
     return tmp
 
 def reconstruct_math(s, tmp):
+    print "s ='%r'"%s
+    print "tmp = '%r'"%tmp
     from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])

@@ -1150,11 +1150,27 @@ class ProjectStore extends Store
                 delete @_public_paths_cache
                 @_last_public_paths = @get('public_paths')
 
+        # If we are explicitly listed as a collaborator on this project,
+        # watch for this to change, and if it does, close the project.
+        # This avoids leaving it open after we are removed, which is confusing,
+        # given that all permissions have vanished.
+        projects = @redux.getStore('projects')
+        if projects.getIn(['project_map', @project_id])?  # only do this if we are on project in the first place!
+            projects.on('change', @_projects_store_collab_check)
+
     destroy: =>
-        @_account_store?.removeListener('change', @_account_store_change)
+        @redux.getStore('projects').removeListener('change', @_projects_store_collab_check)
+
+    _projects_store_collab_check: (state) =>
+        if not state.getIn(['project_map', @project_id])?
+            # User has been removed from the project!
+            @redux.getActions('page').close_project_tab(@project_id)
 
     get_open_files: =>
         return @get('open_files')
+
+    is_file_open: (path) =>
+        return @getIn(['open_files', path])?
 
     get_open_files_order: =>
         return @get('open_files_order')

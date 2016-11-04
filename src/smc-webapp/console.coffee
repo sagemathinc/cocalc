@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -142,7 +142,7 @@ class Console extends EventEmitter
         if @opts.project_id
             @project_id = @opts.project_id
 
-        @_project_actions = smc.redux.getProjectActions(@project_id)
+        @_project_actions = redux.getProjectActions(@project_id)
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
@@ -303,7 +303,8 @@ class Console extends EventEmitter
             # In case nothing comes back soon, we reconnect -- maybe the session is dead?
             # We wait 10x the ping time, so if connection is slow, this won't
             # constantly reconnect, but it is very fast in case the connection is fast.
-            latency = smc.client.latency()
+            {salvus_client} = require('./salvus_client')
+            latency = salvus_client.latency()
             if latency?
                 delay = Math.min(4000, latency*10)
                 setTimeout(@reconnect_if_no_recent_data, delay)

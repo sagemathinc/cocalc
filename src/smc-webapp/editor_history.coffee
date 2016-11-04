@@ -1,13 +1,32 @@
-###
-Viewer for history of changes to a document
-###
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+# Viewer for history of changes to a document
+###############################################################################
 
 $ = window.$
 
 misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
-
+{redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
 sagews  = require('./sagews')
@@ -20,7 +39,6 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        window.h = @  # DEBUGGING
         @init_paths()
         @init_view_doc opts, (err) =>
             if not err
@@ -149,7 +167,7 @@ class exports.HistoryEditor extends FileEditor
             return false
 
         open_file = () =>
-            smc.redux.getProjectActions(@project_id).open_file
+            redux.getProjectActions(@project_id).open_file
                 path       : @_open_file_path
                 foreground : true
 
@@ -295,9 +313,9 @@ class exports.HistoryEditor extends FileEditor
         usernames = []
         for account_id,_ of account_ids
             if account_id == @project_id
-                name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
+                name = "Project: " + redux.getStore('projects')?.get_title(account_id)
             else
-                name = smc.redux.getStore('users')?.get_name(account_id)
+                name = redux.getStore('users')?.get_name(account_id)
             if name?
                 usernames.push(misc.trunc_middle(name,25).trim())
         if usernames.length > 0
@@ -333,9 +351,9 @@ class exports.HistoryEditor extends FileEditor
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
         if account_id == @project_id
-            name = "Project: " + smc.redux.getStore('projects')?.get_title(account_id)
+            name = "Project: " + redux.getStore('projects')?.get_title(account_id)
         else
-            name = smc.redux.getStore('users')?.get_name(account_id)
+            name = redux.getStore('users')?.get_name(account_id)
         if name?
             username = misc.trunc_middle(name, 50)
 
@@ -452,7 +470,7 @@ class exports.HistoryEditor extends FileEditor
     show: () =>
         if not @is_active() or not @element? or not @view_doc?
             return
-        top = smc.redux.getProjectStore(@project_id).get('editor_top_position')
+        top = redux.getProjectStore(@project_id).get('editor_top_position')
         @element.css('top', top)
         if top == 0
             @element.css('position':'fixed', 'width':'100%')

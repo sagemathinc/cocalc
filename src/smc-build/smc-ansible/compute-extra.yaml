@@ -121,6 +121,7 @@
     - nipype
     - ipywidgets
     - keras
+    - tweepy
 
   - name: "numba in py2 and py3"
     # might change to llvm 3.8 later, etc.
@@ -506,7 +507,7 @@
   tags: ["octave", "install"]
 
   tasks:
-  - name: "install ocatave"
+  - name: "install octave"
     tags: update
     apt: "name={{ item }} install_recommends=yes state=latest"
     with_items:   # this is a **hand-picked** selection of octave packages so octave actually starts and our users are happy; doing "apt-get install octave*" results in broken octave.

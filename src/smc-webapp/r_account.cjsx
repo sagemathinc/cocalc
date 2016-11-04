@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -542,7 +542,7 @@ DeleteAccountConfirmation = rclass
     render : ->
         <Well style={marginTop: '26px', textAlign:'center'}>
             Are you sure you want to do this?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects.<br/>
+            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To proceed, enter your first and last name below.
             <FormGroup>
@@ -879,7 +879,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
     'Split view in any editor'     : 'control+I'
-    'Autoindent selection'         : 'control+'
+    'Autoindent selection'         : "control+'"
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
@@ -1042,7 +1042,14 @@ AccountCreationToken = rclass
         if @state.state == 'save'
             <Saving />
 
+    render_unsupported: ->  # see https://github.com/sagemathinc/smc/issues/333
+        <div style={color:"#666"}>
+            Not supported since some passport strategies are enabled.
+        </div>
+
     render : ->
+        if STRATEGIES.length > 1
+            return @render_unsupported()
         <div>
              {@render_control()}
              {@render_save()}

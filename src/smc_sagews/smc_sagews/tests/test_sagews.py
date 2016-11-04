@@ -64,6 +64,17 @@ class TestBasic:
         assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
         conftest.recv_til_done(sagews, test_id)
 
+    def test_sage_autocomplete(self, test_id, sagews):
+        m = conftest.message.introspect(test_id, line='2016.fa', top='2016.fa')
+        m['preparse'] = True
+        sagews.send_json(m)
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert mesg['event'] == "introspect_completions"
+        assert mesg['completions'] == ["ctor","ctorial"]
+        assert mesg['target'] == "fa"
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

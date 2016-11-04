@@ -1,3 +1,5 @@
+# standard non-SMC libraries
+immutable = require('immutable')
 
 # SMC libraries
 misc = require('smc-util/misc')
@@ -11,9 +13,112 @@ schema = require('smc-util/schema')
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
 # SMC Components
-{Calendar, Icon, LabeledRow, Loading, MarkdownInput,
+{Calendar, Icon, LabeledRow, Loading, MarkdownInput, NoUpgrades
      Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
-{NoUpgrades} = require('../project_settings')
+
+StudentProjectsStartStopPanel = rclass ({name}) ->
+    displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
+
+    reduxProps :
+        "#{name}" :
+            action_all_projects_state : rtypes.string
+
+    propTypes :
+        num_running_projects : rtypes.number
+        num_students         : rtypes.number
+
+    getDefaultProps : ->
+        action_all_projects_state : "any"
+
+    getInitialState : ->
+        confirm_stop_all_projects   : false
+        confirm_start_all_projects  : false
+
+    render_in_progress_action : ->
+        state_name = @props.action_all_projects_state
+        switch state_name
+            when "stopping"
+                if @props.num_running_projects == 0
+                    return
+                bsStyle = 'warning'
+            else
+                if @props.num_running_projects == @props.num_students
+                    return
+                bsStyle = 'info'
+
+        <Alert bsStyle=bsStyle>
+            {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
+        </Alert>
+
+    render_confirm_stop_all_projects: ->
+        <Alert bsStyle='warning'>
+            Are you sure you want to stop all student projects (this might be disruptive)?
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@actions(@props.name).action_all_student_projects('stop')}>
+                    <Icon name='hand-stop-o'/> Stop all
+                </Button>
+                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render_confirm_start_all_projects: ->
+        <Alert bsStyle='info'>
+            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
+            open them.
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@actions(@props.name).action_all_student_projects('start')}>
+                    <Icon name='flash'/> Start all
+                </Button>
+                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render : ->
+        r = @props.num_running_projects
+        n = @props.num_students
+        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
+            <Row>
+                <Col md=9>
+                    {r} of {n} student projects currently running.
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_start_all_projects:true)}
+                            disabled={n==0 or n==r or @state.confirm_start_all_projects or @props.action_all_projects_state == "starting"}
+                        >
+                            <Icon name="flash"/> Start all...
+                        </Button>
+                        <Button onClick={=>@setState(confirm_stop_all_projects:true)}
+                            disabled={n==0 or r==0 or @state.confirm_stop_all_projects or @props.action_all_projects_state == "stopping"}
+                        >
+                            <Icon name="hand-stop-o"/> Stop all...
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
+                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
+                    {@render_in_progress_action() if @props.action_all_projects_state != "any"}
+                </Col>
+            </Row>
+            <hr/>
+            <span style={color:'#666'}>
+                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
+            </span>
+        </Panel>
+
 
 exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
@@ -32,8 +137,6 @@ exports.SettingsPanel = rclass
         show_students_pay_dialog        : false
         students_pay_when               : @props.settings.get('pay')
         students_pay                    : !!@props.settings.get('pay')
-        confirm_stop_all_projects       : false
-        confirm_start_all_projects      : false
 
     ###
     # Editing title/description
@@ -236,63 +339,11 @@ exports.SettingsPanel = rclass
     render_start_all_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
-        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
-            <Row>
-                <Col md=9>
-                    {r} of {n} student projects currently running.
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_start_all_projects:true)} disabled={n==r or n==0 or @state.confirm_start_all_projects}><Icon name="flash"/> Start all...</Button>
-                        <Button onClick={=>@setState(confirm_stop_all_projects:true)} disabled={r==0 or n==0 or @state.confirm_stop_all_projects}><Icon name="hand-stop-o"/> Stop all...</Button>
-                    </ButtonToolbar>
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
-                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
-                </Col>
-            </Row>
-            <hr/>
-            <span style={color:'#666'}>
-                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
-            </span>
-        </Panel>
-
-    render_confirm_stop_all_projects: ->
-        <Alert bsStyle='warning'>
-            Are you sure you want to stop all student projects (this might be disruptive)?
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@action_all_student_projects('stop')}>
-                    <Icon name='hand-stop-o'/> Stop all
-                </Button>
-                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
-    render_confirm_start_all_projects: ->
-        <Alert bsStyle='info'>
-            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
-            open them.
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@action_all_student_projects('start')}>
-                    <Icon name='flash'/> Start all
-                </Button>
-                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
+        <StudentProjectsStartStopPanel
+            name                 = {@props.name}
+            num_running_projects = {r}
+            num_students         = {n}
+        />
 
     render_delete_all_projects: ->
         <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
@@ -303,6 +354,30 @@ exports.SettingsPanel = rclass
                 If for some reason you would like to delete all the student projects
                 created for this course, you may do so by clicking below.
                 Be careful!
+            </span>
+        </Panel>
+
+    ###
+    # Allow arbitrary collaborators
+    ###
+
+    render_allow_any_collaborators: ->
+        <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
+            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
+                <Checkbox
+                    checked  = {@props.settings.get('allow_collabs')}
+                    onChange = {(e)=>@actions(@props.name).set_allow_collabs(e.target.checked)}>
+                    Allow arbitrary collaborators
+                </Checkbox>
+            </div>
+            <hr/>
+            <span style={color:'#666'}>
+                Every collaborator on the project that contains this course is automatically added
+                to every student project (and the shared project).   In addition, each student is
+                a collaborator on their project.   If students add additional collaborators, by default
+                they will be automatically removed.  If you check the above box, then collaborators
+                will never be automatically removed from projects; in particular, students may
+                add arbitrary collaborators to their projects.
             </span>
         </Panel>
 
@@ -331,9 +406,6 @@ exports.SettingsPanel = rclass
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
-
-    action_all_student_projects: (action) ->
-        @actions(@props.name).action_all_student_projects(action)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -712,6 +784,7 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
+                    {@render_allow_any_collaborators()}
                 </Col>
             </Row>
         </div>

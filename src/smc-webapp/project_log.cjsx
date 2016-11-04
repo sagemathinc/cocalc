@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -458,7 +458,6 @@ exports.ProjectLog = rclass ({name}) ->
             cursor = undefined
             selected = undefined
 
-        window.user_map = @props.user_map
         <Panel>
             <Row>
                 <Col sm=4>

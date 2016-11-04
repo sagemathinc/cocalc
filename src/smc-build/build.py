@@ -464,6 +464,7 @@ class BuildSage(object):
         Do everything to patch/update/install/enhance this Sage install.
         """
         actions = [
+            "clean_PATH",
             #"pull_smc_sage", # broken
             #"unextend_sys_path",
             "patch_sage_location",
@@ -515,6 +516,17 @@ class BuildSage(object):
             self.fix_permissions()
 
         #install_ipython_patch()  # must be done manually still
+
+    def clean_PATH(self):
+        """
+        Building anything in Sage shouldn't accidentally use anything that's in a home dir like /home/salvus.
+
+        E.g. there was a problem with R, where it did pick up some executable from ~/node_modules/.bin which are
+        not available in prod.
+        """
+        import os
+        PATH = os.environ['PATH']
+        os.environ['PATH'] = ':'.join(filter(lambda _ : not _.startswith('/home/'), PATH.split(':')))
 
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel

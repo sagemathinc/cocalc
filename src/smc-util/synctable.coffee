@@ -1,5 +1,5 @@
 ###
-SageMathCloud, Copyright (C) 2015, William Stein
+SageMathCloud, Copyright (C) 2016, Sagemath Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -210,6 +210,7 @@ class SyncTable extends EventEmitter
 
         @_client.on('disconnected', disconnected)
         @_client_listeners.disconnected = disconnected
+        # console.log "synctable.SyncTable EventListeners.listenerCount('disconnected')", @_client.listenerCount('disconnected')
 
         return
 

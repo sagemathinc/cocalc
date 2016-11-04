@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -32,6 +32,8 @@ immutable = require('immutable')
 # Register the actions
 class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
+        if not account_id?
+            return
         salvus_client.get_usernames
             account_ids : [account_id]
             use_cache   : false

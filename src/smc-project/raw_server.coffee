@@ -45,7 +45,7 @@ exports.start_raw_server = (opts) ->
                             winston.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            if port?
+            if port  # 0 or undefined
                 cb()
             else
                 misc_node.free_port (err, _port) ->

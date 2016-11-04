@@ -5,7 +5,7 @@
 ##################################################################################
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -2064,6 +2064,23 @@ sh.jupyter_kernel = None
 
 # use jupyter kernel for GNU octave instead of sage interpreter interface
 def octave(code=None,**kwargs):
+    r"""
+    Run GNU Octave code in a sage worksheet.
+
+    INPUT:
+
+    - ``code`` -- a string containing code
+
+    Use as a decorator. For example, put this in a cell and evaluate it::
+
+        %octave
+        x = -10:0.1:10;
+        plot (x, sin (x))
+
+    .. note::
+
+        SMC %octave mode uses the jupyter `octave` kernel.
+    """
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
     return octave.jupyter_kernel(code,**kwargs)
@@ -2071,8 +2088,28 @@ octave.jupyter_kernel = None
 
 # jupyter kernel for %ir mode
 def r(code=None,**kwargs):
+    r"""
+    Run R code in a sage worksheet.
+
+    INPUT:
+
+    - ``code`` -- a string containing code
+
+    Use as a decorator. For example, put this in a cell and evaluate it to see a scatter plot
+    of built-in mtcars dataframe variables `mpg` vs `wt`::
+
+        %r
+        with(mtcars,plot(wt,mpg))
+
+    .. note::
+
+        SMC %r mode uses the jupyter `ir` kernel.
+    """
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
+        r.jupyter_kernel('options(repr.plot.res = 240)')
+        #r.jupyter_kernel.smc_image_scaling = .5
+        r.jupyter_kernel.sage_img_style = "width: 50%; height: 50%;"
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 

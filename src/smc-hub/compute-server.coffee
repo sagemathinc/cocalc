@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ fs          = require('fs')
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
-daemon      = require('start-stop-daemon')
 
 uuid        = require('node-uuid')
 
@@ -1267,6 +1266,7 @@ main = () ->
         if exists
             fs.chmod(CONF, 0o700)     # just in case...
 
+    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
 if program._name.split('.')[0] == 'compute'

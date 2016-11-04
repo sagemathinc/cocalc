@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,13 +19,14 @@
 #
 ###############################################################################
 
-# Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
-if not navigator.cookieEnabled
-    require('./smc-react').redux.getActions('page').show_cookie_warning()
+if navigator?
+    # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
+    if not navigator.cookieEnabled
+        require('./smc-react').redux.getActions('page').show_cookie_warning()
 
-# Check for local storage
-if not require('smc-util/misc').has_local_storage()
-    require('./smc-react').redux.getActions('page').show_local_storage_warning()
+    # Check for local storage
+    if not require('smc-util/misc').has_local_storage()
+        require('./smc-react').redux.getActions('page').show_local_storage_warning()
 
 ####################################################
 #
@@ -36,11 +37,11 @@ if not require('smc-util/misc').has_local_storage()
 $ = window.$
 
 isMobile = exports.isMobile =
-    Android    : () -> !! navigator.userAgent.match(/Android/i)
-    BlackBerry : () -> !! navigator.userAgent.match(/BlackBerry/i)
-    iOS        : () -> !! navigator.userAgent.match(/iPhone|iPad|iPod/i)
-    Windows    : () -> !! navigator.userAgent.match(/IEMobile/i)
-    tablet     : () -> !! navigator.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
+    Android    : () -> !! navigator?.userAgent.match(/Android/i)
+    BlackBerry : () -> !! navigator?.userAgent.match(/BlackBerry/i)
+    iOS        : () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
+    Windows    : () -> !! navigator?.userAgent.match(/IEMobile/i)
+    tablet     : () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator.userAgent.match(/Tablet/i)
     any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
 if not $?
@@ -50,7 +51,7 @@ if not $?
 if not $.browser?
     $.browser = {}
 
-user_agent = navigator.userAgent.toLowerCase()
+user_agent = navigator?.userAgent.toLowerCase()
 
 $.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
@@ -59,7 +60,7 @@ exports.IS_MOBILE = exports.isMobile.any()
 if $.browser.chrome
     $(".salvus-chrome-only").show()
 
-$.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0
+$.browser.opera   = (!!window.opr && !!opr.addons) || !!window.opera || navigator?.userAgent.indexOf(' OPR/') >= 0
 $.browser.firefox = not $.browser.chrome and user_agent.indexOf('firefox') > 0
 $.browser.safari  = not $.browser.chrome and user_agent.indexOf('safari') > 0
 $.browser.ie      = not $.browser.chrome and user_agent.indexOf('windows') > 0
@@ -83,3 +84,7 @@ exports.get_mobile = () ->
 exports.is_responsive_mode = () ->
     return $(".salvus-responsive-mode-test").width() < 768
 
+# DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
+# You can use DEBUG anywhere in the webapp code!
+if DEBUG
+    console.log "DEBUG MODE:", DEBUG

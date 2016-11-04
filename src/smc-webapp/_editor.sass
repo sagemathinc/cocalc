@@ -142,7 +142,10 @@
   background-color : #eee
   overflow-x       : auto
   overflow-y       : scroll
-  border-left      : 2px solid #ddd
+
+.salvus-editor-pdf-preview-page-single
+  text-align       : center
+  min-height       : 3em
 
 .salvus-editor-pdf-preview-image
   margin           : 1em
@@ -175,6 +178,7 @@
 .salvus-editor-pdf-preview-buttons
   position     : absolute
   margin-right : 1em
+  padding-top  : 2px
   right        : 0
   font-size    : 11pt
 
@@ -562,31 +566,22 @@ code
 .salvus-editor-resize-bar-layout-1
   height     : 6px
   cursor     : ns-resize
-  background : #efefef
+  background : #ccc
   &:hover
-    background : #ddd
+    background : #999
 
-.salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar
+.salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
   cursor     : ew-resize
-  background : #efefef
+  background : #ccc
   width      : 6px
   &:hover
-    background : #ddd
-
-.salvus-editor-resize-bar-layout-2, .salvus-editor-html-md-resize-bar
-  cursor     : ew-resize
-  background : #efefef
-  width      : 6px
-  &:hover
-    background : #ddd
+    background : #999
 
 .salvus-editor-html-md-preview
-  border     : 1px solid lightgrey
   padding    : 12px
   background : white
   position   : absolute
   overflow   : auto
-  margin-top : -10px   // horrible temporary hack
 
 .smc-html-selection
   background-color : lightgrey

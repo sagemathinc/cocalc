@@ -86,10 +86,7 @@ exports.initialize = (path, redux, project_id, is_public) ->
 exports.generate = (path, redux, project_id, is_public) ->
     is_public = !!is_public
     ext = filename_extension(path).toLowerCase()
-    e = file_editors[is_public][ext]
-    if not e?
-        # fallback
-        e = file_editors[is_public]['']
+    e = file_editors[is_public][ext] ? file_editors[is_public]['']
     generator = e.generator
     if generator?
         return generator(path, redux, project_id)

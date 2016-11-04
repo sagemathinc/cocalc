@@ -90,6 +90,7 @@ glob          = require('glob')
 child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
+program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
 
@@ -105,6 +106,7 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 date          = new Date()
@@ -114,10 +116,13 @@ GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
+
+# output build environment variables of webpack
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
+console.log "DEBUG            = #{DEBUG}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
@@ -126,10 +131,11 @@ console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
 MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
-console.log "MATHJAX_URL  = #{MATHJAX_URL}"
-console.log "MATHJAX_ROOT = #{MATHJAX_ROOT}"
-console.log "MATHJAX_LIB  = #{MATHJAX_LIB}"
+console.log "MATHJAX_URL      = #{MATHJAX_URL}"
+console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
+console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
+# adds a banner to each compiled and minified source .js file
 banner = new webpack.BannerPlugin(
                         """\
                         This file is part of #{TITLE}.
@@ -307,6 +313,7 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'SMC_GIT_REV' : JSON.stringify(GIT_REV)
                                 'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'    : JSON.stringify(BUILD_TS)
+                                'DEBUG'       : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
@@ -362,7 +369,8 @@ if PRODMODE
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     plugins.push new webpack.optimize.DedupePlugin()
     plugins.push new webpack.optimize.OccurenceOrderPlugin()
-    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
+    # TODO change this back to a number at about 10, once we know how to keep old chunks around
+    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 1)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
     # to get source maps working in production mode, one has to figure out how
     # to get inSourceMap/outSourceMap working here.

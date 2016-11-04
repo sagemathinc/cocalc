@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2015, 2016 William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Gener@al Public License as published by
@@ -135,11 +135,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
 
-        height_resize = () =>
-            chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
-            side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-        $(window).on("resize", height_resize)
-
     hide_chat_window: () =>
         # HIDE the chat window
         @editor._chat_is_hidden = true
@@ -206,6 +201,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @_syncstring.once 'init', =>
             @emit('connect')   # successful connection
             @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
+                @_fully_loaded = true
                 opts.cb(err, @)
 
         @_syncstring.on 'change', => # only when change is external
@@ -233,6 +229,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         cb?()
 
     _save: (cb) =>
+        if not @_fully_loaded
+            cb?()
+            return
         async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     save: (cb) =>
@@ -282,8 +281,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
 
-        ## window.cm = @  ## DEBUGGING
-
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -297,13 +294,18 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm.undo = @undo
             cm.redo = @redo
 
-        @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users = redux.getStore('users')  # TODO -- obviously not like this...
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+
+        if @filename[0] == '/'
+            # uses symlink to '/', which is created by start_smc
+            @filename = '.smc/root' + @filename
+
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = salvus_client.sync_string
             id         : id
@@ -326,7 +328,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         @_syncstring.once 'init', (err) =>
             if err
-                window.err = err
                 if err.code == 'EACCES'
                     err = "You do not have permission to read '#{@filename}'."
                 @editor.show_startup_message(err, 'danger')
@@ -335,6 +336,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_syncstring.wait_until_read_only_known (err) =>
                 @editor.show_content()
                 @editor._set(@_syncstring.get())
+                @_fully_loaded = true
                 @codemirror.setOption('readOnly', false)
                 @codemirror1.setOption('readOnly', false)
                 @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
@@ -428,10 +430,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
     undo: () =>
         if not @codemirror?
             return
+        cm = @focused_codemirror()  # see https://github.com/sagemathinc/smc/issues/1161
         if not @_syncstring.in_undo_mode()
-            @_syncstring.set(@codemirror.getValue())
+            @_syncstring.set(cm.getValue())
         value = @_syncstring.undo()
-        @codemirror.setValueNoJump(value, true)
+        cm.setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
@@ -442,7 +445,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if not @_syncstring.in_undo_mode()
             return
         value = @_syncstring.redo()
-        @codemirror.setValueNoJump(value, true)
+        @focused_codemirror().setValueNoJump(value, true)
         @save_state_debounce()
         @_last_change_time = new Date()
 
@@ -451,8 +454,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
 
     _save: (cb) =>
-        if not @codemirror?
-            cb() # nothing to do -- not initialized yet...
+        if not @codemirror? or not @_fully_loaded
+            cb() # nothing to do -- not initialized/loaded yet...
             return
         @_syncstring.set(@codemirror.getValue())
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
