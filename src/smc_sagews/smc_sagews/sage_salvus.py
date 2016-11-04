@@ -2083,6 +2083,7 @@ def octave(code=None,**kwargs):
     """
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
+        octave.jupyter_kernel.smc_image_scaling = .66
     return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
