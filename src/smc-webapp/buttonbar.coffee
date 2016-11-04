@@ -1066,6 +1066,8 @@ exports.commands =
                      """
         mode_md:
             insert : "%md"
+        mode_octave:
+            insert : "%octave"
         mode_python:
             insert : "%python"
         mode_r:
@@ -1524,8 +1526,10 @@ initialize_sage_python_r_toolbar = () ->
             ["Julia", "#mode_julia"],
             ["Jupyter bridge", "#mode_jupyter_bridge"],
             ["Markdown", "#mode_md"],
+            ["Octave", "#mode_octave"],
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
+            ["Shell", "#mode_sh"],
 
         ]]
     add_menu(system_bar, mode_list)
