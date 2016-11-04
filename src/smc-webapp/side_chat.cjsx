@@ -172,12 +172,12 @@ Message = rclass
         @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown : (e) ->
-        if e.keyCode==27 # ESC
+        if e.keyCode == 27 # ESC
             e.preventDefault()
             @setState
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
-        else if e.keyCode==13 and e.shiftKey # 13: enter key
+        else if e.keyCode==13 and e.shiftKey # shift+enter
             mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
             if mesg != newest_content(@props.message)
                 @props.actions.send_edit(@props.message, mesg)
@@ -387,15 +387,15 @@ ChatRoom = rclass ({name}) ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
     on_keydown : (e) ->
-        # TODO: Add timeout component to is_typing
-        if e.keyCode==13 and e.shiftKey # 13: enter key
-            send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
-        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
-            # Up arrow on an empty input
+        if e.keyCode == 27  # ESC
+            @props.actions.set_input('')
+        else if e.keyCode == 13 and e.shiftKey # shift + enter
+            @button_send_chat(e)
+        else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
 
     button_send_chat: (e) ->
-        send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
+        send_chat(e, @refs.log_container, @props.input, @props.actions)
 
     on_scroll: (e) ->
         @props.actions.set_use_saved_position(true)
@@ -435,7 +435,7 @@ ChatRoom = rclass ({name}) ->
                     focus_end    = {focus_endpoint}
                     show_heads   = {false} />
             </div>
-            <div style={marginTop:'auto', height:'6em', display:'flex'}>
+            <div style={marginTop:'auto', height:'6em', display:'flex', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <FormControl
                     style          = {width:'85%', height:'100%'}
                     autoFocus      = {true}
@@ -445,7 +445,7 @@ ChatRoom = rclass ({name}) ->
                     value          = {@props.input}
                     placeholder    = {'Type a message, then shift+enter...'}
                     onClick        = {@mark_as_read}
-                    onChange       = {(e)=>@props.actions.set_input(e.target.value)}
+                    onChange       = {(e) => @props.actions.set_input(e.target.value)}
                     onFocus        = {focus_endpoint}
                 />
                 <Button

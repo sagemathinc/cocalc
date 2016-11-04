@@ -793,17 +793,21 @@ ChatRoom = rclass ({name}) ->
 
 ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)
-    C_ChatRoom = ({path, actions, project_id, redux}) ->
-        file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+    C_ChatRoom = ({actions}) ->
         <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
-            <ChatRoom redux={redux} path={path} name={name} actions={actions} project_id={project_id} file_use_id={file_use_id} />
+            <ChatRoom
+                redux       = {redux}
+                path        = {path}
+                name        = {name}
+                actions     = {actions}
+                project_id  = {project_id}
+                file_use_id = {file_use_id}
+                />
         </div>
 
     C_ChatRoom.propTypes =
-        redux      : rtypes.object
-        path       : rtypes.string.isRequired
-        actions    : rtypes.object.isRequired
-        project_id : rtypes.string.isRequired
+        actions : rtypes.object.isRequired
 
     return C_ChatRoom
 

@@ -340,7 +340,7 @@ ProjectMainContent = rclass
                     {editor}
                 </div>
         # Finally render it
-        <div style={position:'relative'}>
+        <div style={position:'relative', height:0, flex:1}>
             {chat_toggle}
             {content}
         </div>
