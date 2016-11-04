@@ -21,7 +21,7 @@ project_file = require('./project_file')
 {file_associations} = require('./editor')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Icon, Tip, SAGE_LOGO_COLOR, Loading} = require('./r_misc')
+{Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
 
 misc = require('misc')
 
@@ -240,54 +240,115 @@ fixed_project_pages =
         tooltip   : 'Project settings and controls'
         is_public : false
 
+CHAT_TOGGLE_STYLE =
+    fontSize     : '14pt'
+    position     : 'absolute'
+    top          : '3px'
+    right        : '3px'
+    zIndex       : 10
+    boxShadow    : '2px 2px 2px 2px #ccc'
+    background   : '#fafafa'
+    borderRadius : '3px'
+    paddingLeft  : '5px'
+    paddingRight : '5px'
+
 # Children must define their own padding from navbar and screen borders
-ProjectMainContent = ({project_id, project_name, active_tab_name, group, open_files}) ->
-    switch active_tab_name
-        when 'files'
-            return <ProjectFiles name={project_name} project_id={project_id} />
-        when 'new'
-            return <ProjectNew name={project_name} project_id={project_id} />
-        when 'log'
-            return <ProjectLog name={project_name} />
-        when 'search'
-            return <ProjectSearch name={project_name} />
-        when 'settings'
-            return <ProjectSettings project_id={project_id} name={project_name} group={group} />
+ProjectMainContent = rclass
+    propTypes :
+        project_id      : rtypes.string.isRequired
+        project_name    : rtypes.string.isRequired
+        open_files      : rtypes.object
+        active_tab_name : rtypes.string
+        group           : rtypes.string
+
+    toggle_chat: (set_open, path) ->
+        a = redux.getProjectActions(@props.project_id)
+        if set_open
+            a.open_chat({path:path})
         else
-            active_path = misc.tab_to_path(active_tab_name)
-            {Editor, redux_name} = open_files.getIn([active_path, 'component']) ? {}
-            if not Editor?
-                return <Loading />
-            else
-                is_chat_open = open_files.getIn([active_path, 'is_chat_open'])
-                console.log active_path, "is_chat_open =", is_chat_open
-                editor = <Editor
-                        name         = {redux_name}
-                        path         = {active_path}
-                        project_id   = {project_id}
-                        redux        = {redux}
-                        actions      = {if redux_name? then redux.getActions(redux_name)}
-                        project_name = {project_name}
-                    />
-                if is_chat_open
-                    # 2 column layout with chat
-                    <div style={display:'flex', height:'100%'}>
-                        <div style={width:'75%', border:'1px solid lightgrey'}>
-                            {editor}
-                        </div>
-                        <div style={width:'25%', border:'1px solid lightgrey'}>
-                            <SideChat
-                                path       = {misc.meta_file(active_path, 'chat')}
-                                redux      = {redux}
-                                project_id = {project_id}
-                                />
-                        </div>
-                    </div>
-                else
-                    # just the editor
-                    <div style={height:'100%', border:'1px solid lightgrey'}>
+            a.close_chat({path:path})
+
+    render_chat_toggle : (is_chat_open, path) ->
+        action = if is_chat_open then 'Hide' else 'Show'
+        <div style={CHAT_TOGGLE_STYLE}>
+            <Tip title="#{action} chat" tip="#{action} the chat column for this file." placement='left' delayShow=1500>
+                <div style={cursor:'pointer'} onClick={=>@toggle_chat(not is_chat_open, path)} >
+                    <Icon name="caret-#{if is_chat_open then 'down' else 'left'}"/>
+                    <Space />
+                    <Icon name='comment'/>
+                </div>
+            </Tip>
+        </div>
+
+    render_editor: (path) ->
+        {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
+        if not Editor?
+            <Loading />
+        else
+            <Editor
+                name         = {redux_name}
+                path         = {@props.active_path}
+                project_id   = {@props.project_id}
+                redux        = {redux}
+                actions      = {if redux_name? then redux.getActions(redux_name)}
+                project_name = {@props.project_name}
+            />
+
+    render_side_chat: (path) ->
+        <SideChat
+            path       = {misc.meta_file(path, 'chat')}
+            redux      = {redux}
+            project_id = {@props.project_id}
+            />
+
+    render_editor_tab: ->
+        path         = misc.tab_to_path(@props.active_tab_name)
+        editor       = @render_editor(path)
+        is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+        chat_toggle  = @render_chat_toggle(is_chat_open, path)
+
+        if is_chat_open
+            # 2 column layout with chat
+            content =\
+                <div style={display:'flex', height:'100%'}>
+                    <div style={width:'75%', border:'1px solid lightgrey'}>
                         {editor}
                     </div>
+                    <div style={width:'25%', border:'1px solid lightgrey'}>
+                        {@render_side_chat(path)}
+                    </div>
+                </div>
+        else
+            # just the editor
+            content =\
+                <div style={height:'100%', border:'1px solid lightgrey'}>
+                    {editor}
+                </div>
+        # Finally render it
+        <div style={position:'relative'}>
+            {chat_toggle}
+            {content}
+        </div>
+
+    render : ->
+        switch @props.active_tab_name
+            when 'files'
+                <ProjectFiles name={@props.project_name} project_id={@props.project_id} />
+            when 'new'
+                <ProjectNew name={@props.project_name} project_id={@props.project_id} />
+            when 'log'
+                <ProjectLog name={@props.project_name} />
+            when 'search'
+                <ProjectSearch name={@props.project_name} />
+            when 'settings'
+                <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
+            else
+                if not @props.open_files? or not @props.active_tab_name?
+                    <Loading />
+                else
+                    @render_editor_tab()
+
+
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'
