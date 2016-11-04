@@ -232,7 +232,7 @@ class ProjectActions extends Actions
             cb : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
-                    # (It *should* keep trying and store that in localStore, and try next time, etc...
+                    # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err)
 
@@ -265,7 +265,11 @@ class ProjectActions extends Actions
             path               : required
             foreground         : true      # display in foreground as soon as possible
             foreground_project : true
-            chat               : false
+            chat               : undefined
+
+        # grab chat state from local storage
+        opts.chat ?= require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open')
+
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
@@ -371,12 +375,14 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
+        require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open
     close_chat: (opts) =>
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, false)
+        require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', false)
 
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
