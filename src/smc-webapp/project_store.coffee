@@ -855,6 +855,19 @@ class ProjectActions extends Actions
                         files  : opts.paths[0...3]
                         count  : if opts.paths.length > 3 then opts.paths.length
 
+    file_nonzero : (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
+        f = misc.path_split(opts.path)
+        salvus_client.exec
+            project_id  : @project_id
+            command     : 'test'
+            args        : ['-s', f.tail]
+            path        : f.head
+            err_on_exit : true
+            cb          : (err) ->
+                opts.cb?(err)
 
     download_file : (opts) =>
         {download_file} = require('./misc_page')

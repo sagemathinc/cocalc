@@ -1311,27 +1311,26 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    salvus_client.exec
-                        project_id  : @project_id
-                        command     : 'test'
-                        args        : ['-s', pdf]
-                        err_on_exit : true
-                        cb         : (err, mesg) =>
+                    redux.getProjectActions(@project_id).file_nonzero
+                        path    : pdf
+                        cb      : (err) =>
                             if err
-                                cb('Unable to convert file to PDF')
+                                cb('Unable to convert file to PDF. ' +
+                                   "Enable 'Keep generated files in a sub-directory...' and check for Latex errors.")
                             else
-                                url = pdf + "?nocache=#{Math.random()}"
+                                url = salvus_client.read_file_from_project
+                                    project_id  : @project_id
+                                    path        : pdf
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 if is_subdir
                                     {join} = require('path')
                                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                                     # if not reading it, tmp.tex is blank (?)
-                                    salvus_client.read_file_from_project
-                                        project_id : @project_id
-                                        path       : subdir_texfile
-                                        cb         : (err, mesg) =>
+                                    redux.getProjectActions(@project_id).file_nonzero
+                                        path    : subdir_texfile
+                                        cb      : (err) =>
                                             if err
-                                                cb(err)
+                                                cb('Unable to create directory of temporary Latex files.')
                                             else
                                                 tempdir_link = $('<a>').text('Click to open temporary file')
                                                 tempdir_link.click =>
@@ -1342,9 +1341,12 @@ class CodeMirrorEditor extends FileEditor
                                                     return false
                                                 $print_tempdir.html(tempdir_link)
                                                 $print_tempdir.show()
+                                                cb()
                                 else
-                                    window.open(url, '_blank')
-                                cb()
+                                    redux.getProjectActions(@project_id).download_file
+                                        path : pdf
+                                        print: true
+                                    cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()

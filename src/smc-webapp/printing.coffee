@@ -40,14 +40,9 @@ class Printer
 
     show_print_new_tab : (cb) ->
         # if the output file exists and has nonzero size, we open it in a new tab and print it
-        outfile = misc.path_split(@output_file)
-        salvus_client.exec
-            project_id  : @editor.project_id
-            command     : 'test'
-            args        : ['-s', outfile.tail]
-            path        : outfile.head
-            err_on_exit : true
-            cb          : (err, mesg) =>
+        redux.getProjectActions(@editor.project_id).file_nonzero
+            path        : @output_file
+            cb          : (err) =>
                 if err
                     cb?('Unable to convert file to PDF')
                 else
