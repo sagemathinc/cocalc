@@ -15,8 +15,8 @@ spec:
       run: smc-hub
   strategy:
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
+      maxSurge: 3
+      maxUnavailable: 3
     type: RollingUpdate
   template:
     metadata:
@@ -37,16 +37,16 @@ spec:
             path: /concurrent-warn
             port: 5000
             scheme: HTTP
-          initialDelaySeconds: 70  # can have a lot of concurrents right when starting
+          initialDelaySeconds: 30  # can have a lot of concurrents when starting
           timeoutSeconds: 5        # should very quickly return
-          failureThreshold: 5      # quick bursts of high concurrents are normal, so we don't kill until many fails
+          failureThreshold: 2
         resources:
           requests:
             cpu: {hub_cpu_request}
             memory: {hub_memory_request}
           limits:
-            cpu: "1"
-            memory: 2Gi
+            cpu: 1
+            memory: 3Gi
         volumeMounts:
         - name: secret-rethinkdb
           mountPath: /secrets/rethinkdb/
@@ -91,14 +91,9 @@ spec:
             cpu: {rethink_cpu_request}
             memory: {rethink_memory_request}
           limits:
-            cpu: "2000m"
-            memory: "2000Mi"
-      volumes:
-        - name: secret-rethinkdb
-          secret:
-            secretName: rethinkdb-password
-
-
+            cpu: 2
+            memory: 4Gi
+      terminationGracePeriodSeconds: 1
       volumes:
         - name: secret-rethinkdb
           secret:

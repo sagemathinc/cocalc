@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+set -v
+git pull
+make build-full 
+docker tag smc:latest sagemathinc/sagemathcloud 
+docker push  sagemathinc/sagemathcloud

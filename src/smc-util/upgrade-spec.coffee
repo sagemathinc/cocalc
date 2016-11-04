@@ -2,11 +2,17 @@
 Define upgrades to projects.
 ###
 
+# NOTE: This script ./upgrade-spec.coffee is copied into the Docker container
+# in k8s/smc-project/manager/, so if you move or rename this script, you must
+# also update that.
+
 upgrades = exports.upgrades = {}
 
 # these are the base quotas
 exports.DEFAULT_QUOTAS =
     disk_quota  : 3000
+    req_cores   : 0.01
+    req_memory  : 160
     cores       : 1
     memory      : 1000
     cpu_shares  : 256
@@ -16,6 +22,8 @@ exports.DEFAULT_QUOTAS =
 
 upgrades.max_per_project =
     disk_quota : 50000
+    req_cores  : 1
+    req_memory : 4000
     memory     : 8000
     cores      : 4
     network    : 1

@@ -15,4 +15,10 @@ In any project, just do this:
     cd smc/src/smc_sagews
     smc-sage-server restart
 
-Then on a sage worksheet that you are using, click the restart button.  It should be using your own custom copy of the smc_sagews server.   To confirm, type `sage_server?` and look at the path of the file.
+Then on a sage worksheet that you are using, click the restart button.
+It should be using your own custom copy of the smc_sagews server.
+To confirm, type `sage_server?` and look at the path of the file.
+
+## Testing
+
+See smc_sagews/tests/README.md

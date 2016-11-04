@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ To mark a file as read:
 
 ###
 
+$ = window.$
 
 # Magic constants:
 
@@ -62,9 +63,6 @@ editor = require('./editor')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
 
-
-_global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
-
 class FileUseActions extends Actions
     record_error: (err) =>
         # Record in the store that an error occured as a result of some action
@@ -73,6 +71,7 @@ class FileUseActions extends Actions
             err = misc.to_json(err)
         @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:salvus_client.server_time(), err:err})))
 
+    # OPTIMIZATION: This updates and rerenders for each item. Change to doing it in a batch.
     mark_all: (action) =>
         if action == 'read'
             v = @redux.getStore('file_use').get_all_unread()
@@ -85,9 +84,9 @@ class FileUseActions extends Actions
             @mark_file(x.project_id, x.path, action, 0, false)
 
     mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
+        # console.log('mark_file', project_id, path, action)
         if fix_path
             path = misc.original_path(path)
-        #console.log("mark_file: '#{project_id}'   '#{path}'   '#{action}'")
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
@@ -251,6 +250,7 @@ class FileUseStore extends Store
             sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
             notify_count                   : (x for x in v when x.notify).length
+        require('browser').set_window_title()
         return v
 
     # See above for the definition of unread and unseen.
@@ -273,6 +273,7 @@ open_file_use_entry = (info, redux) ->
         return
     # mark this file_use entry read
     redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
+    redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.
@@ -326,9 +327,13 @@ FileUse = rclass
         open_file_use_entry(@info, @props.redux)
 
     render_path : ->
+        {name, ext} = misc.separate_file_extension(@info.path)
+        name = misc.trunc_middle(name, TRUNCATE_LENGTH)
+        ext  = misc.trunc_middle(ext, TRUNCATE_LENGTH)
         #  style={if @info.is_unread then {fontWeight:'bold'}}
-        <span key='path' style={fontWeight:'bold'}>
-            {misc.trunc_middle(@info.path, TRUNCATE_LENGTH)}
+        <span>
+            <span style={fontWeight: if @info.is_unread then 'bold' else 'normal'}>{name}</span>
+            <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
         </span>
 
     render_project : ->
@@ -393,11 +398,12 @@ FileUseViewer = rclass
     render_search_box : ->
         <span key='search_box' className='smc-file-use-notifications-search' >
             <SearchInput
+                autoFocus     = {true}
                 placeholder   = "Search..."
                 default_value = {@state.search}
                 on_change     = {(value)=>@setState(search:value, cursor:0, show_all:false)}
                 on_submit     = {@open_selected}
-                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0, show_all:false)}
+                on_escape     = {(before)=>if not before then @actions('page').toggle_show_file_use();@setState(cursor:0, show_all:false)}
                 on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
                 on_down       = {=>@setState(cursor: Math.max(0, Math.min((@_visible_list?.length ? 0)-1, @state.cursor+1)))}
             />
@@ -405,13 +411,12 @@ FileUseViewer = rclass
 
     render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.redux.getActions('file_use').mark_all('read'); hide_notification_list()}>
+            onClick={=>@props.redux.getActions('file_use').mark_all('read'); @actions('page').toggle_show_file_use()}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 
     open_selected: ->
         open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.redux)
-        hide_notification_list()
 
     render_list : ->
         v = @props.file_use_list.toArray()
@@ -448,7 +453,7 @@ FileUseViewer = rclass
         </div>
 
     render : ->
-        <div>
+        <div className={"smc-file-use-viewer"}>
             <Row key='top'>
                 <Col sm=8>
                     {@render_search_box()}
@@ -475,12 +480,13 @@ FileIcon = rclass
         <Icon name={editor.file_icon_class(ext).slice(3)} />
 
 
-FileUseController = rclass
+exports.FileUsePage = FileUseController = rclass
     displayName : 'FileUseController'
 
     reduxProps :
         file_use :
             file_use    : rtypes.immutable
+            get_sorted_file_use_list2 : rtypes.func
         users :
             user_map    : rtypes.immutable
         projects :
@@ -489,6 +495,13 @@ FileUseController = rclass
     propTypes :
         redux : rtypes.object
 
+    componentDidMount : () ->
+        setTimeout((()=>@actions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
+        $(document).on("click", notification_list_click_handler)
+
+    componentWillUnmount : () ->
+        $(document).off("click", notification_list_click_handler)
+
     render : ->
         account_id = @props.redux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.redux? or not @props.user_map? or not @props.project_map? or not account_id?
@@ -496,104 +509,24 @@ FileUseController = rclass
                 return <LoginLink />
             else
                 return <Loading/>
-        file_use_list = @props.redux.getStore('file_use').get_sorted_file_use_list2()
+        file_use_list = @props.get_sorted_file_use_list2()
         <FileUseViewer redux={@props.redux} file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
 
-render = (redux) ->
-    <Redux redux={redux}>
-        <FileUseController redux={redux} />
-    </Redux>
+notification_list_click_handler = (e) ->
+    e.preventDefault()
+    target = $(e.target)
+    if target.parents('.smc-file-use-viewer').length or target.hasClass('btn') or target.parents('button').length or target.parents('a').attr('role') == 'button' or target.attr('role') == 'button'
+        return
+    # timeout is to give plenty of time for the click to register with react's event handler, so fiee opens
+    setTimeout(redux.getActions('page').toggle_show_file_use, 100)
 
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
         redux.createActions('file_use', FileUseActions)
         store = redux.createStore('file_use', FileUseStore, {})
         redux.createTable('file_use', FileUseTable)
-        store.on 'change', ->
-            update_global_notify_count(store.get_notify_count())
-
-render_file_use = (redux, dom_node) ->
-    ReactDOM.render(render(redux), dom_node)
-
-unmount = (dom_node) ->
-    #console.log("unmount file_use")
-    ReactDOM.unmountComponentAtNode(notification_list[0])
-
-# WARNING: temporary jquery spaghetti below
-# For now hook in this way -- obviously this breaks isomorphic encapsulation, etc...
-$('body').append($('<div class="salvus-notification-list hide"></div>'))
-notification_indicator = $(".salvus-notification-indicator")
-notification_indicator.show()
-notification_list = $(".salvus-notification-list")
-notification_list_is_hidden = true
-notification_count = $(".salvus-notification-unseen-count")
-
-resize_notification_list = () ->
-    if not notification_list.is(":visible")
-        return
-    notification_list.removeAttr('style')  # gets rid of the custom height from before
-    max_height = $(window).height() - 50
-    if notification_list.height() > max_height
-        notification_list.height(max_height)
-    # hack since on some browser scrollbar looks wrong otherwise.
-    notification_list.hide()
-    notification_list.show()
-
-notification_list_click = (e) ->
-    e.preventDefault()
-    target = $(e.target)
-    if target.parents('.smc-file-use-notifications-search').length or target.hasClass('btn') or target.parents('button').length
-        return
-    # timeout is to give plenty of time for the click to register with react's event handler, so fiee opens
-    setTimeout(hide_notification_list, 100)
-    notification_list_is_hidden = true
-
-unbind_handlers = () ->
-    $(document).unbind('click', notification_list_click)
-    $(window).unbind('resize', resize_notification_list)
-
-hide_notification_list = ->
-    notification_indicator.parent().removeClass('active')
-    notification_list.hide()
-    unbind_handlers()
-    unmount(notification_list[0])
-
-key_handlers = []
-unset_key_handlers = ->  # horrible temporary hack used by tasks list for now -- again React/Stores should fix this.
-    for f in key_handlers
-        f()
-
-exports.add_unset_key_handler = (f) -> key_handlers.push(f)
-
-show_notification_list = ->
-    notification_indicator.parent().addClass('active')
-    render_file_use(redux, notification_list[0])
-    setTimeout((()=>redux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
-    notification_list.show()
-    $(document).click(notification_list_click)
-    $(window).resize(resize_notification_list)
-    unset_key_handlers()
-    notification_list.find("input").focus()
-    setTimeout(resize_notification_list, 1)
-
-notification_indicator.click () ->
-    if notification_list_is_hidden
-        show_notification_list()
-    else
-        hide_notification_list()
-    notification_list_is_hidden = not notification_list_is_hidden
-    return false
-
-require('./browser').set_notify_count_function(-> _global_notify_count)
-
-# update old jquery stuff (TODO: eliminate when finishing rewrite one level up)
-update_global_notify_count = (n) ->
-    _global_notify_count = n
-    if n == 0
-        notification_count.text('')
-    else
-        notification_count.text(n)
-    require('./browser').set_window_title()
 
 init_redux(redux)
 
+# Updates the browser's awareness of a notifcation
+require('./browser').set_notify_count_function(-> redux.getStore('file_use').get_notify_count())

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+
+# The following limit massively reduces the chances of a feedback-loop/race
+# condition bug causing the servers to get killed.   Clients may currently
+# just silently not open new docs if they hit the limit, which is bad.  However,
+# it's very unlikely somebody has 100 files open at once on purpose -- the browser
+# would likely die.  This is meant to prevent situations where a *bug* causes
+# thousands of changefeeds to get opened in a second.
+# If there were a better error, this could be a parameter that depends on
+# whether the user (or project) is paying or not.
+MAX_CHANGEFEEDS_PER_CLIENT = 4*100 # about 3-5 feeds per file right now
 
 fs         = require('fs')
 async      = require('async')
@@ -3098,19 +3108,38 @@ class RethinkDB
         if x?
             delete @_change_feeds[opts.id]
             @_user_query_stats.cancel_changefeed(changefeed_id: opts.id)
-            winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             f = (y, cb) ->
                 y?.close(cb)
             async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
+        winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
+
+        ## For serious low level debugging...
+        ##if @_change_feeds?
+        ##    winston.debug("current changefeed ids: #{misc.to_json(misc.keys(@_change_feeds))}")
+        ##    for id, v of @_change_feeds
+        ##        winston.debug("#{id}: #{misc.to_json(v[0]._smc_query)}")
+
+        # Also decrement count of changefeeds for given client
+        client_name = @_user_get_changefeed_id_to_user?[opts.id]
+        if client_name?
+            @_user_get_changefeed_counts[client_name] -= 1
+            delete @_user_get_changefeed_id_to_user[opts.id]
+            cnt = @_user_get_changefeed_counts
+            winston.debug("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+
 
     user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
             project_id : undefined
             query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!; can use [{set:true}] or [{set:false}] to force get or set query
+            options    : []         # used for initial query; **IGNORED** by changefeed!;
+                                    #  - Use [{set:true}] or [{set:false}] to force get or set query
+                                    #  - For a set query, use {delete:true} to delete instead of set.  This is the only way
+                                    #    to deleete a record, and won't work unless delete:true is set in the schema
+                                    #    for the table to explicitly allow deleting.
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         dbg = @dbg("user_query(...)")
@@ -3207,6 +3236,7 @@ class RethinkDB
                     project_id : opts.project_id
                     table      : table
                     query      : query
+                    options    : opts.options
                     cb         : (err, x) =>
                         if not err
                             on_success?()
@@ -3217,6 +3247,24 @@ class RethinkDB
                 if changes and not multi
                     opts.cb("changefeeds only implemented for multi-document queries")
                     return
+                if changes
+                    # Count the number of changefeeds by a given client so we can cap it.
+                    # This code is here rather than in @user_get_query (or elsewhere) to ensure
+                    # that the counter stays consistent.
+                    client_name = "#{opts.account_id}-#{opts.project_id}"
+                    cnt = @_user_get_changefeed_counts ?= {}
+                    ids = @_user_get_changefeed_id_to_user ?= {}
+                    if not cnt[client_name]?
+                        cnt[client_name] = 1
+                    else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
+                        opts.cb("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+                        return
+                    else
+                        # increment before successfully making it to prevent huge bursts causing trouble!
+                        cnt[client_name] += 1
+                    dbg("@_user_get_changefeed_counts={#{client_name}:#{cnt[client_name]} ...}")
+                    ids[changes.id] = client_name
+
                 @user_get_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -3225,7 +3273,10 @@ class RethinkDB
                     options    : options
                     multi      : multi
                     changes    : changes
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+                    cb         : (err, x) =>
+                        if err and changes
+                            cnt[client_name] -= 1  # didn't actually make the changefeed, so don't count it.
+                        opts.cb(err, {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
@@ -3366,6 +3417,8 @@ class RethinkDB
                         x = parseInt(value)
                         if x > 0
                             heartbeat = x
+                    when 'delete'
+                        # ignore here - is parsed elsewhere
                     else
                         err:"unknown option '#{name}'"
         return {db_query:db_query, err:err, limit:limit, heartbeat:heartbeat}
@@ -3394,6 +3447,7 @@ class RethinkDB
             project_id : undefined
             table      : required
             query      : required
+            options    : undefined     # {delete:true} is the only supported option
             cb         : required   # cb(err)
         if opts.project_id?
             dbg = @dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
@@ -3403,15 +3457,17 @@ class RethinkDB
             opts.cb("account_id or project_id must be specified")
             return
         dbg(to_json(opts.query))
+        if opts.options
+            dbg("options=#{misc.to_json(opts.options)}")
 
         @_user_query_stats.set_query
             account_id : opts.account_id
             project_id : opts.project_id
             table      : opts.table
 
-        query = misc.copy(opts.query)
-        table = opts.table
-        db_table = SCHEMA[opts.table].virtual ? table
+        query      = misc.copy(opts.query)
+        table      = opts.table
+        db_table   = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
         project_id = opts.project_id
 
@@ -3528,6 +3584,25 @@ class RethinkDB
         old_val = undefined
         #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
 
+        # set the query options -- order doesn't matter for set queries (unlike for get), so we
+        # just merge the options into a single dictionary.
+        # NOTE: As I write this, there is just one supported option: {delete:true}.
+        options = {}
+        if client_query.set.options?
+            for x in client_query.set.options
+                for y, z of x
+                    options[y] = z
+        if opts.options?
+            for x in opts.options
+                for y, z of x
+                    options[y] = z
+        dbg("options = #{misc.to_json(options)}")
+
+        if options.delete and not client_query.set.delete
+            # delete option is set, but deletes aren't explicitly allowed on this table.  ERROR.
+            opts.cb("delete from #{table} not allowed")
+            return
+
         async.series([
             (cb) =>
                 async.parallel([
@@ -3564,6 +3639,9 @@ class RethinkDB
                     cb()
             (cb) =>
                 if on_change_hook? or before_change_hook? or instead_of_change_hook?
+                    if not query[primary_key]?  # I noticed this in the log -- reql will flip on .get(undefined)
+                        cb("query must specify primary key '#{primary_key}'")
+                        return
                     # get the old value before changing it
                     @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
@@ -3577,6 +3655,12 @@ class RethinkDB
             (cb) =>
                 if instead_of_change_hook?
                     instead_of_change_hook(@, old_val, query, account_id, cb)
+                else if options.delete
+                    if query[primary_key]
+                        dbg("delete based on primary key")
+                        @table(db_table).get(query[primary_key]).delete().run(cb)
+                    else
+                        cb("delete query must set primary key")
                 else
                     @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
@@ -3778,7 +3862,11 @@ class RethinkDB
             table      : required
             query      : required
             multi      : required
-            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n}, which ensures that *something* is sent every n minutes, in case no changes are coming out of the changefeed. This is an additional measure in case the client somehow doesn't get a "this changefeed died" message.
+            options    : required   # used for initial query; **IGNORED** by changefeed, except for {heartbeat:n},
+                                    # which ensures that *something* is sent every n minutes, in case no
+                                    # changes are coming out of the changefeed. This is an additional
+                                    # measure in case the client somehow doesn't get a "this changefeed died" message.
+                                    # Use [{delete:true}] to instead delete the selected records (must have delete:true in schema).
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
@@ -3858,16 +3946,28 @@ class RethinkDB
         # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
+        delete_option = false  # will be true if an option is delete
+        user_options = {}
+        for x in opts.options
+            for y, z of x
+                if y == 'delete'
+                    delete_option = z
+                else
+                    user_options[y] = true
         if client_query.get.all?.options?
             # complicated since options is a list of {opt:val} !
-            user_options = {}
-            for x in opts.options
-                for y, z of x
-                    user_options[y] = true
             for x in client_query.get.all.options
                 for y, z of x
-                    if not user_options[y]
-                        opts.options.push(x)
+                    if y == 'delete'
+                        delete_option = z
+                    else
+                        if not user_options[y]
+                            opts.options.push(x)
+                            break
+
+        if opts.changes? and delete_option
+            opts.cb("user_get_query -- if opts.changes is specified, then delete option must not be specified")
+            return
 
         result = undefined
         table_name = SCHEMA[opts.table].virtual ? opts.table
@@ -4093,13 +4193,14 @@ class RethinkDB
                 if filter?
                     db_query = db_query.filter(filter)
 
-                # Parse the pluck part of the query
-                pluck   = @_query_to_field_selector(query)
-                db_query = db_query.pluck(pluck)
+                if not delete_option
+                    # Parse the pluck part of the query
+                    pluck   = @_query_to_field_selector(query)
+                    db_query = db_query.pluck(pluck)
 
-                # If not multi, limit to one result
-                if not opts.multi
-                    db_query = db_query.limit(1)
+                    # If not multi, limit to one result
+                    if not opts.multi
+                        db_query = db_query.limit(1)
 
                 # Parse option part of the query
                 db_query_no_opts = db_query
@@ -4107,6 +4208,10 @@ class RethinkDB
                 dbg("heartbeat = #{heartbeat}")
                 if err
                     cb(err); return
+
+                if delete_option
+                    dbg("doing a delete query")
+                    db_query = db_query.delete()
 
                 dbg("run the query -- #{to_json(opts.query)}")
                 time_start = misc.walltime()
@@ -4168,6 +4273,7 @@ class RethinkDB
                         else
                             @_change_feeds ?= {}
                             @_change_feeds[changefeed_id] = [feed]
+                            feed._smc_query = {query:opts.query, account_id:opts.account_id, project_id:opts.project_id}  # for logging purposes only
                             @_user_query_stats.changefeed
                                 account_id    : opts.account_id
                                 project_id    : opts.project_id

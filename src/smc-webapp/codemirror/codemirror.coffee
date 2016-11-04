@@ -12,7 +12,7 @@ require('codemirror/addon/dialog/dialog.js')
 require('codemirror/addon/dialog/dialog.css')
 
 require('codemirror/addon/search/searchcursor.js')
-require('codemirror/addon/search/search.js')
+
 require('codemirror/addon/edit/matchbrackets.js')
 require('codemirror/addon/edit/closebrackets.js')
 require('codemirror/addon/edit/trailingspace.js')
@@ -62,7 +62,6 @@ require('codemirror/mode/haxe/haxe.js')
 require('codemirror/mode/htmlembedded/htmlembedded.js')
 require('codemirror/mode/htmlmixed/htmlmixed.js')
 require('codemirror/mode/http/http.js')
-require('codemirror/mode/jade/jade.js')
 require('codemirror/mode/javascript/javascript.js')
 require('codemirror/mode/jinja2/jinja2.js')
 require('codemirror/mode/julia/julia.js')
@@ -76,6 +75,7 @@ require('codemirror/mode/perl/perl.js')
 require('codemirror/mode/php/php.js')
 require('codemirror/mode/pig/pig.js')
 require('codemirror/mode/properties/properties.js')
+require('codemirror/mode/pug/pug.js')
 require('codemirror/mode/r/r.js')
 require('codemirror/mode/ruby/ruby.js')
 require('codemirror/mode/rust/rust.js')
@@ -124,6 +124,10 @@ require('./mode/python.js')
 # For some reason python-hint.js got removed from codemirror itself
 require('./addon/hint/python-hint.js')
 
+require('./addon/smc-search.js')
+
+
+
 # In ReST mode/rst/rst.js, add Sage support:
 #  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
 require('./mode/rst.js')
@@ -137,6 +141,8 @@ require('./mode/pari.js')
 
 require('./mode/mediawiki/mediawiki.js')
 require('./mode/mediawiki/mediawiki.css')
+
+
 
 
 # CSS
@@ -166,6 +172,3 @@ require('codemirror/theme/the-matrix.css')
 require('codemirror/theme/paraiso-dark.css')
 require('codemirror/theme/paraiso-light.css')
 require('codemirror/theme/tomorrow-night-eighties.css')
-
-
-

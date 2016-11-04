@@ -1,7 +1,7 @@
 <!--
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and the Terminal.
 
-    Copyright (C) 2014, William Stein
+    Copyright (C) 2016, Sagemath Inc.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,85 +20,88 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
 <div class="salvus-tasks-templates hide">
 
-    <div class="salvus-tasks-editor">
-        <div class="row" style="margin-left:3px;margin-right:3px;">
-            <div class="salvus-tasks-hashtags-row row">
-                <div class="col-sm-12">
-                    <div class="well salvus-tasks-hashtags">
-                        <span class="btn-group salvus-tasks-hashtag-bar" style="white-space: normal">
-                        </span>
+    <div class="salvus-tasks-editor" style="left:0px">
+        <div class="row">
+            <div class="col-sm-12" style="margin-left:3px; padding-right:21px">
+
+                <div class="salvus-tasks-hashtags-row row">
+                    <div class="col-sm-12">
+                        <div class="well salvus-tasks-hashtags">
+                            <span class="btn-group salvus-tasks-hashtag-bar" style="white-space: normal">
+                            </span>
+                        </div>
+                    </div>
+            </div>
+
+                <div class="row" style="padding-top: 0.5ex;">
+                    <div class="lighten salvus-tasks-header col-sm-4">
+                        <div class="input-group">
+                            <input class="salvus-tasks-search search-query form-control" type="search" placeholder="Find task...">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default salvus-tasks-search-clear" type="button">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="lighten col-sm-2">
+                        <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
+                        <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-done hide"> </i>
+                        Done&nbsp;&nbsp;&nbsp;
+                        <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
+                        <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
+                        Deleted<br>
+                        <a class="btn btn-danger salvus-task-empty-trash"><i class="fa fa-trash-o"> </i> Empty Trash</a>
+                    </div>
+                    <div class="lighten salvus-tasks-search-describe col-sm-6">
+                        Showing <span class="salvus-tasks-count">0 tasks</span>.
+                        <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
+                        <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
+                        <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
+                        <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="row" style="padding-top: 0.5ex;">
-                <div class="lighten salvus-tasks-header col-sm-4">
-                    <div class="input-group">
-                        <input class="salvus-tasks-search search-query form-control" type="search" placeholder="Find task...">
-                        <span class="input-group-btn">
-                            <button class="btn btn-default salvus-tasks-search-clear" type="button">
-                                <i class="fa fa-times-circle"></i>
-                            </button>
+                <div class="salvus-tasks-list-heading row" style="padding-top: 0.5ex;">
+                    <div class="col-sm-6" style="margin-right: 5em;">  <!-- TODO: fix; this is very hackish for now -->
+                        <span class="btn-group salvus-tasks-action-buttons">
+                            <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
+                            <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
+                            <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
+                            <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> <span class="hidden-sm">Delete</span></a>
+                            <a class="btn btn-info salvus-tasks-info"><i class="fa fa-question-circle"> </i> Help</a>
+                        </span>
+                        <span class="btn-group salvus-tasks-action-buttons" style="margin-left: 0px;">  <!-- margin left so looks better on mobile when responsively scrolls around -->
+                            <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
+                            <a class="btn btn-info salvus-editor-history-button hide" href="#history">
+                                <i class="fa fa-history"></i> <span class="hidden-sm">TimeTravel</span>
+                            </a>
+
                         </span>
                     </div>
-                </div>
-                <div class="lighten col-sm-2">
-                    <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-not-done"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-done-icon salvus-task-search-done hide"> </i>
-                    Done&nbsp;&nbsp;&nbsp;
-                    <i class="fa fa-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-not-deleted"> </i>
-                    <i class="fa fa-check-square-o salvus-task-icon-done-box salvus-task-search-deleted-icon salvus-task-search-deleted hide"> </i>
-                    Deleted<br>
-                    <a class="btn btn-danger salvus-task-empty-trash"><i class="fa fa-trash-o"> </i> Empty Trash</a>
-                </div>
-                <div class="lighten salvus-tasks-search-describe col-sm-6">
-                    Showing <span class="salvus-tasks-count">0 tasks</span>.
-                    <h4 class="salvus-tasks-loading">Loading task list... <i class="fa fa-spin fa-spinner"> </i></h4>
-                    <span class="salvus-tasks-search-contain hide">Only showing tasks that contain <b><i><span class="salvus-tasks-search-query"></span></i></b>. </span>
-                    <span class="salvus-tasks-search-showing-deleted hide">Showing <b><i>deleted tasks</i></b>. </span>
-                    <span class="salvus-tasks-search-showing-done hide">Showing <b><i>completed tasks</i></b>.</span>
-                </div>
-            </div>
 
-            <div class="salvus-tasks-list-heading row" style="padding-top: 0.5ex;">
-                <div class="col-sm-6" style="margin-right: 5em;">  <!-- TODO: fix; this is very hackish for now -->
-                    <span class="btn-group salvus-tasks-action-buttons">
-                        <a class="btn btn-default" href="#create-task"><i class="fa fa-plus-circle"> </i> New</a>
-                        <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-top"><i class="fa fa-hand-o-up"> </i>  </a>
-                        <a class="btn salvus-tasks-buttons-pos-move btn-default" href="#move-task-to-bottom"><i class="fa fa-hand-o-down"> </i>  </a>
-                        <a class="btn btn-danger" href="#delete-task"><i class="fa fa-trash-o"> </i> <span class="hidden-sm">Delete</span></a>
-                        <a class="btn btn-info salvus-tasks-info"><i class="fa fa-question-circle"> </i> Help</a>
-                    </span>
-                    <span class="btn-group salvus-tasks-action-buttons" style="margin-left: 0px;">  <!-- margin left so looks better on mobile when responsively scrolls around -->
-                        <a class="btn btn-success disabled" href="#save"><i class="fa fa-save"> </i> <span>Save</span></a>
-                        <a class="btn btn-info salvus-editor-history-button hide" href="#history">
-                            <i class="fa fa-history"></i> <span class="hidden-sm">TimeTravel</span>
-                        </a>
+                    <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-3">
+                        Custom Order
+                        <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    </div>
+                    <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-1">
+                        Due <span class="salvus-tasks-show-done hide"> / Done</span>
+                        <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    </div>
+                    <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-1">
+                        Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                    </div>
 
-                    </span>
                 </div>
 
-                <div class="lighten salvus-tasks-header  salvus-task-sort-custom col-sm-3">
-                    Custom Order
-                    <i class="fa fa-sort-desc pull-right hide salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
+                <div class="well salvus-tasks-list">
+                    <div class="salvus-tasks-listing">
+                    </div>
+                    <h3 class="salvus-tasks-list-none hide">
+                        <a href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
+                    </h3>
+                    <div style="height:5em"></div>
                 </div>
-                <div class="lighten salvus-tasks-header  salvus-task-sort-due col-sm-1">
-                    Due <span class="salvus-tasks-show-done hide"> / Done</span>
-                    <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
-                </div>
-                <div class="lighten salvus-tasks-header  salvus-task-sort-last-edited col-sm-1">
-                    Changed <i class="fa fa-sort-desc pull-right hide  salvus-task-sort-icon"> </i><i class="fa fa-sort-asc pull-right hide  salvus-task-sort-icon"> </i>
-                </div>
-
-            </div>
-
-            <div class="well salvus-tasks-list">
-                <div class="salvus-tasks-listing">
-                </div>
-                <h3 class="salvus-tasks-list-none hide">
-                    <a href="#create-task"><i class="fa fa-plus-circle"> </i>   Create a New Task...</a>
-                </h3>
-                <div style="height:5em"></div>
             </div>
         </div>
     </div>
@@ -126,7 +129,6 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
         <div class="col-sm-1">
             <span class="salvus-task-last-edited"></span>
         </div>
-
     </div>
 
     <div class="salvus-task-editor">

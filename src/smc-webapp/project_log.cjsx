@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
@@ -49,7 +49,7 @@ LogSearch = rclass
         selected         : rtypes.object
 
     clear_and_focus_input : ->
-        @refs.project_log_search.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_log_search).focus()
         @props.actions.setState(search:'', page:0)
 
     render_clear_button : ->
@@ -69,7 +69,7 @@ LogSearch = rclass
                 if target?
                     @props.actions.open_file(path:target, foreground:true)
             when 'set'
-                @props.actions.set_focused_page('project-settings')
+                @props.actions.set_active_tab('settings')
 
     keydown : (e) ->
         if e.keyCode == 27
@@ -77,21 +77,27 @@ LogSearch = rclass
 
     on_change : (e) ->
         e.preventDefault()
-        x = @refs.project_log_search.getValue()
+        x = ReactDOM.findDOMNode(@refs.project_log_search).value
         @props.actions.setState(search : x, page : 0)
 
     render : ->
         <form onSubmit={@do_open_selected}>
-            <Input
-                autoFocus
-                type        = 'search'
-                value       = @props.search
-                ref         = 'project_log_search'
-                placeholder = 'Search log...'
-                onChange    = {@on_change}
-                buttonAfter = {@render_clear_button()}
-                onKeyDown   = {@keydown}
-                />
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        autoFocus
+                        type        = 'search'
+                        value       = @props.search
+                        ref         = 'project_log_search'
+                        placeholder = 'Search log...'
+                        onChange    = {@on_change}
+                        onKeyDown   = {@keydown}
+                        />
+                        <InputGroup.Button>
+                            {@render_clear_button()}
+                        </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
         </form>
 
 selected_item =
@@ -128,7 +134,7 @@ LogEntry = rclass
 
     render_miniterm_command : (cmd) ->
         if cmd.length > 50
-            <Tip title='Full command' tip={cmd}>
+            <Tip title='Full command' tip={cmd} delayHide={10000} rootClose={true} >
                 <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
             </Tip>
         else
@@ -172,7 +178,7 @@ LogEntry = rclass
 
     click_set : (e) ->
         e.preventDefault()
-        @props.actions.set_focused_page('project-settings')
+        @props.actions.set_active_tab('settings')
 
     render_set : (obj) ->
         i = 0
@@ -199,6 +205,12 @@ LogEntry = rclass
         v = if v.length > 0 then r_join(v) else 'nothing'
         <span>set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>upgrade contributions</a> to: {v}</span>
 
+    render_invite_user : ->
+        <span>invited user <User user_map={@props.user_map} account_id={@props.event.invitee_account_id} /></span>
+
+    render_invite_nonuser : ->
+        <span>invited nonuser {@props.event.invitee_email}</span>
+
     file_action_icons :
         deleted    : 'delete'
         downloaded : 'download'
@@ -219,12 +231,18 @@ LogEntry = rclass
                 return @render_set(misc.copy_without(@props.event, 'event'))
             when 'miniterm'
                 return @render_miniterm()
+            when 'termInSearch'
+                return @render_miniterm()
             when 'file_action'
                 return @render_file_action()
             when 'upgrade'
                 return @render_upgrade()
+            when 'invite_user'
+                return @render_invite_user()
+            when 'invite_nonuser'
+                return @render_invite_nonuser()
             else
-                # TODO!
+                # FUTURE:
                 return <span>{misc.to_json(@props.event)}</span>
 
     render_user : ->
@@ -249,6 +267,10 @@ LogEntry = rclass
                 return file_action_buttons[icon]?.icon
             when 'upgrade'
                 return 'arrow-circle-up'
+            when 'invite_user'
+                return 'user'
+            when 'invite_nonuser'
+                return 'user'
             else
                 return 'dot-circle-o'
 
@@ -291,19 +313,7 @@ LogMessages = rclass
             {@render_entries()}
         </div>
 
-PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
-
-search_string = (x, users) ->  # TODO: this code is ugly, but can be easily changed here only.
-    v = [users.get_name(x.account_id)]
-    event = x.event
-    if event?
-        for k,val of event
-            if k != 'event' and k!='filename'
-                v.push(k)
-            if k == 'type'
-                continue
-            v.push(val)
-    return v.join(' ').toLowerCase()
+PAGE_SIZE = 50  # number of entries to show per page (SMELL: move to account settings)
 
 matches = (s, words) ->
     for word in words
@@ -311,7 +321,7 @@ matches = (s, words) ->
             return false
     return true
 
-ProjectLog = (name) -> rclass
+exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
     reduxProps :
@@ -321,10 +331,7 @@ ProjectLog = (name) -> rclass
             page        : rtypes.number
         users :
             user_map    : rtypes.immutable
-
-    propTypes :
-        actions : rtypes.object.isRequired
-        redux   : rtypes.object
+            get_name    : rtypes.func
 
     getDefaultProps : ->
         search : ''   # search that user has requested
@@ -349,13 +356,25 @@ ProjectLog = (name) -> rclass
 
     previous_page : ->
         if @props.page > 0
-            @props.actions.setState(page: @props.page-1)
+            @actions(name).setState(page: @props.page-1)
 
     next_page : ->
-        @props.actions.setState(page: @props.page+1)
+        @actions(name).setState(page: @props.page+1)
 
-    process_log_entry : (x, users) ->
-        x.search = search_string(x, users)
+    search_string : (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
+        v = [@props.get_name(x.account_id)]
+        event = x.event
+        if event?
+            for k,val of event
+                if k != 'event' and k!='filename'
+                    v.push(k)
+                if k == 'type'
+                    continue
+                v.push(val)
+        return v.join(' ').toLowerCase()
+
+    process_log_entry : (x) ->
+        x.search = @search_string(x)
         return x
 
     update_log : (next_project_log, next_user_map) ->
@@ -363,13 +382,12 @@ ProjectLog = (name) -> rclass
             return
 
         if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            users = @props.redux.getStore('users')
             # Update any names that changed in the existing log
             next_user_map.map (val, account_id) =>
                 if not immutable.is(val, @_last_user_map?.get(account_id))
                     for x in @_log
                         if x.account_id == account_id
-                            @process_log_entry(x, users)
+                            @process_log_entry(x)
 
         if not immutable.is(next_project_log, @_last_project_log)
             # The project log changed, so record the new entries
@@ -388,8 +406,7 @@ ProjectLog = (name) -> rclass
                         v.push(x)
                 new_log = v
             # process new log entries (search/name info)
-            users = @props.redux.getStore('users')
-            new_log = (@process_log_entry(x, users) for x in new_log)
+            new_log = (@process_log_entry(x) for x in new_log)
 
             # combine logs
             if @_log?
@@ -427,15 +444,13 @@ ProjectLog = (name) -> rclass
         </ButtonGroup>
 
     render_log_panel : ->
-        if not @props.redux
-            return <Loading/>
         # get visible log
         log = @visible_log()
         # do some pager stuff
         num_pages = Math.ceil(log.length / PAGE_SIZE)
         page = @props.page
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
-        # make first visible entry appear "selected" (TODO: implement cursor to move)
+        # make first visible entry appear "selected" (FUTURE: implement cursor to move)
         if log.length > 0
             cursor = log[0].id
             selected = log[0]
@@ -446,7 +461,7 @@ ProjectLog = (name) -> rclass
         <Panel>
             <Row>
                 <Col sm=4>
-                    <LogSearch actions={@props.actions} search={@props.search} selected={selected} />
+                    <LogSearch actions={@actions(name)} search={@props.search} selected={selected} />
                 </Col>
                 <Col sm=4>
                     {@render_paging_buttons(num_pages, @props.page)}
@@ -454,7 +469,7 @@ ProjectLog = (name) -> rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@props.actions} />
+                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@actions(name)} />
                 </Col>
             </Row>
             <Row>
@@ -465,24 +480,7 @@ ProjectLog = (name) -> rclass
         </Panel>
 
     render : ->
-        <div>
-            <h1><Icon name='history' /> Project activity log</h1>
-            {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
+        <div style={padding:'15px'}>
+            <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
+            {if @props.project_log then @render_log_panel() else <Loading/>}
         </div>
-
-render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-    C = ProjectLog(store.name)
-    <Redux redux={redux} connectToStores={[store.name, 'users']}>
-        <C actions={actions} redux={redux} />
-    </Redux>
-
-exports.render_log = (project_id, dom_node, redux) ->
-    #console.log("mount project_log")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_log")
-    ReactDOM.unmountComponentAtNode(dom_node)
-

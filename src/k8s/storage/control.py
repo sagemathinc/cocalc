@@ -9,20 +9,28 @@ os.chdir(SCRIPT_PATH)
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..', 'util')))
 import util
 
-NAME='storage'
+NAME     = 'storage'
+SERVICES = os.listdir(os.path.join(SCRIPT_PATH, 'images'))
+
+def full_tag(tag, service):
+    return "{tag}-{service}".format(service=service, tag=tag)
 
 def build(tag, rebuild):
-    v = ['sudo', 'docker', 'build', '-t', tag]
-    if rebuild:  # will cause a git pull to happen
-        v.append("--no-cache")
-    v.append('.')
-    util.run(v, path=join(SCRIPT_PATH, 'image'))
+    for service in SERVICES:
+        path = join(SCRIPT_PATH, 'images', service)
+        with util.util_coffee(path):
+            v = ['sudo', 'docker', 'build', '-t', full_tag(tag, service)]
+            if rebuild:
+                v.append("--no-cache")
+            v.append('.')
+            util.run(v, path=path)
 
 def build_docker(args):
     tag = util.get_tag(args, NAME)
     build(tag, args.rebuild)
     if not args.local:
-        util.gcloud_docker_push(tag)
+        for service in SERVICES:
+            util.gcloud_docker_push(full_tag(tag, service))
 
 def images_on_gcloud(args):
     for x in util.gcloud_images(NAME):
@@ -39,8 +47,24 @@ def get_persistent_disks(context, namespace):
     name = pd_name(context=context, namespace=namespace)
     return [x for x in util.get_persistent_disk_names() if x.startswith(name)]
 
+# The bucket name.
+# We distinguish it based on the project and namespace, but NOT on the cluster!
+# The reason is because when upgrading or switching production, we often
+# swap out the entire cluster name (e.g., 'main' to 'main2') without
+# changing the namespace.
+def gcloud_bucket(namespace):
+    bucket = "{proj}-k8s-bup-{namespace}".format(
+        proj      = util.get_default_gcloud_project_name(),
+        namespace = namespace)
+    url = 'gs://{bucket}'.format(bucket=bucket)
+    if url+'/' not in util.run(['gsutil', 'ls'], get_output=True).splitlines():
+        # create the bucket
+        util.run(['gsutil', 'mb', '-l', 'us-central1', url])
+    return bucket
+
 def run_on_kubernetes(args):
-    context = util.get_cluster_prefix()
+    create_gcloud_secret()
+    context   = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
         # Figure out the nodes based on the names of persistent disks, or just node 0 if none.
@@ -48,17 +72,24 @@ def run_on_kubernetes(args):
     if 'storage-projects' not in util.get_services():
         util.run(['kubectl', 'create', '-f', 'conf/service.yaml'])
     args.local = False # so tag is for gcloud
+
     tag = util.get_tag(args, NAME, build)
+    if not args.tag:
+        tag = tag[:tag.rfind('-')]   # get rid of the final -[service] part of the tag.
+
     t = open(join('conf', '{name}.template.yaml'.format(name=NAME))).read()
+
+    ensure_ssh()
     for number in args.number:
         deployment_name = "{name}{number}".format(name=NAME, number=number)
         ensure_persistent_disk_exists(context, namespace, number, args.size, args.type)
         with tempfile.NamedTemporaryFile(suffix='.yaml', mode='w') as tmp:
-            tmp.write(t.format(image        = tag,
-                               number       = number,
-                               pd_name      = pd_name(context=context, namespace=namespace, number=number),
-                               health_delay = args.health_delay,
-                               pull_policy  = util.pull_policy(args)))
+            tmp.write(t.format(image         = tag,
+                               number        = number,
+                               gcloud_bucket = gcloud_bucket(namespace=namespace),
+                               pd_name       = pd_name(context=context, namespace=namespace, number=number),
+                               health_delay  = args.health_delay,
+                               pull_policy   = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
 
@@ -75,12 +106,49 @@ def all_node_numbers():
                 pass
     return v
 
+def ensure_persistent_disk_exists(context, namespace, number, size, disk_type):
+    name = pd_name(context, namespace, number)
+    util.ensure_persistent_disk_exists(name, size=size, disk_type=disk_type)
+
+def delete_persistent_disks(context, namespace, numbers):
+    names = [pd_name(context, namespace, number) for number in numbers]
+    util.delete_persistent_disks(names, maxtime_s=60*3)  # try for up to 3 minutes
+
 def delete(args):
     if len(args.number) == 0:
+        if args.obliterate_disk:
+            raise ValueError("you must explicitly specify the nodes when using --obliterate-disk")
         args.number = all_node_numbers()
     for number in args.number:
-        util.stop_deployment('{NAME}{number}'.format(NAME=NAME, number=number))
         deployment_name = "{name}{number}".format(name=NAME, number=number)
+        util.stop_deployment(deployment_name)
+    if args.obliterate_disk and args.number:
+        context = util.get_cluster_prefix()
+        namespace = util.get_current_namespace()
+        what = "%s-%s"%(context, namespace)
+        if args.obliterate_disk == what:
+            delete_persistent_disks(context, namespace, args.number)
+        else:
+            raise ValueError("to obliterate the disk you must do --obliterate-disk=%s"%what)
+
+def ensure_ssh():
+    if 'storage-ssh' not in util.get_secrets():
+        # generate a public/private ssh key pair that will be used for sshfs
+        with tempfile.TemporaryDirectory() as tmp:
+            util.run(['ssh-keygen', '-b', '2048', '-f', join(tmp, 'id-rsa'), '-N', ''])
+            util.create_secret('storage-ssh', tmp)
+
+SECRET_NAME = 'gcloud-config'
+
+def create_gcloud_secret():
+    if SECRET_NAME not in util.get_secrets():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = join(tmp, 'gcloud.tar')
+            util.run("tar cvf %s --exclude gcloud/logs gcloud"%target, path=os.path.join(os.environ['HOME'], '.config'))
+            util.create_secret(SECRET_NAME, tmp)
+
+def delete_kubectl_secret():
+    util.delete_secret(SECRET_NAME)
 
 if __name__ == '__main__':
     import argparse
@@ -88,7 +156,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
-    sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
@@ -115,8 +183,9 @@ if __name__ == '__main__':
 
     util.add_logs_parser(NAME, subparsers)
 
-    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks')
-    sub.add_argument('number', type=int, help='which node or nodes to stop running', nargs='*')
+    sub = subparsers.add_parser('delete', help='delete specified (or all) running pods, services, etc.; does **not** delete persistent disks, unless you pass the --obliterate-disk option')
+    sub.add_argument('number', type=int, help='which node or nodes to stop running; stops all if not given', nargs='*')
+    sub.add_argument("--obliterate-disk", type=str, default='', help="give --obliterate-disk=k8s-[cluster]-[namespace] to delete the deployment *and* delete the persistent disk; try with --obliterate-disk=help to get the current value of k8s-[cluster]-[namespace]")
     sub.set_defaults(func=delete)
 
     util.add_images_parser(NAME, subparsers)

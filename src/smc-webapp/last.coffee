@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,16 +20,16 @@
 ###############################################################################
 
 
-###########################################################
+###############################################################################
 #
 # This should be the last code run on client application startup.
 #
-###########################################################
+###############################################################################
 
-{top_navbar} = require('./top_navbar')
-top_navbar.hide_page_button("projects")
+$               = window.$
 {salvus_client} = require('./salvus_client')
-$ = require("jquery")
+{redux}         = require('./smc-react')
+misc            = require('smc-util/misc')
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
@@ -39,14 +39,15 @@ $(document).on "click", (e) ->
         e.stopPropagation() # ?
 
 remember_me = salvus_client.remember_me_key()
-if window.smc_target and not localStorage[remember_me] and window.smc_target != 'login'
+if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
     require('./history').load_target(window.smc_target)
 else
-    top_navbar.switch_to_page('account')
+    redux.getActions('page').set_active_tab('account')
 
-client = window.smc.client
+
+client = salvus_client
 if client._connected
-    # These events below currently (do to not having finished the react rewrite)
+    # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.
     client.emit('connected')
     if client._signed_in
@@ -59,10 +60,13 @@ window.MathJax =
     skipStartupTypeset: true
     extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
     jax: ["input/TeX","input/AsciiMath", "output/SVG"]
+    # http://docs.mathjax.org/en/latest/options/tex2jax.html
     tex2jax:
         inlineMath: [ ['$','$'], ["\\(","\\)"] ]
         displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
         processEscapes: true
+        ignoreClass: "tex2jax_ignore"
+        skipTags: ["script","noscript","style","textarea","pre","code"]
 
     TeX:
         extensions: ["autoload-all.js"]
@@ -96,7 +100,7 @@ window.MathJax =
             automatic: true
     showProcessingMessages: false
 
-$ = require("jquery")
+$ = window.$
 $ ->
     $("#smc-startup-banner")?.remove()
     $('#smc-startup-banner-status')?.remove()
@@ -111,3 +115,11 @@ $ ->
         MathJax.Hub?.Queue([mathjax_finish_startup])
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
+    # register a default drag and drop handler, that prevents accidental file drops
+    # therefore, dropping files only works when done right above the dedicated dropzone
+    $('body').on 'drop', (e) ->
+        # check that there is actually a file involved, and not just text cut'n'paste
+        if e.originalEvent.dataTransfer.files?.length > 0
+            e.preventDefault()
+            {alert_message} = require('./alerts')
+            alert_message(type:'info', message: 'To upload a file, drop it into the "Drop files to upload" area in the +New tab.')

@@ -206,19 +206,19 @@ class exports.SynchronizedDB extends EventEmitter
     # the given where criterion.
     update: (opts) =>
         opts = defaults opts,
-            set   : required
-            where : required
+            set        : required
+            where      : required
+            is_equal   : (a, b) => a == b # applies to equality of `where`
         if not @_doc?
             return
-        set   = opts.set
-        where = opts.where
+        {set, where, is_equal} = opts
         #console.log("update(set='#{misc.to_json(set)}',where='#{misc.to_json(where)}')")
         i = 0
         for hash, val of @_data
             match = true
             x = val.data
             for k, v of where
-                if x[k] != v
+                if not is_equal(x[k], v)
                     match = false
                     break
             if match
@@ -322,6 +322,25 @@ class exports.SynchronizedDB extends EventEmitter
                 delete @_data[hash]
                 if one
                     break
+        if i > 0
+            @_set_doc_from_data()
+            @emit("change", changes)
+        return i
+
+    # delete any entries in the database that have the given field defined at all.
+    delete_with_field: (opts) =>
+        {field} = defaults opts,
+            field : required
+        if not @_data?
+            return 0
+        result = []
+        i = 0
+        changes = []
+        for hash, val of @_data
+            if val.data[field]?
+                i += 1
+                changes.push({remove:val.data})
+                delete @_data[hash]
         if i > 0
             @_set_doc_from_data()
             @emit("change", changes)

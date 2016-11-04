@@ -1,0 +1,24 @@
+---
+# include all ansible playbooks for setting up a compute node or project container
+# run each of them individually in a container via e.g.
+# ansible-playbook -i container.ini compute-extra.yaml
+- hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+  - name: "let's start with apt update and aptitude upgrade ..."
+    apt: update_cache=yes upgrade=safe
+    tags: update
+
+- include: all-install.yaml
+- include: umask_compute.yaml
+- include: compute-proc.yaml
+- include: compute-security-limits.yaml
+- include: terminal-setup.yaml
+- include: atop.yaml
+- include: compute-extra.yaml
+- include: r.yaml # R depends on compute-extra
+- include: julia.yaml
+- include: haskell.yaml
+- include: latex.yaml
+- include: cleanup.yaml

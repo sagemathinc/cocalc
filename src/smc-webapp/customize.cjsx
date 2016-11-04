@@ -1,6 +1,6 @@
 ###
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-Copyright (C) 2015, William Stein, GPL v3.
+Copyright (C) 2016, Sagemath Inc.
 ---
 
 Site Customize -- dynamically customize the look of SMC for the client.
@@ -20,6 +20,7 @@ store    = redux.createStore('customize', defaults)
 # to generate static content, which can't be customized.
 $?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
+        exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
         actions.setState(obj)
 
 HelpEmailLink = rclass

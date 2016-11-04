@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -27,11 +27,10 @@ underscore = require('underscore')
 
 ReactDOMServer = require('react-dom/server')
 
-{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
-{project_page} = require('./project')
 {file_associations} = require('./editor')
 Dropzone = require('react-dropzone-component')
 
@@ -55,7 +54,7 @@ file_type_list = (list, exclude) ->
 new_file_button_types = file_type_list(v, true)
 
 # A link that goes back to the current directory
-# TODO : refactor to use PathSegmentLink?
+# FUTURE: refactor to use PathSegmentLink?
 PathLink = exports.PathLink = rclass
     displayName : 'ProjectNew-PathLink'
 
@@ -73,7 +72,7 @@ PathLink = exports.PathLink = rclass
         cursor : 'pointer'
 
     handle_click : ->
-        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_active_tab('files')
 
     render : ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>
@@ -88,7 +87,7 @@ ProjectNewHeader = rclass
         actions      : rtypes.object.isRequired
 
     render : ->
-        <h1>
+        <h1 style={marginTop:"0px"}>
             <Icon name='plus-circle' /> Create new files in<Space/>
             <PathLink
                 path       = {@props.current_path}
@@ -143,9 +142,9 @@ NewFileDropdown = rclass
 # Could be changed to auto adjust to a list of pre-defined button names.
 exports.FileTypeSelector = FileTypeSelector = rclass
     proptypes :
-        create_file : rtypes.func.required
+        create_file   : rtypes.func.required
         create_folder : rtypes.func.required
-        styles : rtypes.object
+        styles        : rtypes.object
 
     render : ->
         row_style =
@@ -199,48 +198,58 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             {@props.children}
         </div>
 
-ProjectNew = (name) -> rclass
-    displayName : 'ProjectNew'
+ProjectNewForm = rclass ({name}) ->
+    displayName : 'ProjectNewForm'
 
     reduxProps :
         "#{name}" :
-            current_path     : rtypes.string
-            default_filename : rtypes.string
+            current_path        : rtypes.string
+            default_filename    : rtypes.string
+            file_creation_error : rtypes.string
         projects :
-            project_map      : rtypes.immutable
+            project_map              : rtypes.immutable
+            get_total_project_quotas : rtypes.func
 
     propTypes :
-        actions        : rtypes.object.isRequired
-        projects_store : rtypes.object.isRequired
+        actions : rtypes.object.isRequired
 
     getInitialState : ->
-        return filename : @props.default_filename ? @default_filename()
+        filename           : @props.default_filename ? @default_filename()
+        extension_warning  : false
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
 
+    componentDidUpdate: ->
+        if not @state.extension_warning
+            ReactDOM.findDOMNode(@refs.project_new_filename).focus()
+
     default_filename : ->
         return require('./account').default_filename()
 
     focus_input : ->
-        @refs.project_new_filename.getInputDOMNode().focus()
+        ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
     create_file : (ext) ->
+        if not @state.filename
+            @focus_input()
+            return
         @props.actions.create_file
             name         : @state.filename
             ext          : ext
             current_path : @props.current_path
-            on_download  : ((a) => @setState(download: a))
-            on_error     : ((a) => @setState(error: a))
-            on_empty     : @focus_input
 
     submit : (e) ->
         e.preventDefault()
+        if not @state.filename  # empty filename
+            return
         if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else
+        else if misc.filename_extension(@state.filename)
             @create_file()
+        else
+            @setState(extension_warning : true)
 
     render_header: ->
         if @props.current_path?
@@ -249,28 +258,39 @@ ProjectNew = (name) -> rclass
                 actions      = {@props.actions} />
 
     render_error : ->
-        error = @state.error
+        error = @props.file_creation_error
         if error is 'not running'
             message = 'The project is not running. Please try again in a moment'
         else
             message = error
-        <ErrorDisplay error={message} onClose={=>@setState(error:'')} />
+        <ErrorDisplay error={message} onClose={=>@props.actions.setState(file_creation_error:'')} />
 
     blocked: ->
         if not @props.project_map?
             return ''
-        if @props.projects_store.get_total_project_quotas(@props.project_id)?.network
+        if @props.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
             return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
-        on_error = (a) => @setState(error: a)
         @props.actions.create_folder
             name         : @state.filename
             current_path : @props.current_path
-            on_error     : on_error
             switch_over  : true
+
+    render_no_extension_alert : ->
+        <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
+            <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
+            <ButtonToolbar style={marginTop:'10px'}>
+                <Button onClick={=>@create_file()} bsStyle='success'>
+                    Create file with no extension
+                </Button>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
 
     render : ->
         <div>
@@ -282,15 +302,19 @@ ProjectNew = (name) -> rclass
                 <Col sm=9>
                     <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
                     <form onSubmit={@submit}>
-                        <Input
-                            autoFocus
-                            ref         = 'project_new_filename'
-                            value       = @state.filename
-                            type        = 'text'
-                            placeholder = 'Name your file, folder, or paste in a link...'
-                            onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
+                        <FormGroup>
+                            <FormControl
+                                autoFocus
+                                ref         = 'project_new_filename'
+                                value       = @state.filename
+                                type        = 'text'
+                                disabled    = @state.extension_warning
+                                placeholder = 'Name your file, folder, or paste in a link...'
+                                onChange    = {=>@setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                        </FormGroup>
                     </form>
-                    {if @state.error then @render_error()}
+                    {if @state.extension_warning then @render_no_extension_alert()}
+                    {if @props.file_creation_error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@create_file} create_folder={@create_folder}>
                         <Row>
@@ -316,7 +340,7 @@ ProjectNew = (name) -> rclass
             </Row>
         </div>
 
-FileUpload = (name) -> rclass
+FileUpload = rclass ({name}) ->
     displayName : 'ProjectNew-FileUpload'
 
     reduxProps :
@@ -364,25 +388,14 @@ FileUpload = (name) -> rclass
             </Col>
         </Row>
 
-render = (project_id, redux) ->
-    store   = redux.getProjectStore(project_id)
-    actions = redux.getProjectActions(project_id)
-    ProjectNew_connnected = ProjectNew(store.name)
-    FileUpload_connected  = FileUpload(store.name)
-    <div>
-        <Redux redux={redux}>
-            <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
-        </Redux>
-        <hr />
-        <Redux redux={redux}>
-            <FileUpload_connected project_id={project_id} />
-        </Redux>
-    </div>
+exports.ProjectNew = rclass ({name}) ->
+    propTypes :
+        project_id : rtypes.string
+        name : rtypes.string
 
-exports.render_new = (project_id, dom_node, redux) ->
-    #console.log("mount project_new")
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount project_new")
-    ReactDOM.unmountComponentAtNode(dom_node)
+    render : ->
+        <div style={padding:'15px'}>
+            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <FileUpload project_id={@props.project_id} name={@props.name} />
+        </div>

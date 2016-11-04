@@ -24,12 +24,12 @@
 
 # load dependencies asynchronously
 exports.load = (element, project) ->
-  # TODO: use require to load these if we decide to go with react.
+  # FUTURE: use require to load these if we decide to go with react.
   jQuery.getScript 'https://fb.me/react-0.13.3.min.js', ->
     jQuery.getScript 'https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.10.2/dropbox.min.js', ->
       DropboxFolderSelector = React.createClass
         getInitialState: ->
-          {  # TODO: probably don't need these braces.
+          {  # SMELL: probably don't need these braces.
             selected: null
             new_folder: "something"
           }
@@ -69,7 +69,7 @@ exports.load = (element, project) ->
       DropboxButton = React.createClass
         authorize: ->
           # The key below is the Dropbox public key that you register with Dropbox to get.
-          # TODO: replace with wstein's key
+          # FUTURE: replace with wstein's key
           client = new Dropbox.Client({ key: '4nkctd7tebtf3o9' })
           client.authDriver(new Dropbox.AuthDriver.Popup({
             receiverUrl: "https://dev.sagemath.com/static/dropbox_oauth_receiver.html"}))

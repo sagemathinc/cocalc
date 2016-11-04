@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,8 +23,9 @@
 # Help Page
 ###
 
+$ = window.$
 
-{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
+{React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -78,7 +79,7 @@ HelpPageUsageSection = rclass
             <li style={li_style}> Live server stats <Loading /> </li>
         else
             n = @number_of_clients()
-            <ProgressBar now={Math.max(n / 6 , 45 / 8) } label={"#{n} connected users"} />
+            <ProgressBar now={Math.max(n / 6 , 45 / 8) } label={"#{n} active users"} />
 
     render_active_projects_stats: ->
         n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
@@ -131,10 +132,15 @@ HelpPageUsageSection = rclass
 
 
 SUPPORT_LINKS =
+    frequently_asked_questions :
+        icon : 'question-circle'
+        href : 'https://github.com/sagemathinc/smc/wiki/Portal'
+        link : 'SageMathCloud documentation'
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
+        commercial: true
     # commented out since link doesn't work
     #getting_started :
     #    icon : 'play'
@@ -154,10 +160,6 @@ SUPPORT_LINKS =
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
         link : 'Realtime chat and help'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
-        link : 'Frequently Asked Questions'
     # removed since none of us SMC devs use ask.sagemath these days
     #quick_question :
     #    icon : 'question-circle'
@@ -220,7 +222,10 @@ HelpPageSupportSection = rclass
         support_links : rtypes.object
 
     get_support_links : ->
+        {commercial} = require('./customize')
         for name, data of @props.support_links
+            if data.commercial and not commercial
+                continue
             <li key={name} style={li_style} className={if data.className? then data.className}>
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
@@ -484,11 +489,11 @@ HelpPageGettingStartedSection = rclass
             </Accordion>
         </div>
 
-HelpPage = rclass
+exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render : ->
-        <Row>
+        <Row style={padding:'10px', margin:'0px'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>
                     <Icon name='medkit'/><Space/><Space/>
@@ -499,6 +504,8 @@ HelpPage = rclass
                     <Icon name='envelope'/><Space/><Space/> You can also send an email to <HelpEmailLink />.
                     <br/>
                     In such an email, please include the URL link to the relevant project or file.
+                    <hr/>
+                    <a href="https://github.com/sagemathinc/smc/wiki/Portal" target="_blank">The SageMathCloud Documentation</a>
                 </div>
 
                 <h3>
@@ -512,11 +519,9 @@ HelpPage = rclass
 
                 <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                <Redux redux={redux}>
-                    <HelpPageUsageSection />
-                </Redux>
+                <HelpPageUsageSection />
 
-                <HelpPageAboutSection />
+                {<HelpPageAboutSection /> if require('./customize').commercial}
 
                 <HelpPageGettingStartedSection />
             </Col>
@@ -525,12 +530,6 @@ HelpPage = rclass
                 <Footer/>
             </Col>
         </Row>
-
-exports.render_help_page = () ->
-    ReactDOM.render(<HelpPage />, document.getElementById('salvus-help'))
-    # also setup a listener for switching to the page. (TODO: temporary until react-router...)
-    require('./top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
-        window.history.pushState("", "", window.smc_base_url + '/help')
 
 exports._test =
     HelpPageSupportSection : HelpPageSupportSection

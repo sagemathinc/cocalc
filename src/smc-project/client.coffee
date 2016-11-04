@@ -14,13 +14,13 @@ but rather hubs initiate TCP connections to projects:
    whether or not to trust what is on the other end of those connections.
 
 That said, this architecture could change, and very little code would change
-as a resut.
+as a result.
 ###
 
 # close our copy of syncstring (so stop watching it for changes, etc) if
 # not active for this long (should be at least 5 minutes).
 SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = .2 # TESTING
+#SYNCSTRING_MAX_AGE_M = .4 # TESTING
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
@@ -29,15 +29,12 @@ SYNCSTRING_MAX_AGE_M = 7
 NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
     sagews : true   # only sagews for now.
 
-## SYNCSTRING_MAX_AGE_M = 1 # for debugging
-
 fs     = require('fs')
 {join} = require('path')
 
 {EventEmitter} = require('events')
 
 async   = require('async')
-{Gaze}  = require('gaze')
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -55,6 +52,9 @@ sage_session = require('./sage_session')
 {json} = require('./common')
 
 {defaults, required} = misc
+
+DEBUG = false
+#DEBUG = true
 
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
@@ -130,47 +130,100 @@ class exports.Client extends EventEmitter
             max_age_m   : SYNCSTRING_MAX_AGE_M
             path        : null
             last_active : null
+            deleted     : null
 
         @_open_syncstrings = {}
         @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
         @_recent_syncstrings.on 'change', =>
             dbg("@_recent_syncstrings change")
-            @update_recent_syncstrings()
+            @_update_recent_syncstrings()
 
         @_recent_syncstrings.once 'change', =>
-            # We have to do this since syncstrings no longer satisfying the max_age_m query
+            # We have to do this interval check since syncstrings no longer satisfying the max_age_m query
             # do NOT automatically get removed from the table (that's just not implemented yet).
-            @_recent_syncstrings_interval = setInterval(@update_recent_syncstrings, 60*1000)
+            # This interval check is also important in order to detect files that were deleted then
+            # recreated.
+            @_recent_syncstrings_interval = setInterval(@_update_recent_syncstrings, 5*1000)
 
-    update_recent_syncstrings: () =>
+    _update_recent_syncstrings: () =>
         dbg = @dbg("update_recent_syncstrings")
+        dbg('doing an update')
         cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
+        @_wait_syncstrings ?= {}
         keys = {}
         x = @_recent_syncstrings.get()
         if not x?
             return
-        @_recent_syncstrings.get().map (val, key) =>
+        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
+        if log_message != @_update_recent_syncstrings_last
+            winston.debug(log_message)
+            @_update_recent_syncstrings_last = log_message
+        x.map (val, key) =>
+            string_id = val.get('string_id')
             path = val.get('path')
             if path == '.smc/local_hub/local_hub.log'
                 # do NOT open this file, since opening it causes a feedback loop!  The act of opening
                 # it is logged in it, which results in further logging ...!
                 return
-            string_id = val.get('string_id')
+
             if val.get("last_active") > cutoff
-                keys[string_id] = true
+                keys[string_id] = true   # anything not set here gets closed below.
+                dbg("considering '#{path}' with id '#{string_id}'")
+                if @_open_syncstrings[string_id]? or @_wait_syncstrings[string_id]
+                    # either already open or waiting a bit before opening
+                    return
                 if not @_open_syncstrings[string_id]?
-                    dbg("opening syncstring '#{path}' with id '#{string_id}'")
-                    @_open_syncstrings[string_id] = @sync_string(path:path)
+                    deleted = val.get('deleted')
+                    dbg("path='#{path}', deleted=#{deleted}, string_id='#{string_id}'")
+                    async.series([
+                        (cb) =>
+                            if not deleted
+                                # sync file (in database) is not deleted so we will open
+                                cb()
+                                return
+                            dbg("check if '#{path}' exists")  # if so, undelete, obviously.
+                            @path_exists
+                                path : path
+                                cb   : (err, exists) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        deleted = not exists
+                                        cb()
+                    ], (err) =>
+                        if err
+                            dbg("SERIOUS ERROR -- #{err}")
+                        else if deleted
+                            # do nothing -- don't open
+                            dbg("ignoring deleted path '#{path}'")
+                        else if not @_open_syncstrings[string_id]?
+                            dbg("open syncstring '#{path}' with id '#{string_id}'")
+                            ss = @_open_syncstrings[string_id] = @sync_string(path:path)
+                            ss.on 'error', (err) =>
+                                dbg("ERROR creating syncstring '#{path}' -- #{err}; will try again later")
+                                ss.close()
+                            ss.on 'close', () =>
+                                dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
+                                delete @_open_syncstrings[string_id]
+                                # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
+                                @_wait_syncstrings[string_id] = true
+                                setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
+                    )
+            return  # so map doesn't terminate due to funny return value
+
         for string_id, val of @_open_syncstrings
             path = val._path
             if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
-                dbg("closing syncstring '#{path}' with id '#{string_id}'")
+                dbg("close syncstring '#{path}' with id '#{string_id}'")
                 val.close()
                 delete @_open_syncstrings[string_id]
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
-        return (m) -> winston.debug("Client.#{f}: #{m}")
+        if DEBUG
+            return (m) -> winston.debug("Client.#{f}: #{m}")
+        else
+            return (m) ->
 
     # todo: more could be closed...
     close: () =>
@@ -195,7 +248,7 @@ class exports.Client extends EventEmitter
         return true
 
     is_connected: =>
-        @_connected
+        return @_connected
 
     # We trust the time on our own compute servers (unlike random user's browser).
     server_time: () =>
@@ -211,15 +264,17 @@ class exports.Client extends EventEmitter
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
             socket.on 'end', =>
                 dbg("end")
-                for id, cb of x.callbacks
-                    cb?('socket closed')
+                if x.callbacks?
+                    for id, cb of x.callbacks
+                        cb?('socket closed')
+                    delete x.callbacks  # so additional trigger of end doesn't do anything
                 delete @_hub_client_sockets[socket.id]
                 dbg("number of active sockets now equals #{misc.len(@_hub_client_sockets)}")
                 if misc.len(@_hub_client_sockets) == 0
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
-            if misc.len(@_hub_client_sockets) == 1
+            if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
                 @emit('connected')
@@ -281,6 +336,7 @@ class exports.Client extends EventEmitter
                     dbg("failed")
                     delete @_hub_callbacks[opts.message.id]
                     opts.cb?("timeout after #{opts.timeout}s")
+                    delete opts.cb
                 timer = setTimeout(fail, opts.timeout*1000)
             opts.message.id ?= misc.uuid()
             cb = @_hub_callbacks[opts.message.id] = (resp) =>
@@ -386,23 +442,43 @@ class exports.Client extends EventEmitter
             default : ''
         opts.client = @
         opts.project_id = @project_id
+        @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
+    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
     write_file: (opts) =>
         opts = defaults opts,
             path : required
             data : required
             cb   : required
         path = join(process.env.HOME, opts.path)
+        @_file_io_lock ?= {}
+        dbg = @dbg("write_file(path='#{opts.path}')")
+        dbg()
+        now = new Date()
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
+            dbg("LOCK")
+            opts.cb("write_file -- file is currently being read or written")
+            return
+        @_file_io_lock[path] = now
+        dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>
                 misc_node.ensure_containing_directory_exists(path, cb)
             (cb) =>
                 fs.writeFile(path, opts.data, cb)
-        ], opts.cb)
+        ], (err) =>
+            delete @_file_io_lock[path]
+            if err
+                dbg("error -- #{err}")
+            else
+                dbg("success")
+            opts.cb(err)
+        )
 
     # Read file as a string from disk.
+    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
     path_read: (opts) =>
         opts = defaults opts,
             path       : required
@@ -412,6 +488,16 @@ class exports.Client extends EventEmitter
         path    = join(process.env.HOME, opts.path)
         dbg = @dbg("path_read(path='#{opts.path}', maxsize_MB=#{opts.maxsize_MB})")
         dbg()
+        @_file_io_lock ?= {}
+
+        now = new Date()
+        if now - (@_file_io_lock[path] ? 0) < 15000  # lock expires after 15 seconds (see https://github.com/sagemathinc/smc/issues/1147)
+            dbg("LOCK")
+            opts.cb("path_read -- file is currently being read or written")
+            return
+        @_file_io_lock[path] = now
+
+        dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
         async.series([
             (cb) =>
                 if opts.maxsize_MB?
@@ -442,13 +528,14 @@ class exports.Client extends EventEmitter
                         content = data.toString()
                         cb()
         ], (err) =>
-           opts.cb(err, content)
+            delete @_file_io_lock[path]
+            opts.cb(err, content)
         )
 
     path_access: (opts) =>
         opts = defaults opts,
             path : required    # string
-            mode : required    # string -- subsequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+            mode : required    # string -- sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
             cb   : required    # cb(err); err = if any access fails; err=undefined if all access is OK
         access = 0
         for s in opts.mode
@@ -459,6 +546,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
+        @dbg("checking if path exists")(opts.path)
         fs.exists opts.path, (exists) =>
             opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
@@ -488,17 +576,35 @@ class exports.Client extends EventEmitter
             path : required
         return sage_session.sage_session(path:opts.path, client:@)
 
-    # See https://github.com/shama/gaze.
-    #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
-    #    - 'error' (err)             - When error occurs
-    # and a method .close()
+    # Watch for changes to the given file.  Returns obj, which
+    # is an event emitter with events:
+    #
+    #    - 'change' - when file changes or is created
+    #    - 'delete' - when file is deleted
+    #
+    # and a method .close().
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
-            debounce : 750
-            cb       : required
+            interval : 3000       # polling interval in ms
         path = require('path').join(process.env.HOME, opts.path)
-        g = new Gaze(path, {debounceDelay:opts.debounce})
-        g.on('error', opts.cb)
-        g.on('ready', () => opts.cb(undefined, g))
+        dbg = @dbg("watch_file(path='#{path}')")
+        dbg("watching file '#{path}'")
+        return new Watcher(path, opts.interval)
+
+class Watcher extends EventEmitter
+    constructor: (@path, @interval) ->
+        fs.watchFile(@path, {interval: @interval}, @listen)
+
+    close : () =>
+        @removeAllListeners()
+        fs.unwatchFile(@path, @listener)
+
+    listen: (curr, prev) =>
+        if curr.dev == 0
+            @emit 'delete'
+        else
+            @emit 'change'
+
+
 

@@ -4,8 +4,8 @@ misc = require('smc-util/misc')
 {salvus_client} = require('../salvus_client')
 
 # React libraries and components
-{React, rclass, rtypes}  = require('../smc-react')
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel} = require('react-bootstrap')
 
 # SMC components
 {User} = require('../users')
@@ -32,8 +32,12 @@ show_hide_deleted_style =
     marginTop  : '20px'
     float      : 'right'
 
-exports.StudentsPanel = rclass
+exports.StudentsPanel = rclass ({name}) ->
     displayName : "CourseEditorStudents"
+
+    reduxProps :
+        "#{name}":
+            expanded_students : rtypes.immutable.Set
 
     propTypes :
         name        : rtypes.string.isRequired
@@ -50,7 +54,8 @@ exports.StudentsPanel = rclass
         add_search       : ''
         add_searching    : false
         add_select       : undefined
-        selected_entries : undefined
+        existing_students: undefined
+        selected_option_nodes : undefined
         show_deleted     : false
 
     do_add_search : (e) ->
@@ -62,21 +67,25 @@ exports.StudentsPanel = rclass
             return
         search = @state.add_search.trim()
         if search.length == 0
-            @setState(err:undefined, add_select:undefined, selected_entries:undefined)
+            @setState(err:undefined, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
             return
-        @setState(add_searching:true, add_select:undefined, selected_entries:undefined)
+        @setState(add_searching:true, add_select:undefined, existing_students:undefined, selected_option_nodes:undefined)
         add_search = @state.add_search
         salvus_client.user_search
             query : add_search
             limit : 50
             cb    : (err, select) =>
                 if err
-                    @setState(add_searching:false, err:err, add_select:undefined)
+                    @setState(add_searching:false, err:err, add_select:undefined, existing_students:undefined)
                     return
                 # Get the current collaborators/owners of the project that contains the course.
                 users = @props.redux.getStore('projects').get_users(@props.project_id)
                 # Make a map with keys the email or account_id is already part of the course.
                 already_added = users.toJS()  # start with collabs on project
+                # also track **which** students are already part of the course
+                existing_students = {}
+                existing_students.account = {}
+                existing_students.email   = {}
                 # For each student in course add account_id and/or email_address:
                 @props.students.map (val, key) =>
                     for n in ['account_id', 'email_address']
@@ -85,12 +94,21 @@ exports.StudentsPanel = rclass
                 # This function returns true if we shouldn't list the given account_id or email_address
                 # in the search selector for adding to the class.
                 exclude_add = (account_id, email_address) =>
-                    return already_added[account_id] or already_added[email_address]
-                select = (x for x in select when not exclude_add(x.account_id, x.email_address))
+                    aa = already_added[account_id] or already_added[email_address]
+                    if aa
+                        if account_id?
+                            existing_students.account[account_id] = true
+                        if email_address?
+                            existing_students.email[email_address] = true
+                    return aa
+                select2 = (x for x in select when not exclude_add(x.account_id, x.email_address))
                 # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
-                select = (x for x in noncloud_emails(select, add_search) when not already_added[x.email_address]).concat(select)
+                # NOTE (see comment on https://github.com/sagemathinc/smc/issues/677): it is very important to pass in
+                # the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
+                # bringing back everything in the search, which is a bug.
+                select3 = (x for x in noncloud_emails(select, add_search) when not exclude_add(null, x.email_address)).concat(select2)
                 # We are no longer searching, but now show an options selector.
-                @setState(add_searching:false, add_select:select)
+                @setState(add_searching:false, add_select:select3, existing_students:existing_students)
 
     student_add_button : ->
         <Button onClick={@do_add_search}>
@@ -98,24 +116,22 @@ exports.StudentsPanel = rclass
         </Button>
 
     add_selector_clicked : ->
-        @setState(selected_entries: @refs.add_select.getSelectedOptions())
+        @setState(selected_option_nodes: ReactDOM.findDOMNode(@refs.add_select).selectedOptions)
 
-    add_selected_students : ->
+    add_selected_students : (options) ->
         emails = {}
         for x in @state.add_select
             if x.account_id?
                 emails[x.account_id] = x.email_address
         students = []
-
-        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        selected_names = @refs.add_select.getSelectedOptions()
         selections = []
-        if selected_names.length == 0
-            all_names = @refs.add_select.getInputDOMNode().getElementsByTagName('option')
-            if all_names?.length == 1
-                selections = [all_names[0].getAttribute('value')]
+
+        # first check, if no student is selected and there is just one in the list
+        if (not @state.selected_option_nodes? or @state.selected_option_nodes?.length == 0) and options?.length == 1
+            selections.push(options[0].key)
         else
-            selections = selected_names
+            for option in @state.selected_option_nodes
+                selections.push(option.getAttribute('value'))
 
         for y in selections
             if misc.is_valid_uuid_string(y)
@@ -125,7 +141,7 @@ exports.StudentsPanel = rclass
             else
                 students.push({email_address:y})
         @props.redux.getActions(@props.name).add_students(students)
-        @setState(err:undefined, add_select:undefined, selected_entries:undefined, add_search:'')
+        @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
     get_add_selector_options : ->
         v = []
@@ -143,26 +159,54 @@ exports.StudentsPanel = rclass
         if not @state.add_select?
             return
         options = @get_add_selector_options()
-        <div>
-            <Input type='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>{options}</Input>
+        <FormGroup>
+            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>
+                {options}
+            </FormControl>
             {@render_add_selector_button(options)}
-        </div>
+        </FormGroup>
 
     render_add_selector_button : (options) ->
-        nb_selected = @state.selected_entries?.length ? 0
+        nb_selected = @state.selected_option_nodes?.length ? 0
+        _ = require('underscore')
+        es = @state.existing_students
+        if es?
+            existing = _.keys(es.email).length + _.keys(es.account).length > 0
+        else
+            # es not defined when user clicks the close button on the warning.
+            existing = 0
         btn_text = switch options.length
-            when 0 then "No student found"
+            when 0 then (if existing then "Student already added" else "No student found")
             when 1 then "Add student"
             else switch nb_selected
                 when 0 then "Select student above"
                 when 1 then "Add selected student"
                 else "Add #{nb_selected} students"
         disabled = options.length == 0 or (options.length >= 2 and nb_selected == 0)
-        <Button onClick={@add_selected_students} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        <Button onClick={=>@add_selected_students(options)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
     render_error : ->
+        ed = null
         if @state.err
-            <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
+            ed = <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
+        else if @state.existing_students?
+            existing = []
+            for email, v of @state.existing_students.email
+                existing.push(email)
+            for account_id, v of @state.existing_students.account
+                user = @props.user_map.get(account_id)
+                existing.push("#{user.get('first_name')} #{user.get('last_name')}")
+            if existing.length > 0
+                if existing.length > 1
+                    msg = "Already added students or project collaborators: "
+                else
+                    msg = "Already added student or project collaborator: "
+                msg += existing.join(', ')
+                ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
+        if ed?
+            <Row style={marginTop:'1em'}><Col md=5 lgOffset=7>{ed}</Col></Row>
+        else
+            <Row></Row>
 
     render_header : (num_omitted) ->
         <div>
@@ -179,15 +223,21 @@ exports.StudentsPanel = rclass
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
-                        <Input
-                            ref         = 'student_add_input'
-                            type        = 'text'
-                            placeholder = "Add student by name or email address..."
-                            value       = {@state.add_search}
-                            buttonAfter = {@student_add_button()}
-                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.student_add_input.getValue())}
-                            onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
-                        />
+                        <FormGroup>
+                            <InputGroup>
+                                <FormControl
+                                    ref         = 'student_add_input'
+                                    type        = 'text'
+                                    placeholder = "Add student by name or email address..."
+                                    value       = {@state.add_search}
+                                    onChange    = {=>@setState(add_select:undefined, add_search:ReactDOM.findDOMNode(@refs.student_add_input).value)}
+                                    onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
+                                />
+                                <InputGroup.Button>
+                                    {@student_add_button()}
+                                </InputGroup.Button>
+                            </InputGroup>
+                        </FormGroup>
                     </form>
                     {@render_add_selector()}
                 </Col>
@@ -244,6 +294,7 @@ exports.StudentsPanel = rclass
                      user_map={@props.user_map} redux={@props.redux} name={@props.name}
                      project_map={@props.project_map}
                      assignments={@props.assignments}
+                     is_expanded={@props.expanded_students.has(x.student_id)}
                      />
 
     render_show_deleted : (num_deleted) ->
@@ -291,18 +342,18 @@ Student = rclass
         project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
+        is_expanded  : rtypes.bool
 
     shouldComponentUpdate : (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
     getInitialState : ->
-        more : false
         confirm_delete: false
 
     render_student : ->
-        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+        <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('student', @props.student.get('student_id'))}>
             <Icon style={marginRight:'10px'}
-                  name={if @state.more then 'caret-down' else 'caret-right'}/>
+                  name={if @props.is_expanded then 'caret-down' else 'caret-right'}/>
             {@render_student_name()}
         </a>
 
@@ -400,7 +451,7 @@ Student = rclass
             </div>
 
     render_delete_button : ->
-        if not @state.more
+        if not @props.is_expanded
             return
         if @state.confirm_delete
             return @render_confirm_delete()
@@ -511,7 +562,7 @@ Student = rclass
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
-                {@render_more_panel() if @state.more}
+                {@render_more_panel() if @props.is_expanded}
             </Col>
         </Row>
 

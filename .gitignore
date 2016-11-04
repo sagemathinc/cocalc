@@ -84,5 +84,9 @@ logs
 pids
 
 src/k8s/smc-webapp-static/image/google_analytics
+src/smc-build/smc-compute-env.html
+smc/src/smc-build/prometheus/alertmanager.yml
 
+**/octave-workspace
+**/.cache/
 .gitignore

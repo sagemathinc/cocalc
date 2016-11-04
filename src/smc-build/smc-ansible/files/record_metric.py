@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf8
 
-###                 !!! DON'T EDIT ME !!!                         ###
-### This file is managed by Ansible via the smc-cluster-mgmt repo ###
+#  DON'T EDIT ME DIRECTLY !
+# {{ ansible_managed }}
 
 """
 This script saves the number of concurrent rsync operations for monitoring purposes.
@@ -40,12 +40,31 @@ from os import makedirs
 from pytz import utc
 import socket
 import yaml
+import requests
 #####
 
 # global variables (don't change them)
-PROJECT_ID = "137606465756" # sage-math-inc
+PROJECT_ID_NUM = "137606465756" # sage-math-inc
+PROJECT_ID = 'sage-math-inc'
 # Monitoring API V3: "custom.googleapis.com/YOUR_METRIC_NAME"
 CUSTOM_METRIC_DOMAIN = "custom.googleapis.com"
+
+def get_instance_info():
+    def query(name):
+        metadata_server = "http://metadata/computeMetadata/v1/instance/"
+        metadata_flavor = {'Metadata-Flavor' : 'Google'}
+        return requests.get(metadata_server + name, headers = metadata_flavor).text
+
+    info = {
+        'instance_id' : query('id'),
+        'instance_name': query('hostname'),
+        'machine_type': query('machine-type'),
+        'zone': query('zone').split('/')[-1],
+        'project_id': PROJECT_ID
+    }
+    return info
+
+INSTANCE_INFO = get_instance_info()
 
 
 def get_service(creds_fn = None):
@@ -65,10 +84,12 @@ def get_service(creds_fn = None):
     http = credentials.authorize(httplib2.Http())
     #service = build(serviceName="cloudmonitoring", version="v2beta2", http=http)
     service = build(serviceName="monitoring", version="v3", http=http)
-    return service
+    compute = build('compute', 'v1', credentials=credentials)
+    return service, compute
 
 def format_rfc3339(datetime_instance=None):
-    """Formats a datetime per RFC 3339.
+    """
+    Formats a datetime per RFC 3339.
     """
     return datetime_instance.isoformat("T") + "Z"
 
@@ -79,41 +100,85 @@ def get_ago(minutes = 0):
 
 
 def get_now():
-    # Return now
     return format_rfc3339(datetime.utcnow())
 
 get_timestamp_rfc3339 = get_now
 
-def make_data(name, value, **kwargs):
+def make_data(name, value, resource_type = 'gce_instance', **kwargs):
+    """
+    * name is e.g. 'nb_sagemath'
+    * resource_type is gce_instance or global
+    """
 
-    # The current timestamp, used for start&end in the timeseries
-    now_rfc3339 = get_timestamp_rfc3339()
+    # The current timestamp, used for the endTime in the timeseries
+    now = get_now()
+    CM_TYPE = '%s/%s' % (CUSTOM_METRIC_DOMAIN, name)
 
-    timeseries_descriptor = {
-        "project": PROJECT_ID,
-        "metric": "%s/%s" %  (CUSTOM_METRIC_DOMAIN, name)
-    }
-
-    if len(kwargs) >= 0:
-        timeseries_descriptor["labels"] = {}
-        for k, v in kwargs.iteritems():
-            k = "%s/%s" % (CUSTOM_METRIC_DOMAIN, k)
-            timeseries_descriptor["labels"][k] = v
-
-    # Specify a new data point for the time series.
-    timeseries_data = {
-        "timeseriesDesc": timeseries_descriptor,
-        "point": {
-            "start": now_rfc3339,
-            "end": now_rfc3339,
-        }
-    }
+    # https://cloud.google.com/monitoring/api/ref_v3/rest/v3/TypedValue
     if isinstance(value, int):
-        timeseries_data["point"]["int64Value"] = value
+        v = {'int64Value': value}
+    elif isinstance(value, float):
+        v = {'doubleValue': value}
     else:
-        timeseries_data["point"]["doubleValue"] = value
+        print("WARNING: provided value '%s' was neither an int or float" % value)
+        v = {'stringValue': str(value)}
 
-    return timeseries_data
+    metric_labels = {}
+    if len(kwargs) >= 0:
+        for k, v in kwargs.iteritems():
+            metric_labels[k] = v
+
+    resource = {'type': resource_type}
+    if resource_type == 'global':
+        # that must be a string like sage-math-inc !
+        resource['project_id'] = PROJECT_ID
+    elif resource_type == 'gce_instance':
+        resource["instance_id"] = INSTANCE_INFO['instance_id']
+        resource["zone"]        = INSTANCE_INFO['zone']
+    else:
+        raise Exception('Unknown resource_type "%s"' % resource_type)
+
+    ts_data = {
+      "metric": {
+        "type": CM_TYPE,
+        "labels": metric_labels
+      },
+      "resource": resource,
+      "points": [{
+          'interval': {"endTime": now}, # end time only → means just one point
+          'value': v
+        }
+      ],
+    }
+    return ts_data
+
+    # OLD custom metrics v2
+    #    now_rfc3339 = get_timestamp_rfc3339()
+    #    timeseries_descriptor = {
+    #        "project": PROJECT_ID,
+    #        "metric": "%s/%s" %  (CUSTOM_METRIC_DOMAIN, name)
+    #    }
+    #
+    #    if len(kwargs) >= 0:
+    #        timeseries_descriptor["labels"] = {}
+    #        for k, v in kwargs.iteritems():
+    #            k = "%s/%s" % (CUSTOM_METRIC_DOMAIN, k)
+    #            timeseries_descriptor["labels"][k] = v
+
+    #    # Specify a new data point for the time series.
+    #    timeseries_data = {
+    #        "timeseriesDesc": timeseries_descriptor,
+    #        "point": {
+    #            "start": now_rfc3339,
+    #            "end": now_rfc3339,
+    #        }
+    #   }
+    #    if isinstance(value, int):
+    #        timeseries_data["point"]["int64Value"] = value
+    #    else:
+    #        timeseries_data["point"]["doubleValue"] = value
+    #
+    #   return timeseries_data
 
 
 def extract_data_yaml(dp):
@@ -197,7 +262,7 @@ def log_data(data, logfile_prefix = None, logfile_path = "~/logs/", format = "cs
 
 def submit_data(*data):
     # Submit the write request.
-    service = get_service()
+    service, compute = get_service()
     request = service.timeseries().write(
         project=PROJECT_ID,
         body={"timeseries": data}

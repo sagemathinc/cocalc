@@ -1,3 +1,5 @@
+# Library file for SMC webapp
+
 # These old-school JS files need to be on top, otherwise dependency issues arise
 # (e.g. minified jquery isn't properly being detected, etc.)
 
@@ -8,44 +10,75 @@
 
 require("script!primus/primus-engine.min.js")
 
-require("script!jquery/jquery.min.js")
-require("script!jquery/jquery-ui/js/jquery-ui.min.js")
+# require("script!jquery/jquery.min.js")
+$ = jQuery = window.$ = window.jQuery = require('jquery')
+#require('jquery-ui')
+# explicit jQuery UI widgets that we use -- no need to load the entire library
+require("node_modules/jquery-ui/ui/widgets/draggable")
+require("node_modules/jquery-ui/ui/widgets/sortable")
+require("node_modules/jquery-ui/ui/widgets/slider")
+require("node_modules/jquery-ui/ui/widgets/resizable")
+
+# $.tooltip() setup
+require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.
+require("jquery-focus-exit/jquery.focusexit.js")  # jquery-focus-exit is a peer dependency.
+require("jquery-mouse-exit/jquery.mouseexit.js")  # jquery-mouse-exit is a peer dependency.
+require("jquery-stick/jquery.stick.js")  # jquery-stick is a peer dependency.
+require("imports?jQuery=jquery!jquery-tooltip/jquery.tooltip.js")
 
 # Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
-require("script!jquery/plugins/jquery.ui.touch-punch.min.js")
+# require("script!jquery/plugins/jquery.ui.touch-punch.min.js")
+require('jquery-ui-touch-punch')
 
 # Hack to make jQuery hide and show not break with Bootstrap 3
-require("script!jquery/plugins/bootstrap_hide_show.js")
+require("./webapp-lib/jquery/plugins/bootstrap_hide_show.js")
 
 # Timeago jQuery plugin
-require("script!jquery/plugins/jquery.timeago.min.js")
+# require("script!jquery/plugins/jquery.timeago.min.js")
+require('timeago')
 
 # Scroll into view plugin
-require("script!jquery/plugins/jquery.scrollintoview.min.js")
+# require("script!jquery/plugins/jquery.scrollintoview.min.js")
+require("jquery-scrollintoview/jquery.scrollintoview.js")
 
 #  Highlight jQuery plugin: http://bartaz.github.io/sandbox.js/jquery.highlight.html
-require("script!jquery/plugins/jquery.highlight.min.js")
+# require("script!jquery/plugins/jquery.highlight.min.js")
+require('jquery-highlight')
 
 # Caret Position jQuery plugin
-require("script!jquery/plugins/caret/jquery.caret.js")
+#require("script!jquery/plugins/caret/jquery.caret.js")
+require('jquery-caret')
 
 # Activity spinner
 require("script!spin/spin.min.js")
 
 # Bootstrap
-require("script!bootstrap-3.3.0/js/bootstrap.min.js")
+# require("script!bootstrap-3.3.0/js/bootstrap.min.js")
+require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
 require("script!bootbox/bootbox.min.js")
+# require('bootbox')
 
 # Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
-require("script!bootstrap-switch/bootstrap-switch.min.js")
+#require("script!bootstrap-switch/bootstrap-switch.min.js")
+require('bootstrap-switch')
 
 # Bootstrap Colorpicker Plugin
-require("script!jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js")
+# require("script!jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js")
+require('bootstrap-colorpicker')
 
 # Pnotify: Notification framework from http://pinesframework.org/pnotify
 require("script!pnotify/jquery.pnotify.min.js")
+#PNotify = require("pnotify/src/pnotify.js");
+require("pnotify/src/pnotify.mobile.js");
+require("pnotify/src/pnotify.buttons.js");
+require("pnotify/src/pnotify.desktop.js");
+
+# Datetime picker
+require("script!datetimepicker/bootstrap-datetimepicker.min.js")
+# https://github.com/eonasdan/bootstrap-datetimepicker
+# require("eonasdan-bootstrap-datetimepicker")
 
 # XTerm terminal emulator
 require("script!term/term.js")
@@ -54,14 +87,11 @@ require("script!term/color_themes.js")
 # LaTeX log parser
 require("script!latex/latex-log-parser.js")
 
-# Datetime picker
-require("script!datetimepicker/bootstrap-datetimepicker.min.js")
-
 # Make html look nice
 require("script!jsbeautify/beautify-html.min.js")
 
 # Make html into markdown
-require("script!remarked/reMarked.min.js")
+#require("script!remarked/reMarked.min.js")
 
 # ********************************
 # node_modules, mainly from inside smc-webapp

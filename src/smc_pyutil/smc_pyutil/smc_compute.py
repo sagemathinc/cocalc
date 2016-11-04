@@ -4,7 +4,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -235,10 +235,13 @@ class Project(object):
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
         log("WARNING: failed to kill all procs after %s tries"%max_tries)
 
-    def chown(self, path):
+    def chown(self, path, recursive=True):
         if self._dev:
             return
-        cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        if recursive:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        else:
+            cmd(["chown", "%s:%s"%(self.uid, self.uid), path])
 
     def ensure_file_exists(self, src, target):
         target = os.path.abspath(target)
@@ -295,7 +298,14 @@ class Project(object):
         cfs_quota = int(100000*cores)
 
         group = "memory,cpu:%s"%self.username
-        self.cmd(["cgcreate", "-g", group])
+        try:
+            self.cmd(["cgcreate", "-g", group])
+        except:
+            if os.system("cgcreate") != 0:
+                # cgroups not installed
+                return
+            else:
+                raise
         if memory:
             memory = quota_to_int(memory)
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
@@ -379,6 +389,7 @@ class Project(object):
         self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
+        self.chown(self.project_path, False) # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
 
         os.environ['SMC_BASE_URL'] = base_url
 
@@ -406,6 +417,9 @@ class Project(object):
                 os.environ['SMC'] = self.smc_path
                 os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                 os.environ['MAIL'] = '/var/mail/%s'%self.username
+                if self._single:
+                    # In single-machine mode, everything is on localhost.
+                    os.environ['SMC_HOST'] = 'localhost'
                 del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
                 os.chdir(self.project_path)
                 self.cmd("smc-start")

@@ -1,8 +1,9 @@
+# coding: utf8
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014-2015, William Stein
+#    Copyright (C) 2014-2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -25,31 +26,25 @@
 # to get it to use my local static/ipython directory, for much better speed.
 
 """
-Building the main components of cloud.sagemath.com from source, ensuring that all
-important (usually security-related) options are compiled in.
+This script manages the installation of additional components into the SageMath environment.
 
-The components are:
+Usage:
 
-    * python -- build managements and some packages
-    * node.js -- dynamic async; most things
-    * nginx -- static web server
-    * haproxy -- proxy and load balancer
-    * stunnel -- ssl termination
-    * tinc -- p2p vpn
-    * rethinkdb -- distributed push database
-    * bup -- git-ish backup
-    * sage -- we do *not* build or include Sage; it must be available system-wide or for
-      user in order for worksheets to work (everything but worksheets should work without Sage).
+    ./sage -ipython -i build.py
+    # which instantiates: bs = BuildSage(), hence then:
+    >>> bs.everything()
+
+Design:
+* all actions of the `SageBuild` class must be idempotent.
+* it runs from the SAGE_ROOT location, and creates and uses a `tmp` directory right inside of it (downloads, extractions, builds)
+* a few actions do hardcode paths, like `install_stein_watkins`, but most of them are generic.
 
 Read more:
 
-* build.md: how to setup compute nodes.
+* build.md: how to setup compute nodes → most entries are formalized in smc-ansible, see compute-setup.yaml
 * anaconda.md: instructions about setting up Anaconda3.
 
-
-MANUAL STEPS!!
-
-TODO: automate...
+TODO:
 
 - [ ] Install FGA gap packages:
 
@@ -58,101 +53,113 @@ TODO: automate...
       tar xvf FGA-1.3.1.tar.gz
 """
 
-import logging, os, shutil, subprocess, sys, time, urllib2
+import logging, os, shutil, subprocess, sys, time, urllib2, time
+from os.path import join, expanduser, expandvars, abspath, exists
+
+# avoid git errors when there is no author configured
+os.environ["GIT_AUTHOR_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_AUTHOR_EMAIL"] = "office@sagemath.com"
+os.environ["GIT_COMMITTER_NAME"] = "SageMathCloud build.py"
+os.environ["GIT_COMMITTER_EMAIL"] = "office@sagemath.com"
 
 # Enable logging
-logging.basicConfig()
-log = logging.getLogger('')
-log.setLevel(logging.DEBUG)   # WARNING, INFO
+class SMCLoggingContext(logging.Filter):
+    def __init__(self):
+        logging.Filter.__init__(self)
+        self._start = time.time()
+    def filter(self, record):
+        record.runtime = time.time() - self._start
+        record.where = "%s:%s" % (record.filename[:-3], record.lineno)
+        return True
+
+fmt = logging.Formatter(fmt = '%(runtime)7.1f %(where)-10s %(levelname)-9s %(message)s')
+sh = logging.StreamHandler()
+sh.setFormatter(fmt)
+sh.setLevel(logging.DEBUG)
+log = logging.getLogger('build')
+log.setLevel(logging.DEBUG)
+log.addFilter(SMCLoggingContext())
+log.addHandler(sh)
 
 OS     = os.uname()[0]
 PWD    = os.path.abspath('.')
-DATA   = os.path.abspath('data')
 SRC    = os.path.abspath('src')
-PATCHES= os.path.join(SRC, 'patches')
-BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
-PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
+TMP    = os.path.abspath('tmp')
+os.environ['TMP'] = TMP
+BUILD  = os.path.abspath('build')
+PREFIX = os.path.abspath('local')
 os.environ['PREFIX'] = PREFIX
 
+# http://www.nltk.org/data.html#command-line-installation
+NLTK_DATA_DIR = os.environ.get("NLTK_DATA", "/ext/nltk_data")
+
+log.info("SRC = '%s'"%SRC)
+for path in [SRC, BUILD, TMP]:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+# remove special setup for gcc
 if 'MAKE' in os.environ:
     del os.environ['MAKE']
 
-log.info("SRC = '%s'"%SRC)
-if not os.path.exists(SRC):
-    os.makedirs(SRC)
+# TODO/hsy: the following is unclear, should probably be removed since it is no longer applicable
+if 'SAGE_ROOT' not in os.environ:
+    log.info("Building salvus user code (so updating PATHs...)")
+    os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
+    os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
+else:
+    log.info("Building/updating a Sage install")
 
-NODE_MODULES = [
-    'commander',
-    # I had to fork the official start-stop-daemon, since it is broken with
-    # newer node versions -- https://github.com/sagemathinc/start-stop-daemon
-    'sagemathinc/start-stop-daemon',
-    'winston',
-    'primus',  # websocket abstraction
-    'ws',      # fast low-level websocket depedency for primus
-    'sockjs',  # not used but is optionally available in hub/primeus/client
-    'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
-    'coffee-script',
-    'node-uuid',
-    'browserify@1.16.4',
-    'uglify-js2',
-    'express',       # web server
-    'express-session',   # needed for oauth1 bitbucket auth
-    'body-parser',   # parse post form uploads (needed for auth)
-    'passport',
-    'passport-bitbucket',
-    'passport-dropbox-oauth2',
-    'passport-facebook',
-    'passport-github',
-    'passport-google-oauth',
-    'passport-local',
-    'passport-twitter',
-    'passport-wordpress',
-    'nodeunit',
-    'validator',
-    'async',
-    'password-hash',
-    'nodemailer',
-    'nodemailer-sendgrid-transport',
-    'cookies',
-    'htmlparser',
-    'mime',
-    'pty.js',
-    'posix',
-    'mkdirp',
-    'walk',
-    'temp',
-    'formidable@latest',
-    'moment',
-    'underscore',
-    'read',
-    'hashring',
-    'rimraf',
-    'net-ping',
-    'marked',
-    'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
-    'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
-    'stripe',       # for billing -- https://github.com/stripe/stripe-node
-    'blocked',      # checking for blocking
-    'sqlite3',
-    'pdfkit',
-    'coffee-react',  # used for react (obviously)
-    'dirty',         # terrible key-value store
-    'gaze',          # file watcher
-    'react',         # facebook's core react library
-    'flummox',       # flux implementation for react
-    'react-bootstrap', # bootstrap components
-    'rethinkdb'
-    ]
+# number of cpus
+import multiprocessing
+NCPU = multiprocessing.cpu_count()
+log.info("detected %s cpus", NCPU)
 
-# this is for the python in the /home/salvus/... place, not the system-wide or sage python!
-PYTHON_PACKAGES = [
-    'readline',
-    'ipython',            # a usable command line  (ipython uses readline)
-    'python-daemon',      # daemonization of python modules
-    'paramiko',           # ssh2 implementation in python
-    'pyyaml'              # used by wizard build script
-    ]
 
+def cmd(s, path=None):
+    s = 'umask 022 && ' + s
+    if path is not None:
+        s = 'cd "%s" && '%path + s
+    log.info("cmd: %s", s)
+    t0 = time.time()
+    if os.system(s):
+        raise Exception('command failed: "%s" (%s seconds)'%(s, time.time()-t0))
+    else:
+        log.info("cmd %s took %s seconds", s, time.time()-t0)
+
+def download(url):
+    # download target of given url to TMP directory
+    import urllib
+    t0 = time.time()
+    target = os.path.join(TMP, os.path.split(url)[-1].split('?')[0])
+    log.info("Downloading %s to %s..."%(url, target))
+    urllib.urlretrieve(url, target)
+    log.info("Took %s seconds"%(time.time()-t0))
+    return target
+
+def extract_package(basename):
+    log.info("extracting package %s by finding tar ball in SRC directory, extract it in build directory, and return resulting path",
+             basename)
+    for filename in os.listdir(TMP):
+        if filename.startswith(basename):
+            i = filename.rfind('.tar.')
+            if i == -1:
+                i = filename.rfind('.tgz')
+            path = os.path.join(BUILD, filename[:i])
+            if os.path.exists(path):
+                log.info("removing existing path %s", path)
+                shutil.rmtree(path)
+            cmd('tar xf "%s"'%os.path.abspath(os.path.join(TMP, filename)), BUILD)
+            return path
+    raise RuntimeError("unable to extract package %s"%basename)
+
+def deprecated(func):
+    def wrapped(*args, **kwargs):
+        log.warning("calling deprecated function %s", func.__name__)
+    return wrapped
+
+# These pip packages are installed **without** dependencies -- explicit dependencies are listed below.
+# Therefore, this makes sure that numpy, ipython and friends stay how they are!
 SAGE_PIP_PACKAGES = [
     'mpld3',              # D3 Renderings of Matplotlib Graphics -- https://github.com/jakevdp/mpld3
     'mercurial',          # used when installing neuron
@@ -165,20 +172,34 @@ SAGE_PIP_PACKAGES = [
     'numexpr',
     'tables',
     'scikit_learn',
+    'gensim',
     'theano',
+    'dask',
+    'distributed',
+    'toolz',
+    'cytoolz',
+    'geopandas',
+    'descartes',
     'scikit-image',
     'Shapely',
     'SimPy',
+    'ncpol2sdpa',
+    'hdbscan',
+    'openpyxl',
     'xlrd',
     'xlwt',
     'pyproj',
     'bitarray',
     'h5py',
+    'ipdb', # https://github.com/sagemathinc/smc/issues/319
+    'pandas-profiling',
     'netcdf4',
     'lxml',
     'munkres',
     'oct2py',
     'psutil',
+    # 'pymc', # pymc v2 doesn't work due to too old numpy api. pymc3 below does work, though.
+    'git+https://github.com/pymc-devs/pymc3',
     'requests', # Python HTTP for Humans. (NOTE: plotly depends on requests)
     'plotly',
     'mahotas',
@@ -199,7 +220,6 @@ SAGE_PIP_PACKAGES = [
     'colorpy',
     #'rootpy',    # supports ROOT data analysis framework  -- broken "import ROOT" doesn't work anymore
     'tabulate',
-    'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
     'ez_setup',   # needed by fipy
     #'pysparse',    # needed by fipy; for the ==1.2-dev213 bullshit, see http://stackoverflow.com/questions/25459011/how-to-build-pysparse-on-ubuntu; it's amazing how bad pypi and python packaging are.  Wow.
@@ -255,22 +275,76 @@ SAGE_PIP_PACKAGES = [
     'control',
     'yattag',
     'pyyaml',
-    'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
     'charm-crypto',   # depends on installing libpbc to /usr system-wide, which is done in build.md
-    'bash_kernel' # the jupyter bash kernel
+    'bash_kernel', # the jupyter bash kernel
+    'cvxpy', # convex optimization toolbox by univ stanford
+    'pydataset', # datasets from R for pandas
+    'pygsl',  # I own https://pypi.python.org/pypi/pygsl -- based on https://sourceforge.net/projects/pygsl/?source=typ_redirect
+    'wordcloud', # https://github.com/amueller/word_cloud
+    'cobra', # https://cobrapy.readthedocs.io/en/stable/
+    'python-libsbml', # dependency of cobra
+    'markdown',
+    'vpython', # http://vpython.org/ used in physics
+    'tdigest',
+    'numpy-stl',
+    'blaze',
+    'npTDMS',
+    'nipype',  # https://github.com/nipy/nipype/
+    'hypothesis',
+    'xgboost', # https://github.com/dmlc/xgboost
+    'vpython',
+    'keras',
+    'altair', # https://github.com/ellisonbg/altair
     ]
 
+# additional environment settings for specific packages
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
 
-# Pip packages but where we *do* install deps
+# More pip packages, which are dependencies of the above
 SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'datasift'
+    'datasift',
+    'vpnotebook', # http://vpython.org/ used in physics
+    'python_utils',
+    'jdcal',
+    'fiona',
+    'enum',
+    'ansi2html', 'configparser', 'entrypoints', # needed for jupyter, and the jupyter<->sagews bridge
+    'python_utils',
+    'ecos', # cvxpy
+    'scs', # cvxpy
+    'multiprocess', # cvxpy
+    'dill', # cvxpy
+    'CVXcanon', # cvxpy
+    'fastcache', # cvxpy
+    'CommonMark', # pymc3
+    'recommonmark', # pymc3
+    'nbsphinx', # pymc3
+    'numpydoc', # pymc3
+    'enum34', # pymc3
+    'smart_open', # gensim
+    'odo', # blaze
+    'multipledispatch', # blaze
+    'datashape', # blaze
+    'sqlalchemy', # blaze
+    'contextlib2', # blaze
+    'flask-cors', # blaze
+    'bintrees', # tdigest
+    'pyudorandom', # tdigest
+    'traits', 'simplejson', 'prov', 'nibabel', 'funcsigs',  # https://github.com/nipy/nipype/blob/master/requirements.txt
+    'autobahn', 'twisted', 'idna', 'pyasn1', 'ipaddress', 'pycparser', 'cffi', 'cryptography', 'pyopenssl', 'attrs', # datasift
+    'pyasn1-modules', 'service-identity', 'futures', 'requests-futures', 'ndg-httpsclient', # datasift
+    'vpnotebook', 'ivisual', 'ujson', 'crayola', # vpython deps
+    'cufflinks', 'colorlover', # plot.ly deps (mabye not py2 compatible)
+    'vega', # altair
 ]
 
+# TODO make add an additional category of pip packages, where it is always safe to install with dependencies
+# first candidate for this might be datasift
 
+# Additional packages for R -- compare this to smc-ansible/r.yaml and the compute integration tests
 R_PACKAGES = [
     'ggplot2',
     'stringr',
@@ -300,7 +374,7 @@ R_PACKAGES = [
     'quantmod',
     'swirl',
     'psych',
-    'spatstat',
+    # 'spatstat', # not available for 3.2.4
     'UsingR',
     'readr',
     'MCMCpack',
@@ -319,9 +393,11 @@ R_PACKAGES = [
     'gplots',
     'Hmisc',
     'survey',
-    'maps'
+    'maps',
+    'plotly',
 ]
 
+# Sage has additionally some optional packages. We try to install as many of them as feasible.
 SAGE_OPTIONAL_PACKAGES = [
     'buckygen',
     'benzene',
@@ -357,70 +433,8 @@ SAGE_OPTIONAL_PACKAGES = [
     'topcom',
     '4ti2',
     'modular_decomposition',
-    'csdp'    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
+    'csdp',    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
 ]
-
-ENTHOUGHT_PACKAGES = [
-    'pyface',
-    'traits',
-    'scimath',
-]
-
-if not os.path.exists(BUILD):
-    os.makedirs(BUILD)
-
-if 'SAGE_ROOT' not in os.environ:
-    log.info("Building salvus user code (so updating PATHs...)")
-    os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
-    os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
-else:
-    log.info("Building/updating a Sage install")
-
-# number of cpus
-try:
-    NCPU = os.sysconf("SC_NPROCESSORS_ONLN")
-except:
-    NCPU = int(subprocess.Popen("sysctl -n hw.ncpu", shell=True, stdin=subprocess.PIPE,
-                 stdout = subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True).stdout.read())
-
-log.info("detected %s cpus", NCPU)
-
-
-def cmd(s, path=None):
-    if path is not None:
-        s = 'cd "%s" && '%path + s
-    log.info("cmd: %s", s)
-    t0 = time.time()
-    if os.system(s):
-        raise RuntimeError('command failed: "%s" (%s seconds)'%(s, time.time()-t0))
-    else:
-        log.info("cmd %s took %s seconds", s, time.time()-t0)
-
-def download(url):
-    # download target of given url to SRC directory
-    import urllib
-    t0 = time.time()
-    target = os.path.join(SRC, os.path.split(url)[-1].split('?')[0])
-    log.info("Downloading %s to %s..."%(url, target))
-    urllib.urlretrieve(url, target)
-    log.info("Took %s seconds"%(time.time()-t0))
-    return target
-
-def extract_package(basename):
-    log.info("extracting package %s by finding tar ball in SRC directory, extract it in build directory, and return resulting path",
-             basename)
-    for filename in os.listdir(SRC):
-        if filename.startswith(basename):
-            i = filename.rfind('.tar.')
-            if i == -1:
-                i = filename.rfind('.tgz')
-            path = os.path.join(BUILD, filename[:i])
-            if os.path.exists(path):
-                log.info("removing existing path %s", path)
-                shutil.rmtree(path)
-            cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
-            return path
-    raise RuntimeError("unable to extract package %s"%basename)
 
 ###########################################################################
 # Functions that install extra packages and bug fixes to turn a standard
@@ -433,6 +447,8 @@ class BuildSage(object):
         except:
             raise RuntimeError("BuildSage must be run from within a Sage install")
         self.SAGE_ROOT = SAGE_ROOT
+        self.failed_pip = []
+        self.failed_spkg = []
 
     def path(self, path):
         """
@@ -447,59 +463,95 @@ class BuildSage(object):
         """
         Do everything to patch/update/install/enhance this Sage install.
         """
-        self.pull_smc_sage()
-        #self.unextend_sys_path()
-        self.patch_sage_location()
-        self.patch_banner()
-        self.patch_sage_env()
-        self.user_site()
-        self.install_sloane()
-        self.install_projlib()
-        self.install_pip()  # sage's is of course always hopelessly out of date
-        self.install_pip_packages()
-        self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
-        self.install_R_packages()
-        self.install_R_bioconductor()
-        self.install_optional_packages()
-        self.install_quantlib()
-        self.install_basemap()
-        self.install_pydelay()
-        self.install_gdal()
-        self.install_stein_watkins()
-        self.install_jsanimation()
-        self.install_sage_manifolds()
-        self.install_r_jupyter_kernel()
-        self.install_cv2()
-        self.install_cairo()
-        self.install_psage()
-        self.install_pycryptoplus()
-        # FAILED:
-        self.install_neuron()
+        actions = [
+            "clean_PATH",
+            #"pull_smc_sage", # broken
+            #"unextend_sys_path",
+            "patch_sage_location",
+            "patch_banner",
+            "patch_sage_env",
+            "user_site",
+            "install_sagemanifolds",
+            "install_sloane",
+            "install_projlib",
+            "install_pip",
+            "install_pip_packages",
+            "install_jinja2", # since sage's is too old and pip packages doesn't upgrade
+            "install_R_packages",
+            "install_R_bioconductor",
+            "install_rstan",
+            "install_pystan",
+            "install_optional_packages",
+            "install_quantlib",
+            "install_basemap",
+            "install_pydelay",
+            "install_gdal",
+            "install_stein_watkins",
+            "install_jsanimation",
+            "install_r_jupyter_kernel",
+            "install_jupyter_ipywidget",
+            "install_cv2",
+            "install_cairo",
+            "install_psage",
+            "install_pycryptoplus",
+            "install_nltk_data",
+            "install_tensorflow",
+            # "install_neuron", # also fails
+        ]
 
-        self.clean_up()
-        #self.extend_sys_path()
-        self.fix_permissions()
+        try:
+            for action in actions:
+                try:
+                    log.info((' %s ' % action).center(80, "="))
+                    getattr(self, action)()
+                except RuntimeError as re:
+                    # this error contains a vital information or problem, operator has to fix it
+                    raise re
+                except Exception as ex:
+                    # otherwise, well, do the next action
+                    log.error("Action %s causes problem %s → continuing" % (action, ex))
+        finally: # always run cleanup and fix permissions!
+            self.clean_up()
+            #self.extend_sys_path()
+            self.fix_permissions()
 
-        #self.install_ipython_patch()  # must be done manually still
+        #install_ipython_patch()  # must be done manually still
 
-        # drepecated
-        #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
-        #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
+    def clean_PATH(self):
+        """
+        Building anything in Sage shouldn't accidentally use anything that's in a home dir like /home/salvus.
 
-    def install_sage_manifolds(self):
-        # TODO: this will probably fail due to an interactive merge request (?)
-        self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemanifolds/sage.git </dev/null && sage -br < /dev/null")
+        E.g. there was a problem with R, where it did pick up some executable from ~/node_modules/.bin which are
+        not available in prod.
+        """
+        import os
+        PATH = os.environ['PATH']
+        os.environ['PATH'] = ':'.join(filter(lambda _ : not _.startswith('/home/'), PATH.split(':')))
 
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
         self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/repr"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R --no-save""")
 
+    def install_jupyter_ipywidget(self):
+        '''
+        This finishes the setup of ipywidget inside jupyter notebook. no idea why this is necessary, and if this would be necessary
+        to run again after something changes ...
+        '''
+        self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
+
+    def install_altair(self):
+        # altair's vega dependency installation
+        self.cmd('jupyter nbextension install --sys-prefix --py vega')
+        self.cmd('jupyter nbextension enable vega --py --sys-prefix')
+
+    @deprecated
     def pull_smc_sage(self):
         self.cmd("cd $SAGE_ROOT && git pull https://github.com/sagemathinc/smc-sage")
 
     def install_jinja2(self):
         self.cmd("pip install -U jinja2")
 
+    @deprecated
     def install_ipython_patch(self):
         """
         TODO:
@@ -507,20 +559,21 @@ class BuildSage(object):
         raise RuntimeError(r"""TODO: change 'local/lib/python/site-packages/notebook/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
 
     def install_jsanimation(self):
-        self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
+        # maybe just pip install git+https://github.com/jakevdp/JSAnimation.git ?
+        self.cmd("cd $TMP && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf $TMP/JSAnimation")
 
     def install_psage(self):
-        self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
+        self.cmd("cd $TMP && rm -rf psage && git clone https://github.com/williamstein/psage.git && cd psage&& sage setup.py install && rm -rf $TMP/psage")
 
     def install_pycryptoplus(self):
-        self.cmd("cd /tmp/ && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf /tmp/python-cryptoplus")
+        self.cmd("cd $TMP && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf $TMP/python-cryptoplus")
 
     def install_cv2(self):
         # The ln at the end below gets rid of a firewire error on startup: http://stackoverflow.com/questions/12689304/ctypes-error-libdc1394-error-failed-to-initialize-libdc1394/26028597#26028597
         self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/ && sudo ln -f /dev/null /dev/raw1394")
 
     def install_cairo(self):
-        self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
+        self.cmd("cd $TMP && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
 
     def patch_sage_location(self):
         """
@@ -577,25 +630,6 @@ class BuildSage(object):
             os.symlink(self.path("local/share"), data)
         os.environ['SAGE_DATA'] = os.environ['SAGE_SHARE']
 
-    def octave_ext(self):
-        """
-        The /usr/local/sage/current/local/share/sage/ext must be writeable by all, which is
-        a stupid horrible bug/shortcoming in Sage that people constantly hit.   As a workaround,
-        we link it to a constrained filesystem for this purpose.
-        """
-        target = self.path("local/share/sage/ext")
-        src = "/pool/ext"
-
-        if not (os.path.exists(src) and os.path.isdir(src)):
-            raise RuntimeError("please create a limited ZFS pool mounted as /pool/ext, with read-write access to all:\n\n\tzfs create pool/ext && chmod a+rwx /pool/ext && zfs set quota=1G pool/ext\n")
-
-        if os.path.exists(target):
-            try:
-                shutil.rmtree(target)
-            except:
-                os.unlink(target)
-        os.symlink(src, target)
-
     def user_site(self):
         import site
         if not site.ENABLE_USER_SITE:
@@ -603,7 +637,7 @@ class BuildSage(object):
 
     def install_sloane(self):
         """
-        Install the Sloane Encyclopaedia tables.  These used to be installed via an optioanl package,
+        Install the Sloane Encyclopaedia tables.  These used to be installed via an optional package,
         but instead one must now run a command from within Sage.
         """
         from sage.all import SloaneEncyclopedia
@@ -666,55 +700,56 @@ class BuildSage(object):
 
     def install_pip_packages(self, upgrade=True):
         """Install each pip-installable package."""
+        self.failed_pip = []
         self.unextend_sys_path()
 
         os.environ['PROJ_DIR']=os.environ['NETCDF4_DIR']=os.environ['HDF5_DIR']='/usr/'
         os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
 
-        os.environ['HDF5_DIR']='/usr/lib/x86_64-linux-gnu/hdf5/serial/'  # needed for tables -- right path at least for ubuntu 15.04
+        os.environ['HDF5_DIR']='/usr/lib/x86_64-linux-gnu/hdf5/serial/'  # needed for tables -- right path at least for ubuntu 15.04, and 16.04
         # for these, see https://github.com/Unidata/netcdf4-python/issues/341
         os.environ['USE_NCCONFIG']='0'
         os.environ['HDF5_LIBDIR']='/usr/lib/x86_64-linux-gnu/hdf5/serial'
         os.environ['HDF5_INCDIR']='/usr/include/hdf5/serial'
         os.environ['NETCDF4_DIR']='/usr'
 
-        for package in SAGE_PIP_PACKAGES:
-            log.info("** Installing/upgrading %s **"%package)
-            # NOTE: the "--no-deps" is critical below; otherwise, pip will do things like install a version of numpy that is
-            # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
-            # break Sage (i.e. lots of doctests fail, etc.).
-            e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
-            self.cmd("%s pip install %s --no-deps --ignore-installed %s"%(e, '--upgrade' if upgrade else '', package))
-
-        for package in SAGE_PIP_PACKAGES_DEPS:
-            log.info("** Installing/upgrading %s **"%package)
-            e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
-            self.cmd("%s pip install %s  %s"%(e, '--upgrade' if upgrade else '', package))
-
+        for packages in [SAGE_PIP_PACKAGES, SAGE_PIP_PACKAGES_DEPS]:
+            for package in packages:
+                log.info((" Installing/upgrading %s **"%package).center(80, "*"))
+                # NOTE: the "--no-deps" is critical below; otherwise, pip will do things like install a version of numpy that is
+                # much newer than the one in Sage, and incompatible (due to not having patches), which if it installs at all, will
+                # break Sage (i.e. lots of doctests fail, etc.).
+                e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
+                try:
+                    self.cmd("%s pip install %s --no-deps --ignore-installed %s"%(e, '--upgrade' if upgrade else '', package))
+                except:
+                    log.error("problem installing %s", package)
+                    self.failed_pip.append(package)
 
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
-        c = 'install.packages(c(%s), repos="https://rweb.crmda.ku.edu/cran/")'%s
+        c = 'install.packages(c(%s), repos="https://cloud.r-project.org/", clean = TRUE, dependencies = TRUE)'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db", "oligo", "limma", "gcrma", "affy", "GEOquery", "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus", "biomaRt"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db", "oligo", "limma", "gcrma", "affy", "GEOquery", "pd.mogene.2.1.st", "pd.mouse430.2", "Heatplus", "biomaRt", "pumadata"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
         """
         Install the Rstan package into R.
         """
-        c = 'install.packages(c("rstan"), repos="https://rweb.crmda.ku.edu/cran/", dependencies = TRUE)'
+        c = 'install.packages(c("rstan"), repos="https://cloud.r-project.org/", clean = TRUE, dependencies = TRUE)'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_pystan(self):
         # follow directions here: https://github.com/stan-dev/pystan
-        self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
+        self.cmd(r"""cd $TMP && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf $TMP/pystan""")
 
     def install_optional_packages(self, skip=[], first=None):
+        self.failed_spkg = []
         from sage.all import install_package
         if 'MAKE' not in os.environ:
             # some packages, e.g., chomp, won't build without MAKE being set.
@@ -730,32 +765,29 @@ class BuildSage(object):
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
-            self.cmd("sage -p %s"%package)
+            try:
+                self.cmd("sage -p %s <<< yes"%package)
+            except:
+                log.error("problem installing sage package %s", package)
+                self.failed_spkg.append(package)
         # We also have to do a "sage -b", since some optional packages don't get fully installed
         # until rebuilding Cython modules.  I posted to sage-devel about this bug on Aug 4.
         self.cmd("sage -b")
 
-    # deprecated because it now says: "The EPD subscriber repository is only available to subscribers."
-    def DEPRECATED_install_enthought_packages(self):
+    def install_sagemanifolds(self):
         """
-        Like Sage does, Enthought has a bunch of packages that are not easily available
-        from pypi...
+        Basically runs the script from http://sagemanifolds.obspm.fr/download.html
         """
-        # We grab the list of tarball names from the website, so we can determine
-        # the newest version of each that we want below.
-        repo = 'https://www.enthought.com/repo/ets/'
-        packages = [x.split('"')[1] for x in urllib2.urlopen(repo).readlines() if '.tar.gz"' in x]
-        for pkg in ENTHOUGHT_PACKAGES:
-            v = [x for x in packages if x.lower().startswith(pkg)]
-            v.sort()
-            newest = v[-1]
-            log.info("installing %s..."%newest)
-            download(os.path.join(repo, newest))
-            path = extract_package(newest)
-            cmd("python setup.py install", path)
+        log.info("Sage Manifolds Start")
+        try:
+            self.cmd("curl -s http://sagemanifolds.obspm.fr/spkg/sm-install.sh | sage -sh")
+            self.cmd("rm -f manifolds-*.tar.gz")
+        except:
+            log.error("Problem installing Sage Manifolds")
+        log.info("Sage Manifolds End")
 
     def install_quantlib(self):
-        cmd("cd /tmp && rm -rf QuantLib-SWIG && git clone https://github.com/lballabio/QuantLib-SWIG && cd QuantLib-SWIG && ./autogen.sh && make -j%s -C Python install && cd $SAGE_ROOT/local/lib/ && ln -s /usr/local/lib/*QuantLib* ."%NCPU)
+        cmd("cd $TMP && rm -rf QuantLib-SWIG && git clone https://github.com/lballabio/QuantLib-SWIG && cd QuantLib-SWIG && ./autogen.sh && make -j%s -C Python install && cd $SAGE_ROOT/local/lib/ && ln -s /usr/local/lib/*QuantLib* ."%NCPU)
 
     def install_neuron(self):
         """
@@ -764,15 +796,17 @@ class BuildSage(object):
         (requested by Jose Guzman)
         """
         def clean_up():
-            if os.path.exists('/tmp/iv'): shutil.rmtree("/tmp/iv")
-            if os.path.exists('/tmp/nrn'): shutil.rmtree("/tmp/nrn")
+            if exists(expandvars('$TMP/iv')): shutil.rmtree(expandvars("$TMP/iv"))
+            if exists(expandvars('$TMP/nrn')): shutil.rmtree(expandvars("$TMP/nrn"))
         from sage.all import SAGE_LOCAL
         clean_up()
-        cmd("hg clone http://www.neuron.yale.edu/hg/neuron/iv", "/tmp")
-        cmd("hg clone http://www.neuron.yale.edu/hg/neuron/nrn", "/tmp")
-        cmd("./build.sh && ./configure --prefix=%s && make -j%s && make install"%(SAGE_LOCAL, NCPU), "/tmp/iv")
-        cmd("./build.sh && ./configure --prefix=%s --with-iv=%s --with-nrnpython && make -j%s && make install && cd src/nrnpython/ && python setup.py install"%(SAGE_LOCAL, SAGE_LOCAL, NCPU), "/tmp/nrn")
-        clean_up()
+        try:
+            cmd("hg clone http://www.neuron.yale.edu/hg/neuron/iv", "$TMP")
+            cmd("hg clone http://www.neuron.yale.edu/hg/neuron/nrn", "$TMP")
+            cmd("./build.sh && ./configure --prefix=%s && make -j%s && make install"%(SAGE_LOCAL, NCPU), "$TMP/iv")
+            cmd("./build.sh && ./configure --prefix=%s --with-iv=%s --with-nrnpython && make -j%s && make install && cd src/nrnpython/ && python setup.py install"%(SAGE_LOCAL, SAGE_LOCAL, NCPU), "$TMP/nrn")
+        finally:
+            clean_up()
 
     def install_basemap(self):
         """
@@ -789,9 +823,9 @@ class BuildSage(object):
                 return
         except Exception, msg:
             pass
-        cmd("/usr/bin/git clone git@github.com:matplotlib/basemap.git", "/tmp")
-        cmd("python setup.py install", "/tmp/basemap")
-        shutil.rmtree("/tmp/basemap")
+        cmd("/usr/bin/git clone https://github.com/matplotlib/basemap.git", "$TMP")
+        cmd("python setup.py install", "$TMP/basemap")
+        shutil.rmtree(expandvars("$TMP/basemap"))
 
     def install_pydelay(self):
         """
@@ -799,7 +833,7 @@ class BuildSage(object):
 
         Requested for UCLA by Jane Shevtsov: https://plus.google.com/115360165819500279592/posts/73vK9Pw4W6g
         """
-        cmd("umask 022 &&  cd /tmp/ &&  rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf /tmp/pydelay*")
+        cmd("umask 022 && cd $TMP && rm -rf pydelay* &&  wget http://downloads.sourceforge.net/project/pydelay/pydelay-0.1.1.tar.gz &&  tar xf pydelay-0.1.1.tar.gz &&  cd pydelay-0.1.1 &&  python setup.py install &&  rm -rf $TMP/pydelay*")
 
     def install_gdal(self):
         """
@@ -807,15 +841,17 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
-        cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
+        GDAL_VERSION       = '2.1.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        cmd("umask 022 &&  unset MAKE && cd $TMP && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd $TMP && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
         # The package itself is "sage -i database_stein_watkins"
-        cmd("umask 022 && cd $SAGE_ROOT/local/share/ &&  ln -sf /projects/sage/share/stein_watkins .")
+        cmd("umask 022 && cd $SAGE_ROOT/local/share/ && ln -sf /ext/sage/stein_watkins .")
 
+    @deprecated
     def install_4ti2(self):
         """
+        DEPRECATED: 4ti2 is an optional package now, so this is not needed any more
         """
         site = "http://www.4ti2.de/"
         target = [x for x in urllib2.urlopen("%s/download_4ti2.html"%site).readlines() if 'source code</a>' in x][0].split('"')[1]
@@ -836,20 +872,36 @@ class BuildSage(object):
         open(self.path("local/var/lib/sage/installed/4ti2-%s"%version),'w')
         shutil.rmtree(path)
 
-    def clean_up(self):
-        # clean up packages downloaded and extracted using the download command
-        src = os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'src')
-        for s in os.listdir(src):
-            if s != 'patches':
-                target = os.path.join(src, s)
-                log.info("removing %s"%target)
-                os.unlink(target)
-        build =  os.path.join(os.environ['HOME'], 'salvus', 'salvus', 'data', 'build')
-        for s in os.listdir(build):
-            target = os.path.join(build, s)
-            log.info("removing %s"%target)
-            shutil.rmtree(target)
+    def install_nltk_data(self):
+        """
+        NLTK comes with a data library. See: http://www.nltk.org/data.html#command-line-installation
 
+        This task's prerequesite is that nltk is installed (otherwise it will simply fail)
+        """
+        cmd("mkdir -p {}".format(NLTK_DATA_DIR))
+        cmd("python -m nltk.downloader -d {} all".format(NLTK_DATA_DIR))
+
+    def install_tensorflow(self):
+        """
+        Check for updated wheel packages here:
+        https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#pip-installation
+
+        Status:
+          * Doesn't work in sage, e.g. despite that it needs the protobuf version 3,
+            It also fails to work due to a name clash between "SnapPy" and https://pypi.python.org/pypi/python-snappy :-(
+          * (update 2016-09-26) it works, but no explicit installation of protobuf version 3, just the wheel package.
+            This seems to include all the dependencies and works fine now.
+        """
+        TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl'
+        self.cmd("sage -pip install --upgrade %s" % TF_BINARY_URL)
+
+    def clean_up(self):
+        log.info("starting cleanup ...")
+        # clean up packages downloaded and extracted using the download command
+        shutil.rmtree(TMP)
+
+        # call sage's clean command
+        self.cmd("make clean")
 
         # clean up packages left over from optional Sage package installs
         # This should be a make target, but isn't (in sage-6.2, at least).
@@ -859,7 +911,30 @@ class BuildSage(object):
                 log.info("deleting %s"%path)
                 shutil.rmtree(path)
 
+        if len(self.failed_pip) > 0:
+            log.info("failed pip packages")
+            for pip in self.failed_pip:
+                log.info("  * %s", pip)
+
+        if len(self.failed_spkg) > 0:
+            log.info("failed sage packages")
+            for spkg in self.failed_spkg:
+                log.info("  * %s", spkg)
+        log.info("... done")
+
     def fix_permissions(self):
+        log.info("fixing permissions ...")
         self.cmd("chmod a+r -R .; find . -perm /u+x -execdir chmod a+x {} \;")
+        log.info("... done")
 
 
+bs = BuildSage()
+
+# this is for non-interactive usage
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 1:
+        print("\n\nUsage: ./sage {} everything       [to build and install everything]".format(__file__))
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == 'everything':
+            bs.everything()

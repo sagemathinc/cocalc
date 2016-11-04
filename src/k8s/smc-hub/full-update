@@ -1,0 +1,6 @@
+set -e
+set -v
+export TAG=$1
+time ./control.py build -r -u -t $TAG 
+./control.py run -f -t $TAG
+

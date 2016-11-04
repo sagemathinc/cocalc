@@ -5,7 +5,7 @@ Basic script to do a little bit toward automating creating rethinkdb cluster.
 """
 
 
-import os, shutil, sys, tempfile
+import os, shutil, sys, tempfile, time
 join = os.path.join
 
 # Boilerplate to ensure we are in the directory of this path and make the util module available.
@@ -54,6 +54,13 @@ def ensure_services_exist():
             util.update_service(filename)
 
 def run_on_kubernetes(args):
+    if args.test:
+        cpu_request = '10m'
+        memory_request = '200Mi'
+    else:
+        cpu_request = '500m'
+        memory_request = '2Gi'
+
     context = util.get_cluster_prefix()
     namespace = util.get_current_namespace()
     if len(args.number) == 0:
@@ -71,6 +78,8 @@ def run_on_kubernetes(args):
                                number       = number,
                                pd_name      = pd_name(context=context, namespace=namespace, number=number),
                                health_delay = args.health_delay,
+                               cpu_request  = cpu_request,
+                               memory_request = memory_request,
                                pull_policy  = util.pull_policy(args)))
             tmp.flush()
             util.update_deployment(tmp.name)
@@ -82,7 +91,16 @@ def forward_admin(args):
     forward_port(args, 8080, mesg)
 
 def forward_db(args):
-    forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+    # While loop since the port forward will fail for a little while in some cases, e.g.,
+    # if the database server is pre-empted; this is normal for testing/dev cluster.
+    while True:
+        try:
+            forward_port(args, 28015, 'Point your rethinkdb client at localhost.')
+        except KeyboardInterrupt:
+            return
+        except:
+            pass
+        time.sleep(3000)
 
 def forward_port(args, port, mesg):
     if args.number == -1:
@@ -197,7 +215,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='sub-command help')
 
     sub = subparsers.add_parser('build', help='build docker image')
-    sub.add_argument("-t", "--tag", default="", help="tag for this build")
+    sub.add_argument("-t", "--tag", required=True, help="tag for this build")
     sub.add_argument("-r", "--rebuild", action="store_true", help="rebuild from scratch")
     sub.add_argument("-l", "--local", action="store_true",
                      help="only build the image locally; don't push it to gcloud docker repo")
@@ -210,6 +228,7 @@ if __name__ == '__main__':
     sub.add_argument('--size', default=10, type=int, help='size of persistent disk in GB (can be used to dynamically increase size!)')
     sub.add_argument('--type', default='standard', help='"standard" or "ssd" -- type of persistent disk (ignored if disk already exists)')
     sub.add_argument('--health-delay', default=60, type=int, help='time in seconds before starting health checks')
+    sub.add_argument("--test", action="store_true", help="using for testing so make very minimal resource requirements")
     sub.set_defaults(func=run_on_kubernetes)
 
     sub = subparsers.add_parser('forward-admin', help='forward port for an admin interface to localhost')

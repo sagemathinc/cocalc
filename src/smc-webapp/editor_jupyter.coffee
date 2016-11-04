@@ -1,33 +1,50 @@
-###
-SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
-
-    Copyright (C) 2014, 2015, 2016, William Stein
-
-Jupyter Notebook Synchronization
-
-There are multiple representations of the notebook.
-
-   - @doc      = syncstring version of the notebook (uses SMC sync functionality)
-   - @nb       = the visible view stored in the browser DOM
-   - @filename = the .ipynb file on disk
-
-In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
-there is a single upstream copy of @doc in the local_hub daemon.
-
-The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
-if so, we copy the state of @nb to @doc's live.
-
-When @doc changes do to some other user changing something, we compute a diff that tranforms
-the live notebook from its current state to the state that matches the new version of @doc.
-See the function set_nb below.  Incidentally, I came up with this approach from scratch after
-trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
-I didn't know about React.js at the time).
-###
+##############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+# Jupyter Notebook Synchronization
+#
+# There are multiple representations of the notebook.
+#
+#    - @doc      = syncstring version of the notebook (uses SMC sync functionality)
+#    - @nb       = the visible view stored in the browser DOM
+#    - @filename = the .ipynb file on disk
+#
+# In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
+# there is a single upstream copy of @doc in the local_hub daemon.
+#
+# The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
+# if so, we copy the state of @nb to @doc's live.
+#
+# When @doc changes do to some other user changing something, we compute a diff that tranforms
+# the live notebook from its current state to the state that matches the new version of @doc.
+# See the function set_nb below.  Incidentally, I came up with this approach from scratch after
+# trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
+# I didn't know about React.js at the time).
+###############################################################################
 
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
 # a minute can happen; this may be the SMC proxy being slow - not sure yet... but at least
 # things should be allowed to work.
 JUPYTER_LOAD_TIMEOUT_S = 60*10
+
+$                    = window.$
 
 {EventEmitter}       = require('events')
 
@@ -135,11 +152,12 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
-            .attr('src', "#{@server_url}#{@filename}")
+        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
+            .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
         @element.html('').append(@iframe)
+        @iframe.maxheight()
         # wait until connected -- it is ***critical*** to wait until
         # the kernel is connected before doing anything else!
         start = new Date()
@@ -161,6 +179,8 @@ class JupyterWrapper extends EventEmitter
                 # to that event until events loads, and by then we may have missed the one event.
                 # Also, I've observed that @frame.IPython.notebook._fully_loaded does not imply the
                 # kernels are connected.
+                if @frame?.IPython?.notebook?
+                    @monkey_patch_frame()
                 if @frame?.IPython?.notebook?.kernel?.is_connected() and @frame.IPython.notebook._fully_loaded
                     # kernel is connected; now patch the Jupyter notebook page (synchronous)
                     @nb = @frame.IPython.notebook
@@ -180,14 +200,14 @@ class JupyterWrapper extends EventEmitter
                         @dirty_interval = setInterval(@check_dirty, 250)
                         @nb.events.on('spec_changed.Kernel', => @nb.dirty = true)
                         @init_cursor()
-                    @monkey_patch_frame()
                     @disable_autosave()
                     @state = 'ready'
                     @emit('ready')
                     cb()
                 else
                     console.log 'Jupyter -- not yet fully connected'
-                    setTimeout(f, 1000)
+                    if @state != 'closed'
+                        setTimeout(f, 1000)
         f()
 
     dbg: (f) =>
@@ -207,31 +227,40 @@ class JupyterWrapper extends EventEmitter
 
     # save notebook file from DOM to disk
     save: (cb) =>
-        @nb.save_notebook(false).then(cb)
+        # could be called when notebook is being initialized before nb is defined.
+        @nb?.save_notebook(false).then(cb)
 
     disable_autosave: () =>
         # We have our own auto-save system
         @nb.set_autosave_interval(0)
 
     monkey_patch_frame: () =>
+        if @_already_monkey_patched
+            return
+        @_already_monkey_patched = true
         misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
         misc_page.cm_define_testbot(@frame.CodeMirror)
         @monkey_patch_logo()
         if @read_only
             @monkey_patch_read_only()
         @monkey_patch_ui()
+        @monkey_patch_methods()
 
         # Jupyter's onbeforeunload does a bunch of stuff we don't want, e.g., it's own autosave, complaints
         # about kernel computations, possibly killing the kernel at some point, etc.  Also, having this at
         # all always seems to cause a dialog to pop up, even if the user doesn't want one according to smc's
         # own prefs.
         @frame.window.onbeforeunload = null
-        # when active, periodically reset the idle timeout time in client_browser
+        # when active, periodically reset the idle timer's reset time in client_browser.Connection
         # console.log 'iframe', @iframe
-        @iframe.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
+        @iframe.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
+
+    install_custom_undo_redo: (undo, redo) =>
+        @frame.CodeMirror.prototype.undo = undo
+        @frame.CodeMirror.prototype.redo = redo
 
     monkey_patch_ui: () =>
-        # Proper file rename with sync not supported yet (but will be -- TODO;
+        # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
         @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
 
@@ -274,6 +303,19 @@ class JupyterWrapper extends EventEmitter
         $(@frame.document).find("#menubar").hide()   # instead do this if want to preserve kernel -- find('.nav').hide()
         $(@frame.document).find("#maintoolbar").hide()
         $(@frame.document).find(".current_kernel_logo").hide()
+
+    monkey_patch_methods: () =>
+        # Some of the stupid Jupyter methods don't properly set the dirty flag. It's just flat out bugs that they don't
+        # care about, evidently.  However, they VERY MUCH matter when doing sync.
+        the_notebook = @nb
+        @frame.IPython.Notebook.prototype.smc_move_selection_down = @frame.IPython.Notebook.prototype.move_selection_down
+        @frame.IPython.Notebook.prototype.move_selection_down = () ->
+            this.smc_move_selection_down()
+            the_notebook.dirty = true
+        @frame.IPython.Notebook.prototype.smc_move_selection_up = @frame.IPython.Notebook.prototype.move_selection_up
+        @frame.IPython.Notebook.prototype.move_selection_up = () ->
+            this.smc_move_selection_up()
+            the_notebook.dirty = true
 
     font_size_set: (font_size) =>
         # initialization, if necessary
@@ -466,7 +508,7 @@ class JupyterWrapper extends EventEmitter
         cell.code_mirror = new_cell.code_mirror
         new_cell.code_mirror = cm
         @nb.delete_cell(index + 1)
-        # TODO: readonly
+        # FUTURE: make readonly
 
     init_cell_cursor: (cell, index) =>
         if @read_only or cell._smc_init_cell_cursor == index
@@ -486,7 +528,7 @@ class JupyterWrapper extends EventEmitter
         # ensure @_cursors is defined; this is map from key to ...?
         #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
-        @_users   ?= smc.redux.getStore('users')  # todo -- obviously not like this...
+        @_users   ?= redux.getStore('users')  # TODO -- obviously not like this...
         x = @_cursors[account_id]
         if not x?
             x = @_cursors[account_id] = []
@@ -639,6 +681,8 @@ class JupyterWrapper extends EventEmitter
         return stringify(obj)
 
     save_blob: (blob, to_db) =>
+        if not @blobs?
+            return
         id = misc.uuidsha1(blob)
         if @blobs[id]
             return id
@@ -659,6 +703,8 @@ class JupyterWrapper extends EventEmitter
         return id
 
     load_blob: (id) =>
+        if not @blobs?
+            return
         blob = @blobs[id]
         if blob?
             return blob
@@ -671,7 +717,7 @@ class JupyterWrapper extends EventEmitter
                         id   : id
                         blob : null
                 cb: (err, resp) =>
-                    if @state == 'closed'
+                    if @state == 'closed' or not @blobs?
                         return
                     delete @blobs_pending[id]
                     if err
@@ -718,16 +764,16 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
+        @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
-        @project_id = @editor.project_id
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
+        @server_url = "#{window.smc_base_url}/#{@project_id}/port/jupyter/notebooks/"
 
         # special case/hack for developing SMC-in-SMC
         if window.smc_base_url.indexOf('/port/') != -1
@@ -735,7 +781,7 @@ class JupyterNotebook extends EventEmitter
             # (things just get too complicated)...
             console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
             i = window.smc_base_url.lastIndexOf('/')
-            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@editor.project_id}/"
+            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
 
         s = misc.path_split(@filename)
         @path = s.head
@@ -783,6 +829,7 @@ class JupyterNotebook extends EventEmitter
                 @init_syncstring_change()
                 @init_dom_events()
                 @init_buttons()
+                @dom.install_custom_undo_redo(@undo, @redo)
                 @font_size_init()
                 @state = 'ready'
                 if not @read_only and @syncstring.live() == ""
@@ -840,13 +887,14 @@ class JupyterNotebook extends EventEmitter
                 # Use jquery until the server url loads properly (not an error), then load the iframe.
                 # We do this -- which seems inefficient -- because trying to detect errors inside
                 # the iframe properly is difficult.
+                # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
-                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).success(=>cb())
+                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
                     max_time : 60*1000  # try for at most 1 minute
                     cb       : cb
             (cb) =>
                 console.log 'Jupyter: loading iframe'
-                @notebook.css('opacity',0.5)
+                @notebook.css('opacity',0.75)
                 done = (err) =>
                     @notebook.css('opacity',1)
                     if err
@@ -862,31 +910,37 @@ class JupyterNotebook extends EventEmitter
         ], cb)
 
     init_buttons: () =>
+        if @_init_buttons_already_done
+            return
+        @_init_buttons_already_done = true
+        
         # info button
-        @element.find("a[href=#info]").click(@info)
+        @element.find("a[href=\"#info\"]").click(@info)
 
         # time travel/history
-        @element.find("a[href=#history]").click(@show_history_viewer)
+        @element.find("a[href=\"#history\"]").click(@show_history_viewer)
 
         # save button
         if @read_only
-            @element.find("a[href=#save]").addClass('disabled')
+            @element.find("a[href=\"#save\"]").addClass('disabled')
         else
-            @save_button = @element.find("a[href=#save]").click(@save)
+            @save_button = @element.find("a[href=\"#save\"]").click(@save)
 
         # publish button
-        @publish_button = @element.find("a[href=#publish]").click(@publish_ui)
+        @publish_button = @element.find("a[href=\"#publish\"]").click(@publish_ui)
 
-        @refresh_button = @element.find("a[href=#refresh]").click(@refresh)
+        @refresh_button = @element.find("a[href=\"#refresh\"]").click(@refresh)
 
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
+        @element.find("a[href=\"#close\"]").click () =>
+            redux.getProjectActions(@project_id).set_active_tab('files')
             return false
 
-        @font_size_decr = @element.find("a[href=#font-size-decrease]").click () =>
-            @font_size_change(-1)
+        @element.find("a[href=\"#undo\"]").click(@undo)
+        @element.find("a[href=\"#redo\"]").click(@redo)
 
-        @font_size_incr = @element.find("a[href=#font-size-increase]").click () =>
+        @font_size_decr = @element.find("a[href=\"#font-size-decrease\"]").click () =>
+            @font_size_change(-1)
+        @font_size_incr = @element.find("a[href=\"#font-size-increase\"]").click () =>
             @font_size_change(1)
 
     init_dom_events: () =>
@@ -914,6 +968,8 @@ class JupyterNotebook extends EventEmitter
 
     _handle_dom_change: () =>
         #dbg()
+        if not @dom?
+            return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
         @syncstring.live(new_ver)
@@ -924,6 +980,8 @@ class JupyterNotebook extends EventEmitter
     init_dom_change: () =>
         if @read_only
             # read-only mode: ignore any DOM changes
+            return
+        if not @dom?
             return
         #dbg = @dbg("dom_change")
         @_last_dom = @dom.get()
@@ -1034,7 +1092,7 @@ class JupyterNotebook extends EventEmitter
             @_last_show_geometry = geometry
         {top, left, width, height} = defaults geometry,
             left   : undefined  # not implemented
-            top    : @editor.editor_top_position()
+            top    : redux.getProjectStore(@project_id).get('editor_top_position')
             width  : $(window).width()
             height : undefined  # not implemented
         @element.css(top:top)
@@ -1063,7 +1121,7 @@ class JupyterNotebook extends EventEmitter
     show_history_viewer: () =>
         path = misc.history_path(@filename)
         #@dbg("show_history_viewer")(path)
-        @editor.project_page.open_file
+        redux.getProjectActions(@project_id).open_file
             path       : path
             foreground : true
 
@@ -1072,7 +1130,9 @@ class JupyterNotebook extends EventEmitter
     # this way too expensive (and any changes there will quickly get saved
     # to the syncstring, or don't matter).
     has_unsaved_changes: () =>
-        return @syncstring._syncstring.has_unsaved_changes()
+        # The question mark is necessary since @syncstring might not be defined when this gets called
+        # (see https://github.com/sagemathinc/smc/issues/918).
+        return @syncstring?._syncstring?.has_unsaved_changes()
 
     update_save_state: () =>
         if not @save_button? or @state != 'ready'
@@ -1099,7 +1159,7 @@ class JupyterNotebook extends EventEmitter
             cb     : undefined
         salvus_client.exec
             path        : @path
-            project_id  : @editor.project_id
+            project_id  : @project_id
             command     : 'sage'
             args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
@@ -1147,10 +1207,10 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
                 cb()
             ], (err) =>
             status?("done", 100)
@@ -1179,6 +1239,19 @@ class JupyterNotebook extends EventEmitter
             @parent.local_storage("font_size", font_size)
             @element.data("font_size", font_size)
 
+    undo: () =>
+        if not @syncstring.in_undo_mode()
+            @_handle_dom_change()
+        else if @dom.get(true) != @_last_dom  # expensive but I don't know how to handle this case otherwise since dirty checking so hard...
+            @exit_undo_mode()
+            @_handle_dom_change()
+        @syncstring.undo()
+
+    redo: () =>
+        @syncstring.redo()
+
+    exit_undo_mode: () =>
+        @syncstring.exit_undo_mode()
 
     ###
     Used for testing.  Call this to have a "robot" count from 1 up to n
@@ -1246,10 +1319,10 @@ exports.jupyter_nbviewer = (editor, filename, content, opts) ->
     return element
 
 class JupyterNBViewer
-    constructor: (@editor, @filename, @content, opts) ->
+    constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = "#{window.smc_base_url}/#{@editor.project_id}/raw/#{@filename}"
+        @ipynb_html_src = "#{window.smc_base_url}/#{@project_id}/raw/#{@filename}"
         @init_buttons()
 
     show: () =>
@@ -1264,26 +1337,26 @@ class JupyterNBViewer
             # callback, run after "load" event below this line
             @iframe.load ->
                 # could become undefined due to other things happening...
-                @iframe?.contents().find("body").on("click mousemove keydown focusin", smc.client.idle_reset)
+                @iframe?.contents().find("body").on("click mousemove keydown focusin", salvus_client.idle_reset)
             @iframe.attr('src', @ipynb_html_src)
 
-        @element.css(top:@editor.editor_top_position())
+        @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
         @element.maxheight(offset:18)
         @element.find(".smc-jupyter-nbviewer-content").maxheight(offset:18)
         @iframe.maxheight(offset:18)
 
     init_buttons: () =>
-        @element.find('a[href=#copy]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href=\"#copy\"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('copy')
             return false
 
-        @element.find('a[href=#download]').click () =>
-            @editor.project_page.display_tab('project-file-listing')
-            actions = redux.getProjectActions(@editor.project_id)
+        @element.find('a[href=\"#download\"]').click () =>
+            actions = redux.getProjectActions(@project_id)
+            actions.set_active_tab('files')
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('download')

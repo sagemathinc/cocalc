@@ -35,7 +35,8 @@ def install_pyutil():
     cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_pyutil")
 
 def install_sagews():
-    cmd("sage -pip install --upgrade ./smc_sagews")
+    if os.system('which sage') == 0:
+        cmd("sage -pip install --upgrade ./smc_sagews")
     cmd(SUDO+"/usr/bin/pip install --upgrade ./smc_sagews")   # as a fallback
 
 def install_project():
@@ -83,11 +84,11 @@ def install_webapp(*args):
         raise ValueError("action %s unknown" % action)
 
 def install_primus():
-    cmd("cd smc-hub && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
+    # The rm works around a bug in npm...
+    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
 def install_all(compute=False, web=False):
     if compute or web:
-        pull()
         install_hub()  # also contains compute server right now (will refactor later)
     if compute:
         install_pyutil()

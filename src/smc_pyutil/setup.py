@@ -23,7 +23,9 @@ from setuptools import setup
 from distutils.core import Distribution
 d = Distribution()
 d.parse_command_line()
-if 'user' not in d.command_options.get("install", {}).keys():
+
+# THIS IS NOT WORKING
+if False and 'user' not in d.command_options.get("install", {}).keys():
     # CRITICAL!
     # -s tells python to not load the user's "site" packages in ~/.local
     # otherwise, setuptool's startup scripts do not work, if there is a conflicting
@@ -62,6 +64,7 @@ setup(
             'smc-new-file         = smc_pyutil.new_file:main',
             'smc-status           = smc_pyutil.status:main',
             'smc-jupyter          = smc_pyutil.jupyter_notebook:main',
+            'smc-jupyter-no-output= smc_pyutil.jupyter_delete_output:main',
             'smc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',
             'smc-ls               = smc_pyutil.git_ls:main',
             'smc-compute          = smc_pyutil.smc_compute:main',

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ fs          = require('fs')
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
-daemon      = require('start-stop-daemon')
 
 uuid        = require('node-uuid')
 
@@ -843,6 +842,10 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
+    if program.single
+        winston.debug("init_mintime: running in single-machine mode; not initializing idle timeout")
+        cb()
+        return
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
@@ -1004,6 +1007,10 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
+    if program.single
+        dbg("running in single machine mode; not creating firewall")
+        cb()
+        return
     hostname = require("os").hostname()
     if not misc.startswith(hostname, 'compute')
         dbg("not starting firewall since hostname does not start with 'compute'")
@@ -1127,7 +1134,7 @@ update_states = (cb) ->
                                 cb(err)
                             else
                                 project.state(update:true, cb:cb)
-            async.map(projects, f, cb)
+            async.mapLimit(projects, 20, f, cb)
         ], (err) ->
             setTimeout(update_states, 2*60*1000)
             cb?(err)
@@ -1259,6 +1266,7 @@ main = () ->
         if exists
             fs.chmod(CONF, 0o700)     # just in case...
 
+    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
 if program._name.split('.')[0] == 'compute'

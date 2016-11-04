@@ -846,8 +846,7 @@ describe "parse_bup_timestamp", ->
         input = "2014-01-02-031508"
         act = misc.parse_bup_timestamp("2014-01-02-031508")
         act.should.be.instanceOf Date
-        # month starts at 0, but not the day?
-        exp = new Date(2014, 0, 2, 3, 15, 8, 0)
+        exp = new Date('2014-01-02T03:15:08.000Z')
         act.should.be.eql exp
 
 describe "hash_string", ->
@@ -1152,7 +1151,7 @@ describe "date_to_snapshot_format", ->
 
 describe "smileys", ->
     it "replaces strings", ->
-        misc.smiley(s : "hey :-) you !!!").should.be.eql "hey 😁 you ⚠"
+        misc.smiley(s : "hey :-) you !!! :-)").should.be.eql "hey 😁 you !!! 😁"
     it "wraps for html", ->
         res = misc.smiley
             s : "foo :-) bar"
@@ -1220,9 +1219,36 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b", ->
-    it "test 1", ->
+describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+    it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
         e = {'x': 4.4, 'y': -1, 'z': 5}
         misc.map_limit(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 0, 'y': -1, 'z': 0}
+        misc.map_limit(a, b).should.eql e
+
+describe 'is_valid_email_address is', ->
+    valid = misc.is_valid_email_address
+    it "true for test@test.com", ->
+        valid('test@test.com').should.be.true()
+    it "false for blabla", ->
+        valid('blabla').should.be.false()
+
+describe 'suggest_duplicate_filename', ->
+    dup = misc.suggest_duplicate_filename
+    it "works with numbers", ->
+        dup('filename-1.test').should.be.eql 'filename-2.test'
+        dup('filename-99.test').should.be.eql 'filename-100.test'
+        dup('filename_001.test').should.be.eql 'filename_2.test'
+        dup('filename_99.test').should.be.eql 'filename_100.test'
+    it "works also without", ->
+        dup('filename-test').should.be.eql 'filename-test-1'
+        dup('filename-xxx.test').should.be.eql 'filename-xxx-1.test'
+        dup('bla').should.be.eql 'bla-1'
+        dup('foo.bar').should.be.eql 'foo-1.bar'
+    it "also works with weird corner cases", ->
+        dup('asdf-').should.be.eql 'asdf--1'

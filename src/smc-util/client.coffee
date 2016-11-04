@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -51,9 +51,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 DEFAULT_TIMEOUT = 30  # in seconds
 
 
-# change these soon
-smcls = 'smc-ls'
-
 class Session extends EventEmitter
     # events:
     #    - 'open'   -- session is initialized, open and ready to be used
@@ -83,7 +80,12 @@ class Session extends EventEmitter
         # I'm going to leave this in for now -- it's only used for console sessions,
         # and they aren't properly reconnecting in all cases.
         if @reconnect?
-            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+            @conn.on("connected", @reconnect)
+
+    close: () =>
+        @removeAllListeners()
+        if @reconnect?
+            @conn.removeListener("connected", @reconnect)
 
     reconnect: (cb) =>
         # Called when the connection gets dropped, then reconnects
@@ -190,7 +192,11 @@ class exports.Connection extends EventEmitter
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
     constructor: (@url) ->
-        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
+        # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
+        # The issue is https://github.com/sagemathinc/smc/issues/1098 and the errors we got are
+        # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
+        @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
+
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -200,6 +206,7 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
+        @_redux = undefined # set this if you want to be able to use mark_file
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -268,7 +275,7 @@ class exports.Connection extends EventEmitter
                     # See the function server_time below; subtract @_clock_skew from local time to get a better
                     # estimate for server time.
                     @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    localStorage.clock_skew = @_clock_skew
+                    misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -280,9 +287,9 @@ class exports.Connection extends EventEmitter
         # some algorithms including sync which uses time.  Getting the clock right up to a small multiple
         # of ping times is fine for our application.
         if not @_clock_skew?
-            # try localStorage
-            if localStorage.clock_skew?
-                @_clock_skew = parseFloat(localStorage.clock_skew)
+            x = misc.get_local_storage('clock_skew')
+            if x?
+                @_clock_skew = parseFloat(x)
         return new Date(new Date() - (@_clock_skew ? 0))
 
     ping_test: (opts) =>
@@ -403,14 +410,12 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
-                if localStorage?
-                    localStorage[@remember_me_key()] = true
+                misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 @emit("signed_in", mesg)
 
             when "remember_me_failed"
-                if localStorage?
-                    delete localStorage[@remember_me_key()]
+                misc.delete_local_storage(@remember_me_key())
                 @emit(mesg.event, mesg)
 
             when "project_list_updated", 'project_data_changed'
@@ -836,15 +841,17 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
     # Like "read_text_file_from_project" above, except the callback
-    # message gives a temporary url from which the file can be
+    # message gives a url from which the file can be
     # downloaded using standard AJAX.
+    # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
+    # It also just returns the url.
     read_file_from_project: (opts) ->
         opts = defaults opts,
             project_id : required
             path       : required
             timeout    : DEFAULT_TIMEOUT
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
-            cb         : required
+            cb         : undefined
 
         base = window?.smc_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
@@ -853,7 +860,8 @@ class exports.Connection extends EventEmitter
 
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
-        opts.cb(false, {url:url})
+        opts.cb?(false, {url:url})
+        return url
 
     project_branch_op: (opts) ->
         opts = defaults opts,
@@ -1110,7 +1118,7 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : "find"
             timeout    : 15
-            args       : [opts.path, '-xdev', '-type', 'd', '-iname', opts.query]
+            args       : [opts.path, '-xdev', '!', '-readable', '-prune', '-o', '-type', 'd', '-iname', opts.query, '-readable', '-print']
             bash       : false
             cb         : (err, result) =>
                 if err
@@ -1248,11 +1256,12 @@ class exports.Connection extends EventEmitter
         args.push(opts.start)
         if opts.path == ""
             opts.path = "."
+        args.push('--')
         args.push(opts.path)
 
         @exec
             project_id : opts.project_id
-            command    : smcls
+            command    : 'smc-ls'
             args       : args
             timeout    : opts.timeout
             cb         : (err, output) ->
@@ -1279,14 +1288,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(false, resp.state)
-
-    #################################################
-    # Some UI state
-    #################################################
-    in_fullscreen_mode: (state) =>
-        if state?
-            @_fullscreen_mode = state
-        return $(window).width() <= 767 or @_fullscreen_mode
 
     #################################################
     # Print file to pdf
@@ -1496,8 +1497,8 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : undefined    # one of account_id or email_address must be given
             email_address : undefined
-            amount        : required     # in US dollars
-            description   : required
+            amount        : undefined    # in US dollars -- if amount/description not given, then merely ensures user has stripe account
+            description   : undefined
             cb            : required
         @call
             message : message.stripe_admin_create_invoice_item
@@ -1507,6 +1508,16 @@ class exports.Connection extends EventEmitter
                 description   : opts.description
             error_event : true
             cb          : opts.cb
+
+    # Make it so the SMC user with the given email address has a corresponding stripe
+    # identity, even if they have never entered a credit card.  May only be used by
+    # admin users.
+    stripe_admin_create_customer: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined    # one of account_id or email_address must be given
+            email_address : undefined
+            cb            : required
+        @stripe_admin_create_invoice_item(opts)
 
     # Support Tickets
 
@@ -1576,14 +1587,16 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncObject(opts)
 
+    # If called on the fronted, will make the given file with the given action.
+    # Does nothing on the backend.
     mark_file: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
             action     : required
             ttl        : 120
-        # TODO: this is bad. Really client should have a reference to redux...
-        window?.smc?.redux.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        # Will only do something if @_redux has been set.
+        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     query: (opts) =>
         opts = defaults opts,
@@ -1594,6 +1607,7 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+        #console.log("query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)

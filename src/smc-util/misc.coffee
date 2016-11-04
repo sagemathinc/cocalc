@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 ##########################################################################
 #
 ###############################################################################
-# Copyright (c) 2013, William Stein
+# Copyright (C) 2016, Sagemath Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -411,6 +411,14 @@ exports.filename_extension_notilde = (filename) ->
         ext = ext.slice(0, ext.length-1)
     return ext
 
+# If input name foo.bar, returns object {name:'foo', ext:'bar'}.
+# If there is no . in input name, returns {name:name, ext:''}
+exports.separate_file_extension = (name) ->
+    ext  = exports.filename_extension(name)
+    if ext isnt ''
+        name = name[0...name.length - ext.length - 1] # remove the ext and the .
+    return {name: name, ext: ext}
+
 # shallow copy of a map
 exports.copy = (obj) ->
     if not obj? or typeof(obj) isnt 'object'
@@ -688,6 +696,9 @@ exports.retry_until_success = (opts) ->
                 opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if err == "not_public"
+                    opts.cb?("not_public")
+                    return
                 if err and opts.warn?
                     opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.log?
@@ -1046,23 +1057,32 @@ exports.parse_mathjax = (t) ->
         return v
     i = 0
     while i < t.length
-        if t.slice(i,i+2) == '\\$'
+        # escaped dollar sign, ignored
+        if t.slice(i, i+2) == '\\$'
             i += 2
             continue
         for d in mathjax_delim
             contains_linebreak = false
-            if t.slice(i,i+d[0].length) == d[0]
+            # start of a formula detected
+            if t.slice(i, i + d[0].length) == d[0]
                 # a match -- find the close
                 j = i+1
-                while j < t.length and t.slice(j,j+d[1].length) != d[1]
-                    if t.slice(j, j+1) == "\n"
+                while j < t.length and t.slice(j, j + d[1].length) != d[1]
+                    next_char = t.slice(j, j+1)
+                    if next_char == "\n"
                         contains_linebreak = true
                         if d[0] == "$"
                             break
+                    # deal with ending ` char in markdown (mathjax doesn't stop there)
+                    prev_char = t.slice(j-1, j)
+                    if next_char == "`" and prev_char != '\\' # implicitly also covers "```"
+                        j -= 1 # backtrack one step
+                        break
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
-                if !(d[0] == "$" and contains_linebreak)
+                at_end_of_string = j >= t.length
+                if !(d[0] == "$" and (contains_linebreak or at_end_of_string))
                     v.push([i,j])
                 i = j
                 break
@@ -1323,11 +1343,11 @@ exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 exports.weeks_ago        = (w)  -> exports.days_ago(7*w)
 exports.months_ago       = (m)  -> exports.days_ago(30.5*m)
 
-if localStorage?
-    # Versions of the above, but give the relevant point in time but
+if window?
+    # BROWSER Versions of the above, but give the relevant point in time but
     # on the *server*.  These are only available in the web browser.
-    exports.server_time             = ()   -> new Date(new Date() - (parseFloat(localStorage.clock_skew) ? 0))
-    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - (parseFloat(localStorage.clock_skew) ? 0))
+    exports.server_time             = ()   -> new Date(new Date() - parseFloat(exports.get_local_storage('clock_skew') ? 0))
+    exports.server_milliseconds_ago = (ms) -> new Date(new Date() - ms - parseFloat(exports.get_local_storage('clock_skew') ? 0))
     exports.server_seconds_ago      = (s)  -> exports.server_milliseconds_ago(1000*s)
     exports.server_minutes_ago      = (m)  -> exports.server_seconds_ago(60*m)
     exports.server_hours_ago        = (h)  -> exports.server_minutes_ago(60*h)
@@ -1441,10 +1461,15 @@ exports.map_diff = (a, b) ->
     return c
 
 # limit the values in a by the values of b
+# or just by b if b is a number
 exports.map_limit = (a, b) ->
     c = {}
-    for k, v of a
-        c[k] = Math.min(v, (b[k] ? Number.MAX_VALUE))
+    if typeof b == 'number'
+        for k, v of a
+            c[k] = Math.min(v, b)
+    else
+        for k, v of a
+            c[k] = Math.min(v, (b[k] ? Number.MAX_VALUE))
     return c
 
 # arithmetic sum of an array
@@ -1526,7 +1551,6 @@ smileys_definition = [
     [';-)',          "😉"],
     ['-_-',          "😔"],
     [':-\\',         "😏"],
-    ['!!!',          "⚠"],
     [':omg:',        "😱"]
 ]
 
@@ -1661,3 +1685,97 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 # converts ticket number to support ticket url (currently zendesk)
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
+
+# Apply various transformations to url's before downloading a file using the "+ New" from web thing:
+# This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
+# content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
+
+exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
+    URL_TRANSFORMS =
+        'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
+        'http://nbviewer.ipython.org/urls/':'https://'
+    if exports.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
+        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+
+    if exports.startswith(url, 'git@github.com:')
+        command = 'git'  # kind of useless due to host keys...
+        args = ['clone', url]
+    else if url.slice(url.length-4) == ".git"
+        command = 'git'
+        args = ['clone', url]
+    else
+        # fall back
+        for a,b of URL_TRANSFORMS
+            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        command = 'wget'
+        args = [url]
+
+    return {command:command, args:args}
+
+# convert a file path to the "name" of the underlying editor tab.
+# needed because otherwise filenames like 'log' would cause problems
+exports.path_to_tab = (name) ->
+    "editor-#{name}"
+
+# assumes a valid editor tab name...
+exports.tab_to_path = (name) ->
+    name.substring(7)
+
+# suggest a new filename when duplicating it
+# 1. strip extension, split at '_' or '-' if it exists
+# try to parse a number, if it works, increment it, etc.
+exports.suggest_duplicate_filename = (name) ->
+    {name, ext} = exports.separate_file_extension(name)
+    idx_dash = name.lastIndexOf('-')
+    idx_under = name.lastIndexOf('_')
+    idx = exports.max([idx_dash, idx_under])
+    new_name = null
+    if idx > 0
+        [prfx, ending] = [name[...idx+1], name[idx+1...]]
+        num = parseInt(ending)
+        if not Number.isNaN(num)
+            new_name = "#{prfx}#{num+1}"
+    new_name ?= "#{name}-1"
+    if ext?.length > 0
+        new_name += ".#{ext}"
+    return new_name
+
+
+# Wrapper around localStorage, so we can safely touch it without raising an
+# exception if it is banned (like in some browser modes) or doesn't exist.
+# See https://github.com/sagemathinc/smc/issues/237
+
+exports.set_local_storage = (key, val) ->
+    try
+        localStorage[key] = val
+    catch e
+        console.warn("localStorage set error -- #{e}")
+
+exports.get_local_storage = (key) ->
+    try
+        return localStorage[key]
+    catch e
+        console.warn("localStorage get error -- #{e}")
+
+
+exports.delete_local_storage = (key) ->
+    try
+        delete localStorage[key]
+    catch e
+        console.warn("localStorage delete error -- #{e}")
+
+
+exports.has_local_storage = () ->
+    try
+        TEST = '__smc_test__'
+        localStorage[TEST] = 'x'
+        delete localStorage[TEST]
+        return true
+    catch e
+        return false
+
+exports.local_storage_length = () ->
+    try
+        return localStorage.length
+    catch e
+        return 0

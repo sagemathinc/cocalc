@@ -1,0 +1,26 @@
+ALERT HIGH_LOAD_COMPUTE
+  IF node_load1{job="compute", group="member"} > 15
+  FOR 1m
+  LABELS { severity = "low" }
+  ANNOTATIONS {
+   summary = "Compute {{ $labels.instance }} high load",
+   description = "the load1 is currently at {{ $value }}"
+  }
+
+ALERT LOW_DB_DISK
+  IF (node_filesystem_free{mountpoint="/",job="db"} / (1024^3)) < 20
+  FOR 1h
+  LABELS { severity = "high" }
+  ANNOTATIONS {
+    summary = "Low disk space on {{ $labels.instance }}",
+    description = "Only {{ $value }} MiB left!"
+  }
+
+ALERT COMPUTE_NODE_DOWN
+  IF up{job="compute"} < 1
+  FOR 5m
+  LABELS { severity = "high" }
+  ANNOTATIONS {
+    summary = "Compute node {{ $labels.instance }} is down",
+    description = "up-value < 1"
+  }

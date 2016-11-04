@@ -9,7 +9,7 @@
 # Python that the ipython command runs.
 #
 #
-# Copyright (c) 2013, William Stein, All rights reserved.
+# Copyright (C) 2016, Sagemath Inc.
 # 2-clause BSD:
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 # 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -78,7 +78,20 @@ def command():
     else:
         mathjax_url = "/static/mathjax/MathJax.js" # fallback
 
-    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
+    if os.system('which sage') == 0:
+        ipython = "sage -ipython"
+    else:
+        ipython = "ipython"
+
+    # --NotebookApp.iopub_data_rate_limit=<Float>
+    #     Default: 0
+    #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
+    #     are limited.
+    # --NotebookApp.iopub_msg_rate_limit=<Float>
+    #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
+    #     are limited.
+
+    cmd = ipython+ " notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s"%(mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 

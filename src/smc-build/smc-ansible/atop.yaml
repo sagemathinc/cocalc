@@ -6,13 +6,17 @@
   tasks:
 
   - name: "install atop"
-    apt: name=atop
-         state=present
+    apt: name=atop state=latest
 
-  - name: "copy atoprc to /etc/atoprc"
-    copy: src=files/atoprc
-          dest=/etc/atoprc
-          owner=root group=root mode=644
+  # buggy?
+  #- name: "copy atoprc to /etc/atoprc"
+  #  copy: src=files/atoprc
+  #        dest=/etc/atoprc
+  #        owner=root group=root mode=644
+  - name: "copy atoprc"
+    shell: |
+           cp files/atoprc /etc/atoprc
+           chmod 644 /etc/atoprc
 
   - name: "stop atop service"
     service: name=atop
@@ -22,4 +26,4 @@
     shell: "update-rc.d atop disable"
 
   - name: "delete /var/log/atop/"
-    shell: "rm -rf /var/log/atop/ || exit 0"
+    file: path=/var/log/atop/ state=absent

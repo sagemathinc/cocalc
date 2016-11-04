@@ -524,6 +524,9 @@ schema.projects =
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
+        invite_requests :
+            type : 'map'
+            desc : "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}."
         deleted     :
             type : 'bool'
             desc : 'Whether or not this project is deleted.'
@@ -566,11 +569,35 @@ schema.projects =
         course :
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+        run :
+            type : 'bool'
+            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
+        storage_server :
+            type : 'number'
+            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+        storage_ready :
+            type : 'bool'
+            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+        disk_size :
+            type : 'number'
+            desc : 'Size in megabytes of the project disk.'
+        resources :
+            type : 'map'
+            desc : 'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
+        preemptible :
+            type : 'bool'
+            desc : 'If true, allow to run on preemptible nodes.'
+        idle_timeout :
+            type : 'number'
+            desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
+        run                       : [] # so can easily tell which projects should be running
+        storage_server            : [] # so can easily get projects on a particular storage server
+        seconds_since_backup      : ["that.r.sub(that.r.row('last_snapshot').default(0),that.r.row('last_backup').default(0))"]   # projects needing backup
         created                   : [] # to compute stats efficiently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
         storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
@@ -587,6 +614,7 @@ schema.projects =
                 description    : ''
                 users          : {}
                 invite         : null   # who has been invited to this project via email
+                invite_requests: null   # who has requested to be invited
                 deleted        : null
                 host           : null
                 settings       : DEFAULT_QUOTAS
@@ -602,6 +630,7 @@ schema.projects =
                 title          : true
                 description    : true
                 deleted        : true
+                invite_requests: true   # project collabs can modify this (e.g., to remove from it once user added or rejected)
                 users          : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
                 action_request : true   # used to request that an action be performed, e.g., "save"; handled by before_change
 
@@ -643,6 +672,38 @@ schema.projects_owner =
             fields :
                 project_id : 'project_owner'
                 course     : true
+
+# Table that enables any signed-in user to set an invite request.
+# Later: we can make an index so that users can see all outstanding requests they have made easily.
+# How to test this from the browser console:
+#    project_id = '4e0f5bfd-3f1b-4d7b-9dff-456dcf8725b8' // id of a project you have
+#    invite_requests = {}; invite_requests[smc.client.account_id] = {timestamp:new Date(), message:'please invite me'}
+#    smc.client.query({cb:console.log, query:{project_invite_requests:{project_id:project_id, invite_requests:invite_requests}}})  // set it
+#    smc.redux.getStore('projects').get_project(project_id).invite_requests                 // see requests for this project
+#
+schema.project_invite_requests =
+    virtual    : 'projects'
+    primary_key: 'project_id'
+    fields :
+        project_id      : true
+        invite_requests : true   # {account_id:{timestamp:?, message:?}, ...}
+    user_query :
+        set :
+            fields :
+                project_id      : true
+                invite_requests : true
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                cb()  # actual function will be database._user... as below.
+                #database._user_set_query_project_invite_requests(old_val, new_val, account_id, cb)
+                # For now don't check anything -- this is how we will make it secure later.
+                # This will:
+                #   - that user setting this is signed in
+                #   - ensure user only modifies their own entry (for their own id).
+                #   - enforce some hard limit on number of outstanding invites (say 30).
+                #   - enforce limit on size of invite message.
+                #   - sanity check on timestamp
+                #   - with an index as mentioned above we could limit the number of projects
+                #     to which a single user has requested to be invited.
 
 # Table that provides extended read info about a single project
 # but *ONLY* for admin.
@@ -755,6 +816,11 @@ exports.site_settings_conf =
         name    : "Help email address"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
+    commercial:
+        name    : "Commercial UI elements ('yes' or 'no')"
+        desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
+        default : "no"
+
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
 

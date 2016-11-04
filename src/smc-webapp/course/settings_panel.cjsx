@@ -1,3 +1,5 @@
+# standard non-SMC libraries
+immutable = require('immutable')
 
 # SMC libraries
 misc = require('smc-util/misc')
@@ -6,14 +8,117 @@ misc = require('smc-util/misc')
 schema = require('smc-util/schema')
 
 # React libraries and Components
-{React, rclass, rtypes}  = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Well} = require('react-bootstrap')
+{React, rclass, rtypes, ReactDOM}  = require('../smc-react')
+{Alert, Button, ButtonToolbar, ButtonGroup, Row, Col,
+    Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
 # SMC Components
-{Calendar, Icon, LabeledRow, Loading, MarkdownInput,
+{Calendar, Icon, LabeledRow, Loading, MarkdownInput, NoUpgrades
      Space, TextInput, TimeAgo, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
-{NoUpgrades} = require('../project_settings')
+
+StudentProjectsStartStopPanel = rclass ({name}) ->
+    displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
+
+    reduxProps :
+        "#{name}" :
+            action_all_projects_state : rtypes.string
+
+    propTypes :
+        num_running_projects : rtypes.number
+        num_students         : rtypes.number
+
+    getDefaultProps : ->
+        action_all_projects_state : "any"
+
+    getInitialState : ->
+        confirm_stop_all_projects   : false
+        confirm_start_all_projects  : false
+
+    render_in_progress_action : ->
+        state_name = @props.action_all_projects_state
+        switch state_name
+            when "stopping"
+                if @props.num_running_projects == 0
+                    return
+                bsStyle = 'warning'
+            else
+                if @props.num_running_projects == @props.num_students
+                    return
+                bsStyle = 'info'
+
+        <Alert bsStyle=bsStyle>
+            {misc.capitalize(state_name)} all projects... <Icon name='circle-o-notch' spin />
+        </Alert>
+
+    render_confirm_stop_all_projects: ->
+        <Alert bsStyle='warning'>
+            Are you sure you want to stop all student projects (this might be disruptive)?
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@actions(@props.name).action_all_student_projects('stop')}>
+                    <Icon name='hand-stop-o'/> Stop all
+                </Button>
+                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render_confirm_start_all_projects: ->
+        <Alert bsStyle='info'>
+            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
+            open them.
+            <br/>
+            <br/>
+            <ButtonToolbar>
+                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@actions(@props.name).action_all_student_projects('start')}>
+                    <Icon name='flash'/> Start all
+                </Button>
+                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    render : ->
+        r = @props.num_running_projects
+        n = @props.num_students
+        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
+            <Row>
+                <Col md=9>
+                    {r} of {n} student projects currently running.
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    <ButtonToolbar>
+                        <Button onClick={=>@setState(confirm_start_all_projects:true)}
+                            disabled={n==0 or n==r or @state.confirm_start_all_projects or @props.action_all_projects_state == "starting"}
+                        >
+                            <Icon name="flash"/> Start all...
+                        </Button>
+                        <Button onClick={=>@setState(confirm_stop_all_projects:true)}
+                            disabled={n==0 or r==0 or @state.confirm_stop_all_projects or @props.action_all_projects_state == "stopping"}
+                        >
+                            <Icon name="hand-stop-o"/> Stop all...
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+            <Row style={marginTop:'10px'}>
+                <Col md=12>
+                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
+                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
+                    {@render_in_progress_action() if @props.action_all_projects_state != "any"}
+                </Col>
+            </Row>
+            <hr/>
+            <span style={color:'#666'}>
+                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
+            </span>
+        </Panel>
+
 
 exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
@@ -22,9 +127,9 @@ exports.SettingsPanel = rclass
         redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         path        : rtypes.string.isRequired
-        settings    : rtypes.object.isRequired  # immutable js
         project_id  : rtypes.string.isRequired
-        project_map : rtypes.object.isRequired  # immutable js
+        settings    : rtypes.immutable.Map.isRequired
+        project_map : rtypes.immutable.Map.isRequired
 
     getInitialState : ->
         delete_student_projects_confirm : false
@@ -32,8 +137,6 @@ exports.SettingsPanel = rclass
         show_students_pay_dialog        : false
         students_pay_when               : @props.settings.get('pay')
         students_pay                    : !!@props.settings.get('pay')
-        confirm_stop_all_projects       : false
-        confirm_start_all_projects      : false
 
     ###
     # Editing title/description
@@ -50,7 +153,7 @@ exports.SettingsPanel = rclass
             <LabeledRow label="Title">
                 <TextInput
                     text={@props.settings.get('title')}
-                    on_change={(title)=>@props.redux.getActions(@props.name).set_title(title)}
+                    on_change={(title)=>@actions(@props.name).set_title(title)}
                 />
             </LabeledRow>
             <LabeledRow label="Description">
@@ -58,7 +161,7 @@ exports.SettingsPanel = rclass
                     rows    = 6
                     type    = "textarea"
                     default_value = {@props.settings.get('description')}
-                    on_save ={(desc)=>@props.redux.getActions(@props.name).set_description(desc)}
+                    on_save ={(desc)=>@actions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
             <hr/>
@@ -87,10 +190,10 @@ exports.SettingsPanel = rclass
         return p.slice(0,i) + '.' + ext
 
     open_file : (path) ->
-        @props.redux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
+        @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
 
     write_file : (path, content) ->
-        actions = @props.redux.getActions(@props.name)
+        actions = @actions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
             project_id : @props.project_id
@@ -207,7 +310,7 @@ exports.SettingsPanel = rclass
                     rows    = 6
                     type    = "textarea"
                     default_value = {@props.redux.getStore(@props.name).get_email_invite()}
-                    on_save ={(body)=>@props.redux.getActions(@props.name).set_email_invite(body)}
+                    on_save ={(body)=>@actions(@props.name).set_email_invite(body)}
                 />
             </div>
             <hr/>
@@ -222,7 +325,7 @@ exports.SettingsPanel = rclass
     ###
 
     delete_all_student_projects: ->
-        @props.redux.getActions(@props.name).delete_all_student_projects()
+        @actions(@props.name).delete_all_student_projects()
 
     render_confirm_delete_student_projects: ->
         <Well style={marginTop:'10px'}>
@@ -236,63 +339,11 @@ exports.SettingsPanel = rclass
     render_start_all_projects: ->
         r = @props.redux.getStore(@props.name).num_running_projects(@props.project_map)
         n = @props.redux.getStore(@props.name).num_students()
-        <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
-            <Row>
-                <Col md=9>
-                    {r} of {n} student projects currently running.
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_start_all_projects:true)} disabled={n==r or n==0 or @state.confirm_start_all_projects}><Icon name="flash"/> Start all...</Button>
-                        <Button onClick={=>@setState(confirm_stop_all_projects:true)} disabled={r==0 or n==0 or @state.confirm_stop_all_projects}><Icon name="hand-stop-o"/> Stop all...</Button>
-                    </ButtonToolbar>
-                </Col>
-            </Row>
-            <Row style={marginTop:'10px'}>
-                <Col md=12>
-                    {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
-                    {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
-                </Col>
-            </Row>
-            <hr/>
-            <span style={color:'#666'}>
-                Start all projects associated with this course so they are immediately ready for your students to use. For example, you might do this before a computer lab.  You can also stop all projects in order to ensure that they do not waste resources or are properly upgraded when next used by students.
-            </span>
-        </Panel>
-
-    render_confirm_stop_all_projects: ->
-        <Alert bsStyle='warning'>
-            Are you sure you want to stop all student projects (this might be disruptive)?
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='warning' onClick={=>@setState(confirm_stop_all_projects:false);@action_all_student_projects('stop')}>
-                    <Icon name='hand-stop-o'/> Stop all
-                </Button>
-                <Button onClick={=>@setState(confirm_stop_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
-    render_confirm_start_all_projects: ->
-        <Alert bsStyle='info'>
-            Are you sure you want to start all student projects?  This will ensure the projects are already running when the students
-            open them.
-            <br/>
-            <br/>
-            <ButtonToolbar>
-                <Button bsStyle='primary' onClick={=>@setState(confirm_start_all_projects:false);@action_all_student_projects('start')}>
-                    <Icon name='flash'/> Start all
-                </Button>
-                <Button onClick={=>@setState(confirm_start_all_projects:false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Alert>
-
+        <StudentProjectsStartStopPanel
+            name                 = {@props.name}
+            num_running_projects = {r}
+            num_students         = {n}
+        />
 
     render_delete_all_projects: ->
         <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
@@ -303,6 +354,30 @@ exports.SettingsPanel = rclass
                 If for some reason you would like to delete all the student projects
                 created for this course, you may do so by clicking below.
                 Be careful!
+            </span>
+        </Panel>
+
+    ###
+    # Allow arbitrary collaborators
+    ###
+
+    render_allow_any_collaborators: ->
+        <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
+            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
+                <Checkbox
+                    checked  = {@props.settings.get('allow_collabs')}
+                    onChange = {(e)=>@actions(@props.name).set_allow_collabs(e.target.checked)}>
+                    Allow arbitrary collaborators
+                </Checkbox>
+            </div>
+            <hr/>
+            <span style={color:'#666'}>
+                Every collaborator on the project that contains this course is automatically added
+                to every student project (and the shared project).   In addition, each student is
+                a collaborator on their project.   If students add additional collaborators, by default
+                they will be automatically removed.  If you check the above box, then collaborators
+                will never be automatically removed from projects; in particular, students may
+                add arbitrary collaborators to their projects.
             </span>
         </Panel>
 
@@ -320,7 +395,7 @@ exports.SettingsPanel = rclass
                 upgrades[quota] = val / display_factor
         @setState(upgrade_quotas: false)
         if misc.len(upgrades) > 0
-            @props.redux.getActions(@props.name).upgrade_all_student_projects(upgrades)
+            @actions(@props.name).upgrade_all_student_projects(upgrades)
 
     upgrade_quotas_submittable: ->
         if @_upgrade_is_invalid
@@ -331,9 +406,6 @@ exports.SettingsPanel = rclass
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
-
-    action_all_student_projects: (action) ->
-        @props.redux.getActions(@props.name).action_all_student_projects(action)
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -370,16 +442,16 @@ exports.SettingsPanel = rclass
                     label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
             else
                 label = <span></span>
-            <span>
-                <Input
+            <FormGroup>
+                <FormControl
                     type       = 'text'
                     ref        = {ref}
                     value      = {val}
                     bsStyle    = {bs_style}
-                    onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
+                    onChange   = {=>u=@state.upgrades; u[quota] = ReactDOM.findDOMNode(@refs[ref]).value; @setState(upgrades:u)}
                 />
                 {label}
-            </span>
+            </FormGroup>
         else if input_type == 'checkbox'
             val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
             is_valid = @is_upgrade_input_valid(val, limit)
@@ -389,13 +461,12 @@ exports.SettingsPanel = rclass
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
             <form>
-                <Input
+                <Checkbox
                     ref      = {ref}
-                    type     = 'checkbox'
                     checked  = {val > 0}
-                    label    = {label}
-                    onChange = {=>u=@state.upgrades; u[quota] = (if @refs[ref].getChecked() then 1 else 0); @setState(upgrades:u)}
+                    onChange = {(e)=>u=@state.upgrades; u[quota] = (if e.target.checked then 1 else 0); @setState(upgrades:u)}
                     />
+                {label}
             </form>
         else
             console.warn('Invalid input type in render_upgrade_row_input: ', input_type)
@@ -504,7 +575,7 @@ exports.SettingsPanel = rclass
         @_your_upgrades = your_upgrades
         @_num_projects = num_projects
 
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
             <hr/>
             {@render_upgrade_heading(num_projects)}
@@ -516,10 +587,10 @@ exports.SettingsPanel = rclass
 
     save_admin_upgrade: (e) ->
         e.preventDefault()
-        s = @refs.admin_input.getValue()
+        s = ReactDOM.findDOMNode(@refs.admin_input).value
         quotas = JSON.parse(s)
         console.log("admin upgrade '#{s}' -->", quotas)
-        @props.redux.getActions(@props.name).admin_upgrade_all_student_projects(quotas)
+        @actions(@props.name).admin_upgrade_all_student_projects(quotas)
         return false
 
     render_admin_upgrade: ->
@@ -529,11 +600,13 @@ exports.SettingsPanel = rclass
             <h3>Admin Upgrade</h3>
             Enter an Javascript-parseable object and hit enter (see the Javascript console for feedback):
             <form onSubmit={@save_admin_upgrade}>
-                <Input
-                    ref         = 'admin_input'
-                    type        = 'text'
-                    placeholder = {JSON.stringify(require('smc-util/schema').DEFAULT_QUOTAS)}
-                />
+                <FormGroup>
+                    <FormControl
+                        ref         = 'admin_input'
+                        type        = 'text'
+                        placeholder = {JSON.stringify(require('smc-util/schema').DEFAULT_QUOTAS)}
+                    />
+                </FormGroup>
             </form>
         </div>
 
@@ -564,7 +637,7 @@ exports.SettingsPanel = rclass
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>Add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between student projects.</p>
+                <p>Add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased. You will need sufficient upgrades to contribute the above amount to each student.</p>
 
                 <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
             </div>
@@ -613,7 +686,7 @@ exports.SettingsPanel = rclass
         </div>
 
     save_student_pay_settings: ->
-        @props.redux.getActions(@props.name).set_course_info(@state.students_pay_when)
+        @actions(@props.name).set_course_info(@state.students_pay_when)
         @setState
             show_students_pay_dialog : false
 
@@ -637,8 +710,8 @@ exports.SettingsPanel = rclass
             </Button>
         </ButtonToolbar>
 
-    handle_students_pay_checkbox: ->
-        if @refs.student_pay.getChecked()
+    handle_students_pay_checkbox: (e) ->
+        if e.target.checked
             @setState
                 students_pay      : true
                 students_pay_when : @get_student_pay_when()
@@ -657,13 +730,15 @@ exports.SettingsPanel = rclass
             <span>Require that students upgrade...</span>
 
     render_students_pay_checkbox: ->
-        <Input checked  = {@state.students_pay}
-               key      = 'students_pay'
-               type     = 'checkbox'
-               label    = {@render_students_pay_checkbox_label()}
-               ref      = 'student_pay'
-               onChange = {@handle_students_pay_checkbox}
-        />
+        <span>
+            <Checkbox checked  = {@state.students_pay}
+                   key      = 'students_pay'
+                   ref      = 'student_pay'
+                   onChange = {@handle_students_pay_checkbox}
+            >
+                {@render_students_pay_checkbox_label()}
+            </Checkbox>
+        </span>
 
     render_students_pay_dialog: ->
         <Alert bsStyle='info'>
@@ -709,6 +784,7 @@ exports.SettingsPanel = rclass
                     {@render_help()}
                     {@render_title_description()}
                     {@render_email_invite_body()}
+                    {@render_allow_any_collaborators()}
                 </Col>
             </Row>
         </div>

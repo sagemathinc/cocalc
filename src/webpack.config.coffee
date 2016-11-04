@@ -90,6 +90,7 @@ glob          = require('glob')
 child_process = require('child_process')
 misc_node     = require('smc-util-node/misc_node')
 async         = require('async')
+program       = require('commander')
 
 SMC_VERSION   = require('smc-util/smc-version').version
 
@@ -105,7 +106,9 @@ DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
 DEVMODE       = not PRODMODE
+DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
+QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
@@ -113,10 +116,13 @@ GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
+
+# output build environment variables of webpack
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
+console.log "DEBUG            = #{DEBUG}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
@@ -125,10 +131,11 @@ console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 MATHJAX_URL    = misc_node.MATHJAX_URL  # from where the files are served
 MATHJAX_ROOT   = misc_node.MATHJAX_ROOT # where the symlink originates
 MATHJAX_LIB    = misc_node.MATHJAX_LIB  # where the symlink points to
-console.log "MATHJAX_URL  = #{MATHJAX_URL}"
-console.log "MATHJAX_ROOT = #{MATHJAX_ROOT}"
-console.log "MATHJAX_LIB  = #{MATHJAX_LIB}"
+console.log "MATHJAX_URL      = #{MATHJAX_URL}"
+console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
+console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
+# adds a banner to each compiled and minified source .js file
 banner = new webpack.BannerPlugin(
                         """\
                         This file is part of #{TITLE}.
@@ -235,13 +242,13 @@ videoChatSide = new HtmlWebpackPlugin
                         filename : "webrtc/group_chat_side.html"
                         inject   : 'head'
                         template : 'webapp-lib/webrtc/group_chat_side.html'
-                        chunks   : []
+                        chunks   : ['css']
                         minify   : htmlMinifyOpts
 videoChatCell = new HtmlWebpackPlugin
                         filename : "webrtc/group_chat_cell.html"
                         inject   : 'head'
                         template : 'webapp-lib/webrtc/group_chat_cell.html'
-                        chunks   : []
+                        chunks   : ['css']
                         minify   : htmlMinifyOpts
 
 # global css loader configuration
@@ -306,11 +313,22 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'SMC_GIT_REV' : JSON.stringify(GIT_REV)
                                 'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'    : JSON.stringify(BUILD_TS)
+                                'DEBUG'       : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
+
+# https://webpack.github.io/docs/shimming-modules.html
+# do *not* require('jquery') but $ = window.$
+# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
+# rather, webapp-lib.coffee defines the one and only global jquery instance!
+#provideGlobals      = new webpack.ProvidePlugin
+#                                        '$'             : 'jquery'
+#                                        'jQuery'        : 'jquery'
+#                                        "window.jQuery" : "jquery"
+#                                        "window.$"      : "jquery"
 
 # this is for debugging: adding it prints out a long long json of everything
 # that ends up inside the chunks. that way, one knows exactly where which part did end up.
@@ -332,20 +350,18 @@ plugins = [
     setNODE_ENV,
     banner,
     jade2html,
-    videoChatSide,
-    videoChatCell,
     #commonsChunkPlugin,
-    assetsPlugin,
     #extractCSS,
     #copyWebpackPlugin
     #webpackSHAHash,
-    statsWriterPlugin,
     #new PrintChunksPlugin(),
     mathjaxVersionedSymlink,
     #linkFilesIntoTargetPlugin,
 ]
 
-plugins = plugins.concat(policyPages)
+if not QUICK_BUILD or PRODMODE
+    plugins = plugins.concat(policyPages)
+    plugins = plugins.concat([videoChatSide, videoChatCell, assetsPlugin, statsWriterPlugin])
 
 if PRODMODE
     console.log "production mode: enabling compression"
@@ -353,7 +369,8 @@ if PRODMODE
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     plugins.push new webpack.optimize.DedupePlugin()
     plugins.push new webpack.optimize.OccurenceOrderPlugin()
-    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 10)
+    # TODO change this back to a number at about 10, once we know how to keep old chunks around
+    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 1)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 32768)
     # to get source maps working in production mode, one has to figure out how
     # to get inSourceMap/outSourceMap working here.
@@ -419,6 +436,7 @@ module.exports =
 
     module:
         loaders: [
+            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
             { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
@@ -449,6 +467,9 @@ module.exports =
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
+        #alias:
+        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
+        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
 
@@ -461,3 +482,4 @@ module.exports =
         minifyCSS            : true
         collapseWhitespace   : true
         conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+

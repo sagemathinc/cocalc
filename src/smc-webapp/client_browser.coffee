@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,10 @@
 #
 ###############################################################################
 
+if not Primus?
+    alert("Library not fully built (Primus not defined) -- refresh your browser")
+
+$ = window.$
 _ = require('underscore')
 
 client = require('smc-util/client')
@@ -71,15 +75,30 @@ class Connection extends client.Connection
         # because the primus connection authenticates based on secure https cookies,
         # which are there.   So we could make everything painful and hard to program and
         # actually get zero security gain.
+        #
+        # **CRITICAL:** If the smc object isn't defined in your Google Chrome console session,
+        # you have to change the context to *top*!   See
+        # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
+        #
+        setTimeout(@_init_idle, 15 * 1000)
+        super(opts)
+        @_setup_window_smc()
+
+        # This is used by the base class for marking file use notifications.
+        @_redux = require('./smc-react').redux
+
+    _setup_window_smc: () =>
+        # if we are in DEBUG mode, inject the client into the global window object
+        if not DEBUG
+            return
         window.smc = {}
         window.smc.client = @
         window.smc.misc = require('smc-util/misc')
-        window.smc.done = window.smc.misc.done  # useful for debugging
-        window.smc.sha1 = require('sha1')       # used only for debugging
-        window.smc.schema = require('smc-util/schema')  # only for debugging
-        window.smc.synctable_debug = require('smc-util/synctable').set_debug  # use to enable/disable verbose synctable logging
-        setTimeout(@_init_idle, 15 * 1000)
-        super(opts)
+        window.smc.done = window.smc.misc.done
+        window.smc.sha1 = require('sha1')
+        window.smc.schema = require('smc-util/schema')
+        # use to enable/disable verbose synctable logging
+        window.smc.synctable_debug = require('smc-util/synctable').set_debug
 
     _init_idle: () =>
         ###
@@ -87,7 +106,7 @@ class Connection extends client.Connection
         It is pushed forward each time @_idle_reset is called.
         The setInterval timer checks every minute, if the current time is past this @_init_time.
         If so, the user is 'idle'.
-        To keep 'active', call smc.client.idle_reset as often as you like:
+        To keep 'active', call salvus_client.idle_reset as often as you like:
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
@@ -97,11 +116,11 @@ class Connection extends client.Connection
         setInterval(@_idle_check, 60 * 1000)
 
         # call this idle_reset like a function
-        # will reset timer on *first* call and then every 10secs while being called
-        @idle_reset = _.throttle(smc.client._idle_reset, 15 * 1000)
+        # will reset timer on *first* call and then every 15secs while being called
+        @idle_reset = _.throttle(@_idle_reset, 15 * 1000)
 
         # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
-        $(document).on("click mousemove keydown focusin", "body", smc.client.idle_reset)
+        $(document).on("click mousemove keydown focusin", "body", @idle_reset)
 
         delayed_disconnect = undefined
 
@@ -231,6 +250,10 @@ class Connection extends client.Connection
         @_write = (data) =>
             conn.write(data)
 
+    # return latest ping/pong time (latency) if connected; otherwise, return undefined
+    latency: () =>
+        if @_connected
+            return @_conn.latency
 
     _fix_connection: (delete_cookies) =>
         if delete_cookies
@@ -251,4 +274,3 @@ exports.connect = (url) ->
         return connection = new Connection(url)
 
 exports.connect()
-

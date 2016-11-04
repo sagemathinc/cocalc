@@ -15,15 +15,22 @@ spec:
       - image: "{image}"
         imagePullPolicy: {pull_policy}
         name: storage-daemon
+        #securityContext:  # so can FUSE mount  (plus we get ssh access to host so not being privileged is silly)
+        #  privileged: true
         volumeMounts:
         - name: mnt
           mountPath: /node/info
-        - name: hosts
-          mountPath: /node/etc/hosts
+        - name: etc
+          mountPath: /node/etc/
         - name: ssh
           mountPath: /node/root/.ssh
         - name: plugin
           mountPath: /node/plugin
+        - name: storage-ssh
+          mountPath: /ssh
+        - name: secret-rethinkdb
+          mountPath: /secrets/rethinkdb/
+          readOnly: true
         resources:
           requests:
             memory: "100Mi"
@@ -43,14 +50,18 @@ spec:
       - name: mnt
         hostPath:
           path: /mnt/smc-storage/info/
-      - name: hosts
+      - name: etc
         hostPath:
-          path: /etc/hosts
+          path: /etc
       - name: ssh
         hostPath:
           path: /root/.ssh
       - name: plugin
         hostPath:
           path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/smc~smc-storage/
-      #nodeSelector:
-      #  storage: test
+      - name: storage-ssh
+        secret:
+          secretName: storage-ssh
+      - name: secret-rethinkdb
+        secret:
+          secretName: rethinkdb-password

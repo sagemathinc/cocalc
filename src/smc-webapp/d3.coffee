@@ -1,3 +1,4 @@
+$ = window.$
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -5,7 +6,7 @@ misc = require('smc-util/misc')
 d3 = require('d3/d3')
 
 # Make d3 available to users in general.
-window?.smc?.d3 = d3
+window?.d3 = d3
 
 $.fn.extend
     d3: (opts={}) ->
@@ -173,7 +174,7 @@ d3_graph = (elt, graph) ->
             # triangles with endpoints (0,-2), (4,0), (0,2)
             .attr("d", "M0,-2L4,0L0,2")
 
-            #.attr("preserveAspectRatio",false) # TODO: this gives an error.
+            #.attr("preserveAspectRatio",false) # SMELL: this gives an error.
 
     # The function 'line' takes as input a sequence of tuples, and returns a
     # curve interpolating these points.

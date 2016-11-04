@@ -5,7 +5,7 @@ Code for parsing Sage code blocks sensibly.
 """
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -75,7 +75,7 @@ def strip_string_literals(code, state=None):
             if newline == -1: newline = len(code)
             counter += 1
             label = "L%s" % counter
-            literals[label] = code[hash_q:newline]   # changed from sage
+            literals[label] = code[hash_q:newline]
             new_code.append(code[start:hash_q].replace('%','%%'))
             new_code.append("%%(%s)s" % label)
             start = q = newline
@@ -143,7 +143,7 @@ def end_of_expr(s):
         i += 1
     return i
 
-# NOTE: The dec_args dict will leak memory over time.  However, it only
+# NOTE/TODO: The dec_args dict will leak memory over time.  However, it only
 # contains code that was entered, so it should never get big.  It
 # seems impossible to know for sure whether a bit of code will be
 # eventually needed later, so this leakiness seems necessary.
@@ -204,8 +204,16 @@ def divide_into_blocks(code):
     ## so "2+2" breaks.
     ## return [[0,len(code)-1,('\n'.join(code))%literals]]
 
+    # Remove comment lines -- otherwise could get empty blocks that can't be exec'd.
+    # For example, exec compile('#', '', 'single') is a syntax error.
+    # Also, comments will confuse the code to break into blocks before.
+    comment_lines = {}
+    for label, v in literals.iteritems():
+        if v.startswith('#'):
+            comment_lines[u"%%(%s)s" % label] = True
+    code = [x for x in code if not comment_lines.get(x.strip(), False)]
 
-    # take only non-empty lines now for Python code.
+    # take only non-whitespace lines now for Python code (string literals have already been removed).
     code = [x for x in code if x.strip()]
 
     # Compute the blocks
@@ -216,16 +224,12 @@ def divide_into_blocks(code):
         paren_depth = code[i].count('(') - code[i].count(')')
         brack_depth = code[i].count('[') - code[i].count(']')
         curly_depth = code[i].count('{') - code[i].count('}')
-        while i>=0 and ((len(code[i]) > 0 and (code[i][0] in string.whitespace or code[i][:2] == '%(')) or paren_depth < 0 or brack_depth < 0 or curly_depth < 0):
+        while i>=0 and ((len(code[i]) > 0 and (code[i][0] in string.whitespace)) or paren_depth < 0 or brack_depth < 0 or curly_depth < 0):
             i -= 1
             if i >= 0:
                 paren_depth += code[i].count('(') - code[i].count(')')
                 brack_depth += code[i].count('[') - code[i].count(']')
                 curly_depth += code[i].count('{') - code[i].count('}')
-        # remove comments
-        for k, v in literals.iteritems():
-            if v.startswith('#'):
-                literals[k] = ''
         block = ('\n'.join(code[i:]))%literals
         bs = block.strip()
         if bs: # has to not be only whitespace
@@ -253,7 +257,7 @@ def divide_into_blocks(code):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
-        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('elif')):
+        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('try') or blocks[i-1][-1].lstrip().startswith('elif')):
             merge()
 
         # lines starting with elif
@@ -308,6 +312,7 @@ def introspect(code, namespace, preparse=True):
 
     An object: {'result':, 'target':, 'expr':, 'status':, 'get_help':, 'get_completions':, 'get_source':}
     """
+    import re
     # result: the docstring, source code, or list of completions (at
     # return, it might thus be either a list or a string)
     result = []
@@ -346,7 +351,8 @@ def introspect(code, namespace, preparse=True):
         expr        = code0[i:]%literals
         before_expr = code0[:i]%literals
 
-        if '.' not in expr and '(' not in expr and ')' not in expr and '?' not in expr:
+        chrs = set('.()[]? ')
+        if not any(c in expr for c in chrs):
             # Easy case: this is just completion on a simple identifier in the namespace.
             get_help = False; get_completions = True; get_source = False
             target = expr
@@ -365,7 +371,8 @@ def introspect(code, namespace, preparse=True):
                 get_help = False; get_completions = True; get_source = False
                 i      = expr.rfind('.')
                 target = expr[i+1:]
-                if target == '' or is_valid_identifier(target):
+                if target == '' or is_valid_identifier(target) or '*' in expr:
+                    # this case includes list.*end<tab>
                     obj    = expr[:i]
                 else:
                     expr = guess_last_expression(target)
@@ -378,7 +385,16 @@ def introspect(code, namespace, preparse=True):
 
         if get_completions and target == expr:
             j      = len(expr)
-            v      = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
+            if '*' in expr:
+                # this case includes *_factors<TAB>
+                try:
+                    pattern = expr.replace("*",".*").replace("?",".")
+                    reg = re.compile(pattern+"$")
+                    v = filter(reg.match, namespace.keys() + _builtin_completions)
+                except:
+                    pass
+            else:
+                v = [x[j:] for x in (namespace.keys() + _builtin_completions) if x.startswith(expr)]
         else:
 
             # We will try to evaluate
@@ -405,13 +421,16 @@ def introspect(code, namespace, preparse=True):
                 # We first try to evaluate the part of the expression before the name
                 try:
                     O = eval(obj if not preparse else preparse_code(obj), namespace)
-                except SyntaxError:
+                except (SyntaxError, TypeError, AttributeError):
                     # If that fails, we try on a subexpression.
                     # TODO: This will not be needed when
                     # this code is re-written to parse using an
                     # AST, instead of using this lame hack.
                     obj = guess_last_expression(obj)
-                    O = eval(obj if not preparse else preparse_code(obj), namespace)
+                    try:
+                        O = eval(obj if not preparse else preparse_code(obj), namespace)
+                    except:
+                        pass
             finally:
                 signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
@@ -469,8 +488,16 @@ def introspect(code, namespace, preparse=True):
                         v += O.trait_names()
                     if not target.startswith('_'):
                         v = [x for x in v if x and not x.startswith('_')]
-                    j = len(target)
-                    v = [x[j:] for x in v if x.startswith(target)]
+                    if '*' in expr:
+                        try:
+                            pattern = target.replace("*",".*").replace("?",".")
+                            reg = re.compile(pattern+"$")
+                            v = filter(reg.match, v)
+                        except:
+                            pass
+                    else:
+                        j = len(target)
+                        v = [x[j:] for x in v if x.startswith(target)]
                 else:
                     v = []
 

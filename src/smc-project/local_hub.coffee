@@ -20,6 +20,7 @@ os      = require('os')
 net     = require('net')
 uuid    = require('node-uuid')
 winston = require('winston')
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -82,10 +83,15 @@ process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-if not fs.existsSync(SMC)
-    fs.mkdirSync(SMC)
-if not fs.existsSync(DATA)
-    fs.mkdirSync(DATA)
+# See https://github.com/sagemathinc/smc/issues/174 -- some stupid (?)
+# code sometimes assumes this exists, and it's not so hard to just ensure
+# it does, rather than fixing any such code.
+SAGE = path.join(process.env.HOME, '.sage')
+
+for directory in [SMC, DATA, SAGE]
+    if not fs.existsSync(directory)
+        fs.mkdirSync(directory)
+
 
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 
@@ -142,8 +148,8 @@ terminate_session = (socket, mesg) ->
 
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
-    dbg = (m) -> winston.debug("handle_mesg: #{m}")
-    dbg("mesg=#{json(mesg)}")
+    #dbg = (m) -> winston.debug("handle_mesg: #{m}")
+    #dbg("mesg=#{json(mesg)}")
 
     if hub_client.handle_mesg(mesg, socket)
         return
@@ -191,7 +197,7 @@ handle_mesg = (socket, mesg, handler) ->
 
 
 ###
-Use explorts.client object below to work with the local_hub
+Use exports.client object below to work with the local_hub
 interactively for debugging purposes when developing SMC in an SMC project.
 
 1. Cd to the directory of the project, e.g.,
@@ -211,7 +217,8 @@ from the one you just started running.
 
 exports.client = hub_client = new Client(INFO.project_id)
 
-start_tcp_server = (secret_token, cb) ->
+start_tcp_server = (secret_token, port, cb) ->
+    # port: either numeric or 'undefined'
     if not secret_token?
         cb("secret token must be defined")
         return
@@ -232,13 +239,14 @@ start_tcp_server = (secret_token, cb) ->
                         # This is a control connection, so we can use it to call the hub later.
                         hub_client.active_socket(socket)
                     if type == "json"   # other types are handled elsewhere in event handling code.
-                        winston.debug("received control mesg -- #{json(mesg)}")
+                        #winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
 
                 socket.on('mesg', handler)
 
     port_file = misc_node.abspath("#{DATA}/local_hub.port")
-    server.listen undefined, '0.0.0.0', (err) ->
+    # https://nodejs.org/api/net.html#net_server_listen_port_hostname_backlog_callback ?
+    server.listen port, '0.0.0.0', (err) ->
         if err
             winston.info("tcp_server failed to start -- #{err}")
             cb(err)
@@ -247,7 +255,7 @@ start_tcp_server = (secret_token, cb) ->
             fs.writeFile(port_file, server.address().port, cb)
 
 # Start listening for connections on the socket.
-start_server = (cb) ->
+start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
     async.series([
         (cb) ->
@@ -263,7 +271,7 @@ start_server = (cb) ->
                     console_sessions.set_secret_token(token)
                     cb()
         (cb) ->
-            start_tcp_server(the_secret_token, cb)
+            start_tcp_server(the_secret_token, tcp_port, cb)
         (cb) ->
             raw_server.start_raw_server
                 project_id : INFO.project_id
@@ -271,6 +279,7 @@ start_server = (cb) ->
                 host       : process.env.SMC_PROXY_HOST ? INFO.location.host
                 data_path  : DATA
                 home       : process.env.HOME
+                port       : raw_port
                 cb         : cb
     ], (err) ->
         if err
@@ -288,7 +297,12 @@ process.addListener "uncaughtException", (err) ->
     if console? and console.trace?
         console.trace()
 
-start_server (err) ->
+program.usage('[?] [options]')
+    .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .parse(process.argv)
+
+start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
 

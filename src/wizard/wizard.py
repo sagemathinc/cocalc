@@ -1,10 +1,10 @@
-#!/usr/bin/env python2.7
-# coding: utf8
+#!/usr/bin/env python
+# -*- coding: utf8 -*-
 
 #####################################################################################
 #                 SMC Wizard - Documentation Files Compiler                         #
 #                                                                                   #
-#                 Copyright (C) 2015, SageMathCloud Authors                         #
+#                 Copyright (C) 2015, SageMath, Inc.                                #
 #                                                                                   #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+  #
 #                                                                                   #
@@ -12,6 +12,13 @@
 #####################################################################################
 
 import os, sys
+
+# make it python 2 and 3 compatible
+if (sys.version_info > (3, 0)):
+    mystr = str
+else:
+    mystr = basestring
+
 from os.path import abspath, dirname, normpath, exists, join
 from os import makedirs, walk
 from shutil import rmtree
@@ -32,7 +39,7 @@ def process_category(doc):
     cats = doc["category"]
     if isinstance(cats, (list, tuple)):
         assert len(cats) == 2
-    elif isinstance(cats, basestring):
+    elif isinstance(cats, mystr):
         cats = cats.split("/", 1)
     else:
         raise Exception("What is id '%s' supposed to be?" % cats)

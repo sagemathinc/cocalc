@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -11,9 +11,10 @@
 #
 ###############################################################################
 
+$     = window.$
 async = require('async')
 
-misc = require('smc-util/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 component_to_hex = (c) ->
@@ -30,10 +31,15 @@ _loading_threejs_callbacks = []
 VERSION = '73'
 
 window.THREE = require("three")
-for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
-    require("script!threejs/r#{VERSION}/#{m}")
+#for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
+    # require("script!threejs/r#{VERSION}/#{m}")
 
-require("script!threejs/r#{VERSION}/Detector")
+require("script!./node_modules/three/examples/js/controls/OrbitControls")
+require("script!./node_modules/three/examples/js/renderers/CanvasRenderer")
+require("script!./node_modules/three/examples/js/renderers/Projector")
+
+#require("script!threejs/r#{VERSION}/Detector")
+require("script!./node_modules/three/examples/js/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}
@@ -88,6 +94,7 @@ class SalvusThreeJS
 
         @init_eval_note()
         opts.cb?(undefined, @)
+        # window.w = @   # for debugging
 
     # client code should call this when start adding objects to the scene
     init: () =>
@@ -207,18 +214,18 @@ class SalvusThreeJS
         @opts.element.click () =>
             @set_dynamic_renderer()
 
-    # initialize functions to create new vectors, which take into account the scene's 3d frame aspect ratio.
+    # initialize functions to create new vectors, which take into account the scene's 3d frame aspect ratio,
+    # and also the change of coordinates from THREE.js coords to "math coordinates".
     init_aspect_ratio_functions: () =>
         if @opts.aspect_ratio?
             x = @opts.aspect_ratio[0]; y = @opts.aspect_ratio[1]; z = @opts.aspect_ratio[2]
-            @vector3 = (a,b,c) => new THREE.Vector3(x*a, y*b, z*c)
-            @vector  = (v) => new THREE.Vector3(x*v[0], y*v[1], z*v[2])
-            @aspect_ratio_scale = (v) => [x*v[0], y*v[1], z*v[2]]
+            @vector3 = (a,b,c) => new THREE.Vector3( -y*b   , x*a   , z*c    )
+            @vector  = (v)     => new THREE.Vector3( -y*v[1], x*v[0], z*v[2] )
+            @aspect_ratio_scale = (v) =>           [ -y*v[1], x*v[0], z*v[2] ]
         else
-            @vector3 = (a,b,c) => new THREE.Vector3(a, b, c)
-            @vector  = (v) => new THREE.Vector3(v[0],v[1],v[2])
-            @aspect_ratio_scale = (v) => v
-
+            @vector3 = (a,b,c) => new THREE.Vector3( -b   ,     a,   c   )
+            @vector  = (v)     => new THREE.Vector3( -v[1],   v[0],   v[2])
+            @aspect_ratio_scale = (v) =>           [ -v[1],   v[0],   v[2]]
 
     show_canvas: () =>
         @init()
@@ -355,14 +362,30 @@ class SalvusThreeJS
             points     : required
             thickness  : 1
             color      : "#000000"
-            arrow_head : false  # TODO
+            arrow_head : false
+        if o.points.length <= 1
+            # nothing to do...
+            return
+
         @show_canvas()
 
+        if o.arrow_head
+            # Draw an arrowhead using the ArrowHelper: https://github.com/mrdoob/three.js/blob/master/src/extras/helpers/ArrowHelper.js
+            n    = o.points.length - 1
+            orig = @vector(o.points[n-1])
+            p1   = @vector(o.points[n])
+            dir  = new THREE.Vector3(); dir.subVectors(p1, orig)
+            length = dir.length()
+            dir.normalize()
+            headLength = Math.max(1, o.thickness/4.0) * 0.2 * length
+            headWidth  = 0.2 * headLength
+            @scene.add(new THREE.ArrowHelper(dir, orig, length, o.color, headLength, headWidth))
+
+        # always render the full line, in case there are extra points, or the thickness isn't 1 (note that ArrowHelper has no line thickness option).
         geometry = new THREE.Geometry()
         for a in o.points
             geometry.vertices.push(@vector(a))
-        line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness))
-        @scene.add(line)
+        @scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial(color:o.color, linewidth:o.thickness)))
 
     add_point: (opts) =>
         o = defaults opts,
@@ -428,6 +451,16 @@ class SalvusThreeJS
     add_obj: (myobj)=>
         @show_canvas()
 
+        if myobj.type == 'index_face_set'
+            if myobj.has_local_colors == 0
+                has_local_colors = false
+            else
+                has_local_colors = true
+                # then we will assume that every face is a triangle or a square
+        else
+            has_local_colors = false
+
+
         vertices = myobj.vertex_geometry
         for objects in [0...myobj.face_geometry.length]
             #console.log("object=", misc.to_json(myobj))
@@ -450,7 +483,6 @@ class SalvusThreeJS
                 for k in [0...face5.length] by 6   # yep, 6 :-()
                     faces.push(face5.slice(k,k+6))
 
-
             geometry = new THREE.Geometry()
 
             for k in [0...vertices.length] by 3
@@ -460,18 +492,28 @@ class SalvusThreeJS
                 geometry.faces.push(new THREE.Face3(a-1, b-1, c-1))
                 #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
 
-            # *polyogonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
+            push_face3_with_color = (a, b, c, col) =>
+                face = new THREE.Face3(a-1, b-1, c-1)
+                face.color.setStyle(col)
+                geometry.faces.push(face)
+                #geometry.faces.push(new THREE.Face3(b-1, a-1, c-1))   # both sides of faces, so material is visible from inside -- but makes some things like look really crappy; disable.  Better to just set a property of the material/light, which fixes the same problem.
+
+            # *polygonal* faces defined by 4 vertices (squares), which for THREE.js we must define using two triangles
             push_face4 = (a, b, c, d) =>
                 push_face3(a,b,c)
                 push_face3(a,c,d)
 
-            # *polyogonal* faces defined by 5 vertices
+            push_face4_with_color = (a, b, c, d, col) =>
+                push_face3_with_color(a,b,c,col)
+                push_face3_with_color(a,c,d,col)
+
+            # *polygonal* faces defined by 5 vertices
             push_face5 = (a, b, c, d, e) =>
                 push_face3(a, b, c)
                 push_face3(a, c, d)
                 push_face3(a, d, e)
 
-            # *polyogonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
+            # *polygonal* faces defined by 6 vertices (see http://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html)
             push_face6 = (a, b, c, d, e, f) =>
                 push_face3(a, b, c)
                 push_face3(a, c, d)
@@ -479,19 +521,30 @@ class SalvusThreeJS
                 push_face3(a, e, f)
 
             # include all faces
-            for v in faces
-                switch v.length
-                    when 3
-                        push_face3(v...)
-                    when 4
-                        push_face4(v...)
-                    when 5
-                        push_face5(v...)
-                    when 6
-                        push_face6(v...)
-                    else
-                        console.log("WARNING: rendering face with #{v.length} vertices not implemented")
-                        push_face6(v...)   # might as well render most of the face...
+            if has_local_colors
+                for v in faces
+                    switch v.length
+                        when 4
+                            push_face3_with_color(v...)
+                        when 5
+                            push_face4_with_color(v...)
+                        else
+                            console.log("WARNING: rendering colored face with #{v.length - 1} vertices not implemented")
+                            push_face4_with_color(v[0], v[1], v[2], v[3], v[-1])   # might as well render most of the face...
+            else
+                for v in faces
+                    switch v.length
+                        when 3
+                            push_face3(v...)
+                        when 4
+                            push_face4(v...)
+                        when 5
+                            push_face5(v...)
+                        when 6
+                            push_face6(v...)
+                        else
+                            console.log("WARNING: rendering face with #{v.length} vertices not implemented")
+                            push_face6(v...)   # might as well render most of the face...
 
             geometry.mergeVertices()
             #geometry.computeCentroids()
@@ -534,14 +587,21 @@ class SalvusThreeJS
 
                 m = myobj.material[mk]
 
-                material =  new THREE.MeshPhongMaterial
-                    shininess   : "1"
-                    wireframe   : false
-                    transparent : m.opacity < 1
-
-                material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
+                if has_local_colors
+                    material =  new THREE.MeshPhongMaterial
+                        shininess   : "1"
+                        wireframe   : false
+                        transparent : m.opacity < 1
+                        vertexColors: THREE.FaceColors
+                else
+                    material =  new THREE.MeshPhongMaterial
+                        shininess   : "1"
+                        wireframe   : false
+                        transparent : m.opacity < 1
+                    material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
                 material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
                 material.opacity = m.opacity
+                material.side = THREE.DoubleSide
 
             mesh = new THREE.Mesh(geometry, material)
             mesh.position.set(0,0,0)
@@ -585,8 +645,8 @@ class SalvusThreeJS
         @_center = @vector3(mx,my,mz)
 
         if @camera?
-            d = 1.5*Math.max @aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...
-            @camera.position.set(mx+d,my+d,mz+d/2)
+            d = 1.5*Math.max(@aspect_ratio_scale([x1-x0, y1-y0, z1-z0])...)
+            @camera.position.set(mx+d, my+d, mz+d/2)
             # console.log("camera at #{misc.to_json([mx+d,my+d,mz+d])} pointing at #{misc.to_json(@_center)}")
 
         if o.draw
@@ -627,22 +687,22 @@ class SalvusThreeJS
             txt = (x,y,z,text) =>
                 @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, color:o.color, constant_size:false))
 
-            offset = 0.075
+            offset = 0.15
             if o.draw
-                e = (y1 - y0)*offset
-                txt(x1,y0-e,z0,l(z0))
-                txt(x1,y0-e,mz, "z=#{l(z0,z1)}")
-                txt(x1,y0-e,z1,l(z1))
+                e = (x1 - x0)*offset
+                txt(x0 - e, y0, z0, l(z0))
+                txt(x0 - e, y0, mz, "z = #{l(z0,z1)}")
+                txt(x0 - e, y0, z1, l(z1))
 
                 e = (x1 - x0)*offset
-                txt(x1+e,y0,z0,l(y0))
-                txt(x1+e,my,z0, "y=#{l(y0,y1)}")
-                txt(x1+e,y1,z0,l(y1))
+                txt(x1 + e, y0, z0, l(y0))
+                txt(x1 + e, my, z0, "y = #{l(y0,y1)}")
+                txt(x1 + e, y1, z0, l(y1))
 
                 e = (y1 - y0)*offset
-                txt(x1,y1+e,z0,l(x1))
-                txt(mx,y1+e,z0, "x=#{l(x0,x1)}")
-                txt(x0,y1+e,z0,l(x0))
+                txt(x1, y0 - e, z0, l(x1))
+                txt(mx, y0 - e, z0, "x = #{l(x0,x1)}")
+                txt(x0, y0 - e, z0, l(x0))
 
         v = @vector3(mx, my, mz)
         @camera.lookAt(v)
@@ -743,8 +803,9 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         # console.log('render', @opts.element.length)
+        # FUTURE: Render static
         if @renderer_type == 'static'
-            console.log 'render static -- todo'
+            console.log 'render static -- not implemented yet'
             return
 
         if not @camera?
@@ -871,7 +932,7 @@ $.fn.salvus_threejs = (opts={}) ->
         opts.element = e
         opts.container = elt
 
-        # TODO/NOTE -- this explicit reference is brittle -- it is just an animation efficiency, but still...
+        # WARNING -- this explicit reference is brittle -- it is just an animation efficiency, but still...
         opts.stop_when_gone = e.closest(".salvus-editor-codemirror")[0]
 
         f = () ->

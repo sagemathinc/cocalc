@@ -19,7 +19,7 @@ For debugging, this may help:
 # used over a TCP connection.
 
 #########################################################################################
-#       Copyright (C) 2013 William Stein <wstein@gmail.com>                             #
+#       Copyright (C) 2016, Sagemath Inc.
 #                                                                                       #
 #  Distributed under the terms of the GNU General Public License (GPL), version 2+      #
 #                                                                                       #
@@ -54,6 +54,21 @@ import json, resource, shutil, signal, socket, struct, \
 import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
+
+try:
+    from sage.repl.attach import load_attach_path, modified_file_iterator
+    def reload_attached_files_if_mod_smc():
+        # see sage/src/sage/repl/attach.py reload_attached_files_if_modified()
+        for filename, mtime in modified_file_iterator():
+            basename = os.path.basename(filename)
+            timestr = time.strftime('%T', mtime)
+            print('### reloading attached file {0} modified at {1} ###'.format(basename, timestr))
+            from sage_salvus import load
+            load(filename)
+except:
+    print("sage_server: attach not available")
+    def reload_attached_files_if_mod_smc():
+        pass
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -182,12 +197,37 @@ class ConnectionJSON(object):
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
 
-TRUNCATE_MESG = "WARNING: Output truncated.  Type 'smc?' to learn how to raise the output limit."
 def truncate_text(s, max_size):
     if len(s) > max_size:
         return s[:max_size] + "[...]", True
     else:
         return s, False
+
+def truncate_text_warn(s, max_size, name):
+    r"""
+    Truncate text if too long and format a warning message.
+
+    INPUT:
+
+    - ``s`` -- string to be truncated
+    - ``max-size`` - integer truncation limit
+    - ``name`` - string, name of limiting parameter
+
+    OUTPUT:
+
+    a triple:
+
+    - string -- possibly truncated input string
+    - boolean -- true if input string was truncated
+    - string -- warning message if input string was truncated
+    """
+    tmsg = "WARNING: Output: %s truncated by %s to %s.  Type 'smc?' to learn how to raise the output limit."
+    lns = len(s)
+    if lns > max_size:
+        tmsg = tmsg%(lns, name, max_size)
+        return s[:max_size] + "[...]", True, tmsg
+    else:
+        return s, False, ''
 
 
 class Message(object):
@@ -240,22 +280,22 @@ class Message(object):
               ):
         m = self._new('output')
         m['id'] = id
-        t = truncate_text
+        t = truncate_text_warn
         did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'], did_truncate = t(code['source'], sage_server.MAX_CODE_SIZE)
+            code['source'], did_truncate, tmsg = t(code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'], did_truncate = t(stderr, sage_server.MAX_STDERR_SIZE)
+            m['stderr'], did_truncate, tmsg = t(stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
         if stdout is not None and len(stdout) > 0:
-            m['stdout'], did_truncate  = t(stdout, sage_server.MAX_STDOUT_SIZE)
+            m['stdout'], did_truncate, tmsg  = t(stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
         if html is not None  and len(html) > 0:
-            m['html'], did_truncate  = t(html, sage_server.MAX_HTML_SIZE)
+            m['html'], did_truncate, tmsg  = t(html, sage_server.MAX_HTML_SIZE, 'MAX_HTML_SIZE')
         if md is not None  and len(md) > 0:
-            m['md'], did_truncate  = t(md, sage_server.MAX_MD_SIZE)
+            m['md'], did_truncate, tmsg  = t(md, sage_server.MAX_MD_SIZE, 'MAX_MD_SIZE')
         if tex is not None and len(tex)>0:
-            tex['tex'], did_truncate  = t(tex['tex'], sage_server.MAX_TEX_SIZE)
+            tex['tex'], did_truncate, tmsg  = t(tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
@@ -273,9 +313,9 @@ class Message(object):
         if delete_last is not None: m['delete_last'] = delete_last
         if did_truncate:
             if 'stderr' in m:
-                m['stderr'] += '\n' + TRUNCATE_MESG
+                m['stderr'] += '\n' + tmsg
             else:
-                m['stderr'] = '\n' + TRUNCATE_MESG
+                m['stderr'] = '\n' + tmsg
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -524,7 +564,7 @@ class Salvus(object):
 
         if self._num_output_messages > sage_server.MAX_OUTPUT_MESSAGES:
             self._output_warning_sent = True
-            err = "\nToo many output messages (at most %s per cell -- type 'smc?' to learn how to raise this limit): attempting to terminate..."%sage_server.MAX_OUTPUT_MESSAGES
+            err = "\nToo many output messages: %s (at most %s per cell -- type 'smc?' to learn how to raise this limit): attempting to terminate..."%(self._num_output_messages , sage_server.MAX_OUTPUT_MESSAGES)
             self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
             raise KeyboardInterrupt
 
@@ -533,7 +573,7 @@ class Salvus(object):
 
         if self._total_output_length > sage_server.MAX_OUTPUT:
             self._output_warning_sent = True
-            err = "\nOutput too long -- MAX_OUTPUT (=%s) exceed (type 'smc?' to learn how to raise this limit): attempting to terminate..."%sage_server.MAX_OUTPUT
+            err = "\nOutput too long: %s -- MAX_OUTPUT (=%s) exceeded (type 'smc?' to learn how to raise this limit): attempting to terminate..."%(self._total_output_length, sage_server.MAX_OUTPUT)
             self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
             raise KeyboardInterrupt
 
@@ -878,6 +918,7 @@ class Salvus(object):
             Salvus._postfix = postfix
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
+
         if namespace is None:
             namespace = self.namespace
 
@@ -888,8 +929,20 @@ class Salvus(object):
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
 
+        try:
+            import sage.repl.interpreter as sage_repl_interpreter
+        except:
+            log("Error - unable to import sage.repl.interpreter")
+
+        import sage.misc.session
+
         for start, stop, block in blocks:
-            if preparse:
+            # if import sage.repl.interpreter fails, sag_repl_interpreter is unreferenced
+            try:
+                do_pp = getattr(sage_repl_interpreter, '_do_preparse', True)
+            except:
+                do_pp = True
+            if preparse and do_pp:
                 block = sage_parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
@@ -902,6 +955,16 @@ class Salvus(object):
                     p = sage_parsing.introspect(block, namespace=namespace, preparse=False)
                     self.code(source = p['result'], mode = "text/x-rst")
                 else:
+                    reload_attached_files_if_mod_smc()
+                    if execute.count < 2:
+                        execute.count += 1
+                        if execute.count == 2:
+                            # this fixup has to happen after first block has executed (os.chdir etc)
+                            # but before user assigns any variable in worksheet
+                            # sage.misc.session.init() is not called until first call of show_identifiers
+                            # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/smc/issues/1107
+                            block2 = "sage.misc.session._dummy=sage.misc.session.show_identifiers();sage.misc.session.state_at_init = dict(globals())\n"
+                            exec compile(block2, '', 'single') in namespace, locals
                     exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -1117,7 +1180,7 @@ class Salvus(object):
             m['placeholder'] = unicode8(placeholder)
         self._send_output(raw_input=m, id=self._id)
         typ, mesg = self.message_queue.next_mesg()
-        #log("raw_input got message typ='%s', mesg='%s'"%(typ, mesg))
+        log("handling raw input message ", truncate_text(unicode8(mesg), 400))
         if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
@@ -1237,7 +1300,6 @@ class Salvus(object):
             opts['use_cache'] = True
         import sage.misc.cython
         modname, path = sage.misc.cython.cython(filename, **opts)
-        import sys
         try:
             sys.path.insert(0,path)
             module = __import__(modname)
@@ -1252,7 +1314,6 @@ class Salvus(object):
                 break
         try:
             open(py_file_base+'.py', 'w').write(content)
-            import sys
             try:
                 sys.path.insert(0, os.path.abspath('.'))
                 mod = __import__(py_file_base)
@@ -1323,7 +1384,7 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         sys.stderr = BufferedOutputStream(salvus.stderr)
         try:
             # initialize more salvus functionality
-            sage_salvus.salvus = salvus
+            sage_salvus.set_salvus(salvus)
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
@@ -1346,6 +1407,9 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         else:
             sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
+# execute.count goes from 0 to 2
+# used for show_identifiers()
+execute.count = 0
 
 
 def drop_privileges(id, home, transient, username):
@@ -1430,13 +1494,14 @@ def session(conn):
     import sage.misc.getusage
     sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
+
     cnt = 0
     while True:
         try:
             typ, mesg = mq.next_mesg()
 
             #print('INFO:child%s: received message "%s"'%(pid, mesg))
-            log("handling message ", truncate_text(unicode8(mesg), 400)[0])
+            log("handling message ", truncate_text(unicode8(mesg), 400))
             event = mesg['event']
             if event == 'terminate_session':
                 return
@@ -1453,7 +1518,29 @@ def session(conn):
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
-                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
+                    # check for introspect from jupyter cell
+                    prefix = Salvus._default_mode
+                    if 'top' in mesg:
+                        top = mesg['top']
+                        log('introspect cell top line %s'%top)
+                        if top.startswith("%"):
+                            prefix = top[1:]
+                    try:
+                        # see if prefix is the name of a jupyter kernel function
+                        kc = eval(prefix+"(get_kernel_client=True)",namespace,locals())
+                        kn = eval(prefix+"(get_kernel_name=True)",namespace,locals())
+                        log("jupyter introspect prefix %s kernel %s"%(prefix, kn)) # e.g. "p2", "python2"
+                        jupyter_introspect(conn=conn,
+                                           id=mesg['id'],
+                                           line=mesg['line'],
+                                           preparse=mesg.get('preparse', True),
+                                           kc=kc)
+                    except:
+                        import traceback
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                        log(lines)
+                        introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
             else:
@@ -1470,6 +1557,63 @@ def session(conn):
             else:
                 pass
 
+def jupyter_introspect(conn, id, line, preparse, kc):
+    import jupyter_client
+    from Queue import Empty
+
+    try:
+        salvus = Salvus(conn=conn, id=id)
+        msg_id = kc.complete(line)
+        shell = kc.shell_channel
+        iopub = kc.iopub_channel
+
+        # handle iopub responses
+        while True:
+            try:
+                msg = iopub.get_msg(timeout = 1)
+                msg_type = msg['msg_type']
+                content = msg['content']
+
+            except Empty:
+                # shouldn't happen
+                log("jupyter iopub channel empty")
+                break
+
+            if msg['parent_header'].get('msg_id') != msg_id:
+                continue
+
+            log("jupyter iopub recv %s %s"%(msg_type, str(content)))
+
+            if msg_type == 'status' and content['execution_state'] == 'idle':
+                break
+
+        # handle shell responses
+        while True:
+            try:
+                msg = shell.get_msg(timeout = 10)
+                msg_type = msg['msg_type']
+                content = msg['content']
+
+            except:
+                # shouldn't happen
+                log("jupyter shell channel empty")
+                break
+
+            if msg['parent_header'].get('msg_id') != msg_id:
+                continue
+
+            log("jupyter shell recv %s %s"%(msg_type, str(content)))
+
+            if msg_type == 'complete_reply' and content['status'] == 'ok':
+                # jupyter kernel returns matches like "xyz.append" and smc wants just "append"
+                matches = content['matches']
+                offset = content['cursor_end'] - content['cursor_start']
+                completions = [s[offset:] for s in matches]
+                mesg = message.introspect_completions(id=id, completions=completions, target=line[-offset:])
+                conn.send_json(mesg)
+                break
+    except:
+        log("jupyter completion exception: %s"%sys.exc_info()[0])
 
 def introspect(conn, id, line, preparse):
     salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
@@ -1629,12 +1773,14 @@ def serve(port, host, extra_imports=False):
 
         namespace['_salvus_parsing'] = sage_parsing
 
-        for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
-                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                     'reset', 'restore', 'md', 'load', 'runfile', 'typeset_mode', 'default_mode',
-                     'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
-                     'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
+        for name in ['attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
+                     'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
+                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'javascript', 'julia',
+                     'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
+                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'script',
+                     'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'time',
+                     'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
@@ -1698,7 +1844,7 @@ def serve(port, host, extra_imports=False):
         # end while
     except Exception as err:
         log("Error taking connection: ", err)
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc(file=open(LOGFILE, 'a'))
         #log.error("error: %s %s", type(err), str(err))
 
     finally:

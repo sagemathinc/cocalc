@@ -1,8 +1,8 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+$ = window.$
 
 # standard non-SMC libraries
 immutable  = require('immutable')
@@ -32,7 +33,7 @@ misc = require('smc-util/misc')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./smc-react')
 {Loading} = require('r_misc')
 {Input} = require('react-bootstrap')
 
@@ -70,28 +71,42 @@ default_store_state =
     value : ''
     options : {}
 
-exports.init_redux = init_redux = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
-    console.log("store=smc.redux.getStore('#{name}');actions=smc.redux.getActions('#{name}');")
+init_redux = (path, redux, project_id) ->
+    name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, CodemirrorActions)
     store   = redux.createStore(name, default_store_state)
 
-    console.log("getting syncstring for '#{filename}'")
+    console.log("getting syncstring for '#{path}'")
     synchronized_string
         project_id    : project_id
-        filename      : filename
+        path      : path
         sync_interval : 100
         cb            : (err, syncstring) ->
             if err
-                actions.report_error("unable to open #{@filename}")
+                actions.report_error("unable to open #{@path}")
             else
                 syncstring.on('sync', actions.sync)
                 store.syncstring = actions.syncstring = syncstring
                 actions.set_value(syncstring.live())
 
-CodemirrorEditor = (name) -> rclass
+    return name
+
+remove_redux(path, redux, project_id) ->
+    name = redux_name(project_id, path)
+    store = redux.getStore(name)
+    if not store?
+        return
+    store.syncstring?.destroy()
+    delete store.state
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    redux.removeStore(name)
+    redux.removeActions(name)
+    return name
+
+CodemirrorEditor = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             value       : rtypes.string
@@ -111,7 +126,7 @@ CodemirrorEditor = (name) -> rclass
             delete @cm
 
     init_codemirror: (options, style, value) ->
-        console.log("init_codemirror", options)
+        # console.log("init_codemirror", options)
         @_cm_destroy()
 
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
@@ -123,14 +138,14 @@ CodemirrorEditor = (name) -> rclass
         if style?
             $(@cm.getWrapperElement()).css(style)
         if @props.scroll_info?
-            console.log("setting scroll_info to ", @props.scroll_info)
+            # console.log("setting scroll_info to ", @props.scroll_info)
             @cm.scrollTo(@props.scroll_info.left, @props.scroll_info.top)
 
         @cm.on('change', @_cm_change)
         @cm.on('scroll', @_cm_scroll)
 
     _cm_change: ->
-        console.log("_cm_change")
+        # console.log("_cm_change")
         @_cm_set_value = @cm.getValue()
         @props.actions.set_value(@_cm_set_value)
 
@@ -138,8 +153,8 @@ CodemirrorEditor = (name) -> rclass
         @_cm_scroll_info = @cm.getScrollInfo()
 
     componentDidMount: ->
-        console.log("componentDidMount")
-        window.c = @
+        #console.log("componentDidMount")
+        #window.c = @
         @init_codemirror(@props.options, @props.style, @props.value)
 
     componentWillReceiveProps: (newProps) ->
@@ -149,7 +164,7 @@ CodemirrorEditor = (name) -> rclass
             @cm?.setValueNoJump(newProps.value)
 
     componentWillUnmount: ->
-        console.log("componentWillUnmount")
+        # console.log("componentWillUnmount")
         if @cm?
             if @_cm_scroll_info?
                 @props.actions?.set_scroll_info(@_cm_scroll_info)
@@ -169,37 +184,9 @@ CodemirrorEditor = (name) -> rclass
             <textarea />
         </div>
 
-render = (redux, project_id, filename) ->
-    name = redux_name(project_id, filename)
-    actions = redux.getActions(name)
-    CodemirrorEditor_connected = CodemirrorEditor(name)
-    <Redux redux={redux} >
-        <CodemirrorEditor_connected actions={actions} />
-    </Redux>
-
-exports.render = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: render")
-    init_redux(redux, project_id, filename)
-    React.render(render(redux, project_id, filename), dom_node)
-
-exports.hide = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: hide")
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: show")
-    React.render(render(redux, project_id, filename), dom_node)
-
-exports.free = (project_id, filename, dom_node, redux) ->
-    console.log("editor_codemirror: free")
-    fname = redux_name(project_id, filename)
-    store = redux.getStore(fname)
-    if not store?
-        return
-    ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncstring?.disconnect_from_session()
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(fname)
-    redux.removeActions(fname)
+require('project_file').register_file_editor
+    ext         : ['txt', '']
+    icon        : 'file-code-o'
+    init      : init_redux
+    component : CodemirrorEditor
+    remove    : remove_redux

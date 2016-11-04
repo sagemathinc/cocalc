@@ -1,0 +1,48 @@
+# SMC Wizard Documentation File
+# Copyright: SageMath Inc., 2016
+# License:   Creative Commons: Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+---
+language: sage
+category: Extras  / Interact
+---
+title: Introduction
+descr: |
+    The decorator `@interact` is a powerful tool.
+    It allows you to add interactive UI elements to your worksheet,
+    such that a function is evaluate with different arguments.
+
+    Ref.: [@interact](http://doc.sagemath.org/html/en/reference/notebook/sagenb/notebook/interact.html#sagenb.notebook.interact.interact) --
+    but be aware, that this is **not** the same implementation as in Sage Worksheets.
+    The API is only similar, so expect some differences or missing details!
+code: |
+    @interact
+    def func(k = slider(0, 10, .1)):
+        print("k: %s" % k)
+        s = (1 - sqrt(k))^2
+        print("s: %s" % s)
+---
+title: Symbolic Function
+descr: |
+    This is a very simple example,
+    where the we first define a symbolic function $f(x)$,
+    and then substitute it with the variable `x` defined by the interact.
+    Both `x` variables aren't the same,
+    and therefore the evaluation of $f$ works as expected.
+code: |
+    %var x
+    f(x) = 2*x + 1
+    @interact
+    def f_interact(x=(0, 100)):
+        print 'f({}) = {}'.format(x, f(x))
+---
+title: Multiple Sliders
+descr: |
+    It's straight forward to add multiple sliders.
+
+    The `range_slider` retuns a tuple!
+code: |
+    @interact
+    def func(k = slider(0, 10, .1), j = (-10, 10), l = range_slider(-5, 5)):
+        print("k: %s" % k)
+        print("j: %s" % j)
+        print("l: [%s, %s]" % l)
