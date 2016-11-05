@@ -171,7 +171,7 @@ Message = rclass
         @props.actions.set_editing(@props.message, true)
         @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
-    on_keydown : (e) ->
+    on_keydown: (e) ->
         if e.keyCode==27 # ESC
             e.preventDefault()
             @setState
@@ -392,7 +392,7 @@ ChatRoom = (name) -> rclass
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
-    on_keydown : (e) ->
+    on_keydown: (e) ->
         # TODO: Add timeout component to is_typing
         if e.keyCode==13 and e.shiftKey # 13: enter key
             send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -423,7 +423,7 @@ ChatRoom = (name) -> rclass
             scroll_to_bottom(@refs.log_container, @props.actions)
 
     # All render methods
-    render : ->
+    render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 

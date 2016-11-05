@@ -27,7 +27,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 App = rclass
-    render : ->
+    render: ->
         <div>
             <h2>Wrapper for an app</h2>
         </div>

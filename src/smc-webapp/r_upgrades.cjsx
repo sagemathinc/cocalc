@@ -22,10 +22,10 @@ ProjectTitle = rclass
         project_id   : rtypes.string.isRequired
         handle_click : rtypes.func
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
-    render : ->
+    render: ->
         if not @props.project_map?
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
@@ -196,7 +196,7 @@ exports.UpgradesPage = rclass
             {@render_upgraded_projects_rows(upgraded_projects)}
         </Panel>
 
-    render : ->
+    render: ->
         if not @props.redux? or not @props.project_map?
             return <Loading />
         if not @props.stripe_customer?.subscriptions?.total_count

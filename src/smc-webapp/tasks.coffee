@@ -81,7 +81,7 @@ CodeMirror.defineMode "tasks", (config) ->
 ###
 
 class TaskList
-    constructor : (@project_id, @filename, @element, @opts) ->
+    constructor: (@project_id, @filename, @element, @opts) ->
         @default_font_size = redux.getStore('account').get('font_size')
         @element.data('task_list', @)
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
@@ -741,7 +741,7 @@ class TaskList
         else
             @set_current_task(task)
 
-    display_last_edited : (task) =>
+    display_last_edited: (task) =>
         if task.last_edited
             corrupt = false
             if typeof(task.last_edited) != "number"  # corrupt

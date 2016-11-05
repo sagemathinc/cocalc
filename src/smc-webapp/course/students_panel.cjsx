@@ -48,7 +48,7 @@ exports.StudentsPanel = rclass ({name}) ->
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         err              : undefined
         search           : ''
         add_search       : ''
@@ -58,7 +58,7 @@ exports.StudentsPanel = rclass ({name}) ->
         selected_option_nodes : undefined
         show_deleted     : false
 
-    do_add_search : (e) ->
+    do_add_search: (e) ->
         # Search for people to add to the course
         e?.preventDefault()
         if not @props.students?
@@ -110,15 +110,15 @@ exports.StudentsPanel = rclass ({name}) ->
                 # We are no longer searching, but now show an options selector.
                 @setState(add_searching:false, add_select:select3, existing_students:existing_students)
 
-    student_add_button : ->
+    student_add_button: ->
         <Button onClick={@do_add_search}>
             {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
         </Button>
 
-    add_selector_clicked : ->
+    add_selector_clicked: ->
         @setState(selected_option_nodes: ReactDOM.findDOMNode(@refs.add_select).selectedOptions)
 
-    add_selected_students : (options) ->
+    add_selected_students: (options) ->
         emails = {}
         for x in @state.add_select
             if x.account_id?
@@ -143,7 +143,7 @@ exports.StudentsPanel = rclass ({name}) ->
         @props.redux.getActions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
-    get_add_selector_options : ->
+    get_add_selector_options: ->
         v = []
         seen = {}
         for x in @state.add_select
@@ -155,7 +155,7 @@ exports.StudentsPanel = rclass ({name}) ->
             v.push(<option key={key} value={key} label={student_name}>{student_name}</option>)
         return v
 
-    render_add_selector : ->
+    render_add_selector: ->
         if not @state.add_select?
             return
         options = @get_add_selector_options()
@@ -166,7 +166,7 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_add_selector_button(options)}
         </FormGroup>
 
-    render_add_selector_button : (options) ->
+    render_add_selector_button: (options) ->
         nb_selected = @state.selected_option_nodes?.length ? 0
         _ = require('underscore')
         es = @state.existing_students
@@ -185,7 +185,7 @@ exports.StudentsPanel = rclass ({name}) ->
         disabled = options.length == 0 or (options.length >= 2 and nb_selected == 0)
         <Button onClick={=>@add_selected_students(options)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
-    render_error : ->
+    render_error: ->
         ed = null
         if @state.err
             ed = <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
@@ -208,7 +208,7 @@ exports.StudentsPanel = rclass ({name}) ->
         else
             <Row></Row>
 
-    render_header : (num_omitted) ->
+    render_header: (num_omitted) ->
         <div>
             <Row>
                 <Col md=3>
@@ -245,7 +245,7 @@ exports.StudentsPanel = rclass ({name}) ->
             {@render_error()}
         </div>
 
-    compute_student_list : ->
+    compute_student_list: ->
         # TODO: good place to cache something...
         # turn map of students into a list
         v = immutable_to_list(@props.students, 'student_id')
@@ -287,7 +287,7 @@ exports.StudentsPanel = rclass ({name}) ->
 
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_students : (students) ->
+    render_students: (students) ->
         for x,i in students
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
@@ -297,7 +297,7 @@ exports.StudentsPanel = rclass ({name}) ->
                      is_expanded={@props.expanded_students.has(x.student_id)}
                      />
 
-    render_show_deleted : (num_deleted) ->
+    render_show_deleted: (num_deleted) ->
         if @state.show_deleted
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
@@ -311,7 +311,7 @@ exports.StudentsPanel = rclass ({name}) ->
                 </Tip>
             </Button>
 
-    render : ->
+    render: ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
             {@render_students(students)}
@@ -322,7 +322,7 @@ exports.StudentsPanel.Header = rclass
     propTypes:
         n : rtypes.number
 
-    render : ->
+    render: ->
         <Tip delayShow=1300
              title="Students"
              tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
@@ -344,36 +344,36 @@ Student = rclass
         background  : rtypes.string
         is_expanded  : rtypes.bool
 
-    shouldComponentUpdate : (nextProps, nextState) ->
+    shouldComponentUpdate: (nextProps, nextState) ->
         return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
-    getInitialState : ->
+    getInitialState: ->
         confirm_delete: false
 
-    render_student : ->
+    render_student: ->
         <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('student', @props.student.get('student_id'))}>
             <Icon style={marginRight:'10px'}
                   name={if @props.is_expanded then 'caret-down' else 'caret-right'}/>
             {@render_student_name()}
         </a>
 
-    render_student_name : ->
+    render_student_name: ->
         account_id = @props.student.get('account_id')
         if account_id?
             return <User account_id={account_id} user_map={@props.user_map} />
         return <span>{@props.student.get("email_address")} (invited)</span>
 
-    render_student_email : ->
+    render_student_email: ->
         email = @props.student.get("email_address")
         return <a href="mailto:#{email}">{email}</a>
 
-    open_project : ->
+    open_project: ->
         @props.redux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
 
-    create_project : ->
+    create_project: ->
         @props.redux.getActions(@props.name).create_student_project(@props.student_id)
 
-    render_last_active : ->
+    render_last_active: ->
         student_project_id = @props.student.get('project_id')
         if not student_project_id?
             return
@@ -400,7 +400,7 @@ Student = rclass
                      <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free</span>
                 </Tip>
 
-    render_project : ->
+    render_project: ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
         if create?
@@ -429,14 +429,14 @@ Student = rclass
                 </Button>
             </Tip>
 
-    delete_student : ->
+    delete_student: ->
         @props.redux.getActions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
-    undelete_student : ->
+    undelete_student: ->
         @props.redux.getActions(@props.name).undelete_student(@props.student)
 
-    render_confirm_delete : ->
+    render_confirm_delete: ->
         if @state.confirm_delete
             <div>
                 Are you sure you want to delete this student (you can always undelete them later)?<Space/>
@@ -450,7 +450,7 @@ Student = rclass
                 </ButtonToolbar>
             </div>
 
-    render_delete_button : ->
+    render_delete_button: ->
         if not @props.is_expanded
             return
         if @state.confirm_delete
@@ -464,17 +464,17 @@ Student = rclass
                 <Icon name="trash" /> Delete...
             </Button>
 
-    render_title_due : (assignment) ->
+    render_title_due: (assignment) ->
         date = assignment.get('due_date')
         if date
             <span>(Due <TimeAgo date={date} />)</span>
 
-    render_title : (assignment) ->
+    render_title: (assignment) ->
         <span>
             <em>{misc.trunc_middle(assignment.get('path'), 50)}</em> {@render_title_due(assignment)}
         </span>
 
-    render_assignments_info_rows : ->
+    render_assignments_info_rows: ->
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
@@ -485,12 +485,12 @@ Student = rclass
                   student={@props.student} assignment={assignment}
                   grade={grade} />
 
-    render_assignments_info : ->
+    render_assignments_info: ->
         peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
         header = <StudentAssignmentInfoHeader key='header' title="Assignment" peer_grade={peer_grade}/>
         return [header, @render_assignments_info_rows()]
 
-    render_note : ->
+    render_note: ->
         <Row key='note' style={note_style}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
@@ -507,7 +507,7 @@ Student = rclass
             </Col>
         </Row>
 
-    render_more_info : ->
+    render_more_info: ->
         # Info for each assignment about the student.
         v = []
         v.push <Row key='more'>
@@ -518,7 +518,7 @@ Student = rclass
         v.push(@render_note())
         return v
 
-    render_basic_info : ->
+    render_basic_info: ->
         <Row key='basic' style={backgroundColor:@props.background}>
             <Col md=3>
                 <h5>
@@ -539,11 +539,11 @@ Student = rclass
             </Col>
         </Row>
 
-    render_deleted : ->
+    render_deleted: ->
         if @props.student.get('deleted')
             <b> (deleted)</b>
 
-    render_panel_header : ->
+    render_panel_header: ->
         <Row>
             <Col md=4>
                 {@render_project()}
@@ -553,12 +553,12 @@ Student = rclass
             </Col>
         </Row>
 
-    render_more_panel : ->
+    render_more_panel: ->
         <Panel header={@render_panel_header()}>
             {@render_more_info()}
         </Panel>
 
-    render : ->
+    render: ->
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}

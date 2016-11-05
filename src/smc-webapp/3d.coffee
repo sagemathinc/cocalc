@@ -357,7 +357,7 @@ class SalvusThreeJS
 
         return sprite
 
-    add_line : (opts) =>
+    add_line: (opts) =>
         o = defaults opts,
             points     : required
             thickness  : 1

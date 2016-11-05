@@ -300,12 +300,12 @@ FileUse = rclass
         redux       : rtypes.object
         cursor      : rtypes.bool
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         a = @props.info != nextProps.info or @props.cursor != nextProps.cursor or \
             @props.user_map != nextProps.user_map or @props.project_map != nextProps.project_map
         return a
 
-    render_users : ->
+    render_users: ->
         if @info.users?
             v = []
             # only list users who have actually done something aside from mark read/seen this file
@@ -316,17 +316,17 @@ FileUse = rclass
                         user_map={@props.user_map} last_active={user.last_edited} />
             return r_join(v)
 
-    render_last_edited : ->
+    render_last_edited: ->
         if @info.last_edited?
             <span key='last_edited' >
                 was edited <TimeAgo date={@info.last_edited} />
             </span>
 
-    open : (e) ->
+    open: (e) ->
         e?.preventDefault()
         open_file_use_entry(@info, @props.redux)
 
-    render_path : ->
+    render_path: ->
         {name, ext} = misc.separate_file_extension(@info.path)
         name = misc.trunc_middle(name, TRUNCATE_LENGTH)
         ext  = misc.trunc_middle(ext, TRUNCATE_LENGTH)
@@ -336,28 +336,28 @@ FileUse = rclass
             <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
         </span>
 
-    render_project : ->
+    render_project: ->
         <em key='project'>
             {misc.trunc(@props.project_map.get(@info.project_id)?.get('title'), TRUNCATE_LENGTH)}
         </em>
 
-    render_what_is_happening : ->
+    render_what_is_happening: ->
         if not @info.users?
             return @render_last_edited()
         if @info.show_chat
             return <span>discussed by </span>
         return <span>edited by </span>
 
-    render_action_icon : ->
+    render_action_icon: ->
         if @info.show_chat
             return <Icon name='comment' />
         else
             return <Icon name='edit' />
 
-    render_type_icon : ->
+    render_type_icon: ->
         <FileIcon filename={@info.path} />
 
-    render : ->
+    render: ->
         @info = @props.info.toJS()
         style = misc.copy(file_use_style)
         if @info.notify
@@ -390,12 +390,12 @@ FileUseViewer = rclass
         project_map   : rtypes.object.isRequired
         account_id    : rtypes.string.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         search   : ''
         cursor   : 0
         show_all : false
 
-    render_search_box : ->
+    render_search_box: ->
         <span key='search_box' className='smc-file-use-notifications-search' >
             <SearchInput
                 autoFocus     = {true}
@@ -409,7 +409,7 @@ FileUseViewer = rclass
             />
         </span>
 
-    render_mark_all_read_button : ->
+    render_mark_all_read_button: ->
         <Button key='mark_all_read_button' bsStyle='warning'
             onClick={=>@props.redux.getActions('file_use').mark_all('read'); @actions('page').toggle_show_file_use()}>
             <Icon name='check-square'/> Mark all Read
@@ -418,7 +418,7 @@ FileUseViewer = rclass
     open_selected: ->
         open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.redux)
 
-    render_list : ->
+    render_list: ->
         v = @props.file_use_list.toArray()
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
@@ -434,25 +434,25 @@ FileUseViewer = rclass
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
-    render_show_all : ->
+    render_show_all: ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
                 Show {@_num_missing} more
             </Button>
 
-    render_show_less : ->
+    render_show_less: ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
             <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false); setTimeout(resize_notification_list, 1)}>
                 Show {n} less
             </Button>
 
-    render_toggle_all : ->
+    render_toggle_all: ->
         <div key='toggle_all' style={textAlign:'center', marginTop:'2px'}>
             {if @state.show_all then @render_show_less() else @render_show_all()}
         </div>
 
-    render : ->
+    render: ->
         <div className={"smc-file-use-viewer"}>
             <Row key='top'>
                 <Col sm=8>
@@ -475,7 +475,7 @@ FileIcon = rclass
     propTypes :
         filename : rtypes.string.isRequired
 
-    render : ->
+    render: ->
         ext = misc.filename_extension_notilde(@props.filename)
         <Icon name={editor.file_icon_class(ext).slice(3)} />
 
@@ -495,14 +495,14 @@ exports.FileUsePage = FileUseController = rclass
     propTypes :
         redux : rtypes.object
 
-    componentDidMount : () ->
+    componentDidMount: () ->
         setTimeout((()=>@actions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
         $(document).on("click", notification_list_click_handler)
 
-    componentWillUnmount : () ->
+    componentWillUnmount: () ->
         $(document).off("click", notification_list_click_handler)
 
-    render : ->
+    render: ->
         account_id = @props.redux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.redux? or not @props.user_map? or not @props.project_map? or not account_id?
             if @props.redux.getStore('account')?.get_user_type() == 'public'
