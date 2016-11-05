@@ -90,15 +90,6 @@ class exports.LatexEditor extends editor.FileEditor
         @_init_buttons()
         @init_draggable_split()
 
-        # this is entirely because of the chat
-        # currently being part of @latex_editor, and
-        # only calling the show for that; once chat
-        # is refactored out, delete this.
-        @latex_editor.on 'show-chat', () =>
-            @show()
-        @latex_editor.on 'hide-chat', () =>
-            @show()
-
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
         ###
@@ -132,11 +123,7 @@ class exports.LatexEditor extends editor.FileEditor
             stop        : (event, ui) =>
                 # compute the position of bar as a number from 0 to 1
                 left  = @element.offset().left
-                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-                if chat_pos.left
-                    width = chat_pos.left - left
-                else
-                    width = @element.width()
+                width = @element.width()
                 p     = dragbar.offset().left
                 @_split_pos = (p - left) / width
                 @local_storage('split_pos', @_split_pos)
@@ -416,9 +403,6 @@ class exports.LatexEditor extends editor.FileEditor
         @element.width($(window).width())
 
         width = @element.width()
-        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-        if chat_pos.left
-            width = chat_pos.left
 
         {top, left} = @element.offset()
         editor_width = (width - left) * @_split_pos

@@ -99,15 +99,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @init_keybindings()
 
-        # this is entirely because of the chat
-        # currently being part of @source_editor, and
-        # only calling the show for that; once chat
-        # is refactored out, delete this.
-        @source_editor.on 'show-chat', () =>
-            @show()
-        @source_editor.on 'hide-chat', () =>
-            @show()
-
     cm: () =>
         return @source_editor.syncdoc.focused_codemirror()
 
@@ -144,11 +135,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             stop        : (event, ui) =>
                 # compute the position of bar as a number from 0 to 1
                 left  = @element.offset().left
-                chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-                if chat_pos.left
-                    width = chat_pos.left - left
-                else
-                    width = @element.width()
+                width = @element.width()
                 p     = dragbar.offset().left
                 @_split_pos = (p - left) / width
                 @local_storage('split_pos', @_split_pos)
@@ -629,10 +616,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @element.width($(window).width())
 
         width = @element.width()
-        chat_pos = @element.find(".salvus-editor-codemirror-chat").offset()
-        if chat_pos.left
-            width = chat_pos.left
-
         {top, left} = @element.offset()
         editor_width = (width - left) * @_split_pos
 

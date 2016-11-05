@@ -152,7 +152,7 @@ class JupyterWrapper extends EventEmitter
         @blobs_pending = {}
         @state = 'loading'
         @iframe_uuid = misc.uuid()
-        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
+        @iframe = $("<iframe class='smc-vfill' name=#{@iframe_uuid} id=#{@iframe_uuid} width=100%>")
             .attr('src', "#{@server_url}#{misc.encode_path(@filename)}")
             .attr('frameborder', '0')
             .attr('scrolling', 'no')
@@ -653,10 +653,6 @@ class JupyterWrapper extends EventEmitter
             doc += '\n' + @cell_to_line(cell, to_db)
         return doc
 
-    show: (width) =>
-        @iframe?.attr('width', width).maxheight()
-        setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more in the next render loop.
-
     line_to_cell: (line) =>
         obj = JSON.parse(line)
         if obj.cell_type == 'code' and obj.outputs?
@@ -913,7 +909,7 @@ class JupyterNotebook extends EventEmitter
         if @_init_buttons_already_done
             return
         @_init_buttons_already_done = true
-        
+
         # info button
         @element.find("a[href=\"#info\"]").click(@info)
 
@@ -1098,7 +1094,6 @@ class JupyterNotebook extends EventEmitter
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
-        @dom?.show(width)
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
