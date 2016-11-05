@@ -254,10 +254,11 @@
 //
 // this messes up codemirror themes
 
-
 .sagews-output
-  white-space : normal
-  word-wrap   : break-word
+  display        : block
+  white-space    : normal
+  word-wrap      : break-word
+  padding-left   : 2em
 
 .sagews-output-cm-gutter
   border-right : 1ex solid #5cb85c
@@ -265,9 +266,7 @@
 .sagews-output-cm-text
   overflow-x   : auto   !important  // for big image output and since mathjax doesn't wrap around properly yet (?)
   overflow-y   : hidden !important
-  max-width    : 100%    !important
-  margin-left  : 1em   !important
-  padding-left : 1em  !important
+  max-width    : 100%   !important
 
 .sagews-output-cm-wrap
   padding-top    : 1ex  !important
@@ -344,9 +343,10 @@
   /* so that tex is visible */
 
 .sagews-output-image
-  cursor     : pointer
   background : white
   /* so that, e.g., latex with transparent background is visible */
+  > img
+    cursor     : pointer
 
 .sagews-output-video
   cursor     : pointer

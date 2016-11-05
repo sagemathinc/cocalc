@@ -1551,7 +1551,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                         elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg', 'jpeg'
-                        img = $("<img src='#{target}' class='sagews-output-image'>")
+                        img = $("<span class='sagews-output-image'><img src='#{target}'></span>")
                         output.append(img)
 
                         if mesg.events?
