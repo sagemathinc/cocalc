@@ -163,7 +163,6 @@ ArchiveContents = rclass
         contents   : rtypes.string
 
     render: ->
->>>>>>> master
         if not @props.contents?
             @props.actions.set_archive_contents(@props.project_id, @props.path)
         <pre>{@props.contents}</pre>

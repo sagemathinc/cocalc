@@ -886,6 +886,7 @@ class CodeMirrorEditor extends FileEditor
             # The Codemirror themes impose their own weird fonts, but most users want whatever
             # they've configured as "monospace" in their browser.  So we force that back:
             e = $(cm.getWrapperElement())
+            e.addClass('smc-vfill')
             e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
             if opts.bindings == 'vim'

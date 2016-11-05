@@ -251,6 +251,7 @@ CHAT_TOGGLE_STYLE =
     borderRadius : '3px'
     paddingLeft  : '5px'
     paddingRight : '5px'
+    opacity      : 0.85
 
 CHAT_TOGGLE_TIP = <span>
 Hide or show the chat for this file.
@@ -300,14 +301,16 @@ ProjectMainContent = rclass
         if not Editor?
             <Loading />
         else
-            <Editor
-                name         = {redux_name}
-                path         = {path}
-                project_id   = {@props.project_id}
-                redux        = {redux}
-                actions      = {if redux_name? then redux.getActions(redux_name)}
-                project_name = {@props.project_name}
-            />
+            <div style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden'}>
+                <Editor
+                    name         = {redux_name}
+                    path         = {path}
+                    project_id   = {@props.project_id}
+                    redux        = {redux}
+                    actions      = {if redux_name? then redux.getActions(redux_name)}
+                    project_name = {@props.project_name}
+                />
+            </div>
 
     render_side_chat: (path) ->
         <SideChat

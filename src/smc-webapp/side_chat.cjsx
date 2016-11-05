@@ -383,21 +383,12 @@ ChatRoom = rclass ({name}) ->
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
-<<<<<<< HEAD
-    on_keydown : (e) ->
+    on_keydown: (e) ->
         if e.keyCode == 27  # ESC
             @props.actions.set_input('')
         else if e.keyCode == 13 and e.shiftKey # shift + enter
             @button_send_chat(e)
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
-=======
-    on_keydown: (e) ->
-        # TODO: Add timeout component to is_typing
-        if e.keyCode==13 and e.shiftKey # 13: enter key
-            send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
-        else if e.keyCode==38 and ReactDOM.findDOMNode(@refs.input).value == ''
-            # Up arrow on an empty input
->>>>>>> master
             @props.actions.set_to_last_input()
 
     button_send_chat: (e) ->
