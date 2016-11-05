@@ -54,11 +54,11 @@ exports.AccountPage = rclass
         actions : rtypes.object.isRequired
         redux   : rtypes.object.isRequired
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         actions : redux.getActions('account')
         redux   : redux
 
-    handle_select : (key) ->
+    handle_select: (key) ->
         switch key
             when 'billing'
                 @props.redux.getActions('billing')?.update_customer()
@@ -67,16 +67,16 @@ exports.AccountPage = rclass
         @props.redux.getActions('account').set_active_tab(key)
         @props.redux.getActions('account').push_state("/#{key}")
 
-    render_upgrades : ->
+    render_upgrades: ->
         <UpgradesPage
             redux           = {@props.redux}
             stripe_customer = {@props.stripe_customer}
             project_map     = {@props.project_map} />
 
-    render_support : ->
+    render_support: ->
         <SupportPage />
 
-    render_account_settings : ->
+    render_account_settings: ->
         <AccountSettingsTop
             redux           = {@props.redux}
             first_name      = {@props.first_name}
@@ -95,7 +95,7 @@ exports.AccountPage = rclass
             profile         = {@props.profile}
             groups          = {@props.groups} />
 
-    render_landing_page : ->
+    render_landing_page: ->
         <LandingPage
             redux                   = {redux}
             actions                 = {@props.actions}
@@ -128,7 +128,7 @@ exports.AccountPage = rclass
         </Tab>
         return v
 
-    render : ->
+    render: ->
         logged_in = @props.redux.getStore('account').is_logged_in()
         <Grid className='constrained'>
             {@render_landing_page() if not logged_in}

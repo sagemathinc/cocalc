@@ -35,7 +35,7 @@ immutable  = require('immutable')
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
 
-    render :->
+    render:->
         <div>
             This is a log message
         </div>
@@ -48,17 +48,17 @@ LogSearch = rclass
         actions          : rtypes.object.isRequired
         selected         : rtypes.object
 
-    clear_and_focus_input : ->
+    clear_and_focus_input: ->
         ReactDOM.findDOMNode(@refs.project_log_search).focus()
         @props.actions.setState(search:'', page:0)
 
-    render_clear_button : ->
+    render_clear_button: ->
         s = if @props.search?.length > 0 then 'warning' else "default"
         <Button onClick={@clear_and_focus_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
-    do_open_selected : (e) ->
+    do_open_selected: (e) ->
         e.preventDefault()
         e = @props.selected?.event
         if not e?
@@ -71,16 +71,16 @@ LogSearch = rclass
             when 'set'
                 @props.actions.set_active_tab('settings')
 
-    keydown : (e) ->
+    keydown: (e) ->
         if e.keyCode == 27
             @props.actions.setState(search:'', page:0)
 
-    on_change : (e) ->
+    on_change: (e) ->
         e.preventDefault()
         x = ReactDOM.findDOMNode(@refs.project_log_search).value
         @props.actions.setState(search : x, page : 0)
 
-    render : ->
+    render: ->
         <form onSubmit={@do_open_selected}>
             <FormGroup>
                 <InputGroup>
@@ -116,13 +116,13 @@ LogEntry = rclass
         backgroundStyle : rtypes.object
         actions         : rtypes.object.isRequired
 
-    click_filename : (e) ->
+    click_filename: (e) ->
         e.preventDefault()
         @props.actions.open_file
             path       : @props.event.filename
             foreground : misc.should_open_in_foreground(e)
 
-    render_open_file : ->
+    render_open_file: ->
         <span>opened<Space/>
             <FileLink
                 path    = {@props.event.filename}
@@ -132,7 +132,7 @@ LogEntry = rclass
                 actions = {@props.actions} />
         </span>
 
-    render_miniterm_command : (cmd) ->
+    render_miniterm_command: (cmd) ->
         if cmd.length > 50
             <Tip title='Full command' tip={cmd} delayHide={10000} rootClose={true} >
                 <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
@@ -140,13 +140,13 @@ LogEntry = rclass
         else
             <kbd>{cmd}</kbd>
 
-    render_miniterm : ->
+    render_miniterm: ->
         <span>executed mini terminal command {@render_miniterm_command(@props.event.input)}</span>
 
-    project_title : ->
+    project_title: ->
         <ProjectTitleAuto project_id={@props.event.project} />
 
-    file_link : (path, link, i) ->
+    file_link: (path, link, i) ->
         <FileLink
             path    = {path}
             full    = {true}
@@ -156,13 +156,13 @@ LogEntry = rclass
             link    = {link}
             actions = {@props.actions} />
 
-    multi_file_links : (link = true) ->
+    multi_file_links: (link = true) ->
         links = []
         for path, i in @props.event.files
             links.push @file_link(path, link, i)
         return r_join(links)
 
-    render_file_action : ->
+    render_file_action: ->
         e = @props.event
         switch e?.action
             when 'deleted'
@@ -176,11 +176,11 @@ LogEntry = rclass
             when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 
-    click_set : (e) ->
+    click_set: (e) ->
         e.preventDefault()
         @props.actions.set_active_tab('settings')
 
-    render_set : (obj) ->
+    render_set: (obj) ->
         i = 0
         for key, value of obj
             i += 1
@@ -191,7 +191,7 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
-    render_upgrade : ->
+    render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
         for param, val of @props.event.upgrades
@@ -205,10 +205,10 @@ LogEntry = rclass
         v = if v.length > 0 then r_join(v) else 'nothing'
         <span>set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>upgrade contributions</a> to: {v}</span>
 
-    render_invite_user : ->
+    render_invite_user: ->
         <span>invited user <User user_map={@props.user_map} account_id={@props.event.invitee_account_id} /></span>
 
-    render_invite_nonuser : ->
+    render_invite_nonuser: ->
         <span>invited nonuser {@props.event.invitee_email}</span>
 
     file_action_icons :
@@ -218,7 +218,7 @@ LogEntry = rclass
         copied     : 'copy'
         share      : 'shared'
 
-    render_desc : ->
+    render_desc: ->
         if typeof(@props.event) is 'string'
             return <span>{@props.event}</span>
 
@@ -245,10 +245,10 @@ LogEntry = rclass
                 # FUTURE:
                 return <span>{misc.to_json(@props.event)}</span>
 
-    render_user : ->
+    render_user: ->
         <User user_map={@props.user_map} account_id={@props.account_id} />
 
-    icon : ->
+    icon: ->
         switch @props.event?.event
             when 'open_project'
                 return 'folder-open-o'
@@ -274,7 +274,7 @@ LogEntry = rclass
             else
                 return 'dot-circle-o'
 
-    render : ->
+    render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
             <Col sm=1 style={textAlign:'center'}>
@@ -296,7 +296,7 @@ LogMessages = rclass
         cursor     : rtypes.string    # id of the cursor
         actions    : rtypes.object.isRequired
 
-    render_entries : ->
+    render_entries: ->
         for x, i in @props.log
             <LogEntry
                 key             = {x.id}
@@ -308,7 +308,7 @@ LogMessages = rclass
                 backgroundStyle = {if i % 2 is 0 then backgroundColor : '#eee'}
                 actions         = {@props.actions} />
 
-    render : ->
+    render: ->
         <div style={wordWrap:'break-word'}>
             {@render_entries()}
         </div>
@@ -333,11 +333,11 @@ exports.ProjectLog = rclass ({name}) ->
             user_map    : rtypes.immutable
             get_name    : rtypes.func
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         search : ''   # search that user has requested
         page   : 0
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         if @props.search != nextProps.search
             return true
         if @props.page != nextProps.page
@@ -348,20 +348,20 @@ exports.ProjectLog = rclass ({name}) ->
             return true
         return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
 
-    componentWillReceiveProps : (next) ->
+    componentWillReceiveProps: (next) ->
         if not @props.user_map? or not @props.project_log?
             return
         if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map)
             @update_log(next.project_log, next.user_map)
 
-    previous_page : ->
+    previous_page: ->
         if @props.page > 0
             @actions(name).setState(page: @props.page-1)
 
-    next_page : ->
+    next_page: ->
         @actions(name).setState(page: @props.page+1)
 
-    search_string : (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
+    search_string: (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
         v = [@props.get_name(x.account_id)]
         event = x.event
         if event?
@@ -373,11 +373,11 @@ exports.ProjectLog = rclass ({name}) ->
                 v.push(val)
         return v.join(' ').toLowerCase()
 
-    process_log_entry : (x) ->
+    process_log_entry: (x) ->
         x.search = @search_string(x)
         return x
 
-    update_log : (next_project_log, next_user_map) ->
+    update_log: (next_project_log, next_user_map) ->
         if not next_project_log? or not next_user_map?
             return
 
@@ -420,7 +420,7 @@ exports.ProjectLog = rclass ({name}) ->
 
         return @_log
 
-    visible_log : ->
+    visible_log: ->
         log = @_log
         if not log?
             # first attempt
@@ -432,7 +432,7 @@ exports.ProjectLog = rclass ({name}) ->
             log = (x for x in log when matches(x.search, words))
         return log
 
-    render_paging_buttons : (num_pages, cur_page) ->
+    render_paging_buttons: (num_pages, cur_page) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@props.page<=0} >
                 <Icon name='angle-double-left' /> Newer
@@ -443,7 +443,7 @@ exports.ProjectLog = rclass ({name}) ->
             </Button>
         </ButtonGroup>
 
-    render_log_panel : ->
+    render_log_panel: ->
         # get visible log
         log = @visible_log()
         # do some pager stuff
@@ -479,7 +479,7 @@ exports.ProjectLog = rclass ({name}) ->
             </Row>
         </Panel>
 
-    render : ->
+    render: ->
         <div style={padding:'15px'}>
             <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
             {if @props.project_log then @render_log_panel() else <Loading/>}

@@ -42,16 +42,16 @@ FileTab = rclass
         shrink             : rtypes.bool      # Whether or not to shrink to just the icon
         has_activity       : rtypes.bool      # Whether or not some activity is happening with the file
 
-    getInitialState : () ->
+    getInitialState: () ->
         x_hovered : false
 
-    componentDidMount : ->
+    componentDidMount: ->
         @strip_href()
 
-    componentDidUpdate : ->
+    componentDidUpdate: ->
         @strip_href()
 
-    strip_href : ->
+    strip_href: ->
         ReactDOM.findDOMNode(@refs.tab)?.children[0].removeAttribute('href')
 
     mouse_over_x: ->
@@ -61,12 +61,12 @@ FileTab = rclass
         @setState(x_hovered:false)
         @actions({project_id:@props.project_id}).clear_ghost_file_tabs()
 
-    close_file : (e, path) ->
+    close_file: (e, path) ->
         e.stopPropagation()
         e.preventDefault()
         @actions(project_id:@props.project_id).close_tab(path)
 
-    render : ->
+    render: ->
         styles = {}
 
         if @props.file_tab
@@ -150,12 +150,12 @@ FreeProjectWarning = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
             @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
-    extra : (host, internet) ->
+    extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
@@ -171,7 +171,7 @@ FreeProjectWarning = rclass ({name}) ->
             </ul>
         </div>
 
-    render : ->
+    render: ->
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -284,20 +284,20 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
-    componentDidMount : ->
+    componentDidMount: ->
         @set_bottom_height()
 
-    componentDidUpdate : ->
+    componentDidUpdate: ->
         @set_bottom_height()
 
-    set_bottom_height : ->
+    set_bottom_height: ->
         node = ReactDOM.findDOMNode(@refs.projectNav)
         if node?
             @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
         else
             @actions(project_id : @props.project_id).set_editor_top_position(0)
 
-    on_sort_end : ({oldIndex, newIndex}) ->
+    on_sort_end: ({oldIndex, newIndex}) ->
         @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
 
     file_tabs: ->
@@ -332,7 +332,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
-    render : ->
+    render: ->
         if not @props.open_files_order?
             return <Loading />
 
@@ -396,13 +396,13 @@ exports.MobileProjectPage = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
 
-    componentDidMount : ->
+    componentDidMount: ->
         @set_bottom_height()
 
-    componentDidUpdate : ->
+    componentDidUpdate: ->
         @set_bottom_height()
 
-    set_bottom_height : ->
+    set_bottom_height: ->
         node = ReactDOM.findDOMNode(@refs.projectNav)
         if node?
             @actions(project_id : @props.project_id).set_editor_top_position(node.offsetTop + node.offsetHeight)
@@ -425,7 +425,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             {items}
         </NavDropdown>
 
-    close_file_item : (e, path) ->
+    close_file_item: (e, path) ->
         e.stopPropagation()
         e.preventDefault()
         @actions(project_id:@props.project_id).close_tab(path)
@@ -463,7 +463,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             </div>
         </MenuItem>
 
-    render_one_file_item : ->
+    render_one_file_item: ->
         path = @props.open_files_order.get(0)
         ext = misc.filename_extension(path).toLowerCase()
         icon = file_associations[ext]?.icon ? 'code-o'
@@ -479,7 +479,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             is_active={@props.active_project_tab == misc.path_to_tab(path)}
         />
 
-    render : ->
+    render: ->
         if not @props.open_files_order?
             return <Loading />
 

@@ -2714,7 +2714,7 @@ class PDF_PreviewEmbed extends FileEditor
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
@@ -2830,7 +2830,7 @@ class Terminal extends FileEditor
         @element.salvus_console(false)
         super()
 
-    hide : () =>
+    hide: () =>
         if @console?
             @element?.hide()
             @console.blur()
@@ -2872,7 +2872,7 @@ class Media extends FileEditor
         else
             @update()
 
-    set_src : (src) =>
+    set_src: (src) =>
         switch @mode
             when 'image'
                 @element.find("img").attr('src', src)
@@ -3050,7 +3050,7 @@ class TaskList extends FileEditorWrapper
             @wrapped = elt.data('task_list')
             @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
@@ -3069,7 +3069,7 @@ class JupyterNotebook extends FileEditorWrapper
         @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
