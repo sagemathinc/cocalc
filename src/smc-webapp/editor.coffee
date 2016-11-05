@@ -1437,21 +1437,22 @@ class CodeMirrorEditor extends FileEditor
             @element.find(".salvus-editor-resize-bar-layout-1").hide()
             @element.find(".salvus-editor-resize-bar-layout-2").hide()
             btn.find(".salvus-editor-layout-0").show()
-            # one full editor
-            v = [{cm:@codemirror, height:height, width:width}]
         else
             if @_layout == 1
-                #@element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
-                @element.find(".salvus-editor-resize-bar-layout-1").show()
-                @element.find(".salvus-editor-resize-bar-layout-2").hide()
-                btn.find(".salvus-editor-layout-1").show()
-                p = @_layout1_split_pos
-                if not p?
-                    p = 0.5
-                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
-                v = [{cm:@codemirror,  height:height*p,     width:width},
-                     {cm:@codemirror1, height:height*(1-p), width:width}]
+                btn.find(".salvus-editor-layout-1").show()  # show the correct button
+
+                # change the height of the *top* div that contain the editors; the bottom one then
+                # uses of all remaining vertical height.
+                v = @element.find(".salvus-editor-codemirror-input-container-layout-1").children()
+                # v is a list of 3 divs: [codemirror] [separator] [codemirror]
+                p = @_layout1_split_pos ? 0.5
+                console.log 'p =', p
+                p = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, p))
+                # We set only the default size of the *first* div -- everything else expands accordingly.
+                $(v[0]).css('flex-basis', "#{p*100}%")
+
             else
+                ###
                 @element.find(".salvus-editor-resize-bar-layout-1").hide()
                 @element.find(".salvus-editor-resize-bar-layout-2").show()
                 p = @_layout2_split_pos
@@ -1462,11 +1463,9 @@ class CodeMirrorEditor extends FileEditor
                 width1 = width*(1-p)
                 btn.find(".salvus-editor-layout-2").show()
                 e = @element.find(".salvus-editor-codemirror-input-container-layout-2")
-                e.width(width)
                 e.find(".salvus-editor-resize-bar-layout-2").height(height).css(left : e.offset().left + width*p)
                 e.find(".salvus-editor-codemirror-input-box").width(width0-7)
-                v = [{cm:@codemirror,  height:height, width:width0},
-                     {cm:@codemirror1, height:height, width:width1-8}]
+                ###
 
         if @_last_layout != @_layout
             # move the editors to the correct layout template and show it.
@@ -1475,21 +1474,6 @@ class CodeMirrorEditor extends FileEditor
             layout_elt.find(".salvus-editor-codemirror-input-box").empty().append($(@codemirror.getWrapperElement()))
             layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
             @_last_layout = @_layout
-
-        #for {cm, height, width} in v
-        #    scroller = $(cm.getScrollerElement())
-        #    scroller.css('height':height)
-        #    cm_wrapper = $(cm.getWrapperElement())
-        #    cm_wrapper.css(height : height)
-
-        # This is another hack that specifically hopefully addresses an
-        # issue where when I open a tab often the scrollbar is completely
-        # hosed.  Zooming in and out manually always fixes it, so maybe
-        # what's below will also.  Testing it.
-        f = () =>
-            for {cm} in v
-                cm.refresh()
-        setTimeout(f, 1)
 
         @emit('show', height)
 

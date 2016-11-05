@@ -92,11 +92,6 @@
 .salvus-editor-recent-files
   margin-bottom: 0em
 
-.salvus-editor-codemirror-input-box
-  /*border: 2px solid #9a9;
-   *border-radius: 5px;
-   */
-
 .salvus-editor-codemirror-sync
   font-size : 8pt
   color     : #bbb
@@ -492,11 +487,11 @@ code
   border-radius : 3px
 
 .salvus-editor-resize-bar-layout-1
-  height     : 6px
+  height     : 7px
   cursor     : ns-resize
-  background : #ccc
+  background : #ddd
   &:hover
-    background : #999
+    background : #88f
 
 .salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
   cursor     : ew-resize
@@ -596,6 +591,12 @@ h6 { font-size: 110% }
 
 
 .smc-vfill
-  height         : 100% !important
+  flex           : 1
   display        : flex
   flex-direction : column
+  border : 1px solid red
+
+.smc-vflex
+  display        : flex
+  flex-direction : column
+  border : 1px solid red
