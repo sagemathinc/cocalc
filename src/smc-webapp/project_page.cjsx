@@ -302,7 +302,7 @@ ProjectMainContent = rclass
         else
             <Editor
                 name         = {redux_name}
-                path         = {@props.active_path}
+                path         = {path}
                 project_id   = {@props.project_id}
                 redux        = {redux}
                 actions      = {if redux_name? then redux.getActions(redux_name)}

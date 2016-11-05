@@ -578,9 +578,6 @@ class FileEditor extends EventEmitter
         @_show = underscore.debounce(@_show, 50)
         @val(content)
 
-    show_chat_window: () =>
-        @syncdoc?.show_chat_window()
-
     is_active: () =>
         misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
@@ -776,18 +773,12 @@ class CodeMirrorEditor extends FileEditor
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
 
-        @chat_filename = misc.meta_file(@filename, 'chat')
-
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
         @_video_is_on = @local_storage("video_is_on")
         if not @_video_is_on?
             @_video_is_on = false
-
-        @_chat_is_hidden = @local_storage("chat_is_hidden")
-        if not @_chat_is_hidden?
-            @_chat_is_hidden = true
 
         @_layout = @local_storage("layout")
         if not @_layout?
@@ -1527,17 +1518,9 @@ class CodeMirrorEditor extends FileEditor
         elem_height       = height - top
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
-        chat              = @_chat_is_hidden? and not @_chat_is_hidden
-        chat_video        = @_video_is_on? and @_video_is_on
 
-        # width of codemirror editors
-        if chat
-            width         = @element.find(".salvus-editor-codemirror-chat-column").offset().left
-        else
-            width         = $(window).width()
 
-        if opts.width?
-            width         = opts.width
+        width         = opts.width ? $(window).width()
 
         if opts.top?
             top           = opts.top
@@ -1548,41 +1531,12 @@ class CodeMirrorEditor extends FileEditor
         # position the editor element on the screen
         @element.css(top:top, left:0)
         @element.css(left:0)
-        # and position the chat column
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height + 2)
 
         # set overall height of the element
         @element.height(elem_height)
 
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
-
-        @chat_elt = @element.find(".salvus-editor-codemirror-chat")
-
-#         if chat
-#             chat_elt = @element.find(".salvus-editor-codemirror-chat")
-#             chat_elt.height(cm_height)
-
-#             chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
-#             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
-#             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
-
-#             chat_input_top = $(window).height() - chat_input.height() - 15
-
-#             if chat_video
-#                 video_height = chat_video_loc.height()
-#             else
-#                 video_height = 0
-
-#             video_top = chat_video_loc.offset().top
-
-#             chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
-#             chat_output_top = video_top + video_height
-
-#             chat_input.offset({top:chat_input_top})
-
-#             chat_output.height(chat_output_height)
-#             chat_output.offset({top:chat_output_top})
 
     focus: () =>
         if not @codemirror?
@@ -3027,8 +2981,6 @@ class FileEditorWrapper extends FileEditor
 
         if IS_MOBILE
             @element.css(position:'relative')
-        #else
-        #    @element.css(position:'fixed')
         @wrapped?.show?()
 
     hide: () =>

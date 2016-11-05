@@ -156,6 +156,12 @@ class ArchiveActions extends Actions
         )
 
 ArchiveContents = rclass
+    propTypes:
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
+        contents   : rtypes.string
+
     render : ->
         if not @props.contents?
             @props.actions.set_archive_contents(@props.project_id, @props.path)
@@ -174,9 +180,9 @@ Archive = rclass ({name}) ->
             extract_output : rtypes.string
 
     propTypes:
-        path       : rtypes.string
-        actions    : rtypes.object
-        project_id : rtypes.string
+        actions    : rtypes.object.isRequired
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
 
     title : ->
         <tt><Icon name="file-zip-o" /> {@props.path}</tt>
@@ -198,8 +204,8 @@ Archive = rclass ({name}) ->
         </Panel>
 
 require('project_file').register_file_editor
-    ext    : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
-    icon   : 'file-archive-o'
+    ext       : misc.split('zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip')
+    icon      : 'file-archive-o'
     init      : init_redux
     component : Archive
     remove    : remove_redux
