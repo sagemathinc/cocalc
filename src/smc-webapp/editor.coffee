@@ -1432,15 +1432,15 @@ class CodeMirrorEditor extends FileEditor
         btn = @element.find("a[href=\"#split-view\"]")
         btn.find("i").hide()
         if not @_split_view
-            @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+            #@element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
             @element.find(".salvus-editor-resize-bar-layout-1").hide()
             @element.find(".salvus-editor-resize-bar-layout-2").hide()
             btn.find(".salvus-editor-layout-0").show()
             # one full editor
-            v = [{cm:@codemirror,height:height,width:width}]
+            v = [{cm:@codemirror, height:height, width:width}]
         else
             if @_layout == 1
-                @element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
+                #@element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
                 @element.find(".salvus-editor-resize-bar-layout-1").show()
                 @element.find(".salvus-editor-resize-bar-layout-2").hide()
                 btn.find(".salvus-editor-layout-1").show()
@@ -1475,30 +1475,19 @@ class CodeMirrorEditor extends FileEditor
             layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
             @_last_layout = @_layout
 
-        for {cm,height,width} in v
-            scroller = $(cm.getScrollerElement())
-            scroller.css('height':height)
-            cm_wrapper = $(cm.getWrapperElement())
-            cm_wrapper.css
-                height : height
-                width  : width
+        #for {cm, height, width} in v
+        #    scroller = $(cm.getScrollerElement())
+        #    scroller.css('height':height)
+        #    cm_wrapper = $(cm.getWrapperElement())
+        #    cm_wrapper.css(height : height)
 
         # This is another hack that specifically hopefully addresses an
         # issue where when I open a tab often the scrollbar is completely
         # hosed.  Zooming in and out manually always fixes it, so maybe
         # what's below will also.  Testing it.
         f = () =>
-            for {cm,height,width} in v
+            for {cm} in v
                 cm.refresh()
-                ###
-                scroll = cm.getScrollInfo(); pos = cm.getCursor()
-                # above refresh
-                scroll_after = cm.getScrollInfo(); pos_after = cm.getCursor()
-                if scroll.left != scroll_after.left or scroll.top != scroll_after.top or pos.line != pos_after.line or pos.ch != pos_after.ch
-                    console.log("WARNING: codemirror refresh lost pos -- RESETTING position; before=#{misc.to_json([scroll,pos])}, after=#{misc.to_json([scroll_after,pos_after])}")
-                    cm.setCursor(pos)
-                    cm.scrollTo(scroll.left, scroll.top)
-                ###
         setTimeout(f, 1)
 
         @emit('show', height)
@@ -1519,21 +1508,13 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
 
-
-        width         = opts.width ? $(window).width()
+        width = opts.width ? $(window).width()
 
         if opts.top?
             top           = opts.top
 
         # height of codemirror editors
         cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
-
-        # position the editor element on the screen
-        @element.css(top:top, left:0)
-        @element.css(left:0)
-
-        # set overall height of the element
-        @element.height(elem_height)
 
         # show the codemirror editors, resizing as needed
         @_show_codemirror_editors(cm_height, width)
