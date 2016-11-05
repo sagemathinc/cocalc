@@ -348,7 +348,7 @@ ChatLog = rclass
         return v
 
     render: ->
-        <Grid fluid>
+        <Grid fluid style={marginTop: '15px'}>
             {@list_messages()}
         </Grid>
 
@@ -416,7 +416,7 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        <div style={height:'100%', display:'flex', flexDirection:'column', backgroundColor:'#fafafa'}>
+        <div style={height:'100%', display:'flex', flexDirection:'column'}>
             <div style={overflowY:'auto', flex:1} ref='log_container' onScroll={@on_scroll} >  {# flex:1 so this expands to fit available space}
                 <ChatLog
                     messages     = {@props.messages}

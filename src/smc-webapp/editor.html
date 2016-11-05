@@ -251,18 +251,22 @@ Editor for files in a project
                         </span>
                     </div>
                 </div>
-
             </div>
-            <div class="salvus-editor-codemirror-input-container-layout-1 hide  smc-vfill">
-                <div>
-                    <div class="salvus-editor-codemirror-input-box">
+
+            <div class="salvus-editor-codemirror-input-container-layout-1 hide"
+                 style="flex: 1; display: flex; flex-direction: column;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                         <textarea></textarea>
                     </div>
                 </div>
                 <div class="salvus-editor-resize-bar-layout-1">
                 </div>
-                <div>
-                    <div class="salvus-editor-codemirror-input-box-1">
+                <!-- flex: 1 so expands to what is left after editor above is placed. -->
+                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
                         <textarea></textarea>
                     </div>
                 </div>

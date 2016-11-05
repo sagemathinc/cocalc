@@ -227,7 +227,7 @@
   background    : #ccc
 
 .sagews-input-newcell
-  width : 55%
+  width : 60%
 
 .sagews-input-eval-state
   width : 20%
@@ -487,18 +487,22 @@ code
   border-radius : 3px
 
 .salvus-editor-resize-bar-layout-1
-  height     : 7px
-  cursor     : ns-resize
-  background : #ddd
+  height        : 7px
+  cursor        : ns-resize
+  background    : #ddd
+  border        : 1px solid grey
+  border-radius : 3px
   &:hover
-    background : #88f
+    background : #888
 
 .salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
-  cursor     : ew-resize
-  background : #ccc
-  width      : 6px
+  cursor        : ew-resize
+  background    : #ccc
+  width         : 6px
+  border        : 1px solid grey
+  border-radius : 3px
   &:hover
-    background : #999
+    background : #888
 
 .salvus-editor-html-md-preview
   padding    : 12px
@@ -594,9 +598,7 @@ h6 { font-size: 110% }
   flex           : 1
   display        : flex
   flex-direction : column
-  border : 1px solid red
 
 .smc-vflex
   display        : flex
   flex-direction : column
-  border : 1px solid red

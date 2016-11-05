@@ -886,8 +886,8 @@ class CodeMirrorEditor extends FileEditor
             # The Codemirror themes impose their own weird fonts, but most users want whatever
             # they've configured as "monospace" in their browser.  So we force that back:
             e = $(cm.getWrapperElement())
-            e.addClass('smc-vfill')
-            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+            e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
+            # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
             if opts.bindings == 'vim'
                 # annoying due to api change in vim mode
@@ -954,9 +954,10 @@ class CodeMirrorEditor extends FileEditor
         layout1_bar.draggable
             axis        : 'y'
             containment : @element
-            zIndex      : 100
+            zIndex      : 10
             stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                # compute the position of bar as a number from 0 to 1, with
+                # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
                 top = e.offset().top
                 ht  = e.height()

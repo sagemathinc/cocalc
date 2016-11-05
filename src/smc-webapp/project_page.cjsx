@@ -329,17 +329,17 @@ ProjectMainContent = rclass
             # 2 column layout with chat
             content =\
                 <div style={display:'flex', height:'100%'}>
-                    <div style={width:'75%', border:'1px solid lightgrey'}>
+                    <div style={width:'80%', border:'1px solid grey', borderRadius:'4px'}>
                         {editor}
                     </div>
-                    <div style={width:'25%', border:'1px solid lightgrey'}>
+                    <div style={width:'20%', border:'1px solid grey', borderRadius:'4px'}>
                         {@render_side_chat(path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={height:'100%', border:'1px solid lightgrey'}>
+                <div style={height:'100%', border:'1px solid grey', borderRadius:'4px'}>
                     {editor}
                 </div>
         # Finally render it
