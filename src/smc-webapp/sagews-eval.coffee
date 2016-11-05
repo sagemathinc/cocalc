@@ -13,7 +13,7 @@ Cell and Worksheet below are used when eval'ing %javascript blocks.
 log = (s) -> console.log(s)
 
 class Cell
-    constructor : (opts) ->
+    constructor: (opts) ->
         @opts = defaults opts,
             output  : undefined # jquery wrapped output area
             cell_id : undefined
@@ -21,7 +21,7 @@ class Cell
         @cell_id = opts.cell_id
 
 class Worksheet
-    constructor : (worksheet) ->
+    constructor: (worksheet) ->
         # Copy over exactly the methods we need rather than everything.
         # This is a token attempt ot make this slightly less dangerous.
         # Obviously, execute_code is quite dangerous... for a particular project on the backend.
@@ -40,7 +40,7 @@ class Worksheet
     kill: () =>
         @worksheet.kill()
 
-    set_interact_var : (opts) =>
+    set_interact_var: (opts) =>
         elt = @worksheet.element.find("#" + opts.id)
         if elt.length == 0
             log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
@@ -51,7 +51,7 @@ class Worksheet
             else
                 i.set_interact_var(opts)
 
-    del_interact_var : (opts) =>
+    del_interact_var: (opts) =>
         elt = @worksheet.element.find("#" + opts.id)
         if elt.length == 0
             log("BUG: Attempt to del var of interact with id #{opts.id} failed since no such interact known.")

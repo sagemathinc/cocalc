@@ -446,7 +446,7 @@ class Console extends EventEmitter
     # Private Methods
     #######################################################################
 
-    _on_pause_button_clicked : (e) =>
+    _on_pause_button_clicked: (e) =>
         if @_rendering_is_paused
             @unpause_rendering()
         else
@@ -724,14 +724,14 @@ class Console extends EventEmitter
                     else
                         @_project_actions?.open_file(path:initfn, foreground:true)
 
-    open_copyable_history : () =>
+    open_copyable_history: () =>
         id = uuid()
         s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
         bootbox.alert(s)
         elt = $("##{id}")
         elt.val(@value).scrollTop(elt[0].scrollHeight)
 
-    open_init_file : ()  =>
+    open_init_file: ()  =>
         initfn = misc.console_init_filename(@opts.filename)
         content = initfile_content(@opts.filename)
         {salvus_client} = require('./salvus_client')

@@ -91,7 +91,7 @@ exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
-    _init : () =>
+    _init: () =>
         ## window.a = @  # for debugging
         # be explicit about exactly what state is in the store
         @setState

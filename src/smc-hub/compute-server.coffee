@@ -1188,7 +1188,7 @@ class FakeDevSocketFromCompute extends EventEmitter
             cb      : required
 
 class FakeDevSocketFromHub extends EventEmitter
-    constructor : ->
+    constructor: ->
         @_socket = new FakeDevSocketFromCompute(@)
 
     write_mesg: (type, mesg, cb) =>

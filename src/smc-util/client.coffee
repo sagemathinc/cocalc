@@ -1532,7 +1532,7 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, resp.url)
 
-    get_support_tickets : (cb) =>
+    get_support_tickets: (cb) =>
         @call
             message      : message.get_support_tickets()
             timeout      : 20

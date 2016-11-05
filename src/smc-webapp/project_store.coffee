@@ -82,7 +82,7 @@ exports.redux_name = key = (project_id, name) ->
 
 
 class ProjectActions extends Actions
-    _ensure_project_is_open : (cb, switch_to) =>
+    _ensure_project_is_open: (cb, switch_to) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
             @redux.getActions('projects').open_project(project_id:@project_id, switch_to:true)
@@ -90,10 +90,10 @@ class ProjectActions extends Actions
         else
             cb()
 
-    get_store : =>
+    get_store: =>
         return @redux.getStore(@name)
 
-    clear_all_activity : =>
+    clear_all_activity: =>
         @setState(activity:undefined)
 
     set_url_to_path: (current_path) =>
@@ -112,7 +112,7 @@ class ProjectActions extends Actions
         {analytics_pageview} = require('./misc_page')
         analytics_pageview(window.location.pathname)
 
-    move_file_tab : (opts) =>
+    move_file_tab: (opts) =>
         {old_index, new_index, open_files_order} = defaults opts,
             old_index : required
             new_index : required
@@ -126,7 +126,7 @@ class ProjectActions extends Actions
 
     # Closes a file tab
     # Also closes file references.
-    close_tab : (path) =>
+    close_tab: (path) =>
         open_files_order = @get_store().get('open_files_order')
         active_project_tab = @get_store().get('active_project_tab')
         closed_index = open_files_order.indexOf(path)
@@ -150,7 +150,7 @@ class ProjectActions extends Actions
     #            or a file_redux_name
     # Pushes to browser history
     # Updates the URL
-    set_active_tab : (key) =>
+    set_active_tab: (key) =>
         @setState(active_project_tab : key)
         switch key
             when 'files'
@@ -173,20 +173,20 @@ class ProjectActions extends Actions
                 @push_state('files/' + misc.tab_to_path(key))
                 @set_current_path(misc.path_split(misc.tab_to_path(key)).head)
 
-    add_a_ghost_file_tab : () =>
+    add_a_ghost_file_tab: () =>
         current_num = @get_store().get('num_ghost_file_tabs')
         @setState(num_ghost_file_tabs : current_num + 1)
 
-    clear_ghost_file_tabs : =>
+    clear_ghost_file_tabs: =>
         @setState(num_ghost_file_tabs : 0)
 
-    set_editor_top_position : (pos) =>
+    set_editor_top_position: (pos) =>
         @setState(editor_top_position : pos)
 
-    set_next_default_filename : (next) =>
+    set_next_default_filename: (next) =>
         @setState(default_filename: next)
 
-    set_activity : (opts) =>
+    set_activity: (opts) =>
         opts = defaults opts,
             id     : required     # client must specify this, e.g., id=misc.uuid()
             status : undefined    # status update message during the activity -- description of progress
@@ -217,7 +217,7 @@ class ProjectActions extends Actions
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
-    log : (event) =>
+    log: (event) =>
         if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
@@ -247,7 +247,7 @@ class ProjectActions extends Actions
         project_file.save(opts.path, @redux, @project_id, is_public)
 
     # Save all open files in this project
-    save_all_files : () =>
+    save_all_files: () =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
             return # nothing to do regarding save, since project isn't even open
@@ -447,7 +447,7 @@ class ProjectActions extends Actions
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     # Closes all files and removes all references
-    close_all_files : () =>
+    close_all_files: () =>
         file_paths = @get_store().get_open_files_order()
         if file_paths.isEmpty()
             return
@@ -475,7 +475,7 @@ class ProjectActions extends Actions
             project_file.remove(path, @redux, @project_id, is_public)
 
     # Makes this project the active project tab
-    foreground_project : =>
+    foreground_project: =>
         @_ensure_project_is_open (err) =>
             if err
                 # TODO!
@@ -483,7 +483,7 @@ class ProjectActions extends Actions
             else
                 @redux.getActions('projects').foreground_project(@project_id)
 
-    open_directory : (path) =>
+    open_directory: (path) =>
         @_ensure_project_is_open (err) =>
             if err
                 # TODO!
@@ -497,7 +497,7 @@ class ProjectActions extends Actions
     # ONLY updates current path
     # Does not push to URL, browser history, or add to analytics
     # Use internally or for updating current path in background
-    set_current_path : (path) =>
+    set_current_path: (path) =>
         # SMELL: Track from history.coffee
         if path is NaN
             path = ''
@@ -511,7 +511,7 @@ class ProjectActions extends Actions
             page_number            : 0
             most_recent_file_click : undefined
 
-    set_file_search : (search) =>
+    set_file_search: (search) =>
         @setState
             file_search            : search
             page_number            : 0
@@ -521,7 +521,7 @@ class ProjectActions extends Actions
 
     # Update the directory listing cache for the given path
     # Use current path if path not provided
-    set_directory_files : (path, sort_by_time, show_hidden) =>
+    set_directory_files: (path, sort_by_time, show_hidden) =>
         if not path?
             path = @get_store().get('current_path')
         if not path?
@@ -579,26 +579,26 @@ class ProjectActions extends Actions
 
     # Increases the selected file index by 1
     # Assumes undefined state to be identical to 0
-    increment_selected_file_index : ->
+    increment_selected_file_index: ->
         current_index = @get_store().get('selected_file_index') ? 0
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
-    decrement_selected_file_index : ->
+    decrement_selected_file_index: ->
         current_index = @get_store().get('selected_file_index')
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
-    reset_selected_file_index : ->
+    reset_selected_file_index: ->
         @setState(selected_file_index : 0)
 
     # Set the most recently clicked checkbox, expects a full/path/name
-    set_most_recent_file_click : (file) =>
+    set_most_recent_file_click: (file) =>
         @setState(most_recent_file_click : file)
 
     # Set the selected state of all files between the most_recent_file_click and the given file
-    set_selected_file_range : (file, checked) =>
+    set_selected_file_range: (file, checked) =>
         store = @get_store()
         most_recent = store.get('most_recent_file_click')
         if not most_recent?
@@ -616,7 +616,7 @@ class ProjectActions extends Actions
             @set_file_list_unchecked(range)
 
     # set the given file to the given checked state
-    set_file_checked : (file, checked) =>
+    set_file_checked: (file, checked) =>
         store = @get_store()
         if checked
             checked_files = store.get('checked_files').add(file)
@@ -628,19 +628,19 @@ class ProjectActions extends Actions
             file_action   : undefined
 
     # check all files in the given file_list
-    set_file_list_checked : (file_list) =>
+    set_file_list_checked: (file_list) =>
         @setState
             checked_files : @get_store().get('checked_files').union(file_list)
             file_action   : undefined
 
     # uncheck all files in the given file_list
-    set_file_list_unchecked : (file_list) =>
+    set_file_list_unchecked: (file_list) =>
         @setState
             checked_files : @get_store().get('checked_files').subtract(file_list)
             file_action   : undefined
 
     # uncheck all files
-    set_all_files_unchecked : =>
+    set_all_files_unchecked: =>
         @setState
             checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
@@ -662,7 +662,7 @@ class ProjectActions extends Actions
             if not files_in_dir[name]
                 return name
 
-    set_file_action : (action, get_basename) =>
+    set_file_action: (action, get_basename) =>
         switch action
             when 'move'
                 @redux.getActions('projects').fetch_directory_tree(@project_id)
@@ -690,7 +690,7 @@ class ProjectActions extends Actions
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
-    get_from_web : (opts) =>
+    get_from_web: (opts) =>
         opts = defaults opts,
             url     : required
             dest    : undefined
@@ -715,7 +715,7 @@ class ProjectActions extends Actions
                 opts.cb?(err or result.event == 'error')
 
     # function used internally by things that call salvus_client.exec
-    _finish_exec : (id) =>
+    _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
         return (err, output) =>
             @set_directory_files()
@@ -725,7 +725,7 @@ class ProjectActions extends Actions
                 @set_activity(id:id, error:output.error)
             @set_activity(id:id, stop:'')
 
-    zip_files : (opts) =>
+    zip_files: (opts) =>
         opts = defaults opts,
             src      : required
             dest     : required
@@ -745,7 +745,7 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : @_finish_exec(id)
 
-    copy_files : (opts) =>
+    copy_files: (opts) =>
         opts = defaults opts,
             src  : required     # Should be an array of source paths
             dest : required
@@ -813,7 +813,7 @@ class ProjectActions extends Actions
             salvus_client.copy_path_between_projects(opts0)
         async.mapLimit(src, 3, f, @_finish_exec(id))
 
-    _move_files : (opts) =>  #PRIVATE -- used internally to move files
+    _move_files: (opts) =>  #PRIVATE -- used internally to move files
         opts = defaults opts,
             src     : required
             dest    : required
@@ -833,7 +833,7 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : opts.cb
 
-    move_files : (opts) =>
+    move_files: (opts) =>
         opts = defaults opts,
             src     : required    # Array of src paths to mv
             dest    : required    # Single dest string
@@ -857,7 +857,7 @@ class ProjectActions extends Actions
             @set_activity(id:id, stop:'')
         @_move_files(opts)
 
-    delete_files : (opts) =>
+    delete_files: (opts) =>
         opts = defaults opts,
             paths : required
         if opts.paths.length == 0
@@ -889,7 +889,7 @@ class ProjectActions extends Actions
                         count  : if opts.paths.length > 3 then opts.paths.length
 
 
-    download_file : (opts) =>
+    download_file: (opts) =>
         {download_file} = require('./misc_page')
         opts = defaults opts,
             path    : required
@@ -918,7 +918,7 @@ class ProjectActions extends Actions
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  Throws an Error if the path name is invalid.
-    _absolute_path : (name, current_path, ext) =>
+    _absolute_path: (name, current_path, ext) =>
         if name.length == 0
             throw Error("Cannot use empty filename")
         for bad_char in BAD_FILENAME_CHARACTERS
@@ -929,7 +929,7 @@ class ProjectActions extends Actions
             s = "#{s}.#{ext}"
         return s
 
-    create_folder : (opts) =>
+    create_folder: (opts) =>
         opts = defaults opts,
             name         : required
             current_path : undefined
@@ -951,7 +951,7 @@ class ProjectActions extends Actions
                 else if switch_over
                     @open_directory(p)
 
-    create_file : (opts) =>
+    create_file: (opts) =>
         opts = defaults opts,
             name         : undefined
             ext          : undefined
@@ -1000,7 +1000,7 @@ class ProjectActions extends Actions
                     @open_file
                         path : p
 
-    new_file_from_web : (url, current_path, cb) =>
+    new_file_from_web: (url, current_path, cb) =>
         d = current_path
         if d == ''
             d = 'root directory of project'
@@ -1036,16 +1036,16 @@ class ProjectActions extends Actions
     # Actions for Project Search
     ###
 
-    toggle_search_checkbox_subdirectories : =>
+    toggle_search_checkbox_subdirectories: =>
         @setState(subdirectories : not @get_store().get('subdirectories'))
 
-    toggle_search_checkbox_case_sensitive : =>
+    toggle_search_checkbox_case_sensitive: =>
         @setState(case_sensitive : not @get_store().get('case_sensitive'))
 
-    toggle_search_checkbox_hidden_files : =>
+    toggle_search_checkbox_hidden_files: =>
         @setState(hidden_files : not @get_store().get('hidden_files'))
 
-    process_results : (err, output, max_results, max_output, cmd) =>
+    process_results: (err, output, max_results, max_output, cmd) =>
         store = @get_store()
         if (err and not output?) or (output? and not output.stdout?)
             @setState(search_error : err)
@@ -1083,7 +1083,7 @@ class ProjectActions extends Actions
                 too_many_results : too_many_results
                 search_results   : search_results
 
-    search : =>
+    search: =>
         store = @get_store()
 
         query = store.get('user_input').trim().replace(/"/g, '\\"')
@@ -1161,15 +1161,15 @@ class ProjectActions extends Actions
                 @set_current_path(full_path)
                 @set_active_tab('search')
 
-    show_extra_free_warning : =>
+    show_extra_free_warning: =>
         @setState(free_warning_extra_shown : true)
 
-    close_free_warning : =>
+    close_free_warning: =>
         @setState(free_warning_closed : true)
 
 
 class ProjectStore extends Store
-    _init : (project_id) =>
+    _init: (project_id) =>
         @project_id = project_id
         @on 'change', =>
             if @_last_public_paths != @get('public_paths')
@@ -1202,7 +1202,7 @@ class ProjectStore extends Store
     get_open_files_order: =>
         return @get('open_files_order')
 
-    _match : (words, s, is_dir) =>
+    _match: (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
             if t[t.length - 1] == '/'
@@ -1214,7 +1214,7 @@ class ProjectStore extends Store
                 return false
         return true
 
-    _matched_files : (search, listing) ->
+    _matched_files: (search, listing) ->
         if not listing?
             return []
         words = search.split(" ")
@@ -1246,7 +1246,7 @@ class ProjectStore extends Store
         return @get('directory_listings')
 
     # search_escape_char may or may not be the right way to escape search
-    get_displayed_listing : (search_escape_char) =>
+    get_displayed_listing: (search_escape_char) =>
         # cached pre-processed file listing, which should always be up to date when called, and properly
         # depends on dependencies.
         # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
