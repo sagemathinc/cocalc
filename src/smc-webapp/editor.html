@@ -261,7 +261,6 @@ Editor for files in a project
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
                 <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-
                     </div>
                 </div>
                 <div class="salvus-editor-codemirror-input-box-1 hide">
@@ -276,7 +275,6 @@ Editor for files in a project
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
                 <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-
                     </div>
                 </div>
                 <div class="salvus-editor-resize-bar-layout-1">
@@ -284,7 +282,6 @@ Editor for files in a project
                 <!-- flex: 1 so expands to what is left after editor above is placed. -->
                 <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-
                     </div>
                 </div>
             </div>
@@ -295,7 +292,6 @@ Editor for files in a project
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
                 <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-
                     </div>
                 </div>
                 <div class="salvus-editor-resize-bar-layout-2">
@@ -303,7 +299,6 @@ Editor for files in a project
                 <!-- flex: 1 so expands to what is left after editor above is placed. -->
                 <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-
                     </div>
                 </div>
             </div>
@@ -444,17 +439,21 @@ Editor for files in a project
     </div>
 
     <!-- Template for the HTML-MD editor -->
-    <div class="salvus-editor-html-md">
+    <div class="salvus-editor-html-md smc-vfill">
+        <div class="salvus-editor-html-md-editor-buttonbar">
+        </div>
         <div class="salvus-editor-html-md-textedit-buttonbar">
         </div>
-        <div class="salvus-editor-html-md-source-editor">
-        </div>
-        <div class="salvus-editor-html-md-resize-bar">
-        </div>
-        <div class="salvus-editor-html-md-preview">
-            <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
-            <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
-            <div class="salvus-editor-html-md-preview-content">
+        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-html-md-content">
+            <div class="salvus-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+            </div>
+            <div class="salvus-editor-html-md-resize-bar">
+            </div>
+            <div class="salvus-editor-html-md-preview" style="flex:1">
+                <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
+                <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
+                <div class="salvus-editor-html-md-preview-content">
+                </div>
             </div>
         </div>
     </div>

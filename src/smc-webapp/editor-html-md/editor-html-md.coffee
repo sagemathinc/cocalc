@@ -127,19 +127,23 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".salvus-editor-html-md-resize-bar")
-        dragbar.css(position:'absolute')
+        elt = @element.find(".salvus-editor-html-md-content")
+        @set_split_pos(@local_storage('split_pos'))
         dragbar.draggable
-            axis : 'x'
+            axis        : 'x'
             containment : @element
             zIndex      : 100
             stop        : (event, ui) =>
                 # compute the position of bar as a number from 0 to 1
-                left  = @element.offset().left
-                width = @element.width()
-                p     = dragbar.offset().left
-                @_split_pos = (p - left) / width
-                @local_storage('split_pos', @_split_pos)
-                @show()
+                p = (dragbar.offset().left - elt.offset().left) / elt.width()
+                if p < 0.05 then p = 0.03
+                if p > 0.95 then p = 0.97
+                @set_split_pos(p)
+                @local_storage('split_pos', p)
+
+    set_split_pos: (p) =>
+        @element.find(".salvus-editor-html-md-source-editor").css('flex-basis', "#{100*p}%")
+        @_dragbar.css('left', 0)
 
     inverse_search: (cb) =>
 
@@ -609,45 +613,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @source_editor._set(content)
 
     _show: (opts={}) =>
-        if not @_split_pos?
-            @_split_pos = .5
-        @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
-        @element.css(left:0, top: redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
-        @element.width($(window).width())
-
-        width = @element.width()
-        {top, left} = @element.offset()
-        editor_width = (width - left) * @_split_pos
-
-        @_dragbar.css('left', editor_width + left)
-
-        # console.log("@source_editor.show: top=#{top} + @edit_buttons.height()=#{@edit_buttons.height()}")
-
-        @source_editor.show
-            width : editor_width
-            top   : top + @edit_buttons.height()
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
-        @element.maxheight(offset:button_bar_height)
-        @preview.maxheight(offset:button_bar_height)
-
-        # offset from the top of the container for the preview on the right and the dragbar
-        top_offset = @edit_buttons.height() + button_bar_height + 2
-
-        @_dragbar.height(@source_editor.element.height())
-        @_dragbar.offset(top: @source_editor.element.offset() + button_bar_height)
-        @_dragbar.css(top: "#{top_offset}px")
-
-        # position the preview
-        @preview.offset
-            top: @source_editor.element.offset() + button_bar_height
-
-        @preview.css
-            left  : editor_width + left + 7
-            width : width - (editor_width + left + 7)
-            top   : "#{top_offset}px"
-
-        @preview.scrollTop(@preview_scroll_position)
+        return
 
     focus: () =>
         @source_editor?.focus()

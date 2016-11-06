@@ -862,7 +862,7 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 6
-                viewportMargin          : 125
+                viewportMargin          : 10
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}

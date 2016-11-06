@@ -252,6 +252,7 @@ CHAT_TOGGLE_STYLE =
     paddingLeft  : '5px'
     paddingRight : '5px'
     opacity      : 0.85
+    height       : '30px'
 
 CHAT_TOGGLE_TIP = <span>
 Hide or show the chat for this file.
