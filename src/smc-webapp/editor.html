@@ -382,59 +382,60 @@ Editor for files in a project
     </div>
 
     <!-- Template for the LaTeX editor -->
-    <div class="salvus-editor-latex">
-        <div class="salvus-editor-latex-latex_editor">
-        </div>
-        <div class="salvus-editor-latex-resize-bar">
-        </div>
-        <div class="salvus-editor-latex-pdf-preview hide">
-        </div>
-        <div class="salvus-editor-latex-png-preview hide">
-        </div>
-        <div class="salvus-editor-latex-errors hide">
-            <div style="margin-left:2em">
-                <h3>Errors</h3>
-                <div class="salvus-latex-errors">
-                </div>
-                <h3>Typesetting Issues</h3>
-                <div class="salvus-latex-typesetting">
-                </div>
-                <h3>Other Warnings</h3>
-                <div class="salvus-latex-warnings">
-                </div>
-                <div style="height:10em"></div>
+    <div class="salvus-editor-latex smc-vfill">
+        <div style="display:flex; flex-direction:row; height:100%" class="salvus-editor-latex-content">
+            <div class="salvus-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
             </div>
-        </div>
-
-        <!-- error/warning message templates -->
-
-        <div class="salvus-editor-latex-mesg-template well hide">
-            <a class="btn btn-default" style="max-width:80%">
-                <i class="fa fa-mail-reply"></i>
-                <span class="salvus-latex-mesg-line"></span>
-                <span class="salvus-latex-mesg-page"></span>
-                <span class="salvus-latex-mesg-file"></span>
-                <span class="salvus-latex-mesg-message"></span>
-            </a>
-            <a class="btn pull-right btn-default">
-                <i class="fa fa-mail-forward"></i>
-            </a>
-            <pre class="salvus-latex-mesg-content lighten hide"></pre>
-        </div>
-
-         <div class="salvus-editor-latex-log hide">
-            <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
-                <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
-                <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
-                <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
-                <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
-                <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="fa fa-times-circle"></i></a>
-            </span>
-            <input style="width:50%" type="text" class="form-control">
-            <textarea rows="20" cols="100" class="well boxsizingBorder" readonly="" style="width:100%;background-color:white;">You have not run LaTeX yet.</textarea>
-        </div>
-        <div class="salvus-editor-latex-settings hide">
-            <h1>Settings</h1>
+            <div class="salvus-editor-latex-resize-bar">
+            </div>
+            <div class="salvus-editor-latex-right-pane" style="flex:1">
+                <div class="salvus-editor-latex-pdf-preview hide">
+                </div>
+                <div class="salvus-editor-latex-png-preview hide">
+                </div>
+                <div class="salvus-editor-latex-errors hide">
+                    <div style="margin-left:2em">
+                        <h3>Errors</h3>
+                        <div class="salvus-latex-errors">
+                        </div>
+                        <h3>Typesetting Issues</h3>
+                        <div class="salvus-latex-typesetting">
+                        </div>
+                        <h3>Other Warnings</h3>
+                        <div class="salvus-latex-warnings">
+                        </div>
+                        <div style="height:10em"></div>
+                    </div>
+                </div>
+                <!-- error/warning message templates -->
+                <div class="salvus-editor-latex-mesg-template well hide">
+                    <a class="btn btn-default" style="max-width:80%">
+                        <i class="fa fa-mail-reply"></i>
+                        <span class="salvus-latex-mesg-line"></span>
+                        <span class="salvus-latex-mesg-page"></span>
+                        <span class="salvus-latex-mesg-file"></span>
+                        <span class="salvus-latex-mesg-message"></span>
+                    </a>
+                    <a class="btn pull-right btn-default">
+                        <i class="fa fa-mail-forward"></i>
+                    </a>
+                    <pre class="salvus-latex-mesg-content lighten hide"></pre>
+                </div>
+                <div class="salvus-editor-latex-log hide">
+                    <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
+                        <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
+                        <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
+                        <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Run Sagetex."><i class="fa fa-bolt"></i> Sage</a>
+                        <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i></a>
+                        <a href="#latex-command-undo" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="fa fa-times-circle"></i></a>
+                    </span>
+                    <input style="width:50%" type="text" class="form-control">
+                    <textarea rows="20" cols="100" class="well boxsizingBorder" readonly="" style="width:100%;background-color:white;">You have not run LaTeX yet.</textarea>
+                </div>
+                <div class="salvus-editor-latex-settings hide">
+                    <h1>Settings</h1>
+                </div>
+            </div>
         </div>
     </div>
 

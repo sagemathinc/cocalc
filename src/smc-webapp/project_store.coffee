@@ -266,9 +266,13 @@ class ProjectActions extends Actions
             foreground         : true      # display in foreground as soon as possible
             foreground_project : true
             chat               : undefined
+            chat_width         : undefined
 
         # grab chat state from local storage
-        opts.chat ?= require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open')
+        local_storage = require('./editor').local_storage
+        if local_storage?
+            opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
+            opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
 
         @_ensure_project_is_open (err) =>
             if err
@@ -354,6 +358,7 @@ class ProjectActions extends Actions
                                 Editor       : Editor
                             open_files = open_files.setIn([opts.path, 'component'], info)
                             open_files = open_files.setIn([opts.path, 'is_chat_open'], opts.chat)
+                            open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             @setState
                                 open_files       : open_files
                                 open_files_order : open_files_order.push(opts.path)
@@ -383,6 +388,17 @@ class ProjectActions extends Actions
             path : required
         @_set_chat_state(opts.path, false)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', false)
+
+    set_chat_width: (opts) =>
+        opts = defaults opts,
+            path  : required
+            width : required     # between 0 and 1
+        open_files = @get_store()?.get_open_files()  # store might not be initialized
+        if open_files?
+            width = misc.ensure_bound(opts.width, 0.05, 0.95)
+            require('./editor').local_storage?(@project_id, opts.path, 'chat_width', width)
+            @setState
+                open_files : open_files.setIn([opts.path, 'chat_width'], width)
 
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>

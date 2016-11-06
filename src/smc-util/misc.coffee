@@ -1712,6 +1712,11 @@ exports.transform_get_url = (url) ->  # returns something like {command:'wget', 
 
     return {command:command, args:args}
 
+exports.ensure_bound = (x, min, max) ->
+    return min if x < min
+    return max if x > max
+    return x
+
 # convert a file path to the "name" of the underlying editor tab.
 # needed because otherwise filenames like 'log' would cause problems
 exports.path_to_tab = (name) ->

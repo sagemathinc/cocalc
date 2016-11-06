@@ -48,6 +48,7 @@
     "react-bootstrap": "^0.30.5",
     "react-chosen": "^0.3.8",
     "react-dom": "^15.3.2",
+    "react-draggable": "^2.2.2",
     "react-dropzone-component": "github:felixrieseberg/React-Dropzone-Component",
     "react-redux": "^4.4.5",
     "react-select": "git://github.com/JedWatson/react-select.git",

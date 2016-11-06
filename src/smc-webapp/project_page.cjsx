@@ -7,9 +7,10 @@ project page react component
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
-{SideChat} = require('./side_chat')
+Draggable = require('react-draggable')
 
 # SMC Libraries
+{SideChat}        = require('./side_chat')
 {ProjectFiles}    = require('./project_files')
 {ProjectNew}      = require('./project_new')
 {ProjectLog}      = require('./project_log')
@@ -255,12 +256,11 @@ CHAT_TOGGLE_STYLE =
     height       : '30px'
 
 CHAT_TOGGLE_TIP = <span>
-Hide or show the chat for this file.
-<hr/>
-Use HTML, Markdown, and LaTeX in your chats,
-and press shift+enter to send them.
-Your collaborators will be notified.
-
+    Hide or show the chat for this file.
+    <hr/>
+    Use HTML, Markdown, and LaTeX in your chats,
+    and press shift+enter to send them.
+    Your collaborators will be notified.
 </span>
 
 # Children must define their own padding from navbar and screen borders
@@ -320,20 +320,60 @@ ProjectMainContent = rclass
             project_id = {@props.project_id}
             />
 
+    render_drag_bar: (path) ->
+        reset = () =>
+            if not @refs.draggable?
+                return
+            # This is ugly and dangerous, but I don't know any other way to reset
+            # the state of the bar, so it fits back into our flex display model, besides
+            # writing something like the Draggable component from scratch for our purposes.
+            # For now, this will do.
+            @refs.draggable.state.x = 0
+            $(ReactDOM.findDOMNode(@refs.draggable)).css('transform','')
+
+        handle_drag_bar_stop = (data) =>
+            # TODO: rewrite to not use jQuery?
+            elt = $(ReactDOM.findDOMNode(@refs.editor_container))
+            width = 1 - (data.clientX - elt.offset().left) / elt.width()
+            reset()
+            redux.getProjectActions(@props.project_id).set_chat_width({path:path, width:width})
+
+        handle_drag_bar_drag = (data) =>
+            elt = $(ReactDOM.findDOMNode(@refs.editor_container))
+            width = 1 - (data.clientX - elt.offset().left) / elt.width()
+            $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")
+            reset(); setTimeout(reset, 0)
+
+        <Draggable
+            ref    = 'draggable'
+            axis   = "x"
+            onStop = {handle_drag_bar_stop}
+            onDrag = {handle_drag_bar_drag}
+            >
+            <div className="smc-vertical-drag-bar"> </div>
+        </Draggable>
+
     render_editor_tab: ->
         path         = misc.tab_to_path(@props.active_tab_name)
         editor       = @render_editor(path)
         is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+        chat_width   = @props.open_files.getIn([path, 'chat_width']) ? 0.2
         chat_toggle  = @render_chat_toggle(is_chat_open, path)
 
         if is_chat_open
             # 2 column layout with chat
             content =\
-                <div style={display:'flex', height:'100%'}>
-                    <div style={width:'80%', border:'1px solid grey', borderRadius:'4px'}>
+                <div
+                    style = {display:'flex', height:'100%'}
+                    ref   = 'editor_container'
+                    >
+                    <div style={flex:1, border:'1px solid grey', borderRadius:'4px'}>
                         {editor}
                     </div>
-                    <div style={width:'20%', border:'1px solid grey', borderRadius:'4px'}>
+                    {@render_drag_bar(path)}
+                    <div
+                        ref = 'side_chat_container'
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px'}>
                         {@render_side_chat(path)}
                     </div>
                 </div>

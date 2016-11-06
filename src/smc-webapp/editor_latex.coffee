@@ -395,6 +395,8 @@ class exports.LatexEditor extends editor.FileEditor
         return @mounted
 
     _show: (opts={}) =>
+        return
+
         if not @_split_pos?
             @_split_pos = .5
         @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))

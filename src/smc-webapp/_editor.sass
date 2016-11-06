@@ -107,9 +107,6 @@
 .salvus-latex-warnings-counter
   color: #FDB600
 
-.salvus-editor-latex
-  left: 0
-
 .salvus-editor-latex-mesg-template
   overflow-x   : auto
   background   : white
@@ -175,9 +172,6 @@
   right        : 0
   font-size    : 11pt
 
-.salvus-editor-pdf-preview-embed
-  position : fixed
-  left     : 0px
 
 .salvus-editor-search-openfiles-input
   width : 80%
@@ -494,12 +488,13 @@ code
   &:hover
     background : #888
 
-.salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
+.smc-vertical-drag-bar, .salvus-editor-resize-bar-layout-2, .salvus-editor-latex-resize-bar, .salvus-editor-html-md-resize-bar
   cursor        : ew-resize
   background    : #ddd
   width         : 7px
   border        : 1px solid grey
   border-radius : 3px
+  z-index       : 100
   &:hover
     background : #888
 
