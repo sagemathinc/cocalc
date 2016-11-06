@@ -672,7 +672,7 @@ class FileEditor extends EventEmitter
         # define in derived class
 
     hide: () =>
-        @element?.hide()
+        #@element?.hide()
 
     remove: () =>
         @element?.remove()
@@ -780,15 +780,6 @@ class CodeMirrorEditor extends FileEditor
         if not @_video_is_on?
             @_video_is_on = false
 
-        @_layout = @local_storage("layout")
-        if not @_layout?
-            @_layout = 1
-        @_last_layout = @_layout
-
-        layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-        elt = layout_elt.find(".salvus-editor-codemirror-input-box").find("textarea")
-        elt.text(content)
-
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
             "Cmd-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
@@ -840,6 +831,14 @@ class CodeMirrorEditor extends FileEditor
             else
                 evaluate_key = "Shift-Enter"
             extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
+
+        # Layouts:
+        #   0 - one single editor
+        #   1 - two editors, one on top of the other
+        #   2 - two editors, one next to the other
+
+        @_layout = @local_storage("layout") ? 0
+        @_last_layout = undefined
 
         make_editor = (node) =>
             options =
@@ -895,11 +894,11 @@ class CodeMirrorEditor extends FileEditor
 
             return cm
 
-
+        elt = @element.find(".salvus-editor-textarea-0"); elt.text(content)
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
-        elt1 = layout_elt.find(".salvus-editor-codemirror-input-box-1").find("textarea")
+        elt1 = @element.find(".salvus-editor-textarea-1")
 
         @codemirror1 = make_editor(elt1[0])
         @codemirror1.name = '1'
@@ -915,10 +914,6 @@ class CodeMirrorEditor extends FileEditor
 
         @init_font_size() # get the @default_font_size
         @restore_font_size()
-
-        @_split_view = @local_storage("split_view")
-        if not @_split_view?
-            @_split_view = false
 
         @init_draggable_splits()
 
@@ -969,20 +964,20 @@ class CodeMirrorEditor extends FileEditor
                 @show()
 
         layout2_bar = @element.find(".salvus-editor-resize-bar-layout-2")
-        layout2_bar.css(position:'absolute')
         layout2_bar.draggable
             axis        : 'x'
             containment : @element
             zIndex      : 100
             stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1, with 0 being at top (left), 1 at bottom (right), and .5 right in the middle
+                # compute the position of bar as a number from 0 to 1, with
+                # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")
                 left  = e.offset().left
                 width = e.width()
                 p     = layout2_bar.offset().left
                 @_layout2_split_pos = (p - left) / width
                 @local_storage("layout2_split_pos", @_layout2_split_pos)
-                layout2_bar.css(left:left + width*p)
+                layout2_bar.css('left', 0)   # otherwise gets set to some crazy value...
                 # redraw, which uses split info
                 @show()
 
@@ -1185,19 +1180,11 @@ class CodeMirrorEditor extends FileEditor
         setTimeout(f, 0)
 
     toggle_split_view: (cm) =>
-        if @_split_view
-            if @_layout == 1
-                @_layout = 2
-            else
-                @_split_view = false
-        else
-            @_split_view = true
-            @_layout = 1
-        @local_storage("split_view", @_split_view)  # store state so can restore same on next open
+        @_layout = (@_layout + 1) % 3
         @local_storage("layout", @_layout)
         @show()
         if cm?
-            if @_split_view
+            if @_layout > 0
                 cm.focus()
             else
                 # focus first editor since it is only one that is visible.
@@ -1420,90 +1407,53 @@ class CodeMirrorEditor extends FileEditor
         $("body").append("<style id='salvus-cm-activeline' type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
 
 
-    # hide/show the second linked codemirror editor, depending on whether or not it's enabled
-    _show_extra_codemirror_view: () =>
-        $(@codemirror1.getWrapperElement()).toggle(@_split_view)
 
-    _show_codemirror_editors: (height, width) =>
-        # console.log("_show_codemirror_editors: #{width} x #{height}")
-        if not width or not height
-            return
-        # in case of more than one view on the document...
-        @_show_extra_codemirror_view()
+    _show_codemirror_editors: (height) =>
+        # console.log("_show_codemirror_editors: #{@_layout}")
 
-        btn = @element.find("a[href=\"#split-view\"]")
-        btn.find("i").hide()
-        if not @_split_view
-            #@element.find(".salvus-editor-codemirror-input-container-layout-1").width(width)
-            @element.find(".salvus-editor-resize-bar-layout-1").hide()
-            @element.find(".salvus-editor-resize-bar-layout-2").hide()
-            btn.find(".salvus-editor-layout-0").show()
-        else
-            if @_layout == 1
-                btn.find(".salvus-editor-layout-1").show()  # show the correct button
-
-                # change the height of the *top* div that contain the editors; the bottom one then
-                # uses of all remaining vertical height.
-                v = @element.find(".salvus-editor-codemirror-input-container-layout-1").children()
-                # v is a list of 3 divs: [codemirror] [separator] [codemirror]
+        switch @_layout
+            when 0
+                p = 1
+            when 1
                 p = @_layout1_split_pos ? 0.5
-                console.log 'p =', p
-                p = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, p))
-                # We set only the default size of the *first* div -- everything else expands accordingly.
-                $(v[0]).css('flex-basis', "#{p*100}%")
+            when 2
+                p = @_layout2_split_pos ? 0.5
 
-            else
-                ###
-                @element.find(".salvus-editor-resize-bar-layout-1").hide()
-                @element.find(".salvus-editor-resize-bar-layout-2").show()
-                p = @_layout2_split_pos
-                if not p?
-                    p = 0.5
-                p = Math.max(MIN_SPLIT,Math.min(MAX_SPLIT, p))
-                width0 = width*p
-                width1 = width*(1-p)
-                btn.find(".salvus-editor-layout-2").show()
-                e = @element.find(".salvus-editor-codemirror-input-container-layout-2")
-                e.find(".salvus-editor-resize-bar-layout-2").height(height).css(left : e.offset().left + width*p)
-                e.find(".salvus-editor-codemirror-input-box").width(width0-7)
-                ###
+        # Change the height of the *top* div that contain the editors; the bottom one then
+        # uses of all remaining vertical height.
+        if @_layout > 0
+            p = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, p))
+
+        # We set only the default size of the *first* div -- everything else expands accordingly.
+        elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+        elt.find(".salvus-editor-codemirror-input-box").css('flex-basis', "#{p*100}%")
 
         if @_last_layout != @_layout
-            # move the editors to the correct layout template and show it.
-            @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
-            layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-            layout_elt.find(".salvus-editor-codemirror-input-box").empty().append($(@codemirror.getWrapperElement()))
-            layout_elt.find(".salvus-editor-codemirror-input-box-1").empty().append($(@codemirror1.getWrapperElement()))
+            # The layout has changed
+            btn = @element.find('a[href="#split-view"]')
+
+            if @_last_layout?
+                # Hide previous
+                btn.find(".salvus-editor-layout-#{@_last_layout}").hide()
+                @element.find(".salvus-editor-codemirror-input-container-layout-#{@_last_layout}").hide()
+
+            # Show current
+            btn.find(".salvus-editor-layout-#{@_layout}").show()
+
+            # Put editors in their place -- in the div inside of each box
+            elt.find(".salvus-editor-codemirror-input-box div").empty().append($(@codemirror.getWrapperElement()))
+            elt.find(".salvus-editor-codemirror-input-box-1 div").empty().append($(@codemirror1.getWrapperElement()))
+
+            # Save for next time
             @_last_layout = @_layout
 
-        @emit('show', height)
-
+        @emit('show')
 
     _show: (opts={}) =>
         # show the element that contains this editor
-        @element.show()
-
-        # do size computations: determine height and width of the codemirror editor(s)
-        if not opts.top?
-            top           = redux.getProjectStore(@project_id).get('editor_top_position')
-        else
-            top           = opts.top
-
-        height            = $(window).height()
-        elem_height       = height - top
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
-        font_height       = @codemirror.defaultTextHeight()
-
-        width = opts.width ? $(window).width()
-
-        if opts.top?
-            top           = opts.top
-
-        # height of codemirror editors
-        cm_height         = Math.floor((elem_height - button_bar_height)/font_height) * font_height
-
+        #@element.show()
         # show the codemirror editors, resizing as needed
-        @_show_codemirror_editors(cm_height, width)
+        @_show_codemirror_editors()
 
     focus: () =>
         if not @codemirror?

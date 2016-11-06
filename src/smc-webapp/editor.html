@@ -47,6 +47,8 @@ Editor for files in a project
 
     <!-- Template for the codemirror text editor -->
     <div class="salvus-editor-codemirror smc-vfill">
+        <textarea class="salvus-editor-textarea-0 hide"></textarea>
+        <textarea class="salvus-editor-textarea-1 hide"></textarea>
         <div class="salvus-editor-codemirror-content  smc-vfill">
             <div class="salvus-editor-codemirror-button-row">
                 <div class="salvus-editor-codemirror-button-container">
@@ -111,9 +113,9 @@ Editor for files in a project
                         <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
                         <a href="#replace" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                         <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
-                            <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0"></i>
-                            <i class="fa fa-columns salvus-editor-layout-1"></i>
-                            <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2" style="font-size: 12pt;"></i>
+                            <i class="fa fa-columns fa-rotate-270 salvus-editor-layout-0 hide"></i>
+                            <i class="fa fa-columns salvus-editor-layout-1 hide"></i>
+                            <i class="fa fa-tablet fa-rotate-90 salvus-editor-layout-2 hide" style="font-size: 12pt;"></i>
                         </a>
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
@@ -253,13 +255,28 @@ Editor for files in a project
                 </div>
             </div>
 
+            <div class="salvus-editor-codemirror-input-container-layout-0 hide"
+                 style="flex: 1; display: flex; flex-direction: column;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
+
+                    </div>
+                </div>
+                <div class="salvus-editor-codemirror-input-box-1 hide">
+                    <div>
+                    </div>
+                </div>
+            </div>
+
             <div class="salvus-editor-codemirror-input-container-layout-1 hide"
                  style="flex: 1; display: flex; flex-direction: column;">
                   <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
                        (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
                 <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-                        <textarea></textarea>
+
                     </div>
                 </div>
                 <div class="salvus-editor-resize-bar-layout-1">
@@ -267,24 +284,30 @@ Editor for files in a project
                 <!-- flex: 1 so expands to what is left after editor above is placed. -->
                 <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
                     <div style="position:absolute; height:100%; width:100%">
-                        <textarea></textarea>
+
                     </div>
                 </div>
             </div>
 
-            <div class="salvus-editor-codemirror-input-container-layout-2 hide">
-                <div class="row">
-                    <div class="salvus-editor-codemirror-input-box col-sm-6">
-                        <textarea></textarea>
+            <div class="salvus-editor-codemirror-input-container-layout-2 hide"
+                 style="flex: 1; display: flex; flex-direction: row;">
+                  <!-- See https://github.com/codemirror/CodeMirror/issues/3679 for why we do this nesting
+                       (to work around a chrome bug, and/or avoid major slowdown doing layout?) -->
+                <div class="salvus-editor-codemirror-input-box" style="display: flex; flex-direction: column; position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
+
                     </div>
-                    <div style="padding-left: 0;">
-                        <div class="salvus-editor-resize-bar-layout-2"></div>
-                        <div class="salvus-editor-codemirror-input-box-1">
-                            <textarea></textarea>
-                        </div>
+                </div>
+                <div class="salvus-editor-resize-bar-layout-2">
+                </div>
+                <!-- flex: 1 so expands to what is left after editor above is placed. -->
+                <div class="salvus-editor-codemirror-input-box-1" style="flex: 1; display: flex; flex-direction: column;  position:relative;">
+                    <div style="position:absolute; height:100%; width:100%">
+
                     </div>
                 </div>
             </div>
+
         </div>
         <div class="salvus-editor-codemirror-startup-message alert alert-warning" role='alert'>
         </div>
