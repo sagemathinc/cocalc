@@ -40,13 +40,13 @@ class Printer
 
     show_print_new_tab : (cb) ->
         # if the output file exists and has nonzero size, we open it in a new tab and print it
-        redux.getProjectActions(@editor.project_id).file_nonzero
+        redux.getProjectStore(@editor.project_id).file_nonzero_size
             path        : @output_file
             cb          : (err) =>
                 if err
                     cb?('Generated file for printing does not exist.')
                 else
-                    redux.getProjectActions(@editor.project_id).download_file
+                    redux.getProjectStore(@editor.project_id).download_file
                         path : @output_file
                         print: true
                     cb?()

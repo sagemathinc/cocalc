@@ -665,7 +665,7 @@ class exports.LatexEditor extends editor.FileEditor
         return elt
 
     download_pdf: (print = false) =>
-        redux.getProjectActions(@project_id).download_file
+        redux.getProjectStore(@project_id).download_file
             path : @filename.slice(0, @filename.length - 3) + "pdf"
             print: print
 

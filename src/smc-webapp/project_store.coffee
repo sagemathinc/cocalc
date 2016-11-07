@@ -855,50 +855,6 @@ class ProjectActions extends Actions
                         files  : opts.paths[0...3]
                         count  : if opts.paths.length > 3 then opts.paths.length
 
-    file_nonzero : (opts) =>
-        opts = defaults opts,
-            path : required
-            cb   : undefined
-        f = misc.path_split(opts.path)
-        salvus_client.exec
-            project_id  : @project_id
-            command     : 'test'
-            args        : ['-s', f.tail]
-            path        : f.head
-            err_on_exit : true
-            cb          : (err) ->
-                opts.cb?(err)
-
-    download_file: (opts) =>
-        {download_file} = require('./misc_page')
-        opts = defaults opts,
-            path    : required
-            log     : false
-            auto    : true
-            print   : false
-            timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
-        if opts.log
-            @log
-                event  : 'file_action'
-                action : 'downloaded'
-                files  : opts.path
-        if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
-
-        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
-        if opts.auto and not opts.print
-            download_file(url)
-        else
-            tab = window.open(url)
-            if opts.print
-                # "?" since there might be no print method -- could depend on browser API
-                tab.print?()
-
-    download_href: (path) =>
-        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
-
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  Throws an Error if the path name is invalid.
@@ -1274,6 +1230,54 @@ class ProjectStore extends Store
         @_compute_public_files(x)
 
         return x
+
+    file_nonzero_size : (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
+        f = misc.path_split(opts.path)
+        salvus_client.exec
+            project_id  : @project_id
+            command     : 'test'
+            args        : ['-s', f.tail]
+            path        : f.head
+            err_on_exit : true
+            cb          : (err) ->
+                opts.cb?(err)
+
+    download_file: (opts) =>
+        {download_file, check_popup_blocker} = require('./misc_page')
+        opts = defaults opts,
+            path    : required
+            log     : false
+            auto    : true
+            print   : false
+            timeout : 45
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+        if opts.log
+            @log
+                event  : 'file_action'
+                action : 'downloaded'
+                files  : opts.path
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto and not opts.print
+            download_file(url)
+        else
+            tab = window.open(url)
+            if check_popup_blocker(tab) and opts.print
+                # "?" since there might be no print method -- could depend on browser API
+                tab.print?()
+
+    print_file: (opts) =>
+        opts.print = true
+        @download_file(opts)
+
+    download_href: (path) =>
+        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
     ###
     # Store data about PUBLIC PATHS

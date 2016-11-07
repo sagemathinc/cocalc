@@ -336,15 +336,6 @@ exports.file_icon_class = file_icon_class = (ext) ->
     else
         return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course', 'chat', 'git', 'template']
-
-# public access file types *NOT* yet supported
-# (this should quickly shrink to zero)
-exports.public_access_supported = (filename) ->
-    ext = filename_extension_notilde(filename)
-    x = file_associations[ext]
-    return x?.editor in PUBLIC_ACCESS_UNSUPPORTED
-
 # Multiplex'd worksheet mode
 
 {MARKERS} = require('smc-util/sagews')
@@ -1095,7 +1086,7 @@ class CodeMirrorEditor extends FileEditor
         if printing.can_print(@ext)
             button_names.push('print')
         else
-            @element.find("a[href=\"#print\"]").remove()
+            @element.find('a[href="#print"]').remove()
 
         for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
@@ -1321,7 +1312,7 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    redux.getProjectActions(@project_id).file_nonzero
+                    redux.getProjectStore(@project_id).file_nonzero_size
                         path    : pdf
                         cb      : (err) =>
                             if err
@@ -1336,7 +1327,7 @@ class CodeMirrorEditor extends FileEditor
                                     {join} = require('path')
                                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                                     # if not reading it, tmp.tex is blank (?)
-                                    redux.getProjectActions(@project_id).file_nonzero
+                                    redux.getProjectStore(@project_id).file_nonzero_size
                                         path    : subdir_texfile
                                         cb      : (err) =>
                                             if err
@@ -1353,9 +1344,7 @@ class CodeMirrorEditor extends FileEditor
                                                 $print_tempdir.show()
                                                 cb()
                                 else
-                                    redux.getProjectActions(@project_id).download_file
-                                        path : pdf
-                                        print: true
+                                    redux.getProjectStore(@project_id).print_file(path: pdf)
                                     cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
@@ -3157,10 +3146,7 @@ class JupyterNBViewerEmbedded extends FileEditor
         @iframe.maxheight()
 
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
-html_md_exts = []
-for ext, opts of file_associations
-    if opts.editor == 'html-md'
-        html_md_exts.push(ext)
+html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
 
 {LatexEditor} = require('./editor_latex')
 
@@ -3170,40 +3156,37 @@ exports.register_nonreact_editors = () ->
     reg = require('./editor_react_wrapper').register_nonreact_editor
 
     reg
-        ext : ''  # fallback for any type not otherwise explicitly specified
-        f   : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        ext       : ''  # fallback for any type not otherwise explicitly specified
+        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
         is_public : false
 
-    # Editors for private normal editable files.
-    reg0 = (cls, extensions) ->
+    # wrapper for registering private and public editors
+    register = (is_public, cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
             ext       : extensions
-            is_public : false
+            is_public : is_public
             icon      : icon
-            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
+            f         : (project_id, path, opts) ->
+                e = new cls(project_id, path, undefined, opts)
+                if not e.ext?
+                    console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
+                return e
 
-    reg0 HTML_MD_Editor,   html_md_exts
-    reg0 LatexEditor,      ['tex']
-    reg0 Terminal,         ['term', 'sage-term']
-    reg0 Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS)
+    # Editors for private normal editable files.
+    register(false, HTML_MD_Editor,   html_md_exts)
+    register(false, LatexEditor,      ['tex'])
+    register(false, Terminal,         ['term', 'sage-term'])
+    register(false, Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
-    reg0 HistoryEditor,    ['sage-history']
-    reg0 PDF_PreviewEmbed, ['pdf']
-    reg0 TaskList,         ['tasks']
-    reg0 JupyterNotebook,  ['ipynb']
+    register(false, HistoryEditor,    ['sage-history'])
+    register(false, PDF_PreviewEmbed, ['pdf'])
+    register(false, TaskList,         ['tasks'])
+    register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    reg1 = (cls, extensions) ->
-        icon = file_icon_class(extensions[0])
-        reg
-            ext       : extensions
-            is_public : true
-            icon      : icon
-            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
-
-    reg1 PublicCodeMirrorEditor,  ['']
-    reg1 PublicHTML,              ['html']
-    reg1 PublicSagews,            ['sagews']
-    reg1 JupyterNBViewerEmbedded, ['ipynb']
+    register(true, PublicCodeMirrorEditor,  [''])
+    register(true, PublicHTML,              ['html'])
+    register(true, PublicSagews,            ['sagews'])
+    register(true, JupyterNBViewerEmbedded, ['ipynb'])
