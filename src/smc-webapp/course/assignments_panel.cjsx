@@ -31,13 +31,13 @@ exports.AssignmentsPanel = rclass ({name}) ->
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         err           : undefined  # error message to display at top.
         search        : ''         # search query to restrict which assignments are shown.
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
 
-    compute_assignment_list : ->
+    compute_assignment_list: ->
         list = course_funcs.immutable_to_list(@props.all_assignments, 'assignment_id')
 
         {list, num_omitted} = course_funcs.compute_match_list
@@ -54,7 +54,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
 
         return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_assignments : (assignments) ->
+    render_assignments: (assignments) ->
         for x,i in assignments
             <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.all_assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  redux={@props.redux}
@@ -63,7 +63,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                     is_expanded={@props.expanded_assignments.has(x.assignment_id)}
                     />
 
-    render_show_deleted : (num_deleted) ->
+    render_show_deleted: (num_deleted) ->
         if @state.show_deleted
             <Button style={styles.show_hide_deleted} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
@@ -77,7 +77,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                 </Tip>
             </Button>
 
-    yield_adder : (deleted_assignments) ->
+    yield_adder: (deleted_assignments) ->
         deleted_paths = {}
         deleted_assignments.map (obj) =>
             if obj.path
@@ -89,7 +89,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             else
                 @props.actions.add_assignment(path)
 
-    render : ->
+    render: ->
         {shown_assignments, deleted_assignments, num_omitted, num_deleted} = @compute_assignment_list()
         add_assignment = @yield_adder(deleted_assignments)
 
@@ -114,7 +114,7 @@ exports.AssignmentsPanel.Header = rclass
     propTypes :
         n : rtypes.number
 
-    render : ->
+    render: ->
         <Tip delayShow=1300
              title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
@@ -135,13 +135,13 @@ Assignment = rclass
         background : rtypes.string
         is_expanded : rtypes.bool
 
-    shouldComponentUpdate : (nextProps, nextState) ->
+    shouldComponentUpdate: (nextProps, nextState) ->
         return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded
 
-    getInitialState : ->
+    getInitialState: ->
         confirm_delete : false
 
-    render_due : ->
+    render_due: ->
         <Row>
             <Col xs=1 style={marginTop:'8px', color:'#666'}>
                 <Tip placement='top' title="Set the due date"
@@ -157,12 +157,12 @@ Assignment = rclass
             </Col>
         </Row>
 
-    date_change : (date) ->
+    date_change: (date) ->
         if not date
             date = @props.assignment.get('due_date') ? misc.server_time()
         @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
 
-    render_note : ->
+    render_note: ->
         <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
@@ -179,7 +179,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render_more_header : ->
+    render_more_header: ->
         status = @props.redux.getStore(@props.name).get_assignment_status(@props.assignment)
         if not status?
             return <Loading key='loading_more'/>
@@ -256,7 +256,7 @@ Assignment = rclass
 
         return v
 
-    render_more : ->
+    render_more: ->
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
@@ -268,10 +268,10 @@ Assignment = rclass
             </Col>
         </Row>
 
-    open_assignment_path : ->
+    open_assignment_path: ->
         @props.redux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
-    render_open_button : ->
+    render_open_button: ->
         <Tip key='open' title={<span><Icon name='folder-open-o'/> Open assignment</span>}
              tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
             <Button onClick={@open_assignment_path}>
@@ -279,7 +279,7 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assignment_button : ->
+    render_assignment_button: ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
         <Button key='assign'
                 bsStyle  = {bsStyle}
@@ -291,24 +291,24 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    render_copy_confirms : (status) ->
+    render_copy_confirms: (status) ->
         steps = STEPS(@props.assignment.get('peer_grade')?.get('enabled'))
         for step in steps
             if @state["copy_confirm_#{step}"]
                 @render_copy_confirm(step, status)
 
-    render_copy_confirm : (step, status) ->
+    render_copy_confirm: (step, status) ->
         <span key="copy_confirm_#{step}">
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
 
-    render_copy_cancel : (step) ->
+    render_copy_cancel: (step) ->
         cancel = =>
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_assignment : (step, new_only) ->
+    copy_assignment: (step, new_only) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step
@@ -326,7 +326,7 @@ Assignment = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
-    render_copy_confirm_to_all : (step, status) ->
+    render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
@@ -338,7 +338,7 @@ Assignment = rclass
             </ButtonToolbar>
         </Alert>
 
-    copy_confirm_all_caution : (step) ->
+    copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
                 return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
@@ -351,7 +351,7 @@ Assignment = rclass
             when 'peer_collect'
                 return 'This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.'
 
-    render_copy_confirm_overwrite_all : (step, status) ->
+    render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {@copy_confirm_all_caution(step)}
@@ -362,7 +362,7 @@ Assignment = rclass
             </ButtonToolbar>
         </div>
 
-    render_copy_confirm_to_all_or_new : (step, status) ->
+    render_copy_confirm_to_all_or_new: (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
@@ -380,13 +380,13 @@ Assignment = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    render_collect_tip : (warning) ->
+    render_collect_tip: (warning) ->
         <span key='normal'>
             Collect an assignment from all of your students.
             (There is currently no way to schedule collection at a specific time; instead, collection happens when you click the button.)
         </span>
 
-    render_collect_button : (status) ->
+    render_collect_button: (status) ->
         if status.assignment == 0
             # no button if nothing ever assigned
             return
@@ -406,7 +406,7 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    render_peer_assign_tip : (warning) ->
+    render_peer_assign_tip: (warning) ->
         <span key='normal'>
             Send copies of collected homework out to all students for peer grading.
         </span>
@@ -440,7 +440,7 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    render_peer_collect_tip : (warning) ->
+    render_peer_collect_tip: (warning) ->
         <span key='normal'>
             Collect the peer grading that your students did.
         </span>
@@ -473,11 +473,11 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    return_assignment : ->
+    return_assignment: ->
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
-    render_return_graded_button : (status) ->
+    render_return_graded_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
             return
@@ -502,14 +502,14 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    delete_assignment : ->
+    delete_assignment: ->
         @props.redux.getActions(@props.name).delete_assignment(@props.assignment)
         @setState(confirm_delete:false)
 
-    undelete_assignment : ->
+    undelete_assignment: ->
         @props.redux.getActions(@props.name).undelete_assignment(@props.assignment)
 
-    render_confirm_delete : ->
+    render_confirm_delete: ->
         <Alert bsStyle='warning' key='confirm_delete'>
             Are you sure you want to delete this assignment (you can undelete it later)?
             <br/> <br/>
@@ -523,7 +523,7 @@ Assignment = rclass
             </ButtonToolbar>
         </Alert>
 
-    render_delete_button : ->
+    render_delete_button: ->
         if @props.assignment.get('deleted')
             <Tip key='delete' placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
                 <Button onClick={@undelete_assignment}>
@@ -550,7 +550,7 @@ Assignment = rclass
             Enable Peer Grading
         </span>
 
-    peer_due_change : (date) ->
+    peer_due_change: (date) ->
         if not date
             date = @props.assignment.getIn(['peer_grade', 'due_date']) ? misc.server_days_ago(-7)
         @set_peer_grade(due_date : date)
@@ -615,7 +615,7 @@ Assignment = rclass
 
         </Alert>
 
-    render_peer_button : ->
+    render_peer_button: ->
         if @props.assignment.get('peer_grade')?.get('enabled')
             icon = 'check-square-o'
         else
@@ -624,25 +624,25 @@ Assignment = rclass
             <Icon name={icon} /> Peer Grading...
         </Button>
 
-    render_summary_due_date : ->
+    render_summary_due_date: ->
         due_date = @props.assignment.get('due_date')
         if due_date
             <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
-    render_assignment_name : ->
+    render_assignment_name: ->
         <span>
             {misc.trunc_middle(@props.assignment.get('path'), 80)}
             {<b> (deleted)</b> if @props.assignment.get('deleted')}
         </span>
 
-    render_assignment_title_link : ->
+    render_assignment_title_link: ->
         <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('assignment', @props.assignment.get('assignment_id'))}>
             <Icon style={marginRight:'10px'}
                   name={if @props.is_expanded then 'caret-down' else 'caret-right'} />
             {@render_assignment_name()}
         </a>
 
-    render_summary_line : () ->
+    render_summary_line: () ->
         <Row key='summary' style={backgroundColor:@props.background}>
             <Col md=6>
                 <h5>
@@ -654,7 +654,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render : ->
+    render: ->
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
             <Col xs=12>
                 {@render_summary_line()}
@@ -673,7 +673,7 @@ StudentListForAssignment = rclass
         user_map   : rtypes.object.isRequired
         background : rtypes.string
 
-    render_student_info : (student_id) ->
+    render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
         <StudentAssignmentInfo
               key     = {student_id}
@@ -684,7 +684,7 @@ StudentListForAssignment = rclass
               assignment = {@props.assignment}
               grade   = {store.get_grade(@props.assignment, student_id)} />
 
-    render_students : ->
+    render_students: ->
         v = course_funcs.immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
@@ -704,7 +704,7 @@ StudentListForAssignment = rclass
         for x in v
             @render_student_info(x.student_id)
 
-    render : ->
+    render: ->
         <div>
             <StudentAssignmentInfoHeader
                 key        = 'header'

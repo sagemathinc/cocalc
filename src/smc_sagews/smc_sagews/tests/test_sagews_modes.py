@@ -126,8 +126,8 @@ class TestOctaveMode:
         exec2("%octave")
 
     def test_octave_calc(self, exec2):
-        code = "%octave\nformat short\nairy(3,2)\nbeta(2,2)\nbetainc(0.2,2,2)\nbesselh(0,2)"
-        outp = r"ans =  4.1007\s+ans =  0.16667\s+ans =  0.10400\s+ans =  0.22389\s+\+\s+0.51038i"
+        code = "%octave\nformat short\nbesselh(0,2)"
+        outp = r"ans =  0.22389\s+\+\s+0.51038i"
         exec2(code, pattern = outp)
 
     def test_octave_fibonacci(self, exec2):

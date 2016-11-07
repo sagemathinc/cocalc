@@ -462,7 +462,7 @@ class exports.HistoryEditor extends FileEditor
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true

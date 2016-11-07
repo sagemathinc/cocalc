@@ -1925,25 +1925,25 @@ CourseEditor = rclass ({name}) ->
         project_id  : rtypes.string.isRequired
         path        : rtypes.string.isRequired
 
-    render_activity : ->
+    render_activity: ->
         <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
             on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
 
-    render_error : ->
+    render_error: ->
         <ErrorDisplay error={@props.error}
                       onClose={=>@props.redux.getActions(@props.name).set_error('')} />
 
-    render_save_button : ->
+    render_save_button: ->
         <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
 
-    show_files : ->
+    show_files: ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
-    render_files_button : ->
+    render_files_button: ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
-    render_title : ->
+    render_title: ->
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     show_timetravel: ->
@@ -1976,7 +1976,7 @@ CourseEditor = rclass ({name}) ->
     num_handouts: ->
         @props.redux.getStore(@props.name)?.num_handouts()
 
-    render_students : ->
+    render_students: ->
         if @props.redux? and @props.students? and @props.user_map? and @props.project_map?
             <StudentsPanel redux={@props.redux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
@@ -1986,14 +1986,14 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_assignments : ->
+    render_assignments: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <AssignmentsPanel actions={@props.redux.getActions(@props.name)} redux={@props.redux} all_assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />
 
-    render_handouts : ->
+    render_handouts: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
                 project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
@@ -2003,7 +2003,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_settings : ->
+    render_settings: ->
         if @props.redux? and @props.settings?
             <SettingsPanel redux={@props.redux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
@@ -2019,7 +2019,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render : ->
+    render: ->
         <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}

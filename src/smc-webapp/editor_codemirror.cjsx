@@ -177,7 +177,7 @@ CodemirrorEditor = rclass ({name}) ->
         if @props.value?
             <span>Buffer length: {@props.value.length}</span>
 
-    render : ->
+    render: ->
         <div>
             <h4>A React/Redux/Codemirror Editor</h4>
             {@render_info()}

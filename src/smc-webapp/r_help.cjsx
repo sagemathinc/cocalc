@@ -65,16 +65,16 @@ HelpPageUsageSection = rclass
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
-    getDefaultProps : ->
+    getDefaultProps: ->
        loading : true
 
-    number_of_clients : ->
+    number_of_clients: ->
         if @props.hub_servers.length == 0
             0
         else
             (x['clients'] for x in @props.hub_servers).reduce((s,t) -> s+t)
 
-    render_signed_in_stats : ->
+    render_signed_in_stats: ->
         if @props.loading
             <li style={li_style}> Live server stats <Loading /> </li>
         else
@@ -85,7 +85,7 @@ HelpPageUsageSection = rclass
         n = @props.projects_edited?[RECENT_TIMES_KEY.active] ? @props.active_projects
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
-    render_recent_usage_stats : ->
+    render_recent_usage_stats: ->
         if not @props.loading
             <li style={li_style}>
                 Users modified
@@ -95,27 +95,27 @@ HelpPageUsageSection = rclass
                 <strong> {@props.projects_edited?[RECENT_TIMES_KEY.last_month] ? @props.last_month_projects} projects</strong> in the last month
             </li>
 
-    render_historical_usage : ->
+    render_historical_usage: ->
         <li key='usage_data' style={li_style}>
             <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                 <Icon name='line-chart' fixedWidth />Historical usage statistics
             </a> &mdash; number of projects and users over time
         </li>
 
-    render_historical_metrics : ->
+    render_historical_metrics: ->
         <li key='usage_metrics' style={li_style}>
             <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
                 <Icon name='area-chart' fixedWidth />Historical system metrics
             </a> &mdash; CPU usage, running projects and software instances, etc
         </li>
 
-    render_when_updated : ->
+    render_when_updated: ->
         if @props.time
             <span style={fontSize: '9pt', marginLeft: '20px', color: '#666'}>
                 updated <TimeAgo date={new Date(@props.time)} />
             </span>
 
-    render : ->
+    render: ->
         <div>
             <h3>
                 <Icon name='dashboard' /> System usage
@@ -221,7 +221,7 @@ HelpPageSupportSection = rclass
     propTypes :
         support_links : rtypes.object
 
-    get_support_links : ->
+    get_support_links: ->
         {commercial} = require('./customize')
         for name, data of @props.support_links
             if data.commercial and not commercial
@@ -232,7 +232,7 @@ HelpPageSupportSection = rclass
                 </a> <span style={color:'#666'}>{data.text}</span>
             </li>
 
-    render : ->
+    render: ->
         <div>
             <h3> <Icon name='support' /> Support</h3>
             <ul>
@@ -268,13 +268,13 @@ ABOUT_SECTION =
 HelpPageAboutSection = rclass
     displayName : 'HelpPage-HelpPageAboutSection'
 
-    get_about_section : ->
+    get_about_section: ->
         for name, item of ABOUT_SECTION
             <li key={name} style={li_style}>
                 {item}
             </li>
 
-    render : ->
+    render: ->
         <div>
             <h3> <Icon name='info-circle' /> About </h3>
             <ul>
@@ -285,22 +285,22 @@ HelpPageAboutSection = rclass
 HelpPageGettingStartedSection = rclass
     displayName : 'Help-HelpPageGettingStartedSection'
 
-    get_panel_header : (icon, header) ->
+    get_panel_header: (icon, header) ->
         <div><Icon name={icon} fixedWidth /> {header}</div>
 
-    insert_sample_function : ->
+    insert_sample_function: ->
         '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
 
-    componentDidMount : ->
+    componentDidMount: ->
         @update_mathjax()
 
-    componentDidUpdate : ->
+    componentDidUpdate: ->
         @update_mathjax()
 
     update_mathjax: ->
         $(ReactDOM.findDOMNode(@)).mathjax()
 
-    render : ->
+    render: ->
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
 
@@ -492,7 +492,7 @@ HelpPageGettingStartedSection = rclass
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
-    render : ->
+    render: ->
         <Row style={padding:'10px', margin:'0px'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
                 <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'100%', fontSize: '110%', textAlign: 'center'}>

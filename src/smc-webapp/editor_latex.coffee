@@ -408,7 +408,7 @@ class exports.LatexEditor extends editor.FileEditor
     _set: (content) =>
         @latex_editor._set(content)
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true

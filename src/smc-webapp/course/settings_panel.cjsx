@@ -27,14 +27,14 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
         num_running_projects : rtypes.number
         num_students         : rtypes.number
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         action_all_projects_state : "any"
 
-    getInitialState : ->
+    getInitialState: ->
         confirm_stop_all_projects   : false
         confirm_start_all_projects  : false
 
-    render_in_progress_action : ->
+    render_in_progress_action: ->
         state_name = @props.action_all_projects_state
         switch state_name
             when "stopping"
@@ -81,7 +81,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
-    render : ->
+    render: ->
         r = @props.num_running_projects
         n = @props.num_students
         <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
@@ -131,7 +131,7 @@ exports.SettingsPanel = rclass
         settings    : rtypes.immutable.Map.isRequired
         project_map : rtypes.immutable.Map.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         delete_student_projects_confirm : false
         upgrade_quotas                  : false
         show_students_pay_dialog        : false
@@ -141,12 +141,12 @@ exports.SettingsPanel = rclass
     ###
     # Editing title/description
     ###
-    render_title_desc_header : ->
+    render_title_desc_header: ->
         <h4>
             <Icon name='header' />   Title and description
         </h4>
 
-    render_title_description : ->
+    render_title_description: ->
         if not @props.settings?
             return <Loading />
         <Panel header={@render_title_desc_header()}>
@@ -179,20 +179,20 @@ exports.SettingsPanel = rclass
     ###
     # Grade export
     ###
-    render_grades_header : ->
+    render_grades_header: ->
         <h4>
             <Icon name='table' />  Export grades
         </h4>
 
-    path : (ext) ->
+    path: (ext) ->
         p = @props.path
         i = p.lastIndexOf('.')
         return p.slice(0,i) + '.' + ext
 
-    open_file : (path) ->
+    open_file: (path) ->
         @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
 
-    write_file : (path, content) ->
+    write_file: (path, content) ->
         actions = @actions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
@@ -206,7 +206,7 @@ exports.SettingsPanel = rclass
                 else
                     actions.set_error("Error writing '#{path}' -- '#{err}'")
 
-    save_grades_to_csv : ->
+    save_grades_to_csv: ->
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -225,7 +225,7 @@ exports.SettingsPanel = rclass
             content += line + '\n'
         @write_file(@path('csv'), content)
 
-    save_grades_to_py : ->
+    save_grades_to_py: ->
         ###
         example:
         course = 'title'
@@ -256,7 +256,7 @@ exports.SettingsPanel = rclass
         content += ']\n'
         @write_file(@path('py'), content)
 
-    render_save_grades : ->
+    render_save_grades: ->
         <Panel header={@render_grades_header()}>
             <div style={marginBottom:'10px'}>Save grades to... </div>
             <ButtonToolbar>
@@ -273,7 +273,7 @@ exports.SettingsPanel = rclass
     ###
     # Help box
     ###
-    render_help : ->
+    render_help: ->
         <Panel header={<h4><Icon name='question-circle' />  Help</h4>}>
             <span style={color:"#666"}>
                 <ul>
@@ -770,7 +770,7 @@ exports.SettingsPanel = rclass
     ###
     # Top level render
     ###
-    render : ->
+    render: ->
         <div>
             <Row>
                 <Col md=6>

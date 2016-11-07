@@ -2083,6 +2083,7 @@ def octave(code=None,**kwargs):
     """
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
+        octave.jupyter_kernel.smc_image_scaling = .66
     return octave.jupyter_kernel(code,**kwargs)
 octave.jupyter_kernel = None
 
@@ -2108,8 +2109,7 @@ def r(code=None,**kwargs):
     if r.jupyter_kernel is None:
         r.jupyter_kernel = jupyter("ir")
         r.jupyter_kernel('options(repr.plot.res = 240)')
-        #r.jupyter_kernel.smc_image_scaling = .5
-        r.jupyter_kernel.sage_img_style = "width: 50%; height: 50%;"
+        r.jupyter_kernel.smc_image_scaling = .5
     return r.jupyter_kernel(code,**kwargs)
 r.jupyter_kernel = None
 

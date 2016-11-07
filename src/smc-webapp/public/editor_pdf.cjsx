@@ -9,7 +9,7 @@ PublicPDF = rclass
         project_id : rtypes.string
         path       : rtypes.string
 
-    render : ->
+    render: ->
         src = salvus_client.read_file_from_project({project_id:@props.project_id, path:@props.path})
         <div className="salvus-editor-public-content" style={overflowY: 'hidden', flex:1, display:'flex'}>
             <iframe src={src} style={width:'100%'} />

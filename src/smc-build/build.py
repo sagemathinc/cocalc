@@ -395,6 +395,7 @@ R_PACKAGES = [
     'survey',
     'maps',
     'plotly',
+    'ipyleaflet', # also needs jupyter nbextension enable --py --sys-prefix ipyleaflet
 ]
 
 # Sage has additionally some optional packages. We try to install as many of them as feasible.
@@ -538,6 +539,7 @@ class BuildSage(object):
         to run again after something changes ...
         '''
         self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
+        self.cmd('jupyter nbextension enable --py --sys-prefix ipyleaflet')
 
     def install_altair(self):
         # altair's vega dependency installation
