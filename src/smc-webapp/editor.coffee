@@ -837,7 +837,7 @@ class CodeMirrorEditor extends FileEditor
         #   1 - two editors, one on top of the other
         #   2 - two editors, one next to the other
 
-        @_layout = @local_storage("layout") ? 0
+        @_layout = @local_storage("layout") ? 0    # WARNING/UGLY: used by syncdoc.coffee and sagews.coffee !
         @_last_layout = undefined
 
         make_editor = (node) =>

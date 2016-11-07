@@ -60,7 +60,7 @@ exports.synchronized_string = synchronized_string
 class SynchronizedDocument extends AbstractSynchronizedDoc
     codemirrors: () =>
         v = [@codemirror]
-        if @editor._split_view
+        if @editor._layout > 0
             v.push(@codemirror1)
         return v
 

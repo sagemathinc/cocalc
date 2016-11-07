@@ -95,8 +95,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for cm in @codemirrors()
             cm.setOption('foldOptions', foldOptions)
 
-
-
         if @opts.static_viewer
             @readonly   = true
             @project_id = @editor.project_id
@@ -818,7 +816,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         try
             if not opts.cm?
                 @_process_sage_updates(@editor.codemirror, opts.start, opts.stop)
-                if @editor._split_view
+                if @editor._layout > 0
                     @_process_sage_updates(@editor.codemirror1, opts.start, opts.stop)
             else
                 @_process_sage_updates(opts.cm, opts.start, opts.stop)
