@@ -24,16 +24,19 @@ from distutils.core import Distribution
 d = Distribution()
 d.parse_command_line()
 
-# THIS IS NOT WORKING
+# CRITICAL!
+# Uses a wrapped python executable to not load the user's "site" packages in ~/.local.
+# Otherwise, setuptool's startup scripts do not work, if there is a conflicting
+# setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
+# setting sys.executable changes the she-bang #!... at the top of these scripts
+# credits to http://stackoverflow.com/a/17329493
+python2_nosite = '/usr/local/bin/python2-nosite'
+# don't overwrite for local smc-in-smc development
 if 'user' not in d.command_options.get("install", {}).keys():
-    # CRITICAL!
-    # -s tells python to not load the user's "site" packages in ~/.local
-    # otherwise, setuptool's startup scripts do not work, if there is a conflicting
-    # setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
-    # setting sys.executable changes the she-bang #!... at the top of these scripts
-    # credits to http://stackoverflow.com/a/17329493
-    import sys
-    sys.executable = '/usr/local/bin/python2-nosite'
+    # check, if python2_nosite exists and is executable
+    if os.path.isfile(python2_nosite) and os.access(python2_nosite, os.X_OK):
+        import sys
+        sys.executable = python2_nosite
 
 setup(
     name             = 'smc_pyutil',
