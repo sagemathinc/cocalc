@@ -661,7 +661,7 @@ ProjectControlPanel = rclass
         e.preventDefault()
         async.series([
             (cb) =>
-                @actions(project_id: @props.project.get('project_id')).ensure_directory_exists
+                redux.getProjectStore(@props.project.get('project_id')).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>

@@ -1706,13 +1706,16 @@ exports.analytics_pageview = (args...) ->
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
-# check if user allows popups. if yes, return true -- otherwise show an alert and return false
+# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
 # tab is assumed to be the return value of window.open(url)
-exports.check_popup_blocker = (tab) ->
+exports.open_new_tab = (url) ->
+    tab = window.open(url)
     if(!tab || tab.closed || typeof tab.closed=='undefined')
         {alert_message} = require('./alerts')
         alert_message
-            message : 'Your browser blocks pop-ups. Either enable them for this website or allow them to open this time.'
+            title   : "Pop-ups blocked."
+            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
             type    : 'error'
-        return false
-    return true
+            timeout : 10
+        return null
+    return tab
