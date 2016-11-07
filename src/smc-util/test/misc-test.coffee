@@ -729,6 +729,9 @@ describe "filename_extension", ->
     it "and an empty string if there is no extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
+    it "does not get confused by dots in the path", ->
+        fe('foo.bar/baz').should.be.exactly ''
+        fe('foo.bar/baz.ext').should.be.exactly 'ext'
 
 # TODO not really sure what retry_until_success should actually take care of
 # at least: the `done` callback of the mocha framework is called inside a passed in cb inside the function f
@@ -1237,6 +1240,25 @@ describe 'is_valid_email_address is', ->
         valid('test@test.com').should.be.true()
     it "false for blabla", ->
         valid('blabla').should.be.false()
+
+describe 'separate_file_extension', ->
+    sfe = misc.separate_file_extension
+    it "splits filename.ext accordingly", ->
+        {name, ext} = sfe('foobar/filename.ext')
+        name.should.be.eql "foobar/filename"
+        ext.should.be.eql "ext"
+    it "ignores missing extensions", ->
+        {name, ext} = sfe('foo.bar/baz')
+        name.should.be.eql 'foo.bar/baz'
+        ext.should.be.eql ''
+
+describe 'change_filename_extension', ->
+    cfe = misc.change_filename_extension
+    it "changes a tex to pdf", ->
+        cfe('filename.tex', 'pdf').should.be.exactly 'filename.pdf'
+        cfe('/bar/baz/foo.png', 'gif').should.be.exactly '/bar/baz/foo.gif'
+    it "deals with missing extensions", ->
+        cfe('filename', 'tex').should.be.exactly 'filename.tex'
 
 describe 'suggest_duplicate_filename', ->
     dup = misc.suggest_duplicate_filename

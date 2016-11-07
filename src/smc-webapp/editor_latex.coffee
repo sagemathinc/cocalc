@@ -54,7 +54,7 @@ class exports.LatexEditor extends editor.FileEditor
             @spell_check()
 
         @latex_editor.print = () =>
-            outfn = @filename.slice(0, @filename.length - 3) + "pdf"
+            outfn = misc.change_filename_extension(@filename, 'pdf')
             printing.Printer(@, outfn).print()
             return false
 
@@ -72,7 +72,8 @@ class exports.LatexEditor extends editor.FileEditor
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         # Embedded pdf page (not really a "preview" -- it's the real thing).
-        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, @filename.slice(0,n-3)+"pdf", undefined, {})
+        preview_filename = misc.change_filename_extension(@filename, 'pdf')
+        @preview_embed = new editor.PDF_PreviewEmbed(@project_id, preview_filename, undefined, {})
         @preview_embed.element.find(".salvus-editor-codemirror-button-row").remove()
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @_pages['pdf-preview'] = @preview_embed
@@ -666,7 +667,7 @@ class exports.LatexEditor extends editor.FileEditor
 
     download_pdf: (print = false) =>
         redux.getProjectStore(@project_id).download_file
-            path : @filename.slice(0, @filename.length - 3) + "pdf"
+            path : misc.change_filename_extension(@filename, 'pdf')
             print: print
 
     _inverse_search: (opts) =>
