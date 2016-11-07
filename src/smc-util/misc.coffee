@@ -267,7 +267,6 @@ exports.uuidsha1 = (data) ->
                 return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
     )
 
-
 zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
 exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 

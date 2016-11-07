@@ -263,6 +263,56 @@ CHAT_TOGGLE_TIP = <span>
     Your collaborators will be notified.
 </span>
 
+sha1 = require('smc-util/schema').client_db.sha1
+
+ChatToggle = rclass
+    reduxProps :
+        file_use :
+            file_use : rtypes.immutable
+
+    propTypes :
+        project_id   : rtypes.string.isRequired
+        path         : rtypes.string.isRequired
+        is_chat_open : rtypes.bool
+
+    toggle_chat: ->
+        a = redux.getProjectActions(@props.project_id)
+        if @props.is_chat_open
+            a.close_chat({path:@props.path})
+        else
+            a.open_chat({path:@props.path})
+
+    is_new_chat: ->
+        # If my read/seen is undefined or older than newest other user chat, then
+        # show indicator of new chat activity
+        file_use_id = sha1(@props.project_id, @props.path)
+        x = @props.file_use.getIn([file_use_id, 'users'])?.toJS() ? {}
+        console.log x
+        account_id = redux.getStore('account').get_account_id()
+        x[account_id]?
+        return false
+
+    render : () ->
+        new_chat = @is_new_chat()
+        action = if @props.is_chat_open then 'Hide' else 'Show'
+        title  = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
+        <div style={CHAT_TOGGLE_STYLE}>
+            <Tip
+                title     = {title}
+                tip       = {CHAT_TOGGLE_TIP}
+                placement = 'left'
+                delayShow = 1200
+                >
+                <div style={cursor:'pointer'} onClick={=>@toggle_chat()} >
+                    <Icon name="caret-#{if @props.is_chat_open then 'down' else 'left'}"/>
+                    <Space />
+                    <Icon name='comment'/>
+                </div>
+            </Tip>
+        </div>
+
+
+
 # Children must define their own padding from navbar and screen borders
 ProjectMainContent = rclass
     propTypes :
@@ -272,30 +322,12 @@ ProjectMainContent = rclass
         active_tab_name : rtypes.string
         group           : rtypes.string
 
-    toggle_chat: (set_open, path) ->
-        a = redux.getProjectActions(@props.project_id)
-        if set_open
-            a.open_chat({path:path})
-        else
-            a.close_chat({path:path})
-
     render_chat_toggle : (is_chat_open, path) ->
-        action = if is_chat_open then 'Hide' else 'Show'
-        title  = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
-        <div style={CHAT_TOGGLE_STYLE}>
-            <Tip
-                title     = {title}
-                tip       = {CHAT_TOGGLE_TIP}
-                placement = 'left'
-                delayShow = 1200
-                >
-                <div style={cursor:'pointer'} onClick={=>@toggle_chat(not is_chat_open, path)} >
-                    <Icon name="caret-#{if is_chat_open then 'down' else 'left'}"/>
-                    <Space />
-                    <Icon name='comment'/>
-                </div>
-            </Tip>
-        </div>
+        <ChatToggle
+            project_id   = {@props.project_id}
+            path         = {path}
+            is_chat_open = {is_chat_open}
+        />
 
     render_editor: (path) ->
         {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
