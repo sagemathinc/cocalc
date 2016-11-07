@@ -36,8 +36,8 @@
           dest="{{ item[1] }}"
           owner=root group=root mode="u=rx,g=rx,o=rx"
     with_together:
-      - [ "files/python2-nosite",         "/usr/local/bin/python2-nosite"]
-      - [ "files/python3-nosite",         "/usr/local/bin/python3-nosite"]
+      - [ "files/python2-nosite",            "files/python3-nosite"]
+      - [ "/usr/local/bin/python2-nosite",   "/usr/local/bin/python3-nosite"]
 
   - name: "additional install packages for all machines"
     apt: name={{ item }} install_recommends=yes state=latest

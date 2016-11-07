@@ -25,7 +25,7 @@ d = Distribution()
 d.parse_command_line()
 
 # THIS IS NOT WORKING
-if False and 'user' not in d.command_options.get("install", {}).keys():
+if 'user' not in d.command_options.get("install", {}).keys():
     # CRITICAL!
     # -s tells python to not load the user's "site" packages in ~/.local
     # otherwise, setuptool's startup scripts do not work, if there is a conflicting
@@ -33,7 +33,7 @@ if False and 'user' not in d.command_options.get("install", {}).keys():
     # setting sys.executable changes the she-bang #!... at the top of these scripts
     # credits to http://stackoverflow.com/a/17329493
     import sys
-    sys.executable = '/usr/bin/python -s'
+    sys.executable = '/usr/local/bin/python2-nosite'
 
 setup(
     name             = 'smc_pyutil',
