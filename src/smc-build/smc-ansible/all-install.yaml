@@ -30,6 +30,15 @@
   - name: "rethinkdb ppa"
     apt_repository: mode=644 repo='deb http://download.rethinkdb.com/apt {{ ansible_distribution_release }} main'
 
+  - name: "python nosite script wrappers"
+    tags: [install, update, nosite]
+    copy: src="{{ item[0] }}"
+          dest="{{ item[1] }}"
+          owner=root group=root mode="u=rx,g=rx,o=rx"
+    with_together:
+      - [ "files/python2-nosite",         "/usr/local/bin/python2-nosite"]
+      - [ "files/python3-nosite",         "/usr/local/bin/python3-nosite"]
+
   - name: "additional install packages for all machines"
     apt: name={{ item }} install_recommends=yes state=latest
     with_items:
