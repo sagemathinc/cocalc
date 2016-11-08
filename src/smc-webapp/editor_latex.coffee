@@ -20,6 +20,8 @@ MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        window.w = @ # DEBUGGING
+
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
         #     * preview -- display the images (page forward/backward/resolution)
@@ -34,6 +36,8 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor = editor.codemirror_session_editor(@project_id, @filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        @element.find(".salvus-editor-codeedit-buttonbar-mode").remove()
+
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
 
@@ -115,20 +119,28 @@ class exports.LatexEditor extends editor.FileEditor
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
-        dragbar.css(position:'absolute')
+        @set_dragbar_position()
+        update = =>
+            # compute the position of bar as a number from 0 to 1
+            left  = @element.offset().left
+            width = @element.width()
+            p     = dragbar.offset().left
+            @_split_pos = (p - left) / width
+            @local_storage('split_pos', @_split_pos)
+            dragbar.css(left: 0)
+            @set_dragbar_position()
+
         dragbar.draggable
-            axis : 'x'
+            axis        : 'x'
             containment : @element
-            zIndex      : 100
-            stop        : (event, ui) =>
-                # compute the position of bar as a number from 0 to 1
-                left  = @element.offset().left
-                width = @element.width()
-                p     = dragbar.offset().left
-                @_split_pos = (p - left) / width
-                @local_storage('split_pos', @_split_pos)
-                #dragbar.css(left: )
-                @show()
+            zIndex      : 10
+            stop        : update
+
+    set_dragbar_position: =>
+        @_split_pos ?= @local_storage('split_pos') ? 0.5
+        @_split_pos = Math.max(editor.MIN_SPLIT, Math.min(editor.MAX_SPLIT, @_split_pos))
+        @element.find(".salvus-editor-latex-latex_editor").css('flex-basis',"#{@_split_pos*100}%")
+
 
     set_conf: (obj) =>
         conf = @load_conf()
@@ -395,7 +407,14 @@ class exports.LatexEditor extends editor.FileEditor
         return @mounted
 
     _show: (opts={}) =>
-        return
+        if not @_show_before?
+            @show_page('png-preview')
+            @_show_before = true
+        else
+            @show_page()
+
+        ###
+        #old crap layout code DELETEME
 
         if not @_split_pos?
             @_split_pos = .5
@@ -419,14 +438,9 @@ class exports.LatexEditor extends editor.FileEditor
             end   : width
             top   : top + button_bar_height + 1
 
-        if not @_show_before?
-            @show_page('png-preview')
-            @_show_before = true
-        else
-            @show_page()
-
         @_dragbar.height(@latex_editor.element.height())
         @_dragbar.css('top', button_bar_height + 2)
+        ###
 
     focus: () =>
         @latex_editor?.focus()

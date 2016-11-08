@@ -244,7 +244,7 @@ fixed_project_pages =
 CHAT_TOGGLE_STYLE =
     fontSize     : '14pt'
     position     : 'absolute'
-    top          : '3px'
+    top          : '1px'
     right        : '3px'
     zIndex       : 10
     boxShadow    : '2px 2px 2px 2px #ccc'
@@ -253,7 +253,6 @@ CHAT_TOGGLE_STYLE =
     paddingLeft  : '5px'
     paddingRight : '5px'
     opacity      : 0.85
-    height       : '30px'
 
 CHAT_TOGGLE_TIP = <span>
     Hide or show the chat for this file.
