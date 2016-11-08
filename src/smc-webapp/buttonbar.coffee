@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -1066,6 +1066,8 @@ exports.commands =
                      """
         mode_md:
             insert : "%md"
+        mode_octave:
+            insert : "%octave"
         mode_python:
             insert : "%python"
         mode_r:
@@ -1524,8 +1526,10 @@ initialize_sage_python_r_toolbar = () ->
             ["Julia", "#mode_julia"],
             ["Jupyter bridge", "#mode_jupyter_bridge"],
             ["Markdown", "#mode_md"],
+            ["Octave", "#mode_octave"],
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
+            ["Shell", "#mode_sh"],
 
         ]]
     add_menu(system_bar, mode_list)

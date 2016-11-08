@@ -74,7 +74,7 @@ class SupportActions extends Actions
         if u.intersection(u.keys(update), fields).length > 0
             @check_valid()
 
-    load_support_tickets : () ->
+    load_support_tickets: () ->
         salvus_client.get_support_tickets (err, tickets) =>
             # console.log("tickets: #{misc.to_json(tickets)}")
             # sort by .updated_at
@@ -128,23 +128,23 @@ class SupportActions extends Actions
         # console.log("support/actions/check_valid: #{v} (s: #{s}, b: #{b}, e: #{e})")
         @set(valid: v)
 
-    project_id : ->
+    project_id: ->
         pid = @redux.getStore('page').get('active_top_tab')
         if misc.is_valid_uuid_string(pid)
             return pid
         else
             return null
 
-    projects : =>
+    projects: =>
         @redux.getStore("projects")
 
-    project_title : ->
+    project_title: ->
         if @project_id()?
             return @projects().get_title(@project_id())
         else
             return null
 
-    location : ->
+    location: ->
         window.location.pathname.slice(window.smc_base_url.length)
 
     # sends off the support request
@@ -228,18 +228,18 @@ exports.SupportPage = rclass
             support_tickets      : rtypes.array
             support_ticket_error : rtypes.string
 
-    render_header : ->
+    render_header: ->
         <tr style={fontWeight:"bold"}>
             <th>Ticket</th>
             <th>Status</th>
         </tr>
 
-    open : (ticket_id) ->
+    open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
         tab = window.open(url, '_blank')
         tab.focus()
 
-    render_body : ->
+    render_body: ->
         for i, ticket of @props.support_tickets
             style = switch ticket.status
                 when 'open', 'new'
@@ -272,7 +272,7 @@ exports.SupportPage = rclass
                 </td>
             </tr>
 
-    render_table : ->
+    render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
 
         if not @props.support_tickets?
@@ -290,7 +290,7 @@ exports.SupportPage = rclass
                 No support tickets found.
             </div>
 
-    render : ->
+    render: ->
         if @props.support_ticket_error?.length > 0
             content = <Alert bsStyle='danger'>
                           Error retriving tickets: {@props.support_ticket_error}
@@ -322,7 +322,7 @@ SupportInfo = rclass
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
 
-    error : () ->
+    error: () ->
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
@@ -333,7 +333,7 @@ SupportInfo = rclass
             <pre>{@props.err}</pre>
         </Alert>
 
-    created : () ->
+    created: () ->
         if @props.url?.length > 1
             url = <a href={@props.url} target='_blank'>{@props.url}</a>
         else
@@ -351,7 +351,7 @@ SupportInfo = rclass
               onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
-    default : () ->
+    default: () ->
         title = @props.actions.project_title()
         if title?
             loc  = @props.actions.location()
@@ -378,7 +378,7 @@ SupportInfo = rclass
             </p>
         </div>
 
-    render : ->
+    render: ->
         switch @props.state
             when STATE.ERROR
                 return @error()
@@ -398,7 +398,7 @@ SupportFooter = rclass
         show_form: rtypes.bool.isRequired
         valid    : rtypes.bool.isRequired
 
-    render : ->
+    render: ->
         if @props.show_form
             btn = <Button bsStyle  = 'primary'
                           tabIndex = 4
@@ -429,15 +429,15 @@ SupportForm = rclass
         submit    : rtypes.func.isRequired
         actions   : rtypes.object.isRequired
 
-    email_change  : ->
+    email_change: ->
         @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
 
-    data_change : ->
+    data_change: ->
         @props.actions.set
             body     : ReactDOM.findDOMNode(@refs.body).value
             subject  : ReactDOM.findDOMNode(@refs.subject).value
 
-    render : ->
+    render: ->
         if not @props.show
             return <div />
 
@@ -494,7 +494,7 @@ exports.Support = rclass
     propTypes :
         actions : rtypes.object.isRequired
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         show        : false
         email       : ''
         subject     : ''
@@ -517,20 +517,20 @@ exports.Support = rclass
             email_err    : rtypes.string
             valid        : rtypes.bool
 
-    componentWillReceiveProps : (newProps) ->
+    componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
 
-    open : ->
+    open: ->
         @props.actions.show(true)
 
-    close : ->
+    close: ->
         @props.actions.show(false)
 
-    submit : (event) ->
+    submit: (event) ->
         event?.preventDefault()
         @props.actions.support()
 
-    render : () ->
+    render: () ->
         show_form = false
 
         if (not @props.state?) or @props.state == STATE.NEW
@@ -578,14 +578,14 @@ exports.ShowSupportLink = rclass
     propTypes :
         text : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         text : 'support ticket'
 
     show: (evt) ->
         evt.preventDefault()
         redux.getActions('support').show(true)
 
-    render : ->
+    render: ->
         <a onClick={@show} href='#' style={cursor: 'pointer'}>
             {@props.text}
         </a>

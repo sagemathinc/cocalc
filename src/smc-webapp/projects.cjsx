@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    set_project_open : (project_id, err) =>
+    set_project_open: (project_id, err) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)
         if index == -1
@@ -57,7 +57,7 @@ class ProjectsActions extends Actions
     # Do not call this directly to close a project.  Instead call
     #   redux.getActions('page').close_project_tab(project_id),
     # which calls this.
-    set_project_closed : (project_id) =>
+    set_project_closed: (project_id) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)
         if index != -1
@@ -75,7 +75,7 @@ class ProjectsActions extends Actions
     have_project: (project_id) =>
         return @redux.getTable('projects')?._table?.get(project_id)?  # dangerous use of _table!
 
-    set_project_title : (project_id, title) =>
+    set_project_title: (project_id, title) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set title -- you are not a collaborator on this project.")
             return
@@ -89,7 +89,7 @@ class ProjectsActions extends Actions
             event : 'set'
             title : title
 
-    set_project_description : (project_id, description) =>
+    set_project_description: (project_id, description) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
             return
@@ -104,7 +104,7 @@ class ProjectsActions extends Actions
             description : description
 
     # only owner can set course description.
-    set_project_course_info : (project_id, course_project_id, path, pay, account_id, email_address) =>
+    set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
             return
@@ -135,7 +135,7 @@ class ProjectsActions extends Actions
             cb : cb
 
     # Create a new project
-    create_project : (opts) =>
+    create_project: (opts) =>
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
@@ -149,7 +149,7 @@ class ProjectsActions extends Actions
     # Open the given project
     #TODOJ: should not be in projects...
     # J3: Maybe should be in Page actions? I don't see the upside.
-    open_project : (opts) =>
+    open_project: (opts) =>
         opts = defaults opts,
             project_id : required  # string  id of the project to open
             target     : undefined # string  The file path to open
@@ -171,7 +171,7 @@ class ProjectsActions extends Actions
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
-    move_project_tab : (opts) =>
+    move_project_tab: (opts) =>
         {old_index, new_index, open_projects} = defaults opts,
             old_index : required
             new_index : required
@@ -184,7 +184,7 @@ class ProjectsActions extends Actions
         @setState(open_projects:new_list)
 
     # should not be in projects...?
-    load_target : (target, switch_to) =>
+    load_target: (target, switch_to) =>
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
             return
@@ -198,7 +198,7 @@ class ProjectsActions extends Actions
                 switch_to : switch_to
 
     # Put the given project in the foreground
-    foreground_project : (project_id) =>
+    foreground_project: (project_id) =>
         redux.getActions('page').set_active_tab(project_id)
 
         redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
@@ -263,15 +263,16 @@ class ProjectsActions extends Actions
     ###
     # Collaborators
     ###
-    remove_collaborator : (project_id, account_id) =>
+    remove_collaborator: (project_id, account_id) =>
         salvus_client.project_remove_collaborator
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # SMELL: -- set error in store for this project...
+                if err # TODO: -- set error in store for this project...
+                    err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborator : (project_id, account_id) =>
+    invite_collaborator: (project_id, account_id) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
@@ -279,10 +280,11 @@ class ProjectsActions extends Actions
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
-                if err # SMELL: -- set error in store for this project...
+                if err # TODO: -- set error in store for this project...
+                    err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
+    invite_collaborators_by_email: (project_id, to, body, subject, silent) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_nonuser'
             invitee_email : to
@@ -326,7 +328,7 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
-    clear_project_upgrades : (project_id) =>
+    clear_project_upgrades: (project_id) =>
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     save_project: (project_id) =>
@@ -334,7 +336,7 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'save', time:salvus_client.server_time()}
 
-    start_project : (project_id) ->
+    start_project: (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'start', time:salvus_client.server_time()}
@@ -349,13 +351,13 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'close', time:salvus_client.server_time()}
 
-    restart_project : (project_id) ->
+    restart_project: (project_id) ->
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:salvus_client.server_time()}
 
     # Toggle whether or not project is hidden project
-    set_project_hide : (account_id, project_id, state) =>
+    set_project_hide: (account_id, project_id, state) =>
         @redux.getTable('projects').set
             project_id : project_id
             users      :
@@ -363,7 +365,7 @@ class ProjectsActions extends Actions
                     hide : !!state
 
     # Toggle whether or not project is hidden project
-    toggle_hide_project : (project_id) =>
+    toggle_hide_project: (project_id) =>
         account_id = @redux.getStore('account').get_account_id()
         @redux.getTable('projects').set
             project_id : project_id
@@ -371,13 +373,13 @@ class ProjectsActions extends Actions
                 "#{account_id}" :
                     hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
-    delete_project : (project_id) =>
+    delete_project: (project_id) =>
         @redux.getTable('projects').set
             project_id : project_id
             deleted    : true
 
     # Toggle whether or not project is deleted.
-    toggle_delete_project : (project_id) =>
+    toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
             @clear_project_upgrades(project_id)
@@ -391,7 +393,7 @@ actions = redux.createActions('projects', ProjectsActions)
 
 # Define projects store
 class ProjectsStore extends Store
-    get_project : (project_id) =>
+    get_project: (project_id) =>
         return @getIn(['project_map', project_id])?.toJS()
 
     # Given an array of objects with an account_id field, sort it by the
@@ -401,7 +403,7 @@ class ProjectsStore extends Store
     # given their timestamp for activity *on this project*.
     # For global activity (not just on a project) use
     # the sort_by_activity of the users store.
-    sort_by_activity : (users, project_id) =>
+    sort_by_activity: (users, project_id) =>
         last_active = @getIn(['project_map', project_id, 'last_active'])
         if not last_active? # no info
             return users
@@ -415,26 +417,26 @@ class ProjectsStore extends Store
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(last_name(a.account_id), last_name(b.account_id))
 
-    get_users : (project_id) =>
+    get_users: (project_id) =>
         # return users as an immutable JS map.
         return @getIn(['project_map', project_id, 'users'])
 
-    get_last_active : (project_id) =>
+    get_last_active: (project_id) =>
         # return users as an immutable JS map.
         return @getIn(['project_map', project_id, 'last_active'])
 
-    get_title : (project_id) =>
+    get_title: (project_id) =>
         return @getIn(['project_map', project_id, 'title'])
 
-    get_state : (project_id) =>
+    get_state: (project_id) =>
         return @getIn(['project_map', project_id, 'state', 'state'])
 
-    get_description : (project_id) =>
+    get_description: (project_id) =>
         return @getIn(['project_map', project_id, 'description'])
 
     # Immutable.js info about a student project that is part of a
     # course (will be undefined if not a student project)
-    get_course_info : (project_id) =>
+    get_course_info: (project_id) =>
         return @getIn(['project_map', project_id, 'course'])
 
     # If a course payment is required for this project from the signed in user, returns time when
@@ -463,13 +465,13 @@ class ProjectsStore extends Store
                     # need to pay, but haven't -- this is the time by which they must pay
                     return pay
 
-    is_deleted : (project_id) =>
+    is_deleted: (project_id) =>
         return !!@getIn(['project_map', project_id, 'deleted'])
 
-    is_hidden_from : (project_id, account_id) =>
+    is_hidden_from: (project_id, account_id) =>
         return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
 
-    get_project_select_list : (current, show_hidden=true) =>
+    get_project_select_list: (current, show_hidden=true) =>
         map = @get('project_map')
         if not map?
             return
@@ -499,7 +501,7 @@ class ProjectsStore extends Store
     # 'collaborator' - current user is a collaborator on the project
     # 'public' - user is possibly not logged in or is not an admin and not on the project at all
     # 'admin' - user is not owner/collaborator but is an admin, hence has rights
-    get_my_group : (project_id) =>
+    get_my_group: (project_id) =>
         account_store = @redux.getStore('account')
         if not account_store?
             return
@@ -526,23 +528,23 @@ class ProjectsStore extends Store
                 return 'public'
         return me.get('group')
 
-    is_project_open : (project_id) =>
+    is_project_open: (project_id) =>
         @get('open_projects').includes(project_id)
 
-    wait_until_project_is_open : (project_id, timeout, cb) =>  # timeout in seconds
+    wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
         @wait
             until   : => @is_project_open(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
 
-    wait_until_project_exists : (project_id, timeout, cb) =>
+    wait_until_project_exists: (project_id, timeout, cb) =>
         @wait
             until   : => @getIn(['project_map', project_id])?
             timeout : timeout
             cb      : cb
 
-    wait_until_project_created : (token, timeout, cb) =>
+    wait_until_project_created: (token, timeout, cb) =>
         @wait
             until   : =>
                 x = _create_project_tokens[token]
@@ -562,7 +564,7 @@ class ProjectsStore extends Store
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
-    get_total_upgrades_you_have_applied : =>
+    get_total_upgrades_you_have_applied: =>
         if not @get('project_map')?
             return
         total = {}
@@ -602,7 +604,7 @@ class ProjectsStore extends Store
         return upgrades
 
     # Get the total quotas for the given project, including free base values and all user upgrades
-    get_total_project_quotas : (project_id) =>
+    get_total_project_quotas: (project_id) =>
         base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
         if not base_values?
             return
@@ -648,10 +650,10 @@ store = redux.createStore('projects', ProjectsStore, init_store)
 # Create and register projects table, which gets automatically
 # synchronized with the server.
 class ProjectsTable extends Table
-    query : ->
+    query: ->
         return 'projects'
 
-    _change : (table, keys) =>
+    _change: (table, keys) =>
         actions.setState(project_map: table.get())
 
 redux.createTable('projects', ProjectsTable)
@@ -667,11 +669,11 @@ NewProjectCreator = rclass
         quota_params                         : rtypes.object.isRequired # from the schema
         actions                              : rtypes.object.isRequired # projects actions
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         upgrades_you_can_use                 : {}
         upgrades_you_applied_to_all_projects : {}
 
-    getInitialState : ->
+    getInitialState: ->
         state =
             upgrading : true
             has_subbed       : false
@@ -680,20 +682,20 @@ NewProjectCreator = rclass
             description_text : ''
             error            : ''
 
-    componentWillReceiveProps : (nextProps) ->
+    componentWillReceiveProps: (nextProps) ->
         # https://facebook.github.io/react/docs/component-specs.html#updating-componentwillreceiveprops
         subs = @props.customer?.subscriptions?.total_count ? 0
         if subs > 0 and not @state["has_subbed"]
             @setState(has_subbed: true)
 
-    start_editing : ->
+    start_editing: ->
         redux.getActions('billing')?.update_customer()
         @setState
             state           : 'edit'
             title_text      : ''
             description_text: ''
 
-    cancel_editing : ->
+    cancel_editing: ->
         @setState
             state            : 'view'
             title_text       : ''
@@ -706,7 +708,7 @@ NewProjectCreator = rclass
         else
             @cancel_editing()
 
-    render_upgrades_adjustor : ->
+    render_upgrades_adjustor: ->
         <UpgradeAdjustor
             upgrades_you_can_use                 = {@props.upgrades_you_can_use}
             upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
@@ -720,7 +722,7 @@ NewProjectCreator = rclass
             {@render_info_alert()}
         </UpgradeAdjustor>
 
-    create_project : (quotas_to_apply) ->
+    create_project: (quotas_to_apply) ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
@@ -737,15 +739,15 @@ NewProjectCreator = rclass
                     @props.actions.apply_upgrades_to_project(project_id, quotas_to_apply)
                 @actions('projects').open_project(project_id:project_id)
 
-    handle_keypress : (e) ->
+    handle_keypress: (e) ->
         if e.keyCode == 13 and @state.title_text != ''
             @create_project()
 
-    go_to_upgrade : (e) ->
+    go_to_upgrade: (e) ->
         e.preventDefault();
         $('html, body').animate({ scrollTop: $('#upgrade_before_creation').offset().top }, 0)
 
-    render_upgrade_before_create : (subs) ->
+    render_upgrade_before_create: (subs) ->
         <Col sm=12>
             <h3>Upgrade to give your project internet access and more resources</h3>
             <p>
@@ -766,13 +768,13 @@ NewProjectCreator = rclass
             </div>
         </Col>
 
-    render_info_alert : ->
+    render_info_alert: ->
         if @state.title_text == '' and @state.state != 'saving'
             <Alert bsStyle='danger'>No project title specified. Please enter title at the top.</Alert>
         else if @state.state == 'saving'
             <Alert bsStyle='info'>Working hard to build your project... <Icon name='circle-o-notch' spin /></Alert>
 
-    render_input_section : (subs)  ->
+    render_input_section: (subs)  ->
         create_btn_disabled = @state.title_text == '' or @state.state == 'saving'
 
         <Well style={backgroundColor: '#FFF', color:'#666'}>
@@ -851,11 +853,11 @@ NewProjectCreator = rclass
             </Row>
         </Well>
 
-    render_error : ->
+    render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render : ->
+    render: ->
         subs = @props.customer?.subscriptions?.total_count ? 0
         <Row>
             <Col sm=4>
@@ -884,13 +886,13 @@ ProjectsFilterButtons = rclass
         show_hidden_button  : rtypes.bool
         show_deleted_button : rtypes.bool
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         hidden  : false
         deleted : false
         show_hidden_button : false
         show_deleted_button : false
 
-    render_deleted_button : ->
+    render_deleted_button: ->
         style = if @props.deleted then 'warning' else "default"
         if @props.show_deleted_button
             <Button onClick={=>redux.getActions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
@@ -899,14 +901,14 @@ ProjectsFilterButtons = rclass
         else
             return null
 
-    render_hidden_button : ->
+    render_hidden_button: ->
         style = if @props.hidden then 'warning' else "default"
         if @props.show_hidden_button
             <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
 
-    render : ->
+    render: ->
         <ButtonGroup>
             {@render_deleted_button()}
             {@render_hidden_button()}
@@ -918,21 +920,21 @@ ProjectsSearch = rclass
     propTypes :
         search : rtypes.string.isRequired
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         search             : ''
         open_first_project : undefined
 
-    clear_and_focus_input : ->
+    clear_and_focus_input: ->
         redux.getActions('projects').setState(search: '')
         @refs.projects_search.clear_and_focus_search_input()
 
-    delete_search_button : ->
+    delete_search_button: ->
         s = if @props.search?.length > 0 then 'warning' else "default"
         <Button onClick={@clear_and_focus_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
-    render : ->
+    render: ->
         <SearchInput
             ref         = 'projects_search'
             autoFocus   = {true}
@@ -953,10 +955,10 @@ HashtagGroup = rclass
         toggle_hashtag    : rtypes.func.isRequired
         selected_hashtags : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         selected_hashtags : {}
 
-    render_hashtag : (tag) ->
+    render_hashtag: (tag) ->
         color = 'info'
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = 'warning'
@@ -964,7 +966,7 @@ HashtagGroup = rclass
             {misc.trunc(tag, 60)}
         </Button>
 
-    render : ->
+    render: ->
         <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
@@ -981,13 +983,13 @@ ProjectsListingDescription = rclass
         nb_projects_visible : rtypes.number.isRequired
         on_cancel           : rtypes.func
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         deleted           : false
         hidden            : false
         selected_hashtags : {}
         search            : ''
 
-    render_header : ->
+    render_header: ->
         if @props.nb_projects > 0 and (@props.hidden or @props.deleted)
             d = if @props.deleted then 'deleted ' else ''
             h = if @props.hidden then 'hidden ' else ''
@@ -996,14 +998,14 @@ ProjectsListingDescription = rclass
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
             <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
-    render_span : (query) ->
+    render_span: (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
         <Button onClick={@props.on_cancel}>
             Cancel
         </Button></span>
 
-    render_alert_message : ->
+    render_alert_message: ->
         query = @props.search.toLowerCase()
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
         if query != '' and hashtags_string != '' then query += ' '
@@ -1017,7 +1019,7 @@ ProjectsListingDescription = rclass
                 {if query isnt '' then @render_span(query)}
             </Alert>
 
-    render : ->
+    render: ->
         <div>
             <Space/>
             {@render_header()}
@@ -1032,23 +1034,23 @@ ProjectRow = rclass
         index   : rtypes.number
         redux   : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         user_map : undefined
 
-    render_status : ->
+    render_status: ->
         state = @props.project.state?.state
         if state?
             <span style={color: '#666'}>
                 <ProjectState state={state} />
             </span>
 
-    render_last_edited : ->
+    render_last_edited: ->
         try
             <TimeAgo date={(new Date(@props.project.last_edited)).toISOString()} />
         catch e
             console.log("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to wstein@gmail.com")
 
-    render_user_list : ->
+    render_user_list: ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
         redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
         users = []
@@ -1060,20 +1062,20 @@ ProjectRow = rclass
                            user_map    = {@props.user_map} />
         return r_join(users)
 
-    open_project_from_list : (e) ->
+    open_project_from_list: (e) ->
         @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
-    open_edit_collaborator : (e) ->
+    open_edit_collaborator: (e) ->
         @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             target     : 'settings'
         e.stopPropagation()
 
-    render : ->
+    render: ->
         project_row_styles =
             backgroundColor : if (@props.index % 2) then '#eee' else 'white'
             marginBottom    : 0
@@ -1111,14 +1113,14 @@ ProjectList = rclass
         show_all    : rtypes.bool.isRequired
         redux       : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         projects : []
         user_map : undefined
 
-    show_all_projects : ->
+    show_all_projects: ->
         redux.getActions('projects').setState(show_all : not @props.show_all)
 
-    render_show_all : ->
+    render_show_all: ->
         if @props.projects.length > MAX_DEFAULT_PROJECTS
             more = @props.projects.length - MAX_DEFAULT_PROJECTS
             <br />
@@ -1129,7 +1131,7 @@ ProjectList = rclass
                 Show {if @props.show_all then "#{more} less" else "#{more} more"} matching projects...
             </Button>
 
-    render_list : ->
+    render_list: ->
         listing = []
         i = 0
         for project in @props.projects
@@ -1145,7 +1147,7 @@ ProjectList = rclass
 
         return listing
 
-    render : ->
+    render: ->
         if @props.nb_projects == 0
             <Alert bsStyle='info'>
                 You have not created any projects yet.
@@ -1201,7 +1203,7 @@ exports.ProjectsPage = ProjectsPage = rclass
     propTypes :
         redux             : rtypes.object
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         project_map       : undefined
         user_map          : undefined
         hidden            : false
@@ -1210,7 +1212,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         selected_hashtags : {}
         show_all          : false
 
-    componentWillReceiveProps : (next) ->
+    componentWillReceiveProps: (next) ->
         if not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
@@ -1229,7 +1231,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         if not immutable.is(@props.user_map, next.user_map)
             @update_user_search_info(@props.user_map, next.user_map)
 
-    _compute_project_derived_data : (project, user_map) ->
+    _compute_project_derived_data: (project, user_map) ->
         #console.log("computing derived data of #{project.project_id}")
         # compute the hashtags
         project.hashtags = parse_project_tags(project)
@@ -1237,7 +1239,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         project.search_string = parse_project_search_string(project, user_map)
         return project
 
-    update_user_search_info : (user_map, next_user_map) ->
+    update_user_search_info: (user_map, next_user_map) ->
         if not user_map? or not next_user_map? or not @_project_list?
             return
         for project in @_project_list
@@ -1246,7 +1248,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                     @_compute_project_derived_data(project, next_user_map)
                     break
 
-    update_project_list : (project_map, next_project_map, user_map) ->
+    update_project_list: (project_map, next_project_map, user_map) ->
         user_map ?= @props.user_map   # if user_map is not defined, use last known one.
         if not project_map?
             # can't do anything without these.
@@ -1276,10 +1278,10 @@ exports.ProjectsPage = ProjectsPage = rclass
         # resort by when project was last edited. (feature idea: allow sorting by title or description instead)
         return @_project_list.sort((p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited))
 
-    project_list : ->
+    project_list: ->
         return @_project_list ? @update_project_list(@props.project_map)
 
-    update_hashtags : (hidden, deleted) ->
+    update_hashtags: (hidden, deleted) ->
         tags = {}
         for project in @project_list()
             if project_is_in_filter(project, hidden, deleted)
@@ -1289,11 +1291,11 @@ exports.ProjectsPage = ProjectsPage = rclass
         return @_hashtags
 
     # All hashtags of projects in this filter
-    hashtags : ->
+    hashtags: ->
         return @_hashtags ? @update_hashtags(@props.hidden, @props.deleted)
 
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
-    matches : (project, search_terms) ->
+    matches: (project, search_terms) ->
         project_search_string = project.search_string
         for word in search_terms
             if word[0] == '#'
@@ -1302,12 +1304,12 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return false
         return true
 
-    visible_projects : ->
+    visible_projects: ->
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
-    toggle_hashtag : (tag) ->
+    toggle_hashtag: (tag) ->
         selected_hashtags = @props.selected_hashtags
         filter = @filter()
         if not selected_hashtags[filter]
@@ -1320,10 +1322,10 @@ exports.ProjectsPage = ProjectsPage = rclass
             selected_hashtags[filter][tag] = true
         @actions('projects').setState(selected_hashtags: selected_hashtags)
 
-    filter : ->
+    filter: ->
         "#{@props.hidden}-#{@props.deleted}"
 
-    render_projects_title : ->
+    render_projects_title: ->
         projects_title_styles =
             color        : '#666'
             fontSize     : '24px'
@@ -1331,7 +1333,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             marginBottom : '1ex'
         <div style={projects_title_styles}><Icon name='thumb-tack' /> Projects </div>
 
-    open_first_project : ->
+    open_first_project: ->
         project = @visible_projects()[0]
         if project?
             @actions('projects').open_project(project_id: project.project_id, switch_to: true)
@@ -1340,7 +1342,7 @@ exports.ProjectsPage = ProjectsPage = rclass
     ###
 
     # Returns true if the user has any hidden projects
-    has_hidden_projects : ->
+    has_hidden_projects: ->
         for project in @project_list()
             if project_is_in_filter(project, true, false) or project_is_in_filter(project, true, true)
                 return true
@@ -1348,17 +1350,17 @@ exports.ProjectsPage = ProjectsPage = rclass
 
 
     # Returns true if this project has any deleted files
-    has_deleted_projects : ->
+    has_deleted_projects: ->
         for project in @project_list()
             if project_is_in_filter(project, false, true) or project_is_in_filter(project, true, true)
                 return true
         return false
 
-    clear_filters_and_focus_search_input : ->
+    clear_filters_and_focus_search_input: ->
         @actions('projects').setState(selected_hashtags:{})
         @refs.search.clear_and_focus_input()
 
-    render : ->
+    render: ->
         if not @props.project_map?
             if redux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
@@ -1444,10 +1446,10 @@ exports.ProjectTitle = ProjectTitle = rclass
         project_id   : rtypes.string.isRequired
         handle_click : rtypes.func
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
-    render : ->
+    render: ->
         if not @props.project_map?
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
@@ -1462,7 +1464,7 @@ exports.ProjectTitleAuto = rclass
     propTypes :
         project_id  : rtypes.string.isRequired
 
-    render : ->
+    render: ->
         <Redux redux={redux}>
             <ProjectTitle project_id={@props.project_id} />
         </Redux>

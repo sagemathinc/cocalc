@@ -75,10 +75,10 @@ Page = rclass
     propTypes :
         redux : rtypes.object
 
-    componentWillUnmount : ->
+    componentWillUnmount: ->
         @actions('page').clear_all_handlers()
 
-    account_name : ->
+    account_name: ->
         name = ''
         if @props.get_fullname?
             name = misc.trunc_middle(@props.get_fullname(), 32)
@@ -110,7 +110,7 @@ Page = rclass
             active_top_tab = {@props.active_top_tab}
         />
 
-    render_right_nav : ->
+    render_right_nav: ->
         logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'41px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
@@ -122,7 +122,7 @@ Page = rclass
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
 
-    render_project_nav_button : ->
+    render_project_nav_button: ->
         projects_styles =
             whiteSpace : 'nowrap'
             float      : 'right'
@@ -143,7 +143,7 @@ Page = rclass
             </NavTab>
         </Nav>
 
-    render : ->
+    render: ->
         style =
             display       : 'flex'
             flexDirection : 'column'

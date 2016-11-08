@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -161,6 +161,17 @@ init_redux = (course_filename, redux, course_project_id) ->
                 @setState(t)
                 @setState(unsaved:syncdb?.has_unsaved_changes())
 
+        handle_projects_store_update: (state) =>
+            users = state.getIn(['project_map', course_project_id, 'users'])?.keySeq()
+            if not users?
+                return
+            if not @_last_collaborator_state?
+                @_last_collaborator_state = users
+                return
+            if not @_last_collaborator_state.equals(users)
+                @configure_all_projects()
+            @_last_collaborator_state = users
+
         # PUBLIC API
 
         set_error: (error) =>
@@ -206,6 +217,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update(set:{description:description}, where:{table:'settings'})
             @set_all_student_project_descriptions(description)
 
+        set_allow_collabs: (allow_collabs) =>
+            @_update(set:{allow_collabs:allow_collabs}, where:{table:'settings'})
+
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
 
@@ -238,19 +252,39 @@ init_redux = (course_filename, redux, course_project_id) ->
                 return  # no shared project
             # add collabs -- all collaborators on course project and all students
             projects = redux.getStore('projects')
-            current = projects.get_users(shared_project_id)
-            if not current?
+            shared_project_users = projects.get_users(shared_project_id)
+            if not shared_project_users?
                 return
+            course_project_users = projects.get_users(course_project_id)
+            if not course_project_users?
+                return
+            student_account_ids = {}
+            store.get_students().map (student, _) =>
+                if not student.get('deleted')
+                    account_id = student.get('account_id')
+                    if account_id?
+                        student_account_ids[account_id] = true
+
+            # Each of shared_project_users or course_project_users are
+            # immutable.js maps from account_id's to something, and students is a map from
+            # the student account_id's.
+            # Our goal is to ensur that:
+            #   {shared_project_users} = {course_project_users} union {students}.
+
             actions = redux.getActions('projects')
-            invite = (account_id) =>
-                actions.invite_collaborator(shared_project_id, account_id)
-            projects.get_users(course_project_id).map (_, account_id) =>
-                if not current.get(account_id)?
-                    invite(account_id)
-            store.get_students().map (student, student_id) =>
-                account_id = student.get('account_id')
-                if account_id? and not current.get(account_id)?
-                    invite(account_id)
+            if not store.get_allow_collabs()
+                # Ensure the shared project users are all either course or students
+                shared_project_users.map (_, account_id) =>
+                    if not course_project_users.get(account_id) and not student_account_ids[account_id]
+                        actions.remove_collaborator(shared_project_id, account_id)
+            # Ensure every course project user is on the shared project
+            course_project_users.map (_, account_id) =>
+                if not shared_project_users.get(account_id)
+                    actions.invite_collaborator(shared_project_id, account_id)
+            # Ensure every student is on the shared project
+            for account_id, _ of student_account_ids
+                if not shared_project_users.get(account_id)
+                    actions.invite_collaborator(shared_project_id, account_id)
 
         # set the shared project id in our syncdb
         _set_shared_project_id: (project_id) =>
@@ -344,6 +378,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update
                 set   : {deleted : true}
                 where : {student_id : student.get('student_id'), table : 'students'}
+            @configure_all_projects()   # since they may get removed from shared project, etc.
 
         undelete_student: (student) =>
             store = get_store()
@@ -352,6 +387,7 @@ init_redux = (course_filename, redux, course_project_id) ->
             @_update
                 set   : {deleted : false}
                 where : {student_id : student.get('student_id'), table : 'students'}
+            @configure_all_projects()   # since they may get added back to shared project, etc.
 
         # Some students might *only* have been added using their email address, but they
         # subsequently signed up for an SMC account.  We check for any of these and if
@@ -433,6 +469,9 @@ init_redux = (course_filename, redux, course_project_id) ->
             # Add student and all collaborators on this project to the project with given project_id.
             # users = who is currently a user of the student's project?
             users = redux.getStore('projects').get_users(student_project_id)  # immutable.js map
+            if not users?
+                # can't do anything if this isn't known...
+                return
             # Define function to invite or add collaborator
             s = get_store()
             body = s.get_email_invite()
@@ -459,8 +498,13 @@ init_redux = (course_filename, redux, course_project_id) ->
             if not target_users?
                 return  # projects store isn't sufficiently initialized, so we can't do this yet...
             target_users.map (_, account_id) =>
-                if not users?.get(account_id)?
+                if not users.get(account_id)?
                     invite(account_id)
+            if not s.get_allow_collabs()
+                # Remove anybody extra on the student project
+                users.map (_, account_id) =>
+                    if not target_users.get(account_id)? and account_id != student_account_id
+                        redux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = redux.getStore('projects').get_users(student_project_id)
@@ -1478,6 +1522,9 @@ init_redux = (course_filename, redux, course_project_id) ->
         get_pay: =>
             return @getIn(['settings', 'pay']) ? ''
 
+        get_allow_collabs: =>
+            return @getIn(['settings', 'allow_collabs']) ? false
+
         get_email_invite: =>
             host = window.location.hostname
             @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
@@ -1826,7 +1873,8 @@ init_redux = (course_filename, redux, course_project_id) ->
                 syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
-                redux.getStore('projects').wait
+                projects_store = redux.getStore('projects')
+                projects_store.wait
                     until   :  (store) -> store.get_users(course_project_id)?
                     timeout : 30
                     cb      : ->
@@ -1834,10 +1882,20 @@ init_redux = (course_filename, redux, course_project_id) ->
                         actions.lookup_nonregistered_students()
                         actions.configure_all_projects()
 
+                        # Also
+                        projects_store.on 'change', actions.handle_projects_store_update
+                        actions.handle_projects_store_update(projects_store)  # initialize
+
     return the_redux_name
 
 remove_redux = (course_filename, redux, course_project_id) ->
     the_redux_name = redux_name(course_project_id, course_filename)
+
+    # Remove the listener for changes in the collaborators on this project.
+    actions = redux.getActions(the_redux_name)
+    redux.getStore('projects').removeListener('change', actions.handle_projects_store_update)
+
+    # Remove the store and actions.
     redux.removeStore(the_redux_name)
     redux.removeActions(the_redux_name)
     delete syncdbs[the_redux_name]
@@ -1867,25 +1925,25 @@ CourseEditor = rclass ({name}) ->
         project_id  : rtypes.string.isRequired
         path        : rtypes.string.isRequired
 
-    render_activity : ->
+    render_activity: ->
         <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
             on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
 
-    render_error : ->
+    render_error: ->
         <ErrorDisplay error={@props.error}
                       onClose={=>@props.redux.getActions(@props.name).set_error('')} />
 
-    render_save_button : ->
+    render_save_button: ->
         <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
 
-    show_files : ->
+    show_files: ->
         @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
-    render_files_button : ->
+    render_files_button: ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
-    render_title : ->
+    render_title: ->
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     show_timetravel: ->
@@ -1918,7 +1976,7 @@ CourseEditor = rclass ({name}) ->
     num_handouts: ->
         @props.redux.getStore(@props.name)?.num_handouts()
 
-    render_students : ->
+    render_students: ->
         if @props.redux? and @props.students? and @props.user_map? and @props.project_map?
             <StudentsPanel redux={@props.redux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
@@ -1928,14 +1986,14 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_assignments : ->
+    render_assignments: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <AssignmentsPanel actions={@props.redux.getActions(@props.name)} redux={@props.redux} all_assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />
 
-    render_handouts : ->
+    render_handouts: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
             <HandoutsPanel actions={@props.redux.getActions(@props.name)} all_handouts={@props.handouts}
                 project_id={@props.project_id} user_map={@props.user_map} students={@props.students}
@@ -1945,7 +2003,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_settings : ->
+    render_settings: ->
         if @props.redux? and @props.settings?
             <SettingsPanel redux={@props.redux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
@@ -1961,7 +2019,7 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render : ->
+    render: ->
         <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}

@@ -5,7 +5,7 @@ Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
 # FUTURE: This is needed only for the old non-react editors; will go away.
-html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
+html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html') + require('./misc_page.html')
 $('body').append(html)
 
 # Load/initialize Redux-based react functionality

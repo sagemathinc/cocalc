@@ -223,8 +223,18 @@ file_associations['ipynb'] =
 
 for ext in ['png', 'jpg', 'gif', 'svg']
     file_associations[ext] =
-        editor : 'image'
+        editor : 'media'
         icon   : 'fa-file-image-o'
+        opts   : {}
+        name   : ext
+        binary : true
+        exclude_from_menu : true
+
+VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv']
+for ext in VIDEO_EXTS
+    file_associations[ext] =
+        editor : 'media'
+        icon   : 'fa-file-video-o'
         opts   : {}
         name   : ext
         binary : true
@@ -2704,7 +2714,7 @@ class PDF_PreviewEmbed extends FileEditor
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
@@ -2820,7 +2830,7 @@ class Terminal extends FileEditor
         @element.salvus_console(false)
         super()
 
-    hide : () =>
+    hide: () =>
         if @console?
             @element?.hide()
             @console.blur()
@@ -2838,8 +2848,11 @@ class Terminal extends FileEditor
             @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')   # HACK: this is hack-ish; needs to be redone!
             @console.focus(true)
 
-class Image extends FileEditor
+class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
+        @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
+
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
@@ -2855,9 +2868,18 @@ class Image extends FileEditor
 
         if url?
             @element.find(".salvus-editor-image-container").find("span").hide()
-            @element.find("img").attr('src', url)
+            @set_src(url)
         else
             @update()
+
+    set_src: (src) =>
+        switch @mode
+            when 'image'
+                @element.find("img").attr('src', src)
+                @element.find('video').hide()
+            when 'video'
+                @element.find('img').hide()
+                @element.find('video').attr('src', src).show()
 
     update: (cb) =>
         @element.find("a[href=\"#refresh\"]").icon_spin(start:true)
@@ -2875,7 +2897,7 @@ class Image extends FileEditor
                     alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
                     cb?(mesg.event)
                 else
-                    @element.find("img").attr('src', mesg.url + "?random=#{Math.random()}")
+                    @set_src(mesg.url + "?random=#{Math.random()}")
                     cb?()
 
     show: () =>
@@ -3028,7 +3050,7 @@ class TaskList extends FileEditorWrapper
             @wrapped = elt.data('task_list')
             @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
@@ -3047,7 +3069,7 @@ class JupyterNotebook extends FileEditorWrapper
         @element = jupyter.jupyter_notebook(@, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 
-    mount : () =>
+    mount: () =>
         if not @mounted
             $(document.body).append(@element)
             @mounted = true
@@ -3129,7 +3151,7 @@ exports.register_nonreact_editors = () ->
     reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
     reg0 LatexEditor,      ['tex']
     reg0 Terminal,         ['term', 'sage-term']
-    reg0 Image,            ['png', 'jpg', 'gif', 'svg']
+    reg0 Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS)
 
     {HistoryEditor} = require('./editor_history')
     reg0 HistoryEditor,    ['sage-history']

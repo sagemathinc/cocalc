@@ -395,6 +395,7 @@ R_PACKAGES = [
     'survey',
     'maps',
     'plotly',
+    'ipyleaflet', # also needs jupyter nbextension enable --py --sys-prefix ipyleaflet
 ]
 
 # Sage has additionally some optional packages. We try to install as many of them as feasible.
@@ -464,6 +465,7 @@ class BuildSage(object):
         Do everything to patch/update/install/enhance this Sage install.
         """
         actions = [
+            "clean_PATH",
             #"pull_smc_sage", # broken
             #"unextend_sys_path",
             "patch_sage_location",
@@ -516,6 +518,17 @@ class BuildSage(object):
 
         #install_ipython_patch()  # must be done manually still
 
+    def clean_PATH(self):
+        """
+        Building anything in Sage shouldn't accidentally use anything that's in a home dir like /home/salvus.
+
+        E.g. there was a problem with R, where it did pick up some executable from ~/node_modules/.bin which are
+        not available in prod.
+        """
+        import os
+        PATH = os.environ['PATH']
+        os.environ['PATH'] = ':'.join(filter(lambda _ : not _.startswith('/home/'), PATH.split(':')))
+
     def install_r_jupyter_kernel(self):
         # see https://github.com/IRkernel/IRkernel
         self.cmd(r"""echo 'install.packages("devtools", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("RCurl", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("base64enc", repos="http://ftp.osuosl.org/pub/cran/"); install.packages("uuid", repos="http://ftp.osuosl.org/pub/cran/"); library(devtools); install_github("armstrtw/rzmq"); install_github("IRkernel/repr"); install_github("IRkernel/IRdisplay"); install_github("IRkernel/IRkernel");' | R --no-save""")
@@ -526,6 +539,7 @@ class BuildSage(object):
         to run again after something changes ...
         '''
         self.cmd('jupyter nbextension enable --py --sys-prefix widgetsnbextension')
+        self.cmd('jupyter nbextension enable --py --sys-prefix ipyleaflet')
 
     def install_altair(self):
         # altair's vega dependency installation

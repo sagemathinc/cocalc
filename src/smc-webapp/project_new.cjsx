@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -65,16 +65,16 @@ PathLink = exports.PathLink = rclass
         actions    : rtypes.object.isRequired
         default    : rtypes.string
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         default : 'home directory of project'
 
     styles :
         cursor : 'pointer'
 
-    handle_click : ->
+    handle_click: ->
         @props.actions.set_active_tab('files')
 
-    render : ->
+    render: ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>
 
 ProjectNewHeader = rclass
@@ -86,7 +86,7 @@ ProjectNewHeader = rclass
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
-    render : ->
+    render: ->
         <h1 style={marginTop:"0px"}>
             <Icon name='plus-circle' /> Create new files in<Space/>
             <PathLink
@@ -105,12 +105,12 @@ exports.NewFileButton = NewFileButton = rclass
         on_click : rtypes.func
         ext      : rtypes.string
 
-    on_click : ->
+    on_click: ->
         if @props.ext?
             @props.on_click(@props.ext)
         else
             @props.on_click()
-    render : ->
+    render: ->
         <Button onClick={@on_click}  style={marginRight:'5px'} >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
@@ -122,18 +122,18 @@ NewFileDropdown = rclass
 
     mixins : [ImmutablePureRenderMixin]
 
-    file_dropdown_icon : ->
+    file_dropdown_icon: ->
         <span>
             <Icon name='file' /> File
         </span>
 
-    file_dropdown_item : (i, ext) ->
+    file_dropdown_item: (i, ext) ->
         data = file_associations[ext]
         <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
             <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
-    render : ->
+    render: ->
         <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
@@ -146,7 +146,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         create_folder : rtypes.func.required
         styles        : rtypes.object
 
-    render : ->
+    render: ->
         row_style =
             marginBottom:'8px'
         <div>
@@ -213,7 +213,7 @@ ProjectNewForm = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
-    getInitialState : ->
+    getInitialState: ->
         filename           : @props.default_filename ? @default_filename()
         extension_warning  : false
 
@@ -225,13 +225,13 @@ ProjectNewForm = rclass ({name}) ->
         if not @state.extension_warning
             ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
-    default_filename : ->
+    default_filename: ->
         return require('./account').default_filename()
 
-    focus_input : ->
+    focus_input: ->
         ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
-    create_file : (ext) ->
+    create_file: (ext) ->
         if not @state.filename
             @focus_input()
             return
@@ -240,7 +240,7 @@ ProjectNewForm = rclass ({name}) ->
             ext          : ext
             current_path : @props.current_path
 
-    submit : (e) ->
+    submit: (e) ->
         e.preventDefault()
         if not @state.filename  # empty filename
             return
@@ -257,7 +257,7 @@ ProjectNewForm = rclass ({name}) ->
                 current_path = {@props.current_path}
                 actions      = {@props.actions} />
 
-    render_error : ->
+    render_error: ->
         error = @props.file_creation_error
         if error is 'not running'
             message = 'The project is not running. Please try again in a moment'
@@ -273,13 +273,13 @@ ProjectNewForm = rclass ({name}) ->
         else
             return ' (internet access blocked -- see project settings)'
 
-    create_folder : ->
+    create_folder: ->
         @props.actions.create_folder
             name         : @state.filename
             current_path : @props.current_path
             switch_over  : true
 
-    render_no_extension_alert : ->
+    render_no_extension_alert: ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
             <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
@@ -292,7 +292,7 @@ ProjectNewForm = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
-    render : ->
+    render: ->
         <div>
             {@render_header()}
             <Row key={@props.default_filename} >  {#  key is so autofocus works below}
@@ -352,7 +352,7 @@ FileUpload = rclass ({name}) ->
 
     mixins : [ImmutablePureRenderMixin]
 
-    template : ->
+    template: ->
         <div className='dz-preview dz-file-preview'>
             <div className='dz-details'>
                 <div className='dz-filename'><span data-dz-name></span></div>
@@ -364,12 +364,12 @@ FileUpload = rclass ({name}) ->
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 
-    postUrl : ->
+    postUrl: ->
         dest_dir = misc.encode_path(@props.current_path)
         postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
-    render : ->
+    render: ->
         <Row>
             <Col sm=3>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
@@ -393,7 +393,7 @@ exports.ProjectNew = rclass ({name}) ->
         project_id : rtypes.string
         name : rtypes.string
 
-    render : ->
+    render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
             <hr />

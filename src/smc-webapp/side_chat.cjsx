@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2015 -- 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -171,7 +171,7 @@ Message = rclass
         @props.actions.set_editing(@props.message, true)
         @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
-    on_keydown : (e) ->
+    on_keydown: (e) ->
         if e.keyCode==27 # ESC
             e.preventDefault()
             @setState
@@ -392,7 +392,7 @@ ChatRoom = (name) -> rclass
     mark_as_read: ->
         @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
 
-    on_keydown : (e) ->
+    on_keydown: (e) ->
         # TODO: Add timeout component to is_typing
         if e.keyCode==13 and e.shiftKey # 13: enter key
             send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -401,7 +401,6 @@ ChatRoom = (name) -> rclass
             @props.actions.set_to_last_input()
         else if e.keyCode == 13
             e.preventDefault()
-            console.log("REFRESH?? WHY?")
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -424,7 +423,7 @@ ChatRoom = (name) -> rclass
             scroll_to_bottom(@refs.log_container, @props.actions)
 
     # All render methods
-    render : ->
+    render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 

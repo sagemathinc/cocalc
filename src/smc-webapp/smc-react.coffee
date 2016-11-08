@@ -68,7 +68,7 @@ class Actions
         if not @redux?
             throw Error("@redux must be defined")
 
-    setState : (obj) =>
+    setState: (obj) =>
         @redux._set_state({"#{@name}":obj})
         return
 

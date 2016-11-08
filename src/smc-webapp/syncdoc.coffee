@@ -135,11 +135,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @_chat_redux_name = side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
 
-        height_resize = () =>
-            chat_height = $($(".salvus-editor-codemirror")[1]).css("height").split("px")[0] - 140
-            side_chat.render(@editor.project_id, @editor.chat_filename, @editor.chat_elt[0], redux, chat_height)
-        $(window).on("resize", height_resize)
-
     hide_chat_window: () =>
         # HIDE the chat window
         @editor._chat_is_hidden = true

@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2015, William Stein
+#    Copyright (C) 2016, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ exports.User = User = rclass
         last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
         name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
 
-    shouldComponentUpdate : (nextProps) ->
+    shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id
             return true
         n = nextProps.user_map?.get(@props.account_id)
@@ -140,14 +140,14 @@ exports.User = User = rclass
             return true   # last active time changed, so update
         return false  # same so don't update
 
-    render_last_active : ->
+    render_last_active: ->
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
-    name : (info) ->
+    name: (info) ->
         return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
 
-    render : ->
+    render: ->
         if not @props.user_map? or @props.user_map.size == 0
             return <span>Loading...</span>
         info = @props.user_map?.get(@props.account_id)

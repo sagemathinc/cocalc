@@ -36,24 +36,24 @@ ProjectTab = rclass
         project_id     : rtypes.string
         active_top_tab : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         x_hovered : false
 
-    componentDidMount : ->
+    componentDidMount: ->
         @strip_href()
 
-    componentDidUpdate : () ->
+    componentDidUpdate: () ->
         @strip_href()
 
-    strip_href : ->
+    strip_href: ->
         @refs.tab?.node.children[0].removeAttribute('href')
 
-    close_tab : (e) ->
+    close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    render : ->
+    render: ->
         title = @props.get_title(@props.project_id)
         title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
@@ -113,13 +113,13 @@ FullProjectsNav = rclass
             active_top_tab    : rtypes.string    # key of the active tab
             num_ghost_tabs    : rtypes.number
 
-    getDefaultProps : ->
+    getDefaultProps: ->
         num_ghost_tabs : 0
 
-    on_sort_end : ({oldIndex, newIndex}) ->
+    on_sort_end: ({oldIndex, newIndex}) ->
         @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
 
-    project_tabs : ->
+    project_tabs: ->
         v = []
         if not @props.open_projects?
             return
@@ -135,7 +135,7 @@ FullProjectsNav = rclass
             v.push(<GhostTab index={index} key={index}/>)
         return v
 
-    project_tab : (project_id, index) ->
+    project_tab: (project_id, index) ->
         <ProjectTab
             index          = {index}
             key            = {project_id}
@@ -145,7 +145,7 @@ FullProjectsNav = rclass
             public_project_titles = {@props.public_project_titles}
         />
 
-    render : ->
+    render: ->
         shim_style =
             position    : 'absolute'
             left        : '0'
@@ -175,20 +175,20 @@ OpenProjectMenuItem = rclass
         project_id            : rtypes.string
         active_top_tab        : rtypes.string
 
-    getInitialState : ->
+    getInitialState: ->
         x_hovered : false
 
-    close_tab : (e) ->
+    close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    open_project : (e) ->
+    open_project: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').set_active_tab(@props.project_id)
 
-    render : ->
+    render: ->
         title = @props.project?.get('title')
         title ?= @props.public_project_titles?.get(@props.project_id)
         if not title?
@@ -237,13 +237,13 @@ DropdownProjectsNav = rclass
         page :
             active_top_tab    : rtypes.string    # key of the active tab
 
-    project_menu_items : ->
+    project_menu_items: ->
         v = []
         @props.open_projects.map (project_id, index) =>
             v.push(@project_tab(project_id, index))
         return v
 
-    project_tab : (project_id, index) ->
+    project_tab: (project_id, index) ->
         <OpenProjectMenuItem
             index          = {index}
             key            = {project_id}
@@ -254,7 +254,7 @@ DropdownProjectsNav = rclass
             public_project_titles = {@props.public_project_titles}
         />
 
-    render_projects_dropdown : ->
+    render_projects_dropdown: ->
         if @props.open_projects.includes(@props.active_top_tab)
             project_id = @props.active_top_tab
 
@@ -271,7 +271,7 @@ DropdownProjectsNav = rclass
             </NavDropdown>
         </Nav>
 
-    render_one_project_item : (project_id) ->
+    render_one_project_item: (project_id) ->
         project_name_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
@@ -296,7 +296,7 @@ DropdownProjectsNav = rclass
             </NavItem>
         </Nav>
 
-    render : ->
+    render: ->
         switch @props.open_projects.size
             when 0
                 <div style={flex:'1'}> </div>

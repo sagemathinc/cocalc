@@ -137,7 +137,7 @@ Template = (name) -> rclass
             <Button onClick={@add_entry}>Add Entry</Button>
         </div>
 
-    render : ->
+    render: ->
         <div>
             <h2>Template for an editor -- {@props.sample_property}</h2>
             <hr/>

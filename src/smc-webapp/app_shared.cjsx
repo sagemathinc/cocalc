@@ -40,7 +40,7 @@ exports.NavTab = rclass
         style          : rtypes.object
         inner_style    : rtypes.object
 
-    make_icon : ->
+    make_icon: ->
         if typeof(@props.icon) == 'string'
             <Icon
                 name  = {@props.icon}
@@ -48,12 +48,12 @@ exports.NavTab = rclass
         else if @props.icon?
             @props.icon
 
-    on_click : (e) ->
+    on_click: (e) ->
         if @props.name?
             @actions('page').set_active_tab(@props.name)
         @props.on_click?()
 
-    render : ->
+    render: ->
         is_active = @props.active_top_tab == @props.name
 
         if @props.style?
@@ -94,10 +94,10 @@ exports.NotificationBell = rclass
     propTypes :
         count : rtypes.number
 
-    on_click : ->
+    on_click: ->
         @actions('page').toggle_show_file_use()
 
-    notification_count : ->
+    notification_count: ->
         count_styles =
             fontSize   : '8pt'
             color      : 'red'
@@ -111,7 +111,7 @@ exports.NotificationBell = rclass
         else if @props.count > 0
             <span style={count_styles}>{@props.count}</span>
 
-    render : ->
+    render: ->
         outer_styles =
             position    : 'relative'
             marginRight : '-10px'
@@ -147,7 +147,7 @@ exports.ConnectionIndicator = rclass
         actions  : rtypes.object
         on_click : rtypes.func
 
-    connection_status : ->
+    connection_status: ->
         if @props.connection_status == 'connected'
             <div>
                 <Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} />
@@ -164,11 +164,11 @@ exports.ConnectionIndicator = rclass
                 disconnected
             </span>
 
-    connection_click : ->
+    connection_click: ->
         @props.actions.show_connection(true)
         @props.on_click?()
 
-    render : ->
+    render: ->
         outer_styles =
             width      : '8.5em'
             color      : '#666'
@@ -199,10 +199,10 @@ exports.ConnectionInfo = rclass
         account :
             hub : rtypes.string
 
-    close : ->
+    close: ->
         @actions('page').show_connection(false)
 
-    connection_body : ->
+    connection_body: ->
         <div>
             {<Row>
                 <Col sm=3>
@@ -227,7 +227,7 @@ exports.ConnectionInfo = rclass
             </Row>
         </div>
 
-    render : ->
+    render: ->
         <Modal show={true} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>
@@ -249,10 +249,10 @@ exports.FullscreenButton = rclass
         page :
             fullscreen : rtypes.bool
 
-    on_fullscreen : ->
+    on_fullscreen: ->
         @actions('page').set_fullscreen(not @props.fullscreen)
 
-    render : ->
+    render: ->
         icon = if @props.fullscreen then 'expand' else 'compress'
         styles =
             position   : 'fixed'
@@ -268,7 +268,7 @@ exports.FullscreenButton = rclass
 exports.SMCLogo = rclass
     displayName : 'SMCLogo'
 
-    render : ->
+    render: ->
         smc_icon_url = require('salvus-icon.svg')
         styles =
             display         : 'inline-block'
@@ -286,7 +286,7 @@ exports.VersionWarning = rclass
     propTypes :
         new_version : rtypes.object
 
-    render_critical : ->
+    render_critical: ->
         if @props.new_version.min_version > salvus_client.version()
             <div>
                 <br />
@@ -297,7 +297,7 @@ exports.VersionWarning = rclass
                 &nbsp;IMMEDIATELY OR YOU WILL BE DISCONNECTED.  Sorry for the inconvenience.
             </div>
 
-    render_close : ->
+    render_close: ->
         if not (@props.new_version.min_version > salvus_client.version())
             <Icon
                 name = 'times'
@@ -305,7 +305,7 @@ exports.VersionWarning = rclass
                 style = {cursor : 'pointer'}
                 onClick = {=>redux.getActions('page').set_new_version(undefined)} />
 
-    render : ->
+    render: ->
         styles =
             position        : 'fixed'
             left            : 12
@@ -315,7 +315,7 @@ exports.VersionWarning = rclass
             opacity         : .75
             borderRadius    : 4
             padding         : 5
-            zIndex          : 1
+            zIndex          : 900
             boxShadow       : '8px 8px 4px #888'
             width           : '70%'
             marginTop       : '1em'
@@ -345,7 +345,7 @@ warning_styles =
 exports.CookieWarning = rclass
     displayName : 'CookieWarning'
 
-    render : ->
+    render: ->
         <div style={warning_styles}>
             <Icon name='warning' /> You <em>must</em> enable cookies to use SageMathCloud.
         </div>
@@ -357,7 +357,7 @@ storage_warning_style.top = 55
 exports.LocalStorageWarning = rclass
     displayName : 'LocalStorageWarning'
 
-    render : ->
+    render: ->
         <div style={storage_warning_style}>
             <Icon name='warning' /> You <em>must</em> enable local storage to use SageMathCloud.  On some browsers you must also disable private browsing mode.
         </div>

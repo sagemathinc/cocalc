@@ -1,6 +1,6 @@
 ###
 SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-Copyright (C) 2015, William Stein, GPL v3.
+Copyright (C) 2016, Sagemath Inc.
 ---
 
 Site Customize -- dynamically customize the look of SMC for the client.
@@ -30,7 +30,7 @@ HelpEmailLink = rclass
             help_email : rtypes.string
     propTypes :
         text : rtypes.string
-    render : ->
+    render: ->
         if @props.help_email
             <a href={"mailto:#{@props.help_email}"} target='_blank'>{@props.text ? @props.help_email}</a>
         else
@@ -40,7 +40,7 @@ exports.HelpEmailLink = rclass
     displayName : 'HelpEmailLink-redux'
     propTypes :
         text : rtypes.string
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <HelpEmailLink text={@props.text} />
         </Redux>
@@ -50,7 +50,7 @@ SiteName = rclass
     reduxProps :
         customize :
             site_name : rtypes.string
-    render : ->
+    render: ->
         if @props.site_name
             <span>{@props.site_name}</span>
         else
@@ -58,7 +58,7 @@ SiteName = rclass
 
 exports.SiteName = rclass
     displayName : 'SiteName-redux'
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <SiteName />
         </Redux>
@@ -70,7 +70,7 @@ SiteDescription = rclass
     reduxProps :
         customize :
             site_description : rtypes.string
-    render : ->
+    render: ->
         style = @props.style ? {color:'#666', fontSize:'16px'}
         if @props.site_description?
             <span style={style}>{@props.site_description}</span>
@@ -81,7 +81,7 @@ exports.SiteDescription = rclass
     displayName : 'SiteDescription-redux'
     propTypes :
         style : rtypes.object
-    render      : ->
+    render: ->
         <Redux redux={redux}>
             <SiteDescription style={@props.style}/>
         </Redux>
@@ -89,7 +89,7 @@ exports.SiteDescription = rclass
 # TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 exports.CompanyName = rclass
     displayName : 'CompanyName'
-    render :->
+    render:->
         <span>SageMath, Inc.</span>
 
 TermsOfService = rclass
@@ -102,7 +102,7 @@ TermsOfService = rclass
     propTypes :
         style : rtypes.object
 
-    render : ->
+    render: ->
         if not @props.terms_of_service?
             return <div></div>
         return <div style={@props.style} dangerouslySetInnerHTML={__html: @props.terms_of_service}></div>
@@ -113,7 +113,7 @@ exports.TermsOfService = rclass
     propTypes :
         style : rtypes.object
 
-    render : ->
+    render: ->
         <Redux redux={redux}>
             <TermsOfService style={@props.style} />
         </Redux>
@@ -125,13 +125,13 @@ AccountCreationEmailInstructions = rclass
         customize :
             account_creation_email_instructions : rtypes.string
 
-    render : ->
+    render: ->
         <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
 
 exports.AccountCreationEmailInstructions = rclass
     displayName : 'AccountCreationEmailInstructions'
 
-    render : ->
+    render: ->
         <Redux redux={redux}>
             <AccountCreationEmailInstructions />
         </Redux>
