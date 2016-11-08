@@ -3,7 +3,7 @@
   "argv": [
     "/usr/bin/julia",
     "-i",
-    "-F",
+    "--startup-file=yes",
     "/usr/local/share/julia/site/v0.5/IJulia/src/kernel.jl",
     "{connection_file}"
   ],
