@@ -4,7 +4,7 @@
     "/usr/bin/julia",
     "-i",
     "-F",
-    "/usr/local/share/julia/site/v0.4/IJulia/src/kernel.jl",
+    "/usr/local/share/julia/site/v0.5/IJulia/src/kernel.jl",
     "{connection_file}"
   ],
   "language": "julia"

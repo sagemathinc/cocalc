@@ -60,7 +60,7 @@
 
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
     shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'Pkg.add(\"{{ item }}\"); using {{ item }};' | julia"
-    tags: install
+    tags: [install, juliapkgs]
     with_items:
     - IJulia # in jupyter notebook
     - JSON
@@ -91,6 +91,7 @@
     - TaylorSeries
     - Distributions # https://github.com/JuliaStats/Distributions.jl
     - XGBoost # https://github.com/dmlc/XGBoost.jl
+    - Nemo
 
   - name: "call update and then import/build all packages -- avoids local rebuilds for users, see https://github.com/sagemathinc/smc/issues/629#issuecomment-240463842"
     tags: [install, update]
