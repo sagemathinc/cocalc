@@ -32,9 +32,7 @@ d.parse_command_line()
 # credits to http://stackoverflow.com/a/17329493
 python2_nosite = '/usr/local/bin/python2-nosite'
 # don't overwrite for local smc-in-smc development
-
-## Disabled -- see https://github.com/sagemathinc/smc/issues/1216
-if False and ('user' not in d.command_options.get("install", {}).keys()):
+if 'user' not in d.command_options.get("install", {}).keys():
     # check, if python2_nosite exists and is executable
     if os.path.isfile(python2_nosite) and os.access(python2_nosite, os.X_OK):
         import sys
