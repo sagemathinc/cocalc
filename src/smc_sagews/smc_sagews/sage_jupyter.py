@@ -103,8 +103,6 @@ def _jkmagic(kernel_name, **kwargs):
 
     -  ``kernel_name`` -- name of kernel as it appears in output of `jupyter kernelspec list`
 
-    -  ``debug`` - optional, set true to view jupyter messages
-
     """
     import warnings
     import sage.misc.latex
@@ -116,8 +114,6 @@ def _jkmagic(kernel_name, **kwargs):
         import atexit
         atexit.register(km.shutdown_kernel)
         atexit.register(kc.hb_channel.close)
-
-    debug = kwargs['debug'] if 'debug' in kwargs else False
 
     # inline: no header or style tags, useful for full == False
     # linkify: little gimmik, translates URLs to anchor tags
@@ -379,14 +375,16 @@ def _jkmagic(kernel_name, **kwargs):
                 # not our reply
                 continue
         return
-    # 'html', 'plain', 'latex', 'markdown'
+    # 'html', 'plain', 'latex', 'markdown' - support depends on jupyter kernel
     run_code.default_text_fmt = 'html'
 
-    # 'svg', 'png', 'jpeg'
+    # 'svg', 'png', 'jpeg' - support depends on jupyter kernel
     run_code.default_image_fmt = 'png'
 
+    # set to floating point fraction e.g. 0.5
     run_code.smc_image_scaling = None
 
+    # set True to record jupyter messages to sage_server log
     run_code.debug = False
 
     return run_code
