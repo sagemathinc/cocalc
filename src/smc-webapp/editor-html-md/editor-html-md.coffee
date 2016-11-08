@@ -133,7 +133,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             axis        : 'x'
             containment : @element
             zIndex      : 100
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
+                misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1
                 p = (dragbar.offset().left - elt.offset().left) / elt.width()
                 if p < 0.05 then p = 0.03

@@ -8,6 +8,7 @@ $ = window.$
 async = require('async')
 
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 
 {defaults, required} = misc
 
@@ -122,6 +123,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_dragbar = dragbar = @element.find(".salvus-editor-latex-resize-bar")
         @set_dragbar_position()
         update = =>
+            misc_page.drag_stop_iframe_enable()
             # compute the position of bar as a number from 0 to 1
             left  = @element.offset().left
             width = @element.width()
@@ -131,11 +133,13 @@ class exports.LatexEditor extends editor.FileEditor
             dragbar.css(left: 0)
             @set_dragbar_position()
 
+
         dragbar.draggable
             axis        : 'x'
             containment : @element
             zIndex      : 10
             stop        : update
+            start       : misc_page.drag_start_iframe_disable
 
     set_dragbar_position: =>
         @_split_pos ?= @local_storage('split_pos') ? 0.5

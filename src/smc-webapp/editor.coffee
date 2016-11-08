@@ -950,7 +950,9 @@ class CodeMirrorEditor extends FileEditor
             axis        : 'y'
             containment : @element
             zIndex      : 10
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
+                misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e   = @element.find(".salvus-editor-codemirror-input-container-layout-1")
@@ -968,7 +970,9 @@ class CodeMirrorEditor extends FileEditor
             axis        : 'x'
             containment : @element
             zIndex      : 100
+            start       : misc_page.drag_start_iframe_disable
             stop        : (event, ui) =>
+                misc_page.drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e     = @element.find(".salvus-editor-codemirror-input-container-layout-2")

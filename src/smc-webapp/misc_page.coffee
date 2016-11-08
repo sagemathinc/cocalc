@@ -1705,3 +1705,12 @@ exports.analytics_pageview = (args...) ->
 
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
+
+
+# These are used to disable pointer events for iframes when dragging something that may move over an iframe.
+# See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
+exports.drag_start_iframe_disable = ->
+    $("iframe:visible").css('pointer-events', 'none')
+
+exports.drag_stop_iframe_enable = ->
+    $("iframe:visible").css('pointer-events', 'auto')

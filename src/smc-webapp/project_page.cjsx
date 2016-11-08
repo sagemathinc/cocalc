@@ -25,6 +25,7 @@ project_file = require('./project_file')
 {Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
 
 misc = require('misc')
+misc_page = require('./misc_page')
 
 FILE_NAV_HEIGHT = '36px'
 
@@ -358,6 +359,7 @@ ProjectMainContent = rclass
             $(ReactDOM.findDOMNode(@refs.draggable)).css('transform','')
 
         handle_drag_bar_stop = (data) =>
+            misc_page.drag_stop_iframe_enable()
             # TODO: rewrite to not use jQuery?
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
             width = 1 - (data.clientX - elt.offset().left) / elt.width()
@@ -375,6 +377,7 @@ ProjectMainContent = rclass
             axis   = "x"
             onStop = {handle_drag_bar_stop}
             onDrag = {handle_drag_bar_drag}
+            onStart = {misc_page.drag_start_iframe_disable}
             >
             <div className="smc-vertical-drag-bar"> </div>
         </Draggable>
