@@ -263,8 +263,6 @@ CHAT_TOGGLE_TIP = <span>
     Your collaborators will be notified.
 </span>
 
-sha1 = require('smc-util/schema').client_db.sha1
-
 ChatToggle = rclass
     reduxProps :
         file_use :
@@ -283,19 +281,16 @@ ChatToggle = rclass
             a.open_chat({path:@props.path})
 
     is_new_chat: ->
-        # If my read/seen is undefined or older than newest other user chat, then
-        # show indicator of new chat activity
-        file_use_id = sha1(@props.project_id, @props.path)
-        x = @props.file_use.getIn([file_use_id, 'users'])?.toJS() ? {}
-        console.log x
-        account_id = redux.getStore('account').get_account_id()
-        x[account_id]?
-        return false
+        #if @props.is_chat_open   # don't show indicator if the chat is opened...
+        #    return false
+        return redux.getStore('file_use')?.get_file_info(@props.project_id, @props.path)?.is_unseenchat ? false
 
     render : () ->
         new_chat = @is_new_chat()
-        action = if @props.is_chat_open then 'Hide' else 'Show'
-        title  = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
+        color    = if new_chat then 'red' else 'black'
+        action   = if @props.is_chat_open then 'Hide' else 'Show'
+        title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
+        dir      = if @props.is_chat_open then 'down' else 'left'
         <div style={CHAT_TOGGLE_STYLE}>
             <Tip
                 title     = {title}
@@ -303,10 +298,10 @@ ChatToggle = rclass
                 placement = 'left'
                 delayShow = 1200
                 >
-                <div style={cursor:'pointer'} onClick={=>@toggle_chat()} >
-                    <Icon name="caret-#{if @props.is_chat_open then 'down' else 'left'}"/>
+                <div style={cursor: 'pointer', color: color} onClick={=>@toggle_chat()} >
+                    <Icon name="caret-#{dir}" />
                     <Space />
-                    <Icon name='comment'/>
+                    <Icon name='comment' />
                 </div>
             </Tip>
         </div>

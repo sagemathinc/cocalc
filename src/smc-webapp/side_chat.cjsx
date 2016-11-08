@@ -381,7 +381,9 @@ ChatRoom = rclass ({name}) ->
         path        : rtypes.string
 
     mark_as_read: ->
-        @props.redux.getActions('file_use').mark_file(@props.project_id, @props.path, 'read')
+        f = @props.redux.getActions('file_use').mark_file
+        f(@props.project_id, @props.path, 'read')
+        f(@props.project_id, @props.path, 'chatseen')
 
     on_keydown: (e) ->
         if e.keyCode == 27  # ESC
@@ -402,6 +404,7 @@ ChatRoom = rclass ({name}) ->
 
     componentDidMount: ->
         scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        @mark_as_read() # The act of opening/displaying the chat marks it as seen... since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -505,4 +508,5 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
+
 

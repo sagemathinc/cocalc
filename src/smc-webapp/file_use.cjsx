@@ -57,6 +57,8 @@ misc = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 editor = require('./editor')
 
+sha1 = require('smc-util/schema').client_db.sha1
+
 # react in smc-specific modules
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
@@ -84,17 +86,18 @@ class FileUseActions extends Actions
             @mark_file(x.project_id, x.path, action, 0, false)
 
     mark_file: (project_id, path, action, ttl='default', fix_path=true) =>  # ttl in units of ms
-        # console.log('mark_file', project_id, path, action)
         if fix_path
+            # This changes .foo.txt.sage-chat to foo.txt.
             path = misc.original_path(path)
+        # console.log('mark_file', project_id, path, action)
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
             return
         if ttl
             if ttl == 'default'
-                if action == 'chat'
-                    ttl = 10*1000
+                if action.slice(0,4) == 'chat'
+                    ttl = 5*1000
                 else
                     ttl = 120*1000
             #console.log('ttl', ttl)
@@ -163,7 +166,7 @@ class FileUseStore extends Store
         # make into list of objects
         v = []
         newest_chat = 0
-        you_last_seen = you_last_read = 0
+        you_last_seen = you_last_read = you_last_chatseen = 0
         other_newest_edit_or_chat = 0
         for account_id, user of users
             user.account_id = account_id
@@ -175,6 +178,7 @@ class FileUseStore extends Store
             if @_account_id == account_id
                 you_last_seen = user.last_seen
                 you_last_read = user.last_read
+                you_last_chatseen = user.chatseen ? 0
             else
                 other_newest_edit_or_chat = misc.max([other_newest_edit_or_chat, user.last_edited, user.chat ? 0])
             v.push(user)
@@ -196,7 +200,8 @@ class FileUseStore extends Store
         # - unseen: means that the max timestamp for our edit, read and seen
         #   fields is older than another edit or chat field
         y.is_unseen = you_last_seen < other_newest_edit_or_chat
-
+        # - unseen chat: means that you haven't seen the newest chat for this document.
+        y.is_unseenchat = you_last_chatseen < other_newest_edit_or_chat
 
     get_notify_count: =>
         if not @_cache?
@@ -213,6 +218,12 @@ class FileUseStore extends Store
             @_update_cache()
         return @_cache?.sorted_file_use_immutable_list ? immutable.List()
 
+    # Get latest processed info about a specific file as an object.
+    get_file_info: (project_id, path) =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.file_use_map[sha1(project_id, path)]
+
     _update_cache: =>
         if not @get('file_use')?
             return
@@ -226,11 +237,13 @@ class FileUseStore extends Store
 
         @_account_id ?= @_account.get_account_id()
         v = []
-        @get('file_use').map (x,_) =>
+        file_use_map = {}
+        @get('file_use').map (x,id) =>
             y = x.toJS()
             y.search = @_search(y)
             @_process_users(y)
             v.push(y)
+            file_use_map[id] = y
         w0 = []
         w1 = []
         w2 = []
@@ -249,6 +262,7 @@ class FileUseStore extends Store
         @_cache =
             sorted_file_use_list           : v
             sorted_file_use_immutable_list : immutable.fromJS(v)
+            file_use_map                   : file_use_map
             notify_count                   : (x for x in v when x.notify).length
         require('browser').set_window_title()
         return v
