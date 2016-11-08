@@ -174,7 +174,7 @@ class FileUseStore extends Store
             if user.chat?
                 newest_chat = Math.max(newest_chat, user.chat ? 0)
             user.last_read = Math.max(user.last_edited, user.read ? 0)
-            user.last_seen = Math.max(user.last_read, user.seen ? 0)
+            user.last_seen = Math.max(Math.max(user.last_read, user.seen ? 0), user.chatseen ? 0)
             if @_account_id == account_id
                 you_last_seen = user.last_seen
                 you_last_read = user.last_read
