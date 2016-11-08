@@ -119,10 +119,6 @@ def _jkmagic(kernel_name, **kwargs):
 
     debug = kwargs['debug'] if 'debug' in kwargs else False
 
-    def p(*args):
-        if debug:
-            print ' '.join(str(a) for a in args)
-
     # inline: no header or style tags, useful for full == False
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
@@ -158,6 +154,11 @@ def _jkmagic(kernel_name, **kwargs):
                 sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
+
+        def p(*args):
+            from smc_sagews.sage_server import log
+            if run_code.debug:
+                log("kernel {}: {}".format(kernel_name, ' '.join(str(a) for a in args)))
 
         if kwargs.get('get_kernel_client',False):
             return kc
@@ -385,6 +386,8 @@ def _jkmagic(kernel_name, **kwargs):
     run_code.default_image_fmt = 'png'
 
     run_code.smc_image_scaling = None
+
+    run_code.debug = False
 
     return run_code
 
