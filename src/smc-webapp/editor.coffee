@@ -1316,36 +1316,43 @@ class CodeMirrorEditor extends FileEditor
                         path    : pdf
                         cb      : (err) =>
                             if err
-                                cb('Unable to convert file to PDF. ' +
-                                   "Enable 'Keep generated files in a sub-directory...' and check for Latex errors.")
+                                err_msg = 'Unable to convert file to PDF. '
+                                if not is_subdir
+                                    err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
+                                cb(err_msg)
                             else
                                 url = salvus_client.read_file_from_project
                                     project_id  : @project_id
                                     path        : pdf
                                 dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
-                                if is_subdir
-                                    {join} = require('path')
-                                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
-                                    # if not reading it, tmp.tex is blank (?)
-                                    redux.getProjectStore(@project_id).file_nonzero_size
-                                        path    : subdir_texfile
-                                        cb      : (err) =>
-                                            if err
-                                                cb('Unable to create directory of temporary Latex files.')
-                                            else
-                                                tempdir_link = $('<a>').text('Click to open temporary file')
-                                                tempdir_link.click =>
-                                                    redux.getProjectActions(@project_id).open_file
-                                                        path       : subdir_texfile
-                                                        foreground : true
-                                                    dialog.modal('hide')
-                                                    return false
-                                                $print_tempdir.html(tempdir_link)
-                                                $print_tempdir.show()
-                                                cb()
-                                else
-                                    redux.getProjectStore(@project_id).print_file(path: pdf)
-                                    cb()
+                                cb()
+                (cb) =>
+                    if not is_subdir
+                        cb()
+                    {join} = require('path')
+                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
+                    # check if generated tmp.tex exists and has nonzero size
+                    redux.getProjectStore(@project_id).file_nonzero_size
+                        path    : subdir_texfile
+                        cb      : (err) =>
+                            if err
+                                cb('Unable to create directory of temporary Latex files.')
+                            else
+                                tempdir_link = $('<a>').text('Click to open temporary file')
+                                tempdir_link.click =>
+                                    redux.getProjectActions(@project_id).open_file
+                                        path       : subdir_texfile
+                                        foreground : true
+                                    dialog.modal('hide')
+                                    return false
+                                $print_tempdir.html(tempdir_link)
+                                $print_tempdir.show()
+                                cb()
+                (cb) =>
+                    # if there is no subdirectory of temporary files, print generated pdf file
+                    if not is_subdir
+                        redux.getProjectStore(@project_id).print_file(path: pdf)
+                        cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
