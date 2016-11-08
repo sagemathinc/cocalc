@@ -69,36 +69,6 @@ source ~/.bashrc
 #hello () { echo "hello world"; }
 """
 
-codemirror_renderer = (start, end) ->
-    terminal = @
-    if terminal.editor?
-        width = terminal.cols
-        e = terminal.editor
-
-        # Set the output text
-        y = start
-        out = ''
-        while y <= end
-            row = y + terminal.ydisp
-            ln = terminal.lines[row]
-            out += (ln[i][1] for i in [0...width]).join('') + '\n'
-            y++
-        e.replaceRange(out, {line:start+terminal.ydisp,ch:0}, {line:end+1+terminal.ydisp,ch:0})
-
-        # Render the cursor
-        cp1 = {line:terminal.y+terminal.ydisp, ch:terminal.x}
-        cp2 = {line:cp1.line, ch:cp1.ch+1}
-        if e.getRange(cp1, cp2).length == 0
-            e.replaceRange(" ", cp1, cp2)
-        if terminal.salvus_console.is_focused
-            e.markText(cp1, cp2, {className:'salvus-console-cursor-focus'})
-        else
-            e.markText(cp1, cp2, {className:'salvus-console-cursor-blur'})
-        e.scrollIntoView(cp1)
-
-        # showing an image
-        #e.addLineWidget(end+terminal.ydisp, $("<img width=50 src='http://vertramp.org/2012-10-12b.png'>")[0])
-
 focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
@@ -114,20 +84,16 @@ class Console extends EventEmitter
             filename    : ""
             rows        : 16
             cols        : 80
-            resizable   : false
             editor      : undefined  # FileEditor instance -- needed for some actions, e.g., opening a file
             close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
-            font        :   # only for 'ttyjs' renderer
+            font        :
                 family : undefined
                 size   : undefined                           # CSS font-size in points
                 line_height : 120                            # CSS line-height percentage
 
             highlight_mode : 'none'
-            renderer       : 'ttyjs'   # options -- 'auto' (best for device); 'codemirror' (mobile support--useless), 'ttyjs' (xterm-color!)
-            draggable      : false    # not very good/useful yet.
-
             color_scheme   : undefined
             on_pause       : undefined # Called after pause_rendering is called
             on_unpause     : undefined # Called after unpause_rendering is called
@@ -135,22 +101,12 @@ class Console extends EventEmitter
             on_reconnected : undefined
             set_title      : undefined
 
-        # window.w = @
-
         @_init_default_settings()
 
         if @opts.project_id
             @project_id = @opts.project_id
 
         @_project_actions = redux.getProjectActions(@project_id)
-
-        if @opts.renderer == 'auto'
-            if IS_MOBILE
-                # NOT USED !! -- I stopped developing the codemirror-based version long ago; it just doesn't work.
-                # IGNORE.  DELETE.
-                @opts.renderer = 'codemirror'
-            else
-                @opts.renderer = 'ttyjs'
 
         # The is_focused variable keeps track of whether or not the
         # editor is focused.  This impacts the cursor, and also whether
@@ -201,22 +157,7 @@ class Console extends EventEmitter
         @terminal.on 'scroll', (top, rows) =>
             @set_scrollbar_to_term()
 
-        # this object (=@) is needed by the custom renderer, if it is used.
-        @terminal.salvus_console = @
-        that = @
-
-        # Select the renderer
-        switch @opts.renderer
-            when 'codemirror'
-                # NOTE: the codemirror renderer depends on the xterm one being defined...
-                @_init_ttyjs()
-                $(@terminal.element).hide()
-                @_init_codemirror()
-            when 'ttyjs'
-                @_init_ttyjs()
-                $(@terminal.element).show()
-            else
-                throw("Unknown renderer '#{@opts.renderer}'")
+        @_init_ttyjs()
 
         # Initialize buttons
         @_init_buttons()
@@ -405,6 +346,7 @@ class Console extends EventEmitter
         #$(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
         @value = ''
         @scrollbar_nlines = 0
+        @scrollbar.empty()
         @terminal.reset()
 
     update_scrollbar: () =>
@@ -412,7 +354,6 @@ class Console extends EventEmitter
             @scrollbar.append($("<br>"))
             @scrollbar_nlines += 1
         @resize_scrollbar()
-
 
     pause_rendering: (immediate) =>
         if @_rendering_is_paused
@@ -548,89 +489,31 @@ class Console extends EventEmitter
         if not @opts.font.family?
             @opts.font.family = settings?.font ? "monospace"
 
-    #_init_session_ping: () =>
-    #    @session.ping(@console_is_open)
-
-    _init_codemirror: () ->
-        that = @
-        @terminal.custom_renderer = codemirror_renderer
-        t = @textarea
-        editor = @terminal.editor = CodeMirror.fromTextArea t[0],
-            lineNumbers   : false
-            lineWrapping  : false
-            indentUnit    : 0  # seems to have no impact (not what I want...)
-            mode          : @opts.highlight_mode   # to turn off, can just use non-existent mode name
-
-        e = $(editor.getScrollerElement())
-        e.css('height', "#{@opts.rows+0.4}em")
-        e.css('background', '#fff')
-
-        editor.on('focus', that.focus)
-        editor.on('blur', that.blur)
-
-        # Hide codemirror's own cursor.
-        $(editor.getScrollerElement()).find('.CodeMirror-cursor').css('border', '0px')
-
-        # Hacks to workaround the "insane" way in which Android Chrome
-        # doesn't work:
-        # http://code.google.com/p/chromium/issues/detail?id=118639
-        if IS_MOBILE
-            handle_mobile_change = (ed, changeObj) ->
-                s = changeObj.text.join('\n')
-                if changeObj.origin == 'input' and s.length > 0
-                    if that._next_ctrl
-                        that._next_ctrl = false
-                        that.terminal.keyDown(keyCode:s[0].toUpperCase().charCodeAt(0), ctrlKey:true, shiftKey:false)
-                        s = s.slice(1)
-                        that.element.find(".salvus-console-control").removeClass('btn-warning').addClass('btn-info')
-
-                    if s.length > 0
-                        that.session.write_data(s)
-                    # relaceRange causes a hang if you type "ls[backspace]" right on load.
-                    # Thus we use markText instead.
-                    #ed.replaceRange("", changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1})
-                    ed.markText(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch+1}, className:"hide")
-                if changeObj.next?
-                    handle_mobile_change(ed, changeObj.next)
-            editor.on('change', handle_mobile_change)
-
-            @mobile_keydown = (ev) =>
-                if ev.keyCode == 8
-                    @terminal.keyDown(ev)
-
     _init_ttyjs: () ->
-        # Create the terminal DOM objects -- only needed for this renderer
+        # Create the terminal DOM objects
         @terminal.open()
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
         @terminal.element.className = "salvus-console-terminal"
-        @element.find(".salvus-console-terminal").replaceWith(@terminal.element)
         ter = $(@terminal.element)
+        @element.find(".salvus-console-terminal").replaceWith(ter)
 
         ter.css
             'font-family' : @opts.font.family + ", monospace"  # monospace fallback
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 
-        if @opts.resizable
-            @element.resizable(alsoResize:ter, handles: "sw,s,se").on('resize', @resize)
-
-        # Set the entire console to be draggable.
-        if @opts.draggable
-            @element.draggable(handle:@element.find('.salvus-console-title'))
-
         # Focus/blur handler.
         if IS_MOBILE  # so keyboard appears
-            if @opts.renderer == 'ttyjs'
-                @mobile_target = @element.find(".salvus-console-for-mobile").show()
-                @mobile_target.css('width', ter.css('width'))
-                @mobile_target.css('height', ter.css('height'))
-                @_click = (e) =>
-                    t = $(e.target)
-                    if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
-                        @focus()
-                    else
-                        @blur()
-                $(document).on 'click', @_click
+            @mobile_target = @element.find(".salvus-console-for-mobile").show()
+            @mobile_target.css('width', ter.css('width'))
+            @mobile_target.css('height', ter.css('height'))
+            @_click = (e) =>
+                t = $(e.target)
+                if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
+                    @focus()
+                else
+                    @blur()
+            $(document).on 'click', @_click
         else
             @_mousedown = (e) =>
                 t = $(e.target)
@@ -874,22 +757,17 @@ class Console extends EventEmitter
             bottom    : 1
 
         @resize()
-        @element.resizable('disable').css(opacity:1)
 
     # exit fullscreen mode
     exit_fullscreen: () =>
         for elt in [$(@terminal.element), @element]
             elt.css
                 position : 'relative'
-                top : 0<br
-                width: "100%"
-        @element.resizable('enable')
+                top      : 0
+                width    : "100%"
         @resize()
 
     refresh: () =>
-        if @opts.renderer != 'ttyjs'
-            # nothing implemented
-            return
         @terminal.refresh(0, @opts.rows-1)
         @resize_scrollbar()
 
@@ -898,10 +776,6 @@ class Console extends EventEmitter
     # element for the editor, then resize the renderer and the
     # remote PTY.
     resize: () =>
-        if @opts.renderer != 'ttyjs'
-            # nothing implemented except in the ttyjs case
-            return
-
         if not @session?
             # don't bother if we don't even have a remote connection
             # FUTURE: could queue this up to send
@@ -940,9 +814,6 @@ class Console extends EventEmitter
             @refresh()
 
     resize_terminal: (cb) =>
-        # make the terminal DOM element almost all of its likely recently resized parent
-        $(@terminal.element).css('width','99.5%')
-
         # The code here and below (in _resize_terminal) may seem horrible, but welcome to browser
         # DOM programming...
 
@@ -984,7 +855,7 @@ class Console extends EventEmitter
         new_cols = Math.max(1, Math.floor(elt.width() / character_width))
 
         # Determine number of rows from the height of the row, as computed above.
-        new_rows = Math.max(1, Math.floor((elt.height() - 10) / row_height))
+        new_rows = Math.max(1, Math.floor(elt.height() / row_height))
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)
@@ -995,6 +866,7 @@ class Console extends EventEmitter
         cb?()
 
     resize_scrollbar: () =>
+        return
         # render the scrollbar on the right
         sb = @scrollbar
         width = sb[0].offsetWidth - sb[0].clientWidth
@@ -1052,6 +924,7 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: (force) =>
+        console.log 'focus'
         if @is_focused and not force
             return
         focused_console = @

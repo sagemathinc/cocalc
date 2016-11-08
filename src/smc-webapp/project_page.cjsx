@@ -296,7 +296,7 @@ ChatToggle = rclass
                 title     = {title}
                 tip       = {CHAT_TOGGLE_TIP}
                 placement = 'left'
-                delayShow = 1200
+                delayShow = 2500
                 >
                 <div style={cursor: 'pointer', color: color} onClick={=>@toggle_chat()} >
                     <Icon name="caret-#{dir}" />
@@ -366,6 +366,7 @@ ProjectMainContent = rclass
             redux.getProjectActions(@props.project_id).set_chat_width({path:path, width:width})
 
         handle_drag_bar_drag = (data) =>
+            return
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
             width = 1 - (data.clientX - elt.offset().left) / elt.width()
             $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")

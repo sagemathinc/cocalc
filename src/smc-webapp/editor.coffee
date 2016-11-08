@@ -2626,12 +2626,12 @@ exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
 class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        window.t = @
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
             filename  : @filename
             project_id: @project_id
-            resizable : false
             editor    : @
         @console = elt.data("console")
         @element = @console.element
@@ -2702,22 +2702,10 @@ class Terminal extends FileEditor
         super()
 
     hide: =>
-        if @console?
-            @element?.hide()
-            @console.blur()
+        @console?.blur()
 
     _show: () =>
-        if @console?
-            e = $(@console.terminal.element)
-            top = redux.getProjectStore(@project_id).get('editor_top_position') + @element.find(".salvus-console-topbar").height()
-            # We leave a gap at the bottom of the screen, because often the
-            # cursor is at the bottom, but tooltips, etc., would cover that
-            ht = $(window).height() - top - 6
-            if feature.isMobile.iOS()
-                ht = Math.floor(ht/2)
-            e.height(ht)
-            @element.css(left:0, top:redux.getProjectStore(@project_id).get('editor_top_position'))
-            @console.focus(true)
+        @console?.focus(true)
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->

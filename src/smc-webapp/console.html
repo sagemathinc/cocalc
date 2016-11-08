@@ -19,7 +19,7 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
 
 
 <div id="salvus-console-templates" class="hide">
-    <div class="salvus-console well">
+    <div class="salvus-console smc-vfill">
 
         <!-- The bar across the top -->
         <!-- increase font, decrease font, refresh, paste spot, then title ... font indicator-->
@@ -87,11 +87,14 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
         <!-- I tried  autocomplete="false" in the textarea, but this is not valid HTML, and I think didn't work anyways.
               Jason Grout suggests: autocapitalize="off" autocorrect="off" autocomplete="off"
         -->
-        <div>
+        <div class="smc-vfill" style="position:relative">
             <textarea class="salvus-console-for-mobile hide"></textarea>
-            <div class="salvus-console-terminal hide"></div>
-            <div class="salvus-console-scrollbar"></div>
-
+            <div style="display:flex; height:100%" class="salvus-console-terminal-container">
+                <div style="flex:1; position:relative">
+                    <div class="salvus-console-terminal"></div>
+                </div>
+                <div class="salvus-console-scrollbar"></div>
+            </div>
         </div>
     </div>
 </div>
