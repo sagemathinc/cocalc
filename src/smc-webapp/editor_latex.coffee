@@ -5,6 +5,8 @@
 
 $ = window.$
 
+async = require('async')
+
 misc = require('smc-util/misc')
 
 {defaults, required} = misc
@@ -20,7 +22,6 @@ MAX_LATEX_WARNINGS = 50
 
 class exports.LatexEditor extends editor.FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        window.w = @ # DEBUGGING
 
         # The are three components:
         #     * latex_editor -- a CodeMirror editor
@@ -285,7 +286,6 @@ class exports.LatexEditor extends editor.FileEditor
 
         @element.find("a[href=\"#log\"]").click () =>
             @show_page('log')
-            @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             t = @log.find("textarea")
             t.scrollTop(t[0].scrollHeight)
             return false
@@ -345,7 +345,6 @@ class exports.LatexEditor extends editor.FileEditor
                 @log.find("textarea").text(log)
             return false
 
-
     set_resolution: (res) =>
         if not res?
             bootbox.prompt "Change preview resolution from #{@get_resolution()} dpi to...", (result) =>
@@ -385,14 +384,32 @@ class exports.LatexEditor extends editor.FileEditor
                         @preview_embed.update()
                 @spell_check()
 
-
     update_preview: (cb) =>
-        @run_latex
-            command : @load_conf_doc().latex_command
-            cb      : () =>
+        content = @_get()
+        if content == @_last_update_preview
+            cb?()
+            return
+        async.series([
+            (cb) =>
+                @_last_update_preview = content
+                if @latex_editor.has_unsaved_changes()
+                    @latex_editor.save(cb)
+                else
+                    cb()
+            (cb) =>
+                if @latex_editor.has_uncommitted_changes()
+                    delete @_last_update_preview  # running latex on stale version
+                @run_latex
+                    command : @load_conf_doc().latex_command
+                    cb      : cb
+            (cb) =>
                 @preview.update
-                    cb: (err) =>
-                        cb?(err)
+                    cb: cb
+        ], (err) =>
+            if err
+                delete @_last_update_preview
+            cb?(err)
+        )
 
     _get: () =>
         return @latex_editor._get()
@@ -413,35 +430,6 @@ class exports.LatexEditor extends editor.FileEditor
         else
             @show_page()
 
-        ###
-        #old crap layout code DELETEME
-
-        if not @_split_pos?
-            @_split_pos = .5
-        @_split_pos = Math.max(editor.MIN_SPLIT,Math.min(editor.MAX_SPLIT, @_split_pos))
-
-        @element.css(top:redux.getProjectStore(@project_id).get('editor_top_position'), position:'fixed')
-        @element.width($(window).width())
-
-        width = @element.width()
-
-        {top, left} = @element.offset()
-        editor_width = (width - left) * @_split_pos
-
-        @_dragbar.css('left', editor_width + left)
-        @latex_editor.show(width:editor_width)
-
-        button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
-
-        @_right_pane_position =
-            start : editor_width + left + 7
-            end   : width
-            top   : top + button_bar_height + 1
-
-        @_dragbar.height(@latex_editor.element.height())
-        @_dragbar.css('top', button_bar_height + 2)
-        ###
-
     focus: () =>
         @latex_editor?.focus()
 
@@ -449,9 +437,6 @@ class exports.LatexEditor extends editor.FileEditor
         return @latex_editor?.has_unsaved_changes(val)
 
     show_page: (name) =>
-        if not @_right_pane_position?
-            return
-
         if not name?
             name = @_current_page
         @_current_page = name
@@ -462,15 +447,6 @@ class exports.LatexEditor extends editor.FileEditor
         for n in pages
             @element.find(".salvus-editor-latex-#{n}").hide()
 
-        pos = @_right_pane_position
-        g  = {left : pos.start, top:pos.top+3, width:pos.end-pos.start-3}
-        if g.width < 50
-            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").hide()
-            @element.find(".salvus-editor-latex-log").find(".btn-group").hide()
-        else
-            @element.find(".salvus-editor-latex-png-preview").find(".btn-group").show()
-            @element.find(".salvus-editor-latex-log").find(".btn-group").show()
-
         for n in pages
             page = @_pages[n]
             if not page?
@@ -479,17 +455,14 @@ class exports.LatexEditor extends editor.FileEditor
             button = @element.find("a[href=\"#" + n + "\"]")
             if n == name
                 e.show()
-                if n not in ['log', 'errors']
-                    page.show(g)
+                if n == 'log'
+                    c = @load_conf_doc().latex_command
+                    if c
+                        @log_input.val(c)
+                else if n == 'errors'
+                    @render_error_page()
                 else
-                    page.offset({left:g.left, top:g.top}).width(g.width)
-                    page.maxheight()
-                    if n == 'log'
-                        c = @load_conf_doc().latex_command
-                        if c
-                            @log_input.val(c)
-                    else if n == 'errors'
-                        @render_error_page()
+                    page.show()
                 button.addClass('btn-primary')
             else
                 button.removeClass('btn-primary')
@@ -535,15 +508,15 @@ class exports.LatexEditor extends editor.FileEditor
         p = (new LatexParser(log)).parse()
 
         if p.errors.length
-            @number_of_errors.text(p.errors.length)
+            @number_of_errors.text("  (#{p.errors.length})")
             @element.find("a[href=\"#errors\"]").addClass("btn-danger")
         else
             @number_of_errors.text('')
             @element.find("a[href=\"#errors\"]").removeClass("btn-danger")
 
         k = p.warnings.length + p.typesetting.length
-        if k
-            @number_of_warnings.text("(#{k})")
+        if k and p.errors.length == 0  # don't show if there are errors
+            @number_of_warnings.text("  (#{k})")
         else
             @number_of_warnings.text('')
 

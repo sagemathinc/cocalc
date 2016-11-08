@@ -2214,7 +2214,6 @@ class PDF_Preview extends FileEditor
         if @path == ''
             @path = './'
         @file = s.tail
-        @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
@@ -2287,10 +2286,11 @@ class PDF_Preview extends FileEditor
         if not pg?
             # the page has vanished in the meantime...
             return
-        t = @output.offset().top
-        @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
+        elt = @element.find(".salvus-editor-pdf-preview-output")
+        t = elt.offset().top
+        elt.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2
-        @output.scrollTop(top)
+        elt.scrollTop(top)
         if opts.highlight_line
             # highlight location of interest
             @highlight_middle()
@@ -2301,9 +2301,6 @@ class PDF_Preview extends FileEditor
         super()
 
     focus: () =>
-        @element.maxheight()
-        @output.height(@element.height())
-        @output.width(@element.width())
 
     current_page: () =>
         tp = @output.offset().top
@@ -2332,10 +2329,6 @@ class PDF_Preview extends FileEditor
         @dbg("update")
         #@spinner.show().spin(true)
         @_updating = true
-
-        @output.maxheight()
-        if @element.width()
-            @output.width(@element.width())
 
         # Hide trailing pages.
         if @pdflatex.num_pages?
@@ -2424,7 +2417,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span class='lighten'>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
+                    page = $("<div class='salvus-editor-pdf-preview-page-single salvus-editor-pdf-preview-page-#{m}'><span>Page #{m}</span><br><img alt='Page #{m}' class='salvus-editor-pdf-preview-image'><br></div>")
                     page.data("number", m)
 
                     f = (e) ->
@@ -2496,36 +2489,10 @@ class PDF_Preview extends FileEditor
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
-    show: (geometry={}) =>
-        geometry = defaults geometry,
-            left   : undefined
-            top    : undefined
-            width  : $(window).width()
-            height : undefined
-        if not @is_active()
-            return
+    show: =>
 
-        @element.show()
+    hide: =>
 
-        f = () =>
-            @element.width(geometry.width)
-            @element.offset
-                left : geometry.left
-                top  : geometry.top
-
-            if geometry.height?
-                @element.height(geometry.height)
-            else
-                @element.maxheight()
-                geometry.height = @element.height()
-
-            @focus()
-        # We wait a tick for the element to appear before positioning it, otherwise it
-        # can randomly get messed up.
-        setTimeout(f, 1)
-
-    hide: () =>
-        @element.hide()
 
 exports.PDF_Preview = PDF_Preview
 
@@ -2549,24 +2516,11 @@ class PDF_PreviewEmbed extends FileEditor
             @update()
             return false
 
-    focus: () =>
+        @update()
 
     update: (cb) =>
-        height = @element.height()
-        if height == 0
-            # not visible.
-            return
-        width = @element.width()
-
         button = @element.find("a[href=\"#refresh\"]")
         button.icon_spin(true)
-
-        @_last_width = width
-        @_last_height = height
-
-        output_height = height - (@output.offset().top - @element.offset().top)
-        @output.height(output_height)
-        @output.width(width)
 
         @spinner.show().spin(true)
         salvus_client.read_file_from_project
@@ -2581,46 +2535,13 @@ class PDF_PreviewEmbed extends FileEditor
                 else
                     @pdf_title.find("span").text(@filename)
                     @pdf_title.attr('target', '_blank').attr("href", result.url)
-                    @output.find("iframe").attr('src', result.url).width(width).height(output_height-10)
+                    @output.find("iframe").attr('src', result.url)
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
 
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
-
-    show: (geometry={}) =>
-        geometry = defaults geometry,
-            left   : undefined
-            top    : undefined
-            width  : $(window).width()
-            height : undefined
-
-        @element.show()
-        if not geometry.top?
-            @element.css(top: redux.getProjectStore(@project_id).get('editor_top_position'))
-
-        if geometry.height?
-            @element.height(geometry.height)
-        else
-            @element.maxheight()
-            geometry.height = @element.height()
-
-        @element.width(geometry.width)
-
-        @element.offset
-            left : geometry.left
-            top  : geometry.top
-
-        if @_last_width != geometry.width or @_last_height != geometry.height
-            @update()
-
-        @focus()
-
-    hide: () =>
-        @element.hide()
+    show: =>
+    focus:=>
+    hide: =>
 
 exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
