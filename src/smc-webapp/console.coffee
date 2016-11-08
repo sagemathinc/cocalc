@@ -180,6 +180,8 @@ class Console extends EventEmitter
         if opts.session?
             @set_session(opts.session)
 
+        @element.onresize(@resize)
+
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history.
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
@@ -255,7 +257,8 @@ class Console extends EventEmitter
 
         @reset()
 
-        # We resize the terminal first before replaying history, etc. so that it looks better.
+        # We resize the terminal first before replaying history, etc. so that it looks better,
+        # and also the terminal has initialized so it can show the history.
         @resize_terminal () =>
             @config_session()
 
@@ -470,7 +473,6 @@ class Console extends EventEmitter
     _font_size_changed: () =>
         @opts.editor?.local_storage("font-size",@opts.font.size)
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
-        delete @_character_height
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
         @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
         @resize()
@@ -924,22 +926,14 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: (force) =>
-        console.log 'focus'
         if @is_focused and not force
             return
         focused_console = @
         @is_focused = true
-
         $(@terminal.element).focus()
-        if not @_character_height?
-            height = $(@terminal.element).height()
-            if height != 0 and @opts.rows?
-                @_character_height = Math.ceil(height / @opts.rows)
-
         @resize()
 
         if IS_MOBILE
-            #$(document).on('keydown', @mobile_keydown)
             @element.find(".salvus-console-input-line").focus()
         else
             @terminal.focus()

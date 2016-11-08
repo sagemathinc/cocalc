@@ -31,6 +31,7 @@
     "jquery-focusable": "^0.3.0",
     "jquery-highlight": "^3.3.0",
     "jquery-mouse-exit": "^0.2.0",
+    "jquery-onresize": "^1.0.5",
     "jquery-scrollintoview": "0.0.10",
     "jquery-stick": "^0.1.0",
     "jquery-tooltip": "^0.1.0",
