@@ -645,9 +645,10 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
                     contents=contents,
                     style=style)
         )#.encode('utf8'))
-        os.system('pdflatex -interact=nonstopmode tmp.tex')
+        from subprocess import check_call
+        check_call('pdflatex -interact=nonstopmode tmp.tex', shell=True)
         if contents:
-            os.system('pdflatex -interact=nonstopmode tmp.tex')
+            check_call('pdflatex -interact=nonstopmode tmp.tex', shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
@@ -698,16 +699,21 @@ def main():
     else:
         work_dir = None
 
-    sagews_to_pdf(args.filename,
-                  title=args.title.decode('utf8'),
-                  author=args.author.decode('utf8'),
-                  date=args.date,
-                  outfile=args.outfile,
-                  contents=args.contents,
-                  remove_tmpdir=remove_tmpdir,
-                  work_dir=work_dir,
-                  style=args.style
-                 )
+    from subprocess import CalledProcessError
+    try:
+        sagews_to_pdf(args.filename,
+                      title=args.title.decode('utf8'),
+                      author=args.author.decode('utf8'),
+                      date=args.date,
+                      outfile=args.outfile,
+                      contents=args.contents,
+                      remove_tmpdir=remove_tmpdir,
+                      work_dir=work_dir,
+                      style=args.style
+                     )
+    # subprocess.check_call might throw
+    except CalledProcessError:
+        exit(1)
 
 if __name__ == "__main__":
     main()

@@ -1293,6 +1293,7 @@ class CodeMirrorEditor extends FileEditor
                 (cb) =>
                     @save(cb)
                 (cb) =>
+                    # get info from the UI and attempt to convert the sagews to pdf
                     options =
                         title      : dialog.find(".salvus-file-print-title").text()
                         author     : dialog.find(".salvus-file-print-author").text()
@@ -1312,6 +1313,7 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
+                    # does the pdf file exist?
                     redux.getProjectStore(@project_id).file_nonzero_size
                         path    : pdf
                         cb      : (err) =>
@@ -1321,14 +1323,17 @@ class CodeMirrorEditor extends FileEditor
                                     err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
                                 cb(err_msg)
                             else
-                                url = salvus_client.read_file_from_project
-                                    project_id  : @project_id
-                                    path        : pdf
-                                dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
                                 cb()
                 (cb) =>
+                    # pdf file exists -- show it in the UI
+                    url = salvus_client.read_file_from_project
+                        project_id  : @project_id
+                        path        : pdf
+                    dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                    cb()
+                (cb) =>
                     if not is_subdir
-                        cb()
+                        cb(); return
                     {join} = require('path')
                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                     # check if generated tmp.tex exists and has nonzero size
@@ -1352,7 +1357,7 @@ class CodeMirrorEditor extends FileEditor
                     # if there is no subdirectory of temporary files, print generated pdf file
                     if not is_subdir
                         redux.getProjectStore(@project_id).print_file(path: pdf)
-                        cb()
+                    cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
