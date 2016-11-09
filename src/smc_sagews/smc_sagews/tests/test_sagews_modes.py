@@ -199,7 +199,6 @@ class TestJuliaMode:
         # julia kernel takes 8-12 sec to load
         exec2('jlk=jupyter("julia")')
 
-    #@pytest.mark.skip(reason="julia kernel broken for now")
     def test_julia2(self, exec2):
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
