@@ -1786,3 +1786,94 @@ exports.local_storage_length = () ->
         return localStorage.length
     catch e
         return 0
+
+# WARNING: THIS WILL BREAK WHEN UPGRADING TO COFFEE2
+exports.get_arg_names = (func) ->
+    # First match everything inside the function argument parens.
+    args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
+
+    # Split the arguments string into an array comma delimited.
+    args = args.split(',').map (arg) ->
+        # Ensure no inline comments are parsed and trim the whitespace.
+        arg.replace(/\/\*.*\*\//, '').trim()
+    .filter (arg) -> # Ensure no undefined values are added.
+        arg
+    return args
+
+# Takes an object representing a directed graph shaped like
+# Where DAG[node2][0] is an into node2 from node1
+# DAG =
+#     node1 : []
+#     node2 : ["node1"]
+#     node3 : ["node1", "node2"]
+# Returns
+# object =
+#     top_order : Array<string>
+#     info      : Object
+#         num_sources: number
+# Throws error if cyclic
+# Runs in O(N + E) where N is the number of nodes and E the number of edges
+exports.top_sort = (DAG, opts={omit_sources:false}) ->
+    {omit_sources} = opts
+    source_names = []
+    num_edges    = 0
+    data         = {}
+
+    # Ready the data for top sort
+    for name, parents of DAG
+        data[name] ?= {}
+        node = data[name]
+        node.name = name
+        node.children ?= []
+        node.parent_set = new Set(parents)
+        for parent_name in parents
+            data[parent_name] ?= {}
+            data[parent_name].children ?= []
+            data[parent_name].children.push(node)
+        if parents.length == 0
+            source_names.push(name)
+        else
+            num_edges += parents.length
+
+    # Top sort! Non-recursive method since recursion is way slow in javascript
+    path = []
+    num_sources = source_names.length
+    while source_names.length > 0
+        curr_name = source_names.shift()
+        path.push(curr_name)
+        for child in data[curr_name].children
+            child.parent_set.delete(curr_name)
+            num_edges -= 1
+            if child.parent_set.size == 0
+                source_names.push(child.name)
+
+    # Detect lack of sources
+    if num_sources == 0
+        throw new Error "No sources were detected"
+
+    # Detect cycles
+    if num_edges != 0
+        throw new Error "Store has a cycle in its computed values"
+
+    if omit_sources
+        return path.slice(num_sources)
+    else
+        return path
+
+# Metaprogramming utility for an object with functions
+# object =
+#     func_name1 : (): any => ...
+#     func_name2 : (func_name1): any => ...
+#     func_name3 : (func_name1, func_name2): any => ...
+# Understood that funct_name2 depends on func_name1
+
+# Returns an object shaped
+# DAG =
+#     func_name1 : []
+#     func_name2 : ["func_name1"]
+#     func_name3 : ["func_name1", "func_name2"]
+exports.create_dependency_graph = (object) =>
+    DAG = {}
+    for name, written_func of object
+        DAG[name] = exports.get_arg_names(written_func)
+    return DAG

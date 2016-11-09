@@ -1,4 +1,4 @@
-{Actions, Store, redux} = require('./smc-react')
+{Actions, Store, redux, rtypes} = require('./smc-react')
 {salvus_client}         = require('./salvus_client')
 misc                    = require('smc-util/misc')
 
@@ -159,18 +159,26 @@ class PageActions extends Actions
     sign_in: =>
         false
 
-
 redux.createActions('page', PageActions)
 
 # FUTURE: Save entire state to database for #450, saved workspaces
-class PageStore extends Store
-    todo: ->
-        'place holder'
+redux.createStore
+    name: 'page'
 
-init_store =
-    active_top_tab : 'account' # One of: projects, account, about, [project id]
+    getInitialState: ->
+        active_top_tab : 'account'
 
-redux.createStore('page', PageStore, init_store)
+    stateTypes:
+        active_top_tab        : rtypes.string    # key of the active tab
+        show_connection       : rtypes.bool
+        ping                  : rtypes.number
+        avgping               : rtypes.number
+        connection_status     : rtypes.string
+        new_version           : rtypes.object
+        fullscreen            : rtypes.bool
+        cookie_warning        : rtypes.bool
+        local_storage_warning : rtypes.bool
+        show_file_use         : rtypes.bool
 
 recent_disconnects = []
 record_disconnect = () ->

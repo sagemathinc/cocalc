@@ -30,6 +30,7 @@ underscore     = require('underscore')
 React          = require('react')
 redux_lib      = require('redux')
 
+
 {Provider, connect}  = require('react-redux')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -74,10 +75,62 @@ class Actions
 
     destroy: =>
         @redux.removeActions(@name)
+###
+store_def =
+    reduxState:
+        account:
+            full_name : computed rtypes.string
 
+    # Values not defined in stateTypes are not accessible as properties
+    # They are also not available through reduxProps
+    stateTypes:
+        basic_input         : rtypes.string
+        displayed_cc_number : rtypes.string
+        some_list           : rtypes.immutable.List
+        filtered_val        : computed rtypes.immutable.List
+
+    displayed_cc_number: ->
+        return @getIn(['project_map', 'users', 'cc'])
+
+    filtered_val: (basic_input, some_list) ->
+        return some_list.filter (val) => val == basic_input
+
+    # Not available through redux props.
+    # Great place to describe pure functions
+    # These are callable in your selectors as @greetings(...)
+    greetings: (full_name) -> ...
+
+Note: you cannot name a property "state" or "props"
+###
 class Store extends EventEmitter
-    constructor: (@name, @redux) ->
+    # TODOJ: remove @name when fully switched over
+    constructor: (@name, @redux, store_def) ->
         @setMaxListeners(150)
+        if not store_def?
+            return @
+
+        state_importers = harvest_state_importers(store_def)
+        own_functions   = harvest_own_functions(store_def)
+        # store_def should only contain non-state functions now and name
+        Object.assign(@, store_def)
+
+        # Bind all functions to this scope.
+        # For example, they importantly get access to @redux, @get, and @getIn
+        for name, func of own_functions
+            bound_own_functions[name] = func.bind(@)
+        for name, func of state_importers
+            bound_state_importers[name] = func.bind(@)
+
+        selectors = generate_selectors(bound_own_functions, bound_state_importers)
+
+        # Bind selectors as properties on this store
+        prop_map = {}
+        for name, selector of selectors
+            prop_map[name] =
+                get        : => selector(@getState())
+                enumerable : true
+
+        Object.defineProperties(@, prop_map)
 
     _handle_store_change: (state) =>
         if state != @_last_state
@@ -126,6 +179,43 @@ class Store extends EventEmitter
                 @removeListener('change', listener)
                 async.nextTick(=>opts.cb(undefined, x))
         @on('change', listener)
+
+# Parses and removes store_def.reduxState
+# Returns getters for data from other stores
+harvest_foreign_state_importers = (store_def) ->
+    result = {}
+    for store_name, values of store_def.reduxState
+        for prop_name, type of values
+            result[prop_name] = () -> @redux.getStore(store_name)?[prop_name]
+    delete store_def.reduxState
+    return result
+
+# Parses and removes store_def.stateTypes
+# Returns functions for selectors
+harvest_own_functions = (store_def) ->
+    for prop_name, type of store_def.stateTypes
+        # No defined selector, but described in state
+        if not store_def[prop_name]
+            if type.is_computed
+                throw "Computed value #{prop_name} in #{store_def.name} was declared but no definition was found."
+            functions[prop_name] = () -> @get(name)
+        else
+            functions[prop_name] = store_def[prop_name]
+            delete store_def[prop_name]
+    delete store_def.stateTypes
+    return functions
+
+# Generates selectors based on functions found in own and other
+# Replaces and returns functions in own with appropriate selectors.
+generate_selectors = (own, state_importers) ->
+    all_selectors = Object.assign(own, state_importers)
+    DAG = misc.create_dependency_graph(all_selectors)
+    ordered_funcs = misc.top_sort(DAG, omit_sources:true)
+    # state_importers contains only sources so all funcs will be in own
+    for func_name in ordered_funcs
+        own[func_name] = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
+        all_selectors[func_name] = own[func_name]
+    return own
 
 action_set_state = (change) ->
     action =
@@ -198,21 +288,37 @@ class AppRedux
                 throw Error("Object must have project_id attribute")
             return project_store?.getActions(name.project_id, @)
 
-    createStore: (name, store_class=Store, init=undefined) =>
-        if not name?
-            throw Error("name must be a string")
-        if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})
-            init = store_class
-            store_class = Store
-        S = @_stores[name]
-        if not S?
-            S = @_stores[name] = new store_class(name, @)
-            # Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
-            C = immutable.Map(S)
-            C = C.delete('redux') # No circular pointing
-            @_set_state({"#{name}":C})
-            if init?
-                @_set_state({"#{name}":init})
+    createStore: (spec, store_class=Store, init=undefined) =>
+        # Old method
+        if typeof spec == 'string'
+            name = spec
+            if not name?
+                throw Error("name must be a string")
+            if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})
+                init = store_class
+                store_class = Store
+            S = @_stores[name]
+            if not S?
+                S = @_stores[name] = new store_class(name, @)
+                # Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
+                C = immutable.Map(S)
+                C = C.delete('redux') # No circular pointing
+                @_set_state({"#{name}":C})
+                if init?
+                    @_set_state({"#{name}":init})
+        else
+            # New method
+            if not spec.name?
+                throw Error("name must be a string")
+
+            init = spec.getInitialState?
+            delete spec.getInitialState
+
+            S = @_stores[spec.name]
+            if not S?
+                    S = @_stores[spec.name] = new Store(spec.name, @, spec)
+                if init?
+                    @_set_state({"#{name}":init()})
         return S
 
     getStore: (name) =>
@@ -380,6 +486,11 @@ rtypes = {}
 rtypes.immutable = create_immutable_type_required_chain(check_is_immutable)
 Object.assign(rtypes, React.PropTypes)
 
+computed = (rtype) =>
+    clone = rtype.bind({})
+    clone.is_computed = true
+    return clone
+
 ###
 Tests if the categories are working correctly.
 test = () ->
@@ -410,11 +521,16 @@ connect_component = (spec) =>
             return props
         for store_name, info of spec
             for prop, type of info
-                s = state.getIn([store_name, prop])
+                # All store properties are functions which take the entire store state
+                # This enforces Stores describing all of their possible state
+                try
+                    val = redux.getStore(store_name)[prop]
+                catch
+                    throw "Requested prop #{prop} from #{store_name} but #{prop} has no defined selector."
                 if type.category == "IMMUTABLE"
-                    props[prop] = s
+                    props[prop] = val
                 else
-                    props[prop] = if s?.toJS? then s.toJS() else s
+                    props[prop] = if val?.toJS? then val.toJS() else val
         return props
     return connect(map_state_to_props)
 
@@ -507,6 +623,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 
 exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
+exports.computed = computed
 exports.React    = React
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton

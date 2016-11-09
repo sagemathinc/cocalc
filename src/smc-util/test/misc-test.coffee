@@ -1274,3 +1274,70 @@ describe 'suggest_duplicate_filename', ->
         dup('foo.bar').should.be.eql 'foo-1.bar'
     it "also works with weird corner cases", ->
         dup('asdf-').should.be.eql 'asdf--1'
+
+describe 'parsing function for argument names', ->
+    f0 = (a, b, c) => "none"
+    it 'works in the basic case', ->
+        expect misc.get_arg_names(f0)
+        .toEqual ['a', 'b', 'c']
+
+    f1 = (a=3, b=2, c=5) => "all"
+    it 'works with default values', ->
+        expect misc.get_arg_names(f1)
+        .toEqual ['a', 'b', 'c']
+
+describe 'topological Sort', ->
+    # Initialize DAG
+    DAG =
+        node1 : []
+        node0 : []
+        node2 : ["node1"]
+        node3 : ["node1", "node2"]
+    old_DAG_string = JSON.stringify(DAG)
+
+    it 'Returns a valid ordering', ->
+        expect misc.top_sort(DAG)
+        .toEqual ['node1', 'node0', 'node2', 'node3'] or
+            ['node0', 'node1', 'node2', 'node3']
+
+    it 'Omits graph sources when omit_sources:true', ->
+        expect misc.top_sort(DAG, omit_sources:true)
+        .toEqual ['node2', 'node3']
+
+    it 'Leaves the original DAG the same afterwards', ->
+        misc.top_sort(DAG)
+        expect JSON.stringify(DAG)
+        .toEqual old_DAG_string
+
+    DAG2 =
+        node0 : []
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects cycles and throws an error', ->
+        expect(() => misc.top_sort(DAG2)).toThrow("Store has a cycle in its computed values")
+
+    DAG3 =
+        node1 : ["node2"]
+        node2 : ["node1"]
+
+    it 'Detects a lack of sources and throws an error', ->
+        expect () => misc.top_sort(DAG3)
+        .toThrow("No sources were detected")
+
+describe 'creating a dependency graph from an object', ->
+    store_def =
+        first_name : => "Joe"
+        last_name  : => "Smith"
+        full_name  : (first_name, last_name) => "#{first_name} #{last_name}"
+        short_name : (full_name) => full_name.slice(0,5)
+
+    DAG_string = JSON.stringify
+        first_name : []
+        last_name  : []
+        full_name  : ["first_name", "last_name"]
+        short_name : ["full_name"]
+
+    it 'Creates a DAG with the right structure', ->
+        expect JSON.stringify(misc.create_dependency_graph(store_def))
+        .toEqual DAG_string
