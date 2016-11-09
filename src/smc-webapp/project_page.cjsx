@@ -267,6 +267,8 @@ ChatToggle = rclass
     reduxProps :
         file_use :
             file_use : rtypes.immutable
+        page :
+            fullscreen : rtypes.bool
 
     propTypes :
         project_id   : rtypes.string.isRequired
@@ -291,7 +293,9 @@ ChatToggle = rclass
         action   = if @props.is_chat_open then 'Hide' else 'Show'
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
-        <div style={CHAT_TOGGLE_STYLE}>
+        style    = misc.copy(CHAT_TOGGLE_STYLE)
+        style.right = if @props.fullscreen then '23px' else '3px'
+        <div style={style}>
             <Tip
                 title     = {title}
                 tip       = {CHAT_TOGGLE_TIP}

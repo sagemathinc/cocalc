@@ -256,13 +256,20 @@ exports.FullscreenButton = rclass
         icon = if @props.fullscreen then 'expand' else 'compress'
         styles =
             position   : 'fixed'
-            zIndex     : 100
+            zIndex     : 10000
             right      : 0
-            top        : 0
-            fontSize   : '12pt'
+            top        : '1px'
+            fontSize   : '14pt'
             padding    : 4
-            color      : '#999'
+            color      : '#666'
             fontWeight : 700
+            cursor     : 'pointer'
+            boxShadow  : '2px 2px 2px 2px #ccc'
+            borderRadius: '3px'
+
+        if @props.fullscreen
+            styles.background   = '#fff'
+
         <Icon style={styles} name={icon} onClick={@on_fullscreen} />
 
 exports.SMCLogo = rclass
