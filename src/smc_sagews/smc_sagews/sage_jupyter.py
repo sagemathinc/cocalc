@@ -240,6 +240,8 @@ def _jkmagic(kernel_name, **kwargs):
                 # 1. if there is an image format, prefer that
                 # 2. elif default text or image mode is available, prefer that
                 # 3. else choose first matching format in modes list
+                from smc_sagews.sage_salvus import show
+
                 def show_plot(data, suffix):
                     r"""
                     If an html style is defined for this kernel, use it.
@@ -285,18 +287,23 @@ def _jkmagic(kernel_name, **kwargs):
                     dftm = run_code.default_text_fmt
                     if capture_mode:
                         dftm = 'plain'
-                    #print('default_text_fmt %s'%dftm)
                     dispmode = next((m for m in mkeys if dftm in m), None)
                     if dispmode is None:
                         dispmode = next(m for m in txtmodes if m in mkeys)
-                    #print('dispmode is %s'%dispmode)
                     if dispmode == 'text/plain':
-                        txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
-                        sys.stdout.write(txt)
-                        sys.stdout.flush()
+                        p('text/plain',msg_data[dispmode])
+                        # override if plain text is object marker for latex output
+                        if re.match('<IPython.core.display.\w+ object>', msg_data[dispmode]):
+                            p("overriding plain -> latex")
+                            show(msg_data['text/latex'])
+                        else:
+                            txt = re.sub(r"^\[\d+\] ", "", msg_data[dispmode])
+                            sys.stdout.write(txt)
+                            sys.stdout.flush()
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':
+                        p('text/latex',msg_data[dispmode])
                         sage.misc.latex.latex.eval(msg_data[dispmode])
                     elif dispmode == 'text/markdown':
                         salvus.md(msg_data[dispmode])
