@@ -15,10 +15,10 @@
 
   - name: "site directory of julia is on external disk -- ext dir"
     tags: install
-    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus"
+    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus group=salvus"
 
-  - name: "make sure the julia shared dir exists"
-    file: "path=/usr/local/share/julia state=directory"
+  - name: "make sure the julia site dir exists"
+    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus group=salvus"
 
   - name: "site directory of julia is on external disk -- symlink"
     tags: install
