@@ -9,6 +9,10 @@ AUTHORS:
    - John Jeng, 2016
 ###
 
+{NotifyResize} = require('react-notify-resize')
+
+{debounce} = require('underscore')
+
 {rclass, rtypes, ReactDOM, React} = require('./smc-react')
 {defaults, required, copy} = require('smc-util/misc')
 
@@ -49,7 +53,9 @@ WrappedEditor = rclass ({project_name}) ->
             @props.editor.show()
 
     render: ->
-        <div className='smc-vfill'>
+        # position relative is required by NotifyResize
+        <div className='smc-vfill' style={position:'relative'}>
+            <NotifyResize onResize={debounce(@refresh, 350)}/>
             <span className="smc-editor-react-wrapper"></span>
         </div>
 

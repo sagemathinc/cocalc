@@ -2551,7 +2551,6 @@ exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
 class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        window.t = @
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title     : "Terminal"
@@ -2630,7 +2629,7 @@ class Terminal extends FileEditor
         @console?.blur()
 
     _show: () =>
-        @console?.focus(true)
+        @console?.resize()
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->

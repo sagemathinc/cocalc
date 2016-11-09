@@ -330,6 +330,8 @@ ProjectMainContent = rclass
 
     render_editor: (path) ->
         {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
+        if redux_name?
+            editor_actions = redux.getActions(redux_name)
         if not Editor?
             <Loading />
         else
@@ -339,7 +341,7 @@ ProjectMainContent = rclass
                     path         = {path}
                     project_id   = {@props.project_id}
                     redux        = {redux}
-                    actions      = {if redux_name? then redux.getActions(redux_name)}
+                    actions      = {editor_actions}
                     project_name = {@props.project_name}
                 />
             </div>

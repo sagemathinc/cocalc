@@ -27,6 +27,7 @@
 ###########################################
 
 $                = window.$
+
 {EventEmitter}   = require('events')
 {alert_message}  = require('./alerts')
 misc             = require('smc-util/misc')
@@ -179,8 +180,6 @@ class Console extends EventEmitter
 
         if opts.session?
             @set_session(opts.session)
-
-        @element.onresize(@resize)
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history.
@@ -356,7 +355,6 @@ class Console extends EventEmitter
         while @scrollbar_nlines < @terminal.ybase
             @scrollbar.append($("<br>"))
             @scrollbar_nlines += 1
-        @resize_scrollbar()
 
     pause_rendering: (immediate) =>
         if @_rendering_is_paused
@@ -771,7 +769,6 @@ class Console extends EventEmitter
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
-        @resize_scrollbar()
 
 
     # Determine the current size (rows and columns) of the DOM
@@ -801,8 +798,6 @@ class Console extends EventEmitter
         # console.log 'connected: sending resize code'
         @_needs_resize = false
         @session.write_data(resize_code(@opts.cols, @opts.rows))
-
-        @resize_scrollbar()
 
         # Refresh depends on correct @opts being set!
         @refresh()
@@ -848,18 +843,6 @@ class Console extends EventEmitter
         @opts.cols = new_cols
         @opts.rows = new_rows
 
-    resize_scrollbar: () =>
-        return
-        # render the scrollbar on the right
-        sb = @scrollbar
-        width = sb[0].offsetWidth - sb[0].clientWidth
-        if width == 0
-            return
-        elt = $(@terminal.element)
-        elt.width(@element.width() - width - 2)
-        sb.width(width+2)
-        sb.height(elt.height())
-
     set_scrollbar_to_term: () =>
         if @terminal.ybase == 0  # less than 1 page of text in buffer
             @scrollbar.hide()
@@ -890,6 +873,7 @@ class Console extends EventEmitter
             focused_console = undefined
 
         @is_focused = false
+
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
 
@@ -907,7 +891,6 @@ class Console extends EventEmitter
         focused_console = @
         @is_focused = true
         $(@terminal.element).focus()
-        @resize()
 
         if IS_MOBILE
             @element.find(".salvus-console-input-line").focus()

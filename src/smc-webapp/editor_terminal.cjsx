@@ -4,10 +4,6 @@
 immutable  = require('immutable')
 underscore = require('underscore')
 
-# jQuery
-
-require('jquery-onresize/jquery.onresize.min')
-
 # SMC libraries
 {defaults, path_split, required} = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')

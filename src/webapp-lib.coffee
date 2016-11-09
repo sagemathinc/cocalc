@@ -19,11 +19,6 @@ require("node_modules/jquery-ui/ui/widgets/sortable")  # TODO: do we use?
 require("node_modules/jquery-ui/ui/widgets/slider")
 require("node_modules/jquery-ui/ui/widgets/resizable") # TODO: do we use?
 
-# Load after query-ui: see https://www.npmjs.com/package/jquery-onresize; provides onresize for div's, etc.
-require("node_modules/jquery-onresize/jquery.onresize")
-
-
-
 # $.tooltip() setup
 require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer dependency.
 require("jquery-focus-exit/jquery.focusexit.js")  # jquery-focus-exit is a peer dependency.
