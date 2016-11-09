@@ -92,6 +92,7 @@
     - Distributions # https://github.com/JuliaStats/Distributions.jl
     - XGBoost # https://github.com/dmlc/XGBoost.jl
     - Combinatorics
+    - UnicodePlots
     - Nemo
 
   - name: "call update and then import/build all packages -- avoids local rebuilds for users, see https://github.com/sagemathinc/smc/issues/629#issuecomment-240463842"
