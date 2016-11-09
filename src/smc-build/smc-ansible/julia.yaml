@@ -15,10 +15,10 @@
 
   - name: "site directory of julia is on external disk -- ext dir"
     tags: install
-    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus"
+    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus group=salvus"
 
-  - name: "make sure the julia shared dir exists"
-    file: "path=/usr/local/share/julia state=directory"
+  - name: "make sure the julia site dir exists"
+    file: "path={{ pkgext }} state=directory mode=u=rwx,g=rx,o=rx owner=salvus group=salvus"
 
   - name: "site directory of julia is on external disk -- symlink"
     tags: install
@@ -60,7 +60,7 @@
 
   - name: "install some julia packages -- http://pkg.julialang.org/pulse.html"
     shell: "umask 022; export JULIA_PKGDIR={{ pkgdir }}; echo 'Pkg.add(\"{{ item }}\"); using {{ item }};' | julia"
-    tags: install
+    tags: [install, juliapkgs]
     with_items:
     - IJulia # in jupyter notebook
     - JSON
@@ -91,6 +91,12 @@
     - TaylorSeries
     - Distributions # https://github.com/JuliaStats/Distributions.jl
     - XGBoost # https://github.com/dmlc/XGBoost.jl
+    - Combinatorics
+    - UnicodePlots
+    - Vega
+    - GR
+    - PlotlyJS
+    - Nemo
 
   - name: "call update and then import/build all packages -- avoids local rebuilds for users, see https://github.com/sagemathinc/smc/issues/629#issuecomment-240463842"
     tags: [install, update]
@@ -108,25 +114,11 @@
         Pkg.update()
         recompile()" | julia
 
-  # Nemo
-  - name: "install nemo into julia (after julia has been installed)"
-    tags: [install, nemo]
-    shell: |
-        umask 022
-        export JULIA_PKGDIR=/usr/local/share/julia/site/
-        echo 'Pkg.init()' | julia
-        echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
-        echo 'Pkg.build("Nemo")' | julia
-        export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
-        cd $LD_LIBRARY_PATH
-        ln -s libarb.so.0.0.0 libarb.so
-        echo 'using Nemo' | julia
-
   # cleanup
   - name: "fix ownership of site dir to be salvus"
-    tags: [install, update, nemo]
+    tags: [install, update]
     file: "path={{ pkgdir }}/ recurse=true owner=salvus group=salvus"
 
   - name: "fix permissions of site dir -- julia doesn't care about umask 022"
-    tags: [install, update, nemo]
+    tags: [install, update]
     shell: "chmod a+r -R  {{ pkgdir }}/; find {{ pkgdir }}/ -perm /u+x -execdir chmod a+x {} \\;"
