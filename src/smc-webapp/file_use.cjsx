@@ -201,7 +201,7 @@ class FileUseStore extends Store
         #   fields is older than another edit or chat field
         y.is_unseen = you_last_seen < other_newest_edit_or_chat
         # - unseen chat: means that you haven't seen the newest chat for this document.
-        y.is_unseenchat = you_last_chatseen < other_newest_edit_or_chat
+        y.is_unseenchat = you_last_chatseen < newest_chat
 
     get_notify_count: =>
         if not @_cache?
