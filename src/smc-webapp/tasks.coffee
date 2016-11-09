@@ -1498,7 +1498,7 @@ class TaskList
         if not IS_MOBILE
             # still horrible - will fix with react rewrite...
             @element.find(".salvus-tasks-content").maxheight(offset:15)
-            
+
     hide: () =>
         @element.hide()
         redux.getActions('page').erase_active_key_handler(tasks_key_handler)

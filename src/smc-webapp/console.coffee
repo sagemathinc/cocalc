@@ -259,8 +259,8 @@ class Console extends EventEmitter
 
         # We resize the terminal first before replaying history, etc. so that it looks better,
         # and also the terminal has initialized so it can show the history.
-        @resize_terminal () =>
-            @config_session()
+        @resize_terminal()
+        @config_session()
 
     config_session: () =>
         # The remote server sends data back to us to display:
@@ -789,47 +789,30 @@ class Console extends EventEmitter
         if not @value
             return
 
-        if @_resizing
-            return
+        @resize_terminal()
 
-        @_resizing = true
-        @resize_terminal () =>
-            @_resizing = false
+        # Resize the remote PTY
+        resize_code = (cols, rows) ->
+            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
+            # CSI Ps ; Ps ; Ps t
+            # CSI[4];[height];[width]t
+            return CSI + "4;#{rows};#{cols}t"
 
-            if not @_connected
-                return
+        # console.log 'connected: sending resize code'
+        @_needs_resize = false
+        @session.write_data(resize_code(@opts.cols, @opts.rows))
 
-            # Resize the remote PTY
-            resize_code = (cols, rows) ->
-                # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-                # CSI Ps ; Ps ; Ps t
-                # CSI[4];[height];[width]t
-                return CSI + "4;#{rows};#{cols}t"
+        @resize_scrollbar()
 
-            # console.log 'connected: sending resize code'
-            @_needs_resize = false
-            @session.write_data(resize_code(@opts.cols, @opts.rows))
+        # Refresh depends on correct @opts being set!
+        @refresh()
 
-            @resize_scrollbar()
-
-            # Refresh depends on correct @opts being set!
-            @refresh()
-
-    resize_terminal: (cb) =>
-        # The code here and below (in _resize_terminal) may seem horrible, but welcome to browser
-        # DOM programming...
-
+    resize_terminal: () =>
         # Determine size of container DOM.
         # Determine the average width of a character by inserting 10 characters,
         # seeing how wide that is, and dividing by 10.  The result is typically not
         # an integer, which is why we have to use multiple characters.
         @_c = $("<span>Term-inal&nbsp;</span>").prependTo(@terminal.element)
-
-        # We have to do the actual calculation in the next render loop, since otherwise the terminal
-        # might not yet have resized, or the text we just inserted might not yet be visible.
-        setTimeout((()=>@_resize_terminal(cb)), 0)
-
-    _resize_terminal: (cb) =>
         character_width = @_c.width()/10
         @_c.remove()
         elt = $(@terminal.element)
@@ -849,7 +832,6 @@ class Console extends EventEmitter
 
         if character_width == 0 or row_height == 0
             # The editor must not yet be visible -- do nothing
-            cb?()
             return
 
         # Determine the number of columns from the width of a character, computed above.
@@ -865,7 +847,6 @@ class Console extends EventEmitter
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
-        cb?()
 
     resize_scrollbar: () =>
         return
@@ -918,12 +899,7 @@ class Console extends EventEmitter
             # WARNING: probably should investigate term.js issues further(?)
             # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
             # This would totally break the client, which is bad, so we catch is.
-        $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')
-        editor = @terminal.editor
-        if editor?
-            e = $(editor.getWrapperElement())
-            e.removeClass('salvus-console-focus').addClass('salvus-console-blur')
-            e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
+        @element.addClass('salvus-console-blur').removeClass('salvus-console-focus')
 
     focus: (force) =>
         if @is_focused and not force
@@ -939,21 +915,7 @@ class Console extends EventEmitter
             @terminal.focus()
             @_focus_hidden_textarea()
 
-        $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
-        editor = @terminal.editor
-        if editor?
-            e = $(editor.getWrapperElement())
-            e.addClass('salvus-console-focus').removeClass('salvus-console-blur')
-            e.find(".salvus-console-cursor-blur").removeClass("salvus-console-cursor-blur").addClass("salvus-console-cursor-focus")
-
-        # Auto-defocus when not visible for 100ms.  Defocusing the
-        # console when not in view is CRITICAL, since it steals the
-        # keyboard completely.
-        check_for_hide = () =>
-            if not @element.is(":visible")
-                clearInterval(timer)
-                @blur()
-        timer = setInterval(check_for_hide, 100)
+        @element.addClass('salvus-console-focus').removeClass('salvus-console-blur')
 
     set_title: (title) ->
         @opts.set_title?(title)
