@@ -372,7 +372,7 @@ ChatRoom = rclass ({name}) ->
         file_use :
             file_use : rtypes.immutable
 
-    propTypes :
+    propTypes:
         redux       : rtypes.object.isRequired
         actions     : rtypes.object.isRequired
         name        : rtypes.string.isRequired
@@ -403,8 +403,10 @@ ChatRoom = rclass ({name}) ->
         e.preventDefault()
 
     componentDidMount: ->
-        scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
-        @mark_as_read() # The act of opening/displaying the chat marks it as seen... since this happens when the user shows it.
+        scroll_to_position(@refs.log_container, @props.saved_position,
+                           @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        @mark_as_read() # The act of opening/displaying the chat marks it as seen...
+                        # since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -419,7 +421,12 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        <div style={height:'100%', display:'flex', flexDirection:'column'}>
+        mark_as_read = underscore.throttle(@mark_as_read, 3000)
+
+        <div
+            style       = {height:'100%', display:'flex', flexDirection:'column'}
+            onMouseMove = {mark_as_read}
+            >
             <div style={overflowY:'auto', flex:1} ref='log_container' onScroll={@on_scroll} >  {# flex:1 so this expands to fit available space}
                 <ChatLog
                     messages     = {@props.messages}
@@ -438,11 +445,10 @@ ChatRoom = rclass ({name}) ->
                     autoFocus      = {true}
                     componentClass = 'textarea'
                     ref            = 'input'
-                    onKeyDown      = {@on_keydown}
+                    onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                     value          = {@props.input}
                     placeholder    = {'Type a message, then shift+enter...'}
-                    onClick        = {@mark_as_read}
-                    onChange       = {(e) => @props.actions.set_input(e.target.value)}
+                    onChange       = {(e) => @props.actions.set_input(e.target.value);}
                     onFocus        = {focus_endpoint}
                 />
                 <Button

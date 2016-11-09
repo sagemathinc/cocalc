@@ -114,7 +114,7 @@ class FileUseActions extends Actions
             project_id : project_id
             path       : path
             users      : {"#{account_id}":{"#{action}":now}}
-        if action == 'edit' or action == 'chat'
+        if action == 'edit' or action == 'chat' or action == 'chatseen'
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
             obj.last_edited = now
