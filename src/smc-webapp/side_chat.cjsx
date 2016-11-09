@@ -217,6 +217,11 @@ Message = rclass
             marginBottom  : "3px"
             borderRadius  : borderRadius
 
+        if sender_is_viewer(@props.account_id, @props.message)
+            message_style.marginLeft = '10%'
+        else
+            message_style.marginRight = '10%'
+
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
@@ -231,10 +236,6 @@ Message = rclass
             {render_history_footer(color, font_size) if @state.show_history}
         </Col>
 
-    # All the render methods
-
-
-    # TODO: Make this a codemirror input
     render_input: ->
         <form>
             <FormGroup>
