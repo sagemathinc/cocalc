@@ -1798,7 +1798,7 @@ def python(code):
     """
     salvus.execute(code, preparse=False)
 
-def python3(code):
+def python3(code,**kwargs):
     """
     Block decorator to run code in a pure Python3 mode session.
 
@@ -1817,9 +1817,16 @@ def python3(code):
     Afterwards, p3 contains the output '{1, 2, 3}' and the variable x
     in the controlling Sage session is in no way impacted.
 
-    NOTE: No state is preserved between calls.  Each call is a separate process.
+    .. note::
+
+        State is preserved between cells.
+        SMC %python3 mode uses the jupyter `anaconda3` kernel.
     """
-    script('sage-native-execute python3 -E')(code)
+    if python3.jupyter_kernel is None:
+        python3.jupyter_kernel = jupyter("anaconda3")
+    return python3.jupyter_kernel(code,**kwargs)
+python3.jupyter_kernel = None
+
 
 def perl(code):
     """
