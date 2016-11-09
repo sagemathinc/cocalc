@@ -6,6 +6,33 @@ import re
 import os
 from textwrap import dedent
 
+class TestPython3Mode:
+    def test_p3_max(self, exec2):
+        exec2("%python3\nmax([],default=9)", "9")
+
+    def test_capture_p3_01(self, exec2):
+        exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
+    def test_capture_p3_02(self, exec2):
+        exec2("print(output)", "12\n")
+
+    def test_p3_latex(self, exec2):
+        code = r"""%python3
+from IPython.display import Math
+Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
+        htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
+        exec2(code, html_pattern = htmp)
+
+class TestPython3DefaultMode:
+    def test_set_python3_mode(self, exec2):
+        exec2("%default_mode python3")
+    def test_python3_assignment(self, exec2):
+        exec2("xx=[2,5,99]\nsum(xx)", "106")
+
+    def test_capture_p3d_01(self, exec2):
+        exec2("%capture(stdout='output')\nmax(xx)")
+    def test_capture_p3d_02(self, exec2):
+        exec2("%sage\nprint(output)", "99\n")
+
 class TestShMode:
     def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
@@ -163,13 +190,16 @@ class TestAnaconda3Mode:
     def test_a3_errror(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
-class TestJupyterModes:
+class TestSageMode:
     def test_sagemath(self, exec2):
         exec2('sm = jupyter(\'sagemath\')\nsm(\'e^(i*pi)\')', output='-1')
 
+class TestJuliaMode:
     def test_julia1(self, exec2):
         # julia kernel takes 8-12 sec to load
         exec2('jlk=jupyter("julia")')
+
+    #@pytest.mark.skip(reason="julia kernel broken for now")
     def test_julia2(self, exec2):
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
