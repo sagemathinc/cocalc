@@ -124,18 +124,18 @@ class Store extends EventEmitter
             bound_state_importers[name] = func.bind(@)
 
         selectors = generate_selectors(bound_own_functions, bound_state_importers, @)
-        Object.assign(@, selectors)
 
-        ###
+        # Object.assign(@, selectors)
+
         # Bind selectors as properties on this store
         prop_map = {}
-        for name, selector of selectors
+        underscore.map selectors, (selector, name) =>
             prop_map[name] =
                 get        : -> selector(@getState())
                 enumerable : true
 
         Object.defineProperties(@, prop_map)
-        ###
+
 
     _handle_store_change: (state) =>
         if state != @_last_state
@@ -535,8 +535,8 @@ connect_component = (spec) =>
                 # All store properties are functions which take the entire store state
                 # This enforces Stores describing all of their possible state
                 if store_name == 'page'
-                    selector = redux.getStore(store_name)[prop]
-                    val = selector(state)
+                    val = redux.getStore(store_name)[prop]
+                    #val = selector(state)
                 else
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
