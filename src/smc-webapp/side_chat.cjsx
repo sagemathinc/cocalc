@@ -212,7 +212,7 @@ Message = rclass
 
         message_style =
             background    : color
-            wordBreak     : "break-all"
+            wordBreak     : "break-word"
             marginBottom  : "3px"
             borderRadius  : borderRadius
 

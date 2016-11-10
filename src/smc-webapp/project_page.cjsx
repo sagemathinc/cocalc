@@ -382,7 +382,6 @@ ProjectMainContent = rclass
 
         handle_drag_bar_drag = (data) =>
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            console.log elt.offset()
             width = 1 - (data.clientX - elt.offset().left) / elt.width()
             $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")
             reset(); setTimeout(reset, 0)
