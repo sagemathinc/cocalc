@@ -292,7 +292,7 @@ class ProjectActions extends Actions
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
                             # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
                             alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
-                            @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
+                            @get_store().convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
                                         path : sagews_filename
