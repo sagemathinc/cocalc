@@ -201,35 +201,6 @@ def _jkmagic(kernel_name, **kwargs):
             if msg_type == 'status' and content['execution_state'] == 'idle':
                 break
 
-            if msg_type == 'execute_input':
-                # the following is a cheat to avoid forking a separate thread to listen on stdin channel
-                # most of the time, ignore "execute_input" message type
-                # but if code calls python3 input(), wait for message on stdin channel
-                if 'code' in content and kernel_name in ['python3','anaconda3']:
-                    ccode = content['code']
-                    if (re.match('^[^#]*\W?input\(', ccode)):
-                        # FIXME input() will be ignored if it's aliased to another name
-                        p('iopub input call: ',ccode)
-                        try:
-                            # do nothing if no messsage on stdin channel within 0.5 sec
-                            imsg = stdinj.get_msg(timeout = 0.5)
-                            imsg_type = imsg['msg_type']
-                            icontent = imsg['content']
-                            p('stdin', imsg_type, str(icontent)[:300])
-                            p('prompt',icontent['prompt'])
-                            p('password',icontent['password'])
-                            # kernel is now blocked waiting for input
-                            if imsg_type == 'input_request':
-                                prompt = '' if icontent['password'] else icontent['prompt']
-                                value = salvus.raw_input(prompt = prompt)
-                                xcontent = dict(value=value)
-                                xmsg = kc.session.msg('input_reply', xcontent)
-                                p('sending input_reply',xcontent)
-                                stdinj.send(xmsg)
-                        except:
-                            pass
-                continue
-
 
             def display_mime(msg_data):
                 '''
@@ -310,29 +281,51 @@ def _jkmagic(kernel_name, **kwargs):
                     return
 
 
-            # dispatch control or display calls depending on the message type
-            if msg_type == 'execute_result':
+            # reminder of iopub loop is switch on value of msg_type
+
+            if msg_type == 'execute_input':
+                # the following is a cheat to avoid forking a separate thread to listen on stdin channel
+                # most of the time, ignore "execute_input" message type
+                # but if code calls python3 input(), wait for message on stdin channel
+                if 'code' in content and kernel_name in ['python3','anaconda3']:
+                    ccode = content['code']
+                    if (re.match('^[^#]*\W?input\(', ccode)):
+                        # FIXME input() will be ignored if it's aliased to another name
+                        p('iopub input call: ',ccode)
+                        try:
+                            # do nothing if no messsage on stdin channel within 0.5 sec
+                            imsg = stdinj.get_msg(timeout = 0.5)
+                            imsg_type = imsg['msg_type']
+                            icontent = imsg['content']
+                            p('stdin', imsg_type, str(icontent)[:300])
+                            # kernel is now blocked waiting for input
+                            if imsg_type == 'input_request':
+                                prompt = '' if icontent['password'] else icontent['prompt']
+                                value = salvus.raw_input(prompt = prompt)
+                                xcontent = dict(value=value)
+                                xmsg = kc.session.msg('input_reply', xcontent)
+                                p('sending input_reply',xcontent)
+                                stdinj.send(xmsg)
+                        except:
+                            pass
+
+            elif msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
                 p('execute_result data keys: ',content['data'].keys())
                 display_mime(content['data'])
-                continue
 
             elif msg_type == 'display_data':
                 if 'data' in content:
                     display_mime(content['data'])
-                continue
 
             elif msg_type == 'status':
                 if content['execution_state'] == 'idle':
                     # when idle, kernel has executed all input
                     break
-                else:
-                    continue
 
             elif msg_type == 'clear_output':
                 salvus.clear()
-                continue
 
             elif msg_type == 'stream':
                 if 'text' in content:
@@ -342,7 +335,6 @@ def _jkmagic(kernel_name, **kwargs):
                         hout(content['text'], error = True)
                     else:
                         hout(content['text'],block = False)
-                continue
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -353,7 +345,6 @@ def _jkmagic(kernel_name, **kwargs):
                             hout(tr+'\n', error = True)
                     else:
                         hout(tr, error = True)
-                continue
 
         # handle shell messages
         while True:
