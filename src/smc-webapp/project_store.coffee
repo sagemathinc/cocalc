@@ -295,10 +295,10 @@ class ProjectActions extends Actions
                             @get_store().convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
-                                        path : sagews_filename
-                                        forgeound : opts.foreground
+                                        path               : sagews_filename
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
-                                        chat : opts.chat
+                                        chat               : opts.chat
                                 else
                                     require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
                             return
@@ -308,10 +308,10 @@ class ProjectActions extends Actions
                             @get_store().convert_docx_file opts.path, (err, new_filename) =>
                                 if not err
                                     @open_file
-                                        path : new_filename
-                                        forgeound : opts.foreground
+                                        path               : new_filename
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
-                                        chat : opts.chat
+                                        chat               : opts.chat
                                 else
                                     require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
                             return
