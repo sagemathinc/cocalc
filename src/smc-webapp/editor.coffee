@@ -38,8 +38,6 @@ message = require('smc-util/message')
 
 {redux} = require('./smc-react')
 
-profile = require('./profile')
-
 _ = underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
@@ -578,12 +576,6 @@ class FileEditor extends EventEmitter
         @_show = underscore.debounce(@_show, 50)
         @val(content)
 
-    init_users_view_doc: =>
-        elt = @element?.find('.smc-users-viewing-document')
-        if elt? and elt.length > 0
-            profile.render_new_viewing_doc(@project_id, @filename, elt[0], redux,
-                   @get_users_cursors, @programmatical_goto_line)    # both may be optionally defined in derived class
-
     is_active: () =>
         misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
 
@@ -762,9 +754,6 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
-
-        if not opts.public_access
-            @init_users_view_doc()
 
         @element.data('editor', @)
 
@@ -2568,7 +2557,6 @@ class Terminal extends FileEditor
             editor     : @
         @console = elt.data("console")
         @element = @console.element
-        @init_users_view_doc()
         salvus_client.read_text_file_from_project
             project_id : @project_id
             path       : @filename

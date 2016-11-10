@@ -25,7 +25,7 @@ immutable = require('immutable')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar, UsersViewing} = require('./profile')
+{Avatar} = require('./profile')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
@@ -41,7 +41,9 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-{redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+editor_chat = require('./editor_chat')
+
+{redux_name, init_redux, remove_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -105,17 +107,17 @@ Message = rclass
             @props.actions.saved_message(ReactDOM.findDOMNode(@refs.editedMessage).value)
 
     toggle_history: ->
-        #No history for mobile, since right now messages in mobile are too clunky
+        # No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
             if not @state.show_history
-                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_chat(true)}>
+                <span className="small" style={marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_chat(true)}>
                     <Tip title='Message History' tip='Show history of editing of this message.'>
                         <Icon name='history'/> Edited
                     </Tip>
                 </span>
             else
                 <span className="small"
-                     style={color:'#888', marginLeft:'10px', cursor:'pointer'}
+                     style={marginLeft:'10px', cursor:'pointer'}
                      onClick={=>@toggle_history_chat(false)} >
                     <Tip title='Message History' tip='Hide history of editing of this message.'>
                         <Icon name='history'/> Hide History
@@ -157,18 +159,17 @@ Message = rclass
                 text = "Deleted by #{@props.editor_name}"
 
         text ?= "Last edit by #{@props.editor_name}"
-        color ?= "#888"
 
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <span className="small" style={color:color}>
+            <span className="small">
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
             </span>
         else
-            <span className="small" style={color:color}>
+            <span className="small">
                 {text}
                 {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
             </span>
@@ -232,15 +233,12 @@ Message = rclass
     content_column: ->
         value = newest_content(@props.message)
 
-        if sender_is_viewer(@props.account_id, @props.message)
-            color = '#eee'
-        else
-            color = '#fff'
+        {background, color, lighten} = editor_chat.message_colors(@props.account_id, @props.message)
 
         # smileys, just for fun.
         value = misc.smiley
-            s: value
-            wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+            s    : value
+            wrap : ['<span class="smc-editor-chat-smiley">', '</span>']
 
         font_size = "#{@props.font_size}px"
 
@@ -260,7 +258,8 @@ Message = rclass
             borderRadius = '5px 5px 10px 10px'
 
         message_style =
-            background   : color
+            color        : color
+            background   : background
             wordWrap     : "break-word"
             marginBottom : "3px"
             marginTop    : marginTop
@@ -270,15 +269,19 @@ Message = rclass
         <Col key={1} xs={10} sm={9}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
-                {get_timeago(@props.message)}
+                <span style={lighten}>
+                    {editor_chat.render_timeago(@props.message)}
+                </span>
                 {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
                 {@render_input()   if is_editing(@props.message, @props.account_id)}
-                {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                {@toggle_history() if @props.message.get('history').size > 1}
+                <span style={lighten}>
+                    {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                    {@toggle_history() if @props.message.get('history').size > 1}
+                </span>
             </Well>
-            {render_history_title(color, font_size) if @state.show_history}
-            {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
-            {render_history_footer(color, font_size) if @state.show_history}
+            {render_history_title() if @state.show_history}
+            {render_history(@props.history, @props.user_map) if @state.show_history}
+            {render_history_footer() if @state.show_history}
         </Col>
 
     # All the render methods
@@ -439,12 +442,11 @@ ChatRoom = rclass ({name}) ->
         actions     : rtypes.object
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
-        file_use_id : rtypes.string.isRequired
         path        : rtypes.string
 
     getInitialState: ->
-        input          : ''
-        preview        : ''
+        input   : ''
+        preview : ''
 
     preview_style:
         background   : '#f5f5f5'
@@ -644,14 +646,7 @@ ChatRoom = rclass ({name}) ->
                             <Icon name='toggle-up'/> Files
                     </Button>
                 </Col>
-                <Col xs={4} md={4} style={padding:'0px'}>
-                    <UsersViewing
-                          file_use_id = {@props.file_use_id}
-                          file_use    = {@props.file_use}
-                          account_id  = {@props.account_id}
-                          user_map    = {@props.user_map} />
-                </Col>
-                <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
+                <Col xs={10} md={10} className="pull-right" style={padding:'2px', textAlign:'right'}>
                     <ButtonGroup>
                         {@render_timetravel_button()}
                         {@render_video_chat_button()}
@@ -732,11 +727,6 @@ ChatRoom = rclass ({name}) ->
                         <Icon name='arrow-down'/> Scroll to Bottom
                     </Button>
                 </ButtonGroup>
-                <UsersViewing
-                      file_use_id = {@props.file_use_id}
-                      file_use    = {@props.file_use}
-                      account_id  = {@props.account_id}
-                      user_map    = {@props.user_map} />
             </Row>
             <Row>
                 <Col md={12} style={padding:'0px 2px 0px 2px'}>
@@ -791,7 +781,6 @@ ChatRoom = rclass ({name}) ->
 
 ChatEditorGenerator = (path, redux, project_id) ->
     name = redux_name(project_id, path)
-    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     C_ChatRoom = ({actions}) ->
         <ChatRoom
             redux       = {redux}
@@ -799,7 +788,6 @@ ChatEditorGenerator = (path, redux, project_id) ->
             name        = {name}
             actions     = {actions}
             project_id  = {project_id}
-            file_use_id = {file_use_id}
             />
 
     C_ChatRoom.propTypes =

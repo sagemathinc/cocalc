@@ -40,7 +40,9 @@ misc_page = require('./misc_page')
 
 {User} = require('./users')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, get_timeago, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
+editor_chat = require('./editor_chat')
+
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position, focus_endpoint} = require('./editor_chat')
 
 Message = rclass
     displayName: "Message"
@@ -106,15 +108,15 @@ Message = rclass
         #No history for mobile, since right now messages in mobile are too clunky
         if not IS_MOBILE
             if not @state.show_history
-                <span className="small" style={color:'#888', marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
+                <span className="small" style={marginLeft:'10px', cursor:'pointer'} onClick={=>@toggle_history_side_chat(true)}>
                     <Tip title='Message History' tip='Show history of editing of this message.' placement='left'>
                         <Icon name='history'/> Edited
                     </Tip>
                 </span>
             else
-                <span className="small"
-                        style={color:'#888', marginLeft:'10px', cursor:'pointer'}
-                        onClick={=>@toggle_history_side_chat(false)} >
+                <span className = "small"
+                        style   = {marginLeft:'10px', cursor:'pointer'}
+                        onClick = {=>@toggle_history_side_chat(false)} >
                     <Tip title='Message History' tip='Hide history of editing of this message.' placement='left'>
                         <Icon name='history'/> Hide History
                     </Tip>
@@ -130,14 +132,11 @@ Message = rclass
             if other_editors.size == 1
                 # This user and someone else is also editing
                 text = "#{@props.get_user_name(other_editors.first())} is also editing this!"
-                color = "#E55435"
             else if other_editors.size > 1
                 # Multiple other editors
                 text = "#{other_editors.size} other users are also editing this!"
-                color = "#E55435"
             else if @state.history_size != @props.message.get('history').size and @state.new_changes
                 text = "#{@props.editor_name} has updated this message. Esc to discard your changes and see theirs"
-                color = "#E55435"
             else
                 text = "You are now editing ... Shift+Enter to submit changes."
         else
@@ -151,18 +150,17 @@ Message = rclass
                 text = "Deleted by #{@props.editor_name}"
 
         text ?= "Last edit by #{@props.editor_name}"
-        color ?= "#888"
 
         if not is_editing(@props.message, @props.account_id) and other_editors.size == 0 and newest_content(@props.message).trim() != ''
             edit = "Last edit "
             name = " by #{@props.editor_name}"
-            <span className="small" style={color:color}>
+            <span className="small">
                 {edit}
                 <TimeAgo date={new Date(@props.message.get('history').peek()?.get('date'))} />
                 {name}
             </span>
         else
-            <span className="small" style={color:color}>
+            <span className="small">
                 {text}
             </span>
 
@@ -187,16 +185,12 @@ Message = rclass
     content_column: ->
         value = newest_content(@props.message)
 
-        if sender_is_viewer(@props.account_id, @props.message)
-            color = '#eee'
-        else
-            color = '#fff'
+        {background, color, lighten} = editor_chat.message_colors(@props.account_id, @props.message)
 
         # smileys, just for fun.
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-
 
         font_size = "#{@props.font_size}px"
 
@@ -211,10 +205,11 @@ Message = rclass
             borderRadius = '5px 5px 10px 10px'
 
         message_style =
-            background    : color
-            wordBreak     : "break-word"
-            marginBottom  : "3px"
-            borderRadius  : borderRadius
+            background   : background
+            wordBreak    : "break-word"
+            marginBottom : "3px"
+            borderRadius : borderRadius
+            color        : color
 
         if sender_is_viewer(@props.account_id, @props.message)
             message_style.marginLeft = '10%'
@@ -224,15 +219,19 @@ Message = rclass
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" onDoubleClick = {@edit_message}>
-                {get_timeago(@props.message)}
+                <span style={lighten}>
+                    {editor_chat.render_timeago(@props.message)}
+                </span>
                 {render_markdown(value, @props.project_id, @props.file_path) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
-                {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
-                {@toggle_history() if @props.message.get('history').size > 1}
+                <span style={lighten}>
+                    {@editing_status() if @props.message.get('history').size > 1 or  @props.message.get('editing').size > 0}
+                    {@toggle_history() if @props.message.get('history').size > 1}
+                </span>
             </Well>
-            {render_history_title(color, font_size) if @state.show_history}
-            {render_history(color, font_size, @props.history, @props.user_map) if @state.show_history}
-            {render_history_footer(color, font_size) if @state.show_history}
+            {render_history_title() if @state.show_history}
+            {render_history(@props.history, @props.user_map) if @state.show_history}
+            {render_history_footer() if @state.show_history}
         </Col>
 
     render_input: ->
@@ -355,7 +354,6 @@ ChatLog = rclass
 log_container_style =
     overflowY       : 'auto'
     flex            : 1
-    marginTop       : '32px'
     border          : '1px solid lightgrey'
     backgroundColor : '#fafafa'
 

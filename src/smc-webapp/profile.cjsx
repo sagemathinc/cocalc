@@ -29,15 +29,14 @@ Avatar = rclass
     displayName: "Avatar"
 
     propTypes:
-        viewing_what : React.PropTypes.string
         size         : React.PropTypes.number
         account      : React.PropTypes.object
         style        : React.PropTypes.object
         square       : React.PropTypes.bool
         line         : React.PropTypes.number
         goto_line    : React.PropTypes.func
-        path         : React.PropTypes.string
         project_id   : React.PropTypes.string
+        path         : React.PropTypes.string
         redux        : React.PropTypes.object
 
     getDefaultProps: ->
@@ -88,14 +87,29 @@ Avatar = rclass
         name = @props.account.first_name + ' ' + @props.account.last_name
         return misc.trunc_middle(name,15).trim()
 
+    viewing_what: ->
+        if @props.path? and @props.project_id?
+            return 'file'
+        else if @props.project_id?
+            return 'project'
+        else
+            return 'projects'
+
     tooltip: ->
         {ProjectTitle} = require('./projects')
-        if @props.viewing_what == 'projects'
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()} last seen at <ProjectTitle project_id={@props.project_id} /></Tooltip>
-        else if @props.viewing_what == 'project'
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()} last seen at {@props.path}</Tooltip>
-        else
-            <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@render_name()}{@render_line() if @props.line}</Tooltip>
+        switch @viewing_what()
+            when 'projects'
+                <Tooltip id="#{@props.account?.first_name or 'anonymous'}">
+                    {@render_name()} last seen at <ProjectTitle project_id={@props.project_id} />
+                </Tooltip>
+            when 'project'
+                <Tooltip id="#{@props.account?.first_name or 'anonymous'}">
+                    {@render_name()} last seen at {@props.path}
+                </Tooltip>
+            when 'file'
+                <Tooltip id="#{@props.account?.first_name or 'anonymous'}">
+                    {@render_name()}{@render_line() if @props.line}
+                </Tooltip>
 
     render_image: ->
         if @has_image()
@@ -106,15 +120,17 @@ Avatar = rclass
             </span>
 
     click_avatar: ->
-        if @props.viewing_what == 'projects'
-            @actions('projects').open_project
-                project_id : @props.project_id
-                target     : "files"
-                switch_to  : true
-        else if @props.viewing_what == 'project'
-            redux.getProjectActions(@props.project_id).open_file(path: @props.path)
-        else
-            if @props.line? then @props.goto_line(@props.line)
+        switch @viewing_what()
+            when 'projects'
+                @actions('projects').open_project
+                    project_id : @props.project_id
+                    target     : "files"
+                    switch_to  : true
+            when 'project'
+                redux.getProjectActions(@props.project_id).open_file(path: @props.path)
+            when 'file'
+                if @props.line?
+                    @props.goto_line(@props.line)
 
     render: ->
         # Extra div necessary for overlay not to destroy background color
@@ -127,7 +143,7 @@ Avatar = rclass
         </OverlayTrigger>
 
 UsersViewing = rclass
-    displayName: "smc-users-viewing-document"
+    displayName: "UsersViewing"
 
     reduxProps:
         file_use :
@@ -137,14 +153,11 @@ UsersViewing = rclass
         users :
             user_map : rtypes.immutable   # we use to display the username and letter
 
+    # If neither project_id nor path given, then viewing projects; if project_id
+    # given, then viewing that project; if both given, then viewing a particular file.
     propTypes:
-        redux             : rtypes.object
-        viewing_what      : rtypes.string
-        project_id        : rtypes.string
-        file_use_id       : rtypes.string
-        editor_instance   : rtypes.object
-        get_users_cursors : rtypes.func
-        goto_line         : rtypes.func
+        project_id : rtypes.string  # optional -- must be given if path is specified
+        path       : rtypes.string  # optional -- if given, viewing a file.
 
     mixins: [SetIntervalMixin]
 
@@ -200,14 +213,21 @@ UsersViewing = rclass
                 seconds = most_recent_path['most_recent']
                 time_since =  salvus_client.server_time()/1000 - seconds
 
-
                 # FUTURE: do something with the type like show a small typing picture
                 # or whatever corresponds to the action like "open" or "edit"
                 style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
 
                 # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
                 if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
-                    all_users.push <Avatar viewing_what='projects' key={user_id} account={account} style={style} project_id={most_recent_path['project_id']} redux={redux} />
+                    a = <Avatar
+                        viewing_what = 'projects'
+                        key          = {user_id}
+                        account      = {account}
+                        style        = {style}
+                        project_id   = {most_recent_path['project_id']}
+                        redux        = {redux}
+                        />
+                    all_users.push(a)
 
         else if @props.viewing_what == 'project'
             users = {}
@@ -306,17 +326,3 @@ UsersViewing = rclass
 
 exports.Avatar = Avatar
 exports.UsersViewing = UsersViewing
-
-exports.render_new_viewing_doc = render = (project_id, filename, dom_node, redux, get_users_cursors, goto_line) ->
-    file_use_id = require('smc-util/schema').client_db.sha1(project_id, filename)
-    ReactDOM.render (
-        <Redux redux={redux}>
-            <UsersViewing viewing_what='doc' file_use_id={file_use_id} get_users_cursors={get_users_cursors} goto_line={goto_line} />
-        </Redux>
-    ), dom_node
-
-exports.mount = (project_id, dom_node, redux) ->
-    ReactDOM.render(render(project_id, redux), dom_node)
-
-exports.unmount = (dom_node) ->
-    ReactDOM.unmountComponentAtNode(dom_node)

@@ -26,6 +26,7 @@ misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, SAGE_LOGO_COLOR
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer} = require('./r_misc')
 {FileTypeSelector, NewFileButton} = require('./project_new')
+
 {BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal}        = require('./project_miniterm')
@@ -34,8 +35,9 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
-{AccountPage} = require('./account_page')
+{AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./profile')
+
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
@@ -2009,7 +2011,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Col>
                 <Col sm=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing redux={@props.redux} viewing_what='project' project_id={@props.project_id} />
+                        <UsersViewing what='project' project_id={@props.project_id} />
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}

@@ -352,8 +352,14 @@ exports.newest_content = newest_content = (message) ->
 exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
     account_id == message.get('sender_id')
 
-exports.get_timeago = get_timeago = (message) ->
-    <span className="pull-right small" style={color:'#888'}>
+exports.message_colors = (account_id, message) ->
+    if sender_is_viewer(account_id, message)
+        return {background: '#46b1f6', color: '#fff'}
+    else
+        return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
+
+exports.render_timeago = (message) ->
+    <span className="pull-right small">
         <TimeAgo date={new Date(message.get('date'))} />
     </span>
 
@@ -388,15 +394,16 @@ exports.render_markdown = render_markdown = (value, project_id, file_path) ->
         <Markdown value={value} project_id={project_id} file_path={file_path} />
     </div>
 
-exports.render_history_title = render_history_title = (color, font_size) ->
-    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
+exports.render_history_title = render_history_title =  ->
+    <ListGroupItem style={borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
         <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
     </ListGroupItem>
-exports.render_history_footer = render_history_footer = (color, font_size) ->
-    <ListGroupItem style={background:color, fontSize: font_size, borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
+
+exports.render_history_footer = render_history_footer = ->
+    <ListGroupItem style={borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
     </ListGroupItem>
 
-exports.render_history = render_history = (color, font_size, history, user_map) ->
+exports.render_history = render_history = (history, user_map) ->
     historyList = history?.pop()?.toJS()
     for index, objects of historyList
         value = objects.content
@@ -409,11 +416,11 @@ exports.render_history = render_history = (color, font_size, history, user_map) 
             text = "Message deleted "
         else
             text = "Last edit "
-        <Well key={index} bsSize="small" style={background:color, fontSize: font_size, marginBottom:'0px'}>
+        <Well key={index} bsSize="small" style={marginBottom:'0px'}>
             <div style={marginBottom: '-10px', wordWrap:'break-word'}>
                 <Markdown value={value}/>
             </div>
-            <div className="small" style={color:'#888'}>
+            <div className="small">
                 {text}
                 <TimeAgo date={new Date(objects.date)} />
                 {' by ' + author}

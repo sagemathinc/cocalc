@@ -274,6 +274,9 @@ class ProjectActions extends Actions
             opts.chat       ?= local_storage(@project_id, opts.path, 'is_chat_open')
             opts.chat_width ?= local_storage(@project_id, opts.path, 'chat_width')
 
+        if misc.filename_extension(opts.path) == 'sage-chat'
+            opts.chat = false
+
         @_ensure_project_is_open (err) =>
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
