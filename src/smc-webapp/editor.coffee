@@ -1414,7 +1414,6 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height) =>
         # console.log("_show_codemirror_editors: #{@_layout}")
-
         switch @_layout
             when 0
                 p = 1
@@ -1450,6 +1449,9 @@ class CodeMirrorEditor extends FileEditor
 
             # Save for next time
             @_last_layout = @_layout
+
+        for cm in @codemirrors()
+            cm?.refresh()
 
         @emit('show')
 
