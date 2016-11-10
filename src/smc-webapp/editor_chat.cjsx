@@ -371,7 +371,7 @@ NAME_STYLE =
     color        : "#888"
     marginBottom : '1px'
     marginLeft   : '10px'
-    width        : '100%'
+    right        : 0
     whiteSpace   : 'nowrap'
     overflow     : 'hidden'
     textOverflow : 'ellipsis'    # see https://css-tricks.com/snippets/css/truncate-string-with-ellipsis/
