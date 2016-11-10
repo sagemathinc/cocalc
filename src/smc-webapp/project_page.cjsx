@@ -245,7 +245,6 @@ fixed_project_pages =
 CHAT_TOGGLE_STYLE =
     fontSize     : '14pt'
     position     : 'absolute'
-    top          : '1px'
     right        : '3px'
     zIndex       : 1000
     boxShadow    : '2px 2px 2px 2px #ccc'
@@ -294,7 +293,13 @@ ChatToggle = rclass
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
         style    = misc.copy(CHAT_TOGGLE_STYLE)
-        style.right = if @props.fullscreen then '23px' else '3px'
+        if @props.fullscreen
+            style.top   = '1px'
+            style.right = '23px'
+        else
+            style.top   = '-30px'
+            style.right = '3px'
+
         <div style={style}>
             <Tip
                 title     = {title}
@@ -511,43 +516,48 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
+    render_file_tabs: (is_public) ->
+        shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
+
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
+            <Nav
+                bsStyle   = "pills"
+                className = "smc-file-tabs-fixed-desktop"
+                style     = {overflowY:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
+                {[<FileTab
+                    name       = {k}
+                    label      = {v.label}
+                    icon       = {v.icon}
+                    tooltip    = {v.tooltip}
+                    project_id = {@props.project_id}
+                    is_active  = {@props.active_project_tab == k}
+                    shrink     = {shrink_fixed_tabs}
+                /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
+            </Nav>
+            <SortableNav
+                className   = "smc-file-tabs-files-desktop"
+                helperClass = {'smc-file-tab-floating'}
+                onSortEnd   = {@on_sort_end}
+                axis        = {'x'}
+                lockAxis    = {'x'}
+                lockToContainerEdges={true}
+                distance    = {3 if not IS_MOBILE}
+                bsStyle     = "pills"
+                style       = {display:'flex', height:FILE_NAV_HEIGHT, overflowY:'hidden', paddingRight: '34px'}
+            >
+                {@file_tabs()}
+            </SortableNav>
+        </div>
+
     render : ->
         if not @props.open_files_order?
             return <Loading />
 
-        shrink_fixed_tabs = $(window).width() < 376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250
-
         group     = @props.get_my_group(@props.project_id)
-        is_public = (group == 'public')
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1}>
             <FreeProjectWarning project_id={@props.project_id} name={name} />
-            {<div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
-                <Nav bsStyle="pills" className="smc-file-tabs-fixed-desktop" style={overflowY:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
-                    {[<FileTab
-                        name       = {k}
-                        label      = {v.label}
-                        icon       = {v.icon}
-                        tooltip    = {v.tooltip}
-                        project_id = {@props.project_id}
-                        is_active  = {@props.active_project_tab == k}
-                        shrink     = {shrink_fixed_tabs}
-                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
-                </Nav>
-                <SortableNav
-                    className   = "smc-file-tabs-files-desktop"
-                    helperClass = {'smc-file-tab-floating'}
-                    onSortEnd   = {@on_sort_end}
-                    axis        = {'x'}
-                    lockAxis    = {'x'}
-                    lockToContainerEdges={true}
-                    distance    = {3 if not IS_MOBILE}
-                    bsStyle     = "pills"
-                    style       = {display:'flex', height:FILE_NAV_HEIGHT, overflowY:'hidden'}
-                >
-                    {@file_tabs()}
-                </SortableNav>
-            </div> if not @props.fullscreen}
+            {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectMainContent
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
