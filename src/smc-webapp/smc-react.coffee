@@ -107,7 +107,7 @@ class Store extends EventEmitter
     constructor: (@name, @redux, store_def) ->
         @setMaxListeners(150)
         if not store_def?
-            return @
+            return
 
         state_importers = harvest_state_importers(store_def)
         own_functions   = harvest_own_functions(store_def)
@@ -116,21 +116,26 @@ class Store extends EventEmitter
 
         # Bind all functions to this scope.
         # For example, they importantly get access to @redux, @get, and @getIn
+        bound_own_functions = {}
+        bound_state_importers = {}
         for name, func of own_functions
             bound_own_functions[name] = func.bind(@)
         for name, func of state_importers
             bound_state_importers[name] = func.bind(@)
 
-        selectors = generate_selectors(bound_own_functions, bound_state_importers)
+        selectors = generate_selectors(bound_own_functions, bound_state_importers, @)
+        Object.assign(@, selectors)
 
+        ###
         # Bind selectors as properties on this store
         prop_map = {}
         for name, selector of selectors
             prop_map[name] =
-                get        : => selector(@getState())
+                get        : -> selector(@getState())
                 enumerable : true
 
         Object.defineProperties(@, prop_map)
+        ###
 
     _handle_store_change: (state) =>
         if state != @_last_state
@@ -182,7 +187,7 @@ class Store extends EventEmitter
 
 # Parses and removes store_def.reduxState
 # Returns getters for data from other stores
-harvest_foreign_state_importers = (store_def) ->
+harvest_state_importers = (store_def) ->
     result = {}
     for store_name, values of store_def.reduxState
         for prop_name, type of values
@@ -193,12 +198,13 @@ harvest_foreign_state_importers = (store_def) ->
 # Parses and removes store_def.stateTypes
 # Returns functions for selectors
 harvest_own_functions = (store_def) ->
-    for prop_name, type of store_def.stateTypes
+    functions = {}
+    underscore.map store_def.stateTypes, (type, prop_name) =>
         # No defined selector, but described in state
         if not store_def[prop_name]
             if type.is_computed
                 throw "Computed value #{prop_name} in #{store_def.name} was declared but no definition was found."
-            functions[prop_name] = () -> @get(name)
+            functions[prop_name] = () -> @get(prop_name)
         else
             functions[prop_name] = store_def[prop_name]
             delete store_def[prop_name]
@@ -207,14 +213,17 @@ harvest_own_functions = (store_def) ->
 
 # Generates selectors based on functions found in own and other
 # Replaces and returns functions in own with appropriate selectors.
-generate_selectors = (own, state_importers) ->
+generate_selectors = (own, state_importers, scope) ->
     all_selectors = Object.assign(own, state_importers)
     DAG = misc.create_dependency_graph(all_selectors)
     ordered_funcs = misc.top_sort(DAG, omit_sources:true)
     # state_importers contains only sources so all funcs will be in own
     for func_name in ordered_funcs
-        own[func_name] = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
-        all_selectors[func_name] = own[func_name]
+        init_selector = createSelector (all_selectors[dep_name] for dep_name in DAG[func_name]), own[func_name]
+        defaulted_selector = (state=@getState()) -> init_selector(state)
+        bound_selector = defaulted_selector.bind(scope)
+        own[func_name] = bound_selector
+        all_selectors[func_name] = bound_selector
     return own
 
 action_set_state = (change) ->
@@ -311,14 +320,14 @@ class AppRedux
             if not spec.name?
                 throw Error("name must be a string")
 
-            init = spec.getInitialState?
+            init = spec.getInitialState?()
             delete spec.getInitialState
 
             S = @_stores[spec.name]
             if not S?
                     S = @_stores[spec.name] = new Store(spec.name, @, spec)
                 if init?
-                    @_set_state({"#{name}":init()})
+                    @_set_state({"#{spec.name}":init})
         return S
 
     getStore: (name) =>
@@ -489,6 +498,8 @@ Object.assign(rtypes, React.PropTypes)
 computed = (rtype) =>
     clone = rtype.bind({})
     clone.is_computed = true
+    if rtype.category == "IMMUTABLE" and clone.category != "IMMUTABLE"
+        throw "this computed don't work.."
     return clone
 
 ###
@@ -523,10 +534,11 @@ connect_component = (spec) =>
             for prop, type of info
                 # All store properties are functions which take the entire store state
                 # This enforces Stores describing all of their possible state
-                try
-                    val = redux.getStore(store_name)[prop]
-                catch
-                    throw "Requested prop #{prop} from #{store_name} but #{prop} has no defined selector."
+                if store_name == 'page'
+                    selector = redux.getStore(store_name)[prop]
+                    val = selector(state)
+                else
+                    val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
                     props[prop] = val
                 else

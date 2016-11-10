@@ -1,4 +1,4 @@
-{Actions, Store, redux, rtypes} = require('./smc-react')
+{Actions, Store, redux, rtypes, computed} = require('./smc-react')
 {salvus_client}         = require('./salvus_client')
 misc                    = require('smc-util/misc')
 
@@ -161,12 +161,14 @@ class PageActions extends Actions
 
 redux.createActions('page', PageActions)
 
+# redux.createStore('page', active_top_tab:'account')
+
 # FUTURE: Save entire state to database for #450, saved workspaces
 redux.createStore
     name: 'page'
 
     getInitialState: ->
-        active_top_tab : 'account'
+        active_top_tab        : 'account'
 
     stateTypes:
         active_top_tab        : rtypes.string    # key of the active tab
@@ -179,6 +181,19 @@ redux.createStore
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
+        num_ghost_tabs        : rtypes.number
+        test_compute          : computed rtypes.number
+
+    test_compute: (fullscreen, avgping) ->
+        num = @helper_function(avgping)
+        return "Computed value.. #{fullscreen} #{num}"
+
+    helper_function: (num) ->
+        if num?
+            return num + 100
+        else
+            return 100
+
 
 recent_disconnects = []
 record_disconnect = () ->
