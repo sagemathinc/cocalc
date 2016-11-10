@@ -99,10 +99,10 @@ exports.NotificationBell = rclass
 
     notification_count: ->
         count_styles =
-            fontSize   : '8pt'
-            color      : 'red'
+            fontSize   : '10pt'
+            color      : '#c9302c'
             position   : 'absolute'
-            left       : '18.2px'
+            left       : '17.5px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9

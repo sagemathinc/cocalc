@@ -19,12 +19,6 @@
 #
 ###############################################################################
 
-###
-# AUTHORS:
-#    - Travis Scholl
-#    - Vivek Venkatachalam
-###
-
 misc = require('smc-util/misc')
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {Loading, SetIntervalMixin} = require('./r_misc')
@@ -111,38 +105,26 @@ Avatar = rclass
                 {@_alt()}
             </span>
 
-    open_path: (path) ->
-        redux.getProjectActions(@props.project_id).open_file
-            path : path
+    click_avatar: ->
+        if @props.viewing_what == 'projects'
+            @actions('projects').open_project
+                project_id : @props.project_id
+                target     : "files"
+                switch_to  : true
+        else if @props.viewing_what == 'project'
+            redux.getProjectActions(@props.project_id).open_file(path: @props.path)
+        else
+            if @props.line? then @props.goto_line(@props.line)
 
     render: ->
-        #extra div for necessary for overlay not to destroy background color
-        open_project = @actions('projects').open_project
-
-        if @props.viewing_what == 'projects'
-            <OverlayTrigger placement='top' overlay={@tooltip()} onClick={=>open_project(project_id:@props.project_id, target:"files", switch_to:true)}>
-                <div style={display:'inline-block'}>
-                    <div style={@_outerStyle()}>
-                        {@render_image()}
-                    </div>
+        # Extra div necessary for overlay not to destroy background color
+        <OverlayTrigger placement='top' overlay={@tooltip()}>
+            <div style={display:'inline-block', pointer:'cursor'}>
+                <div style={@_outerStyle()} onClick={@click_avatar}>
+                    {@render_image()}
                 </div>
-            </OverlayTrigger>
-        else if @props.viewing_what == 'project'
-            <OverlayTrigger placement='top' overlay={@tooltip()}>
-                <div style={display:'inline-block'}>
-                    <div style={@_outerStyle()} onClick={=>@open_path(@props.path)}>
-                        {@render_image()}
-                    </div>
-                </div>
-            </OverlayTrigger>
-        else
-            <OverlayTrigger placement='top' overlay={@tooltip()}>
-                <div style={display:'inline-block'}>
-                    <div style={@_outerStyle()} onClick={=>if @props.line? then @props.goto_line(@props.line)}>
-                        {@render_image()}
-                    </div>
-                </div>
-            </OverlayTrigger>
+            </div>
+        </OverlayTrigger>
 
 UsersViewing = rclass
     displayName: "smc-users-viewing-document"
@@ -156,13 +138,13 @@ UsersViewing = rclass
             user_map : rtypes.immutable   # we use to display the username and letter
 
     propTypes:
-        redux         : rtypes.object
-        viewing_what : rtypes.string
-        project_id : rtypes.string
-        file_use_id : rtypes.string
-        editor_instance : rtypes.object
+        redux             : rtypes.object
+        viewing_what      : rtypes.string
+        project_id        : rtypes.string
+        file_use_id       : rtypes.string
+        editor_instance   : rtypes.object
         get_users_cursors : rtypes.func
-        goto_line : rtypes.func
+        goto_line         : rtypes.func
 
     mixins: [SetIntervalMixin]
 

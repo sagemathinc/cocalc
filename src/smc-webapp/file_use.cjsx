@@ -23,9 +23,6 @@
 
 File Usage Notifications
 
-AUTHORS:
-   - first version written by William Stein, July 25-?, 2015, while unemployed.
-
 DOC:
 
 To mark a file as read:

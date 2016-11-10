@@ -2,11 +2,9 @@
 Wrapper in a React component of a non-react editor, so that we can fully rewrite
 the UI using React without having to rewrite all the editors.
 
-(c) SageMath, Inc.
+GPL
 
-AUTHORS:
-   - William Stein, 2016
-   - John Jeng, 2016
+(c) 2016, SageMath, Inc.
 ###
 
 {NotifyResize} = require('react-notify-resize')

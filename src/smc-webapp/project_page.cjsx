@@ -286,7 +286,7 @@ ChatToggle = rclass
 
     render : () ->
         new_chat = @is_new_chat()
-        color    = if new_chat then 'red' else 'black'
+        color    = if new_chat then '#c9302c' else 'black'
         action   = if @props.is_chat_open then 'Hide' else 'Show'
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
@@ -380,6 +380,7 @@ ProjectMainContent = rclass
 
         handle_drag_bar_drag = (data) =>
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
+            console.log elt.offset()
             width = 1 - (data.clientX - elt.offset().left) / elt.width()
             $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")
             reset(); setTimeout(reset, 0)

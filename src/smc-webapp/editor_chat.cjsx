@@ -20,15 +20,6 @@
 ###############################################################################
 
 ###
-AUTHORS:
-
-  - William Stein
-  - Harald Schilly
-  - Simon Luu
-  - John Jeng
-###
-
-###
 Chat message JSON format:
 
 sender_id : String which is the original message sender's account id
