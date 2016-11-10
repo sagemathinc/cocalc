@@ -295,6 +295,7 @@ SAGE_PIP_PACKAGES = [
     'vpython',
     'keras',
     'altair', # https://github.com/ellisonbg/altair
+    'BooleanNet', # https://github.com/ialbert/booleannet (called "boolean2")
     ]
 
 # additional environment settings for specific packages
