@@ -297,7 +297,7 @@ class ProjectActions extends Actions
                                 if not err
                                     @open_file
                                         path               : sagews_filename
-                                        forgeound          : opts.foreground
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
@@ -310,7 +310,7 @@ class ProjectActions extends Actions
                                 if not err
                                     @open_file
                                         path               : new_filename
-                                        forgeound          : opts.foreground
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
