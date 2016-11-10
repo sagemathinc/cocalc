@@ -28,6 +28,8 @@
 
 $                = window.$
 
+{debounce}       = require('underscore')
+
 {EventEmitter}   = require('events')
 {alert_message}  = require('./alerts')
 misc             = require('smc-util/misc')
@@ -80,6 +82,7 @@ class Console extends EventEmitter
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required
+            path        : required
             session     : undefined  # a console_session; use .set_session to set it later instead.
             title       : ""
             filename    : ""
@@ -104,8 +107,10 @@ class Console extends EventEmitter
 
         @_init_default_settings()
 
-        if @opts.project_id
-            @project_id = @opts.project_id
+        @project_id = @opts.project_id
+        @path = @opts.path
+
+        @mark_file_use = debounce(@mark_file_use, 3000)
 
         @_project_actions = redux.getProjectActions(@project_id)
 
@@ -436,8 +441,12 @@ class Console extends EventEmitter
         Terminal.colors[256] = Terminal.defaultColors.bg
         Terminal.colors[257] = Terminal.defaultColors.fg
 
+    mark_file_use: () =>
+        redux.getActions('file_use').mark_file(@project_id, @path, 'edit')
+
     client_keydown: (ev) =>
         #console.log("client_keydown", ev)
+        @mark_file_use()
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"

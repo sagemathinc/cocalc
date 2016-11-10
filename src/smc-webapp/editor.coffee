@@ -2555,10 +2555,11 @@ class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         @element = $("<div>").hide()
         elt = @element.salvus_console
-            title     : "Terminal"
-            filename  : @filename
-            project_id: @project_id
-            editor    : @
+            title      : "Terminal"
+            filename   : @filename
+            project_id : @project_id
+            path       : @filename
+            editor     : @
         @console = elt.data("console")
         @element = @console.element
         salvus_client.read_text_file_from_project
