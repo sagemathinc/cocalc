@@ -282,8 +282,6 @@ ChatToggle = rclass
             a.open_chat({path:@props.path})
 
     is_new_chat: ->
-        #if @props.is_chat_open   # don't show indicator if the chat is opened...
-        #    return false
         return redux.getStore('file_use')?.get_file_info(@props.project_id, @props.path)?.is_unseenchat ? false
 
     render : () ->
@@ -327,6 +325,9 @@ ProjectMainContent = rclass
         group           : rtypes.string
 
     render_chat_toggle : (is_chat_open, path) ->
+        if misc.filename_extension(path) == 'sage-chat'
+            # Special case: do not show side chat for chatrooms
+            return
         <ChatToggle
             project_id   = {@props.project_id}
             path         = {path}
