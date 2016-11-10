@@ -177,6 +177,7 @@ UsersViewing = rclass
     render_avatars: ->
         if not (@props.file_use? and @props.user_map?)
             return
+        return <div>Avatars for {@props.project_id}, {@props.path}</div>
 
         seconds_for_user_to_disappear = 600
         num_users_to_display = 5 # The full set will show up in an overflow popover

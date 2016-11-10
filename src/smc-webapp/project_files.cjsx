@@ -2011,7 +2011,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Col>
                 <Col sm=3>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing what='project' project_id={@props.project_id} />
+                        <UsersViewing project_id={@props.project_id} />
                     </div>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}

@@ -4,7 +4,6 @@ misc = require('misc')
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
 
-
 {UsersViewing} = require('./profile')
 
 CHAT_INDICATOR_STYLE =
