@@ -1127,7 +1127,7 @@ ProjectFilesActionBox = rclass
     submit_action_rename: () ->
         single_item = @props.checked_files.first()
         if @valid_rename_input(single_item)
-            @rename_click()
+            @rename_or_duplicate_click()
 
     move_click: ->
         @props.actions.move_files
