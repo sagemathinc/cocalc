@@ -29,6 +29,8 @@ misc_page = require('./misc_page')
 
 FILE_NAV_HEIGHT = '36px'
 
+DEFAULT_CHAT_WIDTH = 0.3
+
 default_file_tab_styles =
     width : 250
     borderRadius : "5px 5px 0px 0px"
@@ -399,7 +401,7 @@ ProjectMainContent = rclass
         path         = misc.tab_to_path(@props.active_tab_name)
         editor       = @render_editor(path)
         is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
-        chat_width   = @props.open_files.getIn([path, 'chat_width']) ? 0.2
+        chat_width   = @props.open_files.getIn([path, 'chat_width']) ? DEFAULT_CHAT_WIDTH
         chat_toggle  = @render_chat_toggle(is_chat_open, path)
 
         if is_chat_open
