@@ -70,14 +70,6 @@ Avatar = rclass
         fontSize     : @props.size / 2 + 4
         fontFamily   : 'sans-serif'
 
-    # This was formerly the styling used for icons with Avatars, but it
-    # created some alignment problems.
-    # _innerStyle_image: ->
-    #     position     : 'relative'
-    #     width        : '100%'
-    #     height       : '100%'
-    #     borderRadius : if not @props.square then "50%" else "none"
-
     _outerStyle: ->
         style =
             display         : "inline-block"
@@ -146,7 +138,7 @@ Avatar = rclass
         else
             <OverlayTrigger placement='top' overlay={@tooltip()}>
                 <div style={display:'inline-block'}>
-                    <div style={@_outerStyle()} onClick={=>@props.goto_line(@props.line)}>
+                    <div style={@_outerStyle()} onClick={=>if @props.line? then @props.goto_line(@props.line)}>
                         {@render_image()}
                     </div>
                 </div>
@@ -281,7 +273,7 @@ UsersViewing = rclass
                 if z is undefined
                     line = undefined
                 else
-                    line = z  + 1
+                    line = z + 1
                 account = @props.user_map.get(user_id)?.toJS() ? {}
                 [event, seconds] = @_find_most_recent(events)
                 time_since =  salvus_client.server_time()/1000 - seconds
@@ -296,7 +288,7 @@ UsersViewing = rclass
             num_users_to_display = all_users.length
 
         time_sorter = (a,b) -> b.props.__time_since < a.props.__time_since
-        key_sorter = (a,b) -> b.props.key < a.props.key
+        key_sorter  = (a,b) -> b.key < a.key
 
         all_users_time_sorted = all_users.sort(time_sorter)
         users_to_display = all_users_time_sorted.slice(0, num_users_to_display)

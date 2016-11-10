@@ -353,6 +353,13 @@ ChatLog = rclass
             {@list_messages()}
         </Grid>
 
+log_container_style =
+    overflowY       : 'auto'
+    flex            : 1
+    marginTop       : '32px'
+    border          : '1px solid lightgrey'
+    backgroundColor : '#fafafa'
+
 ChatRoom = rclass ({name}) ->
     displayName: "ChatRoom"
 
@@ -424,11 +431,11 @@ ChatRoom = rclass ({name}) ->
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
-        <div
-            style       = {height:'100%', display:'flex', flexDirection:'column'}
-            onMouseMove = {mark_as_read}
-            >
-            <div style={overflowY:'auto', flex:1} ref='log_container' onScroll={@on_scroll} >  {# flex:1 so this expands to fit available space}
+        <div style       = {height:'100%', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
+             onMouseMove = {mark_as_read}>
+            <div style   = {log_container_style}
+                 ref     = 'log_container'
+                 onScroll= {@on_scroll}>
                 <ChatLog
                     messages     = {@props.messages}
                     account_id   = {@props.account_id}

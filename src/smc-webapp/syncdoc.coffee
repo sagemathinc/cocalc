@@ -441,10 +441,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
-            # LABEL: first fade the label out over 6s
-            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:6000)
-            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 20s.
-            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:20000)
+            # LABEL: first fade the label out over 15s
+            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:15000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 25s.
+            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:25000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
