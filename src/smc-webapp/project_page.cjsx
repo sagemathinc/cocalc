@@ -203,7 +203,7 @@ FreeProjectWarning = rclass ({name}) ->
             fontWeight : 700
             top        : -5
             fontSize   : 18
-            color      : 'gray'
+            color      : 'grey'
             position   : 'relative'
             height     : 0
         <Alert bsStyle='warning' style={styles}>
@@ -407,7 +407,7 @@ ProjectMainContent = rclass
                     style = {display:'flex', height:'100%'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid grey', borderRadius:'4px'}>
+                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px'}>
                         {editor}
                     </div>
                     {@render_drag_bar(path)}
@@ -420,7 +420,7 @@ ProjectMainContent = rclass
         else
             # just the editor
             content =\
-                <div style={height:'100%', border:'1px solid grey', borderRadius:'4px'}>
+                <div style={height:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
                     {editor}
                 </div>
         # Finally render it
