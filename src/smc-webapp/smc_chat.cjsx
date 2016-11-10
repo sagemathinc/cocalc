@@ -783,7 +783,7 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux? or not @props.input.length?
             return <Loading/>
 
-        if true or IS_MOBILE
+        if IS_MOBILE
             return @render_mobile()
         else
             return @render_desktop()
