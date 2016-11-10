@@ -43,7 +43,7 @@ Avatar = rclass
     getDefaultProps: ->
         style   : {}
         account : {first_name:"A",profile:{color:"#aaaaaa",image:""}}
-        size    : 30
+        size    : 27
         square  : false
 
     has_image: ->

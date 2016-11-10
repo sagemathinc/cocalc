@@ -135,8 +135,6 @@ class Console extends EventEmitter
         # this via certain escape codes.
         @set_title(@opts.title)
 
-        @set_filename(@opts.filename)
-
         # Create the new Terminal object -- this is defined in
         # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
@@ -912,10 +910,6 @@ class Console extends EventEmitter
     set_title: (title) ->
         @opts.set_title?(title)
         @element.find(".salvus-console-title").text(title)
-
-    set_filename: (filename) ->
-        @filename = filename
-        @element.find(".salvus-console-filename").text(filename)
 
 
 exports.Console = Console
