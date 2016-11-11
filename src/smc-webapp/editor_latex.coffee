@@ -13,6 +13,7 @@ misc = require('smc-util/misc')
 {redux}         = require('./smc-react')
 editor          = require('./editor')
 printing        = require('./printing')
+{project_tasks} = require('./project_tasks')
 
 templates = $("#salvus-editor-templates")
 
@@ -666,7 +667,7 @@ class exports.LatexEditor extends editor.FileEditor
         return elt
 
     download_pdf: (print = false) =>
-        redux.getProjectStore(@project_id).download_file
+        project_tasks(@project_id).download_file
             path : misc.change_filename_extension(@filename, 'pdf')
             print: print
 

@@ -28,6 +28,7 @@ misc                 = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text}       = require('./misc_page')
 {alert_message}      = require('./alerts')
+{project_tasks}      = require('./project_tasks')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
@@ -661,7 +662,7 @@ ProjectControlPanel = rclass
         e.preventDefault()
         async.series([
             (cb) =>
-                redux.getProjectStore(@props.project.get('project_id')).ensure_directory_exists
+                project_tasks(@project_id).ensure_directory_exists
                     path : '.ssh'
                     cb   : cb
             (cb) =>

@@ -45,6 +45,7 @@ _ = underscore = require('underscore')
 {salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
+{project_tasks} = require('./project_tasks')
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
@@ -1314,7 +1315,7 @@ class CodeMirrorEditor extends FileEditor
                                 cb()
                 (cb) =>
                     # does the pdf file exist?
-                    redux.getProjectStore(@project_id).file_nonzero_size
+                    project_tasks(@project_id).file_nonzero_size
                         path    : pdf
                         cb      : (err) =>
                             if err
@@ -1337,7 +1338,7 @@ class CodeMirrorEditor extends FileEditor
                     {join} = require('path')
                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                     # check if generated tmp.tex exists and has nonzero size
-                    redux.getProjectStore(@project_id).file_nonzero_size
+                    project_tasks(@project_id).file_nonzero_size
                         path    : subdir_texfile
                         cb      : (err) =>
                             if err

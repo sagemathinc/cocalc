@@ -27,10 +27,12 @@ async           = require('async')
 misc            = require('smc-util/misc')
 {salvus_client} = require('./salvus_client')
 {redux}         = require('./smc-react')
+{project_tasks} = require('./project_tasks')
 
 # abstract class
 class Printer
     constructor : (@editor, @output_file, @opts) ->
+        @project_id = @editor.project_id
 
     # overwrite with the list of supported extensions
     @supported : []
@@ -40,13 +42,13 @@ class Printer
 
     show_print_new_tab : (cb) ->
         # if the output file exists and has nonzero size, we open it in a new tab and print it
-        redux.getProjectStore(@editor.project_id).file_nonzero_size
+        project_tasks(@project_id).file_nonzero_size
             path        : @output_file
             cb          : (err) =>
                 if err
                     cb?('Generated file for printing does not exist.')
                 else
-                    redux.getProjectStore(@editor.project_id).download_file
+                    redux.getProjectActions(@project_id).download_file
                         path : @output_file
                         print: true
                     cb?()

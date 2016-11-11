@@ -34,8 +34,9 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
-{AccountPage} = require('./account_page')
+{AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./profile')
+{project_tasks}       = require('./project_tasks')
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
@@ -227,7 +228,7 @@ FileRow = rclass
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
         # See https://github.com/sagemathinc/smc/issues/1020
-        href_download = @props.actions.get_store().download_href(@fullpath())
+        href_download = project_tasks(@props.actions.project_id).download_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
@@ -1414,7 +1415,7 @@ ProjectFilesActionBox = rclass
                 @share_click()
 
     download_click: ->
-        @props.actions.get_store().download_file
+        @props.actions.download_file
             path : @props.checked_files.first()
             log : true
         @props.actions.set_file_action()

@@ -30,6 +30,7 @@ misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
 {alert_message} = require('./alerts')
 {salvus_client} = require('./salvus_client')
+{project_tasks} = require('./project_tasks')
 {defaults, required} = misc
 
 {Actions, Store, Table, register_project_store, redux}  = require('./smc-react')
@@ -292,11 +293,11 @@ class ProjectActions extends Actions
                         if not is_public and (ext == "sws" or ext.slice(0,4) == "sws~")
                             # sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
                             alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{opts.path}...")
-                            @get_store().convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
+                            @convert_sagenb_worksheet opts.path, (err, sagews_filename) =>
                                 if not err
                                     @open_file
                                         path               : sagews_filename
-                                        foreground         : opts.foreground
+                                        forgeound          : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
@@ -305,11 +306,11 @@ class ProjectActions extends Actions
 
                         if not is_public and ext == "docx"   # Microsoft Word Document
                             alert_message(type:"info", message:"Opening converted plain text file instead of '#{opts.path}...")
-                            @get_store().convert_docx_file opts.path, (err, new_filename) =>
+                            @convert_docx_file opts.path, (err, new_filename) =>
                                 if not err
                                     @open_file
                                         path               : new_filename
-                                        foreground         : opts.foreground
+                                        forgeound          : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
@@ -368,6 +369,50 @@ class ProjectActions extends Actions
         open_files = @get_store().get('open_files')
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
+
+    convert_sagenb_worksheet: (filename, cb) =>
+        async.series([
+            (cb) =>
+                ext = misc.filename_extension(filename)
+                if ext == "sws"
+                    cb()
+                else
+                    i = filename.length - ext.length
+                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
+                    salvus_client.exec
+                        project_id : @project_id
+                        command    : "cp"
+                        args       : [filename, new_filename]
+                        cb         : (err, output) =>
+                            if err
+                                cb(err)
+                            else
+                                filename = new_filename
+                                cb()
+            (cb) =>
+                salvus_client.exec
+                    project_id : @project_id
+                    command    : "smc-sws2sagews"
+                    args       : [filename]
+                    cb         : (err, output) =>
+                        cb(err)
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
+        )
+
+    convert_docx_file: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "smc-docx2txt"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     # Closes all files and removes all references
     close_all_files: () =>
@@ -595,6 +640,30 @@ class ProjectActions extends Actions
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
+    get_from_web: (opts) =>
+        opts = defaults opts,
+            url     : required
+            dest    : undefined
+            timeout : 45
+            alert   : true
+            cb      : undefined     # cb(true or false, depending on error)
+
+        {command, args} = misc.transform_get_url(opts.url)
+
+        require('./salvus_client').salvus_client.exec
+            project_id : @project_id
+            command    : command
+            timeout    : opts.timeout
+            path       : opts.dest
+            args       : args
+            cb         : (err, result) =>
+                if opts.alert
+                    if err
+                        alert_message(type:"error", message:err)
+                    else if result.event == 'error'
+                        alert_message(type:"error", message:result.error)
+                opts.cb?(err or result.event == 'error')
+
     # function used internally by things that call salvus_client.exec
     _finish_exec: (id) =>
         # returns a function that takes the err and output and does the right activity logging stuff.
@@ -769,6 +838,35 @@ class ProjectActions extends Actions
                         files  : opts.paths[0...3]
                         count  : if opts.paths.length > 3 then opts.paths.length
 
+
+    download_file: (opts) =>
+        {download_file, open_new_tab} = require('./misc_page')
+        opts = defaults opts,
+            path    : required
+            log     : false
+            auto    : true
+            print   : false
+            timeout : 45
+
+        if opts.log
+            @log
+                event  : 'file_action'
+                action : 'downloaded'
+                files  : opts.path
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = project_tasks(@project_id).url_href(opts.path)
+        if opts.auto and not opts.print
+            download_file(url)
+        else
+            tab = open_new_tab(url)
+            if tab? and opts.print
+                # "?" since there might be no print method -- could depend on browser API
+                tab.print?()
+
+
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  Throws an Error if the path name is invalid.
@@ -797,7 +895,7 @@ class ProjectActions extends Actions
         catch e
             @setState(file_creation_error: e.message)
             return
-        @get_store().ensure_directory_exists
+        project_tasks(@project_id).ensure_directory_exists
             path : p
             cb   : (err) =>
                 if err
@@ -817,7 +915,7 @@ class ProjectActions extends Actions
             @setState(file_creation_error: "Cannot create a file named . or ..")
             return
         if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
-            @get_store().new_file_from_web(name, opts.current_path)
+            @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
             if not opts.ext?
@@ -854,6 +952,24 @@ class ProjectActions extends Actions
                     @open_file
                         path : p
 
+    new_file_from_web: (url, current_path, cb) =>
+        d = current_path
+        if d == ''
+            d = 'root directory of project'
+        id = misc.uuid()
+        @set_active_tab('files')
+        @set_activity
+            id:id
+            status:"Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
+        @get_from_web
+            url     : url
+            dest    : current_path
+            timeout : FROM_WEB_TIMEOUT_S
+            alert   : true
+            cb      : (err) =>
+                @set_directory_files()
+                @set_activity(id: id, stop:'')
+                cb?(err)
 
     ###
     # Actions for PUBLIC PATHS
@@ -1126,159 +1242,6 @@ class ProjectStore extends Store
         @_compute_public_files(x)
 
         return x
-
-    convert_sagenb_worksheet: (filename, cb) =>
-        async.series([
-            (cb) =>
-                ext = misc.filename_extension(filename)
-                if ext == "sws"
-                    cb()
-                else
-                    i = filename.length - ext.length
-                    new_filename = filename.slice(0, i-1) + ext.slice(3) + '.sws'
-                    salvus_client.exec
-                        project_id : @project_id
-                        command    : "cp"
-                        args       : [filename, new_filename]
-                        cb         : (err, output) =>
-                            if err
-                                cb(err)
-                            else
-                                filename = new_filename
-                                cb()
-            (cb) =>
-                salvus_client.exec
-                    project_id : @project_id
-                    command    : "smc-sws2sagews"
-                    args       : [filename]
-                    cb         : (err, output) =>
-                        cb(err)
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, filename.slice(0,filename.length-3) + 'sagews')
-        )
-
-    convert_docx_file: (filename, cb) =>
-        salvus_client.exec
-            project_id : @project_id
-            command    : "smc-docx2txt"
-            args       : [filename]
-            cb         : (err, output) =>
-                if err
-                    cb("#{err}, #{misc.to_json(output)}")
-                else
-                    cb(false, filename.slice(0,filename.length-4) + 'txt')
-
-    get_from_web: (opts) =>
-        opts = defaults opts,
-            url     : required
-            dest    : undefined
-            timeout : 45
-            alert   : true
-            cb      : undefined     # cb(true or false, depending on error)
-
-        {command, args} = misc.transform_get_url(opts.url)
-
-        require('./salvus_client').salvus_client.exec
-            project_id : @project_id
-            command    : command
-            timeout    : opts.timeout
-            path       : opts.dest
-            args       : args
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
-    new_file_from_web: (url, current_path, cb) =>
-        d = current_path
-        if d == ''
-            d = 'root directory of project'
-        id = misc.uuid()
-        @set_active_tab('files')
-        @set_activity
-            id:id
-            status:"Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
-        @get_from_web
-            url     : url
-            dest    : current_path
-            timeout : FROM_WEB_TIMEOUT_S
-            alert   : true
-            cb      : (err) =>
-                @set_directory_files()
-                @set_activity(id: id, stop:'')
-                cb?(err)
-
-    ensure_directory_exists: (opts) =>
-        opts = defaults opts,
-            path  : required
-            cb    : undefined  # cb(true or false)
-            alert : true
-        salvus_client.exec
-            project_id : @project_id
-            command    : "mkdir"
-            timeout    : 15
-            args       : ['-p', opts.path]
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
-    file_nonzero_size : (opts) =>
-        opts = defaults opts,
-            path : required
-            cb   : undefined
-        f = misc.path_split(opts.path)
-        salvus_client.exec
-            project_id  : @project_id
-            command     : 'test'
-            args        : ['-s', f.tail]
-            path        : f.head
-            err_on_exit : true
-            cb          : (err) ->
-                opts.cb?(err)
-
-    download_file: (opts) =>
-        {download_file, open_new_tab} = require('./misc_page')
-        opts = defaults opts,
-            path    : required
-            log     : false
-            auto    : true
-            print   : false
-            timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
-        if opts.log
-            @log
-                event  : 'file_action'
-                action : 'downloaded'
-                files  : opts.path
-        if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
-
-        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
-        if opts.auto and not opts.print
-            download_file(url)
-        else
-            tab = open_new_tab(url)
-            if tab? and opts.print
-                # "?" since there might be no print method -- could depend on browser API
-                tab.print?()
-
-    print_file: (opts) =>
-        opts.print = true
-        @download_file(opts)
-
-    download_href: (path) =>
-        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
 
     ###
     # Store data about PUBLIC PATHS
