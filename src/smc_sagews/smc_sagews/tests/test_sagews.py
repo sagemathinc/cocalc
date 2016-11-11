@@ -111,6 +111,27 @@ class TestBasic:
         else:
             z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
 
+class TestAttach:
+    def test_define_paf(self, exec2):
+        exec2(dedent(r"""
+        def paf():
+            print("attached files: %d"%len(attached_files()))
+            print("\n".join(attached_files()))
+        paf()"""),"attached files: 0\n\n")
+    def test_attach_sage_1(self, exec2):
+        exec2("%attach a.sage\npaf()", pattern="attached files: 1\n.*/a.sage\n")
+    def test_attach_sage_2(self, exec2):
+        exec2("f1('foo')","f1 arg = 'foo'\ntest f1 1\n")
+    def test_attach_py_1(self, exec2):
+        exec2("%attach a.py\npaf()", pattern="attached files: 2\n.*/a.py\n.*/a.sage\n")
+    def test_attach_py_2(self, exec2):
+        exec2("f2('foo')","test f2 1\n")
+    def test_attach_html_1(self, execblob):
+        execblob("%attach a.html", want_html=False, want_javascript=True, file_type='html')
+    def test_attach_html_2(self, exec2):
+        exec2("paf()", pattern="attached files: 3\n.*/a.html\n.*/a.py\n.*/a.sage\n")
+
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')

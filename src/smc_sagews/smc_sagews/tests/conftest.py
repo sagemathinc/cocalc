@@ -472,7 +472,7 @@ def execinteract(request, sagews, test_id):
 @pytest.fixture()
 def execblob(request, sagews, test_id):
 
-    def execblobfn(code, want_html=True, file_type = 'png'):
+    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png'):
 
         SHA_LEN = 36
 
@@ -480,10 +480,10 @@ def execblob(request, sagews, test_id):
         m = message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
 
-        # expect 3 responses before "done", but order may vary
+        # expect several responses before "done", but order may vary
         want_blob = True
         want_name = True
-        while want_blob or want_name or want_html:
+        while any([want_blob, want_name, want_html, want_javascript]):
             typ, mesg = sagews.recv()
             if typ == 'blob':
                 assert want_blob
@@ -502,6 +502,10 @@ def execblob(request, sagews, test_id):
                     assert want_html
                     want_html = False
                     print('got html')
+                elif 'javascript' in mesg:
+                    assert want_javascript
+                    want_javascript = False
+                    print('got javascript')
                 else:
                     assert want_name
                     want_name = False
