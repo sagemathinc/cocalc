@@ -130,7 +130,10 @@ class TestAttach:
         execblob("%attach a.html", want_html=False, want_javascript=True, file_type='html')
     def test_attach_html_2(self, exec2):
         exec2("paf()", pattern="attached files: 3\n.*/a.html\n.*/a.py\n.*/a.sage\n")
-
+    def test_detach_1(self, exec2):
+        exec2("detach(attached_files())")
+    def test_detach_2(self, exec2):
+        exec2("paf()","attached files: 0\n\n")
 
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
