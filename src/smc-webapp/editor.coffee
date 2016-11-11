@@ -1357,7 +1357,7 @@ class CodeMirrorEditor extends FileEditor
                 (cb) =>
                     # if there is no subdirectory of temporary files, print generated pdf file
                     if not is_subdir
-                        redux.getProjectStore(@project_id).print_file(path: pdf)
+                        redux.getProjectActions(@project_id).print_file(path: pdf)
                     cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)

@@ -69,7 +69,6 @@ class ProjectTasks
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
-
     # returns the URL for the file at the given path
     url_href: (path) =>
         return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}"
@@ -77,7 +76,6 @@ class ProjectTasks
     # returns the download URL for a file at a given path
     download_href: (path) =>
         return "#{@url_href(path)}?download"
-
 
 _project_tasks = {}
 exports.project_tasks = (project_id) ->

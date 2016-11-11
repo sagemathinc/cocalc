@@ -853,19 +853,20 @@ class ProjectActions extends Actions
                 event  : 'file_action'
                 action : 'downloaded'
                 files  : opts.path
-        if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
 
-        url = project_tasks(@project_id).url_href(opts.path)
         if opts.auto and not opts.print
+            url = project_tasks(@project_id).download_href(opts.path)
             download_file(url)
         else
+            url = project_tasks(@project_id).url_href(opts.path)
             tab = open_new_tab(url)
             if tab? and opts.print
                 # "?" since there might be no print method -- could depend on browser API
                 tab.print?()
 
+    print_file: (opts) =>
+        opts.print = true
+        @download_file(opts)
 
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have

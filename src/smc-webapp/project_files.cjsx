@@ -219,6 +219,13 @@ FileRow = rclass
             foreground : misc.should_open_in_foreground(e)
         @props.actions.set_file_search('')
 
+    handle_download_click: (e) ->
+        e.preventDefault()
+        e.stopPropagation()
+        @props.actions.download_file
+            path : @fullpath()
+            log : true
+
     render: ->
         row_styles =
             cursor          : 'pointer'
@@ -228,7 +235,8 @@ FileRow = rclass
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
         # See https://github.com/sagemathinc/smc/issues/1020
-        href_download = project_tasks(@props.actions.project_id).download_href(@fullpath())
+        # support right-click → copy url for the download button
+        url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
@@ -250,9 +258,8 @@ FileRow = rclass
                     <Button style={marginLeft: '1em', background:'transparent'}
                             bsStyle='default'
                             bsSize='xsmall'
-                            target='_blank'
-                            href="#{href_download}"
-                            onClick = {(e)->e.stopPropagation()}>
+                            href="#{url_href}"
+                            onClick = {@handle_download_click}>
                         <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
                 </span>
