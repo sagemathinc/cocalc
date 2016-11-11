@@ -102,13 +102,14 @@ store_def =
 
 Note: you cannot name a property "state" or "props"
 ###
+converted_stores = []
 class Store extends EventEmitter
     # TODOJ: remove @name when fully switched over
     constructor: (@name, @redux, store_def) ->
         @setMaxListeners(150)
         if not store_def?
             return
-
+        converted_stores.push[store_def.name]
         state_importers = harvest_state_importers(store_def)
         own_functions   = harvest_own_functions(store_def)
         # store_def should only contain non-state functions now and name
@@ -532,11 +533,8 @@ connect_component = (spec) =>
             return props
         for store_name, info of spec
             for prop, type of info
-                # All store properties are functions which take the entire store state
-                # This enforces Stores describing all of their possible state
-                if store_name == 'page'
+                if store_name in converted_stores
                     val = redux.getStore(store_name)[prop]
-                    #val = selector(state)
                 else
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
