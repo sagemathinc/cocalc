@@ -1608,7 +1608,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
-            console.log("loaded CoffeeScript via reqire.ensure")
+            console.log("loaded CoffeeScript via require.ensure")
             cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
@@ -1707,7 +1707,6 @@ exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-# tab is assumed to be the return value of window.open(url)
 exports.open_new_tab = (url) ->
     tab = window.open(url)
     if(!tab || tab.closed || typeof tab.closed=='undefined')

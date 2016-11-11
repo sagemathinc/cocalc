@@ -3357,10 +3357,9 @@ def load_html_resource(filename):
     if ext == "css":
         salvus.javascript('''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''%url)
     elif ext == "html":
-        # TODO: opts.element should change to cell.element when more canonical (need to finish some code in syncdoc)!
-        salvus.javascript('opts.element.append($("<div>").load("%s"))'%url)
+        salvus.javascript('element.append($("<div>").load("%s"))'%url)
     elif ext == "coffee":
-        salvus.javascript('$.ajax({url:"%s"}).done(function(data) { eval(CoffeeScript.compile(data)); })'%url)
+        salvus.coffeescript('$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'%url)
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 

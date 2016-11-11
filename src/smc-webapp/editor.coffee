@@ -675,29 +675,6 @@ class FileEditor extends EventEmitter
     terminate_session: () =>
         # If some backend session on a remote machine is serving this session, terminate it.
 
-    save: (cb) =>
-        content = @val?()   # may not be defined in which case save not supported
-        if not content?
-            # do not overwrite file in case editor isn't initialized
-            cb?()
-            return
-
-        salvus_client.write_text_file_to_project
-            project_id : @project_id
-            timeout    : 10
-            path       : @filename
-            content    : content
-            cb         : (err, mesg) =>
-                # FUTURE -- on error, we *might* consider saving to localStorage...
-                if err
-                    alert_message(type:"error", message:"Communications issue saving #{@filename} -- #{err}")
-                    cb?(err)
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error saving #{@filename} -- #{to_json(mesg.error)}")
-                    cb?(mesg.error)
-                else
-                    cb?()
-
 exports.FileEditor = FileEditor
 
 ###############################################
@@ -1395,6 +1372,8 @@ class CodeMirrorEditor extends FileEditor
     click_save_button: () =>
         if @opts.read_only
             return
+        if not @save?  # not implemented...
+            return
         if @_saving
             return
         @_saving = true
@@ -1833,6 +1812,8 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
             # no syncdoc
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
+
+    E.save = E.syncdoc?.save
     return E
 
 
