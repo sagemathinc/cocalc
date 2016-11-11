@@ -75,6 +75,12 @@ class TestBasic:
         assert mesg['completions'] == ["ctor","ctorial"]
         assert mesg['target'] == "fa"
 
+    # https://github.com/sagemathinc/smc/issues/1107
+    def test_sage_underscore_1(self, exec2):
+        exec2("2/5","2/5\n")
+    def test_sage_underscore_2(self, exec2):
+        exec2("_","2/5\n")
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')
