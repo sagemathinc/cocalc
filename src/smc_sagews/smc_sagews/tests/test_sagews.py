@@ -81,6 +81,21 @@ class TestBasic:
     def test_sage_underscore_2(self, exec2):
         exec2("_","2/5\n")
 
+    # https://github.com/sagemathinc/smc/issues/978
+    def test_mode_comments_1(self, exec2):
+        exec2(dedent("""
+        def f(s):
+            print "s='%s'"%s"""))
+    def test_mode_comments_2(self, exec2):
+        exec2(dedent("""
+        %f
+        123
+        # foo
+        456"""), dedent("""
+        s='123
+        # foo
+        456'\n""").lstrip())
+
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
         execinteract('search_src("convolution")')
