@@ -182,18 +182,6 @@ redux.createStore
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
         num_ghost_tabs        : rtypes.number
-        test_compute          : computed rtypes.number
-
-    test_compute: (fullscreen, avgping) ->
-        num = @helper_function(avgping)
-        return "Computed value.. #{fullscreen} #{num}"
-
-    helper_function: (num) ->
-        if num?
-            return num + 100
-        else
-            return 100
-
 
 recent_disconnects = []
 record_disconnect = () ->
