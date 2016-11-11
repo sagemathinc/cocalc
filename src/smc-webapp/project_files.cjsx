@@ -34,8 +34,9 @@ account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')
 {salvus_client}       = require('./salvus_client')
-{AccountPage} = require('./account_page')
+{AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./profile')
+{project_tasks}       = require('./project_tasks')
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
@@ -218,6 +219,13 @@ FileRow = rclass
             foreground : misc.should_open_in_foreground(e)
         @props.actions.set_file_search('')
 
+    handle_download_click: (e) ->
+        e.preventDefault()
+        e.stopPropagation()
+        @props.actions.download_file
+            path : @fullpath()
+            log : true
+
     render: ->
         row_styles =
             cursor          : 'pointer'
@@ -226,9 +234,9 @@ FileRow = rclass
             borderStyle     : 'solid'
             borderColor     : if @props.bordered then SAGE_LOGO_COLOR else @props.color
 
-        # TODO: actions are not allowed to return anything.  Move this to the store or somewhere else.
         # See https://github.com/sagemathinc/smc/issues/1020
-        href_download = @props.actions.download_href(@fullpath())
+        # support right-click → copy url for the download button
+        url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2 xs=3>
@@ -250,9 +258,8 @@ FileRow = rclass
                     <Button style={marginLeft: '1em', background:'transparent'}
                             bsStyle='default'
                             bsSize='xsmall'
-                            target='_blank'
-                            href="#{href_download}"
-                            onClick = {(e)->e.stopPropagation()}>
+                            href="#{url_href}"
+                            onClick = {@handle_download_click}>
                         <Icon name='cloud-download' style={color: '#666'} />
                     </Button>
                 </span>
@@ -1128,7 +1135,7 @@ ProjectFilesActionBox = rclass
     submit_action_rename: () ->
         single_item = @props.checked_files.first()
         if @valid_rename_input(single_item)
-            @rename_click()
+            @rename_or_duplicate_click()
 
     move_click: ->
         @props.actions.move_files
