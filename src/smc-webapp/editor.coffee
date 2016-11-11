@@ -758,13 +758,12 @@ class CodeMirrorEditor extends FileEditor
             @_chat_is_hidden = true
 
         @_layout = @local_storage("layout")
-        if not @_layout?
+        if @_layout not in [1,2]
+            # The *ONLY* allowed values for the layout are 1 and 2 here (update when this changes!)
+            # IMPORTANT: If this were anything other than 1, the user would never be able to open
+            # tex files. So it's important that this be valid.
             @_layout = 1
         @_last_layout = @_layout
-
-        layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
-        elt = layout_elt.find(".salvus-editor-codemirror-input-box").find("textarea")
-        elt.text(content)
 
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
@@ -871,6 +870,9 @@ class CodeMirrorEditor extends FileEditor
 
             return cm
 
+        layout_elt = @element.find(".salvus-editor-codemirror-input-container-layout-#{@_layout}").show()
+        elt = layout_elt.find(".salvus-editor-codemirror-input-box").find("textarea")
+        elt.text(content)
 
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
