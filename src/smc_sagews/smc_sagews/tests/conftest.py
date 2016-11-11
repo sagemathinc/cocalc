@@ -382,9 +382,9 @@ def exec2(request, sagews, test_id):
     Fixture function exec2. If output & patterns are omitted, the cell is not
     expected to produce a stdout result. Arguments after 'code' are optional.
 
-    - `` code `` -- string of code block to run
+    - `` code `` -- string of code to run
 
-    - `` output `` -- string of expected output, to be matched exactly
+    - `` output `` -- string or list of strings of output to be matched exactly
 
     - `` pattern `` -- regex to match with expected stdout output
 
@@ -410,6 +410,10 @@ def exec2(request, sagews, test_id):
         def test_sh(exec2):
             exec2("sh('date +%Y-%m-%d')", pattern = '^\d{4}-\d{2}-\d{2}$')
 
+    .. NOTE::
+
+        If `output` is a list of strings, `pattern` and `html_pattern` are ignored
+
     """
     def execfn(code, output = None, pattern = None, html_pattern = None):
         m = message.execute_code(code = code, id = test_id)
@@ -418,7 +422,14 @@ def exec2(request, sagews, test_id):
         sagews.send_json(m)
 
         # check stdout
-        if output or pattern:
+        if isinstance(output, list):
+            for o in output:
+                typ, mesg = sagews.recv()
+                assert typ == 'json'
+                assert mesg['id'] == test_id
+                assert 'stdout' in mesg
+                assert mesg['stdout'] == o
+        elif output or pattern:
             typ, mesg = sagews.recv()
             assert typ == 'json'
             assert mesg['id'] == test_id

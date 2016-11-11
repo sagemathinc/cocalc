@@ -94,7 +94,22 @@ class TestBasic:
         456"""), dedent("""
         s='123
         # foo
-        456'\n""").lstrip())
+        456'
+        """).lstrip())
+
+    def test_block_parser(self, exec2):
+        """
+        .. NOTE::
+
+            This function supplies a list of expected outputs to `exec2`.
+        """
+        exec2(dedent("""
+        pi.n().round()
+        [x for x in [1,2,3] if x<3]
+        for z in ['a','b']:
+            z
+        else:
+            z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
 
 class TestSearchSrc:
     def test_search_src_simple(self, execinteract):
