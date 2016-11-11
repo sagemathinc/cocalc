@@ -30,6 +30,7 @@ misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
 {alert_message} = require('./alerts')
 {salvus_client} = require('./salvus_client')
+{project_tasks} = require('./project_tasks')
 {defaults, required} = misc
 
 {Actions, Store, Table, register_project_store, redux}  = require('./smc-react')
@@ -307,7 +308,7 @@ class ProjectActions extends Actions
                                 if not err
                                     @open_file
                                         path               : sagews_filename
-                                        forgeound          : opts.foreground
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
@@ -320,7 +321,7 @@ class ProjectActions extends Actions
                                 if not err
                                     @open_file
                                         path               : new_filename
-                                        forgeound          : opts.foreground
+                                        foreground         : opts.foreground
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
@@ -691,24 +692,6 @@ class ProjectActions extends Actions
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
-    ensure_directory_exists: (opts) =>
-        opts = defaults opts,
-            path  : required
-            cb    : undefined  # cb(true or false)
-            alert : true
-        salvus_client.exec
-            project_id : @project_id
-            command    : "mkdir"
-            timeout    : 15
-            args       : ['-p', opts.path]
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
     get_from_web: (opts) =>
         opts = defaults opts,
             url     : required
@@ -909,30 +892,33 @@ class ProjectActions extends Actions
 
 
     download_file: (opts) =>
-        {download_file} = require('./misc_page')
+        {download_file, open_new_tab} = require('./misc_page')
         opts = defaults opts,
             path    : required
             log     : false
             auto    : true
+            print   : false
             timeout : 45
-            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+
         if opts.log
             @log
                 event  : 'file_action'
                 action : 'downloaded'
                 files  : opts.path
-        if misc.filename_extension(opts.path) == 'pdf'
-            # unfortunately, download_file doesn't work for pdf these days...
-            opts.auto = false
 
-        url = "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
-        if opts.auto
+        if opts.auto and not opts.print
+            url = project_tasks(@project_id).download_href(opts.path)
             download_file(url)
         else
-            window.open(url)
+            url = project_tasks(@project_id).url_href(opts.path)
+            tab = open_new_tab(url)
+            if tab? and opts.print
+                # "?" since there might be no print method -- could depend on browser API
+                tab.print?()
 
-    download_href: (path) =>
-        return "#{window.smc_base_url}/#{@project_id}/raw/#{misc.encode_path(path)}?download"
+    print_file: (opts) =>
+        opts.print = true
+        @download_file(opts)
 
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -962,7 +948,7 @@ class ProjectActions extends Actions
         catch e
             @setState(file_creation_error: e.message)
             return
-        @ensure_directory_exists
+        project_tasks(@project_id).ensure_directory_exists
             path : p
             cb   : (err) =>
                 if err

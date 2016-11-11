@@ -21,6 +21,7 @@
 
 if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
+    window.location.reload()
 
 $ = window.$
 _ = require('underscore')

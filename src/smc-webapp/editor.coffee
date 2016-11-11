@@ -43,6 +43,7 @@ _ = underscore = require('underscore')
 {salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
+{project_tasks} = require('./project_tasks')
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
@@ -61,8 +62,9 @@ require('./console')
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('smc-util/misc')
 
-syncdoc = require('./syncdoc')
-sagews  = require('./sagews')
+syncdoc  = require('./syncdoc')
+sagews   = require('./sagews')
+printing = require('./printing')
 
 codemirror_associations =
     c      : 'text/x-c'
@@ -333,18 +335,6 @@ exports.file_icon_class = file_icon_class = (ext) ->
     else
         return 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course', 'chat', 'git', 'template']
-
-# public access file types *NOT* yet supported
-# (this should quickly shrink to zero)
-exports.public_access_supported = (filename) ->
-    ext = filename_extension_notilde(filename)
-    x = file_associations[ext]
-    if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
-        return false
-    else
-        return true
-
 # Multiplex'd worksheet mode
 
 {MARKERS} = require('smc-util/sagews')
@@ -572,9 +562,10 @@ templates = $("#salvus-editor-templates")
 #
 
 class FileEditor extends EventEmitter
-    constructor: (@project_id, @filename, content, opts) ->
+    # ATTN it is crucial to call this constructor in subclasses via super(@project_id, @filename)
+    constructor: (@project_id, @filename) ->
+        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
-        @val(content)
 
     is_active: () =>
         misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
@@ -690,6 +681,7 @@ exports.FileEditor = FileEditor
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -729,7 +721,6 @@ class CodeMirrorEditor extends FileEditor
 
         #console.log("mode =", opts.mode)
 
-        @project_id = @project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @element.data('editor', @)
@@ -796,7 +787,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # FUTURE: We will replace this by a general framework...
-        if misc.filename_extension_notilde(filename) == "sagews"
+        if misc.filename_extension_notilde(filename).toLowerCase() == "sagews"
             evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
@@ -810,6 +801,10 @@ class CodeMirrorEditor extends FileEditor
         #   2 - two editors, one next to the other
 
         @_layout = @local_storage("layout") ? 0    # WARNING/UGLY: used by syncdoc.coffee and sagews.coffee !
+        if @_layout not in [0, 1, 2]
+            # IMPORTANT: If this were anything other than what is listed, the user
+            # would never be able to open tex files. So it's important that this be valid.
+            @_layout = 0
         @_last_layout = undefined
 
         make_editor = (node) =>
@@ -867,6 +862,7 @@ class CodeMirrorEditor extends FileEditor
             return cm
 
         elt = @element.find(".salvus-editor-textarea-0"); elt.text(content)
+
         @codemirror = make_editor(elt[0])
         @codemirror.name = '0'
 
@@ -892,7 +888,7 @@ class CodeMirrorEditor extends FileEditor
         if opts.read_only
             @set_readonly_ui()
 
-        if @filename.slice(@filename.length-7) == '.sagews'
+        if misc.filename_extension(@filename)?.toLowerCase() == 'sagews'
             @init_sagews_edit_buttons()
 
         @wizard = null
@@ -1053,16 +1049,20 @@ class CodeMirrorEditor extends FileEditor
 
     init_edit_buttons: () =>
         that = @
-        for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
+        button_names = ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
+                        'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+
+        # if the file extension indicates that we know how to print it, show and enable the print button
+        if printing.can_print(@ext)
+            button_names.push('print')
+        else
+            @element.find('a[href="#print"]').remove()
+
+        for name in button_names
             e = @element.find("a[href=\"##{name}\"]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
-
-        # FUTURE: implement printing for other file types
-        if @filename.slice(@filename.length-7) != '.sagews'
-            @element.find("a[href=\"#print\"]").unbind().hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -1113,7 +1113,6 @@ class CodeMirrorEditor extends FileEditor
                 @goto_line(cm)
             when 'print'
                 @print()
-
 
     restore_font_size: () =>
         # we set the font_size from local storage
@@ -1211,8 +1210,24 @@ class CodeMirrorEditor extends FileEditor
                 dialog.modal('hide')
                 return false
 
+    print : () =>
+        switch @ext
+            when 'sagews'
+                @print_sagews()
+            when 'txt', 'csv'
+                print_button = @element.find("a[href=\"#print\"]")
+                print_button.icon_spin(start:true, delay:0).addClass("disabled")
+                printing.Printer(@, @filename + '.pdf').print (err) ->
+                    print_button.removeClass('disabled')
+                    print_button.icon_spin(false)
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Printing error -- #{err}"
+
+
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
-    print: () =>
+    print_sagews: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
@@ -1222,8 +1237,10 @@ class CodeMirrorEditor extends FileEditor
         else
             ext = v[v.length-1]
             base = v.slice(0,v.length-1).join('.')
+
+        ext = ext.toLowerCase()
         if ext != 'sagews'
-            alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
+            console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
 
         submit = () =>
@@ -1238,16 +1255,19 @@ class CodeMirrorEditor extends FileEditor
                 (cb) =>
                     @save(cb)
                 (cb) =>
-                    salvus_client.print_to_pdf
+                    # get info from the UI and attempt to convert the sagews to pdf
+                    options =
+                        title      : dialog.find(".salvus-file-print-title").text()
+                        author     : dialog.find(".salvus-file-print-author").text()
+                        date       : dialog.find(".salvus-file-print-date").text()
+                        contents   : dialog.find(".salvus-file-print-contents").is(":checked")
+                        subdir     : is_subdir
+                        extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
+
+                    printing.Printer(@).print
                         project_id  : @project_id
                         path        : @filename
-                        options     :
-                            title      : dialog.find(".salvus-file-print-title").text()
-                            author     : dialog.find(".salvus-file-print-author").text()
-                            date       : dialog.find(".salvus-file-print-date").text()
-                            contents   : dialog.find(".salvus-file-print-contents").is(":checked")
-                            subdir     : is_subdir
-                            extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
+                        options     : options
                         cb          : (err, _pdf) =>
                             if err
                                 cb(err)
@@ -1255,38 +1275,51 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    salvus_client.read_file_from_project
-                        project_id : @project_id
-                        path       : pdf
-                        cb         : (err, mesg) =>
+                    # does the pdf file exist?
+                    project_tasks(@project_id).file_nonzero_size
+                        path    : pdf
+                        cb      : (err) =>
                             if err
-                                cb(err)
+                                err_msg = 'Unable to convert file to PDF. '
+                                if not is_subdir
+                                    err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
+                                cb(err_msg)
                             else
-                                url = mesg.url + "?nocache=#{Math.random()}"
-                                dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
-                                if is_subdir
-                                    {join} = require('path')
-                                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
-                                    # if not reading it, tmp.tex is blank (?)
-                                    salvus_client.read_file_from_project
-                                        project_id : @project_id
-                                        path       : subdir_texfile
-                                        cb         : (err, mesg) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                tempdir_link = $('<a>').text('Click to open temporary file')
-                                                tempdir_link.click =>
-                                                    redux.getProjectActions(@project_id).open_file
-                                                        path       : subdir_texfile
-                                                        foreground : true
-                                                    dialog.modal('hide')
-                                                    return false
-                                                $print_tempdir.html(tempdir_link)
-                                                $print_tempdir.show()
-                                else
-                                    window.open(url, '_blank')
                                 cb()
+                (cb) =>
+                    # pdf file exists -- show it in the UI
+                    url = salvus_client.read_file_from_project
+                        project_id  : @project_id
+                        path        : pdf
+                    dialog.find(".salvus-file-printing-link").attr('href', url).text(pdf).show()
+                    cb()
+                (cb) =>
+                    if not is_subdir
+                        cb(); return
+                    {join} = require('path')
+                    subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
+                    # check if generated tmp.tex exists and has nonzero size
+                    project_tasks(@project_id).file_nonzero_size
+                        path    : subdir_texfile
+                        cb      : (err) =>
+                            if err
+                                cb('Unable to create directory of temporary Latex files.')
+                            else
+                                tempdir_link = $('<a>').text('Click to open temporary file')
+                                tempdir_link.click =>
+                                    redux.getProjectActions(@project_id).open_file
+                                        path       : subdir_texfile
+                                        foreground : true
+                                    dialog.modal('hide')
+                                    return false
+                                $print_tempdir.html(tempdir_link)
+                                $print_tempdir.show()
+                                cb()
+                (cb) =>
+                    # if there is no subdirectory of temporary files, print generated pdf file
+                    if not is_subdir
+                        redux.getProjectActions(@project_id).print_file(path: pdf)
+                    cb()
             ], (err) =>
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
@@ -2186,6 +2219,7 @@ if DEBUG
 
 class PDF_Preview extends FileEditor
     constructor: (@project_id, @filename, contents, opts) ->
+        super(@project_id, @filename)
         @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
@@ -2480,6 +2514,7 @@ exports.PDF_Preview = PDF_Preview
 
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@project_id, @filename, contents, @opts) ->
+        super(@project_id, @filename)
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @pdf_title = @element.find(".salvus-editor-pdf-title")
         @pdf_title.find("span").text("loading ...")
@@ -2529,6 +2564,7 @@ exports.PDF_PreviewEmbed = PDF_PreviewEmbed
 
 class Terminal extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
+        super(@project_id, @filename)
         @element = $("<div>").hide()
         elt = @element.salvus_console
             title      : "Terminal"
@@ -2612,9 +2648,8 @@ class Terminal extends FileEditor
 
 class Media extends FileEditor
     constructor: (@project_id, @filename, url, @opts) ->
-        @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
+        super(@project_id, @filename)
         @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
-
         @element = templates.find(".salvus-editor-image").clone()
         @element.find(".salvus-editor-image-title").text(@filename)
 
@@ -2673,6 +2708,7 @@ class Media extends FileEditor
 
 class PublicHTML extends FileEditor
     constructor: (@project_id, @filename, @content, opts) ->
+        super(@project_id, @filename)
         @element = templates.find(".salvus-editor-static-html").clone()
         if not @content?
             @content = 'Loading...'
@@ -2742,6 +2778,7 @@ class PublicSagews extends PublicCodeMirrorEditor
 
 class FileEditorWrapper extends FileEditor
     constructor: (@project_id, @filename, @content, @opts) ->
+        super(@project_id, @filename)
         @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
@@ -2844,6 +2881,7 @@ class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
     constructor: (@project_id, @filename, @content, opts) ->
+        super(@project_id, @filename)
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 
@@ -2886,6 +2924,7 @@ class JupyterNBViewerEmbedded extends FileEditor
         @iframe.maxheight()
 
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
+html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
 
 {LatexEditor} = require('./editor_latex')
 
@@ -2895,40 +2934,37 @@ exports.register_nonreact_editors = () ->
     reg = require('./editor_react_wrapper').register_nonreact_editor
 
     reg
-        ext : ''  # fallback for any type not otherwise explicitly specified
-        f   : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        ext       : ''  # fallback for any type not otherwise explicitly specified
+        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
         is_public : false
 
-    # Editors for private normal editable files.
-    reg0 = (cls, extensions) ->
+    # wrapper for registering private and public editors
+    register = (is_public, cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
             ext       : extensions
-            is_public : false
+            is_public : is_public
             icon      : icon
-            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
+            f         : (project_id, path, opts) ->
+                e = new cls(project_id, path, undefined, opts)
+                if not e.ext?
+                    console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
+                return e
 
-    reg0 HTML_MD_Editor,   ['md', 'html', 'htm']
-    reg0 LatexEditor,      ['tex']
-    reg0 Terminal,         ['term', 'sage-term']
-    reg0 Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS)
+    # Editors for private normal editable files.
+    register(false, HTML_MD_Editor,   html_md_exts)
+    register(false, LatexEditor,      ['tex'])
+    register(false, Terminal,         ['term', 'sage-term'])
+    register(false, Media,            ['png', 'jpg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
-    reg0 HistoryEditor,    ['sage-history']
-    reg0 PDF_PreviewEmbed, ['pdf']
-    reg0 TaskList,         ['tasks']
-    reg0 JupyterNotebook,  ['ipynb']
+    register(false, HistoryEditor,    ['sage-history'])
+    register(false, PDF_PreviewEmbed, ['pdf'])
+    register(false, TaskList,         ['tasks'])
+    register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    reg1 = (cls, extensions) ->
-        icon = file_icon_class(extensions[0])
-        reg
-            ext       : extensions
-            is_public : true
-            icon      : icon
-            f         : (project_id, path, opts) -> new cls(project_id, path, undefined, opts)
-
-    reg1 PublicCodeMirrorEditor,  ['']
-    reg1 PublicHTML,              ['html']
-    reg1 PublicSagews,            ['sagews']
-    reg1 JupyterNBViewerEmbedded, ['ipynb']
+    register(true, PublicCodeMirrorEditor,  [''])
+    register(true, PublicHTML,              ['html'])
+    register(true, PublicSagews,            ['sagews'])
+    register(true, JupyterNBViewerEmbedded, ['ipynb'])

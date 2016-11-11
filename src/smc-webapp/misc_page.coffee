@@ -1608,7 +1608,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
-            console.log("loaded CoffeeScript via reqire.ensure")
+            console.log("loaded CoffeeScript via require.ensure")
             cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
@@ -1706,7 +1706,6 @@ exports.analytics_pageview = (args...) ->
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
-
 # These are used to disable pointer events for iframes when dragging something that may move over an iframe.
 # See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
 exports.drag_start_iframe_disable = ->
@@ -1714,3 +1713,16 @@ exports.drag_start_iframe_disable = ->
 
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
+
+# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
+exports.open_new_tab = (url) ->
+    tab = window.open(url)
+    if(!tab || tab.closed || typeof tab.closed=='undefined')
+        {alert_message} = require('./alerts')
+        alert_message
+            title   : "Pop-ups blocked."
+            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+            type    : 'error'
+            timeout : 10
+        return null
+    return tab

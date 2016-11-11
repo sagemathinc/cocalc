@@ -53,7 +53,7 @@ exports.register_file_editor = (opts) ->
         is_public : false
         component : undefined # rclass
         generator : undefined # function
-        init      : undefined  # function
+        init      : undefined # function
         remove    : undefined
         icon      : 'file-o'
         save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
