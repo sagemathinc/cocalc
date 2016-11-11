@@ -3359,7 +3359,7 @@ def load_html_resource(filename):
     elif ext == "html":
         salvus.javascript('element.append($("<div>").load("%s"))'%url)
     elif ext == "coffee":
-        salvus.javascript('$.ajax({url:"%s"}).done(function(data) { eval(CoffeeScript.compile(data)); })'%url)
+        salvus.coffeescript('$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'%url)
     elif ext == "js":
         salvus.html('<script src="%s"></script>'%url)
 

@@ -1608,7 +1608,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             require("script!coffeescript/coffee-script.js")
-            console.log("loaded CoffeeScript via reqire.ensure")
+            console.log("loaded CoffeeScript via require.ensure")
             cb?()
             #$.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             #    console.log("loaded CoffeeScript -- #{status}")
