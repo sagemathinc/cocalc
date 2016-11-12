@@ -28,7 +28,6 @@ misc = require('smc-util/misc')
 
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')
-
 {OverlayTrigger, Tooltip} = require('react-bootstrap')
 
 # How frequently all UsersViewing componenents are completely updated.
