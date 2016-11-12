@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer} = require('./r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
 {SiteName} = require('./customize')
 
@@ -647,10 +647,21 @@ ProfileSettings = rclass
             </Col>
         </Row>
 
+    render_header: ->
+        <h2>
+            <Avatar
+                account_id = {@props.account_id}
+                size       = 40
+            />
+            <Space />
+            <Space />
+            Profile
+        </h2>
+
     render: ->
         if not @props.account_id? or not @props.profile?
             return <Loading />
-        <Panel header={<h2> <Avatar account_id={@props.account_id} /> Profile </h2>}>
+        <Panel header={@render_header()}>
             <LabeledRow label='Color'>
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>

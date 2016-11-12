@@ -256,9 +256,6 @@ ProjectMainContent = rclass
         group           : rtypes.string
 
     render_chat_toggle : (is_chat_open, path) ->
-        if misc.filename_extension(path) == 'sage-chat'
-            # Special case: do not show side chat for chatrooms
-            return
         <ChatIndicator
             project_id   = {@props.project_id}
             path         = {path}

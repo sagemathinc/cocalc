@@ -66,7 +66,7 @@ exports.Avatar = Avatar = rclass
                                      # When defined, fade out over time; click goes to that file.
 
     getDefaultProps: ->
-        size      : 32
+        size      : 30
         max_age_s : 600
 
     click_avatar: ->
@@ -145,7 +145,7 @@ exports.Avatar = Avatar = rclass
     render_inside: ->
         if url=@get_image()
             <img
-                style = {borderRadius:'50%'}
+                style = {borderRadius:'50%', width:'100%'}
                 src   = {url}
             />
         else

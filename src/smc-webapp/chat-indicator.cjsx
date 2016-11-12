@@ -51,12 +51,31 @@ exports.ChatIndicator = rclass
             path       = {@props.path}
         />
 
-    render : () ->
+    render_chat_button: ->
+        if misc.filename_extension(@props.path) == 'sage-chat'
+            # Special case: do not show side chat for chatrooms
+            return
+
         new_chat = @is_new_chat()
         color    = if new_chat then '#c9302c' else 'black'
         action   = if @props.is_chat_open then 'Hide' else 'Show'
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
+
+        <Tip
+            title     = {title}
+            tip       = {CHAT_INDICATOR_TIP}
+            placement = 'left'
+            delayShow = 2500
+            >
+            <div style={cursor: 'pointer', color: color} onClick={=>@toggle_chat()} >
+                <Icon name="caret-#{dir}" />
+                <Space />
+                <Icon name='comment' />
+            </div>
+        </Tip>
+
+    render : ->
         style    = misc.copy(CHAT_INDICATOR_STYLE)
         style.display = 'flex'
         if @props.fullscreen
@@ -68,18 +87,7 @@ exports.ChatIndicator = rclass
 
         <div style={style}>
             {@render_users()}
-            <Tip
-                title     = {title}
-                tip       = {CHAT_INDICATOR_TIP}
-                placement = 'left'
-                delayShow = 2500
-                >
-                <div style={cursor: 'pointer', color: color} onClick={=>@toggle_chat()} >
-                    <Icon name="caret-#{dir}" />
-                    <Space />
-                    <Icon name='comment' />
-                </div>
-            </Tip>
+            {@render_chat_button()}
         </div>
 
 
