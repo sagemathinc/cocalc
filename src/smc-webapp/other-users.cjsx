@@ -92,7 +92,7 @@ exports.Avatar = Avatar = rclass
             return '?'
 
     get_name: ->
-        return misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 15).trim()
+        return misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 20).trim()
 
     get_background_color: ->
         return redux.getStore('users').get_color(@props.account_id)
@@ -145,7 +145,7 @@ exports.Avatar = Avatar = rclass
     render_inside: ->
         if url=@get_image()
             <img
-                style = {borderRadius:'50%', width:'100%'}
+                style = {borderRadius:'50%', width:'100%', marginBottom: '4px'}
                 src   = {url}
             />
         else
@@ -206,9 +206,11 @@ exports.UsersViewing = rclass
         project_id : rtypes.string  # optional -- must be given if path is specified
         path       : rtypes.string  # optional -- if given, viewing a file.
         max_age_s  : rtypes.number.isRequired
+        size       : rtypes.number
 
     getDefaultProps: ->
         max_age_s : MAX_AGE_S
+        size      : 30
 
     mixins: [SetIntervalMixin]
 
@@ -232,6 +234,7 @@ exports.UsersViewing = rclass
                     max_age_s  = {@props.max_age_s}
                     project_id = {@props.project_id}
                     path       = {@props.path}
+                    size       = {@props.size}
                     activity   = {activity} />
 
     render: ->

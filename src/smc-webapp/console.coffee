@@ -890,7 +890,7 @@ class Console extends EventEmitter
             # WARNING: probably should investigate term.js issues further(?)
             # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
             # This would totally break the client, which is bad, so we catch is.
-        @element.addClass('salvus-console-blur').removeClass('salvus-console-focus')
+        $(@terminal.element).addClass('salvus-console-blur').removeClass('salvus-console-focus')
 
     focus: (force) =>
         if @is_focused and not force
@@ -905,7 +905,7 @@ class Console extends EventEmitter
             @terminal.focus()
             @_focus_hidden_textarea()
 
-        @element.addClass('salvus-console-focus').removeClass('salvus-console-blur')
+        $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
 
     set_title: (title) ->
         @opts.set_title?(title)

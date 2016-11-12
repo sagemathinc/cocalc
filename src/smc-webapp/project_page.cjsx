@@ -33,11 +33,17 @@ FILE_NAV_HEIGHT = '36px'
 
 DEFAULT_CHAT_WIDTH = 0.3
 
-default_file_tab_styles =
-    width : 250
+DEFAULT_FILE_TAB_STYLES =
+    width        : 250
     borderRadius : "5px 5px 0px 0px"
-    flexShrink : '1'
-    overflow : 'hidden'
+    flexShrink   : '1'
+    overflow     : 'hidden'
+
+CHAT_INDICATOR_STYLE =
+    paddingTop  : '5px'
+    overflow    : 'hidden'
+    paddingLeft : '5px'
+    borderLeft  : '1px solid lightgrey'
 
 FileTab = rclass
     displayName : 'FileTab'
@@ -81,7 +87,7 @@ FileTab = rclass
         styles = {}
 
         if @props.file_tab
-            styles = misc.copy(default_file_tab_styles)
+            styles = misc.copy(DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
                 styles.backgroundColor = SAGE_LOGO_COLOR
         else
@@ -139,7 +145,7 @@ NavWrapper = ({style, children, id, className, bsStyle}) ->
 
 GhostTab = (props) ->
     <NavItem
-        style={default_file_tab_styles}
+        style={DEFAULT_FILE_TAB_STYLES}
     />
 
 SortableFileTab = SortableElement(FileTab)
@@ -255,13 +261,6 @@ ProjectMainContent = rclass
         active_tab_name : rtypes.string
         group           : rtypes.string
 
-    render_chat_toggle : (is_chat_open, path) ->
-        <ChatIndicator
-            project_id   = {@props.project_id}
-            path         = {path}
-            is_chat_open = {is_chat_open}
-        />
-
     render_editor: (path) ->
         {Editor, redux_name} = @props.open_files.getIn([path, 'component']) ? {}
         if redux_name?
@@ -324,10 +323,10 @@ ProjectMainContent = rclass
 
     render_editor_tab: ->
         path         = misc.tab_to_path(@props.active_tab_name)
-        editor       = @render_editor(path)
-        is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
         chat_width   = @props.open_files.getIn([path, 'chat_width']) ? DEFAULT_CHAT_WIDTH
-        chat_toggle  = @render_chat_toggle(is_chat_open, path)
+        is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+
+        editor  = @render_editor(path)
 
         if is_chat_open
             # 2 column layout with chat
@@ -354,7 +353,6 @@ ProjectMainContent = rclass
                 </div>
         # Finally render it
         <div style={position:'relative', height:0, flex:1}>
-            {chat_toggle}
             {content}
         </div>
 
@@ -444,37 +442,54 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
+    render_chat_indicator: ->
+        path = misc.tab_to_path(@props.active_project_tab)
+        if not path
+            # TODO: This is the case where we would support project-wide side chat.
+            return
+        is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
+        <div style = {CHAT_INDICATOR_STYLE}>
+            <ChatIndicator
+                project_id   = {@props.project_id}
+                path         = {path}
+                is_chat_open = {is_chat_open}
+            />
+        </div>
+
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
         <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:FILE_NAV_HEIGHT}>
-            <Nav
-                bsStyle   = "pills"
-                className = "smc-file-tabs-fixed-desktop"
-                style     = {overflowY:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
-                {[<FileTab
-                    name       = {k}
-                    label      = {v.label}
-                    icon       = {v.icon}
-                    tooltip    = {v.tooltip}
-                    project_id = {@props.project_id}
-                    is_active  = {@props.active_project_tab == k}
-                    shrink     = {shrink_fixed_tabs}
-                /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
-            </Nav>
-            <SortableNav
-                className   = "smc-file-tabs-files-desktop"
-                helperClass = {'smc-file-tab-floating'}
-                onSortEnd   = {@on_sort_end}
-                axis        = {'x'}
-                lockAxis    = {'x'}
-                lockToContainerEdges={true}
-                distance    = {3 if not IS_MOBILE}
-                bsStyle     = "pills"
-                style       = {display:'flex', height:FILE_NAV_HEIGHT, overflowY:'hidden', paddingRight: '34px'}
-            >
-                {@file_tabs()}
-            </SortableNav>
+            <div style={display:'flex'}>
+                <Nav
+                    bsStyle   = "pills"
+                    className = "smc-file-tabs-fixed-desktop"
+                    style     = {overflow:'hidden', float:'left', height:FILE_NAV_HEIGHT} >
+                    {[<FileTab
+                        name       = {k}
+                        label      = {v.label}
+                        icon       = {v.icon}
+                        tooltip    = {v.tooltip}
+                        project_id = {@props.project_id}
+                        is_active  = {@props.active_project_tab == k}
+                        shrink     = {shrink_fixed_tabs}
+                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
+                </Nav>
+                <SortableNav
+                    className            = "smc-file-tabs-files-desktop"
+                    helperClass          = {'smc-file-tab-floating'}
+                    onSortEnd            = {@on_sort_end}
+                    axis                 = {'x'}
+                    lockAxis             = {'x'}
+                    lockToContainerEdges = {true}
+                    distance             = {3 if not IS_MOBILE}
+                    bsStyle              = "pills"
+                    style                = {display:'flex', height:FILE_NAV_HEIGHT, overflow:'hidden', flex: 1}
+                >
+                    {@file_tabs()}
+                </SortableNav>
+                {@render_chat_indicator()}
+            </div>
         </div>
 
     render : ->

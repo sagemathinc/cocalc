@@ -8,12 +8,7 @@ misc = require('misc')
 
 CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
-    position     : 'absolute'
-    right        : '3px'
-    zIndex       : 1000
     borderRadius : '3px'
-    paddingLeft  : '5px'
-    paddingRight : '5px'
 
 CHAT_INDICATOR_TIP = <span>
     Hide or show the chat for this file.
@@ -49,6 +44,7 @@ exports.ChatIndicator = rclass
         <UsersViewing
             project_id = {@props.project_id}
             path       = {@props.path}
+            size       = {24}
         />
 
     render_chat_button: ->
@@ -57,7 +53,7 @@ exports.ChatIndicator = rclass
             return
 
         new_chat = @is_new_chat()
-        color    = if new_chat then '#c9302c' else 'black'
+        color    = if new_chat then '#c9302c' else '#428bca'
         action   = if @props.is_chat_open then 'Hide' else 'Show'
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'

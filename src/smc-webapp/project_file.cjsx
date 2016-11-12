@@ -110,6 +110,9 @@ exports.remove = (path, redux, project_id, is_public) ->
 # It does not take a callback.  It's a non-op if no save function is registered
 # or the file isn't open.
 exports.save = (path, redux, project_id, is_public) ->
+    if not path?
+        console.warn("WARNING: save(undefined path)")
+        return
     is_public = !!is_public
     ext       = filename_extension(path).toLowerCase()
     # either use the one given by ext, or if there isn't one, use the '' fallback.

@@ -516,15 +516,15 @@ exports.original_path = (path) ->
         x = s.head + '/' + x
     return x
 
-
-# "foobar" --> "foo..."
+ELLIPSES = "…"
+# "foobar" --> "foo…"
 exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")
-        return s.slice(0,max_length-3) + "..."
+        return s.slice(0,max_length-3) + ELLIPSES
     else
         return s
 
@@ -535,7 +535,7 @@ exports.trunc_middle = (s, max_length=1024) ->
     if s.length <= max_length
         return s
     n = Math.floor(max_length/2)
-    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
+    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + ELLIPSES + s.slice(s.length-(n-1))
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length=1024) ->
@@ -544,7 +544,7 @@ exports.trunc_left = (s, max_length=1024) ->
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")
-        return "..." + s.slice(s.length-max_length+3)
+        return ELLIPSES + s.slice(s.length-max_length+3)
     else
         return s
 

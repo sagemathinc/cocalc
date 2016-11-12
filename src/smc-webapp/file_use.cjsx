@@ -299,8 +299,10 @@ class FileUseStore extends Store
             project_id : undefined   # optional; if not given provide info about all projects
             path       : undefined   # if given, provide info about specific path in specific project only.
             max_age_s  : 600         # user is active if they were active within this amount of time
+        files = undefined
         if opts.project_id? and opts.path?   # users for a particular file
-            files = {_:@get_file_info(opts.project_id, opts.path)}
+            t = @get_file_info(opts.project_id, opts.path)
+            if t? then files = {_:t}
         else if opts.project_id?             # a particular project
             files = @get_project_info(opts.project_id)
         else                                 # across all projects
