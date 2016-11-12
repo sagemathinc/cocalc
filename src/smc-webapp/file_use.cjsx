@@ -51,6 +51,7 @@ immutable = require('immutable')
 
 # smc-specific modules
 misc = require('smc-util/misc')
+{required, defaults} = misc
 {salvus_client} = require('./salvus_client')
 editor = require('./editor')
 
@@ -86,7 +87,7 @@ class FileUseActions extends Actions
         if fix_path
             # This changes .foo.txt.sage-chat to foo.txt.
             path = misc.original_path(path)
-        # console.log('mark_file', project_id, path, action)
+        #console.log('mark_file', project_id, path, action)
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
@@ -96,7 +97,7 @@ class FileUseActions extends Actions
                 if action.slice(0,4) == 'chat'
                     ttl = 5*1000
                 else
-                    ttl = 120*1000
+                    ttl = 90*1000
             #console.log('ttl', ttl)
             key = "#{project_id}-#{path}-#{action}"
             @_mark_file_lock ?= {}
@@ -172,6 +173,7 @@ class FileUseStore extends Store
                 newest_chat = Math.max(newest_chat, user.chat ? 0)
             user.last_read = Math.max(user.last_edited, user.read ? 0)
             user.last_seen = Math.max(Math.max(user.last_read, user.seen ? 0), user.chatseen ? 0)
+            user.last_used = Math.max(user.last_edited, user.open ? 0)
             if @_account_id == account_id
                 you_last_seen = user.last_seen
                 you_last_read = user.last_read
@@ -220,6 +222,21 @@ class FileUseStore extends Store
         if not @_cache?
             @_update_cache()
         return @_cache?.file_use_map[sha1(project_id, path)]
+
+    # Get latest processed info about all use in a particular project.
+    get_project_info: (project_id) =>
+        if not @_cache?
+            @_update_cache()
+        v = {}
+        for id, x of @_cache?.file_use_map
+            if x.project_id == project_id
+                v[id] = x
+        return v
+
+    get_file_use_map: =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.file_use_map
 
     _update_cache: =>
         if not @get('file_use')?
@@ -270,6 +287,40 @@ class FileUseStore extends Store
 
     get_all_unseen: =>
         return (x for x in @get_sorted_file_use_list() when x.is_unseen)
+
+    # Return active users... across all projects, a given project, or a given path in a project,
+    # depending on whether project_id or path is specified.  Returns info as a map
+    #    {account_id:[{project_id:?, path:?, last_used:?}, {project_id:?, path:?, last_used:?}, ...}]}
+    # Here last_used is the server timestamp (in milliseconds) of when they were last active there, and
+    # project_id, path are what they were using.
+    # Will return undefined in no data available yet.
+    get_active_users: (opts) =>
+        opts = defaults opts,
+            project_id : undefined   # optional; if not given provide info about all projects
+            path       : undefined   # if given, provide info about specific path in specific project only.
+            max_age_s  : 600         # user is active if they were active within this amount of time
+        if opts.project_id? and opts.path?   # users for a particular file
+            files = {_:@get_file_info(opts.project_id, opts.path)}
+        else if opts.project_id?             # a particular project
+            files = @get_project_info(opts.project_id)
+        else                                 # across all projects
+            files = @get_file_use_map()
+        if not files?                 # no data yet -- undefined signifies this.
+            return
+        users  = {}
+        now    = salvus_client.server_time() - 0
+        cutoff = now - opts.max_age_s*1000
+        for _, info of files
+            for user in info.users
+                time = user.last_used ? 0
+                # Note: we filter in future, since would be bad/buggy data.  (database could disallow...?)
+                if time >= cutoff and time <= (now + 60000)   # new enough?
+                    (users[user.account_id] ?= []).push  # create array if necessary, then push data about it
+                        last_used  : user.last_used ? 0
+                        project_id : info.project_id
+                        path       : info.path
+        return users
+
 
 class FileUseTable extends Table
     query: ->

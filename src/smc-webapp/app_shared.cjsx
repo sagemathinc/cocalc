@@ -259,12 +259,10 @@ exports.FullscreenButton = rclass
             zIndex     : 10000
             right      : 0
             top        : '1px'
-            fontSize   : '14pt'
+            fontSize   : '13pt'
             padding    : 4
             color      : '#666'
-            fontWeight : 700
             cursor     : 'pointer'
-            boxShadow  : '2px 2px 2px 2px #ccc'
             borderRadius: '3px'
 
         if @props.fullscreen

@@ -4,14 +4,13 @@ misc = require('misc')
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, SAGE_LOGO_COLOR, Loading, Space} = require('./r_misc')
 
-{UsersViewing} = require('./profile')
+{UsersViewing} = require('./other-users')
 
 CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
     position     : 'absolute'
     right        : '3px'
     zIndex       : 1000
-    background   : '#fafafa'
     borderRadius : '3px'
     paddingLeft  : '5px'
     paddingRight : '5px'
@@ -59,6 +58,7 @@ exports.ChatIndicator = rclass
         title    = <span><Icon name='comment'/><Space/> <Space/> {action} chat</span>
         dir      = if @props.is_chat_open then 'down' else 'left'
         style    = misc.copy(CHAT_INDICATOR_STYLE)
+        style.display = 'flex'
         if @props.fullscreen
             style.top   = '1px'
             style.right = '23px'

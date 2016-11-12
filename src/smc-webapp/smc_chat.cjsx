@@ -25,7 +25,7 @@ immutable = require('immutable')
 underscore = require('underscore')
 
 # SMC libraries
-{Avatar} = require('./profile')
+{Avatar} = require('./other-users')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc

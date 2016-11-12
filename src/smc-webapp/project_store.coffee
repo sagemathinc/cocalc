@@ -152,27 +152,32 @@ class ProjectActions extends Actions
     # Pushes to browser history
     # Updates the URL
     set_active_tab: (key) =>
+        store = @get_store()
+        if store.get('active_project_tab') == key
+            # nothing to do
+            return
         @setState(active_project_tab : key)
         switch key
             when 'files'
-                @set_url_to_path(@get_store().get('current_path') ? '')
-                store = @get_store()
+                @set_url_to_path(store.get('current_path') ? '')
                 sort_by_time = store.get('sort_by_time') ? true
                 show_hidden = store.get('show_hidden') ? false
                 @set_directory_files(store.get('current_path'), sort_by_time, show_hidden)
             when 'new'
                 @setState(file_creation_error: undefined)
-                @push_state('new/' + @get_store().get('current_path'))
+                @push_state('new/' + store.get('current_path'))
                 @set_next_default_filename(require('./account').default_filename())
             when 'log'
                 @push_state('log')
             when 'search'
-                @push_state('search/' + @get_store().get('current_path'))
+                @push_state('search/' + store.get('current_path'))
             when 'settings'
                 @push_state('settings')
             else #editor...
-                @push_state('files/' + misc.tab_to_path(key))
-                @set_current_path(misc.path_split(misc.tab_to_path(key)).head)
+                path = misc.tab_to_path(key)
+                @redux.getActions('file_use')?.mark_file(@project_id, path, 'open')
+                @push_state('files/' + path)
+                @set_current_path(misc.path_split(path).head)
 
     add_a_ghost_file_tab: () =>
         current_num = @get_store().get('num_ghost_file_tabs')
@@ -526,6 +531,7 @@ class ProjectActions extends Actions
             window.cpath_args = arguments
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
+
         @setState
             current_path           : path
             page_number            : 0

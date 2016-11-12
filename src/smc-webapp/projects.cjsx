@@ -38,7 +38,7 @@ markdown = require('./markdown')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 {BillingPageSimplifiedRedux} = require('./billing')
-{UsersViewing} = require('./profile')
+{UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {redux_name} = require('project_store')
 

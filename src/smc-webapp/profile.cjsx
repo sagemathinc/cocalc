@@ -20,24 +20,28 @@
 ###############################################################################
 
 misc = require('smc-util/misc')
+
+{salvus_client} = require('./salvus_client')
+
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
-{salvus_client} = require('./salvus_client')
+{ProjectTitle} = require('./projects')
+
 
 Avatar = rclass
     displayName: "Avatar"
 
     propTypes:
-        size         : React.PropTypes.number
-        account      : React.PropTypes.object
-        style        : React.PropTypes.object
-        square       : React.PropTypes.bool
-        line         : React.PropTypes.number
-        goto_line    : React.PropTypes.func
-        project_id   : React.PropTypes.string
-        path         : React.PropTypes.string
-        redux        : React.PropTypes.object
+        size       : React.PropTypes.number
+        account    : React.PropTypes.object
+        style      : React.PropTypes.object
+        square     : React.PropTypes.bool
+        line       : React.PropTypes.number
+        goto_line  : React.PropTypes.func
+        project_id : React.PropTypes.string
+        path       : React.PropTypes.string
+        redux      : React.PropTypes.object
 
     getDefaultProps: ->
         style   : {}
@@ -52,7 +56,7 @@ Avatar = rclass
         @props.account.profile?.image or ""
 
     _alt: ->
-        @props.account.first_name?[0]?.toUpperCase?() or "a"
+        @props.account.first_name?[0]?.toUpperCase?() or "A"
 
     _innerStyle: ->
         display      : 'block'
@@ -96,7 +100,6 @@ Avatar = rclass
             return 'projects'
 
     tooltip: ->
-        {ProjectTitle} = require('./projects')
         switch @viewing_what()
             when 'projects'
                 <Tooltip id="#{@props.account?.first_name or 'anonymous'}">
@@ -145,6 +148,12 @@ Avatar = rclass
 UsersViewing = rclass
     displayName: "UsersViewing"
 
+    # If neither project_id nor path given, then viewing projects; if project_id
+    # given, then viewing that project; if both given, then viewing a particular file.
+    propTypes:
+        project_id : rtypes.string  # optional -- must be given if path is specified
+        path       : rtypes.string  # optional -- if given, viewing a file.
+
     reduxProps:
         file_use :
             file_use : rtypes.immutable
@@ -153,16 +162,10 @@ UsersViewing = rclass
         users :
             user_map : rtypes.immutable   # we use to display the username and letter
 
-    # If neither project_id nor path given, then viewing projects; if project_id
-    # given, then viewing that project; if both given, then viewing a particular file.
-    propTypes:
-        project_id : rtypes.string  # optional -- must be given if path is specified
-        path       : rtypes.string  # optional -- if given, viewing a file.
-
     mixins: [SetIntervalMixin]
 
     componentDidMount: ->
-        @setInterval (=> @forceUpdate()), 5000
+        @setInterval((=> @forceUpdate()), 5000)
 
     _find_most_recent: (log) ->
         latest_key = undefined
@@ -177,8 +180,7 @@ UsersViewing = rclass
     render_avatars: ->
         if not (@props.file_use? and @props.user_map?)
             return
-        return <span></span>
-        #return <div>Avatars for {@props.project_id}, {@props.path}</div>
+        return <div>Avatars for {@props.project_id}, {@props.path}</div>
 
         seconds_for_user_to_disappear = 600
         num_users_to_display = 5 # The full set will show up in an overflow popover

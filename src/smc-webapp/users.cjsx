@@ -59,8 +59,13 @@ class UsersStore extends Store
     get_last_name: (account_id) =>
         return @getIn(['user_map', account_id, 'last_name']) ? 'User'
 
+    # URL of color (defaults to #aaa)
     get_color: (account_id) =>
         return @getIn(['user_map', account_id, 'profile', 'color']) ? '#aaa'
+
+    # URL of image or undefined if none
+    get_image: (account_id) =>
+        return @getIn(['user_map', account_id, 'profile', 'image'])
 
     get_name: (account_id) =>
         user_map = @get('user_map')
