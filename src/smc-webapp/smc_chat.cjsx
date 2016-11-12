@@ -226,7 +226,7 @@ Message = rclass
         # TODO: do something better when we don't know the user (or when sender account_id is bogus)
         <Col key={0} xsHidden={true} sm={1} style={style} >
             <div>
-                {<Avatar account={account} /> if account? and @props.show_avatar}
+                {<Avatar account_id={account.account_id} /> if account? and @props.show_avatar}
             </div>
         </Col>
 

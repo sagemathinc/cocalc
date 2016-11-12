@@ -20,6 +20,8 @@
 #
 ###############################################################################
 
+onecolor = require('onecolor')
+
 misc = require('smc-util/misc')
 
 {server_time} = require('./salvus_client').salvus_client
@@ -39,10 +41,6 @@ UPDATE_INTERVAL_S = 5
 # longer than default for the mark_file function in the file_use actions.
 MAX_AGE_S         = 600
 
-exports.Avatar = rclass
-    render : ->
-        <div>NA</div>
-
 CIRCLE_OUTER_STYLE =
     textAlign : "center"
     cursor    : 'pointer'
@@ -52,7 +50,7 @@ CIRCLE_INNER_STYLE =
     borderRadius : '50%'
     fontFamily   : 'sans-serif'
 
-Avatar = rclass
+exports.Avatar = Avatar = rclass
     displayName: "Avatar"
 
     reduxProps:
@@ -65,12 +63,15 @@ Avatar = rclass
         max_age_s  : rtypes.number.isRequired
         project_id : rtypes.string   # if given, showing avatar info for a project (or specific file)
         path       : rtypes.string   # if given, showing avatar for a specific file
-        activity   : rtypes.object.isRequired  # most recent activity -- {project_id:?, path:?, last_used:?} object
+        activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
+                                     # When defined, fade out over time; click goes to that file.
 
     getDefaultProps: ->
-        size : 30
+        size      : 32
+        max_age_s : 600
 
     click_avatar: ->
+        return if not @props.activity?
         {project_id, path} = @props.activity
         switch @viewing_what()
             when 'projects'
@@ -109,12 +110,14 @@ Avatar = rclass
             return 'projects'
 
     render_line: ->
+        return if not @props.activity?
         {project_id, path} = @props.activity
         line = @get_cursor_line(project_id, path)
         if line?
             <span><Space/> (Line {line})</span>
 
     get_cursor_line: ->
+        return if not @props.activity?
         {project_id, path} = @props.activity
         line = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)?[0]?['y']
         if line?
@@ -124,6 +127,8 @@ Avatar = rclass
 
     render_tooltip_content: ->
         name = @get_name()
+        if not @props.activity?
+            return <span>{name}</span>
         switch @viewing_what()
             when 'projects'
                 {ProjectTitle} = require('./projects')  # MUST be imported here.
@@ -148,20 +153,16 @@ Avatar = rclass
             @render_letter()
 
     render_letter: ->
-        bg    = @get_background_color()
-        rgb = misc.parse_rgb_color(bg)
-        if rgb[0] + rgb[1] + rgb[2] >= 400
-            color = 'black'
-        else
-            color = 'white'
+        bg = @get_background_color()
         style =
             backgroundColor : bg
-            color           : color
+            color           : if onecolor(bg).magenta() >= 0.4 then 'white' else 'black'
         <span style={misc.merge style, CIRCLE_INNER_STYLE}>
             {@letter()}
         </span>
 
     fade: ->
+        return 1 if not @props.activity?
         {last_used} = @props.activity
         return 1 - ((server_time() - last_used) / (@props.max_age_s*1000))
 
@@ -173,6 +174,7 @@ Avatar = rclass
         outer_style =
             height     : "#{size}px"
             width      : "#{size}px"
+            lineHeight : "#{size}px"
             fontSize   : "#{.7*size}px"
             opacity    : @fade()
 

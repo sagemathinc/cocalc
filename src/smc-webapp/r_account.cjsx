@@ -594,9 +594,13 @@ ProfileSettings = rclass
     propTypes :
         redux         : rtypes.object
         email_address : rtypes.string
-        profile       : rtypes.object
         first_name    : rtypes.string
         last_name     : rtypes.string
+
+    reduxProps:
+        account :
+            account_id : rtypes.string
+            profile    : rtypes.immutable
 
     getInitialState: ->
         show_instructions : false
@@ -632,9 +636,9 @@ ProfileSettings = rclass
         <Row>
             <Col md=6 key='checkbox'>
                 <Checkbox
-                    ref="checkbox"
-                    checked={@props.profile?.image? and (@props.profile.image isnt "")}
-                    onChange={@onGravatarSelect}>
+                    ref      = "checkbox"
+                    checked  = {!!@props.profile.get('image')}
+                    onChange = {@onGravatarSelect}>
                     Use gravatar
                 </Checkbox>
             </Col>
@@ -644,9 +648,11 @@ ProfileSettings = rclass
         </Row>
 
     render: ->
-        <Panel header={<h2> <Avatar size=30 account={@props} /> Profile </h2>}>
+        if not @props.account_id? or not @props.profile?
+            return <Loading />
+        <Panel header={<h2> <Avatar account_id={@props.account_id} /> Profile </h2>}>
             <LabeledRow label='Color'>
-                <ColorPicker color={@props.profile?.color} style={maxWidth:"150px"} onChange={@onColorChange}/>
+                <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
             <LabeledRow label='Color'>
                 {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
@@ -1382,7 +1388,6 @@ exports.AccountSettingsTop = rclass
         font_size       : rtypes.number
         editor_settings : rtypes.object
         other_settings  : rtypes.object
-        profile         : rtypes.object
         groups          : rtypes.array
 
     render: ->
@@ -1416,7 +1421,6 @@ exports.AccountSettingsTop = rclass
                         redux           = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}
-                        profile       = {@props.profile}
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />

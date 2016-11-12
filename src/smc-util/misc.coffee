@@ -1791,8 +1791,3 @@ exports.local_storage_length = () ->
     catch e
         return 0
 
-# rgb(30,50,17) --> [30, 50, 17]
-exports.parse_rgb_color = (rgb) ->
-    # see http://stackoverflow.com/questions/11068240/what-is-the-most-efficient-way-to-parse-a-css-color-in-javascript
-    return (parseInt(x) for x in rgb.split("(")[1].split(")")[0].split(","))
-
