@@ -1,0 +1,214 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
+# and the Terminal.
+#
+#    Copyright (C) 2015, SageMath, Inc.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+# How frequently all UsersViewing componenents are completely updated.
+# This is only needed to ensure that faces fade out; any newly added faces
+# will still be displayed instantly.
+UPDATE_INTERVAL_S = 30
+
+# Cutoff for how recent activity must be to show users.  Should be significantly
+# longer than default for the mark_file function in the file_use actions.
+MAX_AGE_S         = 600
+
+misc = require('smc-util/misc')
+
+{server_time} = require('./salvus_client').salvus_client
+
+{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
+{Loading, SetIntervalMixin} = require('./r_misc')
+
+{OverlayTrigger, Tooltip} = require('react-bootstrap')
+
+exports.Avatar = rclass
+    render : ->
+        <div>NA</div>
+
+CIRCLE_OUTER_STYLE =
+    textAlign : "center"
+    cursor    : 'pointer'
+
+CIRCLE_INNER_STYLE =
+    display      : 'block'
+    borderRadius : '50%'
+    fontFamily   : 'sans-serif'
+
+Avatar = rclass
+    displayName: "Avatar"
+
+    reduxProps:
+        users :
+            user_map : rtypes.immutable   # we use to display the username and face
+
+    propTypes:
+        account_id : rtypes.string.isRequired
+        size       : rtypes.number.isRequired
+        max_age_s  : rtypes.number.isRequired
+        project_id : rtypes.string   # if given, showing avatar info for a project (or specific file)
+        path       : rtypes.string   # if given, showing avatar for a specific file
+        activity   : rtypes.object.isRequired  # most recent activity -- {project_id:?, path:?, last_used:?} object
+
+    getDefaultProps: ->
+        size : 30
+
+    click_avatar: ->
+
+    letter: ->
+        if first_name = @props.user_map.getIn([@props.account_id, 'first_name'])
+            return first_name.toUpperCase()[0]
+        else
+            return '?'
+
+    get_name: ->
+        misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 15).trim()
+
+    get_background_color: ->
+        redux.getStore('users').get_color(@props.account_id)
+
+    get_image: ->
+        redux.getStore('users').get_image(@props.account_id)
+
+    viewing_what: ->
+        if @props.path? and @props.project_id?
+            return 'file'
+        else if @props.project_id?
+            return 'project'
+        else
+            return 'projects'
+
+    render_line: ->
+
+    render_tooltip: (project_id, path) ->
+        name = @get_name()
+        switch @viewing_what()
+            when 'projects'
+                {ProjectTitle} = require('./projects')  # MUST be imported here.
+                content = <span>{name} last seen at <ProjectTitle project_id={project_id} /></span>
+            when 'project'
+                content = <span>{name} last seen at {path}</span>
+            when 'file'
+                content = <span>{name} {@render_line()}</span>
+        <Tooltip id={name}>
+            {content}
+        </Tooltip>
+
+    render_inside: ->
+        if url=@get_image()
+            <img
+                style = {borderRadius:'50%'}
+                src   = {url}
+            />
+        else
+            @render_letter()
+
+    render_letter: ->
+        bg = @get_background_color()
+        color = 'white'
+        style =
+            backgroundColor : bg
+            color           : color
+        <span style={misc.merge style, CIRCLE_INNER_STYLE}>
+            {@letter()}
+        </span>
+
+    render : ->
+        if not @props.user_map?
+            return <Loading />
+
+        {project_id, path, last_used} = @props.activity
+        fade = 1 - ((server_time() - last_used) / (@props.max_age_s*1000))
+
+        size = @props.size
+        outer_style =
+            height     : "#{size}px"
+            width      : "#{size}px"
+            fontSize   : "#{.7*size}px"
+            opacity    : fade
+
+        <OverlayTrigger placement='top' overlay={@render_tooltip(project_id, path)}>
+            <div style = {display:'inline-block', pointer:'cursor'}>
+                <div
+                    style   = {misc.merge outer_style, CIRCLE_OUTER_STYLE}
+                    onClick = {@click_avatar}
+                    >
+                    {@render_inside()}
+                </div>
+            </div>
+        </OverlayTrigger>
+
+most_recent = (activity) ->
+    last_used = activity[0].last_used
+    y = activity[0]
+    for x in activity.slice(1)
+        if x.last_used <= last_used
+            y = x
+            last_used = x.last_used
+    return y
+
+
+
+exports.UsersViewing = rclass
+    displayName: "UsersViewing"
+
+    # If neither project_id nor path given, then viewing projects; if project_id
+    # given, then viewing that project; if both given, then viewing a particular file.
+    propTypes:
+        project_id : rtypes.string  # optional -- must be given if path is specified
+        path       : rtypes.string  # optional -- if given, viewing a file.
+        max_age_s  : rtypes.number.isRequired
+
+    getDefaultProps: ->
+        max_age_s : MAX_AGE_S
+
+    mixins: [SetIntervalMixin]
+
+    componentDidMount: ->
+        @setInterval((=> @forceUpdate()), UPDATE_INTERVAL_S*1000)
+
+    reduxProps:
+        file_use :
+            file_use : rtypes.immutable   # only so component is updated immediately whenever file use changes
+        account :
+            account_id : rtypes.string    # so we can exclude ourselves from list of faces
+
+    render_active_users: (users) ->
+        v = ({account_id:account_id, activity:most_recent(activity)} for account_id, activity of (users ? {}))
+        v.sort((a,b) -> misc.cmp(b.last_used, a.last_used))
+        for {account_id, activity} in v
+            if @props.account_id != account_id   # only show other users
+                <Avatar
+                    key        = {account_id}
+                    account_id = {account_id}
+                    max_age_s  = {@props.max_age_s}
+                    project_id = {@props.project_id}
+                    path       = {@props.path}
+                    activity   = {activity} />
+
+    render: ->
+        if not @props.file_use? or not @props.account_id?
+            return <Loading/>
+        users = redux.getStore('file_use').get_active_users
+            project_id : @props.project_id
+            path       : @props.path
+            max_age_s  : @props.max_age_s
+        <div>{@render_active_users(users)}</div>
+
+

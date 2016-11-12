@@ -339,7 +339,7 @@ ProjectMainContent = rclass
                     style = {display:'flex', height:'100%'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px'}>
+                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', width:0}>
                         {editor}
                     </div>
                     {@render_drag_bar(path)}
@@ -378,7 +378,6 @@ ProjectMainContent = rclass
                     <Loading />
                 else
                     @render_editor_tab()
-
 
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
