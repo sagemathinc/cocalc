@@ -92,13 +92,13 @@ Avatar = rclass
             return '?'
 
     get_name: ->
-        misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 15).trim()
+        return misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 15).trim()
 
     get_background_color: ->
-        redux.getStore('users').get_color(@props.account_id)
+        return redux.getStore('users').get_color(@props.account_id)
 
     get_image: ->
-        redux.getStore('users').get_image(@props.account_id)
+        return redux.getStore('users').get_image(@props.account_id)
 
     viewing_what: ->
         if @props.path? and @props.project_id?
@@ -149,7 +149,11 @@ Avatar = rclass
 
     render_letter: ->
         bg    = @get_background_color()
-        color = 'white'
+        rgb = misc.parse_rgb_color(bg)
+        if rgb[0] + rgb[1] + rgb[2] >= 400
+            color = 'black'
+        else
+            color = 'white'
         style =
             backgroundColor : bg
             color           : color
