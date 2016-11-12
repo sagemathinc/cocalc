@@ -63,6 +63,9 @@ editors = {}
 get_key = (project_id, path) ->
     return "#{project_id}-#{path}"
 
+exports.get_editor = (project_id, path) ->
+    return editors[get_key(project_id, path)]
+
 exports.register_nonreact_editor = (opts) ->
     opts = defaults opts,
         f         : required   # a *function* f(project_id, filename, extra_opts) that returns instance of editor.FileEditor

@@ -377,6 +377,13 @@ class ProjectActions extends Actions
                             @set_active_tab(misc.path_to_tab(opts.path))
         return
 
+    # If the given path is open, and editor supports going to line, moves to the given line.
+    # Otherwise, does nothing.
+    goto_line: (path, line) =>
+        # Obviously, for now, this only works for non-react editors.
+        # For react editors later, will get their actions and pass this on to them.
+        wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+
     # Used by open/close chat below.
     _set_chat_state: (path, is_chat_open) =>
         open_files = @get_store()?.get_open_files()  # store might not be initialized
@@ -1206,6 +1213,14 @@ class ProjectStore extends Store
 
     get_open_files: =>
         return @get('open_files')
+
+    # Returns the cursor positions for the given project_id/path, if that
+    # file is opened, and supports cursors.   Currently this only works
+    # for old sync'd codemirror editors.  Otherwise, returns undefined.
+    # To do this right, we'll want to have implement redux.getEditorStore(...)
+    # and *MOVE* this method there.
+    get_users_cursors: (path, account_id) =>
+        return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
 
     is_file_open: (path) =>
         return @getIn(['open_files', path])?

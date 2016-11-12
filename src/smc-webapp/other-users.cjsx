@@ -3,7 +3,7 @@
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX
 # and the Terminal.
 #
-#    Copyright (C) 2015, SageMath, Inc.
+#    Copyright (C) 2016, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,23 +20,24 @@
 #
 ###############################################################################
 
-# How frequently all UsersViewing componenents are completely updated.
-# This is only needed to ensure that faces fade out; any newly added faces
-# will still be displayed instantly.
-UPDATE_INTERVAL_S = 30
-
-# Cutoff for how recent activity must be to show users.  Should be significantly
-# longer than default for the mark_file function in the file_use actions.
-MAX_AGE_S         = 600
-
 misc = require('smc-util/misc')
 
 {server_time} = require('./salvus_client').salvus_client
 
 {rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
-{Loading, SetIntervalMixin} = require('./r_misc')
+{Loading, SetIntervalMixin, Space} = require('./r_misc')
 
 {OverlayTrigger, Tooltip} = require('react-bootstrap')
+
+# How frequently all UsersViewing componenents are completely updated.
+# This is only needed to ensure that faces fade out; any newly added faces
+# will still be displayed instantly.  Also, updating more frequently updates
+# the line positions in the tooltip.
+UPDATE_INTERVAL_S = 5
+
+# Cutoff for how recent activity must be to show users.  Should be significantly
+# longer than default for the mark_file function in the file_use actions.
+MAX_AGE_S         = 600
 
 exports.Avatar = rclass
     render : ->
@@ -70,6 +71,19 @@ Avatar = rclass
         size : 30
 
     click_avatar: ->
+        {project_id, path} = @props.activity
+        switch @viewing_what()
+            when 'projects'
+                @actions('projects').open_project
+                    project_id : project_id
+                    target     : "files"
+                    switch_to  : true
+            when 'project'
+                redux.getProjectActions(project_id).open_file(path: path)
+            when 'file'
+                line = @get_cursor_line()
+                if line?
+                    redux.getProjectActions(project_id).goto_line(path, line)
 
     letter: ->
         if first_name = @props.user_map.getIn([@props.account_id, 'first_name'])
@@ -95,19 +109,33 @@ Avatar = rclass
             return 'projects'
 
     render_line: ->
+        {project_id, path} = @props.activity
+        line = @get_cursor_line(project_id, path)
+        if line?
+            <span><Space/> (Line {line})</span>
 
-    render_tooltip: (project_id, path) ->
+    get_cursor_line: ->
+        {project_id, path} = @props.activity
+        line = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)?[0]?['y']
+        if line?
+            return line + 1
+        else
+            return undefined
+
+    render_tooltip_content: ->
         name = @get_name()
         switch @viewing_what()
             when 'projects'
                 {ProjectTitle} = require('./projects')  # MUST be imported here.
-                content = <span>{name} last seen at <ProjectTitle project_id={project_id} /></span>
+                <span>{name} last seen at <ProjectTitle project_id={@props.activity.project_id} /></span>
             when 'project'
-                content = <span>{name} last seen at {path}</span>
+                <span>{name} last seen at {@props.activity.path}</span>
             when 'file'
-                content = <span>{name} {@render_line()}</span>
-        <Tooltip id={name}>
-            {content}
+                <span>{name} {@render_line()}</span>
+
+    render_tooltip: ->
+        <Tooltip id={@props.account_id}>
+            {@render_tooltip_content()}
         </Tooltip>
 
     render_inside: ->
@@ -120,7 +148,7 @@ Avatar = rclass
             @render_letter()
 
     render_letter: ->
-        bg = @get_background_color()
+        bg    = @get_background_color()
         color = 'white'
         style =
             backgroundColor : bg
@@ -129,21 +157,22 @@ Avatar = rclass
             {@letter()}
         </span>
 
+    fade: ->
+        {last_used} = @props.activity
+        return 1 - ((server_time() - last_used) / (@props.max_age_s*1000))
+
     render : ->
         if not @props.user_map?
             return <Loading />
-
-        {project_id, path, last_used} = @props.activity
-        fade = 1 - ((server_time() - last_used) / (@props.max_age_s*1000))
 
         size = @props.size
         outer_style =
             height     : "#{size}px"
             width      : "#{size}px"
             fontSize   : "#{.7*size}px"
-            opacity    : fade
+            opacity    : @fade()
 
-        <OverlayTrigger placement='top' overlay={@render_tooltip(project_id, path)}>
+        <OverlayTrigger placement='top' overlay={@render_tooltip()}>
             <div style = {display:'inline-block', pointer:'cursor'}>
                 <div
                     style   = {misc.merge outer_style, CIRCLE_OUTER_STYLE}
@@ -162,8 +191,6 @@ most_recent = (activity) ->
             y = x
             last_used = x.last_used
     return y
-
-
 
 exports.UsersViewing = rclass
     displayName: "UsersViewing"
