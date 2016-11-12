@@ -48,6 +48,7 @@ CIRCLE_INNER_STYLE =
     display      : 'block'
     borderRadius : '50%'
     fontFamily   : 'sans-serif'
+    marginTop    : '2px'
 
 exports.Avatar = Avatar = rclass
     displayName: "Avatar"
@@ -143,13 +144,17 @@ exports.Avatar = Avatar = rclass
         </Tooltip>
 
     render_inside: ->
-        if url=@get_image()
-            <img
-                style = {borderRadius:'50%', width:'100%', marginBottom: '4px'}
-                src   = {url}
-            />
+        url = @get_image()
+        if url
+            @render_image(url)
         else
             @render_letter()
+
+    render_image: (url) ->
+        <img
+            style = {borderRadius:'50%', width:'100%', verticalAlign:'top'}
+            src   = {url}
+        />
 
     render_letter: ->
         bg = @get_background_color()

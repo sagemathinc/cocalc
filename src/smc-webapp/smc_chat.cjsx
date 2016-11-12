@@ -204,7 +204,7 @@ Message = rclass
         if @props.is_prev_sender
             margin_top = '5px'
         else
-            margin_top = '27px'
+            margin_top = '15px'
 
         if sender_is_viewer(@props.account_id, @props.message)
             textAlign = 'left'
@@ -226,7 +226,7 @@ Message = rclass
         # TODO: do something better when we don't know the user (or when sender account_id is bogus)
         <Col key={0} xsHidden={true} sm={1} style={style} >
             <div>
-                {<Avatar account_id={account.account_id} /> if account? and @props.show_avatar}
+                {<Avatar size={32} account_id={account.account_id} /> if account? and @props.show_avatar}
             </div>
         </Col>
 
