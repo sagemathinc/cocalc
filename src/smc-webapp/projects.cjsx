@@ -1383,7 +1383,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                         </Col>
                         <Col sm=4>
-                            <UsersViewing />
+                            <UsersViewing style={width:'100%'}/>
                         </Col>
                     </Row>
                     <Row>

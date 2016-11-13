@@ -387,7 +387,7 @@ class ProjectActions extends Actions
     # Used by open/close chat below.
     _set_chat_state: (path, is_chat_open) =>
         open_files = @get_store()?.get_open_files()  # store might not be initialized
-        if open_files?
+        if open_files? and path?
             @setState
                 open_files : open_files.setIn([path, 'is_chat_open'], is_chat_open)
 
@@ -418,6 +418,9 @@ class ProjectActions extends Actions
 
     # OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
     flag_file_activity: (filename) =>
+        if not filename?
+            return
+
         if not @_activity_indicator_timers?
             @_activity_indicator_timers = {}
         timer = @_activity_indicator_timers[filename]

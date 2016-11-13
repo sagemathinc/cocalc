@@ -93,7 +93,7 @@ exports.Avatar = Avatar = rclass
             return '?'
 
     get_name: ->
-        return misc.trunc_middle(redux.getStore('users').get_name(@props.account_id), 20).trim()
+        return misc.trunc_middle(redux.getStore('users').get_name(@props.account_id)?.trim(), 20)
 
     get_background_color: ->
         return redux.getStore('users').get_color(@props.account_id)
@@ -168,7 +168,9 @@ exports.Avatar = Avatar = rclass
     fade: ->
         return 1 if not @props.activity?
         {last_used} = @props.activity
-        return 1 - ((server_time() - last_used) / (@props.max_age_s*1000))
+        # don't fade out completely as then just see an empty face, which looks broken...
+        return misc.ensure_bound(1 - ((server_time() - last_used) / (@props.max_age_s*1000)), 0, .85)
+
 
     render : ->
         if not @props.user_map?
@@ -202,6 +204,11 @@ most_recent = (activity) ->
             last_used = x.last_used
     return y
 
+USERS_VIEWING_STYLE =
+    overflowX : 'auto'
+    display   : 'flex'
+    zIndex    : 1
+
 exports.UsersViewing = rclass
     displayName: "UsersViewing"
 
@@ -212,10 +219,12 @@ exports.UsersViewing = rclass
         path       : rtypes.string  # optional -- if given, viewing a file.
         max_age_s  : rtypes.number.isRequired
         size       : rtypes.number
+        style      : rtypes.object
 
     getDefaultProps: ->
         max_age_s : MAX_AGE_S
-        size      : 30
+        size      : 24
+        style     : {maxWidth:"120px"}
 
     mixins: [SetIntervalMixin]
 
@@ -231,10 +240,12 @@ exports.UsersViewing = rclass
     render_active_users: (users) ->
         v = ({account_id:account_id, activity:most_recent(activity)} for account_id, activity of (users ? {}))
         v.sort((a,b) -> misc.cmp(b.last_used, a.last_used))
+        i = 0
         for {account_id, activity} in v
             if @props.account_id != account_id   # only show other users
+                i += 1
                 <Avatar
-                    key        = {account_id}
+                    key        = {account_id+i}
                     account_id = {account_id}
                     max_age_s  = {@props.max_age_s}
                     project_id = {@props.project_id}
@@ -249,6 +260,8 @@ exports.UsersViewing = rclass
             project_id : @props.project_id
             path       : @props.path
             max_age_s  : @props.max_age_s
-        <div>{@render_active_users(users)}</div>
+        <div style={misc.merge(misc.copy(@props.style), USERS_VIEWING_STYLE)}>
+            {@render_active_users(users)}
+        </div>
 
 

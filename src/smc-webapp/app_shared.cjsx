@@ -106,7 +106,7 @@ exports.NotificationBell = rclass
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9
-            count_styles.left = '15.8'
+            count_styles.left = '15.8px'
             <span style={count_styles}>9+</span>
         else if @props.count > 0
             <span style={count_styles}>{@props.count}</span>

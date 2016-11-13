@@ -44,7 +44,6 @@ exports.ChatIndicator = rclass
         <UsersViewing
             project_id = {@props.project_id}
             path       = {@props.path}
-            size       = {24}
         />
 
     render_chat_button: ->

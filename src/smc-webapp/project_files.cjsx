@@ -2013,10 +2013,10 @@ exports.ProjectFiles = rclass ({name}) ->
                         create_folder       = {@create_folder} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 4}>
+                <Col sm={if public_view then 6 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                <Col sm=3>
+                {<Col sm=4>
                     <div style={height:0}>  {#height 0 so takes up no vertical space}
                         <UsersViewing project_id={@props.project_id} />
                     </div>
@@ -2027,7 +2027,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
-                </Col>
+                </Col> if not public_view}
             </Row>
             <Row>
                 <Col sm=8>
